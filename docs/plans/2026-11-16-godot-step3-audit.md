@@ -54,7 +54,7 @@ back faces.
   `TagOverlayColour`, `HoverOverlayColour`, the red, tagged and tinted light and the fog alpha. Both engines build
   materials from it. The decay stage was already shared (`WorldView.DecayStage`, `TileView.FaceTexture`,
   `TerrainPiece.FromModel`, `ClassicMaterialRecipe.FromKmf`). The environment pass and the fade moved in 3f
-  (`ObjectMaterialLook`); Godot's environment pass waits for 3i.
+  (`ObjectMaterialLook`); Godot's environment pass came in 3i.
 - **Liquids (B), moved in 3c.** `LiquidSurfaceWave` and `LiquidSurfaceField` hold the rest heights 0.9 and 0.85, the
   amplitudes, the 30 per second frame, both phase formulas and the 3x3 grid per tile, filling reused buffers. Normals
   are the normalised sum of unit face normals; Unity takes them too, where it recalculated them each frame (the
@@ -161,10 +161,10 @@ back faces.
   passes. `EffectGroupParts.Of`, `ClassicTorchFlame.RenderPoint` and `ClassicTorchFlamePhases` (`Dk2Lcg(1)` offsets).
 - **Godot, 3f.** `WorldScene.Objects.cs` (the plan's step 3f lists what it draws): shared `ArrayMesh`es, and
   `ZeroOrderOffset` for the sorting-order-0 window. Identical objects (gold, eggs) may become a `MultiMeshInstance3D`.
-- **For 3i.** The environment pass needs the env-map coordinates in the vertex shader and must draw over plan submeshes:
+- **Done in 3i.** The environment pass has the env-map coordinates in the vertex shader and draws over plan submeshes:
   DK2 draws a plan as the overlay plus one additive environment pass ([structure-drawing.md](../research/structure-drawing.md)
-  §5); Unity draws the overlay twice, Godot once. The cage (order 0) takes a `ZeroOrderOffset` key, so it sorts among
-  blended objects by distance as in Unity, not always under them.
+  §5); Unity draws the overlay twice, Godot the overlay and the pass. The cage (order 0) takes a `ZeroOrderOffset` key, so
+  it sorts among blended objects by distance as in Unity.
 
 ## Lighting
 
@@ -186,18 +186,18 @@ back faces.
   - Emission, a distance fade from the eye (`:272-280`), the environment-map UV (`:282-292`) and `DK2PackedDiffuse`,
     floor to 1/255 and clamp (`:296`).
   - The fragment is texture x diffuse, alpha only when transparent (`:300-308`).
-- **B left.** The CPU references exist for each term, but the per-flag sum (`:164-185`), the bound-sphere skip
-  (`:164-171`), the anchor-or-origin table choice (`:144-151`) and the packed diffuse (`.hlsl:32-35`) exist only in HLSL.
-  They move as `ClassicVertexLight.Sum` with tests; each engine's shader then copies one tested reference. The intensity
-  packing `round(I*128) | flags << 8` (`ClassicTileLightBuffer.cs:84`) is P.
+- **B, moved in 3i.** The per-flag sum, the bound-sphere skip, the anchor-or-origin table choice and the packed diffuse
+  existed only in HLSL; they are now `ClassicVertexLight` (`TableTile`, `TableSum`, `PackedDiffuse`) with tests, and each
+  engine's shader copies that reference. The intensity packing `round(I*128) | flags << 8`
+  (`ClassicTileLightBuffer.cs:84`) is P.
 - **Owner-tuned (P, ADR-0522).** The fill tint (0.55, 0.44, 0.28), fade 0.5 to 1, unlit fill 0.25, fill floor 0.5
   (`DungeonRunner.cs:92-104`, same values in the scene), and Unity's fill source: the default skybox SH and a white
   directional light at 1.1 (`Scenes/Dungeon.unity`). Godot gets its own values for each.
-- **Godot.** A spatial `ShaderMaterial` with `render_mode unshaded` (or a `light()` that does nothing), the sum in
-  `vertex()` and a varying to `fragment()`. Godot spatial shaders have no structured buffers: the 24 sources a tile go
-  in a float texture (two texels a source), the counts in another, read with `texelFetch` in `vertex()`; the fill and
-  globals are global shader uniforms set through `RenderingServer`. `ClassicTileLightBuffer`'s dirty range becomes an
-  `Image` region update. Exposure (`ClassicExposure.shader`, `pow(c, 30/Gamma)`) is a full-screen canvas pass.
+- **Godot (built in 3i).** A spatial `ShaderMaterial` with `render_mode unshaded`, the sum in `vertex()` and a varying to
+  `fragment()`. Godot spatial shaders have no structured buffers: the tables go in a float texture array, a layer per
+  tile row, `ClassicLightTableLayout.TexelsPerTile` texels a tile (the count and fill weight, two a source), read with
+  `texelFetch` in `vertex()`; a changed layer is uploaded alone. The globals are global shader uniforms. Exposure
+  (`ClassicExposure.shader`, `pow(c, 30/Gamma)`) is folded into the camera's colour correction table, no canvas pass.
 
 ## Creature shadows
 
@@ -330,20 +330,18 @@ terrain and the camera; then each step adds one kind of thing to the world.
   picking, the hand cursor, the cage and the placement cursor, checked by scripted-pointer captures.
 - **3f. Objects, structures and torch meshes.** Done 2026-11-17 (plan step 3f, which has the numbers; ADR-0805). Moved:
   `RenderRotation`, `ObjectMaterialLook`, `EffectGroupParts`, the flame point and phases. Godot: the Heart, doors, traps,
-  torch meshes and flames, checked against the Unity probe frames; the environment pass waits for 3i.
+  torch meshes and flames, checked against the Unity probe frames; the environment pass came in 3i.
 - **3g. Creatures.** Done 2026-11-17 (plan step 3g, which has the numbers; ADR-0805). Moved: `SceneFrame`,
   `ISceneFrameHost`, `SceneCreatures` (open point 7). Godot: the imps and the query follow on the drawn position.
 - **3h. Entity hover and the Hand.** Done 2026-11-17 (plan step 3h, which has the numbers; ADR-0805). Moved: the pick measures and the cull.
   Godot: entity offers, the red pass, the gold swap (uncaptured); pickup and drop were wired in 3e. The hover sound waits for
-  step 4, the hand light for 3i.
-- **3i. Lighting.** Move: `ClassicVertexLight.Sum` and the packed diffuse with tests. Godot: the vertex-lit shader, the
-  light-table textures, the publisher, ambient keys, torch, portal, object, effect and hand lights, the environment
-  pass (also over plans, and the cage's key: see *Objects*), the exposure pass, and Godot's own fill and fade (open point 2), replacing 3c's stand-in light of 0.5 and
-  uploading the liquids' normals. Check: captures of the start frame and a lit room against the Unity probe frames (open
-  point 3). Acceptance (owner, 2026-11-16, who found Godot's scene "too dark, too bland" and kept this order): the lit
-  frames must not look too dark or too bland next to them.
+  step 4; the hand light came in 3i.
+- **3i. Lighting.** Done 2026-11-18 (plan step 3i, which has the numbers; ADR-0805). Moved: `ClassicVertexLight` (the table sum
+  and the packed diffuse) and `ClassicLightTableLayout`. Godot: the vertex-lit shader and light-table textures, the publisher,
+  the ambient keys and the torch, portal, object and Hand lights, the environment pass (also over plans), the cage's key,
+  the liquids' normals and the exposure in the colour correction. Against Unity's in-game frames: see open points 2 and 3.
 - **3j. Creature shadows.** Move: source selection, fade and the silhouette projection. Godot: the chosen path (open
-  point 8). Check: a capture of an imp beside a torch; tests for the selection ties and the projection.
+  point 8), pending the owner's choice of modern lighting (the plan). Check: a capture of an imp beside a torch; tests for the selection ties and the projection.
 - **3k. Effects and status flowers.** Move: `EffectFilters`, the flower colour reference. Godot: billboards, flat
   quads, mesh particles, flowers and the dollar in the blended stream, given their order through sorting offsets
   (`PlaceItems`/`RunsBehind`), or Godot sorts them by real distance among the run instances. Check: dig debris and a
@@ -377,15 +375,17 @@ owner's open editor must not be driven.
 ## Open points for the owner
 
 1. **The frame.** Decided (2026-11-16, option 1): an explicit Z flip through the tested `RightHandedFrame`.
-2. **How Godot's lighting is tuned.** Decided by the owner (2026-11-16): the DK2 terms are shared; the fill, the
-   distance fade and the exposure are Godot's, starting from Unity's ADR-0522 values and tuned by eye.
-3. **What to compare against.** Settled with point 2 (2026-11-16): 3i and 3j are checked by eye. Unity probe frames now
-   exist (d735490a fixed `ClassicWorldLightingProbe`; Level1 and Level7 in batch mode, recipe in the plan's step 3);
-   3f, 3g and 3i compare against them.
+2. **How Godot's lighting is tuned.** Decided by the owner (2026-11-16) and corrected in 3i (2026-11-18): the DK2 terms are
+   shared; the target is Unity's in-game look from the owner's saved scene (native initial ambient, fog of war), which is
+   DK2's light with the ADR-0522 distance fade and no fill or sun. `--light-fill` adds the ADR-0522 fill. The owner then
+   asked for a prototype of modern Godot lighting (the plan's item after 3i).
+3. **What to compare against.** Corrected in 3i: the in-game frames of `ClassicWorldLightingProbe` since cd4e04a0 (Level1 and
+   Level7 in batch mode, recipe in the plan's step 3); the earlier probe frames had no grading and no sun. 3f and 3g
+   compared against the earlier ones; 3i against the in-game ones, within 0.002 luminance and 0.004 saturation.
 4. **Blended ordering in Godot.** Decided in 3d by prototype and engine source: one instance per run with
    `sorting_offset`; the exact per-triangle order is kept, with no deviation.
 5. **The light publisher's pose.** Unity gives it a pose with zero centre shift, pitch and yaw (`DungeonScene.cs:892-899`).
-   Should Godot pass `ClassicCamera`'s full pose (and Unity follow), or match Unity's zero shift for now?
+   Decided in 3i: Godot matches Unity's zero shift, pitch and yaw; passing the full pose in both engines stays open.
 6. **A no-install mode.** Decided (2026-11-16): Godot requires the install, like the HUD, with no placeholder mode and
    no free camera.
 7. **The scene frame order.** Decided in 3g (ADR-0805): a shared `SceneFrame`, hosted by `DungeonScene` and `WorldScene`.

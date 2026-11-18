@@ -13,7 +13,7 @@ public sealed class ClassicLightTable
     public const int MaximumStaticSources = 12, MaximumSources = 24;
     private readonly ClassicPointLight[] _lights = new ClassicPointLight[MaximumSources];
     private readonly float[] _distancesSquared = new float[MaximumSources];
-    private readonly TilePos _tile;
+    private TilePos _tile;
 
     public ClassicLightTable(TilePos tile) => _tile = tile;
     public TilePos Tile => _tile;
@@ -28,6 +28,15 @@ public sealed class ClassicLightTable
     {
         BeginStatic();
         AppendStatic(candidates);
+    }
+
+    /// <summary>A freed table taken again for <paramref name="tile"/>, as a new one: empty, with no static stamp.</summary>
+    internal void Reuse(TilePos tile)
+    {
+        _tile = tile;
+        Revision++;
+        Count = StaticCount = 0;
+        StaticFrame = default;
     }
 
     internal void BeginStatic()

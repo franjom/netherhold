@@ -196,6 +196,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private Vector2 _pointer;
     private bool _pointerInWindow = true;
     private double _elapsed;
+    /// <summary>DK2's ambient level, which the ambient keys step (Unity's runner's <c>_ambientLight</c>).</summary>
+    private readonly ClassicAmbientLight _ambientLight = new();
+    /// <summary>The Hand's light from the last frame's pick (Unity's runner's <c>_handLight</c>), lit by the next frame.</summary>
+    private ClassicPointLight? _handLight;
+    /// <summary>The <c>--light-probe-*</c> checks print the frame each turn is first drawn on, for captures at a turn.</summary>
+    private bool _reportTicks;
+    private long _reportedTick = -1;
 
     public override void _Ready()
     {
@@ -388,8 +395,16 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
         if (resume == null)
             for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
+        // The --light-probe-* checks: Unity's ClassicWorldLightingProbe's frames without torch lights and with the camera
+        // moved by (1, 0, 1) (its shifted frames); --light-fill turns on Godot's fill, off as in the owner's Unity scene.
+        _world.ProbeWithoutTorches = Array.IndexOf(args, "--light-probe-no-torches") >= 0;
+        _world.Fill = Array.IndexOf(args, "--light-fill") >= 0;
+        bool probeShift = Array.IndexOf(args, "--light-probe-shift") >= 0;
+        _reportTicks = _world.ProbeWithoutTorches || probeShift || Array.IndexOf(args, "--light-probe") >= 0;
         // The first frame's terrain, built whole; each frame's Present pushes the changes since.
         _world.Open(install, level, _simulation.World, _worldView, _viewer, startFocus, _settings.ScrollSpeed);
+        if (probeShift) _world.Focus += new System.Numerics.Vector3(1, 0, 1);
+        _world.SetBrightness(DisplaySettings.BrightnessExponent(_settings.Gamma));
         // DungeonRunner's heart health observer: each change queued for the next frame's beat.
         int maximumHeartHealth = level.Database[VariableTypeId.DungeonHeartObjectHealth];
         WorldScene world = _world;
@@ -509,6 +524,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         UpdateCamera(visibility, delta);
         // The frame's one pose, which this frame's picks read; the follow below places it again only if it moved the focus.
         _world.PlaceCamera();
+        if (visibility.AllowOrdinaryInput && !_hudControls.Modal) ReadAmbientKeys();
         QueueInput(visibility, milliseconds);
         // DungeonRunner.Update before its present: the Hand's excavation drag previews its tags; off the map the far end keeps
         // the last tile the pointer was on.
@@ -529,7 +545,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         System.Numerics.Vector3 focus = _world.Focus;
         FollowQueriedCreature();
         if (_world.Focus != focus) _world.PlaceCamera();
+        // The pick is last frame's: the hover is resolved after the HUD is drawn, below (DungeonRunner's order).
+        _world.SetHandLight(_handLight);
         _world.FinishFrame();
+        if (_reportTicks && _simulation.World.CurrentTick.Value != _reportedTick)
+        {
+            _reportedTick = _simulation.World.CurrentTick.Value;
+            GD.Print("DK2.Godot: tick ", _reportedTick, " first drawn on frame ", Engine.GetProcessFrames(), " at fraction ", drawFraction);
+        }
         _keyboard.EndFrame();
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         // As DungeonRunner.DrawHudControls captures it and CaptureWorldHover shows and draws it.
@@ -571,9 +594,12 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Last, as DungeonRunner.DrawHudControls captures and draws it; the options menu hides it.
         _queryPanel.Draw(_queryView.Capture(_simulation.World), visibility, modal);
         // The hover, after the HUD is drawn (DungeonRunner.CaptureWorldHover): over the HUD, the panels' text; over the world
-        // the pick and its text, then the cursor, placement, tint and cage (HoverCursorResolver). The Hand's light waits for
-        // the lighting (step 3i) and the hover sound for the sound player (step 4).
+        // the pick and its text, the Hand's light, then the cursor, placement, tint and cage (HoverCursorResolver). The hover
+        // sound waits for the sound player (step 4).
         _hover.SetVisibility(visibility, milliseconds);
+        // A failed pick with nothing hovered sends DK2's light to an edge tile, which blacks it out (0x0043BCB8); with
+        // ordinary input off (a cutscene) it keeps its place.
+        if (visibility.AllowOrdinaryInput) _handLight = null;
         bool inside = _pointerInWindow && GetViewport().GetVisibleRect().HasPoint(_pointer);
         bool allowed = visibility.AllowOrdinaryInput && Focused && inside;
         bool overHud = PointerOverHud(_pointer, visibility);
@@ -587,7 +613,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             WorldHoverHit hit = ResolveWorldHover(_pointer, tile, visibility);
             if (_pickWarmUp > 0) _pickWarmUp--;
             else { _pickBytes += GC.GetAllocatedBytesForCurrentThread() - before; _pickFrames++; }
-            // The Hand's light aims here (DungeonRunner.AimHandLight) once the lighting is ported (step 3i).
+            AimHandLight(_simulation.World, tile, hit);
             string personalName = hit.Kind == WorldHoverKind.Creature && _identityNames != null
                 && _simulation.World.CreatureById(hit.EntityId) is CreatureState named
                 ? _identityNames.Name(new CreatureNameIndex(named.NameIndex)) : "";
@@ -891,6 +917,28 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _world.Focus = new System.Numerics.Vector3(drawn.X, _world.Focus.Y, drawn.Z);
     }
 
+    /// <summary>DungeonRunner.AimHandLight: the Hand's light follows the pick (<see cref="HoverCursorResolver.TryHandLightPoint"/>);
+    /// on a tile, the pointer's hit on the tile's top plane, or the tile's centre when that misses.</summary>
+    private void AimHandLight(WorldState world, TilePos tile, in WorldHoverHit hit)
+    {
+        if (_world == null || _worldView == null) return;
+        if (!HoverCursorResolver.TryHandLightPoint(world, hit, out System.Numerics.Vector2 point))
+            point = _world.TryPickRay(_pointer, out System.Numerics.Vector3 origin, out System.Numerics.Vector3 direction)
+                ? TileTopPlane.HandLightPoint(origin, direction, tile, _worldView.TileAt(world, tile.X, tile.Y).Solid)
+                : new System.Numerics.Vector2(tile.X + .5f, tile.Y + .5f);
+        _handLight = HoverCursorResolver.HandLight(world, _viewer, hit, point, cheapLighting: false);
+    }
+
+    /// <summary>DungeonRunner.ReadAmbientKeys: the ambient keys step DK2's ambient (<see cref="ClassicAmbientLight"/>).</summary>
+    private void ReadAmbientKeys()
+    {
+        GameBindingInput keys = _keyboard.Read(_settings);
+        bool changed = false;
+        if (keys.Pressed(GameAction.AmbientUp)) { _ambientLight.Increase(); changed = true; }
+        if (keys.Pressed(GameAction.AmbientDown)) { _ambientLight.Decrease(); changed = true; }
+        if (changed) _world?.SetAmbient(_ambientLight.Normalized);
+    }
+
     /// <summary>The bottom panel's collapse moves the view axis, as Unity's runner's handler does.</summary>
     private void PanelCollapsed(bool collapsed) => _world?.SetPanelCollapsed(collapsed);
 
@@ -1132,8 +1180,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     }
 
     /// <summary>DungeonRunner.ApplyGameSettings for what this scene has: the settings it reads (game speed, key bindings)
-    /// and the HUD scale on the ported panels (ApplyHudScale), and the camera's scroll speed. The rendering settings
-    /// (gamma, shadows, water, environment mapping) and the sound volumes and switches need systems not ported yet:
+    /// and the HUD scale on the ported panels (ApplyHudScale), the camera's scroll speed and the gamma. The other rendering
+    /// settings (shadows, water, environment mapping) and the sound volumes and switches need systems not ported yet:
     /// their values change, and nothing acts on them.</summary>
     private void ApplySettings(GameSettings settings)
     {
@@ -1150,6 +1198,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_overview != null) _overview.UiScale = scale;
         if (_queryPanel != null) _queryPanel.UiScale = scale;
         if (_handCursor != null) _handCursor.UiScale = scale;
+        // The brightness curve on the 3D view (Unity's ClassicSettingsRendering).
+        _world?.SetBrightness(DisplaySettings.BrightnessExponent(settings.Gamma));
     }
 
     /// <summary>The settings file as <see cref="GameSettingsFile"/> reads it; the defaults, with a warning, when it cannot

@@ -116,7 +116,7 @@ reads `CurrentTick` after the tick that ran DK2 turn `CurrentTick` (`GameSimulat
 `CurrentTick + 1` as the turn, then increments), so the parity is that of the last turn run. `DungeonScene` swaps the model's
 materials for the shared `AA_BlueTexture` or `AA_RedTexture` array (`ObjectMaterialLook.Blueprint`, which Unity's `ClassicMeshes.Blueprint` and Godot's `WorldScene.Objects.cs` both use;
 the dig tag's own overlay look) and, on a blink, swaps the array in place rather than
-rebuilding the model. Not modelled: the environment pass over a plan (Unity draws the flat overlay twice, Godot once; step 3i draws the pass), the kind-1 branch, and the second override `0x004A6B70`
+rebuilding the model. Not modelled in Unity: the environment pass over a plan (Unity draws the flat overlay twice; Godot draws the overlay and the pass since step 3i), the kind-1 branch, and the second override `0x004A6B70`
 gives the linked thing at door `+0x103`.
 
 ## 6. A built door's base light (Level6a, 2026-11-05)

@@ -57,6 +57,11 @@ second camera at view distance 10; `Publish` writes a diff to an `ITileLightSink
 `OnPointerTile`; its vector arithmetic is Unity's term by term, so a pick is bit-identical), `PickBox`, `PickSphere` and
 `PickTriangles` (the measures of a drawn thing), `ViewFrustum.Excludes` and `HoverOverlayPlan` (the frame's red creatures and
 each submesh's swap and red decision).
+The classic vertex-lit shaders' DK2 light, tested here and copied by each engine's shader: `ClassicVertexLight` (`TableTile`, the
+table a vertex reads; `TableSum`, the per-flag sum with the bound skip; `PackedDiffuse`, floor to 1/255 and clamp) and
+`ClassicLightTableLayout` (where a tile's 49 texels sit in a float texture array, 83 tiles to a texel row, and the GLSL
+constant substitution). `ClassicWorldLightCache` pools its `ClassicLightTable`s (`Reuse`), so a scrolling view allocates
+nothing once warm.
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.

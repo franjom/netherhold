@@ -23,21 +23,16 @@ namespace DK2.GodotAdapter;
 /// <summary>The 3D world under <see cref="InGameHud"/> (plan steps 3a to 3c): the terrain as <see cref="TerrainTileBuilder"/>
 /// builds it and <see cref="TerrainChunkScheduler"/> schedules it, one <see cref="MeshInstance3D"/> per 16x16-tile chunk
 /// with a surface per <see cref="TerrainMaterialKey"/> drawn as <see cref="TerrainMaterialLook"/> describes it, and the
-/// waving water and lava (<see cref="LiquidSurfaceField"/>), unshaded under a stand-in light, seen from the classic
+/// waving water and lava (<see cref="LiquidSurfaceField"/>), lit by DK2's vertex light (WorldScene.Lighting.cs), seen from the classic
 /// camera; blended faces go back to front through <see cref="BlendedTerrainStream{TMaterial}"/> (step 3d, <see cref="RunSlot"/>).
 /// Everything crosses into Godot's right-handed frame through <see cref="RightHandedFrame"/>. Objects, structures and
-/// torches are step 3f's (WorldScene.Objects.cs), creatures step 3g's (WorldScene.Creatures.cs), entity hover step 3h's (WorldScene.Hover.cs). Not yet drawn: lighting. The
+/// torches are step 3f's (WorldScene.Objects.cs), creatures step 3g's (WorldScene.Creatures.cs), entity hover step 3h's (WorldScene.Hover.cs), lighting step 3i's (WorldScene.Lighting.cs). The
 /// host presents the world once a frame (<see cref="Present"/>), draws it (<see cref="DrawFrame"/>), moves the camera's
 /// <see cref="Focus"/> and places it (<see cref="PlaceCamera"/>), then finishes it (<see cref="FinishFrame"/>).</summary>
 public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 {
     /// <summary>Unity's camera near plane (Dungeon.unity), which the frustum is sized at.</summary>
     private const float NearPlane = 0.3f;
-
-    /// <summary>The vertex light every lit material is drawn under until the classic lighting is ported (step 3i):
-    /// below 1, so the light the tagged, red and tinted twins add shows before DK2's clamp, as it does where DK2's lights
-    /// leave headroom. The remake's choice, not DK2's.</summary>
-    private const float StandInLight = 0.5f;
 
     private static readonly StringName AlbedoParameter = "albedo_texture", ColourParameter = "base_colour",
         AddedLightParameter = "added_light";
@@ -78,7 +73,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     private readonly Dictionary<TerrainMaterialKey, ShaderMaterial> _keyMaterials = new();
     private readonly Dictionary<TerrainMaterialLook, ShaderMaterial> _lookMaterials = new();
-    private readonly Dictionary<(KmfBlend, bool, bool), Shader> _shaders = new();
+    private readonly Dictionary<(KmfBlend, bool, bool, bool, bool), Shader> _shaders = new();
     private readonly Dictionary<string, Texture2D> _textures = new();
     private ImageTexture? _white;
 
@@ -124,6 +119,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         // Every run instance sorts from the origin; the box only keeps Godot from culling it (the stream culls).
         _worldBox = new Aabb(new Vector3(-1, -4, -world.Height - 1), new Vector3(world.Width + 2, 16, world.Height + 2));
         _cage = new CageRibbon(GetWorld3D().Scenario, _worldBox);
+        // Before any material: the lit shaders read the lighting's globals.
+        OpenLighting(world, view, world.Width, world.Height);
         using (Image white = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8))
         {
             white.Fill(Colors.White);
@@ -216,6 +213,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         if (_cage == null) return;
         if (area is not TileRectangle shown || View is not MinimapCameraView view) { _cage.Hide(); return; }
         _cage.Show(shown, blue, view.Position, _lattice, milliseconds);
+        // After FinishFrame placed this frame's eye, so the key is this frame's.
+        _cage.Sort(this);
     }
 
     public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture) => SetTile(tileIndex, tile);
@@ -224,6 +223,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     private void SetTile(int tileIndex, in TileView tile)
     {
+        SetTileLight(tileIndex, tile);
         _liquids!.Set(tileIndex, tile);
         _latticeDirty?.Touch(tileIndex);
         _terrain!.Set(tileIndex, tile);
@@ -288,7 +288,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         foreach (SurfaceBuffer surface in _surfaces)
         {
             if (surface.IndexCount == 0) continue;
-            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, surface.ToArrays());
+            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, surface.ToArrays(), null, null, TerrainCustomFormat);
             mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, MaterialFor(surface.Key));
         }
         if (instance == null && mesh.GetSurfaceCount() > 0)
@@ -358,7 +358,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         TerrainMaterialLook look = TerrainMaterialLook.For(key);
         if (!_lookMaterials.TryGetValue(look, out material))
         {
-            material = new ShaderMaterial { Shader = ShaderFor(look.Blend, look.FullLight, look.WritesDepth) };
+            material = new ShaderMaterial { Shader = ShaderFor(look.Blend, look.FullLight, look.WritesDepth, model: false, environment: false) };
             material.SetShaderParameter(AlbedoParameter, TextureFor(look.Texture));
             material.SetShaderParameter(ColourParameter, new Color(look.Colour.X, look.Colour.Y, look.Colour.Z, look.Colour.W));
             material.SetShaderParameter(AddedLightParameter, ToGodot(look.AddedLight));
@@ -372,13 +372,21 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         return material;
     }
 
-    /// <summary>One shader per blend and light: the texture times the colour, times the stand-in light plus the added
-    /// light packed to bytes and clamped (Unity's <c>DK2PackedDiffuse</c>) unless at full light. The colour buffer holds
-    /// the stored bytes over 255 and blends them there, as DK2 and Unity's gamma space do (<see cref="GammaOutput"/>).
-    /// Opaque writes depth; blended draws do not, but for a fading object's (<see cref="ObjectMaterialLook.Faded"/>).</summary>
-    private Shader ShaderFor(KmfBlend blend, bool fullLight, bool writesDepth)
+    /// <summary>The custom attribute layouts: a terrain vertex's table anchor (CUSTOM0 as two floats), a model's bound sphere
+    /// and its anchor and light kind (CUSTOM0 and CUSTOM1 as four), as Unity's TEXCOORD1-3.</summary>
+    private const Mesh.ArrayFormat TerrainCustomFormat =
+        (Mesh.ArrayFormat)((long)Mesh.ArrayCustomFormat.RgFloat << (int)Mesh.ArrayFormat.FormatCustom0Shift);
+    private const Mesh.ArrayFormat ModelCustomFormat =
+        (Mesh.ArrayFormat)(((long)Mesh.ArrayCustomFormat.RgbaFloat << (int)Mesh.ArrayFormat.FormatCustom0Shift)
+            | ((long)Mesh.ArrayCustomFormat.RgbaFloat << (int)Mesh.ArrayFormat.FormatCustom1Shift));
+
+    /// <summary>One shader per blend, light, vertex kind and environment pass: the texture times the colour, times the
+    /// vertex's DK2 light (<see cref="LitVertex"/>) unless at full light. The colour buffer holds the stored bytes over 255
+    /// and blends them there, as DK2 and Unity's gamma space do (<see cref="GammaOutput"/>). Opaque writes depth; blended
+    /// draws do not, but for a fading object's (<see cref="ObjectMaterialLook.Faded"/>).</summary>
+    private Shader ShaderFor(KmfBlend blend, bool fullLight, bool writesDepth, bool model, bool environment)
     {
-        if (_shaders.TryGetValue((blend, fullLight, writesDepth), out Shader? shader)) return shader;
+        if (_shaders.TryGetValue((blend, fullLight, writesDepth, model, environment), out Shader? shader)) return shader;
         string mode = blend switch
         {
             KmfBlend.Opaque => "blend_mix, depth_draw_opaque",
@@ -387,21 +395,20 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             // ONE/ONE: blend_add weights the source by its alpha, held at 1.
             _ => "blend_add, depth_draw_never",
         };
-        string light = fullLight ? ""
-            : "c.rgb *= min(floor(max(vec3(" + StandInLight.ToString("0.0###", CultureInfo.InvariantCulture)
-                + ") + added_light, vec3(0.0)) * 255.0 + 0.00001), vec3(255.0)) / 255.0;\n";
         string alpha = blend switch { KmfBlend.Opaque => "", KmfBlend.AlphaBlend => "ALPHA = c.a;\n", _ => "ALPHA = 1.0;\n" };
         shader = new Shader
         {
-            Code = "shader_type spatial;\nrender_mode unshaded, cull_back, " + mode + ";\n"
+            Code = "shader_type spatial;\nrender_mode unshaded, cull_back, skip_vertex_transform, " + mode + ";\n"
                 + "uniform sampler2D albedo_texture : filter_linear_mipmap, repeat_disable;\n"
                 // A Color set on a plain vec4 is turned linear (material_storage.cpp, _fill_std140_variant_ubo_value).
                 + "uniform vec4 base_colour : source_color, color_conversion_disabled = vec4(1.0);\n"
                 + "uniform vec3 added_light = vec3(0.0);\n"
-                + "void fragment() {\nvec4 c = texture(albedo_texture, UV) * base_colour;\n" + light
+                + (fullLight ? PlacedVertex : LightFunctions + LitVertex(model, environment))
+                + "void fragment() {\nvec4 c = texture(albedo_texture, UV) * base_colour;\n"
+                + (fullLight ? "" : "c.rgb *= dk2_diffuse;\n")
                 + "ALBEDO = c.rgb;\n" + alpha + "}\n",
         };
-        _shaders.Add((blend, fullLight, writesDepth), shader);
+        _shaders.Add((blend, fullLight, writesDepth, model, environment), shader);
         return shader;
     }
 
@@ -414,28 +421,33 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// tonemap still encodes as if linear (<c>linear_to_srgb</c> in tonemap.glsl at 4.8 beta 3, c51ff06e8). A 1D colour
     /// correction table of <c>srgb_to_linear</c>, applied after that encoding, undoes it, so the window shows the buffer's
     /// values and every blend happened in gamma space, as in Unity's gamma colour space. Linear tonemap, exposure 1.</summary>
-    private static Godot.Environment GammaOutput()
+    private static Godot.Environment GammaOutput() => new()
+    {
+        BackgroundMode = Godot.Environment.BGMode.ClearColor,
+        TonemapMode = Godot.Environment.ToneMapper.Linear,
+        TonemapExposure = 1f,
+        TonemapWhite = 1f,
+        AdjustmentEnabled = true,
+        AdjustmentBrightness = 1f,
+        AdjustmentContrast = 1f,
+        AdjustmentSaturation = 1f,
+        AdjustmentColorCorrection = GammaTable(1f),
+    };
+
+    /// <summary><see cref="GammaOutput"/>'s table, each display value then raised to <paramref name="exponent"/> (the
+    /// brightness curve, <see cref="SetBrightness"/>; 1 leaves it).</summary>
+    private static ImageTexture GammaTable(float exponent)
     {
         using Image table = Image.CreateEmpty(GammaTableWidth, 1, false, Image.Format.Rgbah);
         for (int i = 0; i < GammaTableWidth; i++)
         {
             // A linear-filtered texel i is sampled whole at (i + 0.5) / width.
             double encoded = (i + 0.5) / GammaTableWidth;
-            float value = (float)(encoded < 0.04045 ? encoded / 12.92 : Math.Pow((encoded + 0.055) / 1.055, 2.4));
+            double stored = encoded < 0.04045 ? encoded / 12.92 : Math.Pow((encoded + 0.055) / 1.055, 2.4);
+            float value = (float)(exponent == 1f ? stored : Math.Pow(stored, exponent));
             table.SetPixel(i, 0, new Color(value, value, value, 1f));
         }
-        return new Godot.Environment
-        {
-            BackgroundMode = Godot.Environment.BGMode.ClearColor,
-            TonemapMode = Godot.Environment.ToneMapper.Linear,
-            TonemapExposure = 1f,
-            TonemapWhite = 1f,
-            AdjustmentEnabled = true,
-            AdjustmentBrightness = 1f,
-            AdjustmentContrast = 1f,
-            AdjustmentSaturation = 1f,
-            AdjustmentColorCorrection = ImageTexture.CreateFromImage(table),
-        };
+        return ImageTexture.CreateFromImage(table);
     }
 
     /// <summary>The placed camera's frustum (<see cref="ViewFrustum.FromPose"/>), built again only after the camera moved
@@ -535,16 +547,17 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _art = null;
     }
 
-    /// <summary>One liquid's surface: a mesh built when its tiles change, whose positions are rewritten in place every
-    /// frame from one reused buffer, the head of Godot's vertex stream. The normals stay as built: every material is
-    /// unshaded until step 3i, which uploads the wave's normals here (octahedral, after the positions, interleaved with
-    /// the tangents; <see cref="RenderingServer.MeshSurfaceGetFormatOffset"/>).</summary>
+    /// <summary>One liquid's surface: a mesh built when its tiles change, whose positions and normals (the wave's, as Unity's
+    /// <c>LiquidSurfaces</c> uploads them) are rewritten in place every frame from reused buffers: Godot's vertex stream
+    /// holds the positions as one block and the octahedral normals after it (<see cref="RenderingServer.MeshSurfaceGetFormatOffset"/>,
+    /// rendering_server.cpp at c51ff06e8). Each vertex carries its tile's table anchor.</summary>
     private sealed class LiquidLayer(LiquidSurfaceWave wave)
     {
-        private int _version = -1;
+        private int _version = -1, _normalOffset;
         private MeshInstance3D? _instance;
         private ArrayMesh? _mesh;
-        private byte[] _stream = [];
+        private byte[] _stream = [], _normalStream = [];
+        private bool _checked;
 
         public void Upload(WorldScene scene)
         {
@@ -560,6 +573,21 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 positions[(i * 3) + 2] = p.Z;
             }
             _mesh.SurfaceUpdateVertexRegion(0, 0, _stream.AsSpan(0, count * 12));
+            EncodeNormals(count);
+            _mesh.SurfaceUpdateVertexRegion(0, _normalOffset, _normalStream.AsSpan(0, count * 4));
+        }
+
+        /// <summary>The wave's normals as Godot stores them: <see cref="Vector3.OctahedronEncode"/>, each half as an unsigned
+        /// 16-bit fraction, truncated (<c>_surface_set_data</c>).</summary>
+        private void EncodeNormals(int count)
+        {
+            Span<ushort> normals = MemoryMarshal.Cast<byte, ushort>(_normalStream.AsSpan(0, count * 4));
+            for (int i = 0; i < count; i++)
+            {
+                Vector2 o = ToGodot(RightHandedFrame.Normal(wave.Normals[i])).OctahedronEncode();
+                normals[i * 2] = (ushort)Math.Clamp(o.X * 65535f, 0f, 65535f);
+                normals[(i * 2) + 1] = (ushort)Math.Clamp(o.Y * 65535f, 0f, 65535f);
+            }
         }
 
         private void Rebuild(WorldScene scene)
@@ -571,23 +599,34 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             var positions = new Vector3[count];
             var normals = new Vector3[count];
             var uvs = new Vector2[count];
+            var anchors = new float[count * 2];
             for (int i = 0; i < count; i++)
             {
                 positions[i] = ToGodot(RightHandedFrame.Point(wave.Positions[i]));
                 normals[i] = ToGodot(RightHandedFrame.Normal(wave.Normals[i]));
                 uvs[i] = new Vector2(wave.Uvs[i].X, wave.Uvs[i].Y);
+                anchors[i * 2] = wave.LightAnchors[i].X;
+                anchors[(i * 2) + 1] = wave.LightAnchors[i].Y;
             }
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
             arrays[(int)Mesh.ArrayType.Vertex] = positions;
             arrays[(int)Mesh.ArrayType.Normal] = normals;
             arrays[(int)Mesh.ArrayType.TexUV] = uvs;
+            arrays[(int)Mesh.ArrayType.Custom0] = anchors;
             arrays[(int)Mesh.ArrayType.Index] = wave.Triangles.AsSpan(0, wave.IndexCount).ToArray();
             _mesh ??= new ArrayMesh();
-            _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, null, null, Mesh.ArrayFormat.FlagUseDynamicUpdate);
+            _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, null, null,
+                Mesh.ArrayFormat.FlagUseDynamicUpdate | TerrainCustomFormat);
             _mesh.SurfaceSetMaterial(0, scene.MaterialFor(
                 new TerrainMaterialKey(new ClassicMaterialRecipe(wave.Texture, KmfBlend.Opaque, 0f), TerrainMaterialVariant.Plain)));
+            var format = (RenderingServer.ArrayFormat)_mesh.SurfaceGetFormat(0);
+            _normalOffset = (int)RenderingServer.MeshSurfaceGetFormatOffset(format, count, (int)Mesh.ArrayType.Normal);
+            if (RenderingServer.MeshSurfaceGetFormatVertexStride(format, count) != 12 || _normalOffset != count * 12)
+                GD.PushError("DK2.Godot: a liquid's vertex stream is not positions then normals; it draws wrong.");
             if (_stream.Length < count * 12) _stream = new byte[count * 12];
+            if (_normalStream.Length < count * 4) _normalStream = new byte[count * 4];
+            if (!_checked) CheckNormals(count);
             if (_instance == null)
             {
                 _instance = new MeshInstance3D { Name = wave.Kind + "Surface", Mesh = _mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
@@ -598,14 +637,25 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             float reach = 2f * Math.Max(LiquidSurfaceWave.WaterAmplitude, LiquidSurfaceWave.LavaAmplitude);
             _instance.CustomAabb = new Aabb(box.Position - new Vector3(0, reach, 0), box.Size + new Vector3(0, 2 * reach, 0));
         }
+
+        /// <summary>Once: the normals encoded here against the bytes Godot built from the same normals.</summary>
+        private void CheckNormals(int count)
+        {
+            _checked = true;
+            byte[] built = RenderingServer.MeshGetSurface(_mesh!.GetRid(), 0)["vertex_data"].AsByteArray();
+            EncodeNormals(count);
+            bool same = built.Length >= _normalOffset + (count * 4)
+                && built.AsSpan(_normalOffset, count * 4).SequenceEqual(_normalStream.AsSpan(0, count * 4));
+            GD.Print("DK2.Godot: ", wave.Kind, "'s ", count, " normals encoded ", same ? "as Godot encodes them" : "UNLIKE Godot; the wave draws wrong");
+        }
     }
 
     /// <summary>The cage as Unity's <c>ClassicTileHoverOutline</c> draws it (plan step 3e): <see cref="TileHoverRibbon"/>'s
     /// triangles unindexed in one dynamic surface, zero-area triangles past the ribbon, additive, no depth write, both faces.
     /// The fragment is Unity's <c>ClassicHoverOutline.shader</c>: the colour times pow(centre, 2.15) x 1.6 across the band,
-    /// owner-matched (2026-10-19). Sorted from the origin with offset 0 (<see cref="SortFromOrigin"/>), it draws where Unity's
-    /// sorting order 0 did: after the tag overlay runs (negative orders), under the other blended runs
-    /// (<see cref="BlendedTerrainStream{TMaterial}.SortingOrder"/>).</summary>
+    /// owner-matched (2026-10-19). Its key (<see cref="Sort"/>) puts it where Unity's sorting order 0 did: after the tag
+    /// overlay runs (negative orders), under the other blended runs (<see cref="BlendedTerrainStream{TMaterial}.SortingOrder"/>),
+    /// and among the blended objects by the distance to its centre.</summary>
     private sealed class CageRibbon
     {
         private const RenderingServer.ArrayFormat Format = RenderingServer.ArrayFormat.FormatVertex
@@ -620,6 +670,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         private int _capacity, _written;
         private bool _visible = true;
         private NVector3 _colour = new(-1, -1, -1);
+        private Vector3 _centre;
+        private int _sortStamp = -1;
 
         public CageRibbon(Rid scenario, Aabb box)
         {
@@ -656,12 +708,17 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             ReadOnlySpan<int> indices = _ribbon.Indices;
             ReadOnlySpan<NVector3> from = _ribbon.Positions;
             ReadOnlySpan<NVector2> along = _ribbon.Uvs;
+            NVector3 low = new(float.MaxValue), high = new(float.MinValue);
             for (int i = 0; i < count; i++)
             {
                 NVector3 at = RightHandedFrame.Point(from[indices[i]]);
+                low = NVector3.Min(low, at);
+                high = NVector3.Max(high, at);
                 positions[i * 3] = at.X; positions[(i * 3) + 1] = at.Y; positions[(i * 3) + 2] = at.Z;
                 uvs[i * 2] = along[indices[i]].X; uvs[(i * 2) + 1] = along[indices[i]].Y;
             }
+            Vector3 centre = ToGodot((low + high) * 0.5f);
+            if (centre != _centre) { _centre = centre; _sortStamp = -1; }
             positions[(count * 3)..].Clear();
             uvs[(count * 2)..].Clear();
             RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, 0, _positions.AsSpan(0, vertexCount * PositionStride));
@@ -680,6 +737,16 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             if (!_visible) return;
             RenderingServer.InstanceSetVisible(_instance, false);
             _visible = false;
+        }
+
+        /// <summary>The cage's order-0 key (<see cref="ZeroOrderOffset"/>) from its bounds centre, as Unity sorts its sorting
+        /// order 0 among the blended objects by distance; again when it or the camera moved. Called after each
+        /// <see cref="Show"/>, which comes after the frame's <see cref="FinishFrame"/>.</summary>
+        public void Sort(WorldScene scene)
+        {
+            if (!_visible || _sortStamp == scene._sortStamp) return;
+            _sortStamp = scene._sortStamp;
+            RenderingServer.InstanceSetPivotData(_instance, scene.ZeroOrderOffset(Vector3.Zero, _centre), false);
         }
 
         public void Free()
@@ -713,10 +780,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     /// <summary>Every instance of the blended pass sorts by its origin's distance minus <paramref name="order"/>: a new
     /// instance's pivot is its AABB centre (<c>use_aabb_center</c> true, renderer_scene_cull.h at c51ff06e8), which would
-    /// sort it by real distance among the runs. The one place the runs and the cage set their sort key.</summary>
+    /// sort it by real distance among the runs. The one place the runs set their sort key; the cage takes an order-0 key.</summary>
     private static void SortFromOrigin(Rid instance, float order) => RenderingServer.InstanceSetPivotData(instance, order, false);
 
-    /// <summary>One run of the blended stream: an instance of its own one-surface mesh, a triangle list in the run's order
+    /// <summary>One run of the blended stream: an instance of its own one-surface mesh (positions, normals, UVs and table
+    /// anchors, as a terrain chunk's), a triangle list in the run's order
     /// (a surface draws its primitives in order), with zero-area triangles past the run. Godot 4.8 sorts the transparent
     /// pass by material priority, then by camera distance minus the instance's sorting offset, with an unstable sort
     /// (<c>SortByReverseDepthAndPriority</c>, <c>SortArray</c> in render_forward_clustered.h at c51ff06e8): every run
@@ -724,15 +792,18 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// the stream's order and the triangles within one in theirs.</summary>
     private sealed class RunSlot
     {
-        /// <summary>The upload buffers every slot shares: positions (the vertex stream) and UVs (the attribute stream).</summary>
+        /// <summary>The upload buffers every slot shares: positions and normals (the vertex stream's two blocks) and each
+        /// vertex's UV and table anchor (the attribute stream).</summary>
         public sealed class Scratch
         {
-            public byte[] Positions = [], Uvs = [];
+            public byte[] Positions = [], Normals = [], Uvs = [];
         }
 
         private const RenderingServer.ArrayFormat Format = RenderingServer.ArrayFormat.FormatVertex
-            | RenderingServer.ArrayFormat.FormatTexUV | RenderingServer.ArrayFormat.FlagUseDynamicUpdate;
-        private const int PositionStride = 12, UvStride = 8;
+            | RenderingServer.ArrayFormat.FormatNormal | RenderingServer.ArrayFormat.FormatTexUV
+            | RenderingServer.ArrayFormat.FormatCustom0 | RenderingServer.ArrayFormat.FlagUseDynamicUpdate
+            | (RenderingServer.ArrayFormat)((long)RenderingServer.ArrayCustomFormat.RgFloat << (int)RenderingServer.ArrayFormat.FormatCustom0Shift);
+        private const int PositionStride = 12, NormalStride = 4, UvStride = 16;
 
         private readonly Rid _instance, _mesh;
         private readonly List<RenderTriangle> _triangles = new();
@@ -773,21 +844,26 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             if (scratch.Positions.Length < vertexCount * PositionStride)
             {
                 scratch.Positions = new byte[_capacity * 3 * PositionStride];
+                scratch.Normals = new byte[_capacity * 3 * NormalStride];
                 scratch.Uvs = new byte[_capacity * 3 * UvStride];
             }
             Span<float> positions = MemoryMarshal.Cast<byte, float>(scratch.Positions.AsSpan(0, vertexCount * PositionStride));
+            Span<ushort> normals = MemoryMarshal.Cast<byte, ushort>(scratch.Normals.AsSpan(0, vertexCount * NormalStride));
             Span<float> uvs = MemoryMarshal.Cast<byte, float>(scratch.Uvs.AsSpan(0, vertexCount * UvStride));
-            int p = 0, u = 0;
+            int p = 0, n = 0, u = 0;
             for (int t = 0; t < count; t++)
             {
                 RenderTriangle triangle = triangles[t];
-                Corner(vertices[triangle.A], positions, uvs, ref p, ref u);
-                Corner(vertices[triangle.B], positions, uvs, ref p, ref u);
-                Corner(vertices[triangle.C], positions, uvs, ref p, ref u);
+                Corner(vertices[triangle.A], positions, normals, uvs, ref p, ref n, ref u);
+                Corner(vertices[triangle.B], positions, normals, uvs, ref p, ref n, ref u);
+                Corner(vertices[triangle.C], positions, normals, uvs, ref p, ref n, ref u);
             }
             positions[p..].Clear();
+            normals[n..].Clear();
             uvs[u..].Clear();
             RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, 0, scratch.Positions.AsSpan(0, vertexCount * PositionStride));
+            RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, _capacity * 3 * PositionStride,
+                scratch.Normals.AsSpan(0, vertexCount * NormalStride));
             RenderingServer.MeshSurfaceUpdateAttributeRegion(_mesh, 0, 0, scratch.Uvs.AsSpan(0, vertexCount * UvStride));
             _written = count;
         }
@@ -805,14 +881,21 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             RenderingServer.FreeRid(_mesh);
         }
 
-        private static void Corner(in BlendedVertex vertex, Span<float> positions, Span<float> uvs, ref int p, ref int u)
+        private static void Corner(in BlendedVertex vertex, Span<float> positions, Span<ushort> normals, Span<float> uvs,
+            ref int p, ref int n, ref int u)
         {
             NVector3 at = RightHandedFrame.Point(vertex.Position);
             positions[p++] = at.X;
             positions[p++] = at.Y;
             positions[p++] = at.Z;
+            // Godot's own normal encoding (LiquidLayer.EncodeNormals).
+            Vector2 o = ToGodot(RightHandedFrame.Normal(vertex.Normal)).OctahedronEncode();
+            normals[n++] = (ushort)Math.Clamp(o.X * 65535f, 0f, 65535f);
+            normals[n++] = (ushort)Math.Clamp(o.Y * 65535f, 0f, 65535f);
             uvs[u++] = vertex.Uv.X;
             uvs[u++] = vertex.Uv.Y;
+            uvs[u++] = vertex.LightAnchor.X;
+            uvs[u++] = vertex.LightAnchor.Y;
         }
 
         private bool Same(IReadOnlyList<RenderTriangle> triangles)
@@ -831,15 +914,23 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             _capacity = capacity;
             int vertexCount = capacity * 3;
             if (RenderingServer.MeshSurfaceGetFormatVertexStride(Format, vertexCount) != PositionStride
-                || RenderingServer.MeshSurfaceGetFormatAttributeStride(Format, vertexCount) != UvStride)
-                GD.PushError("DK2.Godot: the blended run's vertex layout is not positions then UVs; runs draw wrong.");
+                || RenderingServer.MeshSurfaceGetFormatNormalTangentStride(Format, vertexCount) != NormalStride
+                || RenderingServer.MeshSurfaceGetFormatOffset(Format, vertexCount, (int)Mesh.ArrayType.Normal) != vertexCount * PositionStride
+                || RenderingServer.MeshSurfaceGetFormatAttributeStride(Format, vertexCount) != UvStride
+                || RenderingServer.MeshSurfaceGetFormatOffset(Format, vertexCount, (int)Mesh.ArrayType.Custom0) != 8)
+                GD.PushError("DK2.Godot: the blended run's vertex layout is not positions, normals, then UV and anchor; runs draw wrong.");
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
             arrays[(int)Mesh.ArrayType.Vertex] = new Vector3[vertexCount];
+            var up = new Vector3[vertexCount];
+            Array.Fill(up, Vector3.Up);
+            arrays[(int)Mesh.ArrayType.Normal] = up;
             arrays[(int)Mesh.ArrayType.TexUV] = new Vector2[vertexCount];
+            arrays[(int)Mesh.ArrayType.Custom0] = new float[vertexCount * 2];
             RenderingServer.MeshClear(_mesh);
             RenderingServer.MeshAddSurfaceFromArrays(_mesh, RenderingServer.PrimitiveType.Triangles, arrays, null, null,
-                RenderingServer.ArrayFormat.FlagUseDynamicUpdate);
+                Format & ~(RenderingServer.ArrayFormat.FormatVertex | RenderingServer.ArrayFormat.FormatNormal
+                    | RenderingServer.ArrayFormat.FormatTexUV | RenderingServer.ArrayFormat.FormatCustom0));
             _written = 0;
         }
     }
@@ -849,7 +940,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private sealed class SurfaceBuffer
     {
         private NVector3[] _positions = new NVector3[256], _normals = new NVector3[256];
-        private NVector2[] _uvs = new NVector2[256];
+        private NVector2[] _uvs = new NVector2[256], _anchors = new NVector2[256];
         private int[] _indices = new int[512];
         private int _vertexCount;
 
@@ -879,33 +970,40 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                         Array.Resize(ref _positions, _vertexCount * 2);
                         Array.Resize(ref _normals, _vertexCount * 2);
                         Array.Resize(ref _uvs, _vertexCount * 2);
+                        Array.Resize(ref _anchors, _vertexCount * 2);
                     }
                     _positions[_vertexCount] = RightHandedFrame.Point(tile.Positions[vertex]);
                     _normals[_vertexCount] = RightHandedFrame.Normal(tile.Normals[vertex]);
                     _uvs[_vertexCount] = tile.Uvs[vertex];
+                    _anchors[_vertexCount] = tile.LightAnchor;
                     _vertexCount++;
                 }
                 _indices[IndexCount++] = remap[vertex];
             }
         }
 
-        /// <summary>The surface as Godot's exact-length arrays; the index order is kept (<see cref="RightHandedFrame"/>).</summary>
+        /// <summary>The surface as Godot's exact-length arrays, with each vertex's table anchor (<see cref="TerrainCustomFormat"/>);
+        /// the index order is kept (<see cref="RightHandedFrame"/>).</summary>
         public Godot.Collections.Array ToArrays()
         {
             var positions = new Vector3[_vertexCount];
             var normals = new Vector3[_vertexCount];
             var uvs = new Vector2[_vertexCount];
+            var anchors = new float[_vertexCount * 2];
             for (int i = 0; i < _vertexCount; i++)
             {
                 positions[i] = ToGodot(_positions[i]);
                 normals[i] = ToGodot(_normals[i]);
                 uvs[i] = new Vector2(_uvs[i].X, _uvs[i].Y);
+                anchors[i * 2] = _anchors[i].X;
+                anchors[(i * 2) + 1] = _anchors[i].Y;
             }
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
             arrays[(int)Mesh.ArrayType.Vertex] = positions;
             arrays[(int)Mesh.ArrayType.Normal] = normals;
             arrays[(int)Mesh.ArrayType.TexUV] = uvs;
+            arrays[(int)Mesh.ArrayType.Custom0] = anchors;
             arrays[(int)Mesh.ArrayType.Index] = _indices.AsSpan(0, IndexCount).ToArray();
             return arrays;
         }

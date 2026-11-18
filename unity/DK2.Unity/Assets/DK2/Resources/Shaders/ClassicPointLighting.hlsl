@@ -29,6 +29,7 @@ bool DK2PointContribution(float3 vertex, float3 normal, float4 positionRadiusSqu
     return true;
 }
 
+// Tested reference: ClassicVertexLight.PackedDiffuse (DK2.Presentation).
 float3 DK2PackedDiffuse(float3 normalizedLightSum)
 {
     return min(floor(max(normalizedLightSum, 0.0) * 255.0 + 0.00001), 255.0) / 255.0;

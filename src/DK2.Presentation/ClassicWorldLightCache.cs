@@ -36,6 +36,8 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     private List<int> _preparedIndices = new(), _previousIndices = new();
     private readonly HashSet<TilePos> _visible = new();
     private readonly Dictionary<TilePos, ClassicLightTable> _tables = new();
+    /// <summary>Freed tables, taken again for tiles coming into view, so a scrolling view allocates none.</summary>
+    private readonly Stack<ClassicLightTable> _freeTables = new();
     private readonly ClassicLightWindow _window = new();
     private ClassicLightTable[] _visibleTables = Array.Empty<ClassicLightTable>(),
         _previousTables = Array.Empty<ClassicLightTable>();
@@ -73,7 +75,8 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     {
         List<ObjectSource> entries = _entries[PortalKind];
         foreach (ObjectSource source in entries) source.Seen = false;
-        foreach (PortalLightView source in lights) Place(PortalKind, source.Id.Value, source.Light, source.Light);
+        // Indexed: a foreach over the interface boxes its enumerator every frame.
+        for (int i = 0; i < lights.Count; i++) Place(PortalKind, lights[i].Id.Value, lights[i].Light, lights[i].Light);
         RemoveUnseen(entries);
     }
 
@@ -207,7 +210,11 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         {
             TilePos tile = visible[index];
             if (!_tables.TryGetValue(tile, out ClassicLightTable? table))
-                _tables.Add(tile, table = new ClassicLightTable(tile));
+            {
+                if (_freeTables.Count > 0) (table = _freeTables.Pop()).Reuse(tile);
+                else table = new ClassicLightTable(tile);
+                _tables.Add(tile, table);
+            }
             _window.Gather(table, this, Frame);
             if (table.StaticFrame == Frame) rebuiltStatic = true;
             _visibleTables[index] = table;
@@ -235,7 +242,7 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
             _previousTables[i] = null!;
             if (!Contains(tile) && !_visible.Contains(tile))
             {
-                _tables.Remove(tile);
+                Free(tile);
                 _canReuse = false;
             }
         }
@@ -248,10 +255,15 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
                 for (int ny = y - 3; ny <= y + 3; ny++)
                 for (int nx = x - 3; nx <= x + 3; nx++)
                     if (_tables.TryGetValue(new TilePos(nx, ny), out ClassicLightTable? near)) near.DropStatic();
-            _tables.Remove(new TilePos(x, y));
+            Free(new TilePos(x, y));
             _cells[index] = default;
             _dirty[index] = true;
         }
+    }
+
+    private void Free(TilePos tile)
+    {
+        if (_tables.Remove(tile, out ClassicLightTable? table)) _freeTables.Push(table);
     }
 
     public ClassicLightCacheCell GetCell(TilePos tile) => Contains(tile) ? _cells[tile.Y * _width + tile.X] : default;
@@ -328,6 +340,7 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         Array.Clear(_visibleTables, 0, _visibleTables.Length);
         Array.Clear(_previousTables, 0, _previousTables.Length);
         Array.Fill(_dirty, true);
+        foreach (ClassicLightTable table in _tables.Values) _freeTables.Push(table);
         _preparedIndices.Clear(); _previousIndices.Clear(); _visible.Clear(); _tables.Clear();
         _visibleCount = _previousCount = 0;
         _evictionPending = false;

@@ -215,7 +215,7 @@ sum times shininess. Approximated: our light sum includes the owner-tuned Unity 
 (ADR-0522); DK2's camera space is assumed to be Direct3D's (HYPOTHESIS); animated meshes keep
 their first frame's normals; terrain pieces and effect frames get no pass; a fading
 object drops its pass, as DK2's blended gate does; the option is always on. Without the
-classic vertex-lit shader no pass is drawn. Godot draws none until step 3i, which needs the coordinates in its vertex shader.
+classic vertex-lit shader no pass is drawn. Godot draws it since step 3i, as the next pass of the submesh's material, with the coordinates computed in its vertex shader.
 
 ## 9. Unique creature textures (2026-10-29, Q681)
 

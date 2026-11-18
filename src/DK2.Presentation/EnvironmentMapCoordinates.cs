@@ -9,10 +9,10 @@ namespace DK2.Presentation;
 /// <summary>Where a vertex samples its material's environment texture in DK2's environment pass
 /// (kmf-materials.md §8): the static-mesh emitter <c>0x00582290</c> and the animated one
 /// <c>0x00583DC0</c> compute it the same way, per vertex, with no clock.
-/// <para>Nothing calls this at run time: the implementation is the classic vertex-lit shader
-/// (<c>ClassicVertexLit.shader</c>, keyword <c>DK2_ENVIRONMENT_MAP</c>), which repeats the formula
-/// inline. This class is only the tested reference of that formula; a change to one must be made
-/// to the other.</para></summary>
+/// <para>Nothing calls this at run time: the implementations are the classic vertex-lit shaders
+/// (Unity's <c>ClassicVertexLit.shader</c>, keyword <c>DK2_ENVIRONMENT_MAP</c>; Godot's <c>WorldScene</c>
+/// environment variant), which repeat the formula inline. This class is only the tested reference of
+/// that formula; a change to one must be made to the others.</para></summary>
 public static class EnvironmentMapCoordinates
 {
     /// <summary>The coordinate of one vertex. <paramref name="eye"/> is the vertex minus the camera,

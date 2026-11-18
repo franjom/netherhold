@@ -18,8 +18,8 @@ namespace DK2.GodotAdapter;
 /// model built once into a shared <see cref="ArrayMesh"/> (one surface per KMF material, <see cref="ModelMesh"/>), a
 /// <see cref="MeshInstance3D"/> per thing with its surfaces' <see cref="ObjectMaterialLook"/>s, a type-6 clip played by the
 /// shared <see cref="CreatureAnimationPlayer{TResources}"/> (<see cref="AnimatedModel"/>), the Heart's beat through
-/// <see cref="HeartPulse"/>, torches bent by the lattice and their flames (<see cref="TorchFlames"/>). The environment pass
-/// waits for the lighting (step 3i), which carries its coordinates.</summary>
+/// <see cref="HeartPulse"/>, torches bent by the lattice and their flames (<see cref="TorchFlames"/>). An environment pass
+/// is the next pass of its submesh's material, its coordinates computed in the lit vertex shader (step 3i).</summary>
 public partial class WorldScene
 {
     /// <summary>The distance in tiles over which <see cref="ZeroOrderOffset"/> spreads its keys; any positive value keeps
@@ -35,6 +35,9 @@ public partial class WorldScene
     private readonly Dictionary<string, RenderAnimation> _clips = new();
     private readonly Dictionary<string, ClipSet?> _clipSets = new();
     private readonly Dictionary<ObjectMaterialLook, ShaderMaterial> _objectMaterials = new(), _redMaterials = new();
+    private readonly Dictionary<(ObjectMaterialLook Own, bool Red, ObjectMaterialLook Environment), ShaderMaterial> _chainedMaterials = new();
+    // Per submesh, the environment pass a model's ApplyLooks found; reused.
+    private ObjectMaterialLook?[] _environmentOf = new ObjectMaterialLook?[8];
     private readonly List<ObjectPass> _passes = new();
     private readonly HeartPulse _heartPulse = new();
     private LatticeDirtyTracker? _latticeDirty;
@@ -235,6 +238,7 @@ public partial class WorldScene
             _torches.Add(floorTileIndex, slot = new TorchSlot(this, Model(mesh, lastFrame: false), floorTileIndex));
         slot.Set(torch);
         _flames?.Set(torch);
+        SetTorchLight(floorTileIndex, torch);
     }
 
     public void UpdateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh) => CreateTorch(floorTileIndex, torch, mesh);
@@ -243,6 +247,7 @@ public partial class WorldScene
     {
         if (_torches.Remove(floorTileIndex, out TorchSlot? slot)) slot.Free();
         _flames?.Remove(floorTileIndex);
+        SetTorchLight(floorTileIndex, null);
     }
 
     /// <summary>Unity's <c>DrawCreatureFrame</c> in <see cref="SceneFrame"/>'s order (this scene is its host): the Hearts'
@@ -253,6 +258,7 @@ public partial class WorldScene
     public void DrawFrame(GameTick tick, float fraction)
     {
         _frameBending = _latticeDirty is { AnyTouched: true };
+        _lightFraction = fraction;
         _phaseStart = GC.GetAllocatedBytesForCurrentThread();
         _frame.Draw(tick, fraction);
         _drawn = null;
@@ -260,10 +266,12 @@ public partial class WorldScene
         Mark(DrawPhase.Flames);
     }
 
-    /// <summary>After the frame's camera is placed (the query follow reads the drawn creatures): the blended stream sorted
-    /// for it and every blended thing's order-0 key (<see cref="ZeroOrderOffset"/>). Allocation-free.</summary>
+    /// <summary>After the frame's camera is placed (the query follow reads the drawn creatures): the frame's lights
+    /// (<see cref="PrepareLighting"/>), the blended stream sorted for it and every blended thing's order-0 key
+    /// (<see cref="ZeroOrderOffset"/>); the cage takes its key when it is drawn (<see cref="DrawCage"/>). Allocation-free.</summary>
     public void FinishFrame()
     {
+        PrepareLighting();
         DrawBlended();
         _phaseStart = GC.GetAllocatedBytesForCurrentThread();
         if (View is MinimapCameraView view)
@@ -379,7 +387,10 @@ public partial class WorldScene
     private ShaderMaterial MaterialFor(in ObjectMaterialLook look)
     {
         if (_objectMaterials.TryGetValue(look, out ShaderMaterial? material)) return material;
-        material = new ShaderMaterial { Shader = ShaderFor(look.Blend, look.FullLight, look.WritesDepth) };
+        material = new ShaderMaterial
+        {
+            Shader = ShaderFor(look.Blend, look.FullLight, look.WritesDepth, model: true, environment: look.EnvironmentMapped),
+        };
         material.SetShaderParameter(AlbedoParameter, TextureFor(look.Texture));
         material.SetShaderParameter(ColourParameter, new Color(look.Colour.X, look.Colour.Y, look.Colour.Z, look.Colour.W));
         material.SetShaderParameter(AddedLightParameter, ToGodot(look.AddedLight));
@@ -403,6 +414,39 @@ public partial class WorldScene
         return material;
     }
 
+    /// <summary>The material of <paramref name="own"/> (with its red pass when <paramref name="red"/>) followed by the
+    /// environment pass <paramref name="environment"/> over the same vertices, as DK2 draws an environment-mapped material
+    /// twice (structure-drawing.md §5): a copy whose next pass is a copy of the environment's, the red pass last.</summary>
+    private ShaderMaterial MaterialFor(in ObjectMaterialLook own, bool red, ObjectMaterialLook? environment)
+    {
+        if (environment is not ObjectMaterialLook pass) return MaterialFor(own, red);
+        if (_chainedMaterials.TryGetValue((own, red, pass), out ShaderMaterial? material)) return material;
+        ShaderMaterial second = Copy(MaterialFor(pass));
+        if (red) second.NextPass = MaterialFor(ObjectMaterialLook.HoverOverlay());
+        material = Copy(MaterialFor(own));
+        material.NextPass = second;
+        _chainedMaterials.Add((own, red, pass), material);
+        return material;
+    }
+
+    /// <summary>A new material with <paramref name="source"/>'s shader and parameters, to chain a pass after.</summary>
+    private static ShaderMaterial Copy(ShaderMaterial source)
+    {
+        var copy = new ShaderMaterial { Shader = source.Shader };
+        copy.SetShaderParameter(AlbedoParameter, source.GetShaderParameter(AlbedoParameter));
+        copy.SetShaderParameter(ColourParameter, source.GetShaderParameter(ColourParameter));
+        copy.SetShaderParameter(AddedLightParameter, source.GetShaderParameter(AddedLightParameter));
+        return copy;
+    }
+
+    /// <summary>The cleared per-submesh environment passes for a model of <paramref name="submeshes"/> submeshes.</summary>
+    private ObjectMaterialLook?[] EnvironmentPasses(int submeshes)
+    {
+        if (_environmentOf.Length < submeshes) _environmentOf = new ObjectMaterialLook?[submeshes * 2];
+        Array.Clear(_environmentOf, 0, submeshes);
+        return _environmentOf;
+    }
+
     /// <summary>What the hover overlay asks of one model this frame: the gold texture swap, and the red pass over its
     /// materials made from opaque and from blended KMF ones (<see cref="HoverOverlayPlan.Submesh"/>).</summary>
     private readonly record struct HoverLooks(bool Swap, bool RedOpaque, bool RedBlended)
@@ -416,8 +460,8 @@ public partial class WorldScene
     }
 
     /// <summary>Rewrites each surface's positions in place from <paramref name="vertices"/> (the renderers' frame, by
-    /// source vertex) through one reused buffer: a dynamic surface's vertex stream is its positions alone (no normals
-    /// until step 3i), checked when an animated copy is made. <paramref name="box"/> is the box around the vertices the
+    /// source vertex) through one reused buffer: a dynamic surface's vertex stream starts with its positions as one block (the
+    /// normals, kept, follow it; rendering_server.cpp at c51ff06e8), checked when an animated copy is made. <paramref name="box"/> is the box around the vertices the
     /// surfaces use, in the renderers' frame (the Hand's pick measures it, as Unity's bounds follow each upload).</summary>
     private void UploadPositions(ArrayMesh mesh, ModelMesh model, ReadOnlySpan<NVector3> vertices, out PickBox box)
     {
@@ -443,7 +487,8 @@ public partial class WorldScene
         box = low.X <= high.X ? new PickBox(low, high) : default;
     }
 
-    // The clip copies alive (each a dynamic ArrayMesh, a 12-byte position and an 8-byte UV per vertex), and their peak.
+    // The clip copies alive (each a dynamic ArrayMesh: a 12-byte position, a 4-byte normal, an 8-byte UV and two 16-byte light
+    // inputs per vertex), and their peak.
     private int _copies, _peakCopies;
     private long _copyBytes, _peakCopyBytes;
 
@@ -452,7 +497,7 @@ public partial class WorldScene
         long vertices = 0;
         foreach (int[] surface in template.SurfaceVertices) vertices += surface.Length;
         _copies += sign;
-        _copyBytes += sign * vertices * 20;
+        _copyBytes += sign * vertices * 56;
         _peakCopies = Math.Max(_peakCopies, _copies);
         _peakCopyBytes = Math.Max(_peakCopyBytes, _copyBytes);
     }
@@ -478,6 +523,7 @@ public partial class WorldScene
         _objects.Clear(); _structures.Clear(); _torches.Clear();
         _flames?.Free();
         _flames = null;
+        ReportLighting();
     }
 
     /// <summary>A KMF model as Godot surfaces: one per material that has triangles, each holding the vertices its triangles
@@ -490,6 +536,7 @@ public partial class WorldScene
             Source = source;
             SubmeshCount = source.Triangles.Count;
             SurfaceOf = new int[SubmeshCount];
+            Sphere = PickSphere.Of(model);
             var vertices = new List<int[]>();
             Mesh = new ArrayMesh();
             var remap = new Dictionary<int, int>();
@@ -507,11 +554,11 @@ public partial class WorldScene
                 }
                 SurfaceOf[submesh] = vertices.Count;
                 vertices.Add([.. used]);
-                Mesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, Arrays(source.Positions, used, indices));
+                Mesh.AddSurfaceFromArrays(Godot.Mesh.PrimitiveType.Triangles, Arrays(source.Positions, source.Normals, used, indices,
+                    instance: true), null, null, ModelCustomFormat);
             }
             SurfaceVertices = [.. vertices];
             Box = Mesh.GetSurfaceCount() > 0 ? Mesh.GetAabb() : new Aabb();
-            Sphere = PickSphere.Of(model);
             PickBox = PickBox.Around(source.Positions);
         }
 
@@ -534,8 +581,11 @@ public partial class WorldScene
 
         public Aabb Box { get; }
 
-        /// <summary>A surface's arrays at <paramref name="positions"/> (the renderers' frame), for a copy with its own vertices.</summary>
-        public Godot.Collections.Array Arrays(IReadOnlyList<NVector3> positions, int surface)
+        /// <summary>A surface's arrays at <paramref name="positions"/> (the renderers' frame), for a copy with its own vertices:
+        /// the model's normals unless <paramref name="normals"/> is given, lit as an instance unless <paramref name="instance"/>
+        /// is false (a torch: Unity's <c>LightingMode.TerrainPiece</c>).</summary>
+        public Godot.Collections.Array Arrays(IReadOnlyList<NVector3> positions, int surface, IReadOnlyList<NVector3>? normals = null,
+            bool instance = true)
         {
             int[] used = SurfaceVertices[surface];
             int submesh = Array.IndexOf(SurfaceOf, surface);
@@ -544,23 +594,38 @@ public partial class WorldScene
             for (int i = 0; i < used.Length; i++) local[used[i]] = i;
             var indices = new int[triangles.Length];
             for (int i = 0; i < triangles.Length; i++) indices[i] = local[triangles[i]];
-            return Arrays(positions, used, indices);
+            return Arrays(positions, normals ?? Source.Normals, used, indices, instance);
         }
 
-        private Godot.Collections.Array Arrays(IReadOnlyList<NVector3> positions, IReadOnlyList<int> used, int[] indices)
+        /// <summary>The vertices with Unity's light inputs (<see cref="ClassicMeshes"/>' <c>SetLightBounds</c>): the KMF sphere
+        /// (CUSTOM0, its centre in Godot's frame) and the anchor and light kind (CUSTOM1: no anchor, so the origin's tile;
+        /// kind x 1 for an instance, y 1 for the bound skip); a model without a sphere gets zeros, as Unity's missing UVs.</summary>
+        private Godot.Collections.Array Arrays(IReadOnlyList<NVector3> positions, IReadOnlyList<NVector3> normals,
+            IReadOnlyList<int> used, int[] indices, bool instance)
         {
             var points = new Vector3[used.Count];
+            var turned = new Vector3[used.Count];
             var uvs = new Vector2[used.Count];
+            var bounds = new float[used.Count * 4];
+            var kinds = new float[used.Count * 4];
+            NVector3 centre = Sphere is PickSphere sphere ? RightHandedFrame.Point(sphere.Centre) : default;
+            float radius = Sphere?.Radius ?? 0f, kindX = Sphere != null && instance ? 1f : 0f, kindY = Sphere != null ? 1f : 0f;
             for (int i = 0; i < used.Count; i++)
             {
                 points[i] = ToGodot(RightHandedFrame.Point(positions[used[i]]));
+                turned[i] = ToGodot(RightHandedFrame.Normal(normals[used[i]]));
                 System.Numerics.Vector2 uv = Source.Uvs[used[i]];
                 uvs[i] = new Vector2(uv.X, uv.Y);
+                bounds[i * 4] = centre.X; bounds[(i * 4) + 1] = centre.Y; bounds[(i * 4) + 2] = centre.Z; bounds[(i * 4) + 3] = radius;
+                kinds[(i * 4) + 2] = kindX; kinds[(i * 4) + 3] = kindY;
             }
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Godot.Mesh.ArrayType.Max);
             arrays[(int)Godot.Mesh.ArrayType.Vertex] = points;
+            arrays[(int)Godot.Mesh.ArrayType.Normal] = turned;
             arrays[(int)Godot.Mesh.ArrayType.TexUV] = uvs;
+            arrays[(int)Godot.Mesh.ArrayType.Custom0] = bounds;
+            arrays[(int)Godot.Mesh.ArrayType.Custom1] = kinds;
             arrays[(int)Godot.Mesh.ArrayType.Index] = indices;
             return arrays;
         }
@@ -683,9 +748,17 @@ public partial class WorldScene
             Node.Visible = ObjectMaterialLook.IsDrawn(alpha);
             _blended = false;
             bool plan = Kind == SlotKind.Structure && Structure.Plan != BlueprintTint.None;
+            ObjectMaterialLook?[] environment = _scene.EnvironmentPasses(_shown.SubmeshCount);
             foreach (ObjectPass pass in _scene._passes)
             {
-                // The environment pass waits for the lighting (step 3i), which carries its coordinates.
+                // A submesh's environment pass draws after its own, also over a plan (structure-drawing.md §5, where Unity
+                // draws the plan twice); a faded one draws black.
+                if (!pass.Look.EnvironmentMapped) continue;
+                environment[pass.Submesh] = Kind == SlotKind.Object ? pass.Look.Faded(alpha) : pass.Look;
+                _blended = true;
+            }
+            foreach (ObjectPass pass in _scene._passes)
+            {
                 if (pass.Look.EnvironmentMapped) continue;
                 int surface = _shown.SurfaceOf[pass.Submesh];
                 if (surface < 0) continue;
@@ -703,7 +776,7 @@ public partial class WorldScene
                     look = twin with { QueueOffset = 0 };
                 _blended |= look.Blend != KmfBlend.Opaque;
                 bool red = kmfBlended ? Hover.RedBlended : Hover.RedOpaque;
-                Node.SetSurfaceOverrideMaterial(surface, _scene.MaterialFor(look, red));
+                Node.SetSurfaceOverrideMaterial(surface, _scene.MaterialFor(look, red, environment[pass.Submesh]));
             }
             if (_blended) Node.SortingUseAabbCenter = false;
             _appliedHover = Hover;
@@ -832,10 +905,10 @@ public partial class WorldScene
                     mesh = new ArrayMesh();
                     for (int surface = 0; surface < template.SurfaceVertices.Length; surface++)
                         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, template.Arrays(clip.Mesh.Positions, surface), null,
-                            null, Mesh.ArrayFormat.FlagUseDynamicUpdate);
+                            null, Mesh.ArrayFormat.FlagUseDynamicUpdate | ModelCustomFormat);
                     if (mesh.GetSurfaceCount() > 0 && RenderingServer.MeshSurfaceGetFormatVertexStride(
                             (RenderingServer.ArrayFormat)mesh.SurfaceGetFormat(0), template.SurfaceVertices[0].Length) != 12)
-                        GD.PushError("DK2.Godot: an animated model's vertex stream is not positions alone; it draws wrong.");
+                        GD.PushError("DK2.Godot: an animated model's positions are not one 12-byte block; it draws wrong.");
                     _copies.Add(template, mesh);
                     _slot.Scene.CountCopy(template, +1);
                 }
@@ -885,20 +958,23 @@ public partial class WorldScene
     }
 
     /// <summary>A wall torch's model (Unity's <c>ClassicTorchGeometry</c>): its vertices placed by
-    /// <see cref="TorchGeometry.Vertex"/>, turned, at the mount and bent by the wall's lattice, built again when the torch
-    /// changes or a tile near its wall does.</summary>
+    /// <see cref="TorchGeometry.Vertex"/>, turned, at the mount and bent by the wall's lattice, relative to the torch's point
+    /// where the node stands (the origin whose tile's table lights it, as Unity's torch object), built again when the torch
+    /// changes or a tile near its wall does; its normals turned by the heading, lit as a terrain piece.</summary>
     private sealed class TorchSlot
     {
         private readonly WorldScene _scene;
         private readonly ModelMesh? _model;
         private readonly MeshInstance3D? _node;
-        private readonly NVector3[] _bent;
+        private readonly NVector3[] _bent, _turned;
+        private int _builtYaw = int.MinValue;
 
         public TorchSlot(WorldScene scene, ModelMesh? model, int floorTileIndex)
         {
             _scene = scene;
             _model = model;
             _bent = new NVector3[model?.Source.Positions.Count ?? 0];
+            _turned = new NVector3[model?.Source.Normals.Count ?? 0];
             if (model == null) return;
             _node = new MeshInstance3D { Name = "Torch" + floorTileIndex, Mesh = new ArrayMesh(), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
             scene.AddChild(_node);
@@ -910,10 +986,12 @@ public partial class WorldScene
         {
             Torch = torch;
             if (_model == null || _node == null) return;
+            var origin = new NVector3(torch.PosX / (float)Fp32.One, torch.Height / (float)Fp32.One, -torch.PosY / (float)Fp32.One);
+            _node.Position = ToGodot(RightHandedFrame.Point(origin));
             NVector3 low = new(float.MaxValue), high = new(float.MinValue);
             for (int i = 0; i < _bent.Length; i++)
             {
-                _bent[i] = TorchGeometry.Vertex(torch, _model.Source.Positions[i], _scene._lattice);
+                _bent[i] = TorchGeometry.Vertex(torch, _model.Source.Positions[i], _scene._lattice) - origin;
                 NVector3 p = RightHandedFrame.Point(_bent[i]);
                 low = NVector3.Min(low, p);
                 high = NVector3.Max(high, p);
@@ -921,15 +999,23 @@ public partial class WorldScene
             // A vertex region update keeps the first build's box; the bent extent replaces it so Godot culls by it.
             if (_bent.Length > 0) _node.CustomAabb = new Aabb(ToGodot(low), ToGodot(high - low));
             var mesh = (ArrayMesh)_node.Mesh;
-            if (mesh.GetSurfaceCount() == 0)
+            if (mesh.GetSurfaceCount() == 0 || torch.Yaw != _builtYaw)
             {
+                mesh.ClearSurfaces();
+                _builtYaw = torch.Yaw;
+                // Type-5 light meshes turn by yaw without the ordinary object's half-turn (wall-torches.md §4).
+                System.Numerics.Quaternion turn = RenderRotation.Heading(MeshOrientation.Heading(torch.Yaw));
+                for (int i = 0; i < _turned.Length; i++) _turned[i] = NVector3.Transform(_model.Source.Normals[i], turn);
                 for (int surface = 0; surface < _model.SurfaceVertices.Length; surface++)
-                    mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, _model.Arrays(_bent, surface), null, null,
-                        Mesh.ArrayFormat.FlagUseDynamicUpdate);
+                    mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, _model.Arrays(_bent, surface, _turned, instance: false),
+                        null, null, Mesh.ArrayFormat.FlagUseDynamicUpdate | ModelCustomFormat);
                 ObjectModelPasses.Build(_model.Model.Materials, _model.SubmeshCount, null, _scene._passes);
+                ObjectMaterialLook?[] environment = _scene.EnvironmentPasses(_model.SubmeshCount);
+                foreach (ObjectPass pass in _scene._passes)
+                    if (pass.Look.EnvironmentMapped) environment[pass.Submesh] = pass.Look;
                 foreach (ObjectPass pass in _scene._passes)
                     if (!pass.Look.EnvironmentMapped && _model.SurfaceOf[pass.Submesh] >= 0)
-                        mesh.SurfaceSetMaterial(_model.SurfaceOf[pass.Submesh], _scene.MaterialFor(pass.Look));
+                        mesh.SurfaceSetMaterial(_model.SurfaceOf[pass.Submesh], _scene.MaterialFor(pass.Look, false, environment[pass.Submesh]));
                 return;
             }
             // Bent again in place, as Unity's ClassicTorchGeometry.Refresh rewrites its vertices.

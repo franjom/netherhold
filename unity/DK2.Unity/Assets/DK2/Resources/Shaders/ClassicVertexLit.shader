@@ -137,6 +137,7 @@ Shader "DK2/Classic Vertex Lit"
             }
 
             #if defined(DK2_TILE_LIGHT_TABLES)
+            // Tested reference: ClassicVertexLight.TableSum (DK2.Presentation); Godot's WorldScene copies it too.
             float3 TileLightContribution(Attributes input, float3 positionWS, float3 normalWS)
             {
                 if (_DK2TileLightGridCount <= 0 || _DK2TileLightGridWidth <= 0) return 0;

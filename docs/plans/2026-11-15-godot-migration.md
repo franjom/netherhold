@@ -4,7 +4,7 @@
 > into `src/` is ordinary simulation/presentation work with tests. Follow AGENTS.md's
 > reviewer/documenter passes before every commit. Steps use checkboxes (`- [ ]`).
 
-**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes), 3d (the blended stream), 3e (the pointer, cage and placement cursor: the level is playable from the pointer) 3f (objects, structures and torch meshes), 3g (creatures) and 3h (entity hover and the Hand) are done.
+**Status:** execution plan, 2026-11-15, approved by the owner the same day. Step 1a is done (`InstallHudSources`, `InstallFrontEndSources`, `EngineCameraPaths`, `FrontEndBox.Origin` in `DK2.Presentation`). Step 1b is done: all twelve group-1 panels and the group-1 helpers. Step 1c is done, so step 1 is complete. Step 2 is complete (2026-11-16): the audit and 2a to 2j are done, and 2k moved its two deferred items to step 4. 2j covered creature and object poses, mesh turns, clip requests, the creature animation player, light publishing, the lattice tracker, hover picking, the effects draw list, the heart pulse, the sparkle gate, the head table, the flower layers and the dollar clock. Step 3 is in progress: the audit, 3a (static terrain from the level-start camera), 3b (camera control and the minimap), 3c (terrain that changes), 3d (the blended stream), 3e (the pointer, cage and placement cursor: the level is playable from the pointer) 3f (objects, structures and torch meshes), 3g (creatures), 3h (entity hover and the Hand) and 3i (the classic lighting) are done.
 **Goal:** reach parity in `godot/DK2.Godot`, then delete `unity/` and everything that exists only
 for it.
 **Rules:** ADR-0805 (adapters draw a `HudFrame` and forward input; DK2 behaviour lives in `src/`),
@@ -576,10 +576,17 @@ licensed; its lighting probes give reference frames for 3f, 3g and 3i, see *Unit
 
 *Unity reference frames.* Commit d735490a fixed the Editor probes, which had been broken since 2026-10-20.
 `ClassicWorldLightingProbe` passes on Level1 and Level7 in batch mode and writes start, tick70, shifted and torch-only
-frames, each with and without torches. To produce them: set `DK2_LIGHTING_PROBE_LEVEL` to `Level1`, `Level7` or `Level8`,
+frames, each with and without torches. Since cd4e04a0 the probe renders the in-game look (it opens `Scenes/Dungeon.unity`
+for the sun, sky and the `DungeonRunner` settings, fog of war and native initial ambient included, and applies the
+grading; `DK2_NATIVE_AMBIENT_PROBE` 0 or 1 overrides the scene's ambient switch); before it the frames had no grading
+and no sun, since batch mode's scene was empty. To produce them: set `DK2_LIGHTING_PROBE_LEVEL` to `Level1`, `Level7` or `Level8`,
 set `DK2_LIGHTING_PROBE_OUTPUT` to a directory outside the repository, then run `"C:\Program Files\Unity
 6000.6.0f1\Editor\Unity.exe" -batchmode -projectPath unity/DK2.Unity -executeMethod
 DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i compare Godot's frames against these.
+Unity's batch checks and probes run in the `unity-verify` worktree through `.claude/worktrees/unity-verify.sh` and
+`unity-probe.sh`. Both call `unity-sync.sh`, which resets the worktree to master and copies the main tree's uncommitted
+files; before 2026-11-18 neither synced, so the 3h and 3i Unity runs before that date tested stale code. A rerun
+with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 
 - [x] 3a. Static terrain from the level-start camera (2026-11-16). In `DK2.Presentation`, out of `TerrainChunks` and
       `ClassicMeshes`: `TerrainTileBuilder` (`Prepare`, `Build`, `Draws`, `PrepareSinglePiece`) with
@@ -655,9 +662,8 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       `_terrainLattice.Possession` (`InvalidateAll`) while a pool build could run; `TerrainChunks.JoinBuild` and
       `DungeonScene.JoinTerrainBuild` are new, and the runner joins before the latch changes. Godot's `WorldScene` rebuilds
       through the scheduler with one `ShaderMaterial` per look, and rewrites the liquids' positions in place each frame
-      (`SurfaceUpdateVertexRegion`). Its normal upload waits for 3i, since every material is unshaded. A stand-in light of
-      0.5 stands until 3i (the remake's choice): a lit material draws texture x colour x clamp(floor((0.5 + added) x
-      255) / 255), Unity's packed diffuse with a fixed sum, so the tag, red and tint light stay visible under DK2's clamp.
+      (`SurfaceUpdateVertexRegion`). Its normals came in 3i, which also replaced 3c's stand-in light of 0.5 (the remake's
+      choice, a fixed sum under Unity's packed diffuse) with the table lighting.
       The overlays and the fog drew weaker than in Unity; 3d found the cause (double linearisation, mostly) and fixed it.
       Mutation checks: the developer's 37 and 11 more, and the reviewer's 56, each killed or equivalent. Verification:
       `dotnet test DK2.slnx` 10,646 passed, 30 skipped (Presentation 2,662); the Level1 turn-400 hash is unchanged
@@ -688,7 +694,7 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       `use_aabb_center` true; 3e's `SortFromOrigin`). Each run is one triangle list, so
       the order is exact, run for run and triangle for triangle; a capture with the offsets negated changes 9,941 pixels, with
       visibly wrong compositing. Runs upload with `MeshSurfaceUpdateVertexRegion` and `MeshSurfaceUpdateAttributeRegion`;
-      normals wait for 3i. The 3c weakness was mostly double linearisation, not linear-space blending: Godot linearises a
+      normals are uploaded in 3i. The 3c weakness was mostly double linearisation, not linear-space blending: Godot linearises a
       `Color` set on a plain `vec4` uniform, and 3c's shader linearised it again. Now the uniform is `source_color,
       color_conversion_disabled`, the shaders write stored bytes / 255, and the camera has an `Environment` (linear
       tonemap, exposure 1, neutral adjustments, a 4096x1 half-float colour-correction table of `srgb_to_linear`), so the
@@ -742,7 +748,7 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       (it needs the owner's mouse), and hiding the OS pointer. Open: (1) the shared `HoverCursorResolver.Resolve` still
       allocates 128 B a frame with the Hand and 360 B with a room tool, because `PlacementCursor.Room` builds a new List and
       HashSet per call; it is older than 3e and Unity hits it too, so it belongs in a separate `DK2.Presentation` change.
-      (2) 3h took the world hover text and the red tint; the hand light is 3i's and the hover sound step 4's.
+      (2) 3h took the world hover text and the red tint; the hand light came in 3i; the hover sound is step 4's.
 - [x] 3f. Objects, structures and torch meshes (2026-11-17, ADR-0805). In `DK2.Presentation`: `RenderRotation` (yaw, roll
       about Z, pitch about X as a `System.Numerics` quaternion, plus `Heading`; Unity's `RenderEulerRotation` only converts
       it, and the composition now has tests). `ObjectMaterialLook`, `ObjectPass` and `ObjectModelPasses`, out of
@@ -759,8 +765,7 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       (the door tint, the blinking blueprint, the lock mesh); torch meshes bent by `TorchGeometry`, bent again in place on
       tile changes and given a `CustomAabb`; flames as additive billboards. `ZeroOrderOffset` puts blended objects and
       flames in Unity's sorting-order-0 window: after the tag overlays and before runs >= 1, back to front by distance to
-      the bounds centre. The presenter now sends Godot a `TorchLayout`. Not done: Godot's environment pass waits for 3i, which
-      needs the env-map coordinates in the vertex shader. Mutation checks: the developer's 41 and 2 more, and the reviewer's
+      the bounds centre. The presenter now sends Godot a `TorchLayout`. The environment pass, which needs the env-map coordinates in the vertex shader, came in 3i. Mutation checks: the developer's 41 and 2 more, and the reviewer's
       57, each killed, equivalent or unreachable. Verification: `dotnet test DK2.slnx` 10,802 passed, 30 skipped
       (Presentation 2,779); the Level1 turn-400 hash is unchanged (`D7290428D81A902F`); the `DK2.Unity.Compile` stand-in
       passes; Unity's batch compile, `SmokeTest` and `SaveSmokeTest` passed. Unity's `ClassicWorldLightingProbe` frames
@@ -769,7 +774,7 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       level-start pose: Level1's terrain and the Heart in its pit line up to the pixel; all nine wall torches and their
       flames are in place at the right size; at tick 70 the Heart's arches and big steps match in place, shape and size; a
       tick-32 save shows the fading arches at about half alpha, the depth they write hiding what is behind them; Level7 shows
-      the Heart, torches, crystals and markers in place. Imps (3g) and lighting (3i) are missing. Allocation: object draws
+      the Heart, torches, crystals and markers in place. Imps (3g) and lighting (3i) were missing then. Allocation: object draws
       allocate 0 B a frame in every phase (hearts, objects and clips, torch bend, flames, sort), on a real-renderer Level7
       run (294 steady frames and 46 bend frames) and on Level1 headless (2,782 frames). Findings: (1) Unity's wall flames
       are drawn upside down, a defect that predates 3f. `ClassicTorchFlames` sets `SpriteRenderer.flipY`, which
@@ -778,11 +783,10 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       probe frame against Godot's capture shows it, and Godot's upright flames are right. Fixed after 3f: Unity now
       loads the frames bottom row first and no longer sets `flipY`; only flame pixels of the probe frames changed. (2) DK2 draws a plan over an
       environment-mapped material as the plan overlay plus one additive environment pass; Unity draws the flat overlay twice
-      (older than 3f) and Godot once for now. [structure-drawing.md](../research/structure-drawing.md) §5 and the record of
-      0x00581190 have the reading (STRONGLY INFERRED). (3) The cage (sorting order 0) always draws under blended objects in
-      Godot, where Unity sorts it among them by distance; it shows only for a faded or alpha object farther than the cage,
-      such as the Heart intro's fading arches. Open: (1) 3i draws the environment pass, including over plan submeshes. (2) 3i
-      gives the cage a `ZeroOrderOffset` key. (3) A separate commit fixes Unity's upside-down flames.
+      (older than 3f) and Godot, since 3i, the overlay plus the environment pass. [structure-drawing.md](../research/structure-drawing.md) §5 and the record of
+      0x00581190 have the reading (STRONGLY INFERRED). (3) The cage (sorting order 0) drew under blended objects in
+      Godot, where Unity sorts it among them by distance; 3i gave it a `ZeroOrderOffset` key. Open: (1) and (2) were 3i's, now
+      done (the env pass over a plan is not yet captured, see 3i). (3) A separate commit fixes Unity's upside-down flames.
 - [x] 3g. Creatures (2026-11-17, ADR-0805). In `DK2.Presentation`, out of Unity's `DungeonScene.DrawCreatureFrame` (audit open
       point 7 is decided: a shared frame): `SceneFrame` over `ISceneFrameHost`, with `SceneCreatures`. Before the creatures it
       starts the hover overlay's frame and advances the Hearts' health; then per creature the place from `PoseInterpolator` (a
@@ -833,7 +837,7 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       texture twin. Looks are re-applied only when a model's hover state changes. The world hover text, with a creature's own
       name, goes through the screen-space hover HUD, as in Unity, not through 3D text. Pickup and drop needed no new code (wired
       in 3e). `WorldScene.PlacedFrustum` is the one accessor of the pose's frustum, shared by the blended stream and the pick.
-      Not wired: the hover sound (step 4) and the Hand's light (3i). Verification: `dotnet test DK2.slnx` 10,833 passed, 30
+      Not wired: the hover sound (step 4); the Hand's light came in 3i. Verification: `dotnet test DK2.slnx` 10,833 passed, 30
       skipped (Presentation 2,809, the hover tests 67); the Level1 turn-400 hash is unchanged (`D7290428D81A902F`); the
       `DK2.Unity.Compile` stand-in passes; Unity's batch compile, `SmokeTest` and `SaveSmokeTest` passed, and `ClassicWorldLightingProbe`'s
       Level1 frames were byte-identical to 3g's, before and after the review fixes. Mutation checks: 33 run, 29 killed,
@@ -845,10 +849,45 @@ DK2.Unity.Editor.ClassicWorldLightingProbe.Run`, without `-quit`. 3f, 3g and 3i 
       `TestPlanesAABB` on a tie, which `RayEntry` and `Excludes` stand in for. Finding: a sweep pick can land far from the pointer over a wall top (the shared sweep, the same in Unity).
       Open: (1) capture the gold swap and the burning red once a staged level offers them. (2) The cull tests the renderer
       box against six planes where DK2 tests the KMF sphere against four.
-- [ ] Creature shadows (3j).
-- [ ] Lighting tuned to feel like DK2 (owner exception: tuned per engine, not ported natively). Acceptance check for 3i
-      (owner, 2026-11-16, who saw the Godot scene and found it "too dark, too bland", and kept this order): Godot's lit
-      frames are judged against the Unity probe frames above and must not look too dark or too bland.
+- [x] 3i. Lighting, the classic baseline (2026-11-18, ADR-0805). Pure moves into `DK2.Presentation`: `ClassicVertexLight`
+      (`TableTile`, `TableSum`, `PackedDiffuse`), tested against a C# transcription of the HLSL
+      (`LegacyClassicVertexLit`); `ClassicLightTableLayout` (49 texels a tile, 83 tiles a texture row, so at most 4,096
+      texels, and the GLSL constant substitution). `ClassicLightTable.Reuse` and a table pool in `ClassicWorldLightCache`
+      (and an indexed loop) make a scrolling view allocate 0 B after warm-up (tested). Godot, in the new
+      `WorldScene.Lighting.cs`: an unshaded vertex-lit shader with the 24-source tile tables in float textures; the
+      publisher, the ambient keys and the torch, portal, object and Hand lights (deferred from 3h; the construction
+      effects' lights wait for 3k); the environment pass as the submesh material's `NextPass`, also over plans (a faded
+      one draws black); the cage's `ZeroOrderOffset` key, set in the frame; the liquids' normals uploaded; exposure folded
+      into the gamma table of the camera's colour correction, with no canvas pass; and `skip_vertex_transform` on every
+      world shader (Godot 4.8 drew moved models black otherwise; the cause is not established, `docs/TRAPS.md`).
+      Look (owner, 2026-11-18): the target is Unity's real in-game look, from the owner's saved scene (native initial
+      ambient 1, fog of war on): DK2's own light with ADR-0522's distance fade 0.5 to 1, and no fill or sun. Godot
+      defaults to that; `--light-fill` adds ADR-0522's fill (tint 0.55/0.44/0.28, unlit 0.25, floor 0.5, sun 1.1, Godot's
+      fitted sky). The audit's open points 2 and 3 are corrected: the old probe frames had no grading and no sun (cd4e04a0
+      fixed that). The light publisher's pose (open point 5) stays matched to Unity: zero shift, pitch and yaw. Reviewer:
+      no blockers in two rounds; the DK2 terms, GLSL arithmetic, texel layout, environment pass and vertex layout
+      (`rendering_server.cpp`) match; fixed: the allocation attribution (the tables, now pooled), hardcoded GLSL constants
+      (substituted; the formula lines are pinned and counted in the HLSL and GLSL, 26 of 26 mutants killed), the cage key's
+      one-frame lag, the texture width cap. Verification: `dotnet test DK2.slnx -c Release` 10,967 passed, 30 skipped, 0
+      failed (Presentation 2,924). Mutation checks: the moved code 33 killed and 4 equivalent; the pool 4 killed and 2
+      equivalent; the shader text 18 of 18; the layout 8 of 8. Unity's batch compile, `SmokeTest` and `SaveSmokeTest` pass; with
+      the 3i tree the old probe's Level1 and Level7 frames are byte-identical to 3g's and the in-game probe frames are
+      byte-identical with and without the pool. The Level1 turn-400 hash is `60C97ECC6F9F0501`, the same on clean master
+      b3a31f5e (other sessions' simulation commits changed it from `D7290428D81A902F`; 3i does not touch the simulation).
+      Godot's in-game frames against Unity's are within 0.002 luminance and 0.004 saturation in every pair (Level7
+      shifted without torches: saturation -0.016); with torches luminance is 0.21 to 0.23 and saturation 0.75 to 0.82. The
+      Acceptance (owner, 2026-11-16: not too dark, too bland next to Unity's frames) is met by those figures; the
+      owner's own look at the frames is not recorded. The lighting step costs about 2 ms a frame. Allocation: a still camera allocates 3.4 to 5.3 KB per 467 frames (bounded
+      warm-up); `ClassicLightVisibility.BuildPolygon` (shared) allocates about 1.8 KB per camera move, left for a separate
+      change, plus bounded first-visit growth. Not verified: the environment pass over a plan, a faded one and the cage key
+      (none captured), the ambient keys live, a non-default brightness, the wrap past 83 tiles at runtime. Probe review
+      notes, both pre-existing: an already-open dirty scene, and the tile-light globals not restored after a run.
+- [ ] Modern lighting prototype (owner, 2026-11-18, after 3i commits as the classic baseline): the owner wants modern engine
+      features rather than the 20-year-old technique. On Level1, DK2's light sources (the shared publisher: positions,
+      colours, radii, flicker) drive real Godot per-pixel lights, the nearest few cast shadows, with glow and SSAO, tuned
+      by eye against the Unity in-game frames. The classic shader stays as a switch. If the owner prefers the modern look
+      it becomes the default and 3j is redone with Godot's shadows instead of the silhouette projection.
+- [ ] Creature shadows (3j): pending the modern-lighting decision above (the silhouette projection, or Godot's shadows).
 - [ ] The remaining 3D overlays (possession, 3m), then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging

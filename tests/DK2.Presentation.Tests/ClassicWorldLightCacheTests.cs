@@ -232,7 +232,8 @@ public class ClassicWorldLightCacheTests
         cache.PrepareFrame(new[] { new TilePos(12, 12) });
         Assert.Equal(new ClassicLightFrame(1), cache.GetCell(Tile).BuildFrame);
         cache.PrepareFrame(new[] { Tile });
-        Assert.NotSame(first, cache.VisibleTables[0]);
+        // Freed, then taken again from the free tables and rebuilt afresh (its static stamp is this frame).
+        Assert.Same(first, cache.VisibleTables[0]);
         Assert.Equal(new ClassicLightFrame(3), cache.GetCell(Tile).BuildFrame);
         Assert.Equal(new ClassicLightFrame(3), cache.VisibleTables[0].StaticFrame);
         Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[0]));
@@ -344,6 +345,80 @@ public class ClassicWorldLightCacheTests
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 100; i++) cache.PrepareFrame(visible);
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
+    [Fact]
+    public void AWarmFrameWithEntrancesAndAMovingHandAllocatesNothing()
+    {
+        var cache = new ClassicWorldLightCache(12, 12);
+        var portals = new PortalCentreLights(new EffectTime(0));
+        portals.Create(new TilePos(4, 4));
+        TilePos[] visible = { Tile, new(6, 5), new(7, 5) };
+        for (int frame = 0; frame < 400; frame++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            cache.UpdatePortalLights(portals.Advance(new EffectTime(frame * 33)));
+            cache.UpdateHand(ClassicPointLight.FromHand(5 + (frame % 20) * 0.1f, 5.5f, false, true, 12, 12));
+            cache.PrepareFrame(visible);
+            if (frame >= 200) Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+    }
+
+    [Fact]
+    public void AScrollingViewReusesFreedTablesAndAllocatesNothing()
+    {
+        var cache = new ClassicWorldLightCache(40, 40);
+        for (int y = 0; y < 40; y += 2)
+        for (int x = 0; x < 40; x += 3) cache.SetTerrain(new TilePos(x, y), Source(1 + (x + y) % 200, new TilePos(x, y)));
+        // A 12x12 view sweeping 16 tiles east and back, each frame's tiles prepared once.
+        var views = new TilePos[32][];
+        for (int step = 0; step < views.Length; step++)
+        {
+            int left = step < 16 ? step : 31 - step;
+            views[step] = new TilePos[144];
+            for (int i = 0; i < 144; i++) views[step][i] = new TilePos(4 + left + i % 12, 10 + i / 12);
+        }
+        for (int frame = 0; frame < views.Length * 2; frame++) cache.PrepareFrame(views[frame % views.Length]);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int frame = 0; frame < views.Length * 3; frame++) cache.PrepareFrame(views[frame % views.Length]);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
+    [Fact]
+    public void AClearKeepsItsTablesForTheNextFrames()
+    {
+        var cache = new ClassicWorldLightCache(12, 12);
+        cache.SetTerrain(Tile, Source(1, Tile));
+        TilePos[] visible = { Tile, new(6, 5), new(7, 5) };
+        for (int i = 0; i < 10; i++) cache.PrepareFrame(visible);
+        cache.Clear();
+        cache.SetTerrain(Tile, Source(1, Tile));
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        cache.PrepareFrame(visible);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[0]));
+    }
+
+    [Fact]
+    public void AFreedTableIsTakenAgainEmptyForItsNewTile()
+    {
+        TilePos far = new(30, 30);
+        var cache = new ClassicWorldLightCache(40, 40);
+        cache.SetTerrain(Tile, Source(7, Tile));
+        cache.SetTerrain(far, Source(9, far));
+        cache.SetTerrain(new TilePos(31, 30), Source(11, new TilePos(31, 30)));
+        cache.PrepareFrame(new[] { Tile });
+        Assert.True(cache.TryGetVisibleTable(Tile, out ClassicLightTable first));
+        Assert.Equal(new[] { 7 }, Ids(first));
+        // Tile's cells are freed at the frame after the one that left them, then its table serves the far tile.
+        cache.PrepareFrame(new[] { new TilePos(20, 20) });
+        cache.PrepareFrame(new[] { far });
+        Assert.True(cache.TryGetVisibleTable(far, out ClassicLightTable table));
+        Assert.Same(first, table);
+        Assert.Equal(far, table.Tile);
+        Assert.Equal(new[] { 9, 11 }, Ids(table).OrderBy(id => id));
+        Assert.Equal(table.Count, table.StaticCount);
+        Assert.False(cache.TryGetVisibleTable(Tile, out _));
     }
 
     private static ClassicPointLight Source(int id, TilePos tile)
