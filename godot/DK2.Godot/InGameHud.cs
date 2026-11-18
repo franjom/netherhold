@@ -512,25 +512,25 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // are applied: the other keys' GUI toggle and camera moves are not ported. A camera path holds the options key
         // back that frame. While the keyboard page captures a key, no shortcut fires.
         UpdatePossession(_scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon), delta, milliseconds);
-        HudVisibility camera = PossessionHud.OrdinaryVisibility(_scriptedView.HudFor(ClassicCameraMode.Dungeon),
-            _possession?.CameraHeld == true);
+        HudVisibility camera = _scriptedView.HudFor(ClassicCameraMode.Dungeon);
         ClassicHudAction shortcut = _keyboard.Read(_settings).HudShortcut(
-            _hudControls.ShortcutContext(camera, script.AllowOptionsKey, capturingKey: _optionsPages.CapturingAction != null),
+            PossessionHud.ShortcutContext(_hudControls.ShortcutContext(camera, script.AllowOptionsKey,
+                capturingKey: _optionsPages.CapturingAction != null), _possession?.CameraHeld == true, _possession?.Possessing == true),
             _keyboard.EscapePressed);
-        if (shortcut is ClassicHudAction.ToggleOptions or ClassicHudAction.ToggleFullMap) ApplyHudAction(shortcut);
+        if (shortcut is ClassicHudAction.ToggleOptions or ClassicHudAction.ToggleFullMap or ClassicHudAction.ToggleGui) ApplyHudAction(shortcut);
         // DungeonRunner.CurrentHud (PlayedHud; the warm frames are not ported): a camera path, the letterbox, the result
         // and the full map hide the normal HUD.
-        HudVisibility visibility = PossessionHud.OrdinaryVisibility(
-            _scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon), _possession?.CameraHeld == true);
+        HudVisibility menuVisibility = _scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon);
+        HudVisibility visibility = PossessionHud.OrdinaryVisibility(menuVisibility, _possession?.CameraHeld == true);
         bool modal = _hudControls.Modal;
         _panel.SetVisibility(_hudControls.ModalInput(visibility));
-        _options.SetVisible(_hudControls.OptionsMenuShown(visibility));
-        _gameOptionsPanel.Show(_hudControls.GameOptionsShown(visibility));
+        _options.SetVisible(_hudControls.OptionsMenuShown(menuVisibility));
+        _gameOptionsPanel.Show(_hudControls.GameOptionsShown(menuVisibility));
         _fullMap.SetVisible(_hudControls.FullMapShown(camera));
-        _minimap.SetVisibility(_possession?.Possessing == true ? new HudVisibility(true, false) : visibility);
+        _minimap.SetVisibility(PossessionHud.MinimapVisibility(menuVisibility, _possession?.Possessing == true, _possession?.CameraHeld == true));
         _options.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
         // DungeonRunner.DrawSavePanel's in-game branch, with this frame's typing (Unity reads Input.inputString there).
-        (bool saveLoadShown, bool saving) = _hudControls.SaveLoadPage(visibility);
+        (bool saveLoadShown, bool saving) = _hudControls.SaveLoadPage(menuVisibility);
         _saveLoad.Show(_saves, saveLoadShown, saving, _keyboard.Typed);
         // DungeonRunner.Update's camera step, then QueueInput after the shortcuts, as there; its game options branch polls
         // the keys before they end.
@@ -642,6 +642,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             new HoverCursorInput(pick, allowed, overHud, PrimaryHeld, _resourceFacts.Gold.Value, milliseconds, _pointerWorld));
         long tintBefore = GC.GetAllocatedBytesForCurrentThread();
         if (feedback.Tinted && pick is WorldHoverHit tinted) _world.DrawHoverOverlay(tinted, feedback.TintBlended);
+        DrawPossessionHighlight();
         _world.CommitHoverOverlay();
         if (_pickFrames > 0 && pick != null) _pickBytes += GC.GetAllocatedBytesForCurrentThread() - tintBefore;
         // No sound player yet (step 4): the hover's (feedback.HoverSound) and the cursor's requests are dropped.

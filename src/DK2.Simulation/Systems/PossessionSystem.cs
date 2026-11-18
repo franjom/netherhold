@@ -42,7 +42,7 @@ public sealed class PossessionSystem : ISimulationSystem
             else if (command is SetSniperModeCommand sniper) PossessionRules.SetSniperMode(creature, sniper.On);
             else if (command is SetCreepingCommand creep) PossessionRules.SetCreeping(creature, creep.On);
             else if (command is TogglePossessionFormCommand) PossessionAbilityRules.ToggleForm(context, creature);
-            else if (command is TogglePossessionPrayerCommand) creature.PossessionPraying = !creature.PossessionPraying;
+            else if (command is TogglePossessionPrayerCommand) PossessionAbilityRules.TogglePrayer(creature);
         }
         foreach (CreatureState creature in context.World.Creatures)
         {

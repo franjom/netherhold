@@ -37,20 +37,22 @@ The two ability-parameter dwords are zero in all 46 editor records.
   [Animation selection](functions/0048BE50.md) substitutes object 12's art while it is set.
 - Action 31 toggles flag 13. While possessed and set, the creature update starts action 50
   if necessary. [Its handler](functions/00499840.md) heals every turn until the flag clears;
-  it uses art 23 and sound 0xD4. The rate divisor is variable 33's unsigned low word;
+  it uses art 23 and sound 0xD4. The rate dividend is variable 115's unsigned low word (shipped 33), divided by
+  variable 19 (shipped 4);
   positive healing is capped at level maximum through the shared health rule.
   Movement keys, waddle and walk cycle stop while praying.
   Leaving clears flags 11 and 13 alongside creep and sniper, as `0x0048EE70` does.
 - [Action 28](functions/00516EC0.md) is a carrying toggle: release the creature in player
-  `+0x136`; otherwise throw object 64 when player flag 1 is set; otherwise pick that object
-  or the nearest eligible owned worker within one tile and the aim cone. Its carried-body
+  `+0x136`; otherwise player `+0x76` bit 1 requests effect 222 and clears that bit;
+  otherwise a picked type-0x40 object only sets the bit; otherwise it picks the nearest
+  eligible owned worker within one tile and the aim cone. Its carried-body
   lifecycle still needs reading before this arm can be built faithfully.
 - [Action 137](functions/00514470.md) gives a valid creature target twenty turns of fear.
   [Timed effects](functions/0048E160.md) decrements and adds the amount to temporary fear,
   including on expiry, recording the source creature. Effect 239 starts only when no old timer
   runs; effect 336 is requested whenever bit 2 of the remaining timer is clear, including zero.
 
-ADR-0819 added these state fields under hash/save 531: both flags, the active prayer action
+ADR-0819 added these state fields under hash/save 532: both flags, the active prayer action
 and the fear timer/amount/source are saved and hashed. New journal command tags are 38-41.
 The five special animation exclusions in the flying accessor remain outside the existing
 flight abstraction. Trap selection now consumes the same supported subset ([traps](traps.md#5-the-selectors), ADR-0820).
@@ -86,18 +88,9 @@ camera, including the distance used by its fade and tile walk.
 
 ## Foreground attacks
 
-[The foreground loader](functions/005074D0.md) loads 22 named animation resources (plus
-empty slot 0), including Bite, Claw_Slash, punches, sword/scythe/staff strikes, arrows,
-Bile smashes and Hypnotise. They are animated KMF meshes in `Meshes.WAD`.
-[The starter](functions/005075A0.md) installs a screen render block at the requested frame
-rate for `22000 / fps` milliseconds; its packed animation setup also writes constant 22.
-[Its update](functions/00507710.md) subsequently fades it over 500 ms.
-The decoded Bite has 18 frames; R-Punch, Sword_Slash and Hypnotise have 15 each. Their textures
-are additive. Inspected pixels show red fangs, a cyan punch smear, a cyan slash and a coloured
-spiral respectively, without a persistent hand or weapon model in these samples. This is an
-animated foreground effect, not evidence of a first-person skeletal rig. The other resources'
-visible contents and the screen-space mesh transform remain UNREAD; the renderer is unbuilt.
-Decoded, inspected textures: `F:\DK2Evidence\possession-finish-20261118-abilities\*.png`.
+The authored resource selection, screen transform, timing, draw list, filters and
+verification limits are now recorded in [foreground attacks](possession-foreground.md).
+Godot draws that engine-free model; carry/throw physics remain separate and unbuilt.
 
 ## Remaining reads
 
@@ -109,7 +102,7 @@ helper `0x00451570`, the landing state 249 and native physical-vector integratio
 closed by this bounded search. The entire carry/throw arm stays unbuilt. The player's `+0x136`
 also participates in [its checksum](functions/004BCB60.md), not in another cleanup routine.
 
-The bounded foreground search read the loader, starter, updater, four KMF resources and their
-textures. The render queue's foreground transform is still UNREAD. It also read
-[a statistics formatter](functions/00507240.md), unrelated
-to the foreground class, and [its neighbouring foreground teardown](functions/00507450.md).
+The foreground transform read and rendering now have their home in
+[foreground attacks](possession-foreground.md). The unrelated
+[statistics formatter](functions/00507240.md) and neighbouring
+[teardown](functions/00507450.md) retain their function records.

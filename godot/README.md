@@ -96,8 +96,11 @@ and a held tool, and the order of full map, options, overview, minimap and battl
 frame without ordinary input cancels only the world drag; when the window loses focus the scene releases the keys and cancels the
 bottom panel's press and then the world drag; the bottom panel cancels its own press when it is freed. A held choice slot queues its release
 sound request 0x136, which nothing plays yet.
-Possession colour ramps and options gamma use one final scene/HUD/cursor pass: [implementation and limits](../docs/research/possession-colour-rendering.md).
-The possession canvas presents the shared HUD geometry and compositing in height-fitted widescreen content (ADR-0821), uses the map-2 minimap, and blocks ordinary panels and shortcuts while the camera is held: [scope and limits](../docs/research/possession-hud.md).
+Options gamma uses one final scene/HUD/cursor pass; possession colour ramps remain developer-only and off by default (ADR-0822): [implementation and limits](../docs/research/possession-colour-rendering.md).
+The possession canvas presents the shared HUD geometry and compositing in height-fitted widescreen content (ADR-0821), uses the map-2 minimap, and blocks ordinary panels and navigation shortcuts while the camera is held, with Options and GUI toggle available in the live possession view: [scope and limits](../docs/research/possession-hud.md).
+
+Authored first-person swings and creature filters use the shared [foreground draw list](../docs/research/possession-foreground.md);
+the one current-action target reuses [the hover pass](../docs/research/possession-target-highlight.md).
 
 ### Shot effects
 
@@ -159,6 +162,8 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `DK2.Godot/WorldScene.PossessionVisibility.cs` | possession tile visibility; scope and verification: [possession-warp section 8.3](../docs/research/possession-warp.md#83-the-enumeration-strongly-inferred-whole-disassembly-of-0x005737e0-and-0x00572f60) |
 | `DK2.Godot/WorldScene.PossessionRendering.cs` | the world-shader distance fade; scope and verification: [possession-warp section 4](../docs/research/possession-warp.md#4-the-possession-distance-fade-strongly-inferred-implementable) |
 | `DK2.Godot/InGameHud.Possession.cs` | the possession's host (`InGameHud`, partial, step 3m): the shared `PossessionSession` driven every frame from the keys, pointer travel and engine clock, the pointer lock (`Input.MouseMode`, never under `--pointer-path`), `--possess-first-creature` |
+| `DK2.Godot/InGameHud.PossessionForeground.cs` | submits the engine-free authored swing triangle list; [scope](../docs/research/possession-foreground.md) |
+| `DK2.Godot/InGameHud.PossessionHighlight.cs` | submits the shared current-action target to the existing hover pass; [scope](../docs/research/possession-target-highlight.md) |
 | `DK2.Godot/WorldScene.Hover.cs` | entity hover (`WorldScene`, partial, step 3h): `PickHoverEntity` offers the drawn creatures, hover-target objects, doors and traps to `WorldHoverPicker` (then its 3x3 sweep); `DrawHoverOverlay` and `CommitHoverOverlay` set each hovered `ModelSlot`'s red pass (`HoverOverlayPlan`, `ObjectMaterialLook.HoverOverlay`) and gold twin; the burning red is the same pass |
 | `DK2.Godot/ClassicHandCursor.cs` | the hand cursor: `HandCursorHud`'s quad drawn by `HudCanvas` on canvas layer 101 from `InstallHandCursorSheets`, the OS pointer hidden while it shows |
 | `DK2.Godot/ClassicPlacementOverlay.cs` | the placement cursor: `PlacementCursorHud` drawn by `HudCanvas` on canvas layer 100 (the tool's icon, No Go, price, held icons) |

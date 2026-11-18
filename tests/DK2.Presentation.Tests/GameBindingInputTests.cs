@@ -9,6 +9,33 @@ namespace DK2.Presentation.Tests;
 
 public class GameBindingInputTests
 {
+    [Theory]
+    [InlineData(GameAction.Options, ClassicHudAction.ToggleOptions)]
+    [InlineData(GameAction.TogglePanel, ClassicHudAction.ToggleGui)]
+    [InlineData(GameAction.Heart, ClassicHudAction.None)]
+    [InlineData(GameAction.FullMap, ClassicHudAction.None)]
+    [InlineData(GameAction.Portal, ClassicHudAction.None)]
+    [InlineData(GameAction.NextFight, ClassicHudAction.None)]
+    public void PossessionAllowsOptionsAndGuiButNotOrdinaryNavigation(GameAction action, ClassicHudAction expected)
+    {
+        var settings = new GameSettings { Bindings = [new GameKeyBinding(action, 0x30)] };
+        GameShortcutContext context = PossessionHud.ShortcutContext(new(), possessionCameraHeld: true);
+        Assert.Equal(expected, Input(settings, scans: 0x30).HudShortcut(context));
+    }
+
+    [Theory]
+    [InlineData(15, 0.5)]
+    [InlineData(30, 1)]
+    [InlineData(60, 2)]
+    public void NativeGammaSliderConvertsToTheRampDivisor(int slider, double gamma) =>
+        Assert.Equal(gamma, DisplaySettings.RampGamma(slider));
+
+    [Fact]
+    public void NoLivePossessedBodyKeepsShortcutsBlockedDuringTheDeathOrReturnView()
+    {
+        GameShortcutContext context = PossessionHud.ShortcutContext(new(), possessionCameraHeld: true, possessing: false);
+        Assert.Equal(ClassicHudAction.None, Input(scans: 1).HudShortcut(context));
+    }
     private static GameBindingInput Input(GameSettings? settings = null, KeyModifiers modifiers = KeyModifiers.None, params int[] scans)
         => new(settings ?? new GameSettings(), modifiers, s => scans.Contains(s.Value), s => scans.Contains(s.Value));
 

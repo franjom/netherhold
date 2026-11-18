@@ -97,6 +97,7 @@ public sealed class PossessionSession : ITurnPoseSource
 
     public PossessionView View => _view;
     public PossessionControls Controls => _controls;
+    public PossessionForeground Foreground { get; } = new();
     public PossessionFlight Flight => _flight;
     public PossessionColours Colours { get; } = new();
 
@@ -254,10 +255,15 @@ public sealed class PossessionSession : ITurnPoseSource
                 ? PossessionAbilityRules.PickFrightenTarget(_boundWorld!, _database, creature, PossessionControls.Aim(_view))
                 : CreatureId.None;
             if (_controls.UsePrimary(viewer, _view, definition, target, new CreatureId(creature.Id)) is PlayerCommand primary)
+            {
                 commands.Add(primary);
+                Foreground.Begin(definition.FirstPersonPrimary, definition.FirstPersonFramesPerSecond, input.ClockMilliseconds);
+            }
         }
         if (Pressed(GameAction.SecondaryAbility)) _controls.SelectSecondary(definition);
-        if (Pressed(GameAction.PickLock)) commands.Add(new OpenPossessedPrisonCommand(viewer, creature.Tile));
+        if (Pressed(GameAction.PickLock)
+            && PossessionControls.PickLock(_boundWorld!, _database, viewer, _view, creature) is { } open)
+            commands.Add(open);
         if (Pressed(GameAction.RemoveAlly)) commands.Add(new DismissFollowersCommand(viewer));
         if (Pressed(GameAction.Sniper) && PossessionControls.CanToggleSniper(definition, creature.Level))
         {
@@ -265,7 +271,10 @@ public sealed class PossessionSession : ITurnPoseSource
             commands.Add(new SetSniperModeCommand(viewer, !creature.SniperMode));
         }
         if (!creature.PossessionFlightForm && (Pressed(GameAction.Fire) || input.PrimaryPressed))
+        {
+            Foreground.Fire(_database, creature, definition, _controls, input.ClockMilliseconds, _boundWorld!.CurrentTick.Value);
             commands.Add(_controls.SubmitFire(viewer, _view, definition));
+        }
     }
 
     private static void Footstep(PossessionFootstep? step, CreatureDef definition, ICollection<SoundRequest> sounds)
@@ -364,6 +373,7 @@ public sealed class PossessionSession : ITurnPoseSource
     /// <summary>Drops the possession without a move back: the level is being let go.</summary>
     public void Reset()
     {
+        Foreground.Begin(PossessionForegroundKind.None, 0, 0);
         ObserveColours(null);
         _possessed = null;
         _world = null;

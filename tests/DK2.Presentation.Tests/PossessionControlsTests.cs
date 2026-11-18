@@ -14,6 +14,46 @@ namespace DK2.Presentation.Tests;
 /// <summary>The possessor's selection byte and what Fire sends (possession-client.md §4).</summary>
 public sealed class PossessionControlsTests
 {
+    [InstallTheory]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, true)]
+    public void PickLockRequiresBothTheCameraPointAndCreatureTileToBePrison(bool cameraInPrison, bool creatureInPrison, bool opens)
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [1, 3, 4], fogOfWarEnabled: false);
+        byte prison = db.Rooms.Values.Single(r => r.TypeId == RoomTypeId.Prison).TerrainId;
+        byte ordinary = db.Terrain.Values.First(t => db.RoomByTerrain(t.TerrainId) == null).TerrainId;
+        TilePos cameraTile = new(4, 4), creatureTile = new(6, 4);
+        world.Tile(cameraTile).TerrainId = cameraInPrison ? prison : ordinary;
+        world.Tile(creatureTile).TerrainId = creatureInPrison ? prison : ordinary;
+        CreatureDef warlock = db.Creatures.Values.Single(c => c.Name == "Warlock");
+        CreatureState creature = world.SpawnCreature(db, warlock.CreatureId, Keeper, creatureTile);
+        var view = new PossessionView();
+        view.Enter((cameraTile.X << 12) + 2048, (cameraTile.Y << 12) + 2048, 0,
+            new PossessedBody(0, 0, 0, false, false, false, false, 0, 0, 0, 0, 0, false, 0));
+        OpenPossessedPrisonCommand? command = PossessionControls.PickLock(world, db, Keeper, view, creature);
+        Assert.Equal(opens, command != null);
+        if (command != null) Assert.Equal(creatureTile, command.PrisonAt);
+    }
+    [InstallFact]
+    public void SpellAndFollowerKeysClearHypnosisBeforeFireAsTheKeyCallersMaskF9()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        CreatureDef vampire = db.Creatures.Values.Single(c => c.Name == "Vampire");
+        CreatureDef warlock = db.Creatures.Values.Single(c => c.Name == "Warlock");
+        int slot = Enumerable.Range(0, warlock.Spells.Count).First(i => warlock.Spells[i].CreatureSpellId != 0);
+        var controls = new PossessionControls();
+        controls.SelectSecondary(vampire);
+        controls.SelectSpell(slot, warlock, 10);
+        Assert.Equal(0, controls.Selection & 6);
+        Assert.Equal(slot, Assert.IsType<ActPossessedCreatureCommand>(controls.SubmitFire(Keeper, new PossessionView(), vampire)).Slot.Value);
+        controls.SelectSecondary(vampire);
+        controls.SelectFollowers();
+        Assert.Equal(0, controls.Selection & 6);
+        Assert.Equal(PossessedSlot.FollowerArm, Assert.IsType<ActPossessedCreatureCommand>(controls.SubmitFire(Keeper, new PossessionView(), vampire)).Slot.Value);
+    }
     [InstallFact]
     public void SniperRequiresItsDefinitionMultiplierAndAnUnlockedSpell()
     {

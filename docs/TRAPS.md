@@ -406,3 +406,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A tool attached to DK2 can change a replay: a Level 6a `record_native.py` replay went out of sync at GT 76 while a plain `-PLOAD` did not (2026-11-16; the cause is a hypothesis). The `-Replay` of the same recording (nothing stopping the game) logged `Gone Out Of Sync (Checksum) GT 631` and an out-of-sync line every turn after; whether the game diverged is not known. Check `MESSAGE.LOG` for `Gone Out Of Sync` after every replay capture, and do not touch the game during a replay (it takes live input; a focus change or a right click is the suspected cause, a hypothesis); `play-record.ps1 -Verify` is the control with nothing attached. See `tools/oracle/play-record.md`.
 
 - Redirecting the Ghidra runner log/CACHE does not redirect InsGrep's insdb cache; instruction scans still write under the checkout's reverse-engineering/.cache/.
+
+- Pinned Godot Movie Maker can log Vulkan surface-capability error -13 on every frame; `--rendering-driver d3d12` produced clean captures here without changing the project renderer.

@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
 using DK2.Core;
 using DK2.Data.Model;
 namespace DK2.Presentation;
@@ -40,18 +41,20 @@ public static class ScreenColourTables
                 case ScreenColourKind.Blue: r = green = 0; b = Math.Min(1.5 * g, 1); break;
                 case ScreenColourKind.Maiden: green = Math.Min(g + 0.2, 1); b = 0; break;
                 case ScreenColourKind.ThreeBands:
+                    double threeInput = (float)g;
                     r = green = b = 0;
-                    if (g < third) b = Math.Sin(3 * pi * g);
-                    else if (g < 2 * third) green = Math.Sin(3 * pi * (g - third));
-                    else r = green = b = Math.Sin(1.5 * pi * (g - 2 * third));
+                    if (g < 1d / 3) b = (float)Math.Sin(pi * threeInput * 3);
+                    else if (threeInput < 2d / 3) green = Math.Sin((threeInput - 1d / 3) * (pi * 3));
+                    else r = green = b = (float)Math.Sin((threeInput - 2d / 3) * (pi * 3) * 0.5);
                     break;
                 case ScreenColourKind.FourBands:
                 case ScreenColourKind.FourBandsSwapped:
+                    double fourInput = (float)g;
                     r = green = b = 0;
-                    if (g < 0.25) b = Math.Sin(4 * pi * g);
-                    else if (g < 0.5) r = Math.Sin(4 * pi * (g - 0.25));
-                    else if (g < 0.75) green = Math.Sin(4 * pi * (g - 0.5));
-                    else r = green = b = Math.Sin(2 * pi * (g - 0.75));
+                    if (g < 0.25) b = (float)Math.Sin(pi * fourInput * 4);
+                    else if (fourInput < 0.5) r = (float)Math.Sin((fourInput - 0.25) * (pi * 4));
+                    else if (fourInput < 0.75) green = Math.Sin((fourInput - 0.5) * (pi * 4));
+                    else r = green = b = (float)Math.Sin((fourInput - 0.75) * (pi * 4) * 0.5);
                     if (kind == ScreenColourKind.FourBandsSwapped) (r, green) = (green, r);
                     break;
             }

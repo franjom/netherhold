@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Commands;
@@ -8,6 +9,44 @@ using DK2.Simulation.Systems;
 namespace DK2.Simulation.Tests;
 public sealed class PossessionAbilityTests
 {
+    [Theory]
+    [InlineData("horny")]
+    [InlineData("only-horny")]
+    [InlineData("dying")]
+    [InlineData("carried")]
+    [InlineData("hand")]
+    public void RefusedNativeDamageDoesNotRequestAColourFlash(string refusal)
+    {
+        var (db, _, me) = Open();
+        CreatureDef definition = db.CreatureById(me.CreatureTypeId);
+        if (refusal == "horny") definition = definition with { Flags = definition.Flags | CreatureFlags.IsHorny };
+        if (refusal == "only-horny") definition = definition with { Flags = definition.Flags | CreatureFlags.OnlyAttackableByHorny };
+        if (refusal == "dying") me.Dk2StateId = CreatureDeathRules.DyingState;
+        if (refusal == "carried") me.CarriedByCreatureId = 999;
+        if (refusal == "hand") me.InHand = true;
+        int notifications = 0;
+        me.PossessionColourChanged += _ => notifications++;
+
+        CreatureHealthRules.Apply(db, definition, me, -1, 4);
+
+        Assert.Equal(0, notifications);
+    }
+
+    [Fact]
+    public void FearRequestsItsInitial239AndTick336Effects()
+    {
+        var (db, world, me) = Open();
+        CreatureState enemy = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, 4, new TilePos(6, 5));
+        var sim = new GameSimulation(db, world, 1, [new PossessionSystem(), new CreatureStatusSystem()]);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+
+        sim.Tick(InputFrame.Of(new FrightenPossessedCreatureCommand(3, new CreatureId(enemy.Id), new CreatureId(me.Id), new FearAmount(2000))));
+
+        Assert.Contains(events.Events, e => e.EffectRequest is { EffectId.Value: 239 });
+        Assert.Contains(events.Events, e => e.EffectRequest is { EffectId.Value: 336 });
+    }
+
     [Fact]
     public void PickLockOnAPrisonOpensItAndReleasesEverySidesPrisoners()
     {

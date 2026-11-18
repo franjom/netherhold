@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
 using DK2.Data.Model;
 namespace DK2.Presentation.Tests;
 
@@ -102,7 +103,7 @@ public sealed class ScreenColourTests
         Assert.InRange(three[512 + 32], 60500, 60600);
         ushort[] four = ScreenColourTables.Build(ScreenColourKind.FourBands, 1);
         ushort[] swapped = ScreenColourTables.Build(ScreenColourKind.FourBandsSwapped, 1);
-        Assert.Equal(65534, four[96]);
+        Assert.Equal(65535, four[96]);
         Assert.Equal(0, four[256 + 96]);
         Assert.Equal(four[96], swapped[256 + 96]);
         Assert.Equal(four[256 + 96], swapped[96]);
@@ -155,7 +156,7 @@ public sealed class ScreenColourTests
         Assert.All(colours.Current, value => Assert.Equal(0, value));
     }
     [Fact]
-    public void QueuedZeroLengthRetainsTheNativeUnguardedDivision()
+    public void DeveloperOnlyQueuedZeroLengthMirrorsNativeDivisionFaultRatherThanSilentlyRepairingIt()
     {
         var colours = new ScreenColourChange();
         colours.Start(ScreenColourKind.Black, 0, 100);

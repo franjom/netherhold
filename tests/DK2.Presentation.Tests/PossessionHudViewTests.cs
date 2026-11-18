@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
@@ -11,6 +12,30 @@ namespace DK2.Presentation.Tests;
 
 public sealed class PossessionHudViewTests
 {
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(5, 50)]
+    [InlineData(10, 100)]
+    public void NeverUsedRechargeStampStillUsesElapsedLevelTime(int tick, int percent) =>
+        Assert.Equal(percent, PossessionHudView.Recharge(new GameTick(tick), 0, 10));
+
+    [InstallFact]
+    public void UnbuiltBookCarryStateDoesNotLightTheThrowIconFromHypnosisSelection()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var viewer = new PlayerId(3);
+        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [1, 3, 4], fogOfWarEnabled: false);
+        CreatureDef carrier = db.Creatures.Values.First(d => (byte)d.PrimaryAbility == 1);
+        CreatureState creature = world.SpawnCreature(db, carrier.CreatureId, viewer, new TilePos(4, 4));
+        world.Player(viewer).PossessedCreatureId = creature.Id;
+        var controls = new PossessionControls();
+        controls.SelectSecondary(db.Creatures.Values.Single(d => d.Name == "Vampire"));
+        PossessionHudIcon icon = new PossessionHudView(db, new InstallPossessionHudArt(Dk2InstallGate.Path))
+            .Capture(world, viewer, controls)!.Actions.Single(a => a.Role == PossessionHudIconRole.PrimaryAbility);
+        Assert.EndsWith("throw-mode", icon.Image);
+        Assert.False(icon.Selected);
+    }
     [InstallTheory]
     [InlineData(false)]
     [InlineData(true)]
@@ -39,8 +64,8 @@ public sealed class PossessionHudViewTests
         var frame = new HudFrame();
         new PossessionHud().BuildCreaturePanel(new HudScaleLayout(1600, 1200, 100), snapshot, frame);
         string image = original.CreatureSpells[first.CreatureSpellId].GuiIcon.Name;
-        HudDraw spell = Assert.Single(frame.Draws.ToArray(), draw => draw.Image.Path == image);
-        Assert.Equal(1680, spell.Rect.X);
+        HudDraw spell = Assert.Single(frame.Draws.ToArray(), draw => draw.Image.Path == image && draw.Kind == HudDrawKind.Quad);
+        Assert.Equal(1684, spell.Rect.X);
         Assert.Equal(8, spell.Rect.Y);
         Assert.Single(snapshot.Actions, action => action.Spell);
     }

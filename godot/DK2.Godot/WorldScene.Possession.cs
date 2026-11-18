@@ -17,6 +17,10 @@ namespace DK2.GodotAdapter;
 /// <see cref="PossessionScene"/>'s and <see cref="TerrainCeilingScheduler"/>'s (ADR-0805).</summary>
 public partial class WorldScene
 {
+    public void BuildPossessionForeground(PossessionForeground foreground, int width, int height, long milliseconds, HudFrame frame)
+    {
+        if (_art != null) foreground.Build(_art, width, height, milliseconds, frame);
+    }
     private TerrainCeilingScheduler? _roof;
     // The near plane the camera was last placed with: the ordinary one, or the possession cameras' own.
     private float _near = NearPlane;

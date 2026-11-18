@@ -1,4 +1,4 @@
----
+﻿---
 systems: [creatures]
 ---
 # Mechanic: the creature action table — how an attack is entered

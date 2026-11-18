@@ -4615,7 +4615,7 @@ the Imp's Teleport and Haste paths (Q401). The pit/torture exclusions are built;
 **Context.** With every creature holding a state (ADR-0209), the activity should be redundant. A probe over the whole test suite recorded every (activity, state, resume) combination held at the end of a tick: 196 of them over 71 state keys. Only three keys named more than one activity, and every such case came from a test that set the activity by hand without a state.
 
 **Decision.**
-1. `ActivityRules.Of` derives the activity from the state id. A walk in state 6 or 7 is named by the state it resumes. 81 is the Sleep job's work when the job is Sleep and a tired creature's walk to bed otherwise. 77, the hand drop, is a captive's only for a prisoner. A corpse is Dead, and a state no system enters names nothing.
+1. `ActivityRules.Of` derives the activity from the state id. A walk in state 6 or 7 is named by the state it resumes. 81 is a walk to bed (ADR-0815). 77, the hand drop, is a captive's only for a prisoner. A corpse is Dead, and a state no system enters names nothing.
 2. `StateInvariantTests` checks, every tick of its busy dungeon, that the stored activity is the derived one.
 3. Tests that set an activity by hand now place a state that names it (`StatePlacement.As`). The alarm test's workers take the Sulk job, so their walk saves 85 as its caller, as a job's does.
 
@@ -4638,7 +4638,7 @@ the Imp's Teleport and Haste paths (Q401). The pit/torture exclusions are built;
 - The systems' switches on the activity are switches on the state, read through the table. `CreatureActivity` stays as the vocabulary the presentation and the logs use.
 - Tests that stripped a state to show a hook reads the state and not the activity cannot say that any more; they now put the creature in state 1 and show the hook does not run. The Casino test leaves through state 1 rather than releasing its state.
 - `StateInvariantTests` now checks that every creature's state names an activity every tick, and that only a worker rests in 10.
-- Every test passed after the assignments were removed, which is what ADR-0210's per-tick check predicted. Negative controls on the table: sleeping read as idle and a walk not named by its resume fail behaviour tests across the suite (the first also hung one, so the control harness now kills a test after 90 s). 81 ignoring the job, the hand drop always idle and an unmapped state read as idle fail only the table's own tests: 77 lasts within a tick and no system enters an unmapped state, but no simulation test covers a Sleep-job creature standing in 81, which is a gap.
+- Every test passed after the assignments were removed, which is what ADR-0210's per-tick check predicted. Negative controls on the table: sleeping read as idle and a walk not named by its resume fail behaviour tests across the suite (the first also hung one, so the control harness now kills a test after 90 s). The hand drop always idle and an unmapped state read as idle fail only the table's own tests: 77 lasts within a tick and no system enters an unmapped state.
 
 ## ADR-0212 — Guard duty is states 97, 98 and 99
 **Date:** 2026-09-25 · **Status:** accepted · advances ADR-0135 · amended by ADR-0780: the post finder returns the facing, so all four corners are posts (the two-corner consequence below no longer holds) · Research: `docs/research/guard-room.md`
@@ -10375,7 +10375,7 @@ the owner's requested presentation profile, not a claim of original geometry.
 in another Lair. Native state 79 handles this room-directed relocation.
 
 **Decision.** Dispatch state 79 after the landing/get-up sequence, remembering
-the Sleep job. Use the existing local free-tile search. A bed in this room is
+no job (ADR-0815). Use the existing local free-tile search. A bed in this room is
 reused; a full destination keeps the old bed. Successful selection releases
 the old bed before a seeded, jittered walk to state 80, which creates the new
 bed with the existing effect request. Hash/save version 239; no new field.
@@ -19482,7 +19482,7 @@ and scene. The previous scene-only gamma is disabled while this pass owns gamma.
 now governed by ADR-0822. Evidence and limits:
 [possession colour rendering](research/possession-colour-rendering.md), with binary rules in [Q745](research/screen-colour-changes.md).
 **Consequences.** Observer subscriptions and pending notifications are excluded from snapshots and hashing. HashVersion
-and FormatVersion advance 529 to 530 conservatively under the project's simulation-change rule; the saved field layout
+and FormatVersion advance 530 to 531 conservatively under the project's simulation-change rule; the saved field layout
 is unchanged. Earlier saves are refused. No native visual or last-bit floating-point equivalence is claimed.
 
 ## ADR-0819 - complete the readable possession ability inputs and clocks
@@ -19490,7 +19490,8 @@ is unchanged. Earlier saves are refused. No native visual or last-bit floating-p
 **Context.** The first-person client omitted the two special keys, imposed no sniper gate,
 and offered no possession Pick Lock path. The [ability read](research/possession-special-abilities.md)
 closes the definition fields, immediate form/prayer/fear arms, sniper camera move and Prison exception.
-The carry/throw lifecycle and foreground render transform remain incomplete reads.
+The carry/throw lifecycle remains incomplete. Foreground rendering is now built within
+the [read scope](research/possession-foreground.md).
 **Decision.**
 1. Parse and round-trip the two ability kinds, their parameters and sniper multiplier in `DK2.Data`.
    Keep the key selection, targeting and real-time sniper lens move engine-free.
@@ -19498,10 +19499,10 @@ The carry/throw lifecycle and foreground render transform remain incomplete read
    action50's animation and capped prayer heal, action137's twenty-turn fear, and Pick Lock's
    action136 Prison release through shared simulation rules. Godot forwards the existing bindings.
 3. Save and hash the form/prayer flags, active prayer action and timed fear words/source.
-   Bump hash/save530 to531, refresh the pinned world and remake journal, and regenerate knowledge.
+   Bump hash/save531 to532, refresh the pinned world and remake journal, and regenerate knowledge.
    New journal command tags38-41 do not change the journal container version.
-4. Preserve action36's inert effect outside a Prison. Keep carrying and foreground attacks unbuilt
-   until their remaining physical/projection dependencies are read; do not substitute guessed arms.
+4. Preserve action36's inert effect outside a Prison. Keep carrying unbuilt until its physical
+   dependencies are read. Draw the authored foreground through the shared presentation model.
 **Consequences.** Shared signatures already consumed by Unity remain available. The existing
 Crypt fear-discount and Prison-release scope limits remain recorded with their mechanics.
 
@@ -19513,7 +19514,7 @@ the same native creature flight predicate.
 **Decision.** Delegate trap flight checks to `WaterSpeedRules.IsFlying`, including the readable
 primary-kind3 flag arm and its ordering before states217/218. Keep the shared predicate's documented
 worker/animation exclusions unbuilt within the documented subset.
-**Consequences.** HashVersion and FormatVersion advance531 to532 conservatively for the changed
+**Consequences.** HashVersion and FormatVersion advance532 to533 conservatively for the changed
 selector behavior; no saved fields are added. Refresh the deterministic pin, Level1 journal and
 generated room knowledge. Earlier saves are refused.
 
@@ -19529,21 +19530,48 @@ to resource corners, indicators and minimap. Keep backdrop bars and filters full
 Retain the native per-axis scale formula and verified 4:3 geometry; do not claim this policy
 is an observed native widescreen behavior. The player's UI scale and bottom docking remain.
 **Consequences.** This is a remake presentation choice under ADR-0497, not a change to
-simulation. HashVersion and FormatVersion remain 532. Exact native integer-pixel rounding
+simulation. HashVersion and FormatVersion remain 533. Exact native integer-pixel rounding
 and original widescreen appearance remain unverified.
 
 
 ## ADR-0822 - gate possession colour output until native enablement is established
 **Date:** 2026-11-18 | **Status:** accepted | **Systems:** camera-lighting, creatures, presentation-godot
-**Context.** The [current native Vampire observation](research/screen-colour-changes.md#1-verdict)
-contradicts ADR-0818's forced-on application policy. The native ramp consumer has an enable
-guard; its nonzero writer and the cause of configuration differences remain unread.
+**Context.** The [corrected native observations](research/screen-colour-changes.md#1-verdict)
+contradict ADR-0818's forced-on policy; the earlier tint/flash answer was mistaken.
+The native application guard has no setter found by the bounded search.
 **Decision.** Preserve the researched tables, queue and session events. Default engine-free
-colour output to disabled, returning the normal user-gamma ramp. An explicit capability
-can select the current coloured ramp without changing the queue. Godot consumes that output;
-no production path enables the capability until evidence establishes the condition.
-This is a conservative remake policy, not a claim that native ramps never apply.
+colour output to the normal user-gamma ramp. Only the developer-only
+`ApplyColourChanges` switch can expose the current coloured ramp; no player option does.
+Godot consumes the shared output rather than imposing an enable policy in the adapter.
 **Consequences.** Damage and death ramps share the gate; normal brightness remains available.
 This supersedes only ADR-0818's unconditional enablement. No simulation state changes;
-HashVersion and FormatVersion remain 532. Earlier tinted remake captures are superseded
+HashVersion and FormatVersion remain 533. Earlier tinted remake captures are superseded
 implementation evidence, not proof of native visual fidelity.
+
+## ADR-0815 - the Lair drop remembers no job
+**Date:** 2026-11-18 | **Status:** accepted | partly supersedes ADR-0450 | **Hash/save:** 530
+
+**Context.** A creature the hand dropped into its own Lair stood in state 81
+for thousands of ticks and neither slept nor took wages. ADR-0450 had the drop
+remember the Sleep job; state 89's chooser took it as a Sleep job and parked the
+creature in an "at work" 81 that no system advances. The Lair's room record
+holds job 0, not Sleep, and `Room_DropCreature` stores the record's job. Evidence
+and confidence (STRONGLY INFERRED, static read, no capture):
+[hand-drop-landing.md section 4](research/hand-drop-landing.md#4-0x004e8da00-the-room-drop-and-250--strongly-inferred).
+
+**Decision.**
+1. `DropLandingRules`' Lair arm sets `DroppedToDoJob` to none, goes to 1 and
+   then 79, and no longer refuses a creature that hates Sleep (job 0 is never
+   hated). The dropped-job efficiency bonus does not apply to it.
+2. The Sleep arm of `CreatureJobSystem.TryTake` mirrors `Job_Sleep`
+   (`0x0046F440`): refuse with no bed, no sleep debt or no route, else go to bed
+   through `CreatureSleepSystem.GoToBed`. `CurrentJob` is never Sleep, and
+   `ActivityRules` reads 81 as the walk to bed only.
+
+**Consequences.** A Lair drop goes through 79 to a bed or to state 80 and sleeps
+or takes wages as any idle creature does; the Sleep arm is reachable only from
+a Sleep entry in a job table or a remembered job. Unread: what the state
+machine does with 81's silent 0 returns, whether DK2 reads `+0x64` after a Sleep
+job, and the failure message 0x2B, still not posted. Hash/save 530 adds no field;
+earlier saves are refused. Tests: `SleepJobTests`, `LairDropTests`,
+`ActivityRulesTests`.

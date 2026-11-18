@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Combat;
@@ -54,6 +55,8 @@ public static class PossessionAbilityRules
             new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ + Fp32.One)),
             new Dk2Angle(0)));
     }
+    internal static void TogglePrayer(CreatureState creature) =>
+        creature.PossessionPraying = !creature.PossessionPraying;
     internal static void BeginPrayer(SimulationContext context, CreatureState creature)
     {
         if (!creature.Possessed || !creature.PossessionPraying || creature.PossessionPrayerAction) return;

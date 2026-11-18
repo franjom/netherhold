@@ -21,6 +21,7 @@ public class KwdCreaturesWriterTests
             "AngryArtType:364:1 AngryArtFlags:354:4 AngryFrames:358:4 AngryFramesPerSecond:35C:4 " +
             "Speed:EB4:4 RunSpeed:EB8:4 ShuffleSpeed:D37:4 Height:EA4:4 EyeHeight:EB0:4 AirFriction:EAC:2 " +
             "PrimaryAbility:F46:1 SecondaryAbility:F47:1 PrimaryAbilityParameter:14E9:4 SecondaryAbilityParameter:14ED:4 SniperZoom:107B:4 " +
+            "FirstPersonMelee1:F42:1 FirstPersonMelee2:F43:1 FirstPersonMelee3:F44:1 FirstPersonSpell:F45:1 FirstPersonPrimary:1025:1 FirstPersonSecondary:1026:1 FirstPersonFramesPerSecond:CEC:2 " +
             "FirstPersonWaddle:DBC:4 FirstPersonBob:DC0:4 FirstPersonWalkCycleScale:D3D:1 PossessionColourKind:D3C:1 " +
             "DistanceCanSee:EC8:4 DistanceCanHear:ECC:4 PerceptionRange:D01:4 FootprintRadius:EA0:4 SizeClass:EA8:4 TurnRate:F20:2 " +
             "Hp:F0C:2 HpFromChicken:F0E:2 HungerRate:EBC:4 HungerFill:F4E:1 Unknown_0F4C:F4C:1 " +

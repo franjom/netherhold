@@ -30,10 +30,8 @@ public partial class WorldScene : ISimulationEventSink
         WorldState world = simulation.World;
         GameDatabase database = simulation.Database;
         _effects = new EffectDrawList(database, seed,
-            visible: request => view.CanShowTile(world, request.Tile),
-            effectVisible: request => view.CanShowTile(world, request.Tile)
-                && !NavBytes.IsSolid(simulation.Navigation.NavByte(request.Tile.X, request.Tile.Y))
-                && (!HeartIntroRules.IsViewerOnly(request.EffectId.Value) || request.Owner == viewer),
+            visible: request => WorldEffectVisibility.Construction(world, view, request),
+            effectVisible: request => WorldEffectVisibility.Effect(world, view, simulation.Navigation, viewer, request),
             floorHeight: point => view.GroundHeightAt(world, point),
             captureEdges: request => CaptureEffectLayout.Boundary(world, database, request),
             attachment: (id, _) => EffectAttachment.AtPreviousBody(world.CreatureById(id),
@@ -42,7 +40,7 @@ public partial class WorldScene : ISimulationEventSink
             cameraVisible: EffectInPlacedCamera,
             terrainFlags: tile => world.Contains(tile) ? database.Terrain[world.Tile(tile).TerrainId].Flags : 0,
             solidTile: tile => !world.Contains(tile) || NavBytes.IsSolid(simulation.Navigation.NavByte(tile.X, tile.Y)),
-            shotVisible: shot => view.CanShowTile(world, new TilePos(shot.PosX >> 12, shot.PosY >> 12)),
+            shotVisible: shot => WorldEffectVisibility.Shot(world, view, shot),
             creatureGroundHeight: id => world.CreatureById(id.Value) is CreatureState creature
                 ? view.CreatureEffectGround(world, creature) : null,
             viewer: viewer);

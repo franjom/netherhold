@@ -14,8 +14,8 @@ documenter pass. Unread branches remain unbuilt with a bounded-search account.
 All edits and Git staging are confined to this worktree. Native captures are
 add-only under `F:\DK2Evidence`; no cleanup of worktrees or evidence is authorized.
 
-- [ ] 1. Colour ramps: `PossessionScreenColours` and tests, creature-kind parsing,
-  event driver and Godot final-screen pass including HUD. Search gamma enable writer.
+- [x] 1. Colour tables, queue and session driver are built. Application is developer-only
+  and off by default (ADR-0822); corrected native observations: [Q745](../research/screen-colour-changes.md).
 - [ ] 2. Godot fade implemented; final corridor capture inspected, owner acceptance remains.
   See [possession-warp section 4](../research/possession-warp.md#4-the-possession-distance-fade-strongly-inferred-implementable)
   for verification and the owner-requested settled-only scope deviation.
@@ -26,18 +26,20 @@ add-only under `F:\DK2Evidence`; no cleanup of worktrees or evidence is authoriz
   captures inspected, owner acceptance remains.
   Scope and limits: [possession HUD](../research/possession-hud.md).
 - [ ] 5. Supported ability data, commands, keys, sniper and save/hash fields built (ADR-0819).
-  Carry/throw physics, foreground transform/renderer and native action136 room mapping
-  remain open; [scope and bounded reads](../research/possession-special-abilities.md).
-  Ability capture and owner acceptance remain.
+  Carry/throw physics and native action136 room mapping remain open; [scope and bounded reads](../research/possession-special-abilities.md).
+  Authored foreground attacks and creature filters are built ([scope](../research/possession-foreground.md));
+  target highlighting is built ([scope](../research/possession-target-highlight.md)). Owner acceptance remains.
 - [ ] 6. Room-pillar roof and explicit object-death view built; bounded lighting, listener
   and mouse reads recorded in [client completion](../research/possession-client-completion.md).
   Shot creation-effect sprite upload is built ([effects](../research/shot-effects.md#7-ours));
   sound playback and the object-possession bridge remain unbuilt. GPU acceptance remains.
 
-For every item run the requested Release solution build, Godot build, touched
-Presentation tests (plus simulation/determinism tests for item 5), KB and docs gates.
+Before each review-fix commit run the Release solution and Godot builds, full suites
+of every test project without filters, and KB, docs and status gates.
 Visual items require 1920x1080 Movie Maker captures from the post-opening save,
-including tint, damage, distance fade, occlusion, HUD and an ability. Inspect frames.
+including distance fade, occlusion, HUD, a current-action target and an authored swing.
+Tints and hit flashes stay off; the corrected native observations supersede that capture target.
+Compare the Black Knight visor at 1600x1200 and label widescreen fitting as an adaptation.
 Use temporary settings/profile/save/hiscore paths and remove only `override.cfg`
 created for a capture, as the owner explicitly requests.
 

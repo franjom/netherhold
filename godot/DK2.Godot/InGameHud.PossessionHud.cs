@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
 using DK2.Data;
 using DK2.Presentation;
 using Godot;
@@ -36,13 +37,14 @@ public partial class InGameHud
         AddChild(_possessionFilterCanvas);
         AddChild(_possessionCreatureCanvas);
         if (_minimap != null) MoveChild(_possessionFilterCanvas, _minimap.GetIndex());
-        MoveChild(_possessionCreatureCanvas, _possessionFilterCanvas.GetIndex());
+        MoveChild(_possessionCreatureCanvas, _possessionFilterCanvas.GetIndex() + 1);
     }
 
     private void DrawPossessionHud(long milliseconds)
     {
         if (_possessionCanvas == null || _possessionHudView == null || _simulation == null || _possession == null) return;
-        PossessionHudSnapshot? snapshot = _possession.Possessing && !_possession.Flight.Active
+        PossessionHudSnapshot? snapshot = PossessionHud.ShowPanel(_possession.Possessing,
+            _scriptedView!.PlayedHud(_hudControls, ClassicCameraMode.Dungeon))
             ? _possessionHudView.Capture(_simulation.World, _viewer, _possession.Controls) : null;
         _possessionCanvas.Visible = snapshot != null;
         if (_possessionFilterCanvas != null) _possessionFilterCanvas.Visible = snapshot != null;

@@ -60,7 +60,7 @@ simulation side, which is built.
    acceptance after.
 
 Later work: the [possession HUD subset](../research/possession-hud.md) is built; the third-person
-view (action 20) is dropped (below). Colour ramps: Q745; cast effect: Q749.
+view (action 20) is dropped (below). Colour ramps: Q745, retained developer-only and off by default (ADR-0822); cast effect: Q749.
 
 ## Prerequisites
 
@@ -74,8 +74,10 @@ Done (possession-client.md):
   mode 2 (§6).
 
 The ability fields, key dispatch, form, prayer, timed fear, Prison exception and sniper
-are built (ADR-0819). Carry/throw physics and the foreground transform/renderer remain
-unbuilt; scope and verification: [special abilities](../research/possession-special-abilities.md).
+are built (ADR-0819). Carry/throw physics remain unbuilt; scope and verification:
+[special abilities](../research/possession-special-abilities.md). The authored foreground
+renderer and creature filters are built ([scope](../research/possession-foreground.md));
+current-action highlighting is built ([scope](../research/possession-target-highlight.md)).
 
 Creep (task 2) is built (ADR-0802, hash and save 518): the flag, `SetCreepingCommand`,
 the clear on leaving, `CreepingDistancePercent` and the weighting at the combat scans and

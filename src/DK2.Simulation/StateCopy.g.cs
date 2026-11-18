@@ -283,6 +283,12 @@ namespace DK2.Simulation
             PossessedTargetTick = other.PossessedTargetTick;
             SneakingAs = other.SneakingAs;
             SniperMode = other.SniperMode;
+            PossessionFlightForm = other.PossessionFlightForm;
+            PossessionPraying = other.PossessionPraying;
+            PossessionPrayerAction = other.PossessionPrayerAction;
+            PossessionFearTicks = other.PossessionFearTicks;
+            PossessionFearAmount = other.PossessionFearAmount;
+            PossessionFearSource = other.PossessionFearSource;
             Creeping = other.Creeping;
             HypnotisedCreatureId = other.HypnotisedCreatureId;
             HypnosisOwnerPlayerId = other.HypnosisOwnerPlayerId;

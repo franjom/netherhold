@@ -15,19 +15,19 @@ The effect is the display's **gamma ramp**, not a draw. A small object at presen
 `+0x13D3` holds three 256-entry 16-bit tables, one per channel. Each frame, while a change is
 running, it blends them and hands them to `IDirectDrawGammaControl::SetGammaRamp(0, ramp)`.
 So a change is a **per-channel lookup**: output = `table[c][input] / 65535` for an 8-bit input
-channel c. HUD coverage is STRONGLY INFERRED: the hardware gamma ramp applies to the
-complete primary image, including the HUD. Native visual comparison remains unverified.
+channel c. HUD coverage is HYPOTHESIS: the API scope suggests the complete primary image,
+including the HUD; that coverage was not established by a renderer read.
 The identity state is kind 0 with the user's gamma. "Kind" is a word
 0-15 that picks one of 16 table builders.
 
-CONFIRMED observation, 2026-11-18: the owner's possessed Vampire in My Pet Dungeon
-has no tint on the live display, as well as in SHOT0000.BMP through SHOT0020.BMP.
-The SHA-256-verified native copies and manifest are at
-`F:\DK2Evidence\captures\possession-vampire-owner-20261118-001`.
-This supersedes the unconditional-on interpretation of the earlier Vampire/Skeleton
-tint and hit-flash observations (2026-11-15). Those observations do not establish
-which configurations enable ramps. The current observation does not establish
-that all modes or creatures lack tints, nor whether a hit flashes in this setup.
+CONFIRMED owner play, 2026-11-18: possessed Vampire and Skeleton views have no
+screen tint and taking a hit produces no red flash, both live and in the native files.
+The contrary 2026-11-15 answer was mistaken. Registered native evidence:
+`F:\DK2Evidence\captures\visual\possession-vampire--2026-11-18--002` (10 files) and
+`F:\DK2Evidence\captures\visual\possession-skeleton--2026-11-18--002` (6 files).
+The corresponding `--001` datasets mix creatures and must not be used for comparison.
+The read application guard is consistent with these observations: output is off by
+default. The ramps are retained behind a developer-only switch, with no player option.
 
 ## 2. How the tables reach the screen
 
@@ -50,13 +50,13 @@ that all modes or creatures lack tints, nor whether a hit flashes in this setup.
   address occurs only at that read and that clear, and neither the settings load
   (`0x00564B00`) nor the reset (`0x00563FB0`) writes `+0x48` (reviewer read). The owner's
   current live observation (§1) does not establish an enable path. The nonzero
-  writer and the runtime reason for different observed colour output remain **UNREAD**.
+  writer remains **UNREAD**; no setter was found in the bounded search.
   The QueryInterface result and SetGammaRamp's return are not tested; no hardware check exists.
 - **Gamma float** `+6` = the options Gamma slider / 30 (slider 15..60, `0x00429CD0`) = stored
   level / 4096 clamped to 0.5..2.0 at load (`0x0043AE0D`-`0x0043AE15`); the shipped default
   level is `0x1000` (gamma 1.0, `0x00564B00`). It is set through presentation slot `+0x78`
-  (thunk `0x004413E0` to `0x005974A0`), which rebuilds kind 0 and applies it at once,
-  abandoning a running change. `Renderer_Initialize` (`0x00574310`) first loads a plain
+  (thunk `0x004413E0` to `0x005974A0`), which rebuilds kind 0 and applies it at once when the gamma changes,
+  abandoning a running change. An unchanged gamma only re-applies the stored ramp. `Renderer_Initialize` (`0x00574310`) first loads a plain
   ramp `i * 256` before any of this.
 
 ## 3. The 16 table builders (`0x00597760`, jump table `0x00598034`)
@@ -99,6 +99,12 @@ False-colour kinds use `x = g` as the phase (so they posterise by brightness):
   (second band green, third band red).
 Kinds above 15 build nothing (the table keeps its last contents). Names (a red wash, a
 darkening) are inferred from the numbers only; no string names a kind.
+
+The band builders store the gamma-shaped input as float32 before their sine arguments.
+Kind 10 stores the first and last band's sine as float32; kinds 12/13 store bands 1, 2
+and 4 as float32, leaving their third band in the FPU register. Kind 12 at index 96,
+gamma 1, therefore reaches 65535 after its float store at `0x00597CBC`, not 65534.
+STRONGLY INFERRED from the focused disassembly; complete x87 equivalence remains unverified.
 
 ## 4. Timing (`0x005976D0`, `0x00597540`, `0x00597690`)
 

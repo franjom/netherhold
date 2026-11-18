@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Presentation;
@@ -46,19 +47,21 @@ public partial class WorldScene
                 _possessionVisibility.Mask);
             _possessionVisibilityTexture!.Update(_possessionVisibilityImage);
         }
+        PossessionDrawVisibility visibility = DrawVisibility;
         foreach (KeyValuePair<int, CreatureSlot> entry in _creatures)
             if (_frame.Creatures.TryGetValue(new CreatureId(entry.Key), out CreatureView creature))
-                entry.Value.Slot.Node.Visible = entry.Key != _frame.HiddenCreature.Value && PossessionTileVisible(creature.Tile);
+                entry.Value.Slot.Node.Visible = visibility.Creature(new CreatureId(entry.Key), creature.Tile);
         foreach (ModelSlot slot in _objects.Values)
-            slot.Node.Visible = ObjectMaterialLook.IsDrawn(slot.Pose.Alpha) && PossessionTileVisible(slot.Pose.Tile);
+            slot.Node.Visible = visibility.Object(slot.Pose.Tile, slot.Pose.Alpha);
         foreach (ModelSlot slot in _structures.Values) slot.Node.Visible = PossessionTileVisible(slot.Structure.Tile);
         foreach (TorchSlot slot in _torches.Values) slot.SetPossessionVisibility();
         _flames?.SetPossessionVisibility();
     }
-    private bool PossessionTileVisible(TilePos tile) => !_possessionVisibilityEnabled || _possessionVisibility!.Contains(tile);
+    private PossessionDrawVisibility DrawVisibility => new(_possessionVisibility == null ? default : _possessionVisibility.Mask,
+        _possessionWidth, _possessionVisibilityEnabled, _frame.HiddenCreature);
+    private bool PossessionTileVisible(TilePos tile) => DrawVisibility.Tile(tile);
     // TorchFloorTileIndex is already an index into the map storage, unlike an interpolated flame position.
-    private bool PossessionFloorVisible(int tileIndex) => !_possessionVisibilityEnabled
-        || ((uint)tileIndex < (uint)_possessionVisibility!.Mask.Length && _possessionVisibility.Mask[tileIndex] != 0);
+    private bool PossessionFloorVisible(int tileIndex) => DrawVisibility.Floor(tileIndex);
     private const string PossessionVisibilityDeclarations = """
         global uniform bool dk2_possession_visibility_enabled;
         global uniform sampler2D dk2_possession_tiles;

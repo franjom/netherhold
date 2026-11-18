@@ -30,12 +30,12 @@ applies them in one canvas pass at layer 110 after the scene, HUD and cursor. Th
 to the nearest byte. The previous scene-only brightness adjustment is held at
 one; the final ramp applies the options gamma once.
 
-The pass includes the HUD following Q745 section 1's STRONGLY INFERRED hardware
+The pass includes the HUD following Q745 section 1's HYPOTHESIS about hardware
 gamma scope. Shader-layer placement, byte quantization, and a float texture are
 remake representation choices.
 
 `PossessionColours.Output` defaults to the normal user-gamma ramp. Explicit
-`ApplyColourChanges` selects the current transition table; Godot consumes this
+developer-only `ApplyColourChanges` selects the current transition table; Godot consumes this
 output. Tables, queue and session notifications remain active behind the gate.
 ADR-0822 governs this conservative application policy; native observations and
 the unresolved enable path remain in Q745 sections 1–2.
@@ -49,16 +49,23 @@ unchanged gamma setting, default-off normal gamma, explicit enablement without
 queue loss, and observer hash neutrality.
 CRT/x87 versus managed floating-point last-bit equivalence has not been checked
 with the oracle.
-The corrected default passed 181 tests; Release solution and Godot builds had
-zero warnings/errors. Hash/save remains 532. The parent inspected
-`F:\DK2Evidence\captures\possession-colour-enable-correction-20261118-001\vampire-untinted\f00000180.png`
-(1920x1080, 200 frames at 30 fps, exit 0, no runtime or shader errors). The world
-has yellow/brown torchlight, the HUD retains green mana and pink health, and
-there is no overall red Vampire wash. The adjacent
-`vampire-untinted-metadata.json` records the command and SHA-256. Wall texture
-and lighting seams remain visible. The staged campaign room differs from the
-native My Pet Dungeon scene; this does not establish pixel parity.
+The earlier format-532 untinted recording remains at
+`F:\DK2Evidence\captures\possession-colour-enable-correction-20261118-001\vampire-untinted\f00000180.png`.
+It predates the review corrections and is not current-build validation. The current
+adapter comparison is recorded in [foreground verification](possession-foreground.md#adapter-capture-comparison).
 
 Earlier tinted remake captures remain preserved as superseded implementation
 evidence, not native-fidelity validation. Native evidence has one home in Q745
 section 1. Owner acceptance and last-bit floating-point equivalence remain open.
+
+## Damage-notification audit
+
+STRONGLY INFERRED from `0x004B2CE0`: definition flags IsHorny/OnlyAttackableByHorny,
+the mode-0 dying guard, carried bodies and the Hand refuse before the damage flash.
+`CreatureHealthRules.NotifyPossessionDamage` now shares those mapped notification gates
+with `StatusEffectRules.Hurt`, including scaled-to-zero damage. Audited Apply callers:
+combat/status and shots; levels/party setup; defeat; terrain, hunger and regeneration;
+food/prayer; jobs/Temple; Hand/slap; specials; torture. The shared helper covers negative
+Apply calls rather than assuming every caller used Hurt. This correction changes only
+notifications: direct Apply retains its earlier flat signed-health semantics and does not
+supply all native damage multipliers/refusals. No player-visible flash is enabled (Q745).

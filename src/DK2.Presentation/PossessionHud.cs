@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
 using System.Globalization;
 using DK2.Core;
 
@@ -42,6 +43,14 @@ public sealed class PossessionHud
 
     public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, bool possessionCameraHeld) =>
         possessionCameraHeld ? new(false, false) : ordinary;
+
+    public static GameShortcutContext ShortcutContext(GameShortcutContext ordinary, bool possessionCameraHeld, bool possessing = true) =>
+        ordinary with { Possession = possessionCameraHeld, OrdinaryInput = ordinary.OrdinaryInput && (!possessionCameraHeld || possessing) };
+
+    public static HudVisibility MinimapVisibility(HudVisibility ordinary, bool possessing, bool possessionCameraHeld = false) =>
+        possessing ? new(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, possessionCameraHeld);
+
+    public static bool ShowPanel(bool possessing, HudVisibility ordinary) => possessing && ordinary.ShowNormalHud;
 
     /// <summary>The mana/Heart corner remains; creature gold replaces the keeper's gold/payday corner.</summary>
     public static void AppendResourceCorner(HudFrame resourceFrame, HudFrame frame) =>
@@ -85,8 +94,8 @@ public sealed class PossessionHud
 
     private static void Build(Metrics metrics, PossessionHudSnapshot? snapshot, HudFrame frame)
     {
-        CreaturePanel(metrics, snapshot, frame);
         Filters(metrics, snapshot, frame);
+        CreaturePanel(metrics, snapshot, frame);
         Chrome(metrics, snapshot, frame);
     }
 
@@ -121,7 +130,7 @@ public sealed class PossessionHud
         foreach (PossessionHudIcon icon in snapshot.Actions)
         {
             if (Role(icon) != PossessionHudIconRole.TopAction) continue;
-            Icon(frame, icon, new(m.X(1408 + column++ * 136), 8, square, square));
+            Icon(frame, icon, new(m.X(956) + 496 - 40 + m.X(column++ * 136), 8, square, square));
         }
     }
 

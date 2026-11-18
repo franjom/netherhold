@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
 using DK2.Core;
 
 namespace DK2.Presentation.Tests;
@@ -10,15 +11,30 @@ public sealed class PossessionHudTests
     private static readonly HudScreen Screen = new(1920, 1080);
     private static PossessionHudSnapshot Snapshot => new("portrait", 50, new GoldAmount(1350),
         [new("pick", 100, true), new("boot", 25, false)], ["follower"]);
+    [Fact]
+    public void PossessionPanelRemainsAvailableDuringEntryAndRespectsTheGuiToggle()
+    {
+        Assert.True(PossessionHud.ShowPanel(true, new(true, true)));
+        Assert.False(PossessionHud.ShowPanel(true, new(false, true)));
+        Assert.False(PossessionHud.ShowPanel(false, new(true, true)));
+    }
+    [Fact]
+    public void PossessionMinimapUsesTheGuiVisibilityWithoutOrdinaryInput()
+    {
+        Assert.Equal(new HudVisibility(true, false), PossessionHud.MinimapVisibility(new(true, true), true));
+        Assert.Equal(new HudVisibility(false, false), PossessionHud.MinimapVisibility(new(false, true), true));
+        Assert.Equal(new HudVisibility(true, true), PossessionHud.MinimapVisibility(new(true, true), false));
+        Assert.Equal(new HudVisibility(false, false), PossessionHud.MinimapVisibility(new(true, true), false, possessionCameraHeld: true));
+    }
 
     [Theory]
     [InlineData(false, false, "throw-mode", false)]
     [InlineData(false, true, "throw_book-mode", true)]
     [InlineData(true, false, "throw_imp-mode", true)]
     [InlineData(true, true, "throw_imp-mode", true)]
-    public void ThrowArtUsesTheIndependentPossessionCarryFact(bool holding, bool selected, string suffix, bool backing)
+    public void ThrowArtUsesTheIndependentPossessionCarryAndBookFacts(bool holding, bool holdingBook, string suffix, bool backing)
     {
-        PossessionHudIcon icon = PossessionHudView.ThrowIcon(holding ? PossessionCarryState.HoldingThing : PossessionCarryState.Empty, selected);
+        PossessionHudIcon icon = PossessionHudView.ThrowIcon(holding ? PossessionCarryState.HoldingThing : PossessionCarryState.Empty, holdingBook);
         Assert.Equal("GUI\\Icons\\1st-person\\" + suffix, icon.Image);
         Assert.Equal(backing, icon.Selected);
     }
@@ -67,14 +83,14 @@ public sealed class PossessionHudTests
     }
 
     [Fact]
-    public void FiltersCoverTheViewportAfterTopPanelAndBeforeFollowers()
+    public void FiltersCoverTheViewportBehindTheTopPanelAndFollowers()
     {
         var frame = new HudFrame();
         new PossessionHud().Build(Screen, Snapshot with { Overlay = "GUI\\Filters\\F-Frozen" }, frame);
         HudDraw[] draws = frame.Draws.ToArray();
         int overlay = Array.FindIndex(draws, d => d.Image.Path == "GUI\\Filters\\F-Frozen");
         Assert.Equal(new HudRect(0, 0, Screen.VirtualWidth, 1920), draws[overlay].Rect);
-        Assert.True(Array.FindIndex(draws, d => d.Image.Path == "portrait") < overlay);
+        Assert.True(Array.FindIndex(draws, d => d.Image.Path == "portrait") > overlay);
         Assert.True(Array.FindIndex(draws, d => d.Image.Path == "follower") > overlay);
     }
 
@@ -166,7 +182,7 @@ public sealed class PossessionHudTests
         hud.BuildCreaturePanel(layout, facts, top);
         hud.BuildChrome(layout, facts, lower);
         Assert.DoesNotContain(top.Draws.ToArray(), d => d.Image.Path is "bat" or "hypnotise" or "group");
-        Assert.Contains(top.Draws.ToArray(), d => d.Image.Path == "staff" && d.Rect.Y == 8);
+        Assert.Contains(top.Draws.ToArray(), d => d.Image.Path == "staff" && d.Rect == new HudRect(1412, 8, 128, 128));
         Assert.Contains(top.Draws.ToArray(), d => d.Image.Path == "fire" && d.Rect.Y == 8);
         Assert.Contains(lower.Draws.ToArray(), d => d.Image.Path == "bat" && d.Rect == new HudRect(480, 1460, 128, 128));
         Assert.Contains(lower.Draws.ToArray(), d => d.Image.Path == "hypnotise" && d.Rect == new HudRect(480, 1588, 128, 128));
@@ -194,6 +210,29 @@ public sealed class PossessionHudTests
         Assert.Equal(128, follower.Rect.Width, 3);
         Assert.Equal(264, follower.Rect.Height);
         Assert.Equal(136, second.Rect.X - follower.Rect.X, 3);
+    }
+
+    [Fact]
+    public void SevenFollowersUseTheReadFourByThreeRowSeenInTheNativeMistressCapture()
+    {
+        var frame = new HudFrame();
+        string[] followers = Enumerable.Range(0, 7).Select(i => "follower-" + i).ToArray();
+        new PossessionHud().Build(new HudScaleLayout(1600, 1200, 100), Snapshot with { Followers = followers }, frame);
+        for (int i = 0; i < followers.Length; i++)
+        {
+            HudDraw portrait = Assert.Single(frame.Draws.ToArray(), d => d.Image.Path == followers[i]);
+            Assert.Equal(new HudRect(628 + i * 136, 1636, 128, 264), portrait.Rect);
+        }
+    }
+
+    [Fact]
+    public void FirstTopActionAddsTheVerticalGoldWidthAndInsetToTheHorizontallyScaledGoldX()
+    {
+        var frame = new HudFrame();
+        new PossessionHud().BuildCreaturePanel(new HudScaleLayout(1200, 1200, 100),
+            Snapshot with { Actions = [new("staff", 100, false)] }, frame);
+        Assert.Equal(956 * 0.75f + 496 - 40,
+            Assert.Single(frame.Draws.ToArray(), d => d.Image.Path == "staff").Rect.X);
     }
 
     [Fact]

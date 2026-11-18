@@ -249,6 +249,13 @@ public static partial class KwdCreatures
             PrimaryAbilityParameter = U32(0x14E9),
             SecondaryAbilityParameter = U32(0x14ED),
             SniperZoom = Fp(0x107B),
+            FirstPersonMelee1 = (PossessionForegroundKind)U8(0xF42),
+            FirstPersonMelee2 = (PossessionForegroundKind)U8(0xF43),
+            FirstPersonMelee3 = (PossessionForegroundKind)U8(0xF44),
+            FirstPersonSpell = (PossessionForegroundKind)U8(0xF45),
+            FirstPersonPrimary = (PossessionForegroundKind)U8(0x1025),
+            FirstPersonSecondary = (PossessionForegroundKind)U8(0x1026),
+            FirstPersonFramesPerSecond = U16(0xCEC),
 
             Pay = U16(0xF1C),
             MaxGoldHeld = U16(0xF1E),

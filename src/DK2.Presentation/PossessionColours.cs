@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
 using DK2.Data.Model;
 namespace DK2.Presentation;
 
@@ -13,7 +14,7 @@ public sealed class PossessionColours
     private readonly ushort[] _normal = new ushort[ScreenColourTables.Length];
     private double _normalGamma = double.NaN;
     // Native ramp application has a separate enable flag whose nonzero writer is UNREAD.
-    // Default off follows the owner's live Vampire observation; see ADR-0822.
+    // Developer-only switch, default off; no player setting exposes it (ADR-0822).
     public bool ApplyColourChanges { get; set; }
     public IReadOnlyList<ushort> Output
     {

@@ -39,6 +39,13 @@ public static partial class KwdCreatures
         U32(0x14E9, row.PrimaryAbilityParameter);
         U32(0x14ED, row.SecondaryAbilityParameter);
         S32(0x107B, row.SniperZoom.Raw);
+        U8(0xF42, (byte)row.FirstPersonMelee1);
+        U8(0xF43, (byte)row.FirstPersonMelee2);
+        U8(0xF44, (byte)row.FirstPersonMelee3);
+        U8(0xF45, (byte)row.FirstPersonSpell);
+        U8(0x1025, (byte)row.FirstPersonPrimary);
+        U8(0x1026, (byte)row.FirstPersonSecondary);
+        U16(0xCEC, row.FirstPersonFramesPerSecond);
         U32(0x1545, (uint)row.Flags2);
         S32(0xE94, row.EntranceOffsetX);
         S32(0xE98, row.EntranceOffsetY);

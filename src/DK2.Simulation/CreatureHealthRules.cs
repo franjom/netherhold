@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -38,13 +38,20 @@ public static class CreatureHealthRules
     {
         state.HealthSourcePlayerId = source;
         int before = state.Health;
-        if (delta < 0) state.NotifyPossessionColour(PossessionColourEvent.Damaged);
+        if (delta < 0) NotifyPossessionDamage(creature, state);
         int max = MaxHealth(database, creature, state);
         bool floor = CreatureDeathRules.IsDying(state) || CreatureDeathRules.IsCorpse(state);
         state.Health = Math.Min(before + delta, max);
         if (floor && state.Health < 0) state.Health = 0;
         if (!floor && delta < 0 && state.Health <= 0) state.CollapseDue = true;
         return Math.Max(state.Health, 0) - Math.Max(before, 0);
+    }
+
+    internal static void NotifyPossessionDamage(CreatureDef definition, CreatureState state)
+    {
+        if ((definition.Flags & (CreatureFlags.IsHorny | CreatureFlags.OnlyAttackableByHorny)) != 0
+            || CreatureDeathRules.IsDying(state) || state.CarriedByCreatureId >= 0 || state.InHand) return;
+        state.NotifyPossessionColour(PossessionColourEvent.Damaged);
     }
 
     /// <summary>Whether this creature is at or below <c>CreatureCriticalHealthPercentageOfMax</c>

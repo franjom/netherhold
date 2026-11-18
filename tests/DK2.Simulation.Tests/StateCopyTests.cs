@@ -12,6 +12,26 @@ namespace DK2.Simulation.Tests;
 /// every field, independent of it afterwards, and a simulation in its own right.</summary>
 public sealed class StateCopyTests
 {
+    [Fact]
+    public void CopyFrom_PreservesEveryNonDefaultPossessionFieldAndWorldHash()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState live = TestWorld.World(database);
+        CreatureState creature = live.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, 1, new TilePos(3, 3));
+        WorldState presented = WorldState.CopyOf(live);
+        creature.PossessionFlightForm = true;
+        creature.PossessionPraying = true;
+        creature.PossessionPrayerAction = true;
+        creature.PossessionFearTicks = 7;
+        creature.PossessionFearAmount = 321;
+        creature.PossessionFearSource = new CreatureId(creature.Id);
+
+        presented.CopyFrom(live);
+
+        AssertCopied(live, presented);
+        AssertCopied(live, WorldState.CopyOf(live));
+    }
+
     private static ulong WorldHash(WorldState world)
     {
         Hash64 hash = Hash64.Start();

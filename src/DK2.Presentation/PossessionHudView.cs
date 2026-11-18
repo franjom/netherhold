@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
@@ -51,7 +52,7 @@ public sealed class PossessionHudView
             1 => "throw-mode", 2 => "sniper-mode", 3 => "bat-mode", 6 => "sneak-mode", 7 => "pray-mode", _ => "",
         };
         if ((byte)definition.PrimaryAbility == 1)
-            icons.Add(ThrowIcon(carry, (controls.Selection & 2) != 0) with { Role = PossessionHudIconRole.PrimaryAbility });
+            icons.Add(ThrowIcon(carry, selected: false) with { Role = PossessionHudIconRole.PrimaryAbility });
         else if (special.Length != 0)
             icons.Add(new("GUI\\Icons\\1st-person\\" + special, 100, (byte)definition.PrimaryAbility switch
             {
@@ -83,6 +84,7 @@ public sealed class PossessionHudView
         return new(_art.Icon(type), maxHealth <= 0 ? 0 : (int)Math.Min(100L, 100L * Math.Max(0, creature.Health) / maxHealth),
             new(creature.GoldHeld), icons, followers) { Overlays = overlays, CarriedGoldIcon = _art.GoldIcon };
     }
+    /// <summary>Selected is player +0x76 mask 2 (the held-book flag), not the interface action selection.</summary>
     public static PossessionHudIcon ThrowIcon(PossessionCarryState carry, bool selected) =>
         new("GUI\\Icons\\1st-person\\" + (carry == PossessionCarryState.HoldingThing ? "throw_imp-mode"
             : selected ? "throw_book-mode" : "throw-mode"), 100, selected || carry == PossessionCarryState.HoldingThing);
@@ -90,7 +92,7 @@ public sealed class PossessionHudView
     /// <summary>The HUD recharge getters omit the combat work-rate divisor (0x0048CA10, 0x0048C8B0).</summary>
     public static int Recharge(GameTick now, long stamp, int intervalTicks)
     {
-        if (stamp == CreatureState.NeverUsed || intervalTicks <= 0 || now.Value - stamp >= intervalTicks) return 100;
+        if (intervalTicks <= 0 || now.Value - stamp >= intervalTicks) return 100;
         int reciprocal = (int)((100L << 24) / ((long)intervalTicks << 12));
         return Math.Clamp((int)((now.Value - stamp) * reciprocal >> 12), 0, 100);
     }

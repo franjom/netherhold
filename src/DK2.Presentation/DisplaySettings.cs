@@ -11,6 +11,8 @@ public static class DisplaySettings
 {
     public const int DefaultGamma = 30;
 
+    public static double RampGamma(int slider) => slider / (double)DefaultGamma;
+
     /// <summary>The curve's exponent, <c>30 / Gamma</c>; null at the default, where nothing is drawn.</summary>
     public static float? BrightnessExponent(int gamma) => gamma == DefaultGamma ? null : DefaultGamma / (float)gamma;
 }

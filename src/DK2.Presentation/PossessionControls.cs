@@ -38,6 +38,16 @@ public sealed class PossessionControls
 
     /// <summary>Binding 12 (<c>0x0040F9E0</c> with 3): the reserved slot, the followers' arm.</summary>
     public void SelectFollowers() => Selection = PossessedSlot.FollowerArm << 3;
+    public static OpenPossessedPrisonCommand? PickLock(WorldState world, GameDatabase database, PlayerId player,
+        PossessionView view, CreatureState creature)
+    {
+        TilePos cameraPoint = new(view.X >> 12, view.Y >> 12);
+        return PrisonAt(cameraPoint) && PrisonAt(creature.Tile)
+            ? new OpenPossessedPrisonCommand(player, creature.Tile) : null;
+
+        bool PrisonAt(TilePos tile) => world.Contains(tile)
+            && RoomIndex.RoomAt(world, database, world.TileIndex(tile)) is { Definition.TypeId: RoomTypeId.Prison };
+    }
     /// <summary>Binding 11 selects hypnosis only for kind 5 (<c>0x0040FDA0</c>).</summary>
     public void SelectSecondary(CreatureDef definition)
     {

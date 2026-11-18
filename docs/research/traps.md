@@ -1,4 +1,4 @@
----
+﻿---
 systems: [doors-traps]
 ---
 # Mechanic: the trap's update, its firing, its threat and the Trigger

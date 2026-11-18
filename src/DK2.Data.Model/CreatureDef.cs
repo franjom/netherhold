@@ -252,6 +252,14 @@ public sealed record CreatureDef
     public uint SecondaryAbilityParameter { get; init; }
     /// <summary>File 107B, compact 79B: sniper's integral multiplier is the value shifted right twelve.</summary>
     public Fp32 SniperZoom { get; init; }
+    // CREATURES F42..F45,1025..1026 and CEC; compact definition 67F..684 and 791.
+    public PossessionForegroundKind FirstPersonMelee1 { get; init; }
+    public PossessionForegroundKind FirstPersonMelee2 { get; init; }
+    public PossessionForegroundKind FirstPersonMelee3 { get; init; }
+    public PossessionForegroundKind FirstPersonSpell { get; init; }
+    public PossessionForegroundKind FirstPersonPrimary { get; init; }
+    public PossessionForegroundKind FirstPersonSecondary { get; init; }
+    public ushort FirstPersonFramesPerSecond { get; init; }
 
     // Economy / work
     public required ushort Pay { get; init; }

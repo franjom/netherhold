@@ -345,6 +345,9 @@ initial value of the selection byte `+0x13D9` are still unread.
 
 ## 6b. The owner's play of the original, 2026-11-15
 
+The tint and red-flash answer from that day was mistaken. CONFIRMED corrected play
+on 2026-11-18 and registered evidence: [Q745 section 1](screen-colour-changes.md#1-verdict).
+
 Seen and heard by the owner in the original that day, possessing an Imp (CONFIRMED as
 observations; what causes each is not read):
 

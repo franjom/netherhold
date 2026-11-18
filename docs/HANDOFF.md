@@ -13,6 +13,8 @@ questions live in their canonical documents; this file links to them.
   [doors](research/door-blocking.md#6-health-recovery-and-the-two-kills), [traps](research/traps.md#3-the-update-0x004a84e0-in-its-order)).
   Mana running words and non-training experience loss are built
   ([mana](research/mana.md), [training](research/training.md#10-implementation)).
+  A hand drop into a Lair remembers no job (ADR-0815). The possession branch has merged
+  that change and renumbered its three bumps above 530; see the current composition above.
   Captive healing and state-flag mood guards are built (ADR-0814),
   preserving master's Heart-defense behavior. [Evidence and historical campaign measurements](research/torture-captive-health.md)
   distinguish the measured bot revision from master's bot.
@@ -135,15 +137,16 @@ These are entry points, not a new priority order.
 - Level6a torture-death scene: the shared speech override is built (ADR-0809); Q824 retains native playback/subtitle and live-scene checks
   ([evidence](research/torture-information.md#7-level6as-opening-guard-2026-11-15)). The owner's corpse-placement change remains deferred under
   [ADR-0807](DECISIONS.md#adr-0807---defer-moving-torture-corpses-clear-of-their-devices).
-- Possession first-person view: built and unit-tested, never seen running in an editor, no owner play
-  acceptance. Rules are in `PossessionSession` (`DK2.Presentation`, ADR-0805); `DungeonRunner.Possession.cs`
+- Possession first-person view: built, unit-tested and inspected in Godot captures; owner play acceptance remains. Rules are in `PossessionSession` (`DK2.Presentation`, ADR-0805); `DungeonRunner.Possession.cs`
   is the Unity glue, `InGameHud.Possession.cs` the Godot's. The room-pillar roof is built; remaining
   lighting, listener, object-death bridge and mouse-calibration boundaries are recorded in
   [client completion](research/possession-client-completion.md). Unity keeps its near clip at 0.3;
   Godot uses `PossessionCamera.NearClipDistance`, 0.05, a remake choice. Owner play acceptance remains. Evidence and remake choices:
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
-  The special abilities and sniper are partly built; carry/throw physics and the foreground renderer remain unbuilt ([scope](research/possession-special-abilities.md), ADR-0819; trap flight consumer ADR-0820).
+  The special abilities and sniper are partly built; carry/throw physics remain unbuilt ([scope](research/possession-special-abilities.md), ADR-0819; trap flight consumer ADR-0820).
+  Authored foreground swings and creature filters are built ([scope](research/possession-foreground.md));
+  the current-action target uses the existing hover pass ([scope](research/possession-target-highlight.md)).
   The shared possession HUD and Godot canvas implement the reviewed 4:3 geometry and compositing, with height-fitted widescreen content (ADR-0821); [scope and limits](research/possession-hud.md).
 - Godot adapter (ADR-0805, ADR-0810): the road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md);
   steps 1, 2, 3a, 3b, 3c, 3d, 3e, 3f, 3g, 3h, 3i, 3m and 3o are done and step 3 is in progress. Rules that were Unity-only now live in `DK2.Presentation` and both adapters call them;

@@ -71,6 +71,7 @@ public partial class InGameHud
         PossessionUpdate update = _possession.Update(_simulation.World, _viewer, input, _world.ClassicCamera, _world.Focus,
             _pending, _possessionSounds);
         UpdateScreenColours();
+        DrawPossessionForeground(milliseconds);
         // No sound player yet (step 4): the view's footsteps are dropped.
         _possessionSounds.Clear();
         if (update.Entered) _input.CancelPointerGesture();

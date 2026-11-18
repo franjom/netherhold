@@ -16,6 +16,7 @@ public readonly record struct GameShortcutContext
     public bool FullMapVisible { get; init; }
     public bool EditingText { get; init; }
     public bool CapturingKey { get; init; }
+    public bool Possession { get; init; }
 }
 
 /// <summary>Host binding resolution, independent of the keyboard platform and simulation.</summary>
@@ -43,9 +44,10 @@ public readonly struct GameBindingInput(GameSettings settings, KeyModifiers modi
     public ClassicHudAction HudShortcut(GameShortcutContext context, bool escapePressed = false)
     {
         if (!context.OrdinaryInput || context.CapturingKey || context.EditingText) return ClassicHudAction.None;
-        if (context.FullMapVisible) return escapePressed || Pressed(GameAction.FullMap) ? ClassicHudAction.ToggleFullMap : ClassicHudAction.None;
+        if (context.FullMapVisible && !context.Possession) return escapePressed || Pressed(GameAction.FullMap) ? ClassicHudAction.ToggleFullMap : ClassicHudAction.None;
         if (context.AllowOptionsKey && Pressed(GameAction.Options)) return ClassicHudAction.ToggleOptions;
         if (context.OptionsVisible) return ClassicHudAction.None;
+        if (context.Possession) return Pressed(GameAction.TogglePanel) ? ClassicHudAction.ToggleGui : ClassicHudAction.None;
         if (Pressed(GameAction.FullMap)) return ClassicHudAction.ToggleFullMap;
         if (Pressed(GameAction.TogglePanel)) return ClassicHudAction.ToggleGui;
         if (Pressed(GameAction.Heart)) return ClassicHudAction.NavigateHeart;
