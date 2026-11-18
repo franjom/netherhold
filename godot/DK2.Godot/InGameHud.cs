@@ -410,6 +410,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (probeShift) _world.Focus += new System.Numerics.Vector3(1, 0, 1);
         _world.SetBrightness(DisplaySettings.BrightnessExponent(_settings.Gamma));
         OpenPossession(install, level, args);
+        OpenPossessionHud(install, level);
         // --perf-report: the performance harness (PerformanceReport.cs); without it, no node.
         PerformanceReport.Attach(this, args, levelName, seed, _world, _simulation.World.Width, _simulation.World.Height);
         // DungeonRunner's heart health observer: each change queued for the next frame's beat.
@@ -508,27 +509,29 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // The HUD keys, as DungeonRunner.UpdateHudControls reads them. Only the options menu's and the full map's toggles
         // are applied: the other keys' GUI toggle and camera moves are not ported. A camera path holds the options key
         // back that frame. While the keyboard page captures a key, no shortcut fires.
-        HudVisibility camera = _scriptedView.HudFor(ClassicCameraMode.Dungeon);
+        UpdatePossession(_scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon), delta, milliseconds);
+        HudVisibility camera = PossessionHud.OrdinaryVisibility(_scriptedView.HudFor(ClassicCameraMode.Dungeon),
+            _possession?.CameraHeld == true);
         ClassicHudAction shortcut = _keyboard.Read(_settings).HudShortcut(
             _hudControls.ShortcutContext(camera, script.AllowOptionsKey, capturingKey: _optionsPages.CapturingAction != null),
             _keyboard.EscapePressed);
         if (shortcut is ClassicHudAction.ToggleOptions or ClassicHudAction.ToggleFullMap) ApplyHudAction(shortcut);
         // DungeonRunner.CurrentHud (PlayedHud; the warm frames are not ported): a camera path, the letterbox, the result
         // and the full map hide the normal HUD.
-        HudVisibility visibility = _scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon);
+        HudVisibility visibility = PossessionHud.OrdinaryVisibility(
+            _scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon), _possession?.CameraHeld == true);
         bool modal = _hudControls.Modal;
         _panel.SetVisibility(_hudControls.ModalInput(visibility));
         _options.SetVisible(_hudControls.OptionsMenuShown(visibility));
         _gameOptionsPanel.Show(_hudControls.GameOptionsShown(visibility));
         _fullMap.SetVisible(_hudControls.FullMapShown(camera));
-        _minimap.SetVisibility(visibility);
+        _minimap.SetVisibility(_possession?.Possessing == true ? new HudVisibility(true, false) : visibility);
         _options.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
         // DungeonRunner.DrawSavePanel's in-game branch, with this frame's typing (Unity reads Input.inputString there).
         (bool saveLoadShown, bool saving) = _hudControls.SaveLoadPage(visibility);
         _saveLoad.Show(_saves, saveLoadShown, saving, _keyboard.Typed);
         // DungeonRunner.Update's camera step, then QueueInput after the shortcuts, as there; its game options branch polls
         // the keys before they end.
-        UpdatePossession(visibility, delta, milliseconds);
         UpdateCamera(visibility, delta);
         // The frame's one pose, which this frame's picks read; the follow below places it again only if it moved the focus.
         _world.PlaceCamera();
@@ -603,6 +606,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _gameOptionsPanel.Draw();
         // Last, as DungeonRunner.DrawHudControls captures and draws it; the options menu hides it.
         _queryPanel.Draw(_queryView.Capture(_simulation.World), visibility, modal);
+        DrawPossessionHud(milliseconds);
         // The hover, after the HUD is drawn (DungeonRunner.CaptureWorldHover): over the HUD, the panels' text; over the world
         // the pick and its text, the Hand's light, then the cursor, placement, tint and cage (HoverCursorResolver). The hover
         // sound waits for the sound player (step 4).
