@@ -296,7 +296,9 @@ keys post actions `0x18` (∓0x23) and `0x17` (∓0x100) instead of moving a cam
 id is in the view table, the second view table at `0x0066D0D8` or the game-action table,
 so the mode may be inert; what it was for is UNKNOWN. Mode 10's input is `0x0040E670`:
 bindings 16 to 19 post action 3 with steps of 0x100 (0x800 with binding 21 held) and the
-mouse posts action 8 with twice its delta; nothing read enters mode 10.
+mouse posts action 8 with twice its delta. No request for mode 10 exists (every caller of
+`Camera_RequestMode` and every sender of action 15 found, read 2026-11-18: their records), nor a
+sender of action 20; the owner knows no such view. Treated as unreachable, not to be built.
 
 **The model (STRONGLY INFERRED) and the footsteps (HYPOTHESIS).** The draw bit is the
 only thing found that hides the possessed creature: `Thing_DrawRenderInfo` (`0x0059B880`) builds a body draw only with it

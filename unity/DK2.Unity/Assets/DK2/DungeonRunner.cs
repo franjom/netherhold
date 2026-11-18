@@ -959,20 +959,12 @@ namespace DK2.Unity
             else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
             _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
             _scene.SetCreatureFrameTime(World.CurrentTick, fraction);
-            bool possessionView = World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0;
-            _worldView.SetPossessionView(possessionView);
-            // The same latch rests the walls at full height; the view's change re-presents every tile, which rebuilds the chunks.
-            // Flipping it forgets every cell, which the terrain's thread-pool build may be reading: join it first.
-            if (_terrainLattice != null && _terrainLattice.Possession != possessionView)
-            {
-                _scene.JoinTerrainBuild();
-                _terrainLattice.Possession = possessionView;
-            }
+            // The possession cameras' latch: the view presents every tile again and the walls rest at full height.
+            PossessionScene.Latch(World, new PlayerId((byte)viewingPlayerId), _worldView, _terrainLattice, _scene.TerrainScheduler);
             _scene.HideCreature(PossessionHiddenCreatureId);
             long presentStarted = _recorder?.Stamp() ?? 0;
             using (PresentMarker.Auto()) _presenter.Present(World);
-            // DK2 draws the roof in camera modes 2, 10 and 11: the span the possessed model is hidden for.
-            _scene.SetCeilingVisible(PossessionHiddenCreatureId != 0, World, _simulation.Database);
+            _scene.SetCeilingVisible(PossessionScene.RoofShown(PossessionHiddenCreatureId), World, _simulation.Database);
             _recorder?.Spent(FrameRecorder.Part.Present, presentStarted);
             if (_gemIdleEffects != null)
             {

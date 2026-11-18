@@ -13,17 +13,13 @@ using UnityEngine.Rendering;
 namespace DK2.Unity
 {
     /// <summary>
-    /// The possession view's roof, drawn: <see cref="TerrainCeilingField"/>'s pieces merged per
-    /// 16×16-tile chunk, with the one <c>Ceiling</c> material and the terrain's vertex lighting.
-    /// Every rule is the field's (ADR-0805); this turns its points into meshes, shows them while
-    /// the possession camera holds the view, and rebuilds the chunks a change reaches.
+    /// The possession view's roof, drawn: <see cref="TerrainCeilingScheduler"/>'s chunks, with the one
+    /// <c>Ceiling</c> material and the terrain's vertex lighting. Every rule is the scheduler's
+    /// (ADR-0805); this uploads its geometry as meshes, shows them while the possession camera
+    /// holds the view, and rebuilds the chunks a change reaches.
     /// </summary>
     public sealed class TerrainCeilingChunks
     {
-        private const int ChunkSize = 16;
-        // The shader's tile anchor kind for a roof vertex: lit from its tile's light table, and
-        // given none of Unity's fill, so it is black where no DK2 light reaches.
-        private const float RoofAnchor = 2f;
         private const MeshUpdateFlags UploadFlags = MeshUpdateFlags.DontRecalculateBounds | MeshUpdateFlags.DontValidateIndices
             | MeshUpdateFlags.DontNotifyMeshUsers;
 
@@ -31,20 +27,13 @@ namespace DK2.Unity
 
         private readonly GameObject _root;
         private readonly ClassicMeshes _classic;
-        private readonly TerrainLattice _lattice;
-        private readonly TerrainCeilingField _field;
-        private readonly int _width, _height, _chunksX;
-        private readonly bool[] _dirty;
+        private readonly TerrainCeilingScheduler _scheduler;
         private readonly GameObject[] _chunks;
         private readonly Mesh[] _meshes;
-        private readonly List<int> _changed = new List<int>();
-        private bool _anyDirty = true;
-        private long _readTick = long.MinValue;
         private Material _material;
 
-        // One piece from the field, and one chunk's assembly, reused across rebuilds.
-        private readonly System.Numerics.Vector3[] _piecePositions = new System.Numerics.Vector3[TerrainCeiling.Vertices];
-        private readonly System.Numerics.Vector3[] _pieceNormals = new System.Numerics.Vector3[TerrainCeiling.Vertices];
+        // One chunk's assembly, reused across rebuilds.
+        private readonly TerrainCeilingGeometry _geometry = new TerrainCeilingGeometry();
         private readonly List<Vector3> _positions = new List<Vector3>();
         private readonly List<Vector3> _normals = new List<Vector3>();
         private readonly List<Vector2> _uvs = new List<Vector2>();
@@ -58,41 +47,24 @@ namespace DK2.Unity
             _root.transform.SetParent(root, worldPositionStays: false);
             _root.SetActive(false);
             _classic = classic;
-            _lattice = lattice;
-            _field = new TerrainCeilingField(width, height);
-            _width = width;
-            _height = height;
-            _chunksX = (width + ChunkSize - 1) / ChunkSize;
-            int chunks = _chunksX * ((height + ChunkSize - 1) / ChunkSize);
-            _dirty = new bool[chunks];
-            _chunks = new GameObject[chunks];
-            _meshes = new Mesh[chunks];
-            System.Array.Fill(_dirty, true);
+            _scheduler = new TerrainCeilingScheduler(width, height, lattice);
+            _chunks = new GameObject[_scheduler.ChunkCount];
+            _meshes = new Mesh[_scheduler.ChunkCount];
         }
 
         /// <summary>A presented tile changed, which may have changed the lattice around it.</summary>
-        public void TileChanged(int x, int y) => MarkDirty(x, y, TerrainCeiling.BendReach);
+        public void TileChanged(int x, int y) => _scheduler.TileChanged(x, y);
 
         /// <summary>Shows the roof over the presented world, rebuilding what changed since it was
         /// last shown: the first show builds every chunk. Call where the world may be read.</summary>
         public void Show(WorldState world, GameDatabase database)
         {
-            long tick = world.CurrentTick.Value;
-            if (tick != _readTick)
-            {
-                _readTick = tick;
-                _changed.Clear();
-                _field.Refresh(world, database, _changed);
-                for (int i = 0; i < _changed.Count; i++)
-                    MarkDirty(_changed[i] % _width, _changed[i] / _width, TerrainCeiling.ChangeReach);
-            }
-            if (_anyDirty)
+            if (_scheduler.Refresh(world, database))
             {
                 using ProfilerMarker.AutoScope _ = RebuildMarker.Auto();
                 _material ??= _classic.ForTexture(TerrainCeiling.TextureName);
-                for (int chunk = 0; chunk < _dirty.Length; chunk++)
-                    if (_dirty[chunk]) Rebuild(chunk);
-                _anyDirty = false;
+                for (int chunk = 0; chunk < _chunks.Length; chunk++)
+                    if (_scheduler.TryBuild(chunk, _geometry)) Upload(chunk);
             }
             if (!_root.activeSelf) _root.SetActive(true);
         }
@@ -111,53 +83,29 @@ namespace DK2.Unity
                 _chunks[chunk] = null;
                 _meshes[chunk] = null;
             }
-            System.Array.Fill(_dirty, true);
-            _anyDirty = true;
-            _readTick = long.MinValue;
+            _scheduler.Clear();
         }
 
-        private void MarkDirty(int x, int y, int reach)
+        /// <summary>The chunk the scheduler just built into <see cref="_geometry"/>, as its mesh.
+        /// The triangles keep DK2's order: clockwise seen from below, the side Unity's back-face
+        /// culling keeps.</summary>
+        private void Upload(int chunk)
         {
-            int x0 = Mathf.Max(0, x - reach) / ChunkSize, x1 = Mathf.Min(_width - 1, x + reach) / ChunkSize;
-            int y0 = Mathf.Max(0, y - reach) / ChunkSize, y1 = Mathf.Min(_height - 1, y + reach) / ChunkSize;
-            for (int cy = y0; cy <= y1; cy++)
-                for (int cx = x0; cx <= x1; cx++)
-                    _dirty[(cy * _chunksX) + cx] = true;
-            _anyDirty = true;
-        }
-
-        private void Rebuild(int chunk)
-        {
-            _dirty[chunk] = false;
             _positions.Clear();
             _normals.Clear();
             _uvs.Clear();
             _lightAnchors.Clear();
             _triangles.Clear();
-
-            System.ReadOnlySpan<byte> triangles = TerrainCeiling.Triangles;
-            int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
-            for (int y = y0; y < Mathf.Min(y0 + ChunkSize, _height); y++)
-                for (int x = x0; x < Mathf.Min(x0 + ChunkSize, _width); x++)
-                {
-                    if (!_field.Has(x, y)) continue;
-                    _field.Piece(x, y, _lattice, _piecePositions, _pieceNormals);
-                    int start = _positions.Count;
-                    var anchor = new Vector2((y * _width) + x, RoofAnchor);
-                    for (int i = 0; i < TerrainCeiling.Vertices; i++)
-                    {
-                        // DK2's frame is (x, -z, -y) of this one (DungeonScene.Ground).
-                        System.Numerics.Vector3 p = _piecePositions[i], n = _pieceNormals[i];
-                        _positions.Add(new Vector3(p.X, -p.Z, -p.Y));
-                        _normals.Add(new Vector3(n.X, -n.Z, -n.Y));
-                        (float u, float v) = TerrainCeiling.Uv(i / 3, i % 3);
-                        _uvs.Add(new Vector2(u, v));
-                        _lightAnchors.Add(anchor);
-                    }
-                    // DK2's order as it is: in this frame it turns clockwise seen from below, the
-                    // side Unity's back-face culling keeps.
-                    for (int i = 0; i < triangles.Length; i++) _triangles.Add(start + triangles[i]);
-                }
+            for (int i = 0; i < _geometry.Positions.Count; i++)
+            {
+                System.Numerics.Vector3 p = _geometry.Positions[i], n = _geometry.Normals[i];
+                System.Numerics.Vector2 uv = _geometry.Uvs[i], anchor = _geometry.LightAnchors[i];
+                _positions.Add(new Vector3(p.X, p.Y, p.Z));
+                _normals.Add(new Vector3(n.X, n.Y, n.Z));
+                _uvs.Add(new Vector2(uv.X, uv.Y));
+                _lightAnchors.Add(new Vector2(anchor.X, anchor.Y));
+            }
+            _triangles.AddRange(_geometry.Triangles);
 
             GameObject go = _chunks[chunk];
             if (_positions.Count == 0)

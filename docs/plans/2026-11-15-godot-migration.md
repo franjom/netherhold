@@ -804,8 +804,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       change), clip sets cached per entry, pose interpolation and orientation through `RightHandedFrame` with the head point
       converted back, removal on death or exit, and `ZeroOrderOffset` for blended surfaces. On an idle-clip swap Godot keeps the
       node and restarts the clip, which the reviewer confirmed is equivalent on screen to Unity's rebuild. The crackle (3l),
-      footsteps and sparkle (3k) and the possession hide (3m) are no-op steps waiting for their sub-steps (the burning red
-      came in 3h), so 3g's "footstep requests" are none until 3k. The query follow now runs after `DrawFrame` and reads the drawn position, as
+      footsteps and sparkle (3k) are no-op steps waiting for their sub-steps (the burning red came in 3h, the possession hide in 3m), so 3g's "footstep requests" are none until 3k. The query follow now runs after `DrawFrame` and reads the drawn position, as
       Unity's does (this resolves 3b's note); the blended stream's sort moved from `Flush` into `FinishFrame`, after the follow
       places the camera. Mutation checks: the developer's 30 and the reviewer's 27, each killed except the head table's lock,
       which a two-thread test covers. Verification: `dotnet test DK2.slnx` 10,814 passed, 30 skipped (Presentation 2,790,
@@ -922,10 +921,32 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         the shadow-casting lights; Godot's shadows draw; no silhouette projection.
   - [ ] 3k. Effects and flowers on MultiMesh over the CPU particle simulation, with the torch flames (item 6).
   - [ ] 3l. Lightning.
-  - [ ] 3m and 3n. Possession and the scripted paths with the full-map preview (independent, parallel).
+  - [x] 3m. Possession (2026-11-18, ADR-0805; no simulation change, no hash or save bump). Moved into `DK2.Presentation`
+        with tests, which Unity calls now: `TerrainCeilingScheduler` and `TerrainCeilingGeometry` (out of Unity's
+        `TerrainCeilingChunks`), `PossessionScene` (`Latched`, `Latch`, `RoofShown`, out of `DungeonRunner.cs`); new, for
+        captures, `PossessionStaging.PossessFirst` and `--possess-first-creature` (`LaunchArguments.PossessFirstCreature`).
+        Godot (`InGameHud.Possession.cs`, `WorldScene.Possession.cs`): the shared `PossessionSession` is driven every
+        frame, its pose goes on the same `Camera3D` (fly-in, first person, death view, fly-out), the pointer lock is
+        `Input.MouseMode = Captured` while `PointerLockWanted` (never under `--pointer-path`, no `warp_mouse`), the roof is
+        one `MeshInstance3D` per 16x16 chunk shown exactly while a model is hidden (terrain material, `Ceiling` texture,
+        anchor kind 2), and the lattice latch and the hidden possessed model go through the `SceneFrame` sequence. The
+        possession cameras take `PossessionCamera.NearClipDistance` (0.05, a remake choice: DK2 has no near plane,
+        possession-warp.md section 2); the ordinary camera keeps 0.3, and Unity still uses 0.3 in first person. With 0.3 a
+        wall beside the creature was cut into a black band, with 0.05 it is not. Verified: `DK2.slnx` builds in Release with
+        0 errors and 0 warnings; the Possession-filtered tests in `DK2.Presentation.Tests` 106 passed; Godot build 0
+        errors; the `DK2.Unity.Compile` stand-in 0 errors; the reviewer found Unity's behaviour identical after the move.
+        Captures at 1920x1080 from a save made after Level1's opening path, with `--possess-first-creature` and a scripted
+        pointer: no roof and the imp drawn during the fly-in; in first person the roof, full-height walls, the hidden model,
+        the HUD and no Hand; the scripted pointer turns the view and a scripted right click starts the fly-out. Not
+        verified: `unity-verify.sh` and `unity-probe.sh` (they cannot target a worktree); in Godot real mouse capture,
+        alt-tab re-capture, the walking keys and the death view. Open: the view's sounds are dropped (no sound player, step
+        4); the roof is black away from walls and torches (lighting); during Level1's opening path Godot shows the
+        possession camera, as the path camera (3n) is not ported. Test gaps: `TerrainCeilingScheduler.Refresh` from a
+        `WorldState` (its once-per-turn read) and `PossessionScene.Latch` with a terrain.
+  - [ ] 3n. The scripted paths with the full-map preview.
   - [ ] Then the remaining replacements in the audit's order: texture arrays (once 3o shows they pay), vertex animation,
         the minimap shader, AA, the HUD text atlas, liquid waves, the chunk upload tweak.
-- [ ] The remaining 3D overlays (possession, 3m), then the in-game HUD from step 1.
+- [ ] The remaining 3D overlays (the scripted paths, 3n), then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging
 

@@ -409,6 +409,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _world.Open(install, level, _simulation.World, _worldView, _viewer, startFocus, _settings.ScrollSpeed);
         if (probeShift) _world.Focus += new System.Numerics.Vector3(1, 0, 1);
         _world.SetBrightness(DisplaySettings.BrightnessExponent(_settings.Gamma));
+        OpenPossession(install, level, args);
         // --perf-report: the performance harness (PerformanceReport.cs); without it, no node.
         PerformanceReport.Attach(this, args, levelName, seed, _world, _simulation.World.Width, _simulation.World.Height);
         // DungeonRunner's heart health observer: each change queued for the next frame's beat.
@@ -527,6 +528,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _saveLoad.Show(_saves, saveLoadShown, saving, _keyboard.Typed);
         // DungeonRunner.Update's camera step, then QueueInput after the shortcuts, as there; its game options branch polls
         // the keys before they end.
+        UpdatePossession(visibility, delta, milliseconds);
         UpdateCamera(visibility, delta);
         // The frame's one pose, which this frame's picks read; the follow below places it again only if it moved the focus.
         _world.PlaceCamera();
@@ -543,7 +545,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // far toward the next (this scene ticks inline, so the debt left by the last frame).
         float drawFraction = (float)Math.Min(_pacer.Debt, 1d);
         _world.SetFrameTime(_simulation.World.CurrentTick, drawFraction, milliseconds);
+        _world.LatchPossession(_simulation.World, _viewer);
         _world.Present(_simulation.World, _elapsed);
+        _world.PresentRoof(_simulation.World, _simulation.Database);
         _world.DrawFrame(_simulation.World.CurrentTick, drawFraction);
         // DungeonRunner.FollowQueriedCreature, after DrawCreatureFrame there: the focus keeps the queried creature where it
         // is drawn, so the view and the minimap below draw the same focus; the camera is placed again only if it moved,
@@ -607,7 +611,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // ordinary input off (a cutscene) it keeps its place.
         if (visibility.AllowOrdinaryInput) _handLight = null;
         bool inside = _pointerInWindow && GetViewport().GetVisibleRect().HasPoint(_pointer);
-        bool allowed = visibility.AllowOrdinaryInput && Focused && inside;
+        bool allowed = visibility.AllowOrdinaryInput && Focused && inside && !PossessionPointerHeld;
         bool overHud = PointerOverHud(_pointer, visibility);
         WorldHoverHit? pick = null;
         HoverTextSnapshot hover = HoverTextSnapshot.Empty;
@@ -645,9 +649,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
         // DungeonRunner.Update's tick step (FrameDriver): ready drops after the input, then the tick gate (no turn runs, and
         // none accrues, while it holds), the hand-off and the clear. The frame is clamped as Unity's runner clamps it
-        // (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap. No possession here, so no pose.
+        // (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap. The possession posts its pose once a turn.
         FrameTicks ticks = _frameDriver.TakeTicks(_simulation.World, _viewer, Math.Min(delta, TickPacer.MaximumFrameSeconds), 1f,
-            _settings.GameSpeed, _hudControls.TicksPaused, TickPacer.DefaultMaxTicksPerFrame, poses: null);
+            _settings.GameSpeed, _hudControls.TicksPaused, TickPacer.DefaultMaxTicksPerFrame, poses: _possession);
         _journal.Ticks(_simulation.World.CurrentTick, ticks.Count);
         for (int i = 0; i < ticks.Count; i++)
         {
@@ -871,7 +875,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     /// <summary>DungeonRunner.Update's camera step: during a camera path only the pointer is taken (the path's camera is
     /// step 3n); otherwise the glide, the script's follow (game action 17), then <see cref="ClassicCameraInput.Apply"/>
-    /// while ordinary input is allowed and no menu is modal, else only the pointer (DungeonRunner.ControlCamera).</summary>
+    /// while ordinary input is allowed, no menu is modal and the camera is not the possession's, else only the pointer
+    /// (DungeonRunner.ControlCamera).</summary>
     private void UpdateCamera(HudVisibility visibility, double delta)
     {
         ClassicCameraControls? controls = _world?.Controls;
@@ -902,7 +907,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_scriptedView.FollowedCreatureId != 0 && !_glide.Active
             && _simulation.World.CreatureById(_scriptedView.FollowedCreatureId) is CreatureState followed)
             _world.Focus = CameraFocus.Over(new Fp32(followed.PosX), new Fp32(followed.PosY), _world.Focus.Y);
-        if (visibility.AllowOrdinaryInput && !_hudControls.Modal && width > 0 && height > 0)
+        if (visibility.AllowOrdinaryInput && !_hudControls.Modal && !PossessionCameraHeld && width > 0 && height > 0)
         {
             var sample = new CameraPointerSample(pointer, width, height, Focused, PointerOverHud(top, visibility), wheel);
             _world.Focus = ClassicCameraInput.Apply(controls, _world.Focus, _keyboard.Read(_settings), sample, _cameraPointer,
@@ -955,6 +960,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <c>Input.GetMouseButtonDown</c> sees every press; <see cref="QueueInput"/> routes it in the next frame.</summary>
     private void ReadPress(InputEvent @event)
     {
+        if (@event is InputEventMouseMotion motion) { ReadPossessionMotion(motion); return; }
         // A scripted pointer's presses are its own (SamplePointer); the OS pointer's are left out.
         if (@event is not InputEventMouseButton button || _pointerScript != null) return;
         if (button.ButtonIndex == MouseButton.Left) { if (button.Pressed) _primaryDown = true; else _primaryUp = true; }
@@ -982,7 +988,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// input is not allowed (the world drag is dropped), then the HUD's press in Unity's order (<see cref="HudPressRouter"/>),
     /// the query tool's and a choice's world press (<see cref="WorldClickCommands"/>), the minimap's map press
     /// (<see cref="IWorldPointerHost.MinimapPress"/>), the tool, and a press's intent and translation on the picked tile (plan
-    /// step 3e). No possession here, so the possession gate never holds.</summary>
+    /// step 3e), behind the possession gate.</summary>
     private void QueueInput(HudVisibility visibility, long milliseconds)
     {
         KeyModifiers modifiers = _keyboard.Modifiers;
@@ -993,7 +999,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_simulation == null || _worldPointer == null) return;
         _pressPointer = _pointer;
         _pressVisibility = visibility;
-        _worldPointer.Queue(new WorldPointerFrame(_viewer, visibility.AllowOrdinaryInput, Possessing: false, _hudControls.Modal, press,
+        _worldPointer.Queue(new WorldPointerFrame(_viewer, visibility.AllowOrdinaryInput, Possessing, _hudControls.Modal, press,
             primaryUp, secondaryUp, milliseconds), _simulation.World, _simulation.Database, _pending);
     }
 
@@ -1344,6 +1350,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     {
         if (_heartHealthObserver != null && _simulation != null) _simulation.World.HeartHealthChanged -= _heartHealthObserver;
         _heartHealthObserver = null;
+        ClosePossession();
     }
 
     public override void _Input(InputEvent @event)
