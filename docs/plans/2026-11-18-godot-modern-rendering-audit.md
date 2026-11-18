@@ -45,13 +45,14 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 - **2. Classic vertex light**, its tables, fill, the environment-pass light and the 3j shadows
   (`WorldScene.Lighting.cs`). The real-lights prototype (128 pooled `OmniLight3D`) was rejected and removed (2026-11-18). New
   direction: DK2's light model stays and moves to modern means; step 1 is `--light-perpixel` (migration plan, *DK2 light
-  per pixel*). Step 2, `--light-shadows` with it (`WorldScene.Shadows.cs`, 2026-11-18): the four torches nearest the
+  per pixel*). Step 2, `--light-shadows` with it (`WorldScene.Shadows.cs`, 2026-11-18): the two torches nearest the
   focus each render a downward 150-degree distance map (one `SubViewport`, casters on their own layers; a dual
-  paraboloid misplaced the terrain's large triangles and was dropped); only that torch's DK2 term is multiplied by its
-  visibility, darkened by DK2's strength with the caster rule in `ClassicShadowSourceSelector` (shared with Unity's
-  `ClassicCreatureShadows`). Level1 1080p, 2 repeats against per-pixel: GPU p50 4.71 to 5.12 ms, draw calls 133 to
-  294, video memory +40 MiB, 0 B a frame. By eye the creature shadows are faint (the torch's share of the light, at
-  most 0.7) and the clearest change is the torch light no longer passing through walls.
+  paraboloid misplaced the terrain's large triangles and was dropped). A wall's shadow multiplies only that torch's DK2
+  term; a creature's or object's darkens the whole per-pixel light by DK2's 1 - coverage x strength (the receiver
+  quad's blend; owner, stronger shadows), with the caster rule in `ClassicShadowSourceSelector` (shared with Unity's
+  `ClassicCreatureShadows`). A torch holding a map counts 1.5 tiles nearer, so the maps do not swap back and forth.
+  Two torches (four cost +1.9 to +3.0 ms with the creature darkening). Level1 1080p, 2 repeats against per-pixel:
+  GPU p50 3.80 to 4.27 ms, draw calls 133 to 223, video memory +18 MiB, 0 B a frame.
 - **3. P1, M. Terrain material per tile state** (tint, tag, red, fog opacity; overlays as additive triangles in the
   blended stream; `WorldScene.cs:302-373`, `TerrainMaterialKey.cs:44-55`). Replace with a per-tile state texture read
   in `vertex()` by a tile index in `CUSTOM0`; opaque overlays move into the shader; only the sight fog stays blended.

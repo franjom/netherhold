@@ -50,11 +50,28 @@ public class ClassicTorchShadowsTests
     {
         int[] keys = [10, 11, 12, 13, 14, 15];
         Vector3[] positions = [new(5, 0, 0), new(1, 9, 0), new(0, 0, 3), new(-3, 0, 0), new(30, 0, 0), new(0, 0, -1)];
-        Span<int> chosen = stackalloc int[ClassicTorchShadowSlots.MaximumTorches];
+        Span<int> chosen = stackalloc int[4];
         int count = ClassicTorchShadowSlots.Choose(Vector3.Zero, keys, positions, 20f, chosen);
         Assert.Equal(4, count);
         Assert.Equal([1, 5, 2, 3], chosen.ToArray());
         Assert.Equal(2, ClassicTorchShadowSlots.Choose(Vector3.Zero, keys, positions, 1.5f, chosen));
+    }
+
+    [Fact]
+    public void HeldTorchesCountNearerAndReachFarther()
+    {
+        int[] keys = [1, 2, 3];
+        Vector3[] positions = [new(2, 0, 0), new(3, 0, 0), new(15, 0, 0)];
+        Span<int> chosen = stackalloc int[1];
+        Assert.Equal(1, ClassicTorchShadowSlots.Choose(Vector3.Zero, keys, positions, 14f, chosen));
+        Assert.Equal(0, chosen[0]);
+        // Torch 2 held: 3 - 1.5 beats 2, so the map stays with it.
+        Assert.Equal(1, ClassicTorchShadowSlots.Choose(Vector3.Zero, keys, positions, 14f, [2], 1.5f, chosen));
+        Assert.Equal(1, chosen[0]);
+        // Torch 3 held: 15 - 1.5 is within 14, beyond it without the hold.
+        Span<int> two = stackalloc int[3];
+        Assert.Equal(3, ClassicTorchShadowSlots.Choose(Vector3.Zero, keys, positions, 14f, [3], 1.5f, two));
+        Assert.Equal(2, ClassicTorchShadowSlots.Choose(Vector3.Zero, keys, positions, 14f, two));
     }
 
     [Fact]

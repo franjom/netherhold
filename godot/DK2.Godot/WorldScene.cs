@@ -412,7 +412,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                     : LightFunctions + LitVertex(model, environment))
                 + "void fragment() {\n" + (TorchShadowsActive ? ShadowFragment(blend == KmfBlend.Opaque && !fullLight, model) : "")
                 + "vec4 c = texture(albedo_texture, UV) * base_colour;\n"
-                + (fullLight ? "" : PerPixelLight ? LitFragment + "c.rgb *= dk2_diffuse_px;\n" : "c.rgb *= dk2_diffuse;\n")
+                + (fullLight ? "" : PerPixelLight ? (TorchShadowsActive ? ShadowLitFragment : LitFragment) + "c.rgb *= dk2_diffuse_px;\n"
+                    : "c.rgb *= dk2_diffuse;\n")
                 + "ALBEDO = c.rgb;\n" + alpha + (TorchShadowsActive ? "}\n" : "") + "}\n",
         };
         _shaders.Add((blend, fullLight, writesDepth, model, environment), shader);

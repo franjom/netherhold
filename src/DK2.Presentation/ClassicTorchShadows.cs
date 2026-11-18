@@ -66,24 +66,29 @@ public sealed class ClassicShadowSourceSelector
 
 /// <summary>Which torches a modern renderer gives a shadow map (not DK2's: it has none): the
 /// <paramref name="chosen"/>.Length nearest the view's focus horizontally, within <paramref name="reach"/>, equal distances
-/// by the lower key, nearest first. Allocation-free.</summary>
+/// by the lower key, nearest first. A torch in <c>held</c> (the last choice) counts <c>hysteresis</c> tiles nearer, so a
+/// focus moving between two torches does not swap their maps back and forth. Allocation-free.</summary>
 public static class ClassicTorchShadowSlots
 {
-    /// <summary>The adapters' cap: each shadowed torch renders its casters again.</summary>
-    public const int MaximumTorches = 4;
+    /// <summary>The adapters' cap: each shadowed torch renders its casters again and every pixel near it samples its
+    /// map, so the two nearest (owner, 2026-11-18).</summary>
+    public const int MaximumTorches = 2;
 
     public static int Choose(Vector3 focus, ReadOnlySpan<int> keys, ReadOnlySpan<Vector3> positions, float reach,
-        Span<int> chosen)
+        Span<int> chosen) => Choose(focus, keys, positions, reach, ReadOnlySpan<int>.Empty, 0f, chosen);
+
+    public static int Choose(Vector3 focus, ReadOnlySpan<int> keys, ReadOnlySpan<Vector3> positions, float reach,
+        ReadOnlySpan<int> held, float hysteresis, Span<int> chosen)
     {
         if (keys.Length != positions.Length) throw new ArgumentException("One key per torch position.", nameof(keys));
+        if (hysteresis < 0) throw new ArgumentOutOfRangeException(nameof(hysteresis));
         int count = 0;
-        float reachSquared = reach * reach;
         for (int i = 0; i < positions.Length; i++)
         {
-            float squared = Horizontal(focus, positions[i]);
-            if (!(squared <= reachSquared)) continue;
+            float distance = Distance(focus, keys[i], positions[i], held, hysteresis);
+            if (!(distance <= reach)) continue;
             int slot = 0;
-            while (slot < count && Before(focus, keys, positions, chosen[slot], squared, keys[i])) slot++;
+            while (slot < count && Before(focus, keys, positions, held, hysteresis, chosen[slot], distance, keys[i])) slot++;
             if (slot >= chosen.Length) continue;
             for (int j = Math.Min(count, chosen.Length - 1); j > slot; j--) chosen[j] = chosen[j - 1];
             chosen[slot] = i;
@@ -92,16 +97,18 @@ public static class ClassicTorchShadowSlots
         return count;
     }
 
-    private static bool Before(Vector3 focus, ReadOnlySpan<int> keys, ReadOnlySpan<Vector3> positions, int index,
-        float squared, int key)
+    private static bool Before(Vector3 focus, ReadOnlySpan<int> keys, ReadOnlySpan<Vector3> positions,
+        ReadOnlySpan<int> held, float hysteresis, int index, float distance, int key)
     {
-        float other = Horizontal(focus, positions[index]);
-        return other < squared || (other == squared && keys[index] < key);
+        float other = Distance(focus, keys[index], positions[index], held, hysteresis);
+        return other < distance || (other == distance && keys[index] < key);
     }
 
-    private static float Horizontal(Vector3 a, Vector3 b)
+    /// <summary>The horizontal distance, less the hysteresis for a held torch (so it also reaches that much farther).</summary>
+    private static float Distance(Vector3 focus, int key, Vector3 position, ReadOnlySpan<int> held, float hysteresis)
     {
-        float x = a.X - b.X, z = a.Z - b.Z;
-        return (x * x) + (z * z);
+        float x = focus.X - position.X, z = focus.Z - position.Z;
+        float distance = MathF.Sqrt((x * x) + (z * z));
+        return held.IndexOf(key) >= 0 ? distance - hysteresis : distance;
     }
 }
