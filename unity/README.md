@@ -79,8 +79,11 @@ look**; batch entry points are `DK2.Unity.Editor.ClassicShadowProbe.Run` and
 `DK2.Unity.Editor.ClassicWorldLightingProbe.Run` (omit `-quit`).
 For the world probe, `DK2_LIGHTING_PROBE_LEVEL` selects `Level1` (default),
 `Level7` or `Level8`; `DK2_LIGHTING_PROBE_OUTPUT` chooses the capture directory.
-Leave `DK2_NATIVE_AMBIENT_PROBE` unset for the brighter preview, or set it to
-`1` to exercise the incomplete native startup ambient diagnostic.
+The probe renders what play renders: it opens `Scenes/Dungeon.unity` additively when
+it is not loaded, for its sun, sky and camera clear colour, starts from the scene's
+`DungeonRunner` settings (fog of war and Native Initial Ambient included) and applies
+the classic grading. `DK2_NATIVE_AMBIENT_PROBE` overrides the scene's switch: `0` for
+Unity's fill, `1` for the native-only diagnostic.
 
 The developer API `DungeonScene.SetPointLightTable` stages selected point-light
 tables for `Flush`; automatic native world-source publication remains unbuilt

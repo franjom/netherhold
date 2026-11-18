@@ -11,8 +11,10 @@ using DK2.Presentation;
 using DK2.Core;
 using DK2.Assets;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace DK2.Unity.Editor
@@ -48,6 +50,7 @@ namespace DK2.Unity.Editor
             public string UnityVersion, Cpu, GraphicsDevice, GraphicsApi, ColourSpace;
             public int ViewportWidth, ViewportHeight;
             public bool NativeInitialAmbient;
+            public bool ClassicLookApplied;
             public string Pipeline;
             public bool SrpBatcher;
             public string Shader;
@@ -125,6 +128,7 @@ namespace DK2.Unity.Editor
         }
 
         private const int Width = 1024, Height = 576;
+        private const string DungeonScenePath = "Assets/DK2/Scenes/Dungeon.unity";
         private static bool _running;
 
         [MenuItem("DK2/Classic look/Compare campaign torch lighting")]
@@ -156,7 +160,36 @@ namespace DK2.Unity.Editor
             if (Application.isBatchMode) EditorApplication.Exit(result.Passed ? 0 : 1);
         }
 
+        /// <summary>Renders under what play renders: the Dungeon scene's light, sky, camera clear and runner
+        /// settings. A batch editor starts in an empty scene, which has no sun, so the scene is opened
+        /// additively when it is not loaded, made active for its RenderSettings, and closed again.</summary>
         private static void Verify(Result result, string output)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                throw new InvalidOperationException("Stop Play mode before running the world lighting probe.");
+            Scene previous = SceneManager.GetActiveScene();
+            Scene dungeon = SceneManager.GetSceneByPath(DungeonScenePath);
+            bool opened = !dungeon.isLoaded;
+            if (opened) dungeon = EditorSceneManager.OpenScene(DungeonScenePath, OpenSceneMode.Additive);
+            try
+            {
+                DungeonRunner sceneRunner = dungeon.GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<DungeonRunner>(true)).FirstOrDefault()
+                    ?? throw new InvalidOperationException(DungeonScenePath + " has no DungeonRunner.");
+                Camera sceneCamera = dungeon.GetRootGameObjects()
+                    .SelectMany(root => root.GetComponentsInChildren<Camera>(true))
+                    .FirstOrDefault(camera => camera.CompareTag("MainCamera"));
+                SceneManager.SetActiveScene(dungeon);
+                VerifyInScene(result, output, sceneRunner, sceneCamera);
+            }
+            finally
+            {
+                if (previous.IsValid() && previous.isLoaded) SceneManager.SetActiveScene(previous);
+                if (opened) EditorSceneManager.CloseScene(dungeon, true);
+            }
+        }
+
+        private static void VerifyInScene(Result result, string output, DungeonRunner sceneRunner, Camera sceneCamera)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Stop Play mode before running the world lighting probe.");
@@ -171,7 +204,11 @@ namespace DK2.Unity.Editor
             result.GraphicsApi = SystemInfo.graphicsDeviceType.ToString();
             result.ColourSpace = QualitySettings.activeColorSpace.ToString();
             result.ViewportWidth = Width; result.ViewportHeight = Height;
-            result.NativeInitialAmbient = Environment.GetEnvironmentVariable("DK2_NATIVE_AMBIENT_PROBE") == "1";
+            // The scene's switch unless DK2_NATIVE_AMBIENT_PROBE says 1 (native only) or 0 (Unity's fill).
+            string nativeAmbient = Environment.GetEnvironmentVariable("DK2_NATIVE_AMBIENT_PROBE");
+            result.NativeInitialAmbient = nativeAmbient == "1" || nativeAmbient != "0"
+                && (bool)typeof(DungeonRunner).GetField("nativeInitialAmbient", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .GetValue(sceneRunner);
             int previousCount = Shader.GetGlobalInt("_DK2TorchGridCount");
             int previousWidth = Shader.GetGlobalInt("_DK2TorchGridWidth");
             if (previousCount != 0 || Shader.GetGlobalInt("_DK2TileLightGridCount") != 0)
@@ -190,6 +227,10 @@ namespace DK2.Unity.Editor
             RenderTexture previousTarget = RenderTexture.active;
             Vector4 previousAmbientColour = Shader.GetGlobalVector("_DK2AmbientColour");
             float previousAmbientPreview = Shader.GetGlobalFloat("_DK2InitialAmbientPreview");
+            Vector4 previousFillTint = Shader.GetGlobalVector("_DK2FillTint");
+            Vector4 previousDistanceFade = Shader.GetGlobalVector("_DK2DistanceFade");
+            float previousUnlitFill = Shader.GetGlobalFloat("_DK2UnlitFill");
+            float previousFillFloor = Shader.GetGlobalFloat("_DK2FillFloor");
             GameObject root = null;
             RenderTexture target = null;
             Texture2D readback = null;
@@ -208,7 +249,7 @@ namespace DK2.Unity.Editor
                 probeCamera.pixelRect = new Rect(0, 0, Width, Height);
                 probeCamera.cullingMask = 1 << 31;
                 probeCamera.clearFlags = CameraClearFlags.SolidColor;
-                probeCamera.backgroundColor = Color.black;
+                probeCamera.backgroundColor = sceneCamera != null ? sceneCamera.backgroundColor : Color.black;
                 probeCamera.allowHDR = false;
                 probeCamera.allowMSAA = false;
                 target = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32);
@@ -234,7 +275,10 @@ namespace DK2.Unity.Editor
                 var runnerObject = new GameObject("Production DungeonRunner");
                 runnerObject.transform.SetParent(root.transform, false);
                 DungeonRunner runner = runnerObject.AddComponent<DungeonRunner>();
+                // The scene's settings, not the class defaults: its fog of war and grading are what play uses.
+                EditorUtility.CopySerialized(sceneRunner, runner);
                 runner.enabled = false;
+                Set(runner, "saveFile", "");
                 Set(runner, "levelName", level);
                 Set(runner, "classicVertexLighting", true);
                 Set(runner, "nativeInitialAmbient", result.NativeInitialAmbient);
@@ -245,6 +289,10 @@ namespace DK2.Unity.Editor
                     .SetValue(runner, (Func<EffectTime>)(() => torchTime));
                 typeof(DungeonRunner).GetMethod("StartGame", BindingFlags.NonPublic | BindingFlags.Instance)
                     .Invoke(runner, null);
+                // Play sets the ADR-0522 grading from Update, which a disabled runner never runs.
+                typeof(DungeonRunner).GetMethod("ApplyClassicLook", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .Invoke(runner, null);
+                result.ClassicLookApplied = true;
                 probeCamera.enabled = false;
                 result.BufferCountBeforeFlush = Shader.GetGlobalInt("_DK2TorchGridCount");
                 var scene = (DungeonScene)typeof(DungeonRunner).GetField("_scene", BindingFlags.NonPublic | BindingFlags.Instance)
@@ -406,6 +454,10 @@ namespace DK2.Unity.Editor
                 Shader.SetGlobalInt("_DK2TorchGridWidth", previousWidth);
                 Shader.SetGlobalVector("_DK2AmbientColour", previousAmbientColour);
                 Shader.SetGlobalFloat("_DK2InitialAmbientPreview", previousAmbientPreview);
+                Shader.SetGlobalVector("_DK2FillTint", previousFillTint);
+                Shader.SetGlobalVector("_DK2DistanceFade", previousDistanceFade);
+                Shader.SetGlobalFloat("_DK2UnlitFill", previousUnlitFill);
+                Shader.SetGlobalFloat("_DK2FillFloor", previousFillFloor);
                 if (target != null) { target.Release(); Object.DestroyImmediate(target); }
                 if (readback != null) Object.DestroyImmediate(readback);
                 ShaderUtil.allowAsyncCompilation = asyncCompilation;
