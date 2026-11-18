@@ -118,8 +118,8 @@ at turn 1864 has floor word 3924 under `z` 4096.
 
 ## 6. Not built
 
-- The flying slot's other arms (`0x0048ED40`: a worker's `+0x3E6` bit 8, five animations that answer no,
-  `0x00494700(0) == 3`, a Vampire bat). Flyers have no altitude in ours, so this changes nothing today. On the
+- The flying slot's worker bit-8 and five-animation arms remain unsupported; the Vampire form arm is built
+  ([supported subset](possession-special-abilities.md#simulation-arms)). On the
   Level 3 native capture Fireflies (CanFly) stand at z == floor word in 1832 of 2358 samples and below it in
   the rest, so native fliers are not above their floor word and the chicken's avoidance reacts to them.
 - The `0x004B267C` small-vector rule is built but unreachable for a creature: its gravity step is never small.

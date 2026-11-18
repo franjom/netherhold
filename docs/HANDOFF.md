@@ -142,7 +142,7 @@ These are entry points, not a new priority order.
   Godot uses `PossessionCamera.NearClipDistance`, 0.05, a remake choice. Owner play acceptance remains. Evidence and remake choices:
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
-  The special abilities and sniper are partly built; carry/throw physics and the foreground renderer remain unbuilt ([scope](research/possession-special-abilities.md), ADR-0819).
+  The special abilities and sniper are partly built; carry/throw physics and the foreground renderer remain unbuilt ([scope](research/possession-special-abilities.md), ADR-0819; trap flight consumer ADR-0820).
   The shared possession HUD and Godot canvas are built; [scope and limits](research/possession-hud.md).
 - Godot adapter (ADR-0805, ADR-0810): the road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md);
   steps 1, 2, 3a, 3b, 3c, 3d, 3e, 3f, 3g, 3h, 3i, 3m and 3o are done and step 3 is in progress. Rules that were Unity-only now live in `DK2.Presentation` and both adapters call them;

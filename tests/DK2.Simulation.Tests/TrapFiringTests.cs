@@ -131,6 +131,32 @@ public class TrapFiringTests
         Assert.Equal(bat.Id, TrapRules.FirstOnTile(world, 5, 5, Keeper)!.Id);
         Assert.Single(Fired(sink, freeze));
     }
+    [Theory]
+    [InlineData(PossessionAbilityKind.ToggleFlag11, (CreatureFlags)0, true, 1, false, true)]
+    [InlineData(PossessionAbilityKind.ToggleFlag11, CreatureFlags.CanFly, false, 1, true, false)]
+    [InlineData(PossessionAbilityKind.None, (CreatureFlags)0, true, 1, true, false)]
+    [InlineData(PossessionAbilityKind.None, CreatureFlags.CanFly, false, 1, false, true)]
+    [InlineData(PossessionAbilityKind.ToggleFlag11, (CreatureFlags)0, true, 217, false, true)]
+    [InlineData(PossessionAbilityKind.ToggleFlag11, (CreatureFlags)0, true, 218, false, true)]
+    public void TheTileSelectorUsesTheNativeFlightSlotForThePossessionForm(
+        PossessionAbilityKind ability, CreatureFlags flags, bool form, int state, bool fires, bool flies)
+    {
+        CreatureDef type = Dk2TerrainFixture.Goblin() with
+        {
+            CreatureId = 60, Name = "flight form fixture", PrimaryAbility = ability,
+            Flags = (Dk2TerrainFixture.Goblin().Flags & ~CreatureFlags.CanFly) | flags,
+        };
+        (GameDatabase db, WorldState world) = Open(type);
+        Place(db, world, Dk2TerrainFixture.FreezeTrapId, 5, 5);
+        CreatureState creature = Enemy(db, world, 5, 5, type.CreatureId);
+        creature.PossessionFlightForm = form;
+        creature.Dk2StateId = state;
+        Assert.Equal(flies, WaterSpeedRules.IsFlying(type, creature));
+        var sim = new GameSimulation(db, world, 1, [new TrapSystem()]);
+        sim.Tick();
+        Assert.Equal(fires ? 1 : 0, world.Shots.Count);
+        if (fires) Assert.Equal(creature.Id, Assert.Single(world.Shots).TargetId);
+    }
 
     [Fact]
     public void ALightningTrapStrikesItsTargetOnTheShotsFirstTick()

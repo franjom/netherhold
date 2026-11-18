@@ -130,7 +130,7 @@ Table `0x0066D430`: 1 `0x004A9290`, 2 `0x004A92C0`, 3 `0x004A9350`; 0 has none.
 `0x004B5020` relinks only when the tile changes. The first creature is the last to have
 entered. `0x0048ED40`: a worker answers its `+0x3E6` bit 8; animations 12, 17, 19, 25, 30 answer
 no; `0x00494700(0) == 3` answers `+0x3E6` bit 11; otherwise `CanFly`, except in states 217–218.
-Ours: `CanFly` outside 217–218 for a non-worker; the other arms are not built.
+Ours: selector 2 uses the shared supported flight subset, including primary kind 3's flag 11 (ADR-0820); worker and animation arms remain unsupported ([flying record](functions/0048ED40.md)).
 
 ## 6. The turn
 

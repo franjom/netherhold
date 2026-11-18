@@ -487,13 +487,11 @@ public static class TrapRules
         return creature.Id;
     }
 
-    /// <summary>The creature's flying slot, vtable <c>+0x88</c> (<c>0x0048ED40</c>): <c>CanFly</c>, except
-    /// in states 217 and 218. Not built: a worker's answer from its state bit 8, the five animations
-    /// that answer no, and the <c>0x00494700</c> arm; a worker never flies here.</summary>
+    /// <summary>The flying slot, vtable <c>+0x88</c> (<c>0x0048ED40</c>): for a non-worker, primary kind 3
+    /// uses flag 11 before the <c>CanFly</c> arm outside states 217 and 218. A worker's bit-8 answer
+    /// and the five animation exclusions remain unsupported by <see cref="WaterSpeedRules.IsFlying"/>.</summary>
     private static bool IsFlying(CreatureState creature, CreatureDef type) =>
-        !((type.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
-        && creature.Dk2StateId is not (217 or 218)
-        && ((type.Flags & CreatureFlags.CanFly) == CreatureFlags.CanFly);
+        WaterSpeedRules.IsFlying(type, creature);
 
     /// <summary>The sight finder <c>0x004A9400</c>: once a turn, the strictly nearest attackable,
     /// visible creature of a hostile player inside the range (plus two when the turn asks), never an

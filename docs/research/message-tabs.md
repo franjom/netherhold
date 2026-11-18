@@ -148,8 +148,8 @@ the objective panel, the Ally panel or `+0x272A` is open: copies the n-th tabbed
 record (same filter, no cap) to interface `+0x16A4`, sets opened bit 8, shows
 menu40, and loads the message text into its text widget
 ([0x0052A330](functions/0052A330.md), scrollbar when it overflows). It then
-sizes menu40: text measured in a 1096x288 box converted by `0x0052C5A0` (unread, probably a
-quarter-unit scale); if it fits strictly, height = 4 * text height + 172, else 440; y = panel top
+sizes menu40: text measured in a 1096x288 box converted by `0x0052C5A0`
+([reference-point conversion](functions/0052C5A0.md)); if it fits strictly, height = 4 * text height + 172, else 440; y = panel top
 (`+0x12D2`) - height - 168 when `+0x10C2 == 1`, else - 40 (`0x00424163..0x00424174`; overflow
 y - 608 or - 480). `+0x10C2` is set while any indicator menu 45..50 shows (section 9); their
 row at y 1332 is 128 tall, so the panel clears it. **No speech is replayed, no camera moves, no sound plays, no

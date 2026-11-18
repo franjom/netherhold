@@ -352,7 +352,7 @@ public sealed class MessageTabsHud
             }
             _barHeld = 0;
         }
-        // The text height in virtual units stands for 4 * DK2's quarter units (0x0052C5A0 unread).
+        // This height uses the remake's virtual units; native reference-point scaling is recorded in 0x0052C5A0.
         var (x, y, boxWidth, height) = HudIndicatorLayout.MessagePanel(stripTop, (int)(_panelSize.Height * 1920f / _screen.Height), indicators);
         _panel = new HudRect(x, y, boxWidth, height);
         if (_panelShown)

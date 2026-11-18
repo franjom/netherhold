@@ -203,7 +203,7 @@ ordinary mesh half-turn. Its rendered size and motion still need owner compariso
 Left out:
 - The global gate (player `+0x76`, mode 0x0075AD4B): unread meaning.
 - The sneaking disguise colour.
-- A possession hover. The adapter has no possession camera, so while possessing, only the creature under the ordinary Hand pointer shows a flower.
+- Possession hover is not verified here; the first-person camera is built ([client scope](possession-client.md)).
 
 Inferred, not read: `+0x3E6` bit 0x200000 ("always") is mapped to our falling/dying states or
 health ≤ 0, but 0x004B2CE0 sets it with a positive `+0x40` on collapse, so the bit is not

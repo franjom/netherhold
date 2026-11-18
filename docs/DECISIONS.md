@@ -19504,3 +19504,15 @@ The carry/throw lifecycle and foreground render transform remain incomplete read
    until their remaining physical/projection dependencies are read; do not substitute guessed arms.
 **Consequences.** Shared signatures already consumed by Unity remain available. The existing
 Crypt fear-discount and Prison-release scope limits remain recorded with their mechanics.
+
+## ADR-0820 - share the possession flight predicate with trap selection
+**Date:** 2026-11-18 | **Status:** accepted | **Systems:** creatures, doors-traps, simulation-core
+**Context.** The possession flight form was added to the shared flight rule, but trap selector2 retained
+a local CanFly-only copy. The [selector record](research/functions/004A92C0.md) establishes that it calls
+the same native creature flight predicate.
+**Decision.** Delegate trap flight checks to `WaterSpeedRules.IsFlying`, including the readable
+primary-kind3 flag arm and its ordering before states217/218. Keep the shared predicate's documented
+worker/animation exclusions unbuilt within the documented subset.
+**Consequences.** HashVersion and FormatVersion advance531 to532 conservatively for the changed
+selector behavior; no saved fields are added. Refresh the deterministic pin, Level1 journal and
+generated room knowledge. Earlier saves are refused.

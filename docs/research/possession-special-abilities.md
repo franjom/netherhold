@@ -50,10 +50,11 @@ The two ability-parameter dwords are zero in all 46 editor records.
   including on expiry, recording the source creature. Effect 239 starts only when no old timer
   runs; effect 336 is requested whenever bit 2 of the remaining timer is clear, including zero.
 
-ADR-0819 reserves hash/save 531 for these state additions: both flags, the active prayer action
+ADR-0819 added these state fields under hash/save 531: both flags, the active prayer action
 and the fear timer/amount/source are saved and hashed. New journal command tags are 38-41.
 The five special animation exclusions in the flying accessor remain outside the existing
-flight abstraction. The flight-form model substitution is not wired to Godot yet. The inherited
+flight abstraction. Trap selection now consumes the same supported subset ([traps](traps.md#5-the-selectors), ADR-0820).
+The flight-form model substitution is not wired to Godot yet. The inherited
 Crypt occupant discount in fear remains unbuilt; no shipped level has a Crypt (combat-fear.md).
 Native packet actions 27, 29-31, 38-39 and 137 decode to the shared commands; action 137 requires
 observed mappings for both creature ids. Native action 136's room-id mapping remains unsupported.

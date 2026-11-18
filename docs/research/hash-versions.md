@@ -16,6 +16,8 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**532** - `0xBEC82A50BC7A0F92`. FormatVersion also 532. Trap selector2 now uses the shared flight predicate, including possession form (ADR-0820); no saved fields added. Earlier saves are refused. The refreshed Level 1 fixture retains 2,926 ticks, 164 command frames and its header; all 2,927 hashes match a second strict replay. Room knowledge was regenerated for 15 rooms, sides 3-7.
+
 **531** - `0x29FD1D90084311FF`. FormatVersion also 531. Possession abilities add saved form, prayer, action and timed fear state (ADR-0819). Earlier saves are refused. The Level 1 fixture retains its 2,926 ticks, 164 command frames and header; all 2,927 refreshed hashes match a second strict replay. Knowledge was regenerated for 15 rooms, sides 3-7.
 
 **530** - `0x976F11DAF71E06FC`. FormatVersion also 530. Possession colour notifications are transient observers, with no new saved fields or hash inputs (ADR-0818). The conservative simulation-change bump refuses earlier saves. The Level 1 fixture retains its 2,926 ticks, 164 command frames and header; all 2,927 regenerated hashes match a second strict replay.
