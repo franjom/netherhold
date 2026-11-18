@@ -31,6 +31,7 @@ public sealed class PossessionHudIndicatorsTests
         Assert.Contains(draws, d => d.Image.Path == "room");
         Assert.Contains(draws, d => d.Image.Path == "GUI\\Icons\\i-7");
         Assert.Contains(draws, d => d.Image.Text != null);
+        Assert.Equal(20 * 1080f / 1920, draws[0].Rect.X * new HudScreen(1920, 1080).Scale, 3);
     }
 
     [Fact]

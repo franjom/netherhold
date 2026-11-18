@@ -11,6 +11,40 @@ namespace DK2.Presentation.Tests;
 
 public sealed class PossessionHudViewTests
 {
+    [InstallTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CapturedLockedOrEmptySpellSlotsKeepLaterSpellsInTheirNativeColumns(bool emptyFirstSlot)
+    {
+        GameDatabase original = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        CreatureDef warlock = original.Creatures.Values.Single(d => d.Name == "Warlock");
+        CreatureSpellSlot first = warlock.Spells.First(s => s.CreatureSpellId != 0);
+        CreatureDef definition = warlock with { Spells = [
+            first with { CreatureSpellId = emptyFirstSlot ? (byte)0 : first.CreatureSpellId, LevelAvailable = emptyFirstSlot ? (byte)1 : (byte)2 },
+            first with { LevelAvailable = 1 }, first with { CreatureSpellId = 0 }] };
+        var database = new GameDatabase(original.Terrain.Values, original.Rooms.Values, [definition], original.Variables,
+            creatureSpells: original.CreatureSpells.Values);
+        var viewer = new PlayerId(3);
+        WorldState world = WorldState.FromMap(original, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [1, 3, 4], fogOfWarEnabled: false);
+        CreatureState creature = world.SpawnCreature(original, warlock.CreatureId, viewer, new TilePos(4, 4));
+        creature.Level = 1;
+        world.Player(viewer).PossessedCreatureId = creature.Id;
+        var controls = new PossessionControls();
+        controls.SelectSpell(1, definition, creature.Level);
+        var view = new PossessionHudView(database, new InstallPossessionHudArt(Dk2InstallGate.Path));
+        PossessionHudSnapshot snapshot = view.Capture(world, viewer, controls)!;
+        Assert.Equal("", snapshot.Actions[1].Image);
+        Assert.False(snapshot.Actions[1].Selected);
+        var frame = new HudFrame();
+        new PossessionHud().BuildCreaturePanel(new HudScaleLayout(1600, 1200, 100), snapshot, frame);
+        string image = original.CreatureSpells[first.CreatureSpellId].GuiIcon.Name;
+        HudDraw spell = Assert.Single(frame.Draws.ToArray(), draw => draw.Image.Path == image);
+        Assert.Equal(1680, spell.Rect.X);
+        Assert.Equal(8, spell.Rect.Y);
+        Assert.Single(snapshot.Actions, action => action.Spell);
+    }
+
     [InstallFact]
     public void HypnosisHighlightRequiresAHeldTargetRatherThanSelectionAlone()
     {
@@ -45,7 +79,9 @@ public sealed class PossessionHudViewTests
         creature.PossessionPraying = kind == 7;
         var view = new PossessionHudView(db, new InstallPossessionHudArt(Dk2InstallGate.Path));
         string suffix = kind == 3 ? "bat-mode" : "pray-mode";
-        Assert.True(view.Capture(world, viewer, new PossessionControls())!.Actions.Single(a => a.Image.EndsWith(suffix)).Selected);
+        PossessionHudIcon icon = view.Capture(world, viewer, new PossessionControls())!.Actions.Single(a => a.Image.EndsWith(suffix));
+        Assert.True(icon.Selected);
+        Assert.Equal(PossessionHudIconRole.PrimaryAbility, icon.Role);
     }
 
     [InstallFact]
@@ -90,6 +126,7 @@ public sealed class PossessionHudViewTests
         var controls = new PossessionControls();
         PossessionHudSnapshot initial = Assert.IsType<PossessionHudSnapshot>(hud.Capture(world, viewer, controls));
         Assert.Equal(new GoldAmount(1350), initial.Gold);
+        Assert.Equal("gui\\rooms\\Treasury", initial.CarriedGoldIcon, ignoreCase: true);
         Assert.Equal(100, initial.HealthPercent);
         Assert.Equal(warlock.Spells.Take(3).Count(s => s.CreatureSpellId != 0 && s.LevelAvailable <= me.Level),
             initial.Actions.Count(a => a.Spell));

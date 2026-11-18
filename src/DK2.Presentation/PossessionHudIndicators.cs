@@ -15,6 +15,7 @@ public sealed class PossessionHudIndicators
     private readonly Func<PlayerId, string> _playerName;
     private int _scroll;
     private bool _forward = true;
+    private readonly HudFrame _nativeFrame = new();
     private static readonly string[] Art =
     {
         "GUI\\Windows\\timer-bg", "GUI\\Windows\\score-bg", "GUI\\Windows\\kingofhill-bg",
@@ -24,8 +25,10 @@ public sealed class PossessionHudIndicators
     public PossessionHudIndicators(IBottomPanelArt art, Func<int, BitmapFont> font, Func<PlayerId, string> playerName)
     { _art = art; _font = font; _playerName = playerName; }
 
-    public void Build(HudScaleLayout layout, in HudIndicatorSnapshot shown, HudFrame frame)
+    public void Build(HudScaleLayout layout, in HudIndicatorSnapshot shown, HudFrame target)
     {
+        _nativeFrame.Clear();
+        HudFrame frame = _nativeFrame;
         HudScreen screen = layout.Screen;
         float bottomShift = 1920 / layout.Factor - 1920;
         foreach ((HudIndicator indicator, int x, int originalY) in HudIndicatorLayout.Place(shown, 1460, stacked: true))
@@ -53,6 +56,10 @@ public sealed class PossessionHudIndicators
                 case HudIndicator.CurrentHolder: Holder(frame, screen, new PlayerId(shown.HolderPlayerId), x, y); break;
             }
         }
+        float xScale = PossessionHud.ContentXScale(layout);
+        foreach (HudDraw draw in frame.Draws)
+            target.Add(draw with { Rect = draw.Rect with { X = draw.Rect.X * xScale, Width = draw.Rect.Width * xScale },
+                Clip = draw.Clip is HudRect clip ? clip with { X = clip.X * xScale, Width = clip.Width * xScale } : null });
     }
 
     private static void Digits(HudFrame frame, HudScreen screen, string text, int slots, int x, float y)

@@ -122,7 +122,7 @@ screenshots) and since built: the roof over every open tile (`TerrainCeiling`, s
 possession-warp.md), full-height walls whatever the High Walls option says, and the
 death view. Godot applies the distance fade to black; scope and verification:
 [possession-warp section 4](../research/possession-warp.md#4-the-possession-distance-fade-strongly-inferred-implementable). Godot now applies the possession-only visible tile set; scope and verification:
-[possession-warp section 8.3](../research/possession-warp.md#83-the-enumeration-strongly-inferred-whole-disassembly-of-0x005737e0-and-0x00572f60). The [possession HUD subset](../research/possession-hud.md) is built; GPU capture and owner acceptance remain.
+[possession-warp section 8.3](../research/possession-warp.md#83-the-enumeration-strongly-inferred-whole-disassembly-of-0x005737e0-and-0x00572f60). The [possession HUD subset](../research/possession-hud.md) includes native 4:3 geometry and the height-fit policy (ADR-0821); final wide-fit captures are inspected and owner acceptance remains.
 
 Remake choices to check in play: one host pixel of mouse travel is one unit of DK2's
 delta; the roll's sign; the vertical field of view held at 73.7 degrees on wide screens.

@@ -28,6 +28,38 @@ public sealed class MinimapHudTests
     private static (float, float) At(float x, float y) => (x * 2.5f, y * 2.5f);
 
     [Fact]
+    public void PossessionUsesItsEmptyCornerFrameAndKeepsItsDiscRoundOnWidescreen()
+    {
+        MinimapHud hud = Hud();
+        hud.SetControls(ClassicHudAction.SelectSell, optionsVisible: true);
+        var frame = new HudFrame();
+        var layout = new HudScaleLayout(1920, 1080, 100);
+        hud.BuildPossession(layout, new Dk2Angle(0), frame);
+        HudDraw[] draws = frame.Draws.ToArray();
+        HudDraw border = Assert.Single(draws, d => d.Image.Path == MinimapHud.PossessionFrameArt);
+        Assert.Equal(20 * .5625f, border.Rect.X * layout.Screen.Scale, 3);
+        Assert.Equal(448 * .5625f, border.Clip!.Value.Width * layout.Screen.Scale, 3);
+        Assert.DoesNotContain(draws, d => d.Image.Path == MinimapHud.FrameArt || d.Image.Path!.Contains("mapbf"));
+        HudRect disc = MinimapHud.PossessionDisc(layout);
+        Assert.Equal(32 * .5625f, disc.X * layout.Screen.Scale, 3);
+        Assert.Equal(424 * .5625f, disc.Width * layout.Screen.Scale, 3);
+        Assert.Equal(424 * 1080f / 1920, disc.Height * layout.Screen.Scale, 3);
+        Assert.Equal(disc.Width, disc.Height);
+    }
+
+    [Fact]
+    public void PossessionMinimapDocksToTheVisibleBottomAtCustomUiScale()
+    {
+        var layout = new HudScaleLayout(1920, 1080, 150);
+        var frame = new HudFrame();
+        Hud().BuildPossession(layout, new Dk2Angle(0), frame);
+        HudDraw border = Assert.Single(frame.Draws.ToArray(), d => d.Image.Path == MinimapHud.PossessionFrameArt);
+        Assert.Equal(1920 / layout.Factor - 20, border.Clip!.Value.Y + border.Clip.Value.Height, 3);
+        HudRect disc = MinimapHud.PossessionDisc(layout);
+        Assert.True(disc.Y + disc.Height < 1920 / layout.Factor);
+    }
+
+    [Fact]
     public void TheFrameIsClippedToItsWindowAndTheNorthSpriteSitsOnTheRing()
     {
         HudDraw[] draws = Build(Hud());

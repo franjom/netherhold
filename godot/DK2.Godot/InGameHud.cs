@@ -308,7 +308,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         System.Numerics.Vector3 startFocus = ClassicCamera.LevelStartFocus(level.Players, _viewer,
             _simulation.World.Width, _simulation.World.Height);
         _minimap = new ClassicMinimap { Name = "Minimap" };
-        _minimap.Open(new InstallMinimapAssets(install, _sources.Texture), _simulation.World.Width, _simulation.World.Height);
+        _minimap.Open(new InstallMinimapAssets(install, _sources.Texture), _simulation.World.Width, _simulation.World.Height,
+            _sources.Texture);
         AddChild(_minimap);
         // Added after the panel, so it draws over it and takes the mouse first, as Unity's sorting order 14 over 12.
         _messageView = new MessageTabsView(_viewer, level.Database);
@@ -597,7 +598,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // After the overview, as DungeonRunner.DrawHudControls updates it, with the selected corner lit.
         MinimapCameraView? drawn = _world.View;
         _minimap.Draw(_tools.SelectedCorner, _hudControls.OptionsVisible, MinimapHud.FixedFocus(_world.Focus),
-            drawn?.Heading ?? ClassicCamera.LevelStartYaw, drawn);
+            drawn?.Heading ?? ClassicCamera.LevelStartYaw, drawn,
+            _possession is { Possessing: true } && !_possession.Flight.Active);
         // After the minimap, as DungeonRunner.DrawHudControls draws it.
         _options.Draw();
         // DungeonRunner.DrawHudControls captures it after the bottom panel and draws it after the menu.

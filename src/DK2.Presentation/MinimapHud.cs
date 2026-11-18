@@ -21,6 +21,7 @@ public sealed class MinimapHud
     private const float FrameTexel = 204.8f / 128, CornerSize = 32 * FrameTexel;
 
     public const string FrameArt = "GUI\\Map\\map", NorthArt = "GUI\\Map\\north", FootprintArt = "GUI\\Map\\mapcamerabox";
+    public const string PossessionFrameArt = "GUI\\Map\\map-2";
 
     /// <summary>The map disc: 169.6 across, 12.8 from the left and 11.2 from the bottom (top 587.2), in 1024x768 units.</summary>
     public static readonly HudRect Disc = new(32, 1468, 424, 424);
@@ -51,6 +52,8 @@ public sealed class MinimapHud
     private readonly HudVertex[] _footprint =
         new HudVertex[MinimapCameraFootprint.TriangleVertices / 3 * HudTriangles.MaxVerticesPerTriangle];
     private int _footprintCount;
+    private readonly HudVertex[] _possessionFootprint =
+        new HudVertex[MinimapCameraFootprint.TriangleVertices / 3 * HudTriangles.MaxVerticesPerTriangle];
 
     public MinimapHud(MinimapPalette palette, int mapWidth, int mapHeight)
     {
@@ -193,6 +196,32 @@ public sealed class MinimapHud
     /// resolution the engine draws it at, stretched over <see cref="Disc"/>.</summary>
     public static int DiscPixels(int screenHeight, float factor) =>
         Math.Clamp((int)MathF.Ceiling(Disc.Width / 2.5f * screenHeight / 768f * factor), 1, 4096);
+
+    /// <summary>The possession camera's disc, bottom anchored on the shared presentation content plane.</summary>
+    public static HudRect PossessionDisc(HudScaleLayout layout) => PossessionRect(Disc, layout);
+
+    /// <summary>The possession frame has empty corner panels and accepts no corner hover state.</summary>
+    public void BuildPossession(HudScaleLayout layout, Dk2Angle heading, HudFrame frame)
+    {
+        if (!_visibility.ShowNormalHud || layout.Height <= 0) return;
+        if (_zoom.IsWholeMap && _footprintCount > 0)
+        {
+            float scale = PossessionHud.ContentXScale(layout), shift = 1920 / layout.Factor - 1920;
+            for (int i = 0; i < _footprintCount; i++)
+                _possessionFootprint[i] = _footprint[i] with { X = _footprint[i].X * scale, Y = _footprint[i].Y + shift };
+            frame.AddTriangles(FootprintArt, new ReadOnlySpan<HudVertex>(_possessionFootprint, 0, _footprintCount), HudColor.White);
+        }
+        HudQuads.Clipped(frame, PossessionFrameArt, PossessionRect(FrameRect, layout), PossessionRect(FrameClip, layout), HudColor.White);
+        Vector2 north = MinimapNorth.SpriteOriginPixels(heading, layout.Height);
+        HudRect northRect = new(layout.Screen.Virtual(north.X), layout.Screen.Virtual(north.Y), 8 * Unit, 8 * Unit);
+        frame.Add(new(HudDrawKind.Quad, NorthArt, PossessionRect(northRect, layout), HudColor.White));
+    }
+
+    private static HudRect PossessionRect(HudRect rect, HudScaleLayout layout)
+    {
+        float scale = PossessionHud.ContentXScale(layout), shift = 1920 / layout.Factor - 1920;
+        return new(rect.X * scale, rect.Y + shift, rect.Width * scale, rect.Height);
+    }
 
     /// <param name="pointer">The pointer in virtual units: the corner under it shows.</param>
     /// <param name="heading">The camera's heading, which places the north sprite on the ring.</param>

@@ -60,7 +60,7 @@ public partial class InGameHud
         _possessionFilterCanvas?.Present(_possessionFilterFrame, Vector2.Zero, screen.Scale, layout.Factor);
         _possessionResourceFrame.Clear();
         _possessionResources.Build(screen, _resourceFacts, unchecked((uint)milliseconds), KeeperResourceFlash.None, _possessionResourceFrame);
-        PossessionHud.AppendResourceCorner(_possessionResourceFrame, _possessionCreatureFrame);
+        PossessionHud.AppendResourceCorner(layout, _possessionResourceFrame, _possessionCreatureFrame);
         _possessionCreatureCanvas?.Present(_possessionCreatureFrame, Vector2.Zero, screen.Scale, layout.Factor);
         _possessionIndicators?.Build(layout,
             HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, _viewer), _possessionFrame);

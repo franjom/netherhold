@@ -16,12 +16,14 @@ add-only under `F:\DK2Evidence`; no cleanup of worktrees or evidence is authoriz
 
 - [ ] 1. Colour ramps: `PossessionScreenColours` and tests, creature-kind parsing,
   event driver and Godot final-screen pass including HUD. Search gamma enable writer.
-- [ ] 2. Godot fade implemented; distance-to-black capture proof and owner acceptance remain.
+- [ ] 2. Godot fade implemented; final corridor capture inspected, owner acceptance remains.
   See [possession-warp section 4](../research/possession-warp.md#4-the-possession-distance-fade-strongly-inferred-implementable)
   for verification and the owner-requested settled-only scope deviation.
-- [ ] 3. Godot possession visibility implemented; GPU capture and owner acceptance remain.
+- [ ] 3. Godot possession visibility implemented; final wall/corridor captures inspected,
+  tile-edge checks and owner acceptance remain.
   Scope and verification: [possession-warp section 8.3](../research/possession-warp.md#83-the-enumeration-strongly-inferred-whole-disassembly-of-0x005737e0-and-0x00572f60).
-- [ ] 4. Shared HUD subset and Godot canvas built; GPU capture and owner acceptance remain.
+- [ ] 4. Shared HUD corrections and height-fit policy built (ADR-0821); final wide-fit
+  captures inspected, owner acceptance remains.
   Scope and limits: [possession HUD](../research/possession-hud.md).
 - [ ] 5. Supported ability data, commands, keys, sniper and save/hash fields built (ADR-0819).
   Carry/throw physics, foreground transform/renderer and native action136 room mapping

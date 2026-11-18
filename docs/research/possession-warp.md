@@ -259,14 +259,14 @@ while meshes interpolate is a renderer choice; tile-edge crossing remains unveri
 gem sparkle remain undrawn stubs. The 21 new visibility tests pass with no skips, and the Release
 solution and Godot builds report no warnings or errors.
 
-The parent inspected final hash/save-531 frame `f00000180.png` under
-`F:\DK2Evidence\captures\possession-finish-20261118-final-001\wall-prayer`: the full
-wall hides a staged Knight behind it. The companion `corridor-prayer-clean` frame
-shows the far corridor black and the adapted possession HUD. Prayer state was staged,
-not entered by key automation; health grew from 1,250 to about 1,460. Both runs produced
-200 frames at 1920x1080, exit 0 with no errors. This is GPU evidence for these fixtures,
-not every culled tile, tile-edge crossing or owner acceptance. The earlier
-`visibility-001` capture is excluded because its missing-player-4 fixture was invalid.
+The parent inspected final format-532 `f00000180.png` frames in
+`F:\DK2Evidence\captures\possession-finish-20261118-final-532-001\corridor-prayer-fit`
+and `wall-prayer-fit`. The corridor walls and ceiling fade to black; a staged Knight
+ahead remains dimly visible, then disappears behind the added full wall. The lower
+prayer icon is green and healing is active. Prayer was staged, not entered by key
+automation. Capture/build verification is in [HUD verification](possession-hud.md#verification-boundary).
+This is GPU evidence for those fixtures, not every culled tile, tile-edge crossing,
+native parity or owner acceptance.
 
 Removing an arc (`0x00573470`): the two ends are masked as above and ordered; when they are more
 than 2^23 apart the removed set is [0, lo] and [hi, 2^24] instead. The removed interval [lo, hi] is

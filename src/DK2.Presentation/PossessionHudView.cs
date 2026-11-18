@@ -28,10 +28,19 @@ public sealed class PossessionHudView
         var icons = new List<PossessionHudIcon>();
         int meleeTicks = CombatRules.RechargeTicks(_database, creature, CombatRules.TicksOf(definition.MeleeRecharge));
         icons.Add(new(_art.Melee(type), Recharge(world.CurrentTick, creature.TimeLastUsedMelee, meleeTicks), controls.Melee));
-        for (int slot = 0; slot < Math.Min(3, definition.Spells.Count); slot++)
+        for (int slot = 0; slot < 3; slot++)
         {
+            if (slot >= definition.Spells.Count)
+            {
+                icons.Add(new("", 0, false));
+                continue;
+            }
             CreatureSpellSlot available = definition.Spells[slot];
-            if (available.CreatureSpellId == 0 || available.LevelAvailable > creature.Level) continue;
+            if (available.CreatureSpellId == 0 || available.LevelAvailable > creature.Level)
+            {
+                icons.Add(new("", 0, false));
+                continue;
+            }
             CreatureSpellDef spell = _database.CreatureSpells[available.CreatureSpellId];
             int interval = CombatRules.RechargeTicks(_database, creature, SpellRules.RechargeTicks(spell));
             icons.Add(new(spell.GuiIcon.Name, Recharge(world.CurrentTick, creature.SpellStamps[slot], interval),
@@ -41,17 +50,19 @@ public sealed class PossessionHudView
         {
             1 => "throw-mode", 2 => "sniper-mode", 3 => "bat-mode", 6 => "sneak-mode", 7 => "pray-mode", _ => "",
         };
-        if ((byte)definition.PrimaryAbility == 1) icons.Add(ThrowIcon(carry, (controls.Selection & 2) != 0));
+        if ((byte)definition.PrimaryAbility == 1)
+            icons.Add(ThrowIcon(carry, (controls.Selection & 2) != 0) with { Role = PossessionHudIconRole.PrimaryAbility });
         else if (special.Length != 0)
             icons.Add(new("GUI\\Icons\\1st-person\\" + special, 100, (byte)definition.PrimaryAbility switch
             {
                 2 => creature.SniperMode, 3 => creature.PossessionFlightForm,
                 6 => creature.SneakingAs != 0, 7 => creature.PossessionPraying, _ => false,
-            }));
+            }) { Role = PossessionHudIconRole.PrimaryAbility });
         if ((byte)definition.SecondaryAbility == 5)
             icons.Add(new("GUI\\Icons\\1st-person\\hypnotise-mode", 100,
-                creature.HypnotisedCreatureId != 0));
-        icons.Add(new("GUI\\Icons\\1st-person\\group-mode", 100, !controls.Melee && controls.Slot == 3));
+                creature.HypnotisedCreatureId != 0) { Role = PossessionHudIconRole.SecondaryAbility });
+        icons.Add(new("GUI\\Icons\\1st-person\\group-mode", 100, !controls.Melee && controls.Slot == 3)
+            { Role = PossessionHudIconRole.Group });
         var followers = new List<string>();
         foreach (CreatureState other in world.OwnedCreatures(viewer))
             if (other.FollowLeaderId != 0) followers.Add(_art.Portrait(new(other.CreatureTypeId)));
@@ -70,7 +81,7 @@ public sealed class PossessionHudView
         if (creature.FrozenTicks != 0) overlays.Add("GUI\\Filters\\F-Frozen");
         int maxHealth = CreatureHealthRules.MaxHealth(_database, definition, creature);
         return new(_art.Icon(type), maxHealth <= 0 ? 0 : (int)Math.Min(100L, 100L * Math.Max(0, creature.Health) / maxHealth),
-            new(creature.GoldHeld), icons, followers) { Overlays = overlays };
+            new(creature.GoldHeld), icons, followers) { Overlays = overlays, CarriedGoldIcon = _art.GoldIcon };
     }
     public static PossessionHudIcon ThrowIcon(PossessionCarryState carry, bool selected) =>
         new("GUI\\Icons\\1st-person\\" + (carry == PossessionCarryState.HoldingThing ? "throw_imp-mode"

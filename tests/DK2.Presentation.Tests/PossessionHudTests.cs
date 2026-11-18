@@ -38,7 +38,11 @@ public sealed class PossessionHudTests
         new PossessionHud().Build(Screen, Snapshot, frame);
         HudDraw health = Assert.Single(frame.Draws.ToArray(), d => d.Image.Path == PossessionHud.HealthFill);
         Assert.Equal(0.5f, health.Uv!.Value.Width);
-        Assert.Equal(PossessionHud.HealthBounds.Width / 2, health.Rect.Width);
+        float sx = Math.Min(1, Screen.VirtualWidth / 2560);
+        Assert.Equal((292 * sx - (140 - 128 * sx)) / 2, health.Rect.Width, 3);
+        HudDraw[] draws = frame.Draws.ToArray();
+        Assert.True(Array.FindIndex(draws, d => d.Image.Path == PossessionHud.HealthFill)
+            < Array.FindIndex(draws, d => d.Image.Path == "GUI\\Map\\m-h-tone-bg"));
     }
 
     [Fact]
@@ -49,7 +53,7 @@ public sealed class PossessionHudTests
         HudDraw[] draws = frame.Draws.ToArray();
         Assert.Contains(draws, d => d.Image.Path == "GUI\\icons\\selected-creature");
         Assert.Contains(draws, d => d.Image.Path == "boot" && d.Kind == HudDrawKind.Sector && d.Percent == 25);
-        Assert.Contains(draws, d => d.Image.Path == "follower" && d.Rect.Y == 1460);
+        Assert.Contains(draws, d => d.Image.Path == "follower" && d.Rect.Y == 1636);
         Assert.All(draws, d => Assert.True(d.Rect.X >= 0 && d.Rect.X + d.Rect.Width <= Screen.VirtualWidth));
     }
 
@@ -90,7 +94,10 @@ public sealed class PossessionHudTests
         var layout = new HudScaleLayout(1920, 1080, 150);
         new PossessionHud().Build(layout, Snapshot with { Overlay = "GUI\\Filters\\F-Frozen" }, frame);
         float height = 1920 / layout.Factor;
-        Assert.All(frame.Draws.ToArray(), d => Assert.True(d.Rect.Y >= 0 && d.Rect.Y + d.Rect.Height <= height));
+        Assert.All(frame.Draws.ToArray().Where(d => d.Image.Path != "follower"),
+            d => Assert.True(d.Rect.Y >= 0 && d.Rect.Y + d.Rect.Height <= height));
+        Assert.All(frame.Draws.ToArray().Where(d => d.Image.Path == "GUI\\Windows\\Bar-00" && d.Rect.Y != 20),
+            d => Assert.Equal(layout.Screen.VirtualWidth, d.Rect.Width));
         Assert.Equal(height, frame.Draws.ToArray().Single(d => d.Image.Path == "GUI\\Filters\\F-Frozen").Rect.Height);
     }
 
@@ -115,9 +122,113 @@ public sealed class PossessionHudTests
         hud.BuildFilters(layout, facts, filters);
         hud.BuildCreaturePanel(layout, facts, creature);
         hud.BuildChrome(layout, facts, chrome);
-        Assert.Equal(3, filters.Draws.Length);
+        Assert.Equal(3, filters.Draws.ToArray().Count(d => facts.Overlays.Contains(d.Image.Path)));
         Assert.DoesNotContain(chrome.Draws.ToArray(), d => facts.Overlays.Contains(d.Image.Path));
         Assert.DoesNotContain(chrome.Draws.ToArray(), d => d.Image.Path == "portrait");
         Assert.Contains(creature.Draws.ToArray(), d => d.Image.Path == "portrait");
     }
+
+    [Fact]
+    public void WidescreenContentKeepsTheNativeFourByThreeProportionsAndGroupAnchor()
+    {
+        var layout = new HudScaleLayout(1920, 1080, 100);
+        var top = new HudFrame();
+        var lower = new HudFrame();
+        var hud = new PossessionHud();
+        var facts = Snapshot with { Actions = [new("pick", 100, true), new("GUI\\Icons\\1st-person\\group-mode", 100, true)] };
+        hud.BuildCreaturePanel(layout, facts, top);
+        hud.BuildChrome(layout, facts, lower);
+        HudDraw portrait = Assert.Single(top.Draws.ToArray(), d => d.Image.Path == "portrait");
+        Assert.Equal(292.5f, portrait.Rect.X * layout.Screen.Scale, 3);
+        Assert.Equal(72, portrait.Rect.Width * layout.Screen.Scale, 3);
+        Assert.Equal(72, portrait.Rect.Height * layout.Screen.Scale, 3);
+        Assert.DoesNotContain(top.Draws.ToArray(), d => d.Image.Path!.EndsWith("group-mode"));
+        HudDraw group = Assert.Single(lower.Draws.ToArray(), d => d.Image.Path == "GUI\\Icons\\1st-person\\group-mode");
+        Assert.Equal(270, group.Rect.X * layout.Screen.Scale, 3);
+        Assert.Equal(1716, group.Rect.Y);
+        Assert.Equal(184, group.Rect.Height);
+        Assert.Contains(lower.Draws.ToArray(), d => d.Image.Path == "GUI\\icons\\selected_group" && d.Rect == group.Rect);
+        Assert.Contains(top.Draws.ToArray(), d => d.Image.Path == PossessionHud.GoldIcon);
+        Assert.DoesNotContain(lower.Draws.ToArray(), d => d.Image.Path == "GUI\\Windows\\Bar-00");
+    }
+
+    [Fact]
+    public void AbilityRolesKeepTheirLowerColumnSlotsWhileStaffAndSpellsStayOnTop()
+    {
+        var hud = new PossessionHud();
+        var top = new HudFrame();
+        var lower = new HudFrame();
+        var layout = new HudScaleLayout(1600, 1200, 100);
+        var facts = Snapshot with { Actions = [new("staff", 100, false), new("fire", 100, false, true),
+            new("bat", 100, true) { Role = PossessionHudIconRole.PrimaryAbility },
+            new("hypnotise", 100, false) { Role = PossessionHudIconRole.SecondaryAbility },
+            new("group", 100, true) { Role = PossessionHudIconRole.Group }] };
+        hud.BuildCreaturePanel(layout, facts, top);
+        hud.BuildChrome(layout, facts, lower);
+        Assert.DoesNotContain(top.Draws.ToArray(), d => d.Image.Path is "bat" or "hypnotise" or "group");
+        Assert.Contains(top.Draws.ToArray(), d => d.Image.Path == "staff" && d.Rect.Y == 8);
+        Assert.Contains(top.Draws.ToArray(), d => d.Image.Path == "fire" && d.Rect.Y == 8);
+        Assert.Contains(lower.Draws.ToArray(), d => d.Image.Path == "bat" && d.Rect == new HudRect(480, 1460, 128, 128));
+        Assert.Contains(lower.Draws.ToArray(), d => d.Image.Path == "hypnotise" && d.Rect == new HudRect(480, 1588, 128, 128));
+        Assert.Contains(lower.Draws.ToArray(), d => d.Image.Path == "group" && d.Rect == new HudRect(480, 1716, 128, 184));
+        facts = facts with { Actions = [facts.Actions[^1]] };
+        lower.Clear();
+        hud.BuildChrome(layout, facts, lower);
+        Assert.Contains(lower.Draws.ToArray(), d => d.Image.Path == "group" && d.Rect.Y == 1716);
+    }
+
+    [Fact]
+    public void TopBarRepeatsAtItsNativeHeightAndFollowersKeepTheReadAxisArithmetic()
+    {
+        var frame = new HudFrame();
+        var layout = new HudScaleLayout(1920, 1080, 100);
+        new PossessionHud().Build(layout, Snapshot with { Followers = ["follower", "second"] }, frame);
+        HudDraw[] bars = frame.Draws.ToArray().Where(d => d.Image.Path == "GUI\\Windows\\Bar-00" && d.Rect.Y == 20).ToArray();
+        Assert.True(bars.Length > 1);
+        Assert.All(bars, d => Assert.Equal(88, d.Rect.Height));
+        Assert.Equal(512, bars[0].Rect.Width, 3);
+        HudDraw follower = Assert.Single(frame.Draws.ToArray(), d => d.Image.Path == "follower");
+        HudDraw second = Assert.Single(frame.Draws.ToArray(), d => d.Image.Path == "second");
+        Assert.Equal(628, follower.Rect.X, 3);
+        Assert.Equal(1636, follower.Rect.Y, 3);
+        Assert.Equal(128, follower.Rect.Width, 3);
+        Assert.Equal(264, follower.Rect.Height);
+        Assert.Equal(136, second.Rect.X - follower.Rect.X, 3);
+    }
+
+    [Fact]
+    public void SelectionArtOverlaysTheOpaqueIconAndRechargeSector()
+    {
+        var frame = new HudFrame();
+        new PossessionHud().Build(new HudScreen(1600, 1200), Snapshot with { Actions = [new("staff", 50, true)] }, frame);
+        HudDraw[] draws = frame.Draws.ToArray();
+        int overlay = Array.FindIndex(draws, d => d.Image.Path == "GUI\\icons\\selected-creature");
+        Assert.True(overlay > Array.FindLastIndex(draws, d => d.Image.Path == "staff"));
+    }
+
+    [Theory]
+    [InlineData(1600, 1200, 100)]
+    [InlineData(1920, 1080, 100)]
+    [InlineData(1920, 1080, 150)]
+    public void PresentationPlaneKeepsHealthInsideItsFrameAndLowerControlsOnScreen(int width, int height, int percent)
+    {
+        var layout = new HudScaleLayout(width, height, percent);
+        var frame = new HudFrame();
+        new PossessionHud().Build(layout, Snapshot with { HealthPercent = 100,
+            Actions = [new("bat", 100, false) { Role = PossessionHudIconRole.PrimaryAbility },
+                new("hypnotise", 100, false) { Role = PossessionHudIconRole.SecondaryAbility },
+                new("group", 100, false) { Role = PossessionHudIconRole.Group }] }, frame);
+        HudDraw[] draws = frame.Draws.ToArray();
+        HudRect border = Assert.Single(draws, d => d.Image.Path == "GUI\\Map\\m-hp_bg").Rect;
+        HudRect fill = Assert.Single(draws, d => d.Image.Path == PossessionHud.HealthFill).Rect;
+        Assert.True(fill.X >= border.X && fill.Y >= border.Y);
+        Assert.True(fill.X + fill.Width <= border.X + border.Width);
+        Assert.True(fill.Y + fill.Height <= border.Y + border.Height);
+        Assert.All(draws.Where(d => d.Image.Path is "bat" or "hypnotise" or "group" or "follower"),
+            d => Assert.InRange(d.Rect.Y + d.Rect.Height, 0, 1920 / layout.Factor));
+    }
+
+    [Fact]
+    public void RawNativeAxisMetricRemainsAvailableWithoutBecomingTheWidescreenPresentationPolicy() =>
+        Assert.Equal(4 / 3f, PossessionHud.NativeXScale(new HudScaleLayout(1920, 1080, 100)), 3);
 }

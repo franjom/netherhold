@@ -19516,3 +19516,18 @@ worker/animation exclusions unbuilt within the documented subset.
 **Consequences.** HashVersion and FormatVersion advance531 to532 conservatively for the changed
 selector behavior; no saved fields are added. Refresh the deterministic pin, Level1 journal and
 generated room knowledge. Earlier saves are refused.
+
+## ADR-0821 - preserve possession HUD proportions on widescreens
+**Date:** 2026-11-18 | **Status:** accepted | **Systems:** hud-front-end, presentation-godot
+**Context.** The [native HUD](research/possession-hud.md) matches the owner's 4:3 screenshots.
+Applying its width-derived sizes directly to a 1920x1080 viewport overflows health and cuts off
+the lower group button. The native scaler's upstream viewport meaning remains Q876.
+ADR-0497 already chooses a height-scaled HUD with extra width given to the world view.
+**Decision.** Evaluate the possession HUD against a 4:3 content plane fitted by height on
+widescreens, with width capped by the available viewport. Apply the same content scale
+to resource corners, indicators and minimap. Keep backdrop bars and filters full-width.
+Retain the native per-axis scale formula and verified 4:3 geometry; do not claim this policy
+is an observed native widescreen behavior. The player's UI scale and bottom docking remain.
+**Consequences.** This is a remake presentation choice under ADR-0497, not a change to
+simulation. HashVersion and FormatVersion remain 532. Exact native integer-pixel rounding
+and original widescreen appearance remain unverified.

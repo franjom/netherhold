@@ -46,22 +46,15 @@ timing, same-frame damage/heal and thaw/refreeze, zero-rounded hits, world repla
 gamma updates across current/start/target tables, preservation of the queue on an
 unchanged gamma setting, and observer hash neutrality.
 CRT/x87 versus managed floating-point last-bit equivalence has not been checked
-with the oracle. No native visual comparison or owner acceptance is claimed.
-The isolated item-1 snapshot (hash/save 530, pin `0x976F11DAF71E06FC`) built the
-Release solution and Godot with zero warnings/errors. Presentation 32, Data 25,
-Simulation 33 and frame-order 3 focused tests passed, with no skips. The refreshed
-Level 1 replay retained 2,926 ticks and 164 command frames; all 2,927 hashes matched
-a strict replay, with header/commands unchanged. Knowledge generation covered 15 rooms.
-
-Final hash/save-531 captures under
-`F:\DK2Evidence\captures\possession-finish-20261118-final-001\vampire-tint` and
-`vampire-hit` each produced 200 frames at 1920x1080, exit 0 with no errors. The parent
-inspected `f00000180.png` in both: settled Vampire tint and a stronger red runtime
-poison-hit flash cover the world and possession HUD. The fixture uses owners 1/2,
-mana 200,000, Vampire health 1,250, and poison 400 ticks/amount 40/owner 1 for the hit.
-Angular geometry at bottom centre likely comes from two foreign frozen Imps
-co-located with the Vampire. This fixture overlap proves no product defect, and
-these images do not establish that the possessed model is fully hidden.
-Earlier `colour-001` and `visibility-001` captures are excluded as validation because
-their missing-player-4 fixture was invalid. No independent native colour comparison
-or owner acceptance is claimed.
+with the oracle.
+The parent inspected `f00000180.png` in the final format-532 `vampire-tint-fit`
+and `vampire-hit-fit` directories under
+`F:\DK2Evidence\captures\possession-finish-20261118-final-532-001`.
+The settled Vampire tint and stronger red runtime poison-hit flash cover the world
+and possession HUD. Foreign Imps were relocated to valid neutral-player positions;
+the earlier fixture clipping is absent. Shared capture parameters and the matching
+build are recorded in [HUD verification](possession-hud.md#verification-boundary).
+Earlier format-531 images remain valid observations of the pre-correction HUD.
+The older `colour-001` and `visibility-001` recordings are excluded as validation
+because their missing-player-4 fixture was invalid. No independent native colour
+comparison or owner acceptance is claimed.

@@ -61,7 +61,7 @@ public partial class ClassicMinimap : Node
     }
 
     /// <summary>Opens the minimap over the install's art; call before it enters the tree.</summary>
-    public void Open(IMinimapAssets assets, int mapWidth, int mapHeight)
+    public void Open(IMinimapAssets assets, int mapWidth, int mapHeight, Func<string, RgbaImage>? catalogue = null)
     {
         if (_hud != null) throw new InvalidOperationException("The minimap is already open.");
         if (assets is null) throw new ArgumentNullException(nameof(assets));
@@ -77,7 +77,12 @@ public partial class ClassicMinimap : Node
         for (int i = 0; i < 4; i++)
             for (int active = 0; active < 2; active++)
                 art[MinimapHud.CornerArt((MinimapCorner)i, active != 0)] = assets.Corner((MinimapCorner)i, active != 0);
-        var canvas = new HudCanvas { Name = "HudCanvas", Load = path => art[path], Visible = false };
+        var canvas = new HudCanvas
+        {
+            Name = "HudCanvas", Visible = false,
+            Load = path => art.TryGetValue(path, out RgbaImage? image) ? image
+                : (catalogue ?? throw new InvalidOperationException("The minimap catalogue source is unavailable."))(path),
+        };
         // Decoded now, as Unity's facade preloads them, and before the canvas is kept, so a failed decode leaves the
         // minimap unopened and retryable.
         try { foreach (HudImage image in MinimapHud.Images()) canvas.Preload(image); }
@@ -132,7 +137,8 @@ public partial class ClassicMinimap : Node
     /// <param name="focus">The camera's focus (<see cref="MinimapHud.FixedFocus"/>) and <paramref name="heading"/>, which
     /// the disc is drawn from and presses resolve against.</param>
     /// <param name="camera">The drawn camera, whose footprint the whole-map disc shows; null for none.</param>
-    public void Draw(ClassicHudAction selected, bool optionsVisible, FpPosition3 focus, Dk2Angle heading, MinimapCameraView? camera)
+    public void Draw(ClassicHudAction selected, bool optionsVisible, FpPosition3 focus, Dk2Angle heading,
+        MinimapCameraView? camera, bool possession = false)
     {
         if (_hud == null || _disc == null || _canvas == null || _discNode == null) return;
         Vector2 size = GetViewport().GetVisibleRect().Size;
@@ -142,18 +148,22 @@ public partial class ClassicMinimap : Node
         HudScreen screen = _layout.Screen;
         _scale = screen.Scale;
         // Bottom-docked (ClassicHudScaling.Apply), as the bottom panel: the panel's bottom stays on the screen's bottom.
-        _origin = new Vector2(0, _layout.BottomOriginPixels);
+        _origin = possession ? Vector2.Zero : new Vector2(0, _layout.BottomOriginPixels);
         _hud.SetControls(selected, optionsVisible);
         _hud.SetCamera(camera);
         bool shown = _hud.Visibility.ShowNormalHud;
         _canvas.Visible = shown; _discNode.Visible = shown;
         if (!shown) return;
-        (float px, float py) = ToVirtual(_pointerInWindow ? GetViewport().GetMousePosition() : Away);
         _frame.Clear();
-        _hud.Build(screen, (px, py), heading, _frame);
+        if (possession) _hud.BuildPossession(_layout, heading, _frame);
+        else
+        {
+            (float px, float py) = ToVirtual(_pointerInWindow ? GetViewport().GetMousePosition() : Away);
+            _hud.Build(screen, (px, py), heading, _frame);
+        }
         _canvas.Present(_frame, _origin, _scale, _layout.Factor);
         bool resized = DrawDisc(MinimapHud.DiscPixels(height, _layout.Factor), focus, heading);
-        Rect2 rect = _canvas.ScreenRect(MinimapHud.Disc);
+        Rect2 rect = _canvas.ScreenRect(possession ? MinimapHud.PossessionDisc(_layout) : MinimapHud.Disc);
         if (resized || rect != _discRect) RecordDisc(rect);
     }
 

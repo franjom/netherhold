@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 using System.Text;
+using DK2.Art;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
 
@@ -12,9 +13,11 @@ namespace DK2.Presentation;
 public sealed class InstallPossessionHudArt
 {
     private readonly Dictionary<CreatureOverviewType, (string Icon, string Portrait, string Melee)> _creatures = new();
+    public string GoldIcon { get; }
 
     public InstallPossessionHudArt(string install)
     {
+        GoldIcon = Dk2ArtCatalogue.Load(install).Rooms[(byte)RoomTypeId.Treasury][0].Name;
         const int size = 5449;
         foreach (KwdChunk chunk in KwdReader.ReadFile(Path.Combine(install, "Data", "editor", "Creatures.kwd")))
         {

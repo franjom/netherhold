@@ -6,6 +6,15 @@ systems: [camera-lighting, keeper-spells, presentation-godot]
 DKII.EXE v1.70, bounded reads on 2026-11-18. Binary findings below are
 STRONGLY INFERRED; no new original-game observation was made.
 
+## Virtual room-pillar roof
+The parent inspected final format-532
+`F:\DK2Evidence\captures\possession-finish-20261118-final-532-001\virtual-room-pillar-fit\f00000180.png`.
+Four dark Treasury corner columns are visible, with the ceiling meeting the front
+caps. Staging assertions
+check that the four corners are non-solid, have virtual room decorations and closed
+ceiling, with no pillar object states there. This verifies the virtual-pillar fixture,
+not a solid-terrain substitute or an original-game visual match. Shared recording
+parameters and provenance are in [HUD verification](possession-hud.md#verification-boundary).
 ## Object death view
 
 `Camera_SetMode`'s non-class-6 fallback at `0x0044BA14`..`0x0044BA62` keeps
@@ -56,7 +65,7 @@ its distinction from native sensitivity is recorded in
 
 The cast effect is the shot's creation effect, not a session-entry substitute;
 its implementation is recorded separately with the effect adapter. Q749 is a built
-subset, visually unverified: three final hash/save-531 entry-shot runs exited 0 without
+subset, visually unverified: three earlier hash/save-531 entry-shot runs exited 0 without
 errors, but inspected frames did not clearly show effect 102's burst. The fixture uses
 actual shot 32, not a session-entry substitute or a cast-input test. Capture manifest:
 `F:\DK2Evidence\captures\possession-finish-20261118-final-001\capture-manifest.md`. Footstep
