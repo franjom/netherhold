@@ -10,14 +10,18 @@ namespace DK2.Presentation.Tests;
 public class GameBindingInputTests
 {
     [Theory]
-    [InlineData(GameAction.Options)]
-    [InlineData(GameAction.TogglePanel)]
-    public void TimedPossessionMoveRefusesOptionsAndGuiToggle(GameAction action)
+    [InlineData(GameAction.Options, true)]
+    [InlineData(GameAction.TogglePanel, true)]
+    [InlineData(GameAction.Options, false)]
+    [InlineData(GameAction.TogglePanel, false)]
+    public void FlyInAndFlyOutRefuseOptionsAndGuiToggle(GameAction action, bool possessing)
     {
         var settings = new GameSettings { Bindings = [new GameKeyBinding(action, 0x30)] };
+        // Entry keeps possession; return releases it, but both timed moves still hold the camera.
         GameShortcutContext context = PossessionHud.ShortcutContext(new(), possessionCameraHeld: true,
-            possessing: true, firstPersonCameraSettled: false);
+            possessing: possessing, firstPersonCameraSettled: false);
         Assert.Equal(ClassicHudAction.None, Input(settings, scans: 0x30).HudShortcut(context));
+        Assert.Equal(ClassicHudAction.None, Input().HudShortcut(context, escapePressed: true));
     }
 
     [Theory]
@@ -30,7 +34,8 @@ public class GameBindingInputTests
     public void PossessionAllowsOptionsAndGuiButNotOrdinaryNavigation(GameAction action, ClassicHudAction expected)
     {
         var settings = new GameSettings { Bindings = [new GameKeyBinding(action, 0x30)] };
-        GameShortcutContext context = PossessionHud.ShortcutContext(new(), possessionCameraHeld: true);
+        GameShortcutContext context = PossessionHud.ShortcutContext(new(), possessionCameraHeld: true,
+            possessing: true, firstPersonCameraSettled: true);
         Assert.Equal(expected, Input(settings, scans: 0x30).HudShortcut(context));
     }
 

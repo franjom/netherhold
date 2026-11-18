@@ -49,6 +49,7 @@ creature list supplies follower art `def+0x52B` when `+0x482` is nonzero.
 CONFIRMED owner play, 2026-11-18, registered Skeleton fly-in dataset
 `possession-fly-in-skeleton--2026-11-18--001`: the ordinary bottom panel and keeper
 mana/gold remain during entry; the possession panel appears at landing.
+CONFIRMED owner play, 2026-11-18: Options does not open during the fly-in.
 STRONGLY INFERRED: [the dispatcher](functions/00419DF0.md) uses the current
 camera class for its ordinary-versus-possession branch. The additional interface
 `+4` receiver's `+0x284` guard is read, but its meaning remains UNREAD.
