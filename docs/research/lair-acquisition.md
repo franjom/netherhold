@@ -326,8 +326,8 @@ and facing updates; classic presentation uses the same bed heading.
 
 **Hand drops and moving house (binary re-read 2026-10-12; ADR-0450).**
 The room drop also enters 79 after getting up; the Lair handler table selects
-79 (`Room_DropCreature`, `0x004E8DA0`). `0x0046F4F0` preserves an existing bed
-in this room and preserves the old bed when no destination tile is free.
+79 (`Room_DropCreature`, `0x004E8DA0`) with job 0, so no job is remembered (ADR-0815).
+`0x0046F4F0` preserves an existing bed in this room and the old bed when no tile is free.
 A successful selection removes the old bed before routing, freeing its tile.
 Instructions `0x0046F5C8..0x0046F645` draw an angle in `[0,2048)`, offset the
 candidate centre by cosine/sine times 1365 shifted right 16, and route with

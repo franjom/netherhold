@@ -174,22 +174,19 @@ public sealed class LairDropTests
     }
 
     [Fact]
-    public void KeepersCreatureThatHatesSleepIsRefusedAndKeepsItsBed()
+    public void ALairDropRemembersNoJobAndASleepHaterIsNotRefused()
     {
-        // 0x004E8DA0 refuses a keeper's creature that hates the room's job (hand-drop-landing.md §4).
+        // 0x004E8DA0 reads the Lair record's job, 0 (+0x25 at 0x006A1F16): job 0 is never hated, and the 0 is what
+        // DroppedToDoJobId takes (hand-drop-landing.md section 4).
         CreatureDef definition = Dk2TerrainFixture.Goblin() with
             { CreatureId = 60, Name = "Sleep Hater", HateJobs = [JobType.Sleep] };
         var (sim, creature, oldBed) = Start(definition);
+        creature.DroppedToDoJob = JobType.Train;
         Drop(sim, creature, NewTile);
-        for (int i = 0; i < 160; i++)
-        {
-            sim.Tick();
-            Assert.NotEqual(LairRules.SelectingBedState, creature.Dk2StateId);
-        }
-        Assert.Same(oldBed, LairRules.BedOf(sim.World, sim.Database, creature));
-        Assert.NotEqual(JobType.Sleep, creature.DroppedToDoJob);
-        Assert.True(LairRules.IsFreeLairTile(sim.World, sim.Database,
-            sim.World.TileIndex(NewTile), PlayerIds.FirstKeeper));
+        sim.Run(160);
+        Assert.Equal(JobType.None, creature.DroppedToDoJob);
+        Assert.NotSame(oldBed, LairRules.BedOf(sim.World, sim.Database, creature));
+        Assert.Equal(sim.World.TileIndex(NewTile), LairRules.BedTileIndex(sim.World, sim.Database, creature));
     }
 
     [Fact]

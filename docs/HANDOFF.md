@@ -13,6 +13,9 @@ questions live in their canonical documents; this file links to them.
   [doors](research/door-blocking.md#6-health-recovery-and-the-two-kills), [traps](research/traps.md#3-the-update-0x004a84e0-in-its-order)).
   Mana running words and non-training experience loss are built
   ([mana](research/mana.md), [training](research/training.md#10-implementation)).
+  A hand drop into a Lair remembers no job (ADR-0815, hash/save 530). The unmerged branch
+  `codex/possession-finish` also claims hash 530 and ADR-0818: it renumbers and re-refreshes
+  `knowledge/rooms.yaml` and the Level 1 journal when it merges after this one.
   Captive healing and state-flag mood guards are built (ADR-0814),
   preserving master's Heart-defense behavior. [Evidence and historical campaign measurements](research/torture-captive-health.md)
   distinguish the measured bot revision from master's bot.

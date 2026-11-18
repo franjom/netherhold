@@ -52,18 +52,14 @@ public sealed class ActivityRulesTests
     }
 
     [Fact]
-    public void EightyOneIsTheSleepJobsWorkOrATiredCreaturesWalkToItsBed()
+    public void EightyOneIsAlwaysAWalkToTheBed()
     {
-        // DK2 has the one state for both; the job tells ours apart.
-        var job = new CreatureState { Dk2StateId = 81, CurrentJob = JobType.Sleep };
-        var need = new CreatureState { Dk2StateId = 81 };
-        Assert.Equal(CreatureActivity.AtWork, ActivityRules.Of(job));
-        Assert.Equal(CreatureActivity.GoingToSleep, ActivityRules.Of(need));
-
-        job.Dk2StateId = need.Dk2StateId = 7;
-        job.UtilityNewState = need.UtilityNewState = 81;
-        Assert.Equal(CreatureActivity.GoingToJob, ActivityRules.Of(job));
-        Assert.Equal(CreatureActivity.GoingToSleep, ActivityRules.Of(need));
+        // The Sleep job and the tired need enter the same state 81 and the sleep system advances it
+        // either way, so the job gives no "at work" reading (Job_Sleep, 0x0046F440).
+        var standing = new CreatureState { Dk2StateId = 81, CurrentJob = JobType.Sleep };
+        var walking = new CreatureState { Dk2StateId = 7, UtilityNewState = 81, CurrentJob = JobType.Sleep };
+        Assert.Equal(CreatureActivity.GoingToSleep, ActivityRules.Of(standing));
+        Assert.Equal(CreatureActivity.GoingToSleep, ActivityRules.Of(walking));
     }
 
     [Fact]

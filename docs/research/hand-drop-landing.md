@@ -192,6 +192,9 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 - A keeper's creature is refused if it hates the room's job (`0x00494480(+0x25)`).
 - Otherwise it goes to 1 and then the state, and `DroppedToDoJobId` takes the job.
 - Job 0 is never hated: whole `0x00494480` returns 0 before reading its list.
+  The Lair record (type 2, `0x006A1EF1`) has drop state 79 (`+0x19`) and job 0
+  (`+0x25`, byte `0x006A1F16`, static read, no capture): a Lair drop stores 0 in
+  `DroppedToDoJobId`, remembers no job and never refuses a Sleep hater.
   The Portal and Hero Portal rows both use job 0 and state 197. A level-placed
   non-worker or non-keeper worker on a Portal centre dispatches immediately;
   on Hero Portal it is stunned first and reaches that dispatch after getting up.
@@ -208,7 +211,8 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 ## Differences in ours
 
 - **Kept arms.** The Combat Pit floor, the torture devices and the Prison arms stay the direct arms they were. A captive now goes through 1, where it went through 77.
-- **Lair drops** run state 79; see lair-acquisition.md §9 and ADR-0450. Other
+- **Lair drops** run state 79 with no job remembered and no hate refusal
+  (ADR-0815); see lair-acquisition.md §9 and ADR-0450. Other
   unsupported room drop states still idle. The Combat Pit's 137 is built
   (ADR-0227); the Heart's 71 is built under ADR-0400.
 - **Workers.** A worker getting up on a Heart enters state 71 (ADR-0400) and holds it a turn before its handler runs, then holds the 11 it sets a turn more, as `q747a.dk2cap` shows (ADR-0799, `refused-states.md` §3); the hand's Heart-centre disposal (76's arm) is still immediate. Other rooms' drop states are kicked the same way and not checked against ours; an owned Portal/Hero Portal centre runs 197. Elsewhere it takes the room-drop tail like any creature, which has no worker exclusion (`0x00481351`): a keeper's Imp stunned off any room stands in 250 (Q759, the owner's capture). The shared combat attempt runs before this fallback, and before keeper-worker landing dispatch (ADR-0698).

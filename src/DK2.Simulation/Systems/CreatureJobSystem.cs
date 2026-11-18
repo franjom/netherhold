@@ -381,7 +381,21 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             refused = "no_such_job_here";
         }
 
-        if (refused is null && !TrySetOut(context, creature, definition, job, wants!.Value))
+        // Job 1's handler (0x0046F440): a bedded creature is routed only while its sleep latch +0x58 is
+        // set, by the room helper with resume 81, the call the needs routine's tired attempt makes. The
+        // walk, lie-down, sleep and wake are CreatureSleepSystem's, and the job is not "at work": the
+        // dispatcher's +0x64 write has no reader of ours, and an AtWork 81 is nobody's to advance.
+        // Bedless, the handler calls the lair attempt and fails; state 89 made that attempt above.
+        bool sleepRouted = false;
+        if (refused is null && job == JobType.Sleep)
+        {
+            if (!LairRules.HasBed(context.World, context.Database, creature)) refused = "no_bed";
+            else if (!LairRules.WantsToSleep(context.Database, definition, creature)) refused = "not_tired";
+            else if (!CreatureSleepSystem.GoToBed(context, creature, definition)) refused = "no_route";
+            else sleepRouted = true;
+        }
+
+        if (refused is null && !sleepRouted && !TrySetOut(context, creature, definition, job, wants!.Value))
         {
             refused = "no_room";
             // The Library finder's messages are posted by its search in TrySetOut: one call in DK2.
@@ -408,11 +422,11 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             return false;
         }
 
-        creature.CurrentJob = job;
+        if (!sleepRouted) creature.CurrentJob = job;
         context.Emit(SystemName, "job_taken",
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} job={job} roll={roll} how={how} " +
-            $"room={wants} effect={(JobRules.EffectIsBuilt(job) ? "built" : "unbuilt")} " +
+            $"room={wants} effect={(sleepRouted || JobRules.EffectIsBuilt(job) ? "built" : "unbuilt")} " +
             $"steps={creature.Body.PathTotalCount}");
         return true;
     }
