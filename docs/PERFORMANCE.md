@@ -100,6 +100,14 @@ a candidate automatically. Preserve captures and reports add-only under
 `F:\DK2Evidence\` (AGENTS.md). A relative pass does not certify the absolute
 FPS target or the remaining scenario coverage.
 
+## Godot adapter
+
+The Godot adapter is measured by its own harness, not by the Unity captures above: `--perf-report` and the recipe
+`godot/perf.ps1`, compared with `godot/perf_compare.py` (`godot/README.md`, *Measuring performance*; migration plan
+step 3o). It runs the editor binary with Debug C#, so its numbers compare changes to Godot, not against the floor.
+The first baseline came from a heavily loaded machine and is rough; the targets for Godot are set again from quiet
+re-runs, which are pending (migration plan, step 4).
+
 ## Hardware tiers and captures on other machines (2026-11-06)
 
 The owner's laptop is the floor, not the goal. Revised targets, by tier:

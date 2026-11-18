@@ -405,6 +405,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _world.Open(install, level, _simulation.World, _worldView, _viewer, startFocus, _settings.ScrollSpeed);
         if (probeShift) _world.Focus += new System.Numerics.Vector3(1, 0, 1);
         _world.SetBrightness(DisplaySettings.BrightnessExponent(_settings.Gamma));
+        // --perf-report: the performance harness (PerformanceReport.cs); without it, no node.
+        PerformanceReport.Attach(this, args, levelName, seed, _world, _simulation.World.Width, _simulation.World.Height);
         // DungeonRunner's heart health observer: each change queued for the next frame's beat.
         int maximumHeartHealth = level.Database[VariableTypeId.DungeonHeartObjectHealth];
         WorldScene world = _world;
