@@ -397,6 +397,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
         if (resume == null)
             for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
+        // DungeonRunner.StartGame: the effect model runs one update before the first frame.
+        _world.StartEffects();
         // The --light-probe-* checks: Unity's ClassicWorldLightingProbe's frames without torch lights and with the camera
         // moved by (1, 0, 1) (its shifted frames); --light-fill turns on Godot's fill, off as in the owner's Unity scene.
         _world.ProbeWithoutTorches = Array.IndexOf(args, "--light-probe-no-torches") >= 0;
@@ -660,6 +662,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(_simulation.World, _viewer, _worldView.LocalPickups);
         _placement.Draw(allowed ? placement : PlacementFeedback.None, _pointer, overHud, _heldStack, feedback.Cursor);
         _world.DrawCage(placement.Cage, placement.Valid, milliseconds);
+        // Every blended item is in (the effects and flames since FinishFrame, the flowers above), and every blended thing
+        // Godot sorts on its own is placed and looked (the hover's looks, the cage): ordered among them and drawn.
+        _world.DrawBlendedItems();
 
         // DungeonRunner.Update's tick step (FrameDriver): ready drops after the input, then the tick gate (no turn runs, and
         // none accrues, while it holds), the hand-off and the clear. The frame is clamped as Unity's runner clamps it

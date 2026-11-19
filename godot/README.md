@@ -32,16 +32,18 @@ color_conversion_disabled`), and the camera's `Environment` (linear tonemap, a c
 `srgb_to_linear`) shows those values as they are, so every blend happens in gamma space as in Unity; the HUD and front end
 are unaffected. Objects, structures and torches (`WorldScene.Objects.cs`, step 3f) are drawn from shared `ArrayMesh`es, one node per
 object with a `ShaderMaterial` per surface from `ObjectMaterialLook`: the Dungeon Heart, animated through
-`CreatureAnimationPlayer` with `HeartPulse`'s beat (its on-screen test is a point test on its origin; the beat's sound and
-the mana effect wait for 3k and step 4); doors and traps with the door tint, the blinking blueprint and the lock mesh; wall
+`CreatureAnimationPlayer` with `HeartPulse`'s beat (its on-screen test is a point test on its origin; a beat requests the
+Heart's mana effect, and its sound waits for step 4); doors and traps with the door tint, the blinking blueprint and the lock mesh; wall
 torches, bent by `TorchGeometry` and bent again in place when a tile near the wall changes; and their flames as additive
-camera-facing billboards, drawn upright. A blended object or a flame sorts by its AABB centre among the blended runs.
+camera-facing billboards, drawn upright: one texture array of the frames, every flame an instance of one batch with its frame
+in the custom data (audit item 6, step 3k). A blended object sorts by its AABB centre among the blended runs.
 Creatures (`WorldScene.Creatures.cs`, step 3g) are one node per creature on the same shared models, each
 clip played by `CreatureAnimationPlayer` with the vertex positions rewritten in place, from a clip set cached per entry and
 mesh copies per template. The scene hosts the shared `SceneFrame` (`ISceneFrameHost`), so a frame runs in Unity's order:
 each creature's place from `PoseInterpolator` (through `RightHandedFrame`), its clip, then its head point. A creature that dies
-or leaves is removed, and an idle creature's clip swap keeps the node and restarts the clip. Still no-ops in the frame, waiting
-for their steps: the crackle (3l), footsteps and the gem sparkle (3k); the possessed model's hide is 3m's (`WorldScene.Possession.cs`). Entity hover
+or leaves is removed, and an idle creature's clip swap keeps the node and restarts the clip. A gem carrier's sparkle is
+requested from the frame (3k); still no-ops, waiting for their steps: the crackle (3l) and footsteps, which are sound only (step 4);
+the possessed model's hide is 3m's (`WorldScene.Possession.cs`). Entity hover
 (`WorldScene.Hover.cs`, step 3h) offers the creatures, hover-target objects, doors and traps to the shared `WorldHoverPicker`
 (the 3x3 sweep as its fallback); the Hand's red pass, and the burning red, is the model's `dk2_red` instance uniform, added in the
 world shader over each surface the plan reds (an alpha-blended surface takes it, with its environment pass, as one additive
@@ -56,7 +58,8 @@ material, also over a plan, and the selection cage's box is the ribbon's, so it 
 hover's red per drawn thing as instance uniforms (`ModelInstanceLook`), so a tint, fade or red makes no material. `--light-perpixel` and
 `--light-shadows` add `DK2_PER_PIXEL` and `DK2_TORCH_SHADOWS` to the shader file's text, once a run (`WorldScene.ShaderFor`); the default
 light uses the resources as they ship, which the shader baker can compile at export. The cage and the wall flames are
-`Shaders/Cage.gdshader` and `TorchFlame.gdshader`; the effect sprites and the ambient occlusion still build theirs in code. `WorldScene` takes its models and textures from the original install, which the scene requires: there is
+`Shaders/Cage.gdshader`, `TorchFlame.gdshader`, `EffectSprite*.gdshader` and `StatusFlower.gdshader`; the ambient occlusion
+still builds its shader in code. `WorldScene` takes its models and textures from the original install, which the scene requires: there is
 no placeholder mode. Twelve panels
 are there: the hover HUD (`ClassicHoverHud` over `HoverHud`: the wooden bar under the other panels, the status
 line and the delayed tooltip over them), which shows what the shared `HudHoverText` picks from the panels under the
@@ -119,12 +122,33 @@ the one current-action target reuses [the hover pass](../docs/research/possessio
 
 ### Shot effects
 
-`WorldScene.Effects.cs` consumes shot-effect requests through `EffectDrawList` and
-uploads sprite particles using MultiMesh batches. This includes possession shot 32's
+`WorldScene.Effects.cs` (step 3k) draws the shared CPU particle simulation (`EffectDrawList`), wired as Unity's runner
+wires it: the simulation's effect and shot requests (with the Hand's local pickup dust, `LocalPickupEffectSink`), the
+KMF group parts an effect flings, one model update before the first frame, and each frame, in the runner's order
+through the shared `EffectFrame` (which decides how the seeded generator's numbers fall), the loose level gems' idle
+effects after the present, the Heart's mana effect on a beat and a gem carrier's sparkle from the scene frame, then the
+shots' bodies and the advance. This includes possession shot 32's
 creation effect102, triggered by the shot update. Entry-star visibility, staging and
 native-parity limits are recorded in [Q749](../docs/research/possession-entry-effect.md).
-Effects use the scene's frame clock; their lights publish before `PrepareLighting`. Shot bodies, mesh/flat/procedural effect uploads and full transparent
-ordering remain unbuilt in this adapter. Native evidence: [shot effects](../docs/research/shot-effects.md).
+Effects use the scene's frame clock; their lights publish before `PrepareLighting`. A sprite particle (billboard or flat)
+is an instance of its sheet's batch among the blended items (`WorldScene.BlendedItems.cs`, below); a mesh particle (an
+element's model, a group part, a type-6 model's frame, a shot body) is a pooled model per mesh with the element's tint
+added to its light (an instance uniform), which Godot sorts by its box as an object. Lightning (3l) and the dollar
+flower's mesh are not drawn. Native evidence: [shot effects](../docs/research/shot-effects.md).
+
+The blended items (`WorldScene.BlendedItems.cs`, step 3k): the effect sprites, the wall flames and the status flowers
+(`WorldScene.Flowers.cs`, each layer an instance of its icon's batch) are added each frame with their distance from the
+eye and the screen box of their bounding sphere (one wholly outside the frustum is dropped), and the shared
+`BlendedItemOrder` places each among the blended runs by its own distance (it never crosses a run, as DK2's one
+back-to-front list draws it) and cuts them into as few draws as leave DK2's pixels: an item joins its batch's latest draw
+between the same runs when it moves earlier past nothing it overlaps on screen (additive items pass each other freely).
+The transparent things Godot sorts by their own boxes (models with a blended or additive surface, torch holders with one,
+the cage), where the frustum keeps them, are barriers at their own distance, additive when every such surface is ONE, ONE
+without a depth write. Each draw is one `RenderingServer` MultiMesh instance keyed as a run is (pivot at the origin,
+sorting offset the eye's distance less the key), pooled per batch. Godot 4.8 has no region update for a MultiMesh buffer,
+so a draw's capacity follows its count (doubled, halved after 120 frames at a quarter or less) and an unchanged draw is not
+uploaded. The exit line and the harness's `items.*` counters split the time (effects, flames, flowers, barriers, order,
+upload) and the allocation after the warm-up from what loading art and growing pools took.
 
 Possession (step 3m, `InGameHud.Possession.cs` and `WorldScene.Possession.cs`): `InGameHud` drives the shared `PossessionSession` every frame from the keys, the pointer's travel and the scene's engine clock, and the scene puts its pose on the same `Camera3D` while it holds the view (the fly-in, first person, the death view, the fly-out), with the possession cameras' near plane `PossessionCamera.NearClipDistance` (0.05; the ordinary camera keeps 0.3). The pointer lock is `Input.MouseMode = Captured` while `PointerLockWanted`, never under `--pointer-path` (the script's travel stands in; nothing warps the pointer). Virtual room-pillar roof joints are checked in a staged Treasury fixture with no pillar object states; [verification scope](../docs/research/possession-client-completion.md#virtual-room-pillar-roof). The roof includes virtual room-pillar occupancy from the same `RoomPillarLayout` used by room decoration and is one `MeshInstance3D` per 16x16 chunk (`TerrainCeilingScheduler`, `TerrainCeilingGeometry`), shown throughout the possession camera hold, including entry and return, in the terrain material on the `Ceiling` texture with anchor kind 2; the lattice latch (full-height walls, `PossessionScene.Latch`) and the hidden possessed model go through the `SceneFrame` sequence. Entry roof timing follows the [reviewed endpoint rule](../docs/research/kwd-terrain-rooms.md#ceiling-the-possession-view-roof); ordinary HUD display and possession-panel landing follow [the shared HUD rule](../docs/research/possession-hud.md#entry-and-landing). Entry/return hover and ordinary world-space badges use [the shared pointer feedback](../docs/research/possession-target-highlight.md#entry-pointer-feedback). Current capture comparisons are in [Q749](../docs/research/possession-entry-effect.md#capture-verification). Not exercised in Godot: real mouse capture, its re-capture after alt-tab, the walking keys and the death view. Remaining listener, lighting, mouse-calibration and object-death bridge boundaries: [client completion](../docs/research/possession-client-completion.md). Shot creation-effect sprites and lights are built ([adapter scope](#shot-effects)). Not done: the view's sounds are dropped (no sound player, step 4); the roof is black away from walls and torches (lighting); `--possess-first-creature` during Level1's opening path shows the possession camera, as the path camera (3n) is not ported.
 Run it by naming the scene, with
@@ -172,16 +196,19 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `DK2.Godot/WorldScene.cs` | the 3D world: `TerrainTileBuilder`'s chunks as `MeshInstance3D`s through `RightHandedFrame`, rebuilt by `TerrainChunkScheduler` (`ITerrainChunkSink`) with one `ShaderMaterial` per `TerrainMaterialLook` on the world shader (`ShaderFor`, `WorldMaterial`), the waving liquids (`LiquidSurfaceField`), the blended runs (`BlendedTerrainStream`, `ViewFrustum`, one `RenderingServer` instance per run), the gamma-space output `Environment`, the selection cage (`CageRibbon`, `TileHoverOutline.Build`'s ribbon with Godot's own additive shader), `TryPickRay` (the pointer's ray), and the classic `Camera3D`, placed once a frame at the focus the scene moves |
 | `DK2.Godot/WorldScene.Objects.cs` | the objects, structures and torches (`WorldScene`, partial): shared model meshes, a node per object with per-surface looks (`ObjectMaterialLook`, one material per `ObjectSurfaceKey`, the tint, fade and red as instance uniforms), the Heart through `CreatureAnimationPlayer` and `HeartPulse`, the door tint, blueprint and lock mesh, torch meshes (`TorchGeometry`, re-bent in place, with a `CustomAabb`), flames as additive billboards, and `ZeroOrderOffset` for blended draws |
 | `DK2.Godot/WorldScene.Lighting.cs` | the classic lighting (`WorldScene`, partial, step 3i): the scene's lights in a `ClassicWorldLightCache`, the visible tables published by `ClassicLightPublisher` into a float texture array (a layer per tile row, changed rows uploaded alone), the shader globals the light step in `Shaders/WorldLight.gdshaderinc` reads (per vertex, or with `--light-perpixel` per pixel over flat anchors and model transforms: the `ClassicVertexLight` copy, the optional fill and the distance fade), the ambient keys and the Hand's light; options gamma is owned by the final [screen-colour pass](../docs/research/possession-colour-rendering.md) |
-| `DK2.Godot/Shaders/` | the world shader (`World.gdshaderinc`; DK2's light `WorldLight.gdshaderinc`, pinned by `ClassicVertexLightShaderTextTests`; the shadow lookup `WorldShadows.gdshaderinc`; the possession fade and visibility includes) in its four render states, the cage and the wall flame |
+| `DK2.Godot/Shaders/` | the world shader (`World.gdshaderinc`; DK2's light `WorldLight.gdshaderinc`, pinned by `ClassicVertexLightShaderTextTests`; the shadow lookup `WorldShadows.gdshaderinc`; the possession fade and visibility includes) in its four render states, the cage, the wall flame (a texture array), the effect sprite in its three blends (`EffectSprite.gdshaderinc`) and the status flower |
+| `DK2.Godot/WorldScene.Effects.cs` | the effects (`WorldScene`, partial, step 3k): `EffectDrawList` and its request wiring, sprite sheets as blended-item batches, mesh particles as pooled models per mesh |
+| `DK2.Godot/WorldScene.BlendedItems.cs` | the blended items (`WorldScene`, partial, step 3k): batches of MultiMesh draws ordered among the blended runs by `BlendedItemOrder` |
+| `DK2.Godot/WorldScene.Flowers.cs` | the status flowers (`WorldScene`, partial, step 3k): each layer an instance of its icon's batch among the blended items |
 | `DK2.Godot/WorldScene.PostEffects.cs` | `--light-post` (step 3 of the lighting direction), every number in `PostTuning`: the ambient occlusion quad drawn first in the transparent pass (the opaque depth, multiplied in); no fog, as the light shader already has ADR-0522's 0.5 to 1 fade; glow was tried, judged worse by eye and dropped (the buffer is gamma 0 to 1 and the threshold needs values over 1, so an emitter's own colour shifts; a clean glow needs a separate emitter pass); off, nothing changes |
 | `DK2.Godot/WorldScene.Shadows.cs` | `--light-shadows` (step 2 of the lighting direction): the two torches nearest the focus (`ClassicTorchShadowSlots`) each render a distance map from a downward 150-degree `SubViewport` camera that sees only the casters' layers (terrain chunks, creatures, objects, structures); a wall's shadow multiplies only that torch's DK2 term, a creature's or object's darkens the whole per-pixel light by DK2's strength (1 - coverage x strength), with the caster fade from `ClassicShadowSourceSelector` (DK2's three nearest torches within 2.5 tiles, fading from the fourth); a torch holding a map counts 1.5 tiles nearer, so the maps do not swap back and forth |
-| `DK2.Godot/WorldScene.Creatures.cs` | the creatures (`WorldScene`, partial, the `ISceneFrameHost` of `SceneFrame`): a `ModelSlot` per creature on the shared model meshes, clips through `CreatureAnimationPlayer` with in-place vertex upload, clip sets cached per entry, the drawn place and head point through `RightHandedFrame`, removal on death or exit; the crackle, footsteps and gem sparkle are no-ops until 3l and 3k |
+| `DK2.Godot/WorldScene.Creatures.cs` | the creatures (`WorldScene`, partial, the `ISceneFrameHost` of `SceneFrame`): a `ModelSlot` per creature on the shared model meshes, clips through `CreatureAnimationPlayer` with in-place vertex upload, clip sets cached per entry, the drawn place and head point through `RightHandedFrame`, removal on death or exit; the crackle (3l) and footsteps (sound, step 4) are no-ops; the gem sparkle is `WorldScene.Effects.cs`'s |
 | `DK2.Godot/WorldScene.Possession.cs` | the possession's drawn world (`WorldScene`, partial, step 3m): the camera's possession pose and near plane, the lattice latch and the hidden possessed model before the present, and the roof (`TerrainCeilingScheduler` into one `MeshInstance3D` per chunk, shown during entry, first person and return by the shared possession-camera hold rule) |
 | `DK2.Godot/WorldScene.PossessionVisibility.cs` | possession tile visibility; scope and verification: [possession-warp section 8.3](../docs/research/possession-warp.md#83-the-enumeration-strongly-inferred-whole-disassembly-of-0x005737e0-and-0x00572f60) |
 | `DK2.Godot/WorldScene.PossessionRendering.cs` | the world-shader distance fade; scope and verification: [possession-warp section 4](../docs/research/possession-warp.md#4-the-possession-distance-fade-strongly-inferred-implementable) |
 | `DK2.Godot/InGameHud.Possession.cs` | the possession's host (`InGameHud`, partial, step 3m): the shared `PossessionSession` driven every frame from the keys, pointer travel and engine clock, the pointer lock (`Input.MouseMode`, never under `--pointer-path`), `--possess-first-creature` |
 | `DK2.Godot/InGameHud.PossessionForeground.cs` | submits the engine-free authored swing triangle list; [scope](../docs/research/possession-foreground.md) |
-| `DK2.Godot/InGameHud.PossessionHighlight.cs` | submits the shared current-action target to the existing hover pass; [scope](../docs/research/possession-target-highlight.md) |
+| `DK2.Godot/InGameHud.PossessionHighlight.cs` | submits the shared current-action target to the existing hover pass, and captures the status flowers (`StatusFlowers`) for `WorldScene.DrawFlowers` while the ordinary HUD shows; [scope](../docs/research/possession-target-highlight.md) |
 | `DK2.Godot/WorldScene.Hover.cs` | entity hover (`WorldScene`, partial, step 3h): `PickHoverEntity` offers the drawn creatures, hover-target objects, doors and traps to `WorldHoverPicker` (then its 3x3 sweep); `DrawHoverOverlay` and `CommitHoverOverlay` set each hovered `ModelSlot`'s red pass (`HoverOverlayPlan`, `ObjectMaterialLook.HoverOverlay`) and gold twin; the burning red is the same pass |
 | `DK2.Godot/ClassicHandCursor.cs` | the hand cursor: `HandCursorHud`'s quad drawn by `HudCanvas` on canvas layer 101 from `InstallHandCursorSheets`, the OS pointer hidden while it shows |
 | `DK2.Godot/ClassicPlacementOverlay.cs` | the placement cursor: `PlacementCursorHud` drawn by `HudCanvas` on canvas layer 100 (the tool's icon, No Go, price, held icons) |

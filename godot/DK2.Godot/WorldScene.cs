@@ -129,6 +129,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         OpenPossessionRendering();
         OpenPossessionVisibility(level.Database, world.Width, world.Height);
         _cage = new CageRibbon(GetWorld3D().Scenario, _worldBox);
+        OpenItems();
         // Before any material: the lit shaders read the lighting's globals.
         OpenLighting(world, view, world.Width, world.Height);
         OpenShadows();
@@ -505,8 +506,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     }
 
     /// <summary>Re-sorts the blended stream for the placed camera when it or the stream changed, keys each run by its real
-    /// distance (<see cref="BlendedRunSlots{TMaterial}"/>) and uploads what changed (<see cref="RunSlot"/>); times the
-    /// frames that re-sort.</summary>
+    /// distance (<see cref="BlendedRunSlots{TMaterial}"/>), hands the keys to the blended items (<see cref="SetItemRuns"/>)
+    /// and uploads what changed (<see cref="RunSlot"/>); times the frames that re-sort.</summary>
     private void DrawBlended()
     {
         if (_blended == null || _camera == null || View is not MinimapCameraView view) return;
@@ -519,6 +520,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _runKeys.Update(_blended, view.Position);
         float eyeDistance = view.Position.Length();
         IReadOnlyList<BlendedRunSlot<ShaderMaterial>> drawn = _runKeys.Drawn;
+        SetItemRuns(drawn);
         int triangles = 0;
         for (int i = 0; i < drawn.Count; i++)
         {
@@ -776,6 +778,10 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             RenderingServer.InstanceSetVisible(_instance, false);
             _visible = false;
         }
+
+        /// <summary>Whether the ribbon is drawn, and its box (Godot sorts it by the centre): a blended item's barrier.</summary>
+        public bool Visible => _visible && _written > 0;
+        public Aabb Box => _box;
 
         public void Free()
         {

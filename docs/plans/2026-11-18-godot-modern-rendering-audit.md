@@ -77,11 +77,11 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
   triangle, 94 run instances as before, re-sort CPU 0.28 to 0.36-0.39 ms mean, moving frame p50 6.84 to 7.37 ms; the runs'
   normals, written at the wrong vertices before (Godot's added tangent), are right now. Open (migration plan 3q): distance
   against DK2's depth along the view near the screen's corners; a blended object straddling a run; effect batches as one box.
-- **6. P3, S. Torch flames.** Now: one RS instance per flame and one `ShaderMaterial` per sprite frame, swapped about 20
-  times a second (`WorldScene.Objects.cs:1028-1158`, `:1066-1077`, `:1126-1139`). Replace with a `Texture2DArray`, one
-  material, the frame as an instance uniform or computed in the shader from a global time and the phase
-  (`ClassicTorchFlameAnimation`'s integer maths, exact); HDR emissive for the glow; keep DK2's flipbook billboard, no
-  `GPUParticles3D`. Gain: materials one a frame to one, no CPU swaps, glow. Low risk (additive). Depends on lighting.
+- **6. P3, S. Torch flames. Done (3k, 2026-11-19)** but the glow: the frames are one `Texture2DArray`, one material,
+  every flame an instance of one blended-item MultiMesh batch with its frame (`ClassicTorchFlameAnimation`, on the CPU)
+  in the custom data, placed among the runs by its own distance; no material swaps. Was one RS instance per flame and one
+  `ShaderMaterial` per frame. Frames byte-identical to before (migration plan 3k). Open: HDR emissive for the glow
+  (with the post effects).
 - **7. P1, S-M. Hover red, burning red and the environment pass** as `NextPass` chains on cached copies, and fade and
   tint as new materials (`WorldScene.Objects.cs:401-440`, `:742-784`; `WorldScene.Hover.cs:57-99`). Replace with one
   world shader with instance uniforms (`hover_red`, `alpha`, `added_light`), the environment pass folded in, and no
@@ -147,7 +147,7 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
    per-vertex state source, and folding the overlays changes their order against `--light-post`'s occlusion).
 4. 3q blended ordering (item 5): done.
 5. 3j folded into lighting: done as lighting step 2 (`--light-shadows`).
-6. 3k on MultiMesh, with the flames (item 6).
+6. 3k on MultiMesh, with the flames (item 6): done (2026-11-19).
 7. 3l.
 8. 3m and 3n (independent, parallel).
 9. The remaining replacements: texture arrays (4, once 3o shows it pays), vertex animation (8), minimap shader (10),

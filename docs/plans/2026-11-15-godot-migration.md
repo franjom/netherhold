@@ -704,8 +704,8 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       byte of 3c. Cost: a re-sort takes about 0.2 ms on Level1, about 0.5 ms on a Level7 glide (94 runs) and 1.57 ms mean
       on Level7 with 192 runs and 1,916 triangles; the first re-sort after a load takes 5 to 19 ms. Allocation is 0 B after
       warm-up (Level7, 3,000 frames: 1.69 MB in the first 60 re-sorts, then 0 B in the next 141); Godot's interop calls
-      allocate no managed memory (read from the GodotSharp IL). 3k must give flowers and effects their order through
-      sorting offsets (`PlaceItems`/`RunsBehind`), or Godot sorts them by real distance among the run instances. Mutation
+      allocate no managed memory (read from the GodotSharp IL). 3k gave flowers and effects their order through sorting
+      offsets (`BlendedItemOrder`, not `PlaceItems`/`RunsBehind`). Mutation
       checks: the developer's 39 and 20 more, the reviewer's about 98, each now killed, equivalent or failing to compile.
       Verification: `dotnet test DK2.slnx` 10,676 passed, 30 skipped (Presentation 2,692); the Level1 turn-400 hash is
       unchanged (`D7290428D81A902F`); the `DK2.Unity.Compile` stand-in passes; Unity's batch compile, `SmokeTest` and
@@ -762,7 +762,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       phase offsets in first-seen order. Unity's `ClassicMeshes`, `ClassicTorchFlames` and `RenderEulerRotation` call
       them. Godot, in the new `WorldScene.Objects.cs`: shared model meshes and one node per object with per-surface looks; the
       Heart, animated through `CreatureAnimationPlayer` with `HeartPulse`'s beat (its on-screen test is a point test on the
-      origin, where Unity uses `renderer.isVisible`; the beat sound and the mana effect wait for 3k and step 4); structures
+      origin, where Unity uses `renderer.isVisible`; the mana effect came in 3k, the beat sound waits for step 4); structures
       (the door tint, the blinking blueprint, the lock mesh); torch meshes bent by `TorchGeometry`, bent again in place on
       tile changes and given a `CustomAabb`; flames as additive billboards. `ZeroOrderOffset` puts blended objects and
       flames in Unity's sorting-order-0 window: after the tag overlays and before runs >= 1, back to front by distance to
@@ -804,7 +804,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       change), clip sets cached per entry, pose interpolation and orientation through `RightHandedFrame` with the head point
       converted back, removal on death or exit, and `ZeroOrderOffset` for blended surfaces. On an idle-clip swap Godot keeps the
       node and restarts the clip, which the reviewer confirmed is equivalent on screen to Unity's rebuild. The crackle (3l),
-      footsteps and sparkle (3k) are no-op steps waiting for their sub-steps (the burning red came in 3h, the possession hide in 3m), so 3g's "footstep requests" are none until 3k. The query follow now runs after `DrawFrame` and reads the drawn position, as
+      footsteps (sound only, step 4) are no-op steps waiting for their sub-steps; the sparkle came in 3k, the burning red in 3h, the possession hide in 3m. The query follow now runs after `DrawFrame` and reads the drawn position, as
       Unity's does (this resolves 3b's note); the blended stream's sort moved from `Flush` into `FinishFrame`, after the follow
       places the camera. Mutation checks: the developer's 30 and the reviewer's 27, each killed except the head table's lock,
       which a two-thread test covers. Verification: `dotnet test DK2.slnx` 10,814 passed, 30 skipped (Presentation 2,790,
@@ -971,12 +971,40 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         hash unchanged (`B5C0CB842094AB59`). Open: (1) DK2 orders its one list by depth along the view and Godot by
         distance, so near the screen's corners a blended object up to about 20% nearer along the view can still draw under a
         run; (2) a blended object straddling a run sits wholly on one side of it (DK2 interleaves per triangle; splitting
-        runs at blended objects, as at flowers, would close it); (3) an effect batch sorts as one box around all its live
-        sprites until 3k sorts sprites on their own; (4) Level7's moving frame costs 0.2 to 0.5 ms more than HEAD's,
+        runs at blended objects, as at flowers, would close it); (3) done in 3k: each effect sprite is placed on its own; (4) Level7's moving frame costs 0.2 to 0.5 ms more than HEAD's,
         partly the re-sort; (5) the liquids' normals have the same tangent-layout fault.
   - [x] 3j. Creature shadows, folded into lighting: done as lighting step 2 (`--light-shadows`, ClassicShadowSourceSelector,
         the 2 torches nearest the camera focus; real distance-map shadows, no silhouette projection).
-  - [ ] 3k. Effects and flowers on MultiMesh over the CPU particle simulation, with the torch flames (item 6).
+  - [x] 3k. Effects and flowers on MultiMesh over the CPU particle simulation, with the torch flames (2026-11-19, ADR-0813;
+        audit item 6). The shared `BlendedItemOrder` (`DK2.Presentation`, 35 tests) answers 3q's open item (3): each effect
+        sprite, flame and flower layer is placed among the runs by its own distance, never crossing a run, and joins its
+        batch's latest draw when it moves earlier past nothing it overlaps on screen (`BlendedItemRect.OfSphere`; additive
+        items pass each other), so the pixels are DK2's one back-to-front list wherever the boxes are tight; a blended model,
+        torch holder or the cage that Godot sorts by its box is a barrier at its own distance (additive when every such
+        surface is ONE, ONE without a depth write); spread keys keep a few float steps at the sort's magnitude. The shared
+        `EffectFrame` (2 tests) makes a frame's requests in Unity's runner order: the loose gems' idle effects after the
+        present, the scene's mana effect and gem sparkle, then the shots and the advance; Unity is not wired to it yet.
+        Godot (`WorldScene.BlendedItems.cs`): one `RenderingServer` MultiMesh instance per draw, pooled per batch, keyed as a
+        run, boxed around its items (a world-sized box was culled by the possession camera's far plane); items and barriers
+        the frustum culls are dropped; 4.8 sets a MultiMesh buffer only whole, so the capacity follows the count (halved after
+        120 low frames) and an unchanged draw is not uploaded. The flames are one `Texture2DArray` and one material, the frame
+        in the custom data (was one instance and one material per frame per flame); sprites and flower icons are `.gdshader`
+        files; mesh particles (the Heart's plug, group parts, type-6 frames, shot bodies) are pooled models per mesh with the
+        element's tint as an instance uniform. Also wired: the group parts, the local pickup dust, the first model update.
+        Footsteps and the beat sound are sound only (step 4); the dollar mesh and lightning (3l) are not drawn. Frames
+        against HEAD (Movie Maker, 1920x1080, scripted pointer, flags off and `--light-perpixel --light-shadows
+        --light-post`): flames, flowers and all but the Heart byte-identical; new content judged right against
+        [heart-intro.md](../research/heart-intro.md): the plug lid, beam and burst at each level's start, the mana sparkles on
+        a beat; the possession stars overlap differently (a batch now draws back to front, HEAD in particle order; the mana
+        effect, the first update, the group parts and the culling were each ruled out). Harness (1080p, interleaved, 14 to
+        47% other load): Level7 setup CPU -55%, draw calls 190 to 187.5 moving (46 flames at most 21 draws among 94 runs),
+        frame p50 lower; Level1 (4 rounds) draw calls -3 to -6, frame p50 +0.12 ms moving and +0.25 ms still (the item steps
+        measure about 0.2 ms, 0.13 to 0.16 of it the particle walk HEAD also made), GPU p50 within noise; allocation p50 not
+        grown, the items' steps 300 to 460 B after warm-up beside art loading. Turn-400 hash `B5C0CB842094AB59`. Open: (1) the
+        Heart's intro takes up to 166 draws (alpha dust and additive sparks overlap at interleaved depths; exact, as Unity's
+        per-material runs); (2) effect lights stay DK2's; the flames' HDR glow waits for the post effects; (3) the flowers
+        keep HEAD's `source_color` (linearised), which the gamma-space convention would draw brighter; (4) the run slots also
+        carry a world-sized box and may be culled the same way in possession; (5) wire Unity's runner to `EffectFrame`.
   - [ ] 3l. Lightning.
   - [x] 3m. Possession (2026-11-18, ADR-0805; no simulation change, no hash or save bump). Moved into `DK2.Presentation`
         with tests, which Unity calls now: `TerrainCeilingScheduler` and `TerrainCeilingGeometry` (out of Unity's

@@ -41,6 +41,11 @@ public partial class WorldScene
         int shaders = 0;
         for (int state = 0; state < WorldShaderPaths.Length; state++) if (s_worldShaders[WorldLightMode, state] != null) shaders++;
         Add(into, "world.shaders", shaders);
+        // The blended items (step 3k, AddItemCounters) and the flames' frames (one array).
+        AddItemCounters(into);
+        Add(into, "effects.models", PooledEffectModels());
+        Add(into, "flames.drawn", _flames?.Count ?? 0);
+        Add(into, "flames.frames", _flames?.FrameCount ?? 0);
         Add(into, "present.steadyFrames", _steadyFrames);
         Add(into, "present.steadyBytes", _steadyBytes);
         Add(into, "present.changeFrames", _changeFrames);

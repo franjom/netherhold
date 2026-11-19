@@ -9,6 +9,7 @@ using DK2.Assets;
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Presentation;
+using DK2.Simulation;
 using Godot;
 using NVector3 = System.Numerics.Vector3;
 
@@ -28,6 +29,8 @@ public partial class WorldScene
     private readonly Dictionary<StructureId, ModelSlot> _structures = new();
     private readonly Dictionary<StructureId, StructureView> _structureViews = new();
     private readonly Dictionary<int, TorchSlot> _torches = new();
+    // The torch holders with a transparent surface: barriers among the blended items.
+    private readonly List<TorchSlot> _transparentTorches = new();
     private readonly Dictionary<(string Entry, bool LastFrame), ModelMesh?> _models = new();
     private readonly Dictionary<string, RenderAnimation> _clips = new();
     private readonly Dictionary<string, ClipSet?> _clipSets = new();
@@ -244,14 +247,15 @@ public partial class WorldScene
 
     /// <summary>Unity's <c>DrawCreatureFrame</c> in <see cref="SceneFrame"/>'s order (this scene is its host): the Hearts'
     /// queued health steps, each creature's drawn place, clip and head, each moving object's drawn pose, each clip's frame
-    /// and a Heart's beat, the torches near a changed tile bent again; then the flames advanced. The beat's sound and mana
-    /// effect are not drawn yet (step 3k and step 4). <see cref="FinishFrame"/> sorts once the camera is placed.
+    /// and a Heart's beat (its mana effect requested; its sound waits for step 4), the torches near a changed tile bent
+    /// again; then the flames advanced. <see cref="FinishFrame"/> sorts once the camera is placed.
     /// Allocation-free.</summary>
     public void DrawFrame(GameTick tick, float fraction)
     {
         _frameBending = _latticeDirty is { AnyTouched: true };
         _lightFraction = fraction;
         _phaseStart = GC.GetAllocatedBytesForCurrentThread();
+        PresentEffects();
         _frame.Draw(tick, fraction);
         _drawn = null;
         _flames?.Draw(_frameMilliseconds);
@@ -259,18 +263,27 @@ public partial class WorldScene
     }
 
     /// <summary>After the frame's camera is placed (the query follow reads the drawn creatures): the frame's lights
-    /// (<see cref="PrepareLighting"/>) and the blended stream sorted and keyed for it (<see cref="DrawBlended"/>); blended
-    /// objects, flames and the cage need no key of their own, as Godot sorts them by their AABB centres. Allocation-free.</summary>
+    /// (<see cref="PrepareLighting"/>), the blended stream sorted and keyed for it (<see cref="DrawBlended"/>), then the
+    /// effects and the flames added as blended items (<see cref="DrawEffects"/>), which <see cref="DrawBlendedItems"/> orders
+    /// among the runs once the flowers are in. Blended objects and the cage need no key of their own, as Godot sorts them by
+    /// their AABB centres. Allocation-free.</summary>
     public void FinishFrame()
     {
         PreparePossessionVisibility();
         AdvanceEffects();
         PrepareLighting();
-        DrawEffects();
         PrepareShadows();
         DrawBlended();
         _phaseStart = GC.GetAllocatedBytesForCurrentThread();
         Mark(DrawPhase.Sort);
+        BeginItems();
+        long started = System.Diagnostics.Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
+        DrawEffects();
+        started = ItemTime(ItemStep.Effects, started);
+        _flames?.AddItems();
+        ItemTime(ItemStep.Flames, started);
+        ItemBytes(allocated);
+        Mark(DrawPhase.Effects);
         long bytes = 0;
         for (int i = 0; i < _phaseBytes.Length; i++) bytes += _phaseBytes[i];
         bool steady = _drawFrames++ >= DrawWarmUp && !_frameBending;
@@ -292,7 +305,7 @@ public partial class WorldScene
         _phaseStart = now;
     }
 
-    private enum DrawPhase { Hearts, Creatures, Objects, Bend, Flames, Sort, Count }
+    private enum DrawPhase { Hearts, Creatures, Objects, Bend, Flames, Sort, Effects, Count }
 
     void ISceneFrameHost.AdvanceHeartHealth()
     {
@@ -317,7 +330,10 @@ public partial class WorldScene
             if (!pose.HeartVisual.HasValue || !animated.Player.BeatPending) continue;
             NVector3 at = slot.RenderPosition;
             bool visible = View != null && !PlacedFrustum.Excludes(at, at, at);
-            if (_heartPulse.TryBeat(pose, beatPending: true, visible, _effectClock!, tick).Consumed) animated.Player.ConsumeBeat();
+            HeartBeat beat = _heartPulse.TryBeat(pose, beatPending: true, visible, _effectClock!, tick);
+            if (!beat.Consumed) continue;
+            animated.Player.ConsumeBeat();
+            if (beat.Effect is ViewEffectRequest mana) RequestHeartEffect(mana);
         }
         Mark(DrawPhase.Objects);
     }
@@ -487,7 +503,7 @@ public partial class WorldScene
             _steadyPhaseBytes[(int)DrawPhase.Hearts], " B, creatures ", _steadyPhaseBytes[(int)DrawPhase.Creatures],
             " B, objects and clips ", _steadyPhaseBytes[(int)DrawPhase.Objects],
             " B, torch bend ", _steadyPhaseBytes[(int)DrawPhase.Bend], " B, flames ", _steadyPhaseBytes[(int)DrawPhase.Flames],
-            " B, sort ", _steadyPhaseBytes[(int)DrawPhase.Sort], " B");
+            " B, sort ", _steadyPhaseBytes[(int)DrawPhase.Sort], " B, effects ", _steadyPhaseBytes[(int)DrawPhase.Effects], " B");
         FreeCreatures();
         foreach (ModelSlot slot in _objects.Values) slot.Free();
         foreach (ModelSlot slot in _structures.Values) slot.Free();
@@ -603,9 +619,9 @@ public partial class WorldScene
         }
     }
 
-    /// <summary>What a thing's draw takes its looks from: an object's pose, a structure's view, or a creature's, torch's or
-    /// lock's plain model.</summary>
-    private enum SlotKind { Object, Structure, Creature, Plain }
+    /// <summary>What a thing's draw takes its looks from: an object's pose, a structure's view, a creature's, torch's or
+    /// lock's plain model, or an effect's model under its element's tint (<see cref="ModelSlot.SetEffectTint"/>).</summary>
+    private enum SlotKind { Object, Structure, Creature, Plain, Effect }
 
     /// <summary>One drawn model: a node showing the shared model or a clip's segment and its surfaces' materials; a blended
     /// one sorts by its AABB centre, Godot's default, among the blended runs (<see cref="RunSlot"/>).</summary>
@@ -623,7 +639,8 @@ public partial class WorldScene
             _shown = _static = model;
             Kind = kind;
             Node = new MeshInstance3D { Name = name, Mesh = model.Mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
-            if (scene.TorchShadowsActive) Node.Layers = ShadowCasterLayers;
+            // An effect's model casts no shadow, as Unity draws it with shadows off.
+            if (scene.TorchShadowsActive && kind != SlotKind.Effect) Node.Layers = ShadowCasterLayers;
             (parent ?? (Node3D)scene).AddChild(Node);
         }
 
@@ -726,8 +743,11 @@ public partial class WorldScene
                 if (pass.Look.EnvironmentMapped) environment[pass.Submesh] = pass.Look;
             ModelInstanceLook instance = Kind == SlotKind.Object ? ModelInstanceLook.Object(pose.AddedLight, alpha)
                 : Kind == SlotKind.Structure ? ModelInstanceLook.Structure(Structure.InstanceTint, plan)
+                : Kind == SlotKind.Effect ? new ModelInstanceLook(_effectTint, 1f)
                 : ModelInstanceLook.None;
             _alphaBlended = false;
+            bool transparent = false;
+            TransparentOrdered = false;
             foreach (ObjectPass pass in _scene._passes)
             {
                 if (pass.Look.EnvironmentMapped) continue;
@@ -747,11 +767,18 @@ public partial class WorldScene
                 }
                 bool alphaBlended = look.Blend == KmfBlend.AlphaBlend;
                 _alphaBlended |= alphaBlended;
+                transparent |= look.Blend != KmfBlend.Opaque;
+                TransparentOrdered |= look.Blend == KmfBlend.AlphaBlend || (look.Blend == KmfBlend.Additive && look.WritesDepth);
                 ObjectMaterialLook? environmentPass = environment[pass.Submesh];
                 bool extras = alphaBlended && ((environmentPass != null && instance.EnvironmentDrawn)
                     || (kmfBlended ? Hover.RedBlended : Hover.RedOpaque));
                 Node.SetSurfaceOverrideMaterial(surface,
                     _scene.MaterialFor(new ObjectSurfaceKey(look, environmentPass, own, kmfBlended, extras)));
+            }
+            if (transparent != Transparent)
+            {
+                Transparent = transparent;
+                _scene.ListTransparent(this, transparent);
             }
             SetInstanceLook(instance);
             SetRed(Hover);
@@ -776,10 +803,29 @@ public partial class WorldScene
             if (red != _red) { _red = red; Node.SetInstanceShaderParameter(RedParameter, red); }
         }
 
+        /// <summary>An effect's model lit by its element's tint more (Unity's <c>ClassicMeshes.ElementTinted</c>): the light
+        /// added to each surface that takes added light, as an instance uniform; an additive surface is at full white.</summary>
+        public void SetEffectTint(NVector3 tint)
+        {
+            if (tint == _effectTint) return;
+            _effectTint = tint;
+            SetInstanceLook(new ModelInstanceLook(tint, 1f));
+        }
+
+        private NVector3 _effectTint;
         private ModelInstanceLook _instance = ModelInstanceLook.None;
         private Vector2 _red;
         // Whether a surface is alpha-blended: its red draws as a next pass, which a material change brings.
         private bool _alphaBlended;
+
+        /// <summary>Whether a surface draws in the transparent pass (an alpha-blended or additive look), where Godot sorts
+        /// the model by its box among the blended items (<see cref="AddItemBarriers"/>); listed in the scene's
+        /// <c>_transparentSlots</c> while it does.</summary>
+        public bool Transparent { get; private set; }
+
+        /// <summary>Whether a transparent surface's order matters: alpha-blended, or additive writing depth. Else every
+        /// one is ONE, ONE without a depth write, which an additive item passes.</summary>
+        public bool TransparentOrdered { get; private set; }
 
         /// <summary>The hover overlay this frame asks for (<see cref="WorldScene.DrawHoverOverlay"/>); applied by
         /// <see cref="CommitHover"/>.</summary>
@@ -838,6 +884,7 @@ public partial class WorldScene
         public void Free()
         {
             Freed = true;
+            if (Transparent) _scene.ListTransparent(this, false);
             Lock = null;
             Animation?.Free();
             Node.QueueFree();
@@ -975,6 +1022,12 @@ public partial class WorldScene
 
         public TorchView Torch { get; private set; }
 
+        /// <summary>Whether a holder surface draws in the transparent pass (a barrier among the blended items), and whether
+        /// its order matters (see <see cref="ModelSlot.TransparentOrdered"/>).</summary>
+        public bool Transparent { get; private set; }
+        public bool TransparentOrdered { get; private set; }
+        public MeshInstance3D? Node => _node;
+
         public void Set(in TorchView torch)
         {
             Torch = torch;
@@ -1006,6 +1059,17 @@ public partial class WorldScene
                 ObjectMaterialLook?[] environment = _scene.EnvironmentPasses(_model.SubmeshCount);
                 foreach (ObjectPass pass in _scene._passes)
                     if (pass.Look.EnvironmentMapped) environment[pass.Submesh] = pass.Look;
+                bool wasTransparent = Transparent;
+                Transparent = TransparentOrdered = false;
+                foreach (ObjectPass pass in _scene._passes)
+                    if (!pass.Look.EnvironmentMapped && _model.SurfaceOf[pass.Submesh] >= 0)
+                    {
+                        Transparent |= pass.Look.Blend != KmfBlend.Opaque;
+                        TransparentOrdered |= pass.Look.Blend == KmfBlend.AlphaBlend
+                            || (pass.Look.Blend == KmfBlend.Additive && pass.Look.WritesDepth);
+                    }
+                if (Transparent && !wasTransparent) _scene._transparentTorches.Add(this);
+                else if (!Transparent && wasTransparent) _scene._transparentTorches.Remove(this);
                 foreach (ObjectPass pass in _scene._passes)
                     if (!pass.Look.EnvironmentMapped && _model.SurfaceOf[pass.Submesh] >= 0)
                         mesh.SurfaceSetMaterial(_model.SurfaceOf[pass.Submesh],
@@ -1021,30 +1085,38 @@ public partial class WorldScene
         {
             if (_node != null) _node.Visible = _scene.PossessionFloorVisible(Torch.FloorTileIndex);
         }
-        public void Free() => _node?.QueueFree();
+        public void Free()
+        {
+            if (Transparent) _scene._transparentTorches.Remove(this);
+            _node?.QueueFree();
+        }
     }
 
-    /// <summary>The wall flames (Unity's <c>ClassicTorchFlames</c>): the install's flame sprite as camera-facing quads,
-    /// additive (source alpha, one), unshaded, both faces, no depth write, a quarter tile wide; every flame on one clock
-    /// (<see cref="ClassicTorchFlameAnimation"/>) at its own phase (<see cref="ClassicTorchFlamePhases"/>), at
-    /// <see cref="ClassicTorchFlame.RenderPoint"/>. One <see cref="RenderingServer"/> instance a flame, its frame a material.</summary>
+    /// <summary>The wall flames (Unity's <c>ClassicTorchFlames</c>, audit item 6): the install's flame sprite as camera-facing
+    /// quads, additive (source alpha, one), unshaded, both faces, no depth write, a quarter tile wide; every flame on one
+    /// clock (<see cref="ClassicTorchFlameAnimation"/>) at its own phase (<see cref="ClassicTorchFlamePhases"/>), at
+    /// <see cref="ClassicTorchFlame.RenderPoint"/>. The frames are one texture array and every flame an instance of one
+    /// blended-item batch, its frame the instance's custom data, each placed among the runs by its own distance.</summary>
     private sealed class TorchFlames
     {
         private readonly WorldScene _scene;
         private readonly Rid _quad;
-        private readonly List<ShaderMaterial> _frames = new();
+        private readonly Texture2DArray? _frames;
+        private readonly ShaderMaterial? _material;
+        private readonly ItemBatch? _items;
+        private readonly int _frameCount;
+        // Half the quad's diagonal: the camera-facing quad stays within it of its point.
+        private readonly float _radius;
         private readonly Dictionary<int, Flame> _drawn = new();
         private readonly ClassicTorchFlamePhases _phases = new();
         private readonly ClassicTorchFlameAnimation _animation = new();
-        private readonly Aabb _box;
         private long _started = -1;
 
         private sealed class Flame
         {
-            public Rid Instance;
-            public TorchView Torch;
-            public int PhaseOffsetRaw, Frame = -1;
+            public int PhaseOffsetRaw, Frame;
             public Vector3 Point;
+            public bool Visible = true;
         }
 
         public TorchFlames(WorldScene scene, IEffectSpriteProvider provider)
@@ -1052,23 +1124,32 @@ public partial class WorldScene
             _scene = scene;
             if (!provider.TryResolve(ClassicTorchFlame.Asset, out ResolvedAsset asset)
                 || !provider.TryGetSprite(asset, out EffectSpriteResource sprite)) return;
-            var shader = GD.Load<Shader>("res://Shaders/TorchFlame.gdshader");
+            var images = new Godot.Collections.Array<Image>();
             int width = 0, height = 0;
             for (int frame = 0; frame < sprite.StoredFrameCount; frame++)
             {
                 if (!provider.TryLoadFrame(asset, frame, out DK2.Art.Textures.RgbaImage image)) break;
-                if (frame == 0) (width, height) = (image.Width, image.Height);
-                else if (image.Width * height != image.Height * width)
-                    GD.PushWarning("DK2.Godot: the wall flame's frames differ in shape; every frame is drawn at the first's.");
                 // Rows top first, as the frame stands with its tip up.
-                using Image pixels = Image.CreateFromData(image.Width, image.Height, false, Image.Format.Rgba8, image.Pixels);
-                var material = new ShaderMaterial { Shader = shader };
-                material.SetShaderParameter("frame_texture", ImageTexture.CreateFromImage(pixels));
-                _frames.Add(material);
+                Image pixels = Image.CreateFromData(image.Width, image.Height, false, Image.Format.Rgba8, image.Pixels);
+                if (frame == 0) (width, height) = (image.Width, image.Height);
+                else if (image.Width != width || image.Height != height)
+                {
+                    // A texture array's layers share one size; every frame is drawn at the first's shape anyway.
+                    GD.PushWarning("DK2.Godot: the wall flame's frames differ in size; a frame is scaled to the first's.");
+                    pixels.Resize(width, height, Image.Interpolation.Bilinear);
+                }
+                images.Add(pixels);
             }
-            if (_frames.Count == 0) return;
+            if (images.Count == 0) return;
+            _frameCount = images.Count;
+            _frames = new Texture2DArray();
+            _frames.CreateFromImages(images);
+            foreach (Image image in images) image.Dispose();
+            _material = new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/TorchFlame.gdshader") };
+            _material.SetShaderParameter("frames", _frames);
             // A sprite as wide as the flame's size: SizeRaw / 4096 tiles, its height by the frame's shape.
             float w = ClassicTorchFlame.SizeRaw / 4096f, h = w * height / width;
+            _radius = 0.5f * MathF.Sqrt(w * w + h * h);
             _quad = RenderingServer.MeshCreate();
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
@@ -1077,10 +1158,12 @@ public partial class WorldScene
             arrays[(int)Mesh.ArrayType.TexUV] = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
             arrays[(int)Mesh.ArrayType.Index] = new[] { 0, 1, 2, 0, 2, 3 };
             RenderingServer.MeshAddSurfaceFromArrays(_quad, RenderingServer.PrimitiveType.Triangles, arrays);
-            // The quad turns with the camera in the shader: the box covers every turn.
-            float r = Math.Max(w, h);
-            _box = new Aabb(new Vector3(-r, -r, -r), new Vector3(2 * r, 2 * r, 2 * r));
+            _items = scene.CreateItemBatch(_quad, _material.GetRid(), BlendedItemBlend.Additive);
         }
+
+        /// <summary>The flames placed, and the frames in the array.</summary>
+        public int Count => _drawn.Count;
+        public int FrameCount => _frameCount;
 
         public void Set(in TorchView torch)
         {
@@ -1089,54 +1172,54 @@ public partial class WorldScene
                 Remove(torch.FloorTileIndex);
                 return;
             }
-            if (_frames.Count == 0) return;
+            if (_items == null) return;
             if (!_drawn.TryGetValue(torch.FloorTileIndex, out Flame? flame))
             {
-                flame = new Flame
-                {
-                    Instance = RenderingServer.InstanceCreate2(_quad, _scene.GetWorld3D().Scenario),
-                    PhaseOffsetRaw = _phases.OffsetOf(torch.FloorTileIndex),
-                };
-                RenderingServer.InstanceGeometrySetCastShadowsSetting(flame.Instance, RenderingServer.ShadowCastingSetting.Off);
-                RenderingServer.InstanceSetCustomAabb(flame.Instance, _box);
+                flame = new Flame { PhaseOffsetRaw = _phases.OffsetOf(torch.FloorTileIndex) };
                 _drawn.Add(torch.FloorTileIndex, flame);
             }
-            flame.Torch = torch;
             flame.Point = ToGodot(RightHandedFrame.Point(ClassicTorchFlame.RenderPoint(torch, _scene._lattice)));
-            RenderingServer.InstanceSetTransform(flame.Instance, new Transform3D(Basis.Identity, flame.Point));
         }
 
         public void Remove(int floorTileIndex)
         {
-            if (_drawn.Remove(floorTileIndex, out Flame? flame)) RenderingServer.FreeRid(flame.Instance);
+            _drawn.Remove(floorTileIndex);
             _phases.Remove(floorTileIndex);
         }
 
-        /// <summary>Unity's <c>AdvanceTorchAnimation</c> and <c>Draw</c>: the shared clock to now, each flame's frame.</summary>
+        /// <summary>Unity's <c>AdvanceTorchAnimation</c>: the shared clock to now, each flame's frame.</summary>
         public void Draw(long milliseconds)
         {
-            if (_frames.Count == 0) return;
+            if (_items == null) return;
             if (_started < 0) _started = milliseconds;
             _animation.AdvanceTo(new EffectTime(milliseconds - _started));
             foreach (KeyValuePair<int, Flame> entry in _drawn)
+                entry.Value.Frame = _animation.Frame(_frameCount, entry.Value.PhaseOffsetRaw);
+        }
+
+        /// <summary>Each shown flame as a blended item at its point, its frame the layer.</summary>
+        public void AddItems()
+        {
+            if (_items == null) return;
+            foreach (KeyValuePair<int, Flame> entry in _drawn)
             {
                 Flame flame = entry.Value;
-                int frame = _animation.Frame(_frames.Count, flame.PhaseOffsetRaw);
-                if (frame == flame.Frame) continue;
-                flame.Frame = frame;
-                RenderingServer.InstanceGeometrySetMaterialOverride(flame.Instance, _frames[frame].GetRid());
+                if (!flame.Visible) continue;
+                _scene.AddItem(_items, flame.Point, _radius, new Transform3D(Basis.Identity, flame.Point), Colors.White,
+                    new Color(flame.Frame, 0f, 0f, 0f));
             }
         }
 
         public void SetPossessionVisibility()
         {
-            foreach (KeyValuePair<int, Flame> entry in _drawn)
-                RenderingServer.InstanceSetVisible(entry.Value.Instance, _scene.PossessionFloorVisible(entry.Key));
+            foreach (KeyValuePair<int, Flame> entry in _drawn) entry.Value.Visible = _scene.PossessionFloorVisible(entry.Key);
         }
+
         public void Free()
         {
-            foreach (Flame flame in _drawn.Values) RenderingServer.FreeRid(flame.Instance);
             _drawn.Clear();
+            _material?.Dispose();
+            _frames?.Dispose();
             if (_quad.IsValid) RenderingServer.FreeRid(_quad);
         }
     }

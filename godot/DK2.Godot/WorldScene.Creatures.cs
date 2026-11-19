@@ -176,7 +176,7 @@ public partial class WorldScene : ISceneFrameHost
 
     int ISceneFrameHost.FootstepCrossing(CreatureId creature) => _drawn!.Slot.Animation?.Player.FootstepCrossing ?? 0;
 
-    // Footstep sounds wait for the effects and sound steps (step 3k).
+    // A footstep is a sound only (CreatureFootsteps): it waits for the sound player (step 4).
     void ISceneFrameHost.RequestFootstep(CreatureId creature, in CreatureView pose, int crossing) { }
 
     // The lightning crackle waits for step 3l.
@@ -191,12 +191,7 @@ public partial class WorldScene : ISceneFrameHost
         return true;
     }
 
-    // Nothing takes the gem sparkle until the effects are drawn (step 3k), so its gate is not asked.
-    bool ISceneFrameHost.TakesGemSparkles => false;
-
     EffectTime ISceneFrameHost.EffectClock() => new(_frameMilliseconds);
-
-    void ISceneFrameHost.RequestGemSparkle(FpPosition3 point) { }
 
     private void FreeCreatures()
     {
