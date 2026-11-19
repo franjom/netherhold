@@ -256,6 +256,7 @@ public partial class WorldScene
         _lightFraction = fraction;
         _phaseStart = GC.GetAllocatedBytesForCurrentThread();
         PresentEffects();
+        BeginLightning();
         _frame.Draw(tick, fraction);
         _drawn = null;
         _flames?.Draw(_frameMilliseconds);
@@ -279,6 +280,7 @@ public partial class WorldScene
         BeginItems();
         long started = System.Diagnostics.Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
         DrawEffects();
+        DrawLightning();
         started = ItemTime(ItemStep.Effects, started);
         _flames?.AddItems();
         ItemTime(ItemStep.Flames, started);

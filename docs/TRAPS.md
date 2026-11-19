@@ -30,6 +30,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Normalize hash-manifest relative keys to one path separator before updating entries; mixed slashes can retain duplicate paths and invalidate setup provenance.
 - Build a hash manifest's inventory before opening its output file; otherwise a recursive scan can include the manifest's own empty-file hash.
 - `git archive` can export CRLF while `git show` returns an LF blob; compare blobs with blobs and archived files with their own manifests.
+- A Godot `git archive` baseline omits the ignored `addons/godot_ai` dependency; copy that existing add-on into the scratch project before import, or its autoload fails.
 - An isolated native DK2 runtime needs `DK2TextureCache` as well as `Data`; omitting it crashed startup with `EngineTestLight` missing.
 - During a solution test run, an app's `bin` can retain old dependency copies until that project builds; wait for its build before checking schema compatibility.
 - For `Unknown journal record 0` on an old v1 journal, check `CommandCodec` history: hash 462 added the Drop heading marker without changing the envelope version.
@@ -361,6 +362,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Codex local exec can fail before process creation with "setup refresh had errors"; sandbox escalation worked here.
 - Windows PowerShell piping non-ASCII script text to python - can turn symbols into question marks; keep pipe input ASCII and use Unicode escapes.
 - Windows PowerShell can strip nested quotes from Python `-c` arguments; use a script file for replacements containing quoted prose.
+- Unity `Transform.InverseTransformPoint` can differ in low bits from `worldToLocalMatrix.MultiplyPoint3x4`; preserve native point conversions when extracting bit-exact camera-space geometry.
+- Disk-full compilation can leave fresh-timestamp, truncated `DK2.Simulation.dll` files in Unity verification `obj` and `bin`; incremental sync can skip them and report CS0009 ("Image is too small"), so verify the generated DLLs against a successful build before diagnosing source errors.
 - Keep isolated Unity project paths short: PackageCache importer paths can hit MAX_PATH (260 chars) and fail even when the project copy succeeded.
 - URP `Volume.sharedProfile` is a public field, so reflection must use `GetField`; `GetProperty` compiled but failed during the Options runtime probe.
 

@@ -248,6 +248,10 @@ Batcher on, every material in a batch-mode render took one texture (Direct3D 12)
 not yet seen. `UseUrp` must save the renderer asset before the pipeline names it, or URP has
 no default renderer and draws nothing.
 
+## Lightning
+
+`ClassicLightning` uploads the shared `LightningDrawList` output and supplies Unity's native point conversions through `ILightningCameraTransform`; selection, interpolation, targets, crackle and ribbon geometry live in `DK2.Presentation`. The native conversion keeps the old Transform rounding (see `docs/TRAPS.md`). The batch entry point `DK2.Unity.Editor.ClassicLightningProbe.Verify` compares against the previous Unity algorithm without driving an open editor. Verification: [migration plan, step 3l](../docs/plans/2026-11-15-godot-migration.md).
+
 ## Shaders in a built player
 
 The adapter makes its materials at run time from shaders it finds by name (`ClassicMeshes`,

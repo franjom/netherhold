@@ -30,6 +30,7 @@ namespace DK2.GodotAdapter;
 public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPressHost, IWorldPointerHost
 {
     private readonly List<PlayerCommand> _pending = new();
+    private LightningStaging? _lightningStage;
     private readonly PlayerInputTranslator _input = new();
     /// <summary>The tool, the panel's choice, the query tool and the selected corner, as Unity's runner keeps them.</summary>
     private readonly HudToolState _tools = new();
@@ -442,6 +443,19 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 break;
             }
         if (Array.IndexOf(args, "--stage-battle") >= 0) StageBattle(_simulation);
+        if (LaunchArguments.StageLightning(args, "--"))
+        {
+            _lightningStage = LightningStaging.Prepare(_simulation, _viewer, _pending);
+            if (_lightningStage is LightningStaging stage)
+            {
+                _world.ClassicCamera?.Rotate(stage.CameraTurn);
+                _world.Focus = CameraFocus.Over(new Fp32(CreatureState.CentreOf(stage.Focus.X)),
+                    new Fp32(CreatureState.CentreOf(stage.Focus.Y)), _world.Focus.Y);
+                GD.Print("DK2.Godot: staged lightning caster=" + stage.Caster.Value + " target=" + stage.Target.Value
+                    + " tile=" + stage.Focus + "; specials unlock lightning and fund a paid Thunderbolt after thirty turns.");
+            }
+            else GD.PushWarning("DK2.Godot: --stage-lightning needs Mistress, Monk, heroes and three owned dry floor tiles.");
+        }
         // The check arguments --stage-win and --stage-loss: the viewer's verdict, set after the first turn.
         byte stageVerdict = Array.IndexOf(args, "--stage-win") >= 0 ? PlayerStatus.Won
             : Array.IndexOf(args, "--stage-loss") >= 0 ? PlayerStatus.Lost : (byte)0;
@@ -669,6 +683,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // DungeonRunner.Update's tick step (FrameDriver): ready drops after the input, then the tick gate (no turn runs, and
         // none accrues, while it holds), the hand-off and the clear. The frame is clamped as Unity's runner clamps it
         // (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap. The possession posts its pose once a turn.
+        if (_lightningStage?.QueueThunderboltWhenReady(_simulation, _pending) == true)
+            GD.Print("DK2.Godot: staged paid Thunderbolt at turn " + _simulation.World.CurrentTick.Value + ".");
         FrameTicks ticks = _frameDriver.TakeTicks(_simulation.World, _viewer, Math.Min(delta, TickPacer.MaximumFrameSeconds), 1f,
             _settings.GameSpeed, _hudControls.TicksPaused, TickPacer.DefaultMaxTicksPerFrame, poses: _possession);
         _journal.Ticks(_simulation.World.CurrentTick, ticks.Count);

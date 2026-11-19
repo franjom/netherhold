@@ -143,8 +143,7 @@ back faces.
   reads it through `Attachment`); `CreatureAnimationPlayer` keeps one sample buffer per clip, not per segment.
 - **Godot, 3g.** `WorldScene.Creatures.cs` (the plan's step 3g has the detail): shared KMF models, a node per creature, clips
   through `CreatureAnimationPlayer` with in-place vertex upload from per-template mesh copies (bounded by the distinct clips
-  per entry; Unity releases its copies on a clip-set change), pose and head point through `RightHandedFrame`. The burning
-  crackle (3l), footsteps and sparkle (3k) are no-op steps of the order; the burning red came in 3h and the possession hide in 3m. The query
+  per entry; Unity releases its copies on a clip-set change), pose and head point through `RightHandedFrame`. Crackle is wired through `LightningDrawList` in 3l and sparkle through the effects in 3k; footsteps wait for sound (step 4). The burning red came in 3h and the possession hide in 3m. The query
   follow runs after `DrawFrame` on the drawn position, as Unity's, so the blended sort moved from `Flush` to `FinishFrame`.
 - **Probe frames.** Unity's probe draws at fraction 1, so Godot's imp at tick 70 is one tick's offset straight after a
   load and on Unity's spot within nine frames; a single-frame comparison needs the fraction near 1.
@@ -242,15 +241,10 @@ back faces.
 
 ## Lightning
 
-- **Unity.** `ClassicLightning.cs` (199), called from `Update` (`DungeonRunner.cs:988`, `:1023-1025`) and per creature
-  (`DungeonScene.cs:578`).
-- **Shared (S).** `LightningBolts`, `LightningCracklePairs`, `LightningLink`, `LightningRibbon`, `LightningControlPoint`.
-- **B left.** Which shots draw lightning (mesh resource type 7) and their interpolation, the caster point (none for a
-  corpse) (`:70-97`); the target per `FightTargetKind`, door, trap, Heart pillar and shot cases included (`:99-133`);
-  procedural effects: lightning kinds, an end one tile up, three bolts for the triple kind (`:135-144`); the crackle on
-  a clip install (`:146-157`). It reads `WorldState` directly. All of it moves as a `LightningDrawList` that takes the
-  view matrix and fills a reused ribbon buffer; bolts are built in camera space (`:165-180`).
-- **Godot.** One dynamic mesh, additive unshaded, no depth write (`ClassicLightning.shader:13`).
+- **Shared, 3l.** `LightningDrawList` owns mesh-type-7 shot selection and interpolation, corpse-aware caster points, every target kind, procedural lightning and clip-install crackle. It builds ribbons in camera space and fills reused render-world buffers.
+- **Unity.** `ClassicLightning` uploads the shared output and supplies native point conversions through `ILightningCameraTransform` to preserve Transform rounding (TRAPS).
+- **Godot.** `WorldScene.Lightning.cs` submits each four-corner ribbon section through the additive blended-item pool, with upload comparisons and geometry bounds. `Lightning.gdshader` uses the original texture, unshaded and additive, without depth writes. Crackle runs in `SceneFrame` order.
+- **Verification.** See the migration plan's step 3l for parity, captures, allocation checks and the open performance acceptance.
 
 ## 3D overlays: tile cage, hover tint, placement cursor
 
@@ -349,8 +343,7 @@ terrain and the camera; then each step adds one kind of thing to the world. From
   quads, mesh particles, flowers and the dollar in the blended stream, given their order through sorting offsets
   (`PlaceItems`/`RunsBehind`), or Godot sorts them by real distance among the run instances. Check: dig debris and a
   flower over an imp.
-- **3l. Lightning.** Move: `LightningDrawList`. Godot: the ribbon mesh. Check: a capture with a staged lightning shot
-  (Level1 has none; a test level or `--stage-battle` with a caster, open point 11).
+- **3l. Lightning.** Implemented through `LightningDrawList` and the additive blended-item pool; performance acceptance remains open in the migration plan. Content: `--stage-lightning` (open point 11).
 - **3m. Possession.** Done 2026-11-18 (plan step 3m, which has the numbers; ADR-0805). Moved: `TerrainCeilingScheduler`,
   `TerrainCeilingGeometry`, `PossessionScene` (the latch and the roof's shown rule), `PossessionStaging` and the argument
   `--possess-first-creature`. Godot: the possession camera on the same `Camera3D` with a 0.05 near plane, the pointer lock,
@@ -399,8 +392,7 @@ owner's open editor must not be driven.
 9. **The footprint ribbon.** Decided in 3b: a shared triangle-list `HudDrawKind`, which Unity draws too.
 10. **Pointer-driven captures.** Decided in 3e: `--pointer-path "frame:x,y[:LlRr];..."`, a scripted pointer pushed into
     the viewport, so a capture never moves the owner's cursor (TRAPS); not an input-journal replay. 3h and 3m use it.
-11. **Content for 3d and 3l.** (3m's is `--possess-first-creature`.) Level1 has no lightning shot, and nothing stages a Sight of Evil cast, so the sight
-    fog (3d) is uncaptured; a staged test level or launch argument is needed, built with `tools/levelgen` or a new argument.
+11. **Content for 3d and 3l.** Lightning now has [`--stage-lightning`](../../godot/README.md#verifying), using existing spawn hooks and ordinary commands; its capture acceptance is in plan step 3l. Possession uses `--possess-first-creature`. Sight of Evil fog (3d) still needs a staged cast through a test level or launch argument.
 
 Out of scope here: the front end's 3D campaign map and its land picking (`DungeonScene.PickFrontEndMap`, `:245-264`), the
 level sound driver and subtitles (step 4), and the probes (step 4).

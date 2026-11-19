@@ -355,6 +355,7 @@ public partial class WorldScene
         Add(into, "items.lateGrowthBytes", _itemLateGrowthBytes);
         Add(into, "items.uploads", _itemUploads);
         Add(into, "items.uploadsSkipped", _itemUploadsSkipped);
+        AddLightningCounters(into);
     }
 
     private void FreeItems()

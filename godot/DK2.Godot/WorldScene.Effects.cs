@@ -66,6 +66,7 @@ public partial class WorldScene : ISimulationEventSink
             viewer: viewer);
         // Unity's runner: the Hand's local pickup shows its dust at once, and its authoritative echo is then dropped.
         RoomConstructionParticles model = _effects.Model;
+        OpenLightning(model, view, unchecked((uint)seed));
         view.LocalPickups.DustRequested += request => model.RequestPickupDust(request);
         _effectSink = new LocalPickupEffectSink(view.LocalPickups, model);
         _effectFrame = new EffectFrame(_effects, new LevelGemIdleEffects(database));
@@ -220,6 +221,7 @@ public partial class WorldScene : ISimulationEventSink
             _effectFrames.Count, " model frames built, ", PooledEffectModels(), " pooled models");
         // The draws first: they hold the sheets' materials and the quad.
         FreeItems();
+        FreeLightning();
         FreeFlowers();
         foreach (EffectSpriteBatch? batch in _effectBatches.Values) batch?.Free();
         _effectBatches.Clear();

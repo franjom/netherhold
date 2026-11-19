@@ -16,6 +16,25 @@ public readonly record struct LightningSegment(Vector3 Start, Vector3 End);
 
 public sealed class LightningCracklePairs(IRandomAlgorithm random)
 {
+    private readonly List<LightningControlPoint> _points = new();
+
+    public void ChooseInto(IReadOnlyList<LightningControlPoint> controlPoints, List<LightningSegment> output)
+    {
+        output.Clear();
+        _points.Clear();
+        for (int i = 0; i < controlPoints.Count; i++)
+            if (controlPoints[i].Id < 2000) _points.Add(controlPoints[i]);
+        for (int i = _points.Count - 1; i > 0; i--)
+        {
+            int previous = i;
+            for (int j = i - 1; j >= 0; j--)
+                if (unchecked(_points[previous].Id - _points[j].Id) > 1)
+                {
+                    if (random.NextInt(8 * i) == 1) output.Add(new(_points[j].Position, _points[i].Position));
+                }
+                else previous = j;
+        }
+    }
     public IEnumerable<LightningSegment> Choose(IReadOnlyList<LightningControlPoint> controlPoints)
     {
         LightningControlPoint[] points = controlPoints.Where(p => p.Id < 2000).ToArray();

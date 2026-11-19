@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Buffers;
 using System.Numerics;
 
 namespace DK2.Presentation;
@@ -9,6 +10,37 @@ namespace DK2.Presentation;
 public sealed record LightningRibbon(IReadOnlyList<Vector3> Vertices, IReadOnlyList<Vector2> Uvs,
     IReadOnlyList<int> Triangles)
 {
+    public static void Append(IReadOnlyList<Vector3> nodes, List<Vector3> vertices,
+        List<Vector2> uvs, List<int> triangles)
+    {
+        if (nodes.Count < 2) return;
+        Vector3[] sides = ArrayPool<Vector3>.Shared.Rent(nodes.Count);
+        try
+        {
+            sides[0] = sides[nodes.Count - 1] = Vector3.Zero;
+            for (int i = 1; i < nodes.Count - 1; i++)
+            {
+                Vector3 previous = Project(nodes[i - 1]), current = Project(nodes[i]), next = Project(nodes[i + 1]);
+                Vector3 before = Normal(new(previous.Y - current.Y, current.X - previous.X, 0));
+                Vector3 after = Normal(new(current.Y - next.Y, next.X - current.X, 0));
+                Vector3 sum = before + after;
+                sides[i] = (sum.LengthSquared() > .01f ? Normal(sum) : before) * LightningBolts.RibbonHalfWidth;
+            }
+            for (int i = 0; i < nodes.Count - 1; i++)
+            {
+                int v = vertices.Count;
+                vertices.Add(nodes[i] - sides[i]); vertices.Add(nodes[i] + sides[i]);
+                vertices.Add(nodes[i + 1] - sides[i + 1]); vertices.Add(nodes[i + 1] + sides[i + 1]);
+                uvs.Add(new(0, 0)); uvs.Add(new(0, 1)); uvs.Add(new(1, 0)); uvs.Add(new(1, 1));
+                triangles.Add(v); triangles.Add(v + 1); triangles.Add(v + 2);
+                triangles.Add(v + 2); triangles.Add(v + 1); triangles.Add(v + 3);
+                triangles.Add(v + 2); triangles.Add(v + 1); triangles.Add(v);
+                triangles.Add(v + 3); triangles.Add(v + 1); triangles.Add(v + 2);
+            }
+        }
+        finally { ArrayPool<Vector3>.Shared.Return(sides); }
+    }
+
     public static LightningRibbon Build(IReadOnlyList<Vector3> nodes)
     {
         var sides = new Vector3[nodes.Count];

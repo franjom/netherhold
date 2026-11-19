@@ -56,6 +56,15 @@ public sealed record LaunchArguments(string? Level, ulong? Seed, string? Install
             if (args[i] == prefix + "possession-colours") return true;
         return false;
     }
+    /// <summary>Developer-only staging of a real creature lightning cast and a later paid Thunderbolt.</summary>
+    public static bool StageLightning(IReadOnlyList<string> args, string prefix)
+    {
+        if (args is null) throw new ArgumentNullException(nameof(args));
+        if (prefix is null) throw new ArgumentNullException(nameof(prefix));
+        for (int i = 0; i < args.Count; i++)
+            if (args[i] == prefix + "stage-lightning") return true;
+        return false;
+    }
 
     /// <summary>The scripted pointer a <c>pointer-path</c> argument names (<see cref="PointerScript"/>, a check that drives a
     /// capture without the OS pointer), or null when it is absent or malformed.</summary>

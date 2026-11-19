@@ -14,20 +14,27 @@ public readonly record struct LightningEndpoints(FpPosition3 Start, FpPosition3 
 /// <summary>The procedural art's render link, independent of the simulation's target word.</summary>
 public sealed class LightningLink(ProceduralArtKind kind)
 {
+    private ProceduralArtKind _kind = kind;
     private bool _linked = true;
     private bool _casterLinkCleared;
+    internal void Reset(ProceduralArtKind kind)
+    {
+        _kind = kind;
+        _linked = true;
+        _casterLinkCleared = false;
+    }
     public LightningEndpoints? Resolve(FpPosition3 shotPoint, LightningTarget target, LightningCaster casterLink = default)
     {
-        if (kind == ProceduralArtKind.FixedLightning)
+        if (_kind == ProceduralArtKind.FixedLightning)
             return new(shotPoint, shotPoint with { Z = new(Fp32.One) }, 1);
-        if (kind is not (ProceduralArtKind.Lightning or ProceduralArtKind.TripleLightning) || !_linked) return null;
+        if (_kind is not (ProceduralArtKind.Lightning or ProceduralArtKind.TripleLightning) || !_linked) return null;
         if (!target.Exists || target.IsRoom) { _linked = false; return null; }
         if (!_casterLinkCleared)
         {
             if (casterLink.Point is FpPosition3 caster) shotPoint = shotPoint with { X = caster.X, Y = caster.Y };
             else if (casterLink.HasLink) _casterLinkCleared = true;
         }
-        return new(shotPoint, target.BasePoint, kind == ProceduralArtKind.TripleLightning ? 3 : 1);
+        return new(shotPoint, target.BasePoint, _kind == ProceduralArtKind.TripleLightning ? 3 : 1);
     }
 }
 

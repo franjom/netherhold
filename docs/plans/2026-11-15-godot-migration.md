@@ -803,8 +803,8 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       vertex upload from per-template mesh copies (bounded by the distinct clips per entry; Unity releases its copies on a clip-set
       change), clip sets cached per entry, pose interpolation and orientation through `RightHandedFrame` with the head point
       converted back, removal on death or exit, and `ZeroOrderOffset` for blended surfaces. On an idle-clip swap Godot keeps the
-      node and restarts the clip, which the reviewer confirmed is equivalent on screen to Unity's rebuild. The crackle (3l),
-      footsteps (sound only, step 4) are no-op steps waiting for their sub-steps; the sparkle came in 3k, the burning red in 3h, the possession hide in 3m. The query follow now runs after `DrawFrame` and reads the drawn position, as
+      node and restarts the clip, which the reviewer confirmed is equivalent on screen to Unity's rebuild. Crackle is wired in 3l;
+      footsteps wait for sound (step 4); the sparkle came in 3k, the burning red in 3h, the possession hide in 3m. The query follow now runs after `DrawFrame` and reads the drawn position, as
       Unity's does (this resolves 3b's note); the blended stream's sort moved from `Flush` into `FinishFrame`, after the follow
       places the camera. Mutation checks: the developer's 30 and the reviewer's 27, each killed except the head table's lock,
       which a two-thread test covers. Verification: `dotnet test DK2.slnx` 10,814 passed, 30 skipped (Presentation 2,790,
@@ -994,7 +994,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         in the custom data (was one instance and one material per frame per flame); sprites and flower icons are `.gdshader`
         files; mesh particles (the Heart's plug, group parts, type-6 frames, shot bodies) are pooled models per mesh with the
         element's tint as an instance uniform. Also wired: the group parts, the local pickup dust, the first model update.
-        Footsteps and the beat sound are sound only (step 4); the dollar mesh and lightning (3l) are not drawn. Frames
+        Footsteps and the beat sound are sound only (step 4); the dollar mesh is not drawn; lightning is drawn by 3l. Frames
         against HEAD (Movie Maker, 1920x1080, scripted pointer, flags off and `--light-perpixel --light-shadows
         --light-post`): flames, flowers and all but the Heart byte-identical; new content judged right against
         [heart-intro.md](../research/heart-intro.md): the plug lid, beam and burst at each level's start, the mana sparkles on
@@ -1008,7 +1008,39 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         per-material runs); (2) effect lights stay DK2's; the flames' HDR glow waits for the post effects; (3) the flowers
         keep HEAD's `source_color` (linearised), which the gamma-space convention would draw brighter; (4) the run slots also
         carry a world-sized box and may be culled the same way in possession; (5) wire Unity's runner to `EffectFrame`.
-  - [ ] 3l. Lightning.
+  - [x] 3l. Lightning (2026-11-19, ADR-0813; no-lightning cost about 6 us a frame, frame p50 within run noise). `LightningDrawList` now owns shot selection,
+        interpolation, all target kinds, procedural lightning and clip-install crackle. It builds ribbons in camera space and fills reused
+        render-world buffers, which both adapters consume; Unity retains native point conversions through `ILightningCameraTransform` (TRAPS).
+        Godot submits each four-corner
+        section through the existing additive `BlendedItemOrder` pool, with exact corner payloads, upload comparisons and
+        geometry bounds. `Lightning.gdshader` uses the original texture, unshaded and additive, without depth writes.
+        `--stage-lightning` supplies a real combat cast and a paid Thunderbolt through existing hooks and commands
+        ([launch recipe](../../godot/README.md#verifying)). No simulation change or hash/save bump.
+        Verified: 65 lightning tests and 3 human-command policy tests pass; the final full suite has 11,506 passed and
+        30 skipped. Warmed ribbon/crackle and Heart-target generation allocate 0 B (the old Heart resolver test fails at
+        55,296 B over 256 frames). Unity's native batch probe matches 122,212 vertices bit for bit across three camera
+        poses, 64 seeds and eight frames; colour remains the same texture-only output. Archived HEAD and new Level1
+        start/turn 70 and Level7 start captures at 1920x1080, 30 fps, with scripted pointer, flags off and all three
+        modern-lighting flags on, match in all 1,056 repeated PNG frames. Turn-400 hash is unchanged at `B5C0CB842094AB59`.
+        Release solution and Godot builds, headless import and `--build-solutions`, and Unity sync/compile/smoke/save-smoke
+        gates pass. Staged captures show the creature's triple bolt, torso crackle, paid keeper cast and a visible ribbon
+        across the possession view. No dedicated glass/lava overlap capture or Unity beauty frame was taken; ordering
+        retains the reviewed blended-item path, and Unity geometry parity is tested by the native probe.
+        The first staged 300-frame performance window has whole-frame p50 9.242 ms, process p50 7.318 ms and whole-app
+        allocation p50 5,152 B/frame; the lightning counter averages 0.156891 ms/frame. Its 51,736 B after the counter's
+        first 60 frames includes first-use/new-kind and pool growth; it is not a steady zero-allocation claim. The warmed
+        unit measurement is separate. Staging triggers non-finite-normal warnings in the existing `ModelMesh` upload path;
+        the lightning shader has no errors and import is clean. No-lightning performance was measured at 1080p with
+        literal `perf.ps1 -Repeat 2` runs and a second, strictly interleaved set of two repeats. In the latter, mean repeat
+        frame p50 is Level1 5.575 → 5.794 ms (+3.9%) and Level7 7.468 → 7.134 ms (−4.5%); process p50 is
+        2.888 → 2.948 and 4.365 → 4.265 ms. Whole-app allocation p50 is unchanged at 7,296 and 10,304 B/frame.
+        The new idle lightning counter is about 5.5/6.6 µs per frame, with 0 late bytes. Repeat frame-p50 ranges overlap:
+        Level1 HEAD 5.496–5.654/new 5.510–6.077 ms; Level7 HEAD 7.060–7.875/new 6.708–7.560 ms. Earlier datasets
+        alternated apparent gains and regressions. There is no consistent timing regression beyond repeat spread,
+        but Level1's latest median is higher, so the strict no-regression acceptance remains unproven. Final exact
+        main-workspace build, test, import/build-solutions and hash gates also pass after the shared camera-refresh fix.
+        Artifacts: `C:\Users\franj\AppData\Local\Temp\dk2-lightning-20261119-886axhag`
+        (`captures/`, `captures/crops/`, `perf-interleaved/` and verification logs).
   - [x] 3m. Possession (2026-11-18, ADR-0805; no simulation change, no hash or save bump). Moved into `DK2.Presentation`
         with tests, which Unity calls now: `TerrainCeilingScheduler` and `TerrainCeilingGeometry` (out of Unity's
         `TerrainCeilingChunks`), `PossessionScene` (`Latched`, `Latch`, `RoofShown`, out of `DungeonRunner.cs`); new, for

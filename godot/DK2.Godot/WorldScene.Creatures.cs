@@ -16,8 +16,8 @@ namespace DK2.GodotAdapter;
 /// (<see cref="ModelMesh"/>), a <see cref="ModelSlot"/> per creature, its type-6 clip played by the shared
 /// <see cref="CreatureAnimationPlayer{TResources}"/> with each segment's positions rewritten in place, and each frame drawn
 /// in <see cref="SceneFrame"/>'s order, which this scene hosts; the hover overlay's frame and the burning red are
-/// WorldScene.Hover.cs's, the possessed model's hiding WorldScene.Possession.cs's. The crackle (3l), the footsteps and
-/// the gem sparkle (3k) are not drawn yet.</summary>
+/// WorldScene.Hover.cs's, the possessed model's hiding WorldScene.Possession.cs's and the crackle WorldScene.Lightning.cs's.
+/// Footsteps wait for the sound player.</summary>
 public partial class WorldScene : ISceneFrameHost
 {
     private readonly SceneFrame _frame;
@@ -179,8 +179,7 @@ public partial class WorldScene : ISceneFrameHost
     // A footstep is a sound only (CreatureFootsteps): it waits for the sound player (step 4).
     void ISceneFrameHost.RequestFootstep(CreatureId creature, in CreatureView pose, int crossing) { }
 
-    // The lightning crackle waits for step 3l.
-    void ISceneFrameHost.DrawCrackle(CreatureId creature, GameTick tick) { }
+    void ISceneFrameHost.DrawCrackle(CreatureId creature, GameTick tick) => DrawCreatureLightning(creature, tick);
 
     bool ISceneFrameHost.TryGetControlPoint(CreatureId creature, uint point, out NVector3 render)
     {
