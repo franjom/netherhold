@@ -62,18 +62,4 @@ public partial class WorldScene
     private bool PossessionTileVisible(TilePos tile) => DrawVisibility.Tile(tile);
     // TorchFloorTileIndex is already an index into the map storage, unlike an interpolated flame position.
     private bool PossessionFloorVisible(int tileIndex) => DrawVisibility.Floor(tileIndex);
-    private const string PossessionVisibilityDeclarations = """
-        global uniform bool dk2_possession_visibility_enabled;
-        global uniform sampler2D dk2_possession_tiles;
-        global uniform ivec2 dk2_possession_grid;
-        varying flat int dk2_possession_tile;
-        bool dk2_possession_tile_visible(int tile) {
-            if (!dk2_possession_visibility_enabled) return true;
-            int width = dk2_possession_grid.x;
-            if (tile < 0 || tile >= width * dk2_possession_grid.y) return false;
-            return texelFetch(dk2_possession_tiles, ivec2(tile % width, tile / width), 0).r > 0.0;
-        }
-        """;
-    private const string PossessionVisibilityVertex = "dk2_possession_tile = int(CUSTOM0.x);\n";
-    private const string PossessionVisibilityFragment = "if (!dk2_possession_tile_visible(dk2_possession_tile)) discard;\n";
 }

@@ -8,13 +8,15 @@ namespace DK2.Presentation.Tests;
 
 /// <summary>Each engine's shader copies <see cref="ClassicVertexLight"/> by hand, so its text is pinned here: every formula
 /// statement of the point, instance and radial terms, the bound skip and the per-flag sum, whitespace-normalised and
-/// counted where it repeats. Unity's HLSL is read as it ships; Godot's GLSL is the template in WorldScene.Lighting.cs after
-/// <see cref="ClassicLightTableLayout.Substitute"/>, the string the adapter compiles.</summary>
+/// counted where it repeats. Unity's HLSL is read as it ships; Godot's GLSL is Shaders/WorldLight.gdshaderinc as Godot's
+/// preprocessor expands it, with and without the torch shadows.</summary>
 public class ClassicVertexLightShaderTextTests
 {
     private const string PointLighting = "unity/DK2.Unity/Assets/DK2/Resources/Shaders/ClassicPointLighting.hlsl";
     private const string VertexLit = "unity/DK2.Unity/Assets/DK2/Resources/Shaders/ClassicVertexLit.shader";
-    private const string GodotLighting = "godot/DK2.Godot/WorldScene.Lighting.cs";
+    private const string GodotLighting = "godot/DK2.Godot/Shaders/WorldLight.gdshaderinc";
+    private const string GodotWorld = "godot/DK2.Godot/Shaders/World.gdshaderinc";
+    private const string PerPixel = "DK2_PER_PIXEL", Shadows = "DK2_TORCH_SHADOWS";
 
     public static readonly TheoryData<string, int> HlslTerms = new()
     {
@@ -121,9 +123,35 @@ public class ClassicVertexLightShaderTextTests
     public void GodotsCompiledShaderKeepsTheReferencesFormulas(string statement, int times) =>
         Assert.Equal(times, Count(GodotShader(), statement));
 
-    [Fact]
-    public void GodotsCompiledShaderHasNoPlaceholderLeft()
+    /// <summary>With the torch shadows on, the same formulas; the sum is checked by the next test.</summary>
+    [Theory]
+    [MemberData(nameof(Glsl))]
+    public void GodotsShadowedShaderKeepsTheReferencesFormulas(string statement, int times)
     {
+        if (statement.StartsWith("if (kind.x == 1.0)", StringComparison.Ordinal)) return;
+        Assert.Equal(times, Count(GodotShader(Shadows), statement));
+    }
+
+    /// <summary>With the torch shadows on, each of the four torch terms the sum adds is weighed by its shadow
+    /// visibility; without them, none is.</summary>
+    [Fact]
+    public void GodotsShadowedSumWeighsEveryTorchTerm()
+    {
+        string shader = GodotShader(Shadows);
+        Assert.Equal(1, Count(shader, "if (kind.x == 1.0) { if ((flags & 4u) == 4u) sum += (dk2_radial(origin, pr, ci)) * vis; if ((flags & 256u) == 256u && dk2_instance(s, centre, vos, nos, basis, pr, ci, c)) sum += (c) * vis; } else if (dk2_point(pws, nws, pr, ci, c)) { if ((flags & 96u) == 96u) sum += (c) * vis; if ((flags & 160u) == 160u || (flags & 1u) == 1u) sum += (c) * vis; }"));
+        Assert.Equal(1, Count(shader, "float vis = dk2_shadow_visibility(pr.xyz, svis);"));
+        Assert.DoesNotContain("vis", GodotShader(), StringComparison.Ordinal);
+    }
+
+    /// <summary>The include's three numbers are the layout's, so the shader reads the texels the tables write, and none is
+    /// left unexpanded.</summary>
+    [Fact]
+    public void GodotsShaderNumbersAreTheTableLayouts()
+    {
+        string source = Read(GodotLighting).Replace("\r\n", "\n", StringComparison.Ordinal);
+        Assert.Contains($"#define TEXELS_PER_TILE {ClassicLightTableLayout.TexelsPerTile}\n", source);
+        Assert.Contains($"#define TILES_PER_ROW {ClassicLightTableLayout.TilesPerTextureRow}\n", source);
+        Assert.Contains($"#define MAXIMUM_SOURCES {ClassicLightTable.MaximumSources}\n", source);
         string shader = GodotShader();
         Assert.DoesNotContain("TEXELS_PER_TILE", shader);
         Assert.DoesNotContain("TILES_PER_ROW", shader);
@@ -135,24 +163,101 @@ public class ClassicVertexLightShaderTextTests
     [Fact]
     public void GodotsVertexAndPerPixelStepsBothEvaluateThePinnedLight()
     {
-        string source = Read(GodotLighting);
-        Assert.Contains("\"dk2_diffuse = dk2_light(anchor, bounds, kind, VERTEX, NORMAL, MODEL_MATRIX, world, nws, added_light, CAMERA_POSITION_WORLD);\\n\"", source);
-        Assert.Contains("\"vec3 dk2_diffuse_px = dk2_light(dk2_anchor_kind.xy, dk2_bounds, dk2_anchor_kind.zw, \"", source);
+        string vertex = Normalise(Preprocess(Read(GodotWorld)));
+        Assert.Contains("dk2_diffuse = dk2_light(anchor, bounds, kind, VERTEX, NORMAL, MODEL_MATRIX, world, nws, added, CAMERA_POSITION_WORLD);", vertex);
+        Assert.DoesNotContain("dk2_diffuse_px", vertex);
+        string pixel = Normalise(Preprocess(Read(GodotWorld), PerPixel));
+        Assert.Contains("vec3 dk2_diffuse_px = dk2_light(dk2_anchor_kind.xy, dk2_bounds, dk2_anchor_kind.zw, dk2_vos, dk2_nos_px, dk2_model, dk2_world, dk2_nws_px, added, CAMERA_POSITION_WORLD);", pixel);
         // The tile anchor and model transform are flat: an interpolated tile index could round to a neighbour's table.
-        Assert.Contains("varying flat vec4 dk2_anchor_kind;", source);
-        Assert.Contains("varying flat vec4 dk2_m0;", source);
+        Assert.Contains("varying flat vec4 dk2_anchor_kind;", pixel);
+        Assert.Contains("varying flat vec4 dk2_m0;", pixel);
+        Assert.Contains("vec3 dk2_diffuse_px = dk2_light(dk2_anchor_kind.xy, dk2_bounds, dk2_anchor_kind.zw, dk2_vos, dk2_nos_px, dk2_model, dk2_world, dk2_nws_px, added, CAMERA_POSITION_WORLD, dk2_svis);",
+            Normalise(Preprocess(Read(GodotWorld), PerPixel, Shadows)));
     }
 
-    /// <summary>The GLSL template of WorldScene.Lighting.cs after the substitution the adapter runs, normalised.</summary>
-    private static string GodotShader()
+    /// <summary>The shadow lookup's numbers are the shadow views': the map size, the range and the half field of view's
+    /// tangent, written out in WorldShadows.gdshaderinc and declared in WorldScene.Shadows.cs.</summary>
+    [Fact]
+    public void GodotsShadowLookupHoldsTheShadowViewsNumbers()
     {
-        string source = Read(GodotLighting);
-        const string open = "ClassicLightTableLayout.Substitute(\"\"\"";
-        int start = source.IndexOf(open, StringComparison.Ordinal);
-        Assert.True(start >= 0, "WorldScene.Lighting.cs no longer builds its shader through ClassicLightTableLayout.Substitute.");
-        start += open.Length;
-        int end = source.IndexOf("\"\"\");", start, StringComparison.Ordinal);
-        return Normalise(ClassicLightTableLayout.Substitute(source[start..end]));
+        string views = Read("godot/DK2.Godot/WorldScene.Shadows.cs"), lookup = Read("godot/DK2.Godot/Shaders/WorldShadows.gdshaderinc");
+        Assert.Equal(Number(views, @"ShadowMapSize = (\d+);"), Number(lookup, @"const int DK2_SHADOW_SIZE = (\d+);"));
+        Assert.Equal(Number(views, @"ShadowRange = ([\d.]+)f;"), Number(lookup, @"const float DK2_SHADOW_RANGE = ([\d.]+);"));
+        Assert.Equal(Math.Tan(Number(views, @"ShadowFieldOfView = ([\d.]+)f;") * Math.PI / 360.0),
+            Number(lookup, @"const float DK2_SHADOW_TAN = ([\d.]+);"), 6);
+    }
+
+    /// <summary>Each render state's world shader has the line WorldScene.ShaderFor puts the light mode's defines before,
+    /// ahead of its include, so the defines reach the shader body.</summary>
+    [Fact]
+    public void EveryWorldShaderTakesTheLightModeBeforeItsInclude()
+    {
+        string[] files = Directory.GetFiles(Path.Combine(RepositoryRoot(), "godot/DK2.Godot/Shaders"), "World*.gdshader");
+        Assert.Equal(4, files.Length);
+        foreach (string file in files)
+        {
+            string[] lines = File.ReadAllLines(file);
+            int marker = Array.FindIndex(lines, line => line.StartsWith("// DK2_LIGHT_MODE", StringComparison.Ordinal));
+            int include = Array.FindIndex(lines, line => line == "#include \"res://Shaders/World.gdshaderinc\"");
+            Assert.True(marker >= 0 && include > marker, Path.GetFileName(file));
+        }
+    }
+
+    private static double Number(string text, string pattern)
+    {
+        Match match = Regex.Match(text, pattern);
+        Assert.True(match.Success, pattern);
+        return double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>WorldLight.gdshaderinc as Godot's preprocessor expands it with <paramref name="defined"/>, normalised.</summary>
+    private static string GodotShader(params string[] defined) => Normalise(Preprocess(Read(GodotLighting), defined));
+
+    /// <summary>The preprocessor directives the world shader's includes use: <c>#ifdef</c>, <c>#ifndef</c>, <c>#else</c>,
+    /// <c>#endif</c>, object-like and one-argument <c>#define</c>s expanded by whole words; <c>#include</c> dropped.</summary>
+    private static string Preprocess(string text, params string[] defined)
+    {
+        var objects = new Dictionary<string, string>();
+        var functions = new Dictionary<string, (string Parameter, string Body)>();
+        var lines = new List<string>();
+        var stack = new Stack<(bool Outer, bool Condition)>();
+        bool active = true;
+        foreach (string raw in text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        {
+            string line = raw.Trim();
+            Match condition = Regex.Match(line, @"^#(ifdef|ifndef)\s+(\w+)");
+            if (condition.Success)
+            {
+                bool holds = Array.IndexOf(defined, condition.Groups[2].Value) >= 0 == (condition.Groups[1].Value == "ifdef");
+                stack.Push((active, holds));
+                active = active && holds;
+            }
+            else if (line.StartsWith("#else", StringComparison.Ordinal)) active = stack.Peek().Outer && !stack.Peek().Condition;
+            else if (line.StartsWith("#endif", StringComparison.Ordinal)) active = stack.Pop().Outer;
+            else if (!active || line.StartsWith("#include", StringComparison.Ordinal)) continue;
+            else if (Regex.Match(line, @"^#define\s+(\w+)\((\w+)\)\s+(.*)$") is { Success: true } function)
+                functions[function.Groups[1].Value] = (function.Groups[2].Value, function.Groups[3].Value);
+            else if (Regex.Match(line, @"^#define\s+(\w+)\s+(.*)$") is { Success: true } value) objects[value.Groups[1].Value] = value.Groups[2].Value;
+            else lines.Add(raw);
+        }
+        Assert.Empty(stack);
+        string result = string.Join("\n", lines);
+        foreach (KeyValuePair<string, string> macro in objects)
+            result = Regex.Replace(result, $@"\b{macro.Key}\b", macro.Value);
+        foreach (KeyValuePair<string, (string Parameter, string Body)> macro in functions)
+            for (int at = result.IndexOf(macro.Key + "(", StringComparison.Ordinal); at >= 0;
+                 at = result.IndexOf(macro.Key + "(", at, StringComparison.Ordinal))
+            {
+                int open = at + macro.Key.Length, close = open, depth = 0;
+                for (; close < result.Length; close++)
+                {
+                    depth += result[close] == '(' ? 1 : result[close] == ')' ? -1 : 0;
+                    if (depth == 0) break;
+                }
+                string argument = result[(open + 1)..close];
+                result = result[..at] + Regex.Replace(macro.Value.Body, $@"\b{macro.Value.Parameter}\b", argument) + result[(close + 1)..];
+            }
+        return result;
     }
 
     /// <summary>Line comments dropped and every run of whitespace one space.</summary>

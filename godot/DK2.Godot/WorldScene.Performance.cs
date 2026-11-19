@@ -11,7 +11,8 @@ namespace DK2.GodotAdapter;
 public partial class WorldScene
 {
     /// <summary>The step counters the exit lines print (the lighting step, the blended re-sort, Present's allocations and
-    /// the collections since the level opened), as named numbers for <see cref="PerformanceReport"/>'s JSON.</summary>
+    /// the collections since the level opened) and the world materials and shaders made, as named numbers for
+    /// <see cref="PerformanceReport"/>'s JSON.</summary>
     internal void AddPerformanceCounters(List<KeyValuePair<string, double>> into)
     {
         int stillLightFrames = Math.Max(0, _lightFrames - DrawWarmUp - _lightMovedFrames);
@@ -30,6 +31,10 @@ public partial class WorldScene
         Add(into, "blended.lateBytes", _blendedLateBytes);
         Add(into, "blended.maxRuns", _blendedMaxRuns);
         Add(into, "blended.maxTriangles", _blendedMaxTriangles);
+        Add(into, "world.materials", _worldMaterialsMade);
+        int shaders = 0;
+        for (int state = 0; state < WorldShaderPaths.Length; state++) if (s_worldShaders[WorldLightMode, state] != null) shaders++;
+        Add(into, "world.shaders", shaders);
         Add(into, "present.steadyFrames", _steadyFrames);
         Add(into, "present.steadyBytes", _steadyBytes);
         Add(into, "present.changeFrames", _changeFrames);

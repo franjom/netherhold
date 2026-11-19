@@ -139,11 +139,11 @@ public partial class WorldScene : ISimulationEventSink
             {
                 Code = "shader_type spatial;\nrender_mode unshaded, cull_disabled, depth_draw_never, " + blend + ";\n"
                     + "uniform sampler2D frame_texture : filter_linear, repeat_disable;\n"
-                    + PossessionFadeDeclarations
+                    + "#include \"res://Shaders/PossessionFade.gdshaderinc\"\n"
                     + "void vertex() {\nUV = vec2(mix(INSTANCE_CUSTOM.x, INSTANCE_CUSTOM.y, UV.x), mix(INSTANCE_CUSTOM.z, INSTANCE_CUSTOM.w, 1.0 - UV.y));\n"
                     + "dk2_possession_brightness = dk2_possession_fade((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz, PROJECTION_MATRIX);\n}\n"
                     + "void fragment() {\nvec4 c = texture(frame_texture, UV) * COLOR;\n"
-                    + PossessionFadeFragment + "ALBEDO = c.rgb;\nALPHA = " + alpha + ";\n}\n",
+                    + "c.rgb *= dk2_possession_brightness;\nALBEDO = c.rgb;\nALPHA = " + alpha + ";\n}\n",
             };
             _material = new ShaderMaterial { Shader = _shader };
             _material.SetShaderParameter("frame_texture", texture);

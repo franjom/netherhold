@@ -19,7 +19,8 @@ namespace DK2.GodotAdapter;
 /// <see cref="MeshInstance3D"/> per thing with its surfaces' <see cref="ObjectMaterialLook"/>s, a type-6 clip played by the
 /// shared <see cref="CreatureAnimationPlayer{TResources}"/> (<see cref="AnimatedModel"/>), the Heart's beat through
 /// <see cref="HeartPulse"/>, torches bent by the lattice and their flames (<see cref="TorchFlames"/>). An environment pass
-/// is the next pass of its submesh's material, its coordinates computed in the lit vertex shader (step 3i).</summary>
+/// and the hover's red are folded into the submesh's world material, and an object's tint and fade and a structure's
+/// tint are the instance's uniforms (step 3p, <see cref="ObjectSurfaceKey"/>).</summary>
 public partial class WorldScene
 {
     /// <summary>The distance in tiles over which <see cref="ZeroOrderOffset"/> spreads its keys; any positive value keeps
@@ -34,8 +35,7 @@ public partial class WorldScene
     private readonly Dictionary<(string Entry, bool LastFrame), ModelMesh?> _models = new();
     private readonly Dictionary<string, RenderAnimation> _clips = new();
     private readonly Dictionary<string, ClipSet?> _clipSets = new();
-    private readonly Dictionary<ObjectMaterialLook, ShaderMaterial> _objectMaterials = new(), _redMaterials = new();
-    private readonly Dictionary<(ObjectMaterialLook Own, bool Red, ObjectMaterialLook Environment), ShaderMaterial> _chainedMaterials = new();
+    private readonly Dictionary<ObjectSurfaceKey, ShaderMaterial> _objectMaterials = new();
     // Per submesh, the environment pass a model's ApplyLooks found; reused.
     private ObjectMaterialLook?[] _environmentOf = new ObjectMaterialLook?[8];
     private readonly List<ObjectPass> _passes = new();
@@ -386,61 +386,63 @@ public partial class WorldScene
         return built;
     }
 
-    /// <summary>The material an object draw looks like, one per <see cref="ObjectMaterialLook"/>; the shaders are the
-    /// terrain's (<see cref="ShaderFor"/>).</summary>
-    private ShaderMaterial MaterialFor(in ObjectMaterialLook look)
+    /// <summary>What a model surface's material is made of (<see cref="MaterialFor(in ObjectSurfaceKey)"/>): its look,
+    /// the environment pass folded into it, whether the drawn thing's tint and fade apply (not to a hover twin or a plan),
+    /// whether its KMF material blends (which of the hover's reds it takes), and, for an alpha-blended look, whether its
+    /// environment pass or red pass draws as its next pass (<see cref="Extras"/>). The tint, fade and red themselves are
+    /// the instance's (<see cref="ModelInstanceLook"/>, <see cref="ModelSlot.ApplyLooks"/>), so they make no material.</summary>
+    private readonly record struct ObjectSurfaceKey(ObjectMaterialLook Look, ObjectMaterialLook? Environment, bool InstanceLook,
+        bool KmfBlended, bool Extras);
+
+    private static readonly StringName ModelVertexParameter = "model_vertex", InstanceLookParameter = "instance_look",
+        KmfBlendedParameter = "kmf_blended", EnvironmentPassParameter = "environment_pass",
+        EnvironmentTextureParameter = "environment_texture", EnvironmentColourParameter = "environment_colour",
+        ExtrasOnlyParameter = "extras_only", TintParameter = "dk2_tint", AlphaParameter = "dk2_alpha",
+        EnvironmentDrawnParameter = "dk2_environment", RedParameter = "dk2_red";
+
+    // An alpha-blended surface's additive next pass, one per environment pass and KMF blend (Extras).
+    private readonly Dictionary<(ObjectMaterialLook? Environment, bool KmfBlended), ShaderMaterial> _extrasMaterials = new();
+
+    /// <summary>The world material of a model surface, one per <see cref="ObjectSurfaceKey"/>; the shader is the terrain's
+    /// (<see cref="ShaderFor"/>), lit through a model's light inputs.</summary>
+    private ShaderMaterial MaterialFor(in ObjectSurfaceKey key)
     {
-        if (_objectMaterials.TryGetValue(look, out ShaderMaterial? material)) return material;
-        material = new ShaderMaterial
+        if (_objectMaterials.TryGetValue(key, out ShaderMaterial? material)) return material;
+        ObjectMaterialLook look = key.Look;
+        material = ModelMaterial(look.Texture, look.Blend, look.WritesDepth, look.FullLight, look.Colour, look.AddedLight,
+            key.KmfBlended, key.Environment);
+        if (key.InstanceLook) material.SetShaderParameter(InstanceLookParameter, true);
+        if (key.Extras) material.NextPass = Extras(key.Environment, key.KmfBlended);
+        _objectMaterials.Add(key, material);
+        return material;
+    }
+
+    /// <summary>A world material on a model's light inputs, with its KMF blend and environment pass.</summary>
+    private ShaderMaterial ModelMaterial(string texture, KmfBlend blend, bool writesDepth, bool fullLight,
+        System.Numerics.Vector4 colour, System.Numerics.Vector3 addedLight, bool kmfBlended, ObjectMaterialLook? environment)
+    {
+        ShaderMaterial material = WorldMaterial(texture, blend, writesDepth, fullLight, colour, addedLight);
+        material.SetShaderParameter(ModelVertexParameter, true);
+        if (kmfBlended) material.SetShaderParameter(KmfBlendedParameter, true);
+        if (environment is ObjectMaterialLook pass)
         {
-            Shader = ShaderFor(look.Blend, look.FullLight, look.WritesDepth, model: true, environment: look.EnvironmentMapped),
-        };
-        material.SetShaderParameter(AlbedoParameter, TextureFor(look.Texture));
-        material.SetShaderParameter(ColourParameter, new Color(look.Colour.X, look.Colour.Y, look.Colour.Z, look.Colour.W));
-        material.SetShaderParameter(AddedLightParameter, ToGodot(look.AddedLight));
-        _objectMaterials.Add(look, material);
+            material.SetShaderParameter(EnvironmentPassParameter, true);
+            material.SetShaderParameter(EnvironmentTextureParameter, TextureFor(pass.Texture));
+            material.SetShaderParameter(EnvironmentColourParameter,
+                new Color(pass.Colour.X, pass.Colour.Y, pass.Colour.Z, pass.Colour.W));
+        }
         return material;
     }
 
-    /// <summary>The material of <paramref name="look"/>, with the hover's red pass after it when <paramref name="red"/>: a
-    /// twin whose next pass is <see cref="ObjectMaterialLook.HoverOverlay"/> on the same vertices, so it follows a clip as
-    /// Unity's overlay draws the sampled mesh again.</summary>
-    private ShaderMaterial MaterialFor(in ObjectMaterialLook look, bool red)
+    /// <summary>An alpha-blended surface's next pass: its environment pass and the hover's red added over the whole
+    /// triangle, as DK2 and Unity draw them after the material, rather than weighed by the texture's alpha in its own pass.</summary>
+    private ShaderMaterial Extras(ObjectMaterialLook? environment, bool kmfBlended)
     {
-        if (!red) return MaterialFor(look);
-        if (_redMaterials.TryGetValue(look, out ShaderMaterial? material)) return material;
-        ShaderMaterial plain = MaterialFor(look);
-        material = new ShaderMaterial { Shader = plain.Shader, NextPass = MaterialFor(ObjectMaterialLook.HoverOverlay()) };
-        material.SetShaderParameter(AlbedoParameter, plain.GetShaderParameter(AlbedoParameter));
-        material.SetShaderParameter(ColourParameter, plain.GetShaderParameter(ColourParameter));
-        material.SetShaderParameter(AddedLightParameter, plain.GetShaderParameter(AddedLightParameter));
-        _redMaterials.Add(look, material);
+        if (_extrasMaterials.TryGetValue((environment, kmfBlended), out ShaderMaterial? material)) return material;
+        material = ModelMaterial("", KmfBlend.Additive, false, true, System.Numerics.Vector4.One, default, kmfBlended, environment);
+        material.SetShaderParameter(ExtrasOnlyParameter, true);
+        _extrasMaterials.Add((environment, kmfBlended), material);
         return material;
-    }
-
-    /// <summary>The material of <paramref name="own"/> (with its red pass when <paramref name="red"/>) followed by the
-    /// environment pass <paramref name="environment"/> over the same vertices, as DK2 draws an environment-mapped material
-    /// twice (structure-drawing.md §5): a copy whose next pass is a copy of the environment's, the red pass last.</summary>
-    private ShaderMaterial MaterialFor(in ObjectMaterialLook own, bool red, ObjectMaterialLook? environment)
-    {
-        if (environment is not ObjectMaterialLook pass) return MaterialFor(own, red);
-        if (_chainedMaterials.TryGetValue((own, red, pass), out ShaderMaterial? material)) return material;
-        ShaderMaterial second = Copy(MaterialFor(pass));
-        if (red) second.NextPass = MaterialFor(ObjectMaterialLook.HoverOverlay());
-        material = Copy(MaterialFor(own));
-        material.NextPass = second;
-        _chainedMaterials.Add((own, red, pass), material);
-        return material;
-    }
-
-    /// <summary>A new material with <paramref name="source"/>'s shader and parameters, to chain a pass after.</summary>
-    private static ShaderMaterial Copy(ShaderMaterial source)
-    {
-        var copy = new ShaderMaterial { Shader = source.Shader };
-        copy.SetShaderParameter(AlbedoParameter, source.GetShaderParameter(AlbedoParameter));
-        copy.SetShaderParameter(ColourParameter, source.GetShaderParameter(ColourParameter));
-        copy.SetShaderParameter(AddedLightParameter, source.GetShaderParameter(AddedLightParameter));
-        return copy;
     }
 
     /// <summary>The cleared per-submesh environment passes for a model of <paramref name="submeshes"/> submeshes.</summary>
@@ -758,39 +760,69 @@ public partial class WorldScene
             _blended = false;
             bool plan = Kind == SlotKind.Structure && Structure.Plan != BlueprintTint.None;
             ObjectMaterialLook?[] environment = _scene.EnvironmentPasses(_shown.SubmeshCount);
+            // A submesh's environment pass draws after its own, also over a plan (structure-drawing.md section 5, where
+            // Unity draws the plan twice); folded into its material, and not drawn while the object fades.
             foreach (ObjectPass pass in _scene._passes)
-            {
-                // A submesh's environment pass draws after its own, also over a plan (structure-drawing.md §5, where Unity
-                // draws the plan twice); a faded one draws black.
-                if (!pass.Look.EnvironmentMapped) continue;
-                environment[pass.Submesh] = Kind == SlotKind.Object ? pass.Look.Faded(alpha) : pass.Look;
-                _blended = true;
-            }
+                if (pass.Look.EnvironmentMapped) environment[pass.Submesh] = pass.Look;
+            ModelInstanceLook instance = Kind == SlotKind.Object ? ModelInstanceLook.Object(pose.AddedLight, alpha)
+                : Kind == SlotKind.Structure ? ModelInstanceLook.Structure(Structure.InstanceTint, plan)
+                : ModelInstanceLook.None;
+            _alphaBlended = false;
             foreach (ObjectPass pass in _scene._passes)
             {
                 if (pass.Look.EnvironmentMapped) continue;
                 int surface = _shown.SurfaceOf[pass.Submesh];
                 if (surface < 0) continue;
-                ObjectMaterialLook look = pass.Look;
                 // The red pass skips a material made from a blended KMF one, whatever a fade or plan made of it (Unity's
                 // IsKmfBlended; a plan's materials are not KMF ones, so it reads opaque).
                 bool kmfBlended = !plan && pass.Look.Blend != KmfBlend.Opaque;
-                if (Kind == SlotKind.Object) look = look.Tinted(pose.AddedLight).Faded(alpha);
-                else if (plan) look = ObjectMaterialLook.Blueprint(Structure.Plan == BlueprintTint.Red);
-                else if (Kind == SlotKind.Structure)
-                    look = look.InstanceTinted(Structure.InstanceTint, Structure.InstanceTint, Structure.InstanceTint);
+                ObjectMaterialLook look = plan ? ObjectMaterialLook.Blueprint(Structure.Plan == BlueprintTint.Red) : instance.Shape(pass.Look);
+                bool own = !plan;
                 // A hovered gold object draws its material's twin (Unity draws the twin over it, one queue later).
                 if (Hover.Swap && pass.Submesh < _shown.Model.Materials.Count
                     && ObjectMaterialLook.HoverTwin(_shown.Model.Materials[pass.Submesh]) is ObjectMaterialLook twin)
+                {
                     look = twin with { QueueOffset = 0 };
+                    own = false;
+                }
                 _blended |= look.Blend != KmfBlend.Opaque;
-                bool red = kmfBlended ? Hover.RedBlended : Hover.RedOpaque;
-                Node.SetSurfaceOverrideMaterial(surface, _scene.MaterialFor(look, red, environment[pass.Submesh]));
+                bool alphaBlended = look.Blend == KmfBlend.AlphaBlend;
+                _alphaBlended |= alphaBlended;
+                ObjectMaterialLook? environmentPass = environment[pass.Submesh];
+                bool extras = alphaBlended && ((environmentPass != null && instance.EnvironmentDrawn)
+                    || (kmfBlended ? Hover.RedBlended : Hover.RedOpaque));
+                Node.SetSurfaceOverrideMaterial(surface,
+                    _scene.MaterialFor(new ObjectSurfaceKey(look, environmentPass, own, kmfBlended, extras)));
             }
+            SetInstanceLook(instance);
+            SetRed(Hover);
             if (_blended) Node.SortingUseAabbCenter = false;
             _appliedHover = Hover;
             _sortStamp = -1;
         }
+
+        /// <summary>The drawn thing's instance uniforms (Shaders/World.gdshaderinc) from <paramref name="instance"/>, each
+        /// written only when it changed.</summary>
+        private void SetInstanceLook(in ModelInstanceLook instance)
+        {
+            if (instance.Tint != _instance.Tint) Node.SetInstanceShaderParameter(TintParameter, ToGodot(instance.Tint));
+            if (instance.Alpha != _instance.Alpha) Node.SetInstanceShaderParameter(AlphaParameter, instance.Alpha);
+            if (instance.EnvironmentDrawn != _instance.EnvironmentDrawn)
+                Node.SetInstanceShaderParameter(EnvironmentDrawnParameter, instance.EnvironmentDrawn ? 1f : 0f);
+            _instance = instance;
+        }
+
+        /// <summary>The hover's red on the surfaces made from opaque (x) and blended (y) KMF materials.</summary>
+        private void SetRed(HoverLooks hover)
+        {
+            var red = new Vector2(hover.RedOpaque ? 1f : 0f, hover.RedBlended ? 1f : 0f);
+            if (red != _red) { _red = red; Node.SetInstanceShaderParameter(RedParameter, red); }
+        }
+
+        private ModelInstanceLook _instance = ModelInstanceLook.None;
+        private Vector2 _red;
+        // Whether a surface is alpha-blended: its red draws as a next pass, which a material change brings.
+        private bool _alphaBlended;
 
         /// <summary>The hover overlay this frame asks for (<see cref="WorldScene.DrawHoverOverlay"/>); applied by
         /// <see cref="CommitHover"/>.</summary>
@@ -803,7 +835,14 @@ public partial class WorldScene
         /// <summary>The asked-for hover overlay on the surfaces, when it changed; allocation-free once the materials exist.</summary>
         public void CommitHover()
         {
-            if (!Freed && Hover != _appliedHover) ApplyLooks();
+            if (Freed || Hover == _appliedHover) return;
+            // Only the gold swap, or a red on an alpha-blended surface (its next pass), changes a material.
+            if (Hover.Swap != _appliedHover.Swap || _alphaBlended) ApplyLooks();
+            else
+            {
+                SetRed(Hover);
+                _appliedHover = Hover;
+            }
         }
 
         /// <summary>The shown model's posed vertices and their box: the clip's last sample, else the model's own.</summary>
@@ -1024,7 +1063,9 @@ public partial class WorldScene
                     if (pass.Look.EnvironmentMapped) environment[pass.Submesh] = pass.Look;
                 foreach (ObjectPass pass in _scene._passes)
                     if (!pass.Look.EnvironmentMapped && _model.SurfaceOf[pass.Submesh] >= 0)
-                        mesh.SurfaceSetMaterial(_model.SurfaceOf[pass.Submesh], _scene.MaterialFor(pass.Look, false, environment[pass.Submesh]));
+                        mesh.SurfaceSetMaterial(_model.SurfaceOf[pass.Submesh],
+                            _scene.MaterialFor(new ObjectSurfaceKey(pass.Look, environment[pass.Submesh], true, false,
+                                pass.Look.Blend == KmfBlend.AlphaBlend && environment[pass.Submesh] != null)));
                 return;
             }
             // Bent again in place, as Unity's ClassicTorchGeometry.Refresh rewrites its vertices.
@@ -1066,17 +1107,7 @@ public partial class WorldScene
             _scene = scene;
             if (!provider.TryResolve(ClassicTorchFlame.Asset, out ResolvedAsset asset)
                 || !provider.TryGetSprite(asset, out EffectSpriteResource sprite)) return;
-            var shader = new Shader
-            {
-                Code = "shader_type spatial;\nrender_mode unshaded, blend_add, depth_draw_never, cull_disabled;\n"
-                    + "uniform sampler2D frame_texture : filter_linear, repeat_disable;\n" + PossessionFadeDeclarations
-                    // Turned as the camera is, as Unity sets the sprite's rotation to the camera's.
-                    + "void vertex() {\nMODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], "
-                    + "INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);\n"
-                    + "dk2_possession_brightness = dk2_possession_fade((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz, PROJECTION_MATRIX);\n}\n"
-                    + "void fragment() {\nvec4 c = texture(frame_texture, UV);\n" + PossessionFadeFragment
-                    + "ALBEDO = c.rgb;\nALPHA = c.a;\n}\n",
-            };
+            var shader = GD.Load<Shader>("res://Shaders/TorchFlame.gdshader");
             int width = 0, height = 0;
             for (int frame = 0; frame < sprite.StoredFrameCount; frame++)
             {

@@ -91,6 +91,43 @@ public sealed class ObjectMaterialLookTests
             Opaque.Tinted(new TerrainLightColour(300, 40, 0)));
     }
 
+    /// <summary><see cref="ObjectMaterialLook.Faded"/> replaces the colour's alpha, an engine multiplying it per drawn thing
+    /// multiplies it; the two agree only because every look a model surface can fade with has a whole alpha: a KMF
+    /// material's own look, its hover twin and a plan. The fade's blend is <see cref="ObjectMaterialLook.FadeShape"/>.</summary>
+    [Fact]
+    public void EveryLookThatFadesHasAWholeAlpha()
+    {
+        foreach (KmfBlend blend in new[] { KmfBlend.Opaque, KmfBlend.AlphaBlend, KmfBlend.Additive })
+            Assert.Equal(1f, ObjectMaterialLook.Own(new ClassicMaterialRecipe("T", blend, 0.5f)).Colour.W);
+        Assert.Equal(1f, ObjectMaterialLook.Blueprint(true).Colour.W);
+        Assert.Equal(1f, ObjectMaterialLook.Blueprint(false).Colour.W);
+        Assert.Equal(1f, ObjectMaterialLook.HoverTwin(Material(KmfMaterial.TranslucentFlags, 0.25f, 0, "", "G0", "G1"))!.Value.Colour.W);
+        foreach (ObjectMaterialLook look in new[] { Opaque, Alpha, Additive })
+        {
+            Assert.Equal(look.Faded(100) with { Colour = look.Colour }, look.FadeShape());
+            Assert.Equal(KmfBlend.AlphaBlend, look.FadeShape().Blend);
+            Assert.True(look.FadeShape().WritesDepth);
+        }
+        Assert.Equal(Environment, Environment.FadeShape());
+        Assert.Equal(1f, ObjectMaterialLook.FadeAlpha(255));
+        Assert.Equal(100 / 255f, ObjectMaterialLook.FadeAlpha(100));
+    }
+
+    /// <summary>A tint split the same way: the light it adds, summed onto the own light, is <see cref="ObjectMaterialLook.Tinted"/>'s
+    /// and <see cref="ObjectMaterialLook.InstanceTinted"/>'s added light to the bit, zero where they keep the look.</summary>
+    [Fact]
+    public void ATintIsTheOwnLightPlusItsTintLight()
+    {
+        foreach (TerrainLightColour tint in new[] { default, new TerrainLightColour(300, 40, 0), new TerrainLightColour(256, 512, 0),
+                     new TerrainLightColour(1000, 700, 90) })
+            foreach (ObjectMaterialLook look in new[] { Opaque, Alpha })
+                Assert.Equal(look.Tinted(tint).AddedLight, look.AddedLight + ObjectMaterialLook.TintLight(tint));
+        Assert.Equal(Vector3.Zero, ObjectMaterialLook.TintLight(new TerrainLightColour(256, 512, 0)));
+        for (int v = 0; v < 256; v += 17)
+            Assert.Equal(Opaque.InstanceTinted((byte)v, 0, (byte)(255 - v)).AddedLight,
+                Opaque.AddedLight + ObjectMaterialLook.InstanceTintLight((byte)v, 0, (byte)(255 - v)));
+    }
+
     /// <summary>The old ElementTinted and InstanceTinted: the RenderInfo tint over 255 added to the own light; an
     /// additive material and the environment pass keep theirs.</summary>
     [Fact]

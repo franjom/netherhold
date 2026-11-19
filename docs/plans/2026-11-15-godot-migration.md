@@ -914,11 +914,36 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         Forward+, Debug C#, a heavily loaded machine, so rough), GPU p50 at 1080p: classic Level1 1.9 ms, Level7 2.4 ms;
         modern Level1 6.2 ms, Level7 9.3 ms; draw calls classic 143 and 320, modern about 490 and about 995. Open: a quiet
         re-run, from which step 4's targets are set.
-  - [ ] 3p. Material model: one world shader with instance uniforms, the per-tile state texture, few `.gdshader`
-        resources (audit items 7, 15, 3), on the prototype's shader.
+  - [x] 3p. Material model, audit items 7 and 15 (2026-11-19, ADR-0813): one world shader, `Shaders/World.gdshaderinc`
+        with DK2's light in `WorldLight.gdshaderinc` (pinned by `ClassicVertexLightShaderTextTests`, now expanded as Godot's
+        preprocessor does, with and without the shadows), in four render-state `.gdshader` files; full light, model inputs
+        and the environment pass are material uniforms, an object's tint and fade, a structure's tint and the hover's red
+        are instance uniforms (the shared `ModelInstanceLook`, tested against `Tinted`, `InstanceTinted` and `Faded`);
+        `_redMaterials`, `_chainedMaterials` and `Copy` are gone, and only an alpha-blended surface keeps a next pass, one
+        additive material with its environment pass and red over the whole triangle (DK2's 0x200 overlay, so a Fear
+        Trap's or Hero Portcullis's blended parts redden whole); `--light-perpixel` and `--light-shadows` add their defines
+        once a run, kept for the run; the cage and flame shaders are files too; `ClassicLightTableLayout.Substitute` is
+        deleted. Frames against HEAD at
+        Level1 start and tick 70 (Movie Maker, 1920x1080, scripted pointer): flags off identical but the Heart's
+        environment-mapped surface, about 2,500 to 4,900 pixels off by 1 (the pass is added in the shader, not blended
+        in the half-float buffer); with `--light-perpixel --light-shadows --light-post` 3,800 to 5,100 pixels, all but 3
+        off by 1 to 3 (the environment shine now sits under the occlusion), none visible side by side. A hovered imp is
+        now red all over; HEAD drew its red twin with black triangles (the `docs/TRAPS.md` depth trap). Every shipped
+        Fear Trap and Hero Portcullis is the heroes' and unexplored at its level's start, so the blended red was captured
+        with a capture-only build reddening every object over the Heart's fading arches: whole triangles red, as HEAD,
+        less HEAD's black ones. Harness (Level1 and
+        Level7, 1080p, `-Repeat 2`, 20 to 30% other load, rough): world shaders 4-6 to 2-3, materials 32-37 to 27 and
+        108-113 to 94, draw calls -5 (L1) and -5 (L7) flags off, -11 and -7 flags on; flags-off GPU p50 1.91 to 1.96 ms
+        (L1) and 2.72 to 2.59 (L7), frame p50 4.38 to 4.49 and 5.92 to 6.41 (inside the load noise); flags on, GPU
+        p50 within the noise (interleaved Level1 runs: HEAD 5.28 and 5.93 ms, after 5.75 and 6.12; the same build
+        spans 5.3 to 6.2 ms across runs); per-frame allocation p50 unchanged.
+        Turn-400 hash unchanged (`B5C0CB842094AB59` on HEAD and after). Item 3, the per-tile state texture, is open.
+  - [ ] 3p-b. Terrain state texture (audit item 3): tag, red and tint as texels read through a per-vertex state source
+        (a room wall takes its neighbour's tag and tint), the opaque overlays in the shader, no chunk rebuild on a
+        state-only change; after 3q.
   - [ ] 3q. Blended ordering: real-depth run keys and index-only re-sorts, `ZeroOrderOffset` deleted (item 5), before 3k.
-  - [ ] 3j. Creature shadows, folded into lighting: DK2's caster rule only (three nearest torches within 2.5 tiles) picks
-        the shadow-casting lights; Godot's shadows draw; no silhouette projection.
+  - [x] 3j. Creature shadows, folded into lighting: done as lighting step 2 (`--light-shadows`, ClassicShadowSourceSelector,
+        the 2 torches nearest the camera focus; real distance-map shadows, no silhouette projection).
   - [ ] 3k. Effects and flowers on MultiMesh over the CPU particle simulation, with the torch flames (item 6).
   - [ ] 3l. Lightning.
   - [x] 3m. Possession (2026-11-18, ADR-0805; no simulation change, no hash or save bump). Moved into `DK2.Presentation`

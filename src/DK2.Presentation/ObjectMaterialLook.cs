@@ -72,11 +72,22 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
         !TakesAddedLight || ClassicTerrainTint.PieceColour(tint) == default ? this
             : this with { AddedLight = TerrainMaterialLook.TintedLight(AddedLight, tint) };
 
+    /// <summary>The light <see cref="Tinted"/> adds to a look that takes added light: the tint cut to a piece's bytes,
+    /// over 255; zero for a tint cut to zero. An engine adding it per drawn thing shares one material across tints.</summary>
+    public static Vector3 TintLight(TerrainLightColour tint)
+    {
+        TerrainLightColour piece = ClassicTerrainTint.PieceColour(tint);
+        return new Vector3(piece.Red / 255f, piece.Green / 255f, piece.Blue / 255f);
+    }
+
+    /// <summary>The light <see cref="InstanceTinted"/> adds to a look that takes added light: the RGB over 255.</summary>
+    public static Vector3 InstanceTintLight(byte red, byte green, byte blue) => new(red / 255f, green / 255f, blue / 255f);
+
     /// <summary>Lit by a RenderInfo tint more, the element's RGB over 255 (<c>0x00580480</c>, <c>0x00581BE0</c>): an
     /// effect element's tint, or a built door's grey <see cref="WorldView.BuiltDoorTint"/>.</summary>
     public ObjectMaterialLook InstanceTinted(byte red, byte green, byte blue) =>
         !TakesAddedLight || (red | green | blue) == 0 ? this
-            : this with { AddedLight = AddedLight + new Vector3(red / 255f, green / 255f, blue / 255f) };
+            : this with { AddedLight = AddedLight + InstanceTintLight(red, green, blue) };
 
     /// <summary>Drawn at <paramref name="alpha"/> (object <c>+0x8F</c>; 255 as it is, 0 not drawn, <see cref="IsDrawn"/>):
     /// alpha-blended and still writing depth, since the Heart's Arches and Big Steps fade in as several objects that DK2
@@ -86,8 +97,17 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
     {
         if (alpha == byte.MaxValue) return this;
         if (EnvironmentMapped) return this with { Colour = Vector4.Zero };
-        return this with { Blend = KmfBlend.AlphaBlend, WritesDepth = true, Colour = Colour with { W = alpha / 255f } };
+        return FadeShape() with { Colour = Colour with { W = FadeAlpha(alpha) } };
     }
+
+    /// <summary>The look <see cref="Faded"/> draws with at any alpha below 255, its colour's alpha kept: alpha-blended,
+    /// writing depth. An engine multiplying the fade's alpha (<see cref="FadeAlpha"/>) per drawn thing shares one
+    /// material across alphas. An environment pass keeps its look; faded, it draws black.</summary>
+    public ObjectMaterialLook FadeShape() =>
+        EnvironmentMapped ? this : this with { Blend = KmfBlend.AlphaBlend, WritesDepth = true };
+
+    /// <summary>A fade's alpha as <see cref="Faded"/> writes it into the colour.</summary>
+    public static float FadeAlpha(byte alpha) => alpha / 255f;
 
     /// <summary>Whether a model at <paramref name="alpha"/> draws at all.</summary>
     public static bool IsDrawn(byte alpha) => alpha > 0;

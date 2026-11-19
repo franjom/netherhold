@@ -13,8 +13,9 @@ namespace DK2.GodotAdapter;
 
 /// <summary>The classic lighting (plan step 3i), as Unity's <c>DungeonScene</c> and <c>ClassicVertexLit.shader</c> light
 /// the world: the scene's light sources in a <see cref="ClassicWorldLightCache"/>, the visible tiles' tables published by
-/// <see cref="ClassicLightPublisher"/> into <see cref="LightTables"/>, and each lit vertex summing them in its shader
-/// (<see cref="ClassicVertexLight"/>), plus DK2's ambient and Godot's own fill and distance fade.</summary>
+/// <see cref="ClassicLightPublisher"/> into <see cref="LightTables"/>, and each lit vertex summing them in the world shader
+/// (Shaders/WorldLight.gdshaderinc, <see cref="ClassicVertexLight"/>), plus DK2's ambient and Godot's own fill and
+/// distance fade.</summary>
 public partial class WorldScene
 {
     // Godot's own fill (audit open point 2), off by default: the owner's saved Unity scene (Dungeon.unity) has native
@@ -34,7 +35,11 @@ public partial class WorldScene
         AmbientGlobal = "dk2_ambient", FillSkyGlobal = "dk2_fill_sky", FillEquatorGlobal = "dk2_fill_equator",
         FillGroundGlobal = "dk2_fill_ground", FillSunGlobal = "dk2_fill_sun", FillSunDirectionGlobal = "dk2_fill_sun_direction",
         FillTintGlobal = "dk2_fill_tint", UnlitFillGlobal = "dk2_unlit_fill", FillFloorGlobal = "dk2_fill_floor",
-        FadeGlobal = "dk2_fade";
+        FadeGlobal = "dk2_fade", HoverRedGlobal = "dk2_hover_red";
+
+    /// <summary>The hover's red pass: the overlay look's colour (RedTexture's), which the world shader adds.</summary>
+    private static readonly NVector3 HoverRed = new(ObjectMaterialLook.HoverOverlay().Colour.X,
+        ObjectMaterialLook.HoverOverlay().Colour.Y, ObjectMaterialLook.HoverOverlay().Colour.Z);
 
     private ClassicWorldLightCache? _worldLights;
     private ClassicLightPublisher? _lightPublisher;
@@ -58,8 +63,8 @@ public partial class WorldScene
     public bool Fill { get; set; }
 
     /// <summary>DK2's light evaluated per pixel (<c>--light-perpixel</c>): the same tables, formulas, clamp and pack as the
-    /// classic per-vertex light, in the fragment step from the interpolated position and normals (<see cref="LitFragment"/>).
-    /// Set before <see cref="Open"/>; off, the shaders are the classic ones, byte for byte.</summary>
+    /// classic per-vertex light, in the fragment step from the interpolated position and normals (DK2_PER_PIXEL in
+    /// Shaders/World.gdshaderinc). Set before <see cref="Open"/>; off, the light is evaluated per vertex.</summary>
     public bool PerPixelLight { get; set; }
 
     /// <summary>The scene's lights over a <paramref name="width"/> by <paramref name="height"/> map: Unity's
@@ -86,6 +91,8 @@ public partial class WorldScene
         Global(UnlitFillGlobal, RenderingServer.GlobalShaderParameterType.Float, UnlitFill);
         Global(FillFloorGlobal, RenderingServer.GlobalShaderParameterType.Float, FillFloor);
         Global(FadeGlobal, RenderingServer.GlobalShaderParameterType.Vec3, new Vector3(FadeStart, FadeEnd, 1f));
+        // The hover's red pass (Shaders/World.gdshaderinc): RedTexture's colour, as the overlay material drew it.
+        Global(HoverRedGlobal, RenderingServer.GlobalShaderParameterType.Vec3, ToGodot(HoverRed));
     }
 
     /// <summary>A global the shaders read, added once per run and set by every later scene (a reload); Godot's own list of
@@ -169,8 +176,8 @@ public partial class WorldScene
 
     private void ReportLighting() =>
         GD.Print("DK2.Godot lighting: ", _lightFrames, " frames, ", _lightPublishes, " published, ", _lightTables?.RowsUploaded ?? 0,
-            " table rows uploaded (in ", Milliseconds(_lightTables?.UploadTicks ?? 0), " ms), ", _chainedMaterials.Count,
-            " materials with an environment pass; after the first ", DrawWarmUp, " frames ", _lightBytes, " B allocated in ",
+            " table rows uploaded (in ", Milliseconds(_lightTables?.UploadTicks ?? 0), " ms), ", _worldMaterialsMade,
+            " world materials; after the first ", DrawWarmUp, " frames ", _lightBytes, " B allocated in ",
             Math.Max(0, _lightFrames - DrawWarmUp - _lightMovedFrames), " with the camera still (", _lightListBytes,
             " B of it by WorldView.LightObjects) and ", _lightMovedBytes, " B in ", _lightMovedFrames, " that moved it; ",
             Milliseconds(_lightTicks / Math.Max(1, _lightFrames - DrawWarmUp - _lightMovedFrames)), " ms mean and ",
@@ -287,214 +294,6 @@ public partial class WorldScene
             _anyDirty = true;
         }
     }
-
-    /// <summary>The shaders' DK2 light, copied from the tested <see cref="ClassicVertexLight"/> (keep the two equal) in
-    /// Godot's frame (Z negated: every dot product and length is the same): the table a vertex reads, the bound skip, the
-    /// per-flag sum and the packed diffuse; then Godot's fill and fade around it as Unity's shader composes them.</summary>
-    private static readonly string LightFunctions = ClassicLightTableLayout.Substitute("""
-        global uniform sampler2DArray dk2_light_tables;
-        global uniform ivec2 dk2_light_grid;
-        global uniform vec3 dk2_ambient;
-        global uniform vec3 dk2_fill_sky;
-        global uniform vec3 dk2_fill_equator;
-        global uniform vec3 dk2_fill_ground;
-        global uniform vec3 dk2_fill_sun;
-        global uniform vec3 dk2_fill_sun_direction;
-        global uniform vec3 dk2_fill_tint;
-        global uniform float dk2_unlit_fill;
-        global uniform float dk2_fill_floor;
-        global uniform vec3 dk2_fade;
-        varying vec3 dk2_diffuse;
-        vec4 dk2_texel(int tile, int texel) {
-            int w = dk2_light_grid.x;
-            int x = tile % w;
-            return texelFetch(dk2_light_tables, ivec3((x % TILES_PER_ROW) * TEXELS_PER_TILE + texel, x / TILES_PER_ROW, tile / w), 0);
-        }
-        int dk2_bin(float d2) { return int(roundEven(d2 * 16.0 - 0.49999)); }
-        bool dk2_negative(float x) { return (floatBitsToUint(x) & 2147483648u) != 0u; }
-        bool dk2_point(vec3 v, vec3 n, vec4 pr, vec4 ci, out vec3 c) {
-            c = vec3(0.0);
-            vec3 to_light = pr.xyz - v;
-            float d2 = dot(to_light, to_light);
-            if (pr.w <= 0.0 || d2 >= pr.w) return true;
-            float incidence = dot(n, to_light) * ci.w;
-            if (dk2_negative(incidence)) return true;
-            int index = dk2_bin(d2);
-            if (index < 0 || index >= 256) return false;
-            if (index == 0) {
-                if (incidence == 0.0) return false;
-                c = ci.rgb;
-                return true;
-            }
-            float factor = incidence * (0.25 + 16.0 / float(index)) * (pr.w - d2) / pr.w;
-            c = ci.rgb * min(factor, 1.0);
-            return true;
-        }
-        bool dk2_instance(vec3 s, vec3 centre, vec3 vos, vec3 nos, mat3 basis, vec4 pr, vec4 ci, out vec3 c) {
-            c = vec3(0.0);
-            vec3 delta = pr.xyz - s;
-            float d2 = (delta.x * delta.x + delta.y * delta.y) + delta.z * delta.z;
-            if (pr.w <= 0.0 || d2 >= pr.w) return true;
-            int index = dk2_bin(d2);
-            if (index < 0 || index >= 256) return false;
-            vec3 d = transpose(basis) * delta - (vos - centre);
-            float incidence = ((d.x * nos.x + d.z * nos.z) + d.y * nos.y) * ci.w;
-            if (dk2_negative(incidence)) return true;
-            if (index == 0) {
-                if (incidence == 0.0) return false;
-                c = ci.rgb;
-                return true;
-            }
-            float attenuation = (pr.w - d2) * (0.25 + 16.0 / float(index)) * (1.0 / pr.w);
-            if (!(attenuation > 0.0)) return true;
-            c = ci.rgb * min(incidence * attenuation, 1.0);
-            return true;
-        }
-        vec3 dk2_radial(vec3 s, vec4 pr, vec4 ci) {
-            vec3 delta = pr.xyz - s;
-            float d2 = dot(delta, delta);
-            if (pr.w <= 0.0 || d2 >= pr.w) return vec3(0.0);
-            int index = dk2_bin(d2);
-            if (index < 0 || index >= 256) return vec3(0.0);
-            if (index == 0) return ci.rgb;
-            float factor = (0.25 + 16.0 / float(index)) * (pr.w - d2) * ci.w * (1.0 / pr.w);
-            return ci.rgb * min(factor, 1.0);
-        }
-        int dk2_tile(vec2 anchor, vec3 origin) {
-            int w = dk2_light_grid.x;
-            int count = w * dk2_light_grid.y;
-            if (count <= 0 || w <= 0) return -1;
-            int tile;
-            if (anchor.y >= 1.0) tile = int(anchor.x);
-            else {
-                int x = int(floor(origin.x));
-                int y = int(floor(origin.z));
-                if (x < 0 || x >= w || y < 0) return -1;
-                tile = y * w + x;
-            }
-            return (tile < 0 || tile >= count) ? -1 : tile;
-        }
-        vec3 dk2_table_sum(vec2 anchor, vec4 bounds, vec2 kind, vec3 vos, vec3 nos, mat4 model, vec3 pws, vec3 nws) {
-            vec3 origin = model[3].xyz;
-            int tile = dk2_tile(anchor, origin);
-            if (tile < 0) return vec3(0.0);
-            int count = min(int(dk2_texel(tile, 0).r), MAXIMUM_SOURCES);
-            mat3 basis = mat3(model);
-            vec3 centre = basis * bounds.xyz;
-            vec3 s = origin + centre;
-            vec3 sum = vec3(0.0);
-            for (int slot = 0; slot < count; slot++) {
-                vec4 pr = dk2_texel(tile, 1 + slot * 2);
-                vec4 cf = dk2_texel(tile, 2 + slot * 2);
-                uint packed_flags = uint(cf.a);
-                uint flags = packed_flags >> 8u;
-                vec4 ci = vec4(cf.rgb, float(packed_flags & 255u) / 128.0);
-                vec3 c;
-                if (kind.y == 1.0) {
-                    float scale = length(basis * vec3(1.0, 0.0, 0.0));
-                    float radius = sqrt(pr.w) + bounds.w * scale;
-                    vec3 delta = pr.xyz - s;
-                    if (dot(delta, delta) >= radius * radius) continue;
-                }
-                if (kind.x == 1.0) {
-                    if ((flags & 4u) == 4u) sum += dk2_radial(origin, pr, ci);
-                    if ((flags & 256u) == 256u && dk2_instance(s, centre, vos, nos, basis, pr, ci, c)) sum += c;
-                } else if (dk2_point(pws, nws, pr, ci, c)) {
-                    if ((flags & 96u) == 96u) sum += c;
-                    if ((flags & 160u) == 160u || (flags & 1u) == 1u) sum += c;
-                }
-            }
-            return sum;
-        }
-        vec3 dk2_packed(vec3 s) { return min(floor(max(s, vec3(0.0)) * 255.0 + 0.00001), vec3(255.0)) / 255.0; }
-        float dk2_fill_weight(vec2 anchor, vec3 world) {
-            int w = dk2_light_grid.x;
-            int count = w * dk2_light_grid.y;
-            if (count <= 0 || w <= 0) return 1.0;
-            int tile;
-            if (anchor.y == 1.0) tile = int(anchor.x);
-            else {
-                int x = int(floor(world.x));
-                int y = int(floor(world.z));
-                if (x < 0 || x >= w || y < 0) return 1.0;
-                tile = y * w + x;
-            }
-            return (tile >= 0 && tile < count) ? mix(dk2_unlit_fill, 1.0, dk2_texel(tile, 0).g) : 1.0;
-        }
-        vec3 dk2_light(vec2 anchor, vec4 bounds, vec2 kind, vec3 vos, vec3 nos, mat4 model, vec3 world, vec3 nws,
-                vec3 added, vec3 eye) {
-            vec3 sum = dk2_ambient + dk2_table_sum(anchor, bounds, kind, vos, nos, model, world, nws);
-            // Terrain tops carry DK2's inverted lighting normal; the fill wants the surface's own.
-            vec3 fn = (anchor.y == 1.0 && nws.y < 0.0) ? -nws : nws;
-            vec3 sky = fn.y >= 0.0 ? mix(dk2_fill_equator, dk2_fill_sky, fn.y) : mix(dk2_fill_equator, dk2_fill_ground, -fn.y);
-            vec3 fill = (sky + dk2_fill_sun * max(dot(fn, dk2_fill_sun_direction), 0.0)) * dk2_fill_tint
-                * dk2_fill_weight(anchor, world);
-            if (anchor.y == 2.0) fill = vec3(0.0);
-            if (dk2_fill_floor > 0.0 && kind.x != 1.0)
-                fill *= clamp(1.0 - dot(sum, vec3(0.299, 0.587, 0.114)) / dk2_fill_floor, 0.0, 1.0);
-            sum += fill + added;
-            if (dk2_fade.y > dk2_fade.x) {
-                float reach = length(world - eye) / dk2_fade.z;
-                sum *= clamp((dk2_fade.y - reach) / (dk2_fade.y - dk2_fade.x), 0.0, 1.0);
-            }
-            return dk2_packed(sum);
-        }
-        """);
-
-    /// <summary>The vertex step of a lit shader: <see cref="LightFunctions"/> for the vertex, whose light inputs are a
-    /// terrain vertex's anchor (CUSTOM0.xy) or a model's bound sphere (CUSTOM0) and anchor and kind (CUSTOM1); an
-    /// environment pass also sets its UV (0x00582290, <see cref="EnvironmentMapCoordinates"/>: the eye in camera space with
-    /// z into the screen, the world normal in DK2's frame, halved).</summary>
-    private static string LitVertex(bool model, bool environment) =>
-        "void vertex() {\nvec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;\n"
-        + "vec3 nws = normalize(MODEL_NORMAL_MATRIX * NORMAL);\n"
-        + (model ? "vec4 bounds = CUSTOM0;\nvec2 anchor = CUSTOM1.xy;\nvec2 kind = CUSTOM1.zw;\n"
-            : "vec4 bounds = vec4(0.0);\nvec2 anchor = CUSTOM0.xy;\nvec2 kind = vec2(0.0);\n")
-        + "dk2_diffuse = dk2_light(anchor, bounds, kind, VERTEX, NORMAL, MODEL_MATRIX, world, nws, added_light, CAMERA_POSITION_WORLD);\n"
-        + (environment
-            ? "vec3 view = (VIEW_MATRIX * vec4(world, 1.0)).xyz;\nvec3 eye = normalize(vec3(view.x, view.y, -view.z));\n"
-                + "vec3 n = 0.5 * vec3(nws.x, nws.z, -nws.y);\n"
-                + "UV = vec2(n.z * eye.x - n.x * eye.z, n.z * eye.y - n.y * eye.z) + 0.5;\n"
-            : "")
-        + PlaceOutputs + "}\n";
-
-    /// <summary>The vertex step of a per-pixel lit shader (<see cref="PerPixelLight"/>): <see cref="LitVertex"/>'s inputs
-    /// handed to the fragment step. The position and normals interpolate; the anchor, bounds, kind and model transform are
-    /// flat, so a tile index never drifts by interpolation and a model's table and basis are its own.</summary>
-    private static string PerPixelVertex(bool model, bool environment) =>
-        "void vertex() {\nvec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;\n"
-        + "vec3 nws = normalize(MODEL_NORMAL_MATRIX * NORMAL);\n"
-        + "dk2_world = world;\ndk2_nws = nws;\ndk2_vos = VERTEX;\ndk2_nos = NORMAL;\n"
-        + (model ? "dk2_bounds = CUSTOM0;\ndk2_anchor_kind = CUSTOM1;\n"
-            : "dk2_bounds = vec4(0.0);\ndk2_anchor_kind = vec4(CUSTOM0.xy, 0.0, 0.0);\n")
-        + "dk2_m0 = MODEL_MATRIX[0];\ndk2_m1 = MODEL_MATRIX[1];\ndk2_m2 = MODEL_MATRIX[2];\ndk2_m3 = MODEL_MATRIX[3];\n"
-        + (environment
-            ? "vec3 view = (VIEW_MATRIX * vec4(world, 1.0)).xyz;\nvec3 eye = normalize(vec3(view.x, view.y, -view.z));\n"
-                + "vec3 n = 0.5 * vec3(nws.x, nws.z, -nws.y);\n"
-                + "UV = vec2(n.z * eye.x - n.x * eye.z, n.z * eye.y - n.y * eye.z) + 0.5;\n"
-            : "")
-        + PlaceOutputs + "}\n";
-
-    /// <summary><see cref="PerPixelVertex"/>'s varyings, declared after <see cref="LightFunctions"/>.</summary>
-    private const string PerPixelVaryings = "varying vec3 dk2_world;\nvarying vec3 dk2_nws;\nvarying vec3 dk2_vos;\n"
-        + "varying vec3 dk2_nos;\nvarying flat vec4 dk2_bounds;\nvarying flat vec4 dk2_anchor_kind;\n"
-        + "varying flat vec4 dk2_m0;\nvarying flat vec4 dk2_m1;\nvarying flat vec4 dk2_m2;\nvarying flat vec4 dk2_m3;\n";
-
-    /// <summary>The per-pixel light the fragment step multiplies by: <see cref="LightFunctions"/>' <c>dk2_light</c> over
-    /// the interpolated world position and the interpolated normals, renormalised (the vertex's are unit).</summary>
-    private const string LitFragment = "vec3 dk2_diffuse_px = dk2_light(dk2_anchor_kind.xy, dk2_bounds, dk2_anchor_kind.zw, "
-        + "dk2_vos, normalize(dk2_nos), mat4(dk2_m0, dk2_m1, dk2_m2, dk2_m3), dk2_world, normalize(dk2_nws), added_light, "
-        + "CAMERA_POSITION_WORLD);\n";
-
-    /// <summary>The vertex step of a full-light shader: only the placement.</summary>
-    private const string PlacedVertex = "void vertex() {\n" + PlaceOutputs + "}\n";
-
-    /// <summary>Every world shader places its vertex itself (<c>skip_vertex_transform</c>) with this one expression, at
-    /// the end of its vertex step (VERTEX and NORMAL stay model-space before it): with Godot placing it, the lit shaders
-    /// drew whole triangles of moved models in the clear colour, as if they failed the depth test against the prepass
-    /// (the cause is not established; docs/TRAPS.md).</summary>
-    private const string PlaceOutputs = "NORMAL = normalize((MODELVIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);\n"
-        + "VERTEX = (MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;\n" + PossessionFadeVertex + PossessionVisibilityVertex;
 
     /// <summary>A gamma table of <paramref name="exponent"/> over the display values (Unity's <c>ClassicExposure</c>,
     /// <c>pow(c, 30 / Gamma)</c>), folded into the camera's colour correction table: the 3D view's brightness, the HUD's

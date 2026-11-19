@@ -144,7 +144,9 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 
 1. The lighting prototype: built and adopted, tuning next, the default switch awaiting the owner's acceptance.
 2. 3o performance harness (item 0): done.
-3. 3p material model (items 7, 15, 3 together) on the prototype's shader.
+3. 3p material model on the prototype's shader: items 7 and 15 done (2026-11-19, the migration plan's 3p entry);
+   item 3 is still open, after 3q (a room wall takes its neighbour's tag and tint, so the state texture needs a
+   per-vertex state source, and folding the overlays changes their order against `--light-post`'s occlusion).
 4. 3q blended ordering (item 5), before 3k.
 5. 3j folded into lighting: done as lighting step 2 (`--light-shadows`).
 6. 3k on MultiMesh, with the flames (item 6).

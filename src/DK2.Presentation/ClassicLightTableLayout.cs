@@ -3,7 +3,6 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
-using System.Globalization;
 using DK2.Core;
 
 namespace DK2.Presentation;
@@ -40,12 +39,6 @@ public static class ClassicLightTableLayout
         int width = LayerWidth(mapWidth);
         return (((layer * LayerHeight(mapWidth)) + row) * width + x) * 4;
     }
-
-    /// <summary>A shader template with <c>TEXELS_PER_TILE</c>, <c>TILES_PER_ROW</c> and <c>MAXIMUM_SOURCES</c> written out.</summary>
-    public static string Substitute(string template) => (template ?? throw new ArgumentNullException(nameof(template)))
-        .Replace("TEXELS_PER_TILE", TexelsPerTile.ToString(CultureInfo.InvariantCulture))
-        .Replace("TILES_PER_ROW", TilesPerTextureRow.ToString(CultureInfo.InvariantCulture))
-        .Replace("MAXIMUM_SOURCES", ClassicLightTable.MaximumSources.ToString(CultureInfo.InvariantCulture));
 
     private static int Positive(int width) => width > 0 ? width : throw new ArgumentOutOfRangeException(nameof(width));
 }

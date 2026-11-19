@@ -77,9 +77,4 @@ public class ClassicLightTableLayoutTests
         Assert.Throws<ArgumentOutOfRangeException>(() => ClassicLightTableLayout.LayerWidth(0));
         Assert.Throws<ArgumentOutOfRangeException>(() => ClassicLightTableLayout.LayerHeight(-3));
     }
-
-    [Fact]
-    public void TheShaderPlaceholdersAreTheLayoutsNumbers() =>
-        Assert.Equal("ivec3((x % 83) * 49 + texel, x / 83, tile / w); min(n, 24)",
-            ClassicLightTableLayout.Substitute("ivec3((x % TILES_PER_ROW) * TEXELS_PER_TILE + texel, x / TILES_PER_ROW, tile / w); min(n, MAXIMUM_SOURCES)"));
 }

@@ -35,7 +35,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private const float NearPlane = 0.3f;
 
     private static readonly StringName AlbedoParameter = "albedo_texture", ColourParameter = "base_colour",
-        AddedLightParameter = "added_light";
+        AddedLightParameter = "added_light", FullLightParameter = "full_light";
 
     private InstallArtProvider? _art;
     private TerrainLattice? _lattice;
@@ -73,9 +73,13 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     private readonly Dictionary<TerrainMaterialKey, ShaderMaterial> _keyMaterials = new();
     private readonly Dictionary<TerrainMaterialLook, ShaderMaterial> _lookMaterials = new();
-    private readonly Dictionary<(KmfBlend, bool, bool, bool, bool), Shader> _shaders = new();
+    // The world shader per light mode (per vertex, per pixel, with shadows) and render state, made on first use and kept
+    // for the run, so a level reload compiles none again.
+    private static readonly Shader?[,] s_worldShaders = new Shader?[3, 4];
     private readonly Dictionary<string, Texture2D> _textures = new();
     private ImageTexture? _white;
+    // The world ShaderMaterials made so far, for the performance report.
+    private int _worldMaterialsMade;
 
     // Allocation on the frame's thread inside Present, split by whether the terrain changed that frame.
     private long _steadyBytes, _changeBytes;
@@ -367,10 +371,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         TerrainMaterialLook look = TerrainMaterialLook.For(key);
         if (!_lookMaterials.TryGetValue(look, out material))
         {
-            material = new ShaderMaterial { Shader = ShaderFor(look.Blend, look.FullLight, look.WritesDepth, model: false, environment: false) };
-            material.SetShaderParameter(AlbedoParameter, TextureFor(look.Texture));
-            material.SetShaderParameter(ColourParameter, new Color(look.Colour.X, look.Colour.Y, look.Colour.Z, look.Colour.W));
-            material.SetShaderParameter(AddedLightParameter, ToGodot(look.AddedLight));
+            material = WorldMaterial(look.Texture, look.Blend, look.WritesDepth, look.FullLight, look.Colour, look.AddedLight);
             _lookMaterials.Add(look, material);
             // Unity's split: render queue Transparent, which every non-opaque look takes.
             if (look.Blend != KmfBlend.Opaque) _blendedMaterials.Add(material);
@@ -389,43 +390,62 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         (Mesh.ArrayFormat)(((long)Mesh.ArrayCustomFormat.RgbaFloat << (int)Mesh.ArrayFormat.FormatCustom0Shift)
             | ((long)Mesh.ArrayCustomFormat.RgbaFloat << (int)Mesh.ArrayFormat.FormatCustom1Shift));
 
-    /// <summary>One shader per blend, light, vertex kind and environment pass: the texture times the colour, times the
-    /// vertex's DK2 light (<see cref="LitVertex"/>) unless at full light. The colour buffer holds the stored bytes over 255
-    /// and blends them there, as DK2 and Unity's gamma space do (<see cref="GammaOutput"/>). Opaque writes depth; blended
-    /// draws do not, but for a fading object's (<see cref="ObjectMaterialLook.Faded"/>).</summary>
-    private Shader ShaderFor(KmfBlend blend, bool fullLight, bool writesDepth, bool model, bool environment)
+    /// <summary>The world shader's four render states (Shaders/World*.gdshader): what a uniform cannot switch.</summary>
+    private static readonly string[] WorldShaderPaths =
+    [
+        "res://Shaders/WorldOpaque.gdshader", "res://Shaders/WorldBlend.gdshader", "res://Shaders/WorldBlendDepth.gdshader",
+        "res://Shaders/WorldAdd.gdshader",
+    ];
+
+    /// <summary>The line of each World*.gdshader that <see cref="ShaderFor"/> puts the light mode's defines before.</summary>
+    private const string LightModeMarker = "// DK2_LIGHT_MODE";
+
+    /// <summary>The one world shader (Shaders/World.gdshaderinc) in the render state a look draws with: opaque writes depth;
+    /// blended draws do not, but for a fading object's (<see cref="ObjectMaterialLook.Faded"/>); additive is ONE, ONE.
+    /// The default per-vertex light is the resource as it ships; <see cref="PerPixelLight"/> and
+    /// <see cref="TorchShadowsActive"/> add their defines to its text, once a run. Everything else a look varies is a
+    /// uniform (<see cref="WorldMaterial"/>) or, per drawn thing, an instance uniform (<see cref="ModelSlot.ApplyLooks"/>).</summary>
+    private Shader ShaderFor(KmfBlend blend, bool writesDepth)
     {
-        if (_shaders.TryGetValue((blend, fullLight, writesDepth, model, environment), out Shader? shader)) return shader;
-        string mode = blend switch
+        int state = blend switch
         {
-            KmfBlend.Opaque => "blend_mix, depth_draw_opaque",
-            KmfBlend.AlphaBlend when writesDepth => "blend_mix, depth_draw_always",
-            KmfBlend.AlphaBlend => "blend_mix, depth_draw_never",
-            // ONE/ONE: blend_add weights the source by its alpha, held at 1.
-            _ => "blend_add, depth_draw_never",
+            KmfBlend.Opaque => 0,
+            KmfBlend.AlphaBlend when writesDepth => 2,
+            KmfBlend.AlphaBlend => 1,
+            _ => 3,
         };
-        string alpha = blend switch { KmfBlend.Opaque => "", KmfBlend.AlphaBlend => "ALPHA = c.a;\n", _ => "ALPHA = 1.0;\n" };
-        shader = new Shader
+        int mode = WorldLightMode;
+        if (s_worldShaders[mode, state] is Shader shader) return shader;
+        if (mode == 0) shader = GD.Load<Shader>(WorldShaderPaths[state]);
+        else
         {
-            Code = "shader_type spatial;\nrender_mode unshaded, cull_back, skip_vertex_transform, " + mode + ";\n"
-                + "uniform sampler2D albedo_texture : filter_linear_mipmap, repeat_disable;\n"
-                // A Color set on a plain vec4 is turned linear (material_storage.cpp, _fill_std140_variant_ubo_value).
-                + "uniform vec4 base_colour : source_color, color_conversion_disabled = vec4(1.0);\n"
-                + "uniform vec3 added_light = vec3(0.0);\n" + PossessionFadeDeclarations + PossessionVisibilityDeclarations
-                + (fullLight ? PlacedVertex
-                    : TorchShadowsActive ? ShadowLightFunctions + PerPixelVaryings + ShadowCasterDeclarations(model)
-                        + PerPixelVertex(model, environment)
-                    : PerPixelLight ? LightFunctions + PerPixelVaryings + PerPixelVertex(model, environment)
-                    : LightFunctions + LitVertex(model, environment))
-                + "void fragment() {\n" + (model ? "" : PossessionVisibilityFragment)
-                + (TorchShadowsActive ? ShadowFragment(blend == KmfBlend.Opaque && !fullLight, model) : "")
-                + "vec4 c = texture(albedo_texture, UV) * base_colour;\n"
-                + (fullLight ? "" : PerPixelLight ? (TorchShadowsActive ? ShadowLitFragment : LitFragment) + "c.rgb *= dk2_diffuse_px;\n"
-                    : "c.rgb *= dk2_diffuse;\n")
-                + PossessionFadeFragment + "ALBEDO = c.rgb;\n" + alpha + (TorchShadowsActive ? "}\n" : "") + "}\n",
-        };
-        _shaders.Add((blend, fullLight, writesDepth, model, environment), shader);
+            // The file's text, not its resource, so the per-vertex shader is not compiled as well.
+            string code = Godot.FileAccess.GetFileAsString(WorldShaderPaths[state]);
+            string defines = mode == 2 ? "#define DK2_PER_PIXEL\n#define DK2_TORCH_SHADOWS\n" : "#define DK2_PER_PIXEL\n";
+            if (!code.Contains(LightModeMarker, StringComparison.Ordinal))
+                GD.PushError("DK2.Godot: ", WorldShaderPaths[state], " has no light-mode line; it draws with the per-vertex light.");
+            shader = new Shader { Code = code.Replace(LightModeMarker, defines + LightModeMarker, StringComparison.Ordinal) };
+        }
+        s_worldShaders[mode, state] = shader;
         return shader;
+    }
+
+    /// <summary>The world shader's light mode: 0 per vertex, 1 per pixel, 2 per pixel with the torch shadows.</summary>
+    private int WorldLightMode => TorchShadowsActive ? 2 : PerPixelLight ? 1 : 0;
+
+    /// <summary>A world material: the texture times <paramref name="colour"/>, lit by DK2's light plus
+    /// <paramref name="addedLight"/> unless at <paramref name="fullLight"/>; a terrain vertex's light inputs unless the
+    /// caller sets <c>model_vertex</c>. Uniforms left at the shader's defaults are not set.</summary>
+    private ShaderMaterial WorldMaterial(string texture, KmfBlend blend, bool writesDepth, bool fullLight,
+        System.Numerics.Vector4 colour, NVector3 addedLight)
+    {
+        var material = new ShaderMaterial { Shader = ShaderFor(blend, writesDepth) };
+        _worldMaterialsMade++;
+        material.SetShaderParameter(AlbedoParameter, TextureFor(texture));
+        material.SetShaderParameter(ColourParameter, new Color(colour.X, colour.Y, colour.Z, colour.W));
+        material.SetShaderParameter(AddedLightParameter, ToGodot(addedLight));
+        if (fullLight) material.SetShaderParameter(FullLightParameter, true);
+        return material;
     }
 
     /// <summary>How many entries <see cref="GammaOutput"/>'s table has: the half-texel clamp at either end costs at most
@@ -668,9 +688,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     }
 
     /// <summary>The cage as Unity's <c>ClassicTileHoverOutline</c> draws it (plan step 3e): <see cref="TileHoverRibbon"/>'s
-    /// triangles unindexed in one dynamic surface, zero-area triangles past the ribbon, additive, no depth write, both faces.
-    /// The fragment is Unity's <c>ClassicHoverOutline.shader</c>: the colour times pow(centre, 2.15) x 1.6 across the band,
-    /// owner-matched (2026-10-19). Its key (<see cref="Sort"/>) puts it where Unity's sorting order 0 did: after the tag
+    /// triangles unindexed in one dynamic surface, zero-area triangles past the ribbon, drawn by Shaders/Cage.gdshader
+    /// (Unity's <c>ClassicHoverOutline.shader</c>). Its key (<see cref="Sort"/>) puts it where Unity's sorting order 0 did: after the tag
     /// overlay runs (negative orders), under the other blended runs (<see cref="BlendedTerrainStream{TMaterial}.SortingOrder"/>),
     /// and among the blended objects by the distance to its centre.</summary>
     private sealed class CageRibbon
@@ -692,20 +711,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
         public CageRibbon(Rid scenario, Aabb box)
         {
-            _material = new ShaderMaterial
-            {
-                Shader = new Shader
-                {
-                    Code = "shader_type spatial;\nrender_mode unshaded, blend_add, depth_draw_never, cull_disabled;\n"
-                        + "uniform vec4 colour : source_color, color_conversion_disabled = vec4(0.0, 0.0, 0.0, 1.0);\n"
-                        + PossessionFadeDeclarations
-                        + "void vertex() { dk2_possession_brightness = dk2_possession_fade((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz, PROJECTION_MATRIX); }\n"
-                        + "void fragment() {\n"
-                        // Kept non-negative, as Unity's saturate, where MSAA extrapolates the UV past the ribbon.
-                        + "float centre = clamp(1.0 - abs(UV.y * 2.0 - 1.0), 0.0, 1.0);\n"
-                        + "ALBEDO = colour.rgb * pow(centre, 2.15) * 1.6 * dk2_possession_brightness;\nALPHA = 1.0;\n}\n",
-                },
-            };
+            _material = new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/Cage.gdshader") };
             _mesh = RenderingServer.MeshCreate();
             _instance = RenderingServer.InstanceCreate2(_mesh, scenario);
             RenderingServer.InstanceGeometrySetCastShadowsSetting(_instance, RenderingServer.ShadowCastingSetting.Off);
