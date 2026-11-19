@@ -48,6 +48,9 @@ public sealed class PossessionHud
         bool possessing, bool firstPersonCameraSettled) =>
         !possessionCameraHeld ? ordinary : new(ordinary.ShowNormalHud && possessing && !firstPersonCameraSettled, false);
 
+    public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, PossessionSession? session) =>
+        session is not { CameraHeld: true } ? ordinary : new(ordinary.ShowNormalHud && session.OrdinaryHudDuringTransition, false);
+
     public static GameShortcutContext ShortcutContext(GameShortcutContext ordinary, bool possessionCameraHeld, bool possessing = true) =>
         ordinary with { Possession = possessionCameraHeld, OrdinaryInput = ordinary.OrdinaryInput && (!possessionCameraHeld || possessing) };
 
@@ -58,6 +61,9 @@ public sealed class PossessionHud
 
     public static HudVisibility MinimapVisibility(HudVisibility ordinary, bool possessing, bool possessionCameraHeld = false) =>
         possessing ? new(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, possessionCameraHeld);
+
+    public static HudVisibility MinimapVisibility(HudVisibility ordinary, PossessionSession? session) =>
+        session is { Possessing: true } ? new(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, session);
 
     public static bool ShowPanel(bool possessing, HudVisibility ordinary) => possessing && ordinary.ShowNormalHud;
 

@@ -57,8 +57,17 @@ camera class for its ordinary-versus-possession branch. The additional interface
 have separate gates: the latter refuses the timed transition before the key
 handler reaches Options or GUI toggle. Their shared shortcut context therefore
 waits for the settled camera, independently of the ordinary HUD remaining visible.
-`PossessionHud` preserves ordinary display during entry without enabling its
-buttons; the possession panel and its filters wait for the settled camera.
+CONFIRMED owner play, 2026-11-19, registered dataset
+`possession-entry-and-leave-sequences--2026-11-19--001`, SHOT0077–0086: the
+ordinary HUD is back from the first captured return frame; the creature and level
+badge are visible, and the roof remains while the camera is beneath it.
+`PossessionHud` preserves ordinary display during entry and restores it on the
+first voluntary-return frame, without enabling its buttons. The possession panel
+and its filters wait for the settled camera. A session display marker distinguishes
+a live return from the death-view route; camera motion and timing are unchanged.
+Death-view and death-return display remain suppressed.
+The exact first return frame has HUD and roof in the remake capture, but body and
+badge visibility is still unmatched; see [capture verification](possession-entry-effect.md#capture-verification).
 Creature-filter appearance is recorded in [the filter note](possession-foreground.md#creature-filter),
 and entry target feedback in [the highlight note](possession-target-highlight.md#entry-pointer-feedback).
 

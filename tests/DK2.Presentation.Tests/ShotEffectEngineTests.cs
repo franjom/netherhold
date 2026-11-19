@@ -11,6 +11,27 @@ namespace DK2.Presentation.Tests;
 
 public class ShotEffectEngineTests
 {
+    [InstallFact]
+    public void ChosenCreatureSingleElementProducesFloorStarsAndLaterFloatingStars()
+    {
+        GameDatabase database = DK2.Data.GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        EffectDef effect = database.Effects[102];
+        EffectElementDef element = database.EffectElements[243];
+        Assert.Equal(new ushort[] { 243, 0, 0, 0, 0, 0, 0, 0 }, effect.GenerateIds);
+        Assert.Equal(0, effect.NextEffectId);
+        Assert.Equal(0, effect.DeathEffectId);
+        Assert.Equal(0, element.NextEffectId);
+        Assert.Equal(-819, element.Mass);
+        var model = new RoomConstructionParticles(database, 7, () => default, floorHeight: _ => new(Fp32.One));
+        model.Request(Request() with { EffectId = new(102), Position = Point(10000, 12000, Fp32.One) });
+        for (int step = 1; step <= 20; step++) model.AdvanceTo(new(step * 50 + 1));
+        Assert.All(model.Particles, star => Assert.Equal((ushort)243, star.Definition.EffectElementId));
+        Assert.Contains(model.Particles, star => star.HeightRaw >= Fp32.One + 2048);
+        Assert.Contains(model.Particles, star => star.HeightRaw == Fp32.One);
+        for (int step = 21; step <= 54; step++) model.AdvanceTo(new(step * 50 + 1));
+        Assert.Empty(model.Particles);
+    }
+
     [Theory]
     [InlineData(0u)]
     [InlineData(1u)]

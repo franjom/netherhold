@@ -29,20 +29,21 @@ public partial class InGameHud
             _world.DrawHoverOverlay(hit);
     }
 
-    private void DrawPossessionEntryBadge(long milliseconds, WorldHoverHit? pointerHit, HoverFeedback feedback, bool entering)
+    private void DrawPossessionEntryBadge(long milliseconds, WorldHoverHit? pointerHit, HoverFeedback feedback, bool ordinaryHudVisible)
     {
         if (_entryFlowerWorld != _world) { _entryFlowerMeshes.Clear(); _entryFlowerWorld = _world; }
         foreach (MeshInstance3D mesh in _entryFlowerMeshes) mesh.Visible = false;
-        if (_simulation == null || _world?.View is not MinimapCameraView view || _sources == null) return;
-        WorldHoverHit? hit = PossessionHighlight.EntryPointerTarget(pointerHit, entering, ordinaryTargetAllowed: true);
-        if (hit is not { Kind: WorldHoverKind.Creature } creatureHit) return;
+        if (!ordinaryHudVisible || _simulation == null || _world?.View is not MinimapCameraView view || _sources == null) return;
+        CreatureQueryTarget hovered = pointerHit is { Kind: WorldHoverKind.Creature } creatureHit
+            ? new CreatureQueryTarget(creatureHit.EntityId) : CreatureQueryTarget.None;
         if (_entryFlowerDatabase != _simulation.Database)
         {
             _entryFlowerDatabase = _simulation.Database;
             _entryFlowers = new(_simulation.Database, _viewer);
         }
+        int used = 0;
         foreach (StatusFlower flower in _entryFlowers!.Capture(_simulation.World, _simulation.CurrentTick,
-            new CreatureQueryTarget(creatureHit.EntityId), milliseconds))
+            hovered, milliseconds))
         {
             if (!_world.TryGetCreaturePosition(new(flower.CreatureId), out System.Numerics.Vector3 feet)) continue;
             System.Numerics.Vector3 anchor = feet + System.Numerics.Vector3.UnitY * (flower.Height.Raw / (float)Fp32.One);
@@ -50,7 +51,7 @@ public partial class InGameHud
             for (int i = 0; i < count; i++)
             {
                 StatusFlowerLayer layer = _entryFlowerLayers[i];
-                while (_entryFlowerMeshes.Count <= i)
+                while (_entryFlowerMeshes.Count <= used)
                 {
                     _entryFlowerShader ??= new Shader { Code = EntryFlowerShader };
                     var node = new MeshInstance3D { Mesh = new QuadMesh { Size = Vector2.One },
@@ -58,17 +59,18 @@ public partial class InGameHud
                         CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
                     _world.AddChild(node); _entryFlowerMeshes.Add(node);
                 }
-                MeshInstance3D mesh = _entryFlowerMeshes[i];
+                MeshInstance3D mesh = _entryFlowerMeshes[used++];
                 (System.Numerics.Vector3 at, float scale) = StatusFlowerRules.LayerPlacement(anchor,
                     view.Position, view.Forward, layer.Index, StatusFlowerLayers.CentreLift);
                 System.Numerics.Vector3 forward = System.Numerics.Vector3.Normalize(view.Forward);
                 System.Numerics.Vector3 right = System.Numerics.Vector3.Normalize(System.Numerics.Vector3.Cross(view.Up, forward));
                 System.Numerics.Vector3 up = System.Numerics.Vector3.Cross(forward, right);
-                float size = StatusFlowerRules.WorldSize(layer.Name, possessing: true) * scale;
+                float size = StatusFlowerRules.WorldSize(layer.Name, Possessing) * scale;
                 mesh.Transform = new Transform3D(new Basis(FlowerVector(RightHandedFrame.Direction(right)),
                     FlowerVector(RightHandedFrame.Direction(up)), FlowerVector(-RightHandedFrame.Direction(forward))).Scaled(Vector3.One * size),
                     FlowerVector(RightHandedFrame.Point(at)));
                 var material = (ShaderMaterial)mesh.MaterialOverride;
+                material.RenderPriority = 100 + layer.Index;
                 material.SetShaderParameter("art", EntryFlowerTexture(layer.Name));
                 material.SetShaderParameter("tint", new Color(flower.Colour.Red / 255f, flower.Colour.Green / 255f, flower.Colour.Blue / 255f));
                 material.SetShaderParameter("ring", layer.Ring);

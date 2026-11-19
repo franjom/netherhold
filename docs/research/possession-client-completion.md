@@ -4,7 +4,18 @@ systems: [camera-lighting, keeper-spells, presentation-godot]
 # Remaining possession client boundaries
 
 DKII.EXE v1.70, bounded reads on 2026-11-18. Binary findings below are
-STRONGLY INFERRED; no new original-game observation was made.
+STRONGLY INFERRED; later owner observations are labelled separately.
+
+## Entry and return observations
+
+CONFIRMED owner sequences, 2026-11-19, registered dataset
+`F:\DK2Evidence\captures\visual\possession-entry-and-leave-sequences--2026-11-19--001`:
+when the keeper view is not aligned with the creature, the original swings round
+behind it and passes through rock (SHOT0020–0025 and SHOT0044–0047).
+The owner confirms the remake's fly-in move is correct. `PossessionFlight` is
+retained unchanged; the earlier wall-crossing concern is resolved by this native
+observation, rather than by a camera collision change. Return display and its
+remaining first-frame capture limits are recorded in [the HUD note](possession-hud.md#entry-and-landing).
 
 ## Virtual room-pillar roof
 The parent inspected final format-532
@@ -66,5 +77,6 @@ its distinction from native sensitivity is recorded in
 The cast creation effect, corrected birth ordering and remaining visual differences are recorded
 in [Q749](possession-entry-effect.md). The unpaid check projects that native request;
 real casts already request it through the shot update. Native density, brightness,
-timing and camera-trajectory parity remain unverified. Footstep requests still have
+and timing remain under comparison; camera movement is covered by the confirmed
+observation above. Footstep requests still have
 no Godot sound player. Third-person mode 10 remains out of scope.

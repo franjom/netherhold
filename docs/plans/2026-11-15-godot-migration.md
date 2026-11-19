@@ -938,7 +938,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         Captures at 1920x1080 from a save made after Level1's opening path, with `--possess-first-creature` and a scripted
         pointer checked settled first person and fly-out. Entry roof timing and ordinary-versus-possession HUD display
         are corrected by the later [entry review](../research/possession-entry-effect.md#capture-verification);
-        [pointer feedback and its entry badge](../research/possession-target-highlight.md#entry-pointer-feedback) are built. Not
+        [transition pointer feedback and ordinary badges](../research/possession-target-highlight.md#entry-pointer-feedback) are built. Not
         verified: `unity-verify.sh` and `unity-probe.sh` (they cannot target a worktree); in Godot real mouse capture,
         alt-tab re-capture, the walking keys and the death view. Open: the view's sounds are dropped (no sound player, step
         4); the roof is black away from walls and torches (lighting); during Level1's opening path Godot shows the

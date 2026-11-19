@@ -227,6 +227,23 @@ public sealed class EffectDrawListTests
     }
 
     [Fact]
+    public void AParticleBillboardTurnsClockwiseByItsCurrentHeadingWithoutInterpolatingThePreviousHeading()
+    {
+        var quads = new EffectQuadBuffer();
+        ConstructionParticle source = Particle(takesLight: false);
+        source.HeadingRaw = 512;
+        source.PreviousHeadingRaw = 0;
+        source.RollRaw = 1024;
+        var billboard = new EffectBillboard(Vector3.Zero, 2f, 4f, EffectColour.White);
+
+        EffectDrawList.AddBillboardQuad(quads, source, billboard, Vector3.UnitX, Vector3.UnitY, 1);
+
+        Vector3[] expected = [new(-2f, 1f, 0f), new(-2f, -1f, 0f), new(2f, -1f, 0f), new(2f, 1f, 0f)];
+        for (int corner = 0; corner < 4; corner++)
+            Assert.True(Vector3.Distance(expected[corner], quads.Vertices[corner]) < 0.00001f);
+    }
+
+    [Fact]
     public void AFlatQuadLiesInTheGroundPlaneTurnedCounterClockwiseByItsHeading()
     {
         var list = new EffectDrawList(Empty, 1);

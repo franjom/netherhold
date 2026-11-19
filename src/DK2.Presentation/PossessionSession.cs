@@ -51,6 +51,7 @@ public sealed class PossessionSession : ITurnPoseSource
     private Vector2 _mouse;
     private bool? _creepingSent;
     private Ending _ending;
+    private bool _returnFromFirstPerson;
     private int _bodyId;
     private long _deadSince;
     private CreatureState? _colourSource;
@@ -76,6 +77,8 @@ public sealed class PossessionSession : ITurnPoseSource
 
     /// <summary>The camera is the possession's: in first person, or on the timed move to or from it.</summary>
     public bool CameraHeld => Possessing || _ending != Ending.None;
+    /// <summary>Ordinary HUD display during entry or a live first-person return, excluding the death-view route.</summary>
+    public bool OrdinaryHudDuringTransition => _flight.Active && (Possessing || (_ending == Ending.Out && _returnFromFirstPerson));
     /// <summary>The camera is at rest in first person or the death view; flights to and from the ordinary view
     /// do not take the possession-only draw rules (possession-warp.md section 8.1).</summary>
     public bool SettledPossessionCamera => !_flight.Active && (Possessing || _ending == Ending.Dead);
@@ -288,6 +291,7 @@ public sealed class PossessionSession : ITurnPoseSource
     /// picture flies there. The focus is kept inside the map as the ordinary camera's always is.</summary>
     private Vector3 BeginFlyOut(in CameraFlightState from, ClassicCamera ordinary, Vector3 ordinaryFocus, WorldState world, long clock)
     {
+        _returnFromFirstPerson = _ending != Ending.Dead;
         Colours.Leave(clock);
         CameraFlightState to = ordinary.Return(from, (int)MathF.Round(ordinaryFocus.Y * Fp32.One));
         to = to with
@@ -381,6 +385,7 @@ public sealed class PossessionSession : ITurnPoseSource
         _flight.Cancel();
         _ending = Ending.None;
         PointerLockWanted = false;
+        _returnFromFirstPerson = false;
     }
     private void ObserveColours(CreatureState? creature)
     {

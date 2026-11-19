@@ -23,7 +23,7 @@ public sealed class PossessionHudTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void EntryKeepsOrdinaryPanelsAndKeeperResourcesVisibleWithoutAcceptingTheirInput(bool guiVisible)
+    public void LegacyBooleanFactsPreserveEntryVisibilityWithoutInferringAReturnRoute(bool guiVisible)
     {
         var ordinary = new HudVisibility(guiVisible, true);
         Assert.Equal(new HudVisibility(guiVisible, false),

@@ -269,6 +269,12 @@ public sealed class EffectDrawList
         Vector3 right, Vector3 up, int spriteFrames)
     {
         var (u0, u1) = FrameSpan(source, spriteFrames);
+        // 0x0043CC30 -> 0x00599C60 supplies current heading twice; 0x0057F3D0 turns the camera-space quad.
+        float angle = source.HeadingRaw * (2f * (float)Math.PI / 2048f);
+        float cosine = (float)Math.Cos(angle), sine = (float)Math.Sin(angle);
+        Vector3 turnedRight = right * cosine - up * sine;
+        up = right * sine + up * cosine;
+        right = turnedRight;
         Vector3 position = billboard.Centre;
         float width = billboard.Width, height = billboard.Height;
         int first = quads.VertexCount;

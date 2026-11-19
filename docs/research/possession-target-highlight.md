@@ -79,20 +79,24 @@ its location/target tests. The Hand's already-built
 permission likewise does not reject a creature merely because it is possessed.
 There is no evidence for an unconditional tint attached to the possession itself.
 
-`PossessionHighlight.EntryPointerFeedback` keeps pointer observation separate
-from ordinary input during entry. The existing pointer pick and tool permission
+`PossessionHighlight.TransitionPointerFeedback` keeps pointer observation separate
+from ordinary input during entry and voluntary return. The existing pointer pick and tool permission
 name the tint target; changing the pointer can select another eligible thing.
 The existing hover text supplies the status line and delayed short-name popup.
-Godot's entry badge draws `StatusFlowers` and `StatusFlowerLayers` as world-space
-billboards, using their existing height, size, palette, experience wedge and layer
-placement. It depth-tests against the scene and is hidden with entry feedback at
-landing. No new flower selection or motion rule is introduced.
+Godot draws `StatusFlowers` and `StatusFlowerLayers` as world-space billboards
+while the ordinary HUD is visible, including entry and voluntary return. It uses
+the existing height, size, palette, experience wedge and layer placement and
+depth-tests against the scene. Without a hovered creature it supplies the empty
+query target, preserving existing health, mood and lingering-hover eligibility.
+It does not force a badge on the formerly possessed body; the return reads in
+[004BE090](functions/004BE090.md) and [0044A5D0](functions/0044A5D0.md) restore its
+draw eligibility, while [0048E830](functions/0048E830.md) retains ordinary flower
+conditions. No new flower selection or motion rule is introduced.
 
 The spell cursor still inherits its documented flag2/object/offering gaps; no
 new cast validator is claimed. Native spell refusal leaves the previously
 published hover id untouched; the remake still supplies only the current
-qualified pick and does not mirror that retained-id state. Godot's entry-only billboard draw does not join
+qualified pick and does not mirror that retained-id state. Godot's billboard draw does not join
 the blended terrain sorter, so its order against translucent geometry remains
-unverified. General non-entry flower drawing and dollar-mesh flowers remain
-unbuilt in Godot. Native capture pixel, tint intensity and popup timing parity
+unverified. Dollar-mesh flowers remain unbuilt in Godot. Native capture pixel, tint intensity and popup timing parity
 remain separate from the rule tests.

@@ -100,33 +100,75 @@ The floor regression additionally checks a sixteen-star birth wave at floor heig
 outward and upward motion on the next update, and eventual disappearance, plus
 birth launch/HP retention for ordinary, floor-kill and floor-stop elements.
 ## Capture verification
-
-Registered native comparison: `F:\DK2Evidence\captures\visual\`
-`possession-fly-in-skeleton--2026-11-18--001`, fifteen ordered files from multiple
-casts. SHOT0005 shows a broad floor ring; SHOT0010–0012 show wall haze. File order
-alone does not establish one cast's elapsed timeline.
-
-The inspected final `skeleton-entry-final-4x3` (1600x1200) and
-`skeleton-entry-final-wide` (1920x1080) recordings are under
-`F:\DK2Evidence\captures\possession-entry-review-20261118-001`. Each has 200 frames
-at 30fps, exit0, no runtime/shader errors, and stable pre/post DLL SHA-256
-`5cfda8d2fd29fea92f5e1fd9056f84ae689bc313dfd0036a613bbefb516b160c`.
-Adjacent metadata records exact commands, temporary settings/profile/saves/hiscores
-and hashes. The fixture is rebuilt from the authentic post-opening format533 save;
-its painted corridor's navigation is refreshed and asserted non-solid before saving.
-
-The parent inspected 4:3 frames10,20,40,70 and wide frames10,40,70; the reviewer
-independently inspected frames10,20,40,70 in both formats. Frame10 shows small
-feet-level gold stars from above and the ordinary HUD. Frame20's larger gold burst
-is partly hidden by the foreground wall; it does not establish a complete visible
-ring matching SHOT0005. Frame40 is beneath the roof with the red hovered Skeleton,
-level badge, localized status name and ordinary HUD. At frame70 the controlled body
-and entry gold are gone, and the possession HUD has appeared.
-
-The supported birth-order correction is built, but native brightness, density,
-phase, full ring shape and wall-haze timing remain unverified. The native ring is
-broader and wavier than the inspected remake stars. This narrow staged corridor
-also exposes the unchanged fly-in crossing the side wall/roof edge; no trajectory
-parity is claimed and `PossessionFlight`/`PossessionSession` remain under the
-owner's separate recheck. The earlier column and pre-review recordings are retained
-as superseded evidence, not current validation.
+Native comparison: registered dataset
+`F:\DK2Evidence\captures\visual\possession-entry-and-leave-sequences--2026-11-19--001`.
+The parent and reviewer compared SHOT0039's floor ring, SHOT0051's high stars and
+SHOT0077's return. Earlier Skeleton entry captures remain registered as
+`possession-fly-in-skeleton--2026-11-18--001`; file order across multiple casts
+alone does not establish elapsed timing.
+Current remake recordings are under
+`F:\DK2Evidence\captures\possession-entry-leave-20261119-001`:
+| Recording | Size | Inspected result |
+|---|---|---|
+| `aligned-final` | 1600x1200 | Frame20: bright rotated floor ring;40/50: diffuse high cloud;70: faint stars survive landing. |
+| `side-final` | 1600x1200 | Frame20: bright floor ring;50: rotated high cloud. |
+| `front-final` | 1600x1200 | Frame20: bright floor ring;40: high cloud;50: no stars in view after the camera swings behind. |
+| `aligned-wide-final` | 1920x1080 | Frame40: bright ring/high stars, ordinary HUD and badge;99: ordinary HUD and roof;110: body and badge. |
+Each recording has260 PNG frames at30fps, exit0 and no logged runtime/shader
+errors. All have stable pre/post Godot DLL SHA-256
+`da237ae3f876a4703c8b390a1107957b6df23f8a9d8db057b1df92474bdfe61f`.
+Adjacent metadata records exact commands and temporary settings/profile/saves/hiscores.
+The staged format533 saves use an open room and three creature headings; navigation
+is refreshed and asserted non-solid before saving. These are remake fixtures,
+not recreations of the owner's dungeon. The previous narrow-corridor recordings
+are superseded for the strength comparison because a foreground wall obscured the ring.
+The parent inspected the listed angle views; the reviewer also inspected aligned
+frames20,40,50,70,99,100,110,150. The bright floor ring and later high cloud are
+present, and rotation now produces tilted stars. Brightness and size are visually
+plausible against the native files; they have not been quantitatively matched.
+The native post-landing disappearance remains unmatched: aligned frame70 has
+faint gold stars against the upper ceiling after the possession HUD appears.
+No stars are visible in the inspected return frames.
+The aligned input journal locates the first return draw at frame99, tick143
+(Leave queued at92 and applied at98). It has the ordinary HUD and roof, but no
+visible body or badge. The head appears at100, and body and badge at110. Shared
+rules and the per-frame adapter restore model draw eligibility immediately; that
+does not establish visibility when the camera is initially inside its mesh.
+Exact first-frame body/badge parity therefore remains unverified. No forced
+formerly-possessed badge or camera adjustment is added.
+The owner-confirmed camera move is recorded in
+[client completion](possession-client-completion.md#entry-and-return-observations).
+## Later floating stars (F3)
+CONFIRMED owner sequences, 2026-11-19, registered dataset
+`possession-entry-and-leave-sequences--2026-11-19--001`: the bright foot ring
+lights the floor (SHOT0038-0043,0060-0069); later stars rise high around the
+creature (SHOT0050-0053,0070-0073). Nothing remains after landing or on leaving.
+STRONGLY INFERRED from shipped definitions and the fresh function rereads:
+102 has only generated id243, with zero next/death effects;243 likewise has no
+next/death effect. Shot32 has only creation102, with all other effect ids zero,
+and [the collision handler](functions/004AEEA0.md) introduces no second effect.
+The high stars are therefore the same negative-mass243 particles; their flag8
+RGB fade explains the darker older stars. Fixed scale819 with Gsparkle's4096
+resource width yields a full billboard width0.2tile; there is no data-supported
+brightness or size multiplier for a second phase.
+The authored light descriptor has flags0, but [the native loader](functions/004358C0.md)
+ORs in flag1 whenever RGB is nonzero. The [factory](functions/00439880.md) therefore
+creates102's gold point light. The remake's nonzero-RGB fallback mirrors that
+loader normalization; treating the raw flags as final runtime flags is incorrect.
+Dynamic elements [constructed with mode1](functions/00435E70.md) go through
+[the tile draw arm](functions/0043CC30.md), renderer+E8, and [00599C60](functions/00599C60.md).
+It passes current heading+E2 twice through [0059B880](functions/0059B880.md)
+and [0059C360](functions/0059C360.md). [0057F1E0](functions/0057F1E0.md)
+therefore interpolates equal angles; [0057F3D0](functions/0057F3D0.md) rotates
+the quad clockwise in the camera plane. The remake now applies that current
+heading, restoring the tilted stars; roll and previous heading do not supply
+this angle. A regression distinguishes the current heading from nonzero roll and
+a different previous heading.
+The bounded draw read found no possession-mode suppression in this dynamic
+particle arm. The definition refresh [00436600](functions/00436600.md), definition
+constructor [00436630](functions/00436630.md), and separate static sprite path
+[00599960](functions/00599960.md)/[0059BB80](functions/0059BB80.md) do not settle
+why native post-landing stars are absent.
+The post-landing residual is recorded in [capture verification](#capture-verification).
+The authored lifetimes permit survivors; a native cancellation or visibility cause
+has not been traced. No unsupported landing-hide rule is added.

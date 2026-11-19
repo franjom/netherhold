@@ -27,6 +27,8 @@ public sealed class PossessionSessionTests
         rig.Frame(PossessionFlight.BetweenClasses);
         rig.World.Player(Viewer).PossessedCreatureId = 0;
         Assert.True(rig.Session.RequestObjectDeathView(rig.World, rig.Clock));
+        Assert.Equal(new HudVisibility(false, false), PossessionHud.OrdinaryVisibility(new(true, true), rig.Session));
+        Assert.False(PossessionHighlight.TransitionPointerFeedback(rig.Session, new(true, true)));
         Assert.Equal(0, rig.Session.HiddenCreatureId);
         Assert.Equal(200, rig.Session.Flight.Target.Roll);
         Assert.Equal(400, rig.Session.Flight.Target.Pitch);
@@ -34,6 +36,8 @@ public sealed class PossessionSessionTests
         Assert.True(rig.Session.SettledPossessionCamera);
         rig.Frame(PossessionSession.DeathHold + 1);
         Assert.True(rig.Session.Flight.Active);
+        Assert.Equal(new HudVisibility(false, false), PossessionHud.OrdinaryVisibility(new(true, true), rig.Session));
+        Assert.False(PossessionHighlight.TransitionPointerFeedback(rig.Session, new(true, true)));
     }
 
     [InstallFact]
@@ -285,6 +289,8 @@ public sealed class PossessionSessionTests
 
         Assert.True(ended.Ended);
         Assert.Null(ended.OrdinaryFocus);
+        Assert.Equal(new HudVisibility(false, false), PossessionHud.OrdinaryVisibility(new(true, true), rig.Session));
+        Assert.False(PossessionHighlight.TransitionPointerFeedback(rig.Session, new(true, true)));
         Assert.True(rig.Session.CameraHeld);
         Assert.True(PossessionScene.RoofShown(rig.Session));
         Assert.False(rig.Session.SettledPossessionCamera);
@@ -311,6 +317,8 @@ public sealed class PossessionSessionTests
 
         PossessionUpdate back = rig.Frame();
         Assert.NotNull(back.OrdinaryFocus);
+        Assert.Equal(new HudVisibility(false, false), PossessionHud.OrdinaryVisibility(new(true, true), rig.Session));
+        Assert.False(PossessionHighlight.TransitionPointerFeedback(rig.Session, new(true, true)));
         Assert.False(rig.Session.SettledPossessionCamera);
         Assert.Equal(0, rig.Session.HiddenCreatureId);
         Assert.Equal(0, rig.Session.Flight.State.Pitch);
@@ -350,6 +358,11 @@ public sealed class PossessionSessionTests
         Assert.False(rig.Session.Possessing);
         Assert.False(rig.Session.SettledPossessionCamera);
         Assert.True(rig.Session.CameraHeld);
+        Assert.Equal(new HudVisibility(true, false), PossessionHud.OrdinaryVisibility(new(true, true), rig.Session));
+        Assert.Equal(new HudVisibility(true, false), PossessionHud.MinimapVisibility(new(true, true), rig.Session));
+        Assert.True(PossessionHighlight.TransitionPointerFeedback(rig.Session, new(true, true)));
+        var flowers = new StatusFlowers(GameDatabaseLoader.Load(Dk2InstallGate.Path), Viewer);
+        Assert.Equal(rig.Me.Id, Assert.Single(flowers.Capture(rig.World, rig.World.CurrentTick, new(rig.Me.Id))).CreatureId);
         Assert.True(PossessionScene.RoofShown(rig.Session));
         Assert.False(rig.Session.PointerLockWanted);
         Assert.Equal(0, rig.Session.HiddenCreatureId);
