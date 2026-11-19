@@ -124,6 +124,8 @@ public partial class WorldScene : ISimulationEventSink
         private readonly Rid _instance;
         private readonly List<Transform3D> _transforms = new();
         private readonly List<Color> _colours = new(), _uvs = new();
+        private Vector3 _low, _high;
+        private Aabb _box;
         public EffectSpriteShape Shape { get; }
         public int Frames { get; }
 
@@ -178,7 +180,12 @@ public partial class WorldScene : ISimulationEventSink
             return new EffectSpriteBatch(scene, ImageTexture.CreateFromImage(pixels), sprite, definition, frames);
         }
 
-        public void Begin() { _transforms.Clear(); _colours.Clear(); _uvs.Clear(); }
+        public void Begin()
+        {
+            _transforms.Clear(); _colours.Clear(); _uvs.Clear();
+            _low = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+            _high = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+        }
 
         public void Add(EffectQuadBuffer quad)
         {
@@ -188,6 +195,8 @@ public partial class WorldScene : ISimulationEventSink
             Vector3 y = ToGodot(RightHandedFrame.Point(vertices[3])) - origin;
             if (x.LengthSquared() <= 0 || y.LengthSquared() <= 0) return;
             _transforms.Add(new Transform3D(new Basis(x, y, x.Cross(y).Normalized()), origin));
+            _low = _low.Min(origin).Min(origin + x).Min(origin + y).Min(origin + x + y);
+            _high = _high.Max(origin).Max(origin + x).Max(origin + y).Max(origin + x + y);
             EffectColour tint = quad.Colours[0];
             _colours.Add(new Color(tint.Red / 255f, tint.Green / 255f, tint.Blue / 255f));
             _uvs.Add(new Color(quad.Uvs[0].X, quad.Uvs[1].X, quad.Uvs[0].Y, quad.Uvs[3].Y));
@@ -199,6 +208,12 @@ public partial class WorldScene : ISimulationEventSink
             if (_instances.InstanceCount < count)
                 _instances.InstanceCount = Math.Max(32, Math.Max(count, _instances.InstanceCount * 2));
             _instances.VisibleInstanceCount = count;
+            // The live sprites' box: Godot sorts the batch among the blended runs by its centre, and culls by it.
+            if (count > 0)
+            {
+                var box = new Aabb(_low, _high - _low);
+                if (box != _box) { _box = box; _instances.CustomAabb = box; }
+            }
             for (int i = 0; i < count; i++)
             {
                 _instances.SetInstanceTransform(i, _transforms[i]);

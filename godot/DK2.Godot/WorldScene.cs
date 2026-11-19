@@ -31,6 +31,9 @@ namespace DK2.GodotAdapter;
 /// <see cref="Focus"/> and places it (<see cref="PlaceCamera"/>), then finishes it (<see cref="FinishFrame"/>).</summary>
 public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 {
+    /// <summary>A tag overlay's render priority: under every other blended thing's 0, over the occlusion quad's -128.</summary>
+    private const int OverlayPriority = -1;
+
     /// <summary>Unity's camera near plane (Dungeon.unity), which the frustum is sized at.</summary>
     private const float NearPlane = 0.3f;
 
@@ -59,16 +62,17 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private readonly List<BlendedVertex> _blendedVertices = new();
     private readonly Dictionary<ShaderMaterial, List<int>> _blendedByMaterial = new();
     private readonly HashSet<ShaderMaterial> _blendedMaterials = new(), _overlayMaterials = new();
+    private readonly BlendedRunSlots<ShaderMaterial> _runKeys = new();
     private readonly List<RunSlot> _runSlots = new();
     private readonly RunSlot.Scratch _runScratch = new();
     private Aabb _worldBox;
-    // The re-sorting frames after the first (which pays the JIT): time, the most, and what they allocated.
-    // The re-sorting frames, for the exit report: time after the first (which pays the JIT), the most, and what the
-    // frames after the warm-up allocated.
+    // The re-sorting frames, for the exit report: time after the first (which pays the JIT), the most, what the frames
+    // after the warm-up allocated, and the bytes uploaded for the triangles drawn.
     private const int BlendedWarmUp = 60;
     private ViewFrustum _frustum;
     private bool _frustumStale = true;
     private long _blendedTicks, _blendedMaxTicks, _blendedFirstTicks = -1, _blendedWarmUpBytes, _blendedLateBytes;
+    private long _blendedUploadBytes, _blendedUploadTriangles;
     private int _blendedRefreshes, _blendedMaxRuns, _blendedMaxTriangles;
 
     private readonly Dictionary<TerrainMaterialKey, ShaderMaterial> _keyMaterials = new();
@@ -224,8 +228,6 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         if (_cage == null) return;
         if (area is not TileRectangle shown || View is not MinimapCameraView view) { _cage.Hide(); return; }
         _cage.Show(shown, blue, view.Position, _lattice, milliseconds);
-        // After FinishFrame placed this frame's eye, so the key is this frame's.
-        _cage.Sort(this);
     }
 
     public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture) => SetTile(tileIndex, tile);
@@ -376,7 +378,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             // Unity's split: render queue Transparent, which every non-opaque look takes.
             if (look.Blend != KmfBlend.Opaque) _blendedMaterials.Add(material);
         }
-        // Unity's DK2TagOverlay tag: the dig tag's and the tutorial's additive pass.
+        // Unity's DK2TagOverlay tag: the dig tag's and the tutorial's additive pass, which DK2 draws with its opaque base
+        // before every depth-sorted triangle (tag-highlight.md section 3), so before every other blended thing here.
         if (key.IsOverlay) _overlayMaterials.Add(material);
         _keyMaterials.Add(key, material);
         return material;
@@ -501,28 +504,35 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         }
     }
 
-    /// <summary>Re-sorts the blended stream for the placed camera when it or the stream changed, and uploads the runs
-    /// (<see cref="RunSlot"/>); times the frames that re-sort.</summary>
+    /// <summary>Re-sorts the blended stream for the placed camera when it or the stream changed, keys each run by its real
+    /// distance (<see cref="BlendedRunSlots{TMaterial}"/>) and uploads what changed (<see cref="RunSlot"/>); times the
+    /// frames that re-sort.</summary>
     private void DrawBlended()
     {
-        if (_blended == null || _camera == null || View == null) return;
+        if (_blended == null || _camera == null || View is not MinimapCameraView view) return;
         ViewFrustum frustum = PlacedFrustum;
         NVector3 forward = NVector3.Normalize(_placed.Forward);
         if (!_blended.NeedsRefresh(forward, NMatrix4x4.Identity, frustum.ViewProjection)) return;
         long start = Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
         _blended.Refresh(forward, NMatrix4x4.Identity, frustum);
-        IReadOnlyList<TriangleDepthOrderBuffer.Run> runs = _blended.Runs;
+        // The stream is in the renderers' frame, the camera's distances the same in Godot's (a reflection keeps them).
+        _runKeys.Update(_blended, view.Position);
+        float eyeDistance = view.Position.Length();
+        IReadOnlyList<BlendedRunSlot<ShaderMaterial>> drawn = _runKeys.Drawn;
         int triangles = 0;
-        for (int i = 0; i < runs.Count; i++)
+        for (int i = 0; i < drawn.Count; i++)
         {
-            if (i == _runSlots.Count) _runSlots.Add(new RunSlot(GetWorld3D().Scenario, _worldBox));
-            _runSlots[i].Show(_blended.Material(runs[i].MaterialIndex), _blended.SortingOrder(i), runs[i].Triangles,
-                _blended.Vertices, _blended.GeometryRevision, _runScratch);
-            triangles += runs[i].Triangles.Count;
+            BlendedRunSlot<ShaderMaterial> run = drawn[i];
+            while (_runSlots.Count <= run.Id) _runSlots.Add(new RunSlot(GetWorld3D().Scenario, _worldBox));
+            _blendedUploadBytes += _runSlots[run.Id].Show(run, _runKeys.Vertices, eyeDistance, _runScratch);
+            triangles += run.IndexCount / 3;
         }
-        for (int i = runs.Count; i < _runSlots.Count; i++) _runSlots[i].Hide();
+        IReadOnlyList<BlendedRunSlot<ShaderMaterial>> slots = _runKeys.Slots;
+        for (int i = 0; i < _runSlots.Count; i++)
+            if (!slots[i].Drawn) _runSlots[i].Hide();
+        _blendedUploadTriangles += triangles;
         long ticks = Stopwatch.GetTimestamp() - start, bytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
-        _blendedMaxRuns = Math.Max(_blendedMaxRuns, runs.Count);
+        _blendedMaxRuns = Math.Max(_blendedMaxRuns, drawn.Count);
         _blendedMaxTriangles = Math.Max(_blendedMaxTriangles, triangles);
         if (_blendedFirstTicks < 0) _blendedFirstTicks = ticks;
         else
@@ -573,7 +583,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 _liquids.Lava.TileCount, "; blended stream: ", _blendedRefreshes, " re-sorts, the first ", Milliseconds(_blendedFirstTicks),
                 " ms, the rest ", Milliseconds(_blendedTicks / Math.Max(1, _blendedRefreshes - 1)), " ms mean and ",
                 Milliseconds(_blendedMaxTicks), " ms max; allocated ", _blendedWarmUpBytes, " B in the first ", BlendedWarmUp,
-                " and ", _blendedLateBytes, " B after; up to ", _blendedMaxRuns, " runs and ", _blendedMaxTriangles, " triangles");
+                " and ", _blendedLateBytes, " B after; up to ", _blendedMaxRuns, " runs and ", _blendedMaxTriangles, " triangles, ", _runSlots.Count,
+                " run instances; uploaded ", _blendedUploadBytes, " B for ", _blendedUploadTriangles, " triangles drawn");
         FreeEffects();
         FreeObjects();
         foreach (RunSlot slot in _runSlots) slot.Free();
@@ -689,9 +700,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     /// <summary>The cage as Unity's <c>ClassicTileHoverOutline</c> draws it (plan step 3e): <see cref="TileHoverRibbon"/>'s
     /// triangles unindexed in one dynamic surface, zero-area triangles past the ribbon, drawn by Shaders/Cage.gdshader
-    /// (Unity's <c>ClassicHoverOutline.shader</c>). Its key (<see cref="Sort"/>) puts it where Unity's sorting order 0 did: after the tag
-    /// overlay runs (negative orders), under the other blended runs (<see cref="BlendedTerrainStream{TMaterial}.SortingOrder"/>),
-    /// and among the blended objects by the distance to its centre.</summary>
+    /// (Unity's <c>ClassicHoverOutline.shader</c>). Its box is the ribbon's, so Godot keys it by the distance to the
+    /// ribbon's centre among the blended runs and objects (<see cref="RunSlot"/>).</summary>
     private sealed class CageRibbon
     {
         private const RenderingServer.ArrayFormat Format = RenderingServer.ArrayFormat.FormatVertex
@@ -706,8 +716,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         private int _capacity, _written;
         private bool _visible = true;
         private NVector3 _colour = new(-1, -1, -1);
-        private Vector3 _centre;
-        private int _sortStamp = -1;
+        private Aabb _box;
 
         public CageRibbon(Rid scenario, Aabb box)
         {
@@ -717,7 +726,6 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             RenderingServer.InstanceGeometrySetCastShadowsSetting(_instance, RenderingServer.ShadowCastingSetting.Off);
             RenderingServer.InstanceSetCustomAabb(_instance, box);
             RenderingServer.InstanceGeometrySetMaterialOverride(_instance, _material.GetRid());
-            SortFromOrigin(_instance, 0);
             Hide();
         }
 
@@ -742,8 +750,13 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 positions[i * 3] = at.X; positions[(i * 3) + 1] = at.Y; positions[(i * 3) + 2] = at.Z;
                 uvs[i * 2] = along[indices[i]].X; uvs[(i * 2) + 1] = along[indices[i]].Y;
             }
-            Vector3 centre = ToGodot((low + high) * 0.5f);
-            if (centre != _centre) { _centre = centre; _sortStamp = -1; }
+            // The ribbon's bounds: Godot culls by them and sorts by their centre (use_aabb_center, the default).
+            var box = new Aabb(ToGodot(low), ToGodot(high - low));
+            if (box != _box)
+            {
+                _box = box;
+                RenderingServer.InstanceSetCustomAabb(_instance, box);
+            }
             positions[(count * 3)..].Clear();
             uvs[(count * 2)..].Clear();
             RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, 0, _positions.AsSpan(0, vertexCount * PositionStride));
@@ -762,16 +775,6 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             if (!_visible) return;
             RenderingServer.InstanceSetVisible(_instance, false);
             _visible = false;
-        }
-
-        /// <summary>The cage's order-0 key (<see cref="ZeroOrderOffset"/>) from its bounds centre, as Unity sorts its sorting
-        /// order 0 among the blended objects by distance; again when it or the camera moved. Called after each
-        /// <see cref="Show"/>, which comes after the frame's <see cref="FinishFrame"/>.</summary>
-        public void Sort(WorldScene scene)
-        {
-            if (!_visible || _sortStamp == scene._sortStamp) return;
-            _sortStamp = scene._sortStamp;
-            RenderingServer.InstanceSetPivotData(_instance, scene.ZeroOrderOffset(Vector3.Zero, _centre), false);
         }
 
         public void Free()
@@ -803,38 +806,47 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         }
     }
 
-    /// <summary>Every instance of the blended pass sorts by its origin's distance minus <paramref name="order"/>: a new
-    /// instance's pivot is its AABB centre (<c>use_aabb_center</c> true, renderer_scene_cull.h at c51ff06e8), which would
-    /// sort it by real distance among the runs. The one place the runs set their sort key; the cage takes an order-0 key.</summary>
-    private static void SortFromOrigin(Rid instance, float order) => RenderingServer.InstanceSetPivotData(instance, order, false);
-
-    /// <summary>One run of the blended stream: an instance of its own one-surface mesh (positions, normals, UVs and table
-    /// anchors, as a terrain chunk's), a triangle list in the run's order
-    /// (a surface draws its primitives in order), with zero-area triangles past the run. Godot 4.8 sorts the transparent
-    /// pass by material priority, then by camera distance minus the instance's sorting offset, with an unstable sort
-    /// (<c>SortByReverseDepthAndPriority</c>, <c>SortArray</c> in render_forward_clustered.h at c51ff06e8): every run
-    /// instance sits at the origin, sorted by its origin, with the stream's sorting order as its offset, so runs draw in
-    /// the stream's order and the triangles within one in theirs.</summary>
+    /// <summary>One slot of the blended stream (<see cref="BlendedRunSlot{TMaterial}"/>): an instance of its own indexed
+    /// one-surface mesh (positions, normals, UVs and table anchors, as a terrain chunk's) whose vertices stay put while a
+    /// re-sort rewrites only the indices, in the run's order (a surface draws its primitives in order), with zero-area
+    /// triangles past the run. Godot 4.8 sorts the transparent pass by material priority, then by camera distance minus the
+    /// instance's sorting offset, farthest first, with an unstable sort (<c>SortByReverseDepthAndPriority</c>,
+    /// <c>SortArray</c> in render_forward_clustered.h, <c>_fill_render_list</c> in render_forward_clustered.cpp at
+    /// c51ff06e8): with a perspective camera the depth is the straight-line distance from the camera to the pivot, not the
+    /// depth along the view (docs/TRAPS.md). The instance sorts from the origin (<c>use_aabb_center</c> false) with the
+    /// offset that makes its depth the run's <see cref="BlendedRunSlot{TMaterial}.Distance"/>, so the runs keep the
+    /// stream's order and the blended objects, flames, the cage and the effect batches, keyed by their own AABB centres in
+    /// the same measure, fall between them. A tag overlay's material draws first by its priority
+    /// (<see cref="OverlayPriority"/>).</summary>
     private sealed class RunSlot
     {
-        /// <summary>The upload buffers every slot shares: positions and normals (the vertex stream's two blocks) and each
-        /// vertex's UV and table anchor (the attribute stream).</summary>
+        /// <summary>The upload buffers every slot shares: positions and normals with their tangents (the vertex stream's two
+        /// blocks), each vertex's UV and table anchor (the attribute stream), and the indices.</summary>
         public sealed class Scratch
         {
-            public byte[] Positions = [], Normals = [], Uvs = [];
+            public byte[] Positions = [], Normals = [], Uvs = [], Indices = [];
         }
 
         private const RenderingServer.ArrayFormat Format = RenderingServer.ArrayFormat.FormatVertex
             | RenderingServer.ArrayFormat.FormatNormal | RenderingServer.ArrayFormat.FormatTexUV
-            | RenderingServer.ArrayFormat.FormatCustom0 | RenderingServer.ArrayFormat.FlagUseDynamicUpdate
+            | RenderingServer.ArrayFormat.FormatCustom0 | RenderingServer.ArrayFormat.FormatIndex
+            | RenderingServer.ArrayFormat.FlagUseDynamicUpdate
             | (RenderingServer.ArrayFormat)((long)RenderingServer.ArrayCustomFormat.RgFloat << (int)RenderingServer.ArrayFormat.FormatCustom0Shift);
-        private const int PositionStride = 12, NormalStride = 4, UvStride = 16;
+        private const int PositionStride = 12, NormalSize = 4, UvStride = 16;
 
         private readonly Rid _instance, _mesh;
-        private readonly List<RenderTriangle> _triangles = new();
         private ShaderMaterial? _material;
-        private int _capacity, _written, _order = int.MinValue;
-        private long _revision = -1;
+        private int _vertexCapacity, _indexCapacity, _indexStride, _written;
+
+        /// <summary>How many surfaces the slot has built, for the exit report.</summary>
+        public int Grows { get; private set; }
+        // The normal-tangent block as the surface holds it: Godot 4.8 adds a tangent to a surface with normals and none of
+        // its own (format bit 2), so a vertex there is 8 bytes, not the 4 of the format asked for; the tangent as built.
+        private int _normalBlock, _normalStride, _normalAt;
+        private static RenderingServer.ArrayFormat s_builtFormat;
+        // The tangent Godot built for an up normal, written unchanged beside every normal: no world shader reads TANGENT.
+        private static uint s_tangent;
+        private float _offset = float.NaN;
         private bool _visible = true;
 
         public RunSlot(Rid scenario, Aabb box)
@@ -842,55 +854,42 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             _mesh = RenderingServer.MeshCreate();
             _instance = RenderingServer.InstanceCreate2(_mesh, scenario);
             RenderingServer.InstanceGeometrySetCastShadowsSetting(_instance, RenderingServer.ShadowCastingSetting.Off);
+            // The world box only keeps Godot from culling the run (the stream culls); the pivot is the origin.
             RenderingServer.InstanceSetCustomAabb(_instance, box);
         }
 
-        public void Show(ShaderMaterial material, int order, IReadOnlyList<RenderTriangle> triangles,
-            IReadOnlyList<BlendedVertex> vertices, long revision, Scratch scratch)
+        /// <summary>Draws <paramref name="run"/> at its key for an eye <paramref name="eyeDistance"/> from the origin, uploading
+        /// the vertices the slot has not held and the indices when they changed; returns the bytes uploaded.</summary>
+        public long Show(BlendedRunSlot<ShaderMaterial> run, ReadOnlySpan<BlendedVertex> vertices, float eyeDistance, Scratch scratch)
         {
             if (!_visible) { RenderingServer.InstanceSetVisible(_instance, true); _visible = true; }
-            if (!ReferenceEquals(material, _material))
+            if (!ReferenceEquals(run.Material, _material))
             {
-                RenderingServer.InstanceGeometrySetMaterialOverride(_instance, material.GetRid());
-                _material = material;
+                RenderingServer.InstanceGeometrySetMaterialOverride(_instance, run.Material.GetRid());
+                _material = run.Material;
             }
-            if (order != _order)
+            // The tag overlay's category, which the shared slot decides, as its material's priority.
+            int priority = run.TagOverlay ? OverlayPriority : 0;
+            if (run.Material.RenderPriority != priority) run.Material.RenderPriority = priority;
+            // Godot's depth is the origin's distance minus the offset: the run's distance. (A box centred on the run's
+            // nearest centroid, which leaves Godot to measure it, measured no better on Level7 and was not kept.)
+            float offset = eyeDistance - run.Distance;
+            if (offset != _offset)
             {
-                SortFromOrigin(_instance, order);
-                _order = order;
+                RenderingServer.InstanceSetPivotData(_instance, offset, false);
+                _offset = offset;
             }
-            if (revision == _revision && Same(triangles)) return;
-            _revision = revision;
-            _triangles.Clear();
-            for (int i = 0; i < triangles.Count; i++) _triangles.Add(triangles[i]);
-            int count = triangles.Count;
-            if (count > _capacity) Grow(count);
-            int vertexCount = Math.Max(count, _written) * 3;
-            if (scratch.Positions.Length < vertexCount * PositionStride)
+            bool all = false;
+            if (run.VertexCount > _vertexCapacity || run.IndexCount > _indexCapacity)
             {
-                scratch.Positions = new byte[_capacity * 3 * PositionStride];
-                scratch.Normals = new byte[_capacity * 3 * NormalStride];
-                scratch.Uvs = new byte[_capacity * 3 * UvStride];
+                Grow(run.VertexCount, run.IndexCount);
+                all = true;
             }
-            Span<float> positions = MemoryMarshal.Cast<byte, float>(scratch.Positions.AsSpan(0, vertexCount * PositionStride));
-            Span<ushort> normals = MemoryMarshal.Cast<byte, ushort>(scratch.Normals.AsSpan(0, vertexCount * NormalStride));
-            Span<float> uvs = MemoryMarshal.Cast<byte, float>(scratch.Uvs.AsSpan(0, vertexCount * UvStride));
-            int p = 0, n = 0, u = 0;
-            for (int t = 0; t < count; t++)
-            {
-                RenderTriangle triangle = triangles[t];
-                Corner(vertices[triangle.A], positions, normals, uvs, ref p, ref n, ref u);
-                Corner(vertices[triangle.B], positions, normals, uvs, ref p, ref n, ref u);
-                Corner(vertices[triangle.C], positions, normals, uvs, ref p, ref n, ref u);
-            }
-            positions[p..].Clear();
-            normals[n..].Clear();
-            uvs[u..].Clear();
-            RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, 0, scratch.Positions.AsSpan(0, vertexCount * PositionStride));
-            RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, _capacity * 3 * PositionStride,
-                scratch.Normals.AsSpan(0, vertexCount * NormalStride));
-            RenderingServer.MeshSurfaceUpdateAttributeRegion(_mesh, 0, 0, scratch.Uvs.AsSpan(0, vertexCount * UvStride));
-            _written = count;
+            long bytes = 0;
+            int from = all ? 0 : run.FirstNewVertex;
+            if (run.VertexCount > from) bytes += UploadVertices(run, vertices, from, scratch);
+            if (all || run.IndicesChanged) bytes += UploadIndices(run, scratch);
+            return bytes;
         }
 
         public void Hide()
@@ -906,56 +905,119 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             RenderingServer.FreeRid(_mesh);
         }
 
-        private static void Corner(in BlendedVertex vertex, Span<float> positions, Span<ushort> normals, Span<float> uvs,
-            ref int p, ref int n, ref int u)
+        /// <summary>Slot vertices [<paramref name="from"/>, count) into the vertex and attribute streams.</summary>
+        private long UploadVertices(BlendedRunSlot<ShaderMaterial> run, ReadOnlySpan<BlendedVertex> vertices, int from, Scratch scratch)
         {
-            NVector3 at = RightHandedFrame.Point(vertex.Position);
-            positions[p++] = at.X;
-            positions[p++] = at.Y;
-            positions[p++] = at.Z;
-            // Godot's own normal encoding (LiquidLayer.EncodeNormals).
-            Vector2 o = ToGodot(RightHandedFrame.Normal(vertex.Normal)).OctahedronEncode();
-            normals[n++] = (ushort)Math.Clamp(o.X * 65535f, 0f, 65535f);
-            normals[n++] = (ushort)Math.Clamp(o.Y * 65535f, 0f, 65535f);
-            uvs[u++] = vertex.Uv.X;
-            uvs[u++] = vertex.Uv.Y;
-            uvs[u++] = vertex.LightAnchor.X;
-            uvs[u++] = vertex.LightAnchor.Y;
+            int count = run.VertexCount - from;
+            if (scratch.Positions.Length < count * PositionStride || scratch.Normals.Length < count * _normalStride)
+            {
+                int capacity = Math.Max(count, scratch.Positions.Length / PositionStride * 2);
+                scratch.Positions = new byte[capacity * PositionStride];
+                scratch.Normals = new byte[capacity * _normalStride];
+                scratch.Uvs = new byte[capacity * UvStride];
+            }
+            Span<float> positions = MemoryMarshal.Cast<byte, float>(scratch.Positions.AsSpan(0, count * PositionStride));
+            Span<byte> normals = scratch.Normals.AsSpan(0, count * _normalStride);
+            Span<float> uvs = MemoryMarshal.Cast<byte, float>(scratch.Uvs.AsSpan(0, count * UvStride));
+            IReadOnlyList<int> held = run.Vertices;
+            for (int i = 0; i < count; i++)
+            {
+                BlendedVertex vertex = vertices[held[from + i]];
+                NVector3 at = RightHandedFrame.Point(vertex.Position);
+                positions[i * 3] = at.X;
+                positions[(i * 3) + 1] = at.Y;
+                positions[(i * 3) + 2] = at.Z;
+                // Godot's own normal encoding (LiquidLayer.EncodeNormals), then the tangent Godot built, when it holds one.
+                Vector2 o = ToGodot(RightHandedFrame.Normal(vertex.Normal)).OctahedronEncode();
+                Span<byte> slot = normals.Slice(i * _normalStride, _normalStride);
+                if (_normalStride > NormalSize) MemoryMarshal.Write(slot[(NormalSize - _normalAt)..], in s_tangent);
+                Span<ushort> normal = MemoryMarshal.Cast<byte, ushort>(slot.Slice(_normalAt, NormalSize));
+                normal[0] = (ushort)Math.Clamp(o.X * 65535f, 0f, 65535f);
+                normal[1] = (ushort)Math.Clamp(o.Y * 65535f, 0f, 65535f);
+                uvs[i * 4] = vertex.Uv.X;
+                uvs[(i * 4) + 1] = vertex.Uv.Y;
+                uvs[(i * 4) + 2] = vertex.LightAnchor.X;
+                uvs[(i * 4) + 3] = vertex.LightAnchor.Y;
+            }
+            RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, from * PositionStride, scratch.Positions.AsSpan(0, count * PositionStride));
+            RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, _normalBlock + (from * _normalStride), normals);
+            RenderingServer.MeshSurfaceUpdateAttributeRegion(_mesh, 0, from * UvStride, scratch.Uvs.AsSpan(0, count * UvStride));
+            return (long)count * (PositionStride + _normalStride + UvStride);
         }
 
-        private bool Same(IReadOnlyList<RenderTriangle> triangles)
+        /// <summary>The run's indices, and zeros over what the last upload wrote past them.</summary>
+        private long UploadIndices(BlendedRunSlot<ShaderMaterial> run, Scratch scratch)
         {
-            if (triangles.Count != _triangles.Count) return false;
-            for (int i = 0; i < triangles.Count; i++)
-                if (triangles[i] != _triangles[i]) return false;
-            return true;
+            int count = Math.Max(run.IndexCount, _written);
+            if (scratch.Indices.Length < count * _indexStride)
+                scratch.Indices = new byte[Math.Max(count * _indexStride, scratch.Indices.Length * 2)];
+            ReadOnlySpan<int> indices = run.Indices;
+            if (_indexStride == 2)
+            {
+                Span<ushort> into = MemoryMarshal.Cast<byte, ushort>(scratch.Indices.AsSpan(0, count * 2));
+                for (int i = 0; i < indices.Length; i++) into[i] = (ushort)indices[i];
+                into[indices.Length..].Clear();
+            }
+            else
+            {
+                Span<int> into = MemoryMarshal.Cast<byte, int>(scratch.Indices.AsSpan(0, count * 4));
+                indices.CopyTo(into);
+                into[indices.Length..].Clear();
+            }
+            RenderingServer.MeshSurfaceUpdateIndexRegion(_mesh, 0, 0, scratch.Indices.AsSpan(0, count * _indexStride));
+            _written = run.IndexCount;
+            return (long)count * _indexStride;
         }
 
-        /// <summary>A new surface of a power-of-two triangle capacity, zeroed; the only allocation, as a run outgrows it.</summary>
-        private void Grow(int count)
+        /// <summary>A new zeroed surface of power-of-two vertex and triangle capacities; the only allocation, as a run outgrows it.</summary>
+        private void Grow(int vertexCount, int indexCount)
         {
-            int capacity = 64;
-            while (capacity < count) capacity <<= 1;
-            _capacity = capacity;
-            int vertexCount = capacity * 3;
-            if (RenderingServer.MeshSurfaceGetFormatVertexStride(Format, vertexCount) != PositionStride
-                || RenderingServer.MeshSurfaceGetFormatNormalTangentStride(Format, vertexCount) != NormalStride
-                || RenderingServer.MeshSurfaceGetFormatOffset(Format, vertexCount, (int)Mesh.ArrayType.Normal) != vertexCount * PositionStride
-                || RenderingServer.MeshSurfaceGetFormatAttributeStride(Format, vertexCount) != UvStride
-                || RenderingServer.MeshSurfaceGetFormatOffset(Format, vertexCount, (int)Mesh.ArrayType.Custom0) != 8)
-                GD.PushError("DK2.Godot: the blended run's vertex layout is not positions, normals, then UV and anchor; runs draw wrong.");
+            Grows++;
+            // Room for a slot's spare vertices (BlendedRunSlot.SpareVertices) from the start, so few slots grow again.
+            int vertices = Math.Max(256, _vertexCapacity), triangles = Math.Max(128, _indexCapacity / 3);
+            while (vertices < vertexCount) vertices <<= 1;
+            while (triangles * 3 < indexCount) triangles <<= 1;
+            _vertexCapacity = vertices;
+            _indexCapacity = triangles * 3;
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
-            arrays[(int)Mesh.ArrayType.Vertex] = new Vector3[vertexCount];
-            var up = new Vector3[vertexCount];
+            arrays[(int)Mesh.ArrayType.Vertex] = new Vector3[vertices];
+            var up = new Vector3[vertices];
             Array.Fill(up, Vector3.Up);
             arrays[(int)Mesh.ArrayType.Normal] = up;
-            arrays[(int)Mesh.ArrayType.TexUV] = new Vector2[vertexCount];
-            arrays[(int)Mesh.ArrayType.Custom0] = new float[vertexCount * 2];
+            arrays[(int)Mesh.ArrayType.TexUV] = new Vector2[vertices];
+            arrays[(int)Mesh.ArrayType.Custom0] = new float[vertices * 2];
+            arrays[(int)Mesh.ArrayType.Index] = new int[_indexCapacity];
             RenderingServer.MeshClear(_mesh);
             RenderingServer.MeshAddSurfaceFromArrays(_mesh, RenderingServer.PrimitiveType.Triangles, arrays, null, null,
                 Format & ~(RenderingServer.ArrayFormat.FormatVertex | RenderingServer.ArrayFormat.FormatNormal
-                    | RenderingServer.ArrayFormat.FormatTexUV | RenderingServer.ArrayFormat.FormatCustom0));
+                    | RenderingServer.ArrayFormat.FormatTexUV | RenderingServer.ArrayFormat.FormatCustom0
+                    | RenderingServer.ArrayFormat.FormatIndex));
+            // The layout as built: the surface's own format, read back by the first slot of the process, since Godot adds
+            // the tangent; every slot's surface has the same format.
+            if (s_builtFormat == 0)
+            {
+                Godot.Collections.Dictionary built = RenderingServer.MeshGetSurface(_mesh, 0);
+                s_builtFormat = (RenderingServer.ArrayFormat)built["format"].AsInt64();
+                if ((s_builtFormat & RenderingServer.ArrayFormat.FormatTangent) != 0)
+                {
+                    int at = (int)RenderingServer.MeshSurfaceGetFormatOffset(s_builtFormat, vertices, (int)Mesh.ArrayType.Tangent);
+                    s_tangent = MemoryMarshal.Read<uint>(built["vertex_data"].AsByteArray().AsSpan(at, 4));
+                }
+            }
+            RenderingServer.ArrayFormat format = s_builtFormat;
+            _indexStride = (int)RenderingServer.MeshSurfaceGetFormatIndexStride(format, vertices);
+            _normalStride = (int)RenderingServer.MeshSurfaceGetFormatNormalTangentStride(format, vertices);
+            _normalBlock = (int)RenderingServer.MeshSurfaceGetFormatOffset(format, vertices, (int)Mesh.ArrayType.Normal);
+            _normalAt = (format & RenderingServer.ArrayFormat.FormatTangent) != 0
+                && RenderingServer.MeshSurfaceGetFormatOffset(format, vertices, (int)Mesh.ArrayType.Tangent) == _normalBlock ? NormalSize : 0;
+            if (RenderingServer.MeshSurfaceGetFormatVertexStride(format, vertices) != PositionStride
+                || _normalBlock != vertices * PositionStride
+                || (_normalStride != NormalSize && _normalStride != 2 * NormalSize)
+                || RenderingServer.MeshSurfaceGetFormatAttributeStride(format, vertices) != UvStride
+                || RenderingServer.MeshSurfaceGetFormatOffset(format, vertices, (int)Mesh.ArrayType.Custom0) != 8
+                || (_indexStride != 2 && _indexStride != 4))
+                GD.PushError("DK2.Godot: the blended run's buffer layout is not positions, normals (and tangents), then UV and anchor, with 16 or 32-bit indices; runs draw wrong.");
             _written = 0;
         }
     }

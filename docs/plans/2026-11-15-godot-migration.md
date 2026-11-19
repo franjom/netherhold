@@ -941,7 +941,39 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
   - [ ] 3p-b. Terrain state texture (audit item 3): tag, red and tint as texels read through a per-vertex state source
         (a room wall takes its neighbour's tag and tint), the opaque overlays in the shader, no chunk rebuild on a
         state-only change; after 3q.
-  - [ ] 3q. Blended ordering: real-depth run keys and index-only re-sorts, `ZeroOrderOffset` deleted (item 5), before 3k.
+  - [x] 3q. Blended ordering, audit item 5 (2026-11-19, ADR-0813): `ZeroOrderOffset`, `SortFromOrigin` and the
+        unindexed run rewrites are gone. The shared `BlendedRunSlots` (`DK2.Presentation`, tested, including a fake renderer
+        that applies only what each update reports) keys each run of the stream by its distance from the eye to its
+        nearest triangle centroid, falling by at least 1/1024 tile down the stream so the runs keep DK2's back-to-front
+        order (0x0058B9D0, 0x00588D00); a tag overlay's run is outside that chain and draws first, the adapter giving its
+        material render priority -1 from the slot's `TagOverlay`, as DK2 draws the overlay with its opaque base. Godot 4.8
+        sorts transparents by the straight-line distance to a pivot, not by depth along the view (render_forward_clustered.cpp
+        at c51ff06e8; two quads in a scratch project drew in distance order where the measures disagree), so the runs are
+        keyed in that measure and sort from the origin with the matching offset; blended objects, flames, the cage (its box
+        the ribbon's) and the effect batches (each boxed around its live sprites) are keyed by their box centres in the same
+        measure and now fall between runs instead of all under them. A run takes, in two passes, the slot of its material
+        that last drew its first corner, else a free slot nobody claimed; a slot keeps its vertices, so a re-sort uploads
+        the indices (`MeshSurfaceUpdateIndexRegion`) and only the vertices the slot never held. Found on the way: Godot adds
+        a tangent beside each normal, so the runs had written their normals at the wrong vertices; the slot reads the
+        surface's real layout (`docs/TRAPS.md`). Frames against HEAD (Movie Maker, 1920x1080, scripted pointer, flags off
+        and `--light-perpixel --light-shadows --light-post`): Level1 start (12 frames), tick 70 (40) and a dig-tag drag
+        after the opening path with the cage, tag overlays, the Heart and the flames (90) byte-identical, but for one
+        terrain-edge pixel in the drag with the flags on (by 18 to 25, gone with the effect-batch box backed out); Level7
+        start differs only over the Portal's crystals (about 17,000 to 18,000 pixels): their light is smooth instead of in
+        triangle blocks (the normals, up to 34 a channel), and a flame nearer than the crystals draws over them (about 130);
+        judged more correct. Harness, 1080p, interleaved with HEAD, 2 repeats, 11 to 23% other load: draw calls, objects
+        and run instances (94 on Level7) unchanged; Level7 uploads 1.74 MB for 209,084 drawn triangles over 903 re-sorts
+        (8.3 B a triangle; HEAD rewrote 96 B for each triangle of a changed run); re-sort CPU mean 0.28 ms on HEAD, 0.36 to
+        0.39 ms; Level7 moving frame p50 6.84 to 7.37 ms (mean 7.47 to 7.63), GPU p50 unchanged (2.45 ms); Level1 frame
+        and GPU p50 unchanged within the noise (4.50 to 4.37 ms, 1.86 ms); per-frame allocation p50 unchanged, the re-sort's
+        after warm-up 48 KB against HEAD's 138 KB. A box centred on each run's nearest centroid, which leaves Godot to
+        measure the distance and saves the per-frame pivot calls, measured no better (7.29 ms) and was not kept. Turn-400
+        hash unchanged (`B5C0CB842094AB59`). Open: (1) DK2 orders its one list by depth along the view and Godot by
+        distance, so near the screen's corners a blended object up to about 20% nearer along the view can still draw under a
+        run; (2) a blended object straddling a run sits wholly on one side of it (DK2 interleaves per triangle; splitting
+        runs at blended objects, as at flowers, would close it); (3) an effect batch sorts as one box around all its live
+        sprites until 3k sorts sprites on their own; (4) Level7's moving frame costs 0.2 to 0.5 ms more than HEAD's,
+        partly the re-sort; (5) the liquids' normals have the same tangent-layout fault.
   - [x] 3j. Creature shadows, folded into lighting: done as lighting step 2 (`--light-shadows`, ClassicShadowSourceSelector,
         the 2 torches nearest the camera focus; real distance-map shadows, no silhouette projection).
   - [ ] 3k. Effects and flowers on MultiMesh over the CPU particle simulation, with the torch flames (item 6).

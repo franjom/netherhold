@@ -23,10 +23,6 @@ namespace DK2.GodotAdapter;
 /// tint are the instance's uniforms (step 3p, <see cref="ObjectSurfaceKey"/>).</summary>
 public partial class WorldScene
 {
-    /// <summary>The distance in tiles over which <see cref="ZeroOrderOffset"/> spreads its keys; any positive value keeps
-    /// the order, this one keeps the key steps above float precision across a level.</summary>
-    private const float ZeroOrderSpread = 64f;
-
     private readonly Dictionary<int, ModelSlot> _objects = new();
     private readonly Dictionary<int, AssetRef> _artless = new();
     private readonly Dictionary<StructureId, ModelSlot> _structures = new();
@@ -45,10 +41,6 @@ public partial class WorldScene
     private Func<EffectTime>? _effectClock;
     private byte[] _upload = [];
     private long _frameMilliseconds;
-    // The camera as the order-0 keys last read it, in Godot's frame; a new stamp re-keys every blended thing.
-    private NVector3 _eye;
-    private float _originDistance;
-    private int _sortStamp;
     // What the frames' object draws allocated, for the exit report: the first frames (clip installs, first materials), then after.
     private const int DrawWarmUp = 60;
     private long _drawWarmUpBytes, _drawLateBytes, _drawBendingBytes;
@@ -267,8 +259,8 @@ public partial class WorldScene
     }
 
     /// <summary>After the frame's camera is placed (the query follow reads the drawn creatures): the frame's lights
-    /// (<see cref="PrepareLighting"/>), the blended stream sorted for it and every blended thing's order-0 key
-    /// (<see cref="ZeroOrderOffset"/>); the cage takes its key when it is drawn (<see cref="DrawCage"/>). Allocation-free.</summary>
+    /// (<see cref="PrepareLighting"/>) and the blended stream sorted and keyed for it (<see cref="DrawBlended"/>); blended
+    /// objects, flames and the cage need no key of their own, as Godot sorts them by their AABB centres. Allocation-free.</summary>
     public void FinishFrame()
     {
         PreparePossessionVisibility();
@@ -278,20 +270,6 @@ public partial class WorldScene
         PrepareShadows();
         DrawBlended();
         _phaseStart = GC.GetAllocatedBytesForCurrentThread();
-        if (View is MinimapCameraView view)
-        {
-            NVector3 eye = RightHandedFrame.Point(view.Position);
-            if (eye != _eye || _sortStamp == 0)
-            {
-                _eye = eye;
-                _originDistance = eye.Length();
-                _sortStamp++;
-            }
-        }
-        foreach (KeyValuePair<int, CreatureSlot> entry in _creatures) entry.Value.Slot.Sort();
-        foreach (KeyValuePair<int, ModelSlot> entry in _objects) entry.Value.Sort();
-        foreach (KeyValuePair<StructureId, ModelSlot> entry in _structures) entry.Value.Sort();
-        _flames?.Sort();
         Mark(DrawPhase.Sort);
         long bytes = 0;
         for (int i = 0; i < _phaseBytes.Length; i++) bytes += _phaseBytes[i];
@@ -357,18 +335,6 @@ public partial class WorldScene
             _latticeDirty.Clear();
         }
         Mark(DrawPhase.Bend);
-    }
-
-    /// <summary>The sorting offset that puts a blended instance among Unity's sorting order 0, back to front by the distance
-    /// to <paramref name="centre"/> (Unity's bounds centre): Godot keys a transparent by distance(camera, pivot) minus the
-    /// offset, the runs sit at the origin keyed by their order (<see cref="SortFromOrigin"/>), so order 0 is the open
-    /// interval one below the origin's distance, which these keys fill without reaching either end.</summary>
-    private float ZeroOrderOffset(Vector3 pivot, Vector3 centre)
-    {
-        var eye = new Vector3(_eye.X, _eye.Y, _eye.Z);
-        float distance = eye.DistanceTo(centre);
-        float key = _originDistance - 0.99f + (0.98f * distance / (distance + ZeroOrderSpread));
-        return eye.DistanceTo(pivot) - key;
     }
 
     /// <summary>The model an install entry draws, built once (Unity's <c>ClassicMeshes.TryBuild</c>): its first frame, or
@@ -641,16 +607,13 @@ public partial class WorldScene
     /// lock's plain model.</summary>
     private enum SlotKind { Object, Structure, Creature, Plain }
 
-    /// <summary>One drawn model: a node showing the shared model or a clip's segment, its surfaces' materials and, when one
-    /// of them blends, its order-0 key.</summary>
+    /// <summary>One drawn model: a node showing the shared model or a clip's segment and its surfaces' materials; a blended
+    /// one sorts by its AABB centre, Godot's default, among the blended runs (<see cref="RunSlot"/>).</summary>
     private sealed class ModelSlot
     {
         private readonly WorldScene _scene;
         private ModelMesh _shown;
         private ModelMesh _static;
-        private int _sortStamp = -1;
-        private bool _blended;
-        private Vector3 _centre;
         private StructureView _structure;
         private ObjectView _pose;
 
@@ -711,7 +674,6 @@ public partial class WorldScene
             System.Numerics.Quaternion q = RightHandedFrame.Rotation(RenderTurn);
             var basis = new Basis(new Quaternion(q.X, q.Y, q.Z, q.W)) * Basis.FromScale(scale);
             Node.Transform = new Transform3D(basis, ToGodot(RightHandedFrame.Point(position)));
-            _sortStamp = -1;
         }
 
         /// <summary>The model at <paramref name="position"/> (the renderers' frame), its turn and scale kept.</summary>
@@ -719,7 +681,6 @@ public partial class WorldScene
         {
             RenderPosition = position;
             Node.Position = ToGodot(RightHandedFrame.Point(position));
-            _sortStamp = -1;
         }
 
         /// <summary>A model-local point (<see cref="RenderMesh"/>'s frame) where it is drawn, in the renderers' frame: Unity's
@@ -757,7 +718,6 @@ public partial class WorldScene
             ObjectModelPasses.Build(_shown.Model.Materials, _shown.SubmeshCount, phased ? pose.DrawnTexturePhase : null, _scene._passes);
             byte alpha = Kind == SlotKind.Object ? pose.Alpha : byte.MaxValue;
             Node.Visible = ObjectMaterialLook.IsDrawn(alpha);
-            _blended = false;
             bool plan = Kind == SlotKind.Structure && Structure.Plan != BlueprintTint.None;
             ObjectMaterialLook?[] environment = _scene.EnvironmentPasses(_shown.SubmeshCount);
             // A submesh's environment pass draws after its own, also over a plan (structure-drawing.md section 5, where
@@ -785,7 +745,6 @@ public partial class WorldScene
                     look = twin with { QueueOffset = 0 };
                     own = false;
                 }
-                _blended |= look.Blend != KmfBlend.Opaque;
                 bool alphaBlended = look.Blend == KmfBlend.AlphaBlend;
                 _alphaBlended |= alphaBlended;
                 ObjectMaterialLook? environmentPass = environment[pass.Submesh];
@@ -796,9 +755,7 @@ public partial class WorldScene
             }
             SetInstanceLook(instance);
             SetRed(Hover);
-            if (_blended) Node.SortingUseAabbCenter = false;
             _appliedHover = Hover;
-            _sortStamp = -1;
         }
 
         /// <summary>The drawn thing's instance uniforms (Shaders/World.gdshaderinc) from <paramref name="instance"/>, each
@@ -876,18 +833,6 @@ public partial class WorldScene
             for (int submesh = 0; submesh < triangles.Count; submesh++)
                 found |= PickTriangles.TryNearest(positions, triangles[submesh], origin, direction, ref best);
             return found ? best : null;
-        }
-
-        /// <summary>A blended model's order-0 key, again when it or the camera moved (<see cref="ZeroOrderOffset"/>).</summary>
-        public void Sort()
-        {
-            Lock?.Sort();
-            if (!_blended || _sortStamp == _scene._sortStamp) return;
-            _sortStamp = _scene._sortStamp;
-            Transform3D transform = Node.GlobalTransform;
-            // A clip's centre is its first frame's box, which a re-key does not follow while the clip plays.
-            _centre = transform * _shown.Box.GetCenter();
-            Node.SortingOffset = _scene.ZeroOrderOffset(transform.Origin, _centre);
         }
 
         public void Free()
@@ -1098,7 +1043,7 @@ public partial class WorldScene
         {
             public Rid Instance;
             public TorchView Torch;
-            public int PhaseOffsetRaw, Frame = -1, SortStamp = -1;
+            public int PhaseOffsetRaw, Frame = -1;
             public Vector3 Point;
         }
 
@@ -1159,7 +1104,6 @@ public partial class WorldScene
             flame.Torch = torch;
             flame.Point = ToGodot(RightHandedFrame.Point(ClassicTorchFlame.RenderPoint(torch, _scene._lattice)));
             RenderingServer.InstanceSetTransform(flame.Instance, new Transform3D(Basis.Identity, flame.Point));
-            flame.SortStamp = -1;
         }
 
         public void Remove(int floorTileIndex)
@@ -1189,17 +1133,6 @@ public partial class WorldScene
             foreach (KeyValuePair<int, Flame> entry in _drawn)
                 RenderingServer.InstanceSetVisible(entry.Value.Instance, _scene.PossessionFloorVisible(entry.Key));
         }
-        public void Sort()
-        {
-            foreach (KeyValuePair<int, Flame> entry in _drawn)
-            {
-                Flame flame = entry.Value;
-                if (flame.SortStamp == _scene._sortStamp) continue;
-                flame.SortStamp = _scene._sortStamp;
-                RenderingServer.InstanceSetPivotData(flame.Instance, _scene.ZeroOrderOffset(flame.Point, flame.Point), false);
-            }
-        }
-
         public void Free()
         {
             foreach (Flame flame in _drawn.Values) RenderingServer.FreeRid(flame.Instance);

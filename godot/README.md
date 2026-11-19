@@ -19,9 +19,15 @@ are marked stale, built on the thread pool and uploaded within a 4 ms budget, lo
 (`LiquidSurfaceField`): each liquid's positions are rewritten in place every frame with `SurfaceUpdateVertexRegion`, and
 the wave's normals are uploaded with them, for the lighting (3i). Lit materials draw texture x colour x the vertex's light,
 which is the lighting step's (below); the tag, red and tint light are added before DK2's clamp. Blended
-terrain (alpha, additive, the tag overlay, the fog) is drawn back to front by the shared `BlendedTerrainStream`: one
-`RenderingServer` instance per run at the origin, with the stream's order as its `sorting_offset`, each run one triangle
-list uploaded with `MeshSurfaceUpdateVertexRegion`. Shaders write stored bytes / 255 (uniforms are `source_color,
+terrain (alpha, additive, the tag overlay, the fog) is drawn back to front by the shared `BlendedTerrainStream` and keyed
+by the shared `BlendedRunSlots` (step 3q): one `RenderingServer` instance per slot, sorted from the origin with the offset
+that makes Godot's own measure, the straight-line distance from the camera, the run's key (the distance to its nearest
+triangle centroid, falling down the stream so the runs keep its order). Blended objects, flames, the cage and the effect
+batches (each boxed around its live sprites), sorted by their box centres in the same measure, fall between runs; a tag
+overlay draws first by its material's render priority. DK2 orders by depth along the view, not distance, so near the
+screen's edges the two can disagree. A slot keeps a material's vertices between re-sorts, so a camera move uploads only
+the run's indices (`MeshSurfaceUpdateIndexRegion`) and the vertices the slot never held, in the surface's own layout
+(Godot adds a tangent beside each normal). Shaders write stored bytes / 255 (uniforms are `source_color,
 color_conversion_disabled`), and the camera's `Environment` (linear tonemap, a colour-correction table of
 `srgb_to_linear`) shows those values as they are, so every blend happens in gamma space as in Unity; the HUD and front end
 are unaffected. Objects, structures and torches (`WorldScene.Objects.cs`, step 3f) are drawn from shared `ArrayMesh`es, one node per
@@ -29,8 +35,8 @@ object with a `ShaderMaterial` per surface from `ObjectMaterialLook`: the Dungeo
 `CreatureAnimationPlayer` with `HeartPulse`'s beat (its on-screen test is a point test on its origin; the beat's sound and
 the mana effect wait for 3k and step 4); doors and traps with the door tint, the blinking blueprint and the lock mesh; wall
 torches, bent by `TorchGeometry` and bent again in place when a tile near the wall changes; and their flames as additive
-camera-facing billboards, drawn upright. A blended object or a flame takes Unity's sorting-order-0 place through
-`ZeroOrderOffset`. Creatures (`WorldScene.Creatures.cs`, step 3g) are one node per creature on the same shared models, each
+camera-facing billboards, drawn upright. A blended object or a flame sorts by its AABB centre among the blended runs.
+Creatures (`WorldScene.Creatures.cs`, step 3g) are one node per creature on the same shared models, each
 clip played by `CreatureAnimationPlayer` with the vertex positions rewritten in place, from a clip set cached per entry and
 mesh copies per template. The scene hosts the shared `SceneFrame` (`ISceneFrameHost`), so a frame runs in Unity's order:
 each creature's place from `PoseInterpolator` (through `RightHandedFrame`), its clip, then its head point. A creature that dies
@@ -43,7 +49,7 @@ next pass over the whole triangle; step 3p), and a hovered gold object swaps to 
 when the hover state changes. The
 hover sound waits for step 4. The classic lighting (`WorldScene.Lighting.cs`, step 3i) lights every lit vertex with DK2's
 tile tables, ambient keys and Hand light with ADR-0522's distance fade (native ambient, as the owner's Unity scene has it; `--light-fill` adds Godot's fill); an environment pass is folded into its submesh's
-material, also over a plan, and the selection cage takes a `ZeroOrderOffset` key. The material model (step 3p): one world shader,
+material, also over a plan, and the selection cage's box is the ribbon's, so it sorts by the ribbon's centre. The material model (step 3p): one world shader,
 `Shaders/World.gdshaderinc` with DK2's light in `WorldLight.gdshaderinc`, in four render states (`WorldOpaque`, `WorldBlend`,
 `WorldBlendDepth`, `WorldAdd.gdshader`; the blend and depth write are not uniforms), each look a `ShaderMaterial` of uniforms
 (texture, colour, added light, full light, model inputs, environment pass), and an object's tint and fade, a structure's tint and the

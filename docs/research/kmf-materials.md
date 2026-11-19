@@ -133,7 +133,8 @@ materials before each camera (`BlendedTerrainStream`, shared), batching only adj
 explicitly ordered renderers. Standalone object meshes and liquids still use Unity's object sort.
 The terrain runs use sortingOrder 1..N, so they follow those other blended renderers
 (at order 0); transparent faces across the two streams do not interleave by depth.
-Godot draws each run as an instance whose `sorting_offset` is that order.
+Godot keys each run by its real distance (`BlendedRunSlots`, the stream's order kept), so blended objects and
+flames fall between runs by distance, nearer to DK2's one list.
 
 Shipped flags across Meshes.WAD (`KmfMaterialTests.ShippedFlagsUseOnlyTheSurveyedBits`):
 0x0 3957, 0x40 1031, 0x42 600, 0x2 381, 0x100 198, 0x3 117, 0x80 78, 0x1 63, 0x4 20,

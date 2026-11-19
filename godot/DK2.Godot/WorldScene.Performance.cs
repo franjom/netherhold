@@ -31,6 +31,12 @@ public partial class WorldScene
         Add(into, "blended.lateBytes", _blendedLateBytes);
         Add(into, "blended.maxRuns", _blendedMaxRuns);
         Add(into, "blended.maxTriangles", _blendedMaxTriangles);
+        Add(into, "blended.instances", _runSlots.Count);
+        int grows = 0;
+        foreach (RunSlot slot in _runSlots) grows += slot.Grows;
+        Add(into, "blended.surfaceBuilds", grows);
+        Add(into, "blended.uploadBytes", _blendedUploadBytes);
+        Add(into, "blended.uploadTriangles", _blendedUploadTriangles);
         Add(into, "world.materials", _worldMaterialsMade);
         int shaders = 0;
         for (int state = 0; state < WorldShaderPaths.Length; state++) if (s_worldShaders[WorldLightMode, state] != null) shaders++;
