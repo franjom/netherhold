@@ -405,6 +405,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _world.PerPixelLight = Array.IndexOf(args, "--light-perpixel") >= 0;
         // --light-shadows: real torch shadows on that per-pixel light (WorldScene.TorchShadows); nothing without it.
         _world.TorchShadows = Array.IndexOf(args, "--light-shadows") >= 0;
+        // --light-post: ambient occlusion over DK2's light (WorldScene.PostOcclusion).
+        _world.PostOcclusion = Array.IndexOf(args, "--light-post") >= 0;
         bool probeShift = Array.IndexOf(args, "--light-probe-shift") >= 0;
         _reportTicks = _world.ProbeWithoutTorches || probeShift || Array.IndexOf(args, "--light-probe") >= 0;
         // The first frame's terrain, built whole; each frame's Present pushes the changes since.

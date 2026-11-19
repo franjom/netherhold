@@ -160,6 +160,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _camera.Environment = GammaOutput();
         AddChild(_camera);
         _camera.MakeCurrent();
+        OpenPostEffects();
         GetViewport().SizeChanged += PlaceCamera;
         PlaceCamera();
     }

@@ -53,6 +53,12 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
   `ClassicCreatureShadows`). A torch holding a map counts 1.5 tiles nearer, so the maps do not swap back and forth.
   Two torches (four cost +1.9 to +3.0 ms with the creature darkening). Level1 1080p, 2 repeats against per-pixel:
   GPU p50 3.80 to 4.27 ms, draw calls 133 to 223, video memory +18 MiB, 0 B a frame.
+  Step 3, post effects (`WorldScene.PostEffects.cs`, 2026-11-19), judged one by one by the owner. Ambient occlusion
+  (`--light-post`): a full-screen quad reading the opaque depth (Godot's SSAO skips unshaded materials), subtle at
+  wall bases and corners; kept; GPU p50 3.76 to 5.71 ms at Level1 1080p (2 repeats over per-pixel and shadows).
+  Glow: tried, judged worse by eye and dropped (gamma 0 to 1 buffer, the threshold needs values over 1, so an
+  emitter's own colour shifts; a clean glow needs a separate emitter pass). Fog: skipped, the light shader already fades by ADR-0522's 0.5 to 1 of the far
+  plane per pixel, and a depth fog would also dim the full-light draws. Flags off, the Level1 frames are unchanged.
 - **3. P1, M. Terrain material per tile state** (tint, tag, red, fog opacity; overlays as additive triangles in the
   blended stream; `WorldScene.cs:302-373`, `TerrainMaterialKey.cs:44-55`). Replace with a per-tile state texture read
   in `vertex()` by a tile index in `CUSTOM0`; opaque overlays move into the shader; only the sight fog stays blended.
