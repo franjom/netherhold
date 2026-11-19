@@ -937,16 +937,19 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         (L1) and 2.72 to 2.59 (L7), frame p50 4.38 to 4.49 and 5.92 to 6.41 (inside the load noise); flags on, GPU
         p50 within the noise (interleaved Level1 runs: HEAD 5.28 and 5.93 ms, after 5.75 and 6.12; the same build
         spans 5.3 to 6.2 ms across runs); per-frame allocation p50 unchanged.
-        Turn-400 hash unchanged (`B5C0CB842094AB59` on HEAD and after). Item 3, the per-tile state texture, is open.
-  - [ ] 3p-b. Terrain state texture (audit item 3): tag, red and tint as texels read through a per-vertex state source
-        (a room wall takes its neighbour's tag and tint), the opaque overlays in the shader, no chunk rebuild on a
-        state-only change; after 3q.
+        Turn-400 hash unchanged (`B5C0CB842094AB59` on HEAD and after). Per-tile state: see 3p-b.
+  - [x] 3p-b. Terrain state texture (2026-11-19, audit item 3):
+        `TerrainTileState` and per-vertex tag/tint sources preserve `TerrainMaterialKey.For`'s colour rules, including
+        neighbour walls, quarter floor tint and additive recipes. Godot opts into state-only updates without chunk or
+        lattice rebuilds; Unity keeps its existing path. Rendering and upload limits: [Godot README](../../godot/README.md).
+        Turn-400 hash unchanged (`B5C0CB842094AB59`); the full solution suite (3,233 Presentation tests), builds,
+        Godot import/build-solutions and Unity sync/compile/smoke/save-smoke gates pass. Final captures, warmed dig-tag
+        timing and alternating repeated performance results: [audit item 3](2026-11-18-godot-modern-rendering-audit.md).
   - [x] 3q. Blended ordering, audit item 5 (2026-11-19, ADR-0813): `ZeroOrderOffset`, `SortFromOrigin` and the
         unindexed run rewrites are gone. The shared `BlendedRunSlots` (`DK2.Presentation`, tested, including a fake renderer
         that applies only what each update reports) keys each run of the stream by its distance from the eye to its
         nearest triangle centroid, falling by at least 1/1024 tile down the stream so the runs keep DK2's back-to-front
-        order (0x0058B9D0, 0x00588D00); a tag overlay's run is outside that chain and draws first, the adapter giving its
-        material render priority -1 from the slot's `TagOverlay`, as DK2 draws the overlay with its opaque base. Godot 4.8
+        order (0x0058B9D0, 0x00588D00); tag overlays now use the static shader batches in 3p-b above. Godot 4.8
         sorts transparents by the straight-line distance to a pivot, not by depth along the view (render_forward_clustered.cpp
         at c51ff06e8; two quads in a scratch project drew in distance order where the measures disagree), so the runs are
         keyed in that measure and sort from the origin with the matching offset; blended objects, flames, the cage (its box

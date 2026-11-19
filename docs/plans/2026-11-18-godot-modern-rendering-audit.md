@@ -58,21 +58,32 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
   Glow: tried, judged worse by eye and dropped (gamma 0 to 1 buffer, the threshold needs values over 1, so an
   emitter's own colour shifts; a clean glow needs a separate emitter pass). Fog: skipped, the light shader already fades by ADR-0522's 0.5 to 1 of the far
   plane per pixel, and a depth fog would also dim the full-light draws. Flags off, the Level1 frames are unchanged.
-- **3. P1, M. Terrain material per tile state** (tint, tag, red, fog opacity; overlays as additive triangles in the
-  blended stream; `WorldScene.cs:302-373`, `TerrainMaterialKey.cs:44-55`). Replace with a per-tile state texture read
-  in `vertex()` by a tile index in `CUSTOM0`; opaque overlays move into the shader; only the sight fog stays blended.
-  Gain: a tag, tint or red change is one texel write, not a 4 to 25 tile chunk rebuild (Unity measured 0.23-0.27 ms per
-  5x5 and 2.3-2.5 ms per chunk); no per-tint materials; the overlay runs leave the stream. Risks: additive-before-clamp
-  equivalence, overlays over additive recipes; picking is unaffected; `TerrainMaterialKey.For` stays the reference.
-  Depends on the lighting shader.
+- **3. P1, M. Terrain material per tile state. Done (3p-b, 2026-11-19).** Tag, red and tint changes
+  update texels without rebuilding chunks; per-vertex sources preserve neighbour-wall and quarter-floor choices.
+  Godot uses shared recipe materials and shader overlays; Unity retains its reference path. Fog opacity keeps its
+  material/rebuild path. Rendering and texture-upload details: [Godot README](../../godot/README.md).
+  Colour-reference and geometry tests pass. Movie Maker at 1080p with scripted input: eight of nine final frames
+  are byte-identical, including the turn-200 red tutorial overlay with AO. The flags-off tag/cage frame differs in
+  3,548 pixels by at most 1/255 per channel, invisible at native size (combined-shader versus framebuffer-add rounding).
+  An earlier blink frame updates immediately while HEAD waits for a chunk rebuild. A warmed 30-frame dig-drag window:
+  mean process 6.29 to 5.10 ms, p50 2.67 to 2.76 ms, p95 20.19 to 14.80 ms; mean allocation 24,205 to 8,953 B/frame,
+  p50 unchanged at 3,120 B. Clean exclusive 1080p runs alternated HEAD/new for two repeats; medians of run p50s:
+  Level1 draws 124.5 to 122.5, world materials 27 to 24, GPU 2.400 to 2.532 ms, frame 5.331 to 5.198 ms,
+  allocation 7,296 B unchanged; Level7 draws 306 to 310.5, materials 94 to 95, GPU 3.434 to 3.053 ms,
+  frame 6.869 to 6.341 ms, allocation 10,304 to 10,296 B. Level7 adds static overlay chunk draws and one shared
+  overlay material. Loaded-machine frame p50 spreads: Level1 HEAD 4.94–5.73/new 5.07–5.33 ms,
+  Level7 HEAD 6.51–7.23/new 6.23–6.45 ms; these runs do not isolate a speed gain from load variation.
+  Final artifact root: `C:/Users/franj/AppData/Local/Temp/dk2-3pb-20261119/`; capture manifest/crops:
+  `captures/comparisons-newbatch/results.json`; performance: `batch-perf/comparison.txt` and `summary.json`;
+  drag samples: `captures/{headtiming,newbatchtiming}/drag-off/drag-timing.json`.
 - **4. P2, M-L. One opaque surface per texture key per chunk** (`WorldScene.cs:285-293`). Replace with a
   `Texture2DArray`, a per-vertex layer and self-illumination: 1 to 2 surfaces per chunk. Gain: opaque draws drop from
   hundreds (estimate; measure with item 0) to about 2 a chunk. Risks: per-size arrays; mips and clamp identical; phase
   and decay need a layer-offset texel or a rebuild. Depends on 3 and 0.
 - **5. P1, M. Blended terrain order. Done (3q, 2026-11-19).** The shared `BlendedRunSlots` keys each run by its
   distance to the eye (the nearest centroid, falling down the stream so the runs keep their order), Godot's own sort measure,
-  so blended objects, flames, the cage and the effect batches, keyed by their box centres, fall between runs; a tag overlay
-  draws first by render priority; a run's slot keeps its vertices and a re-sort uploads its indices and the vertices it
+  so blended objects, flames, the cage and the effect batches, keyed by their box centres, fall between runs; terrain
+  overlays now use item 3's batches. A run's slot keeps its vertices and a re-sort uploads its indices and the vertices it
   never held; `ZeroOrderOffset` and `SortFromOrigin` are deleted. Measured (Level7, 903 re-sorts): 8.3 B uploaded a drawn
   triangle, 94 run instances as before, re-sort CPU 0.28 to 0.36-0.39 ms mean, moving frame p50 6.84 to 7.37 ms; the runs'
   normals, written at the wrong vertices before (Godot's added tangent), are right now. Open (migration plan 3q): distance
@@ -143,8 +154,7 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 1. The lighting prototype: built and adopted, tuning next, the default switch awaiting the owner's acceptance.
 2. 3o performance harness (item 0): done.
 3. 3p material model on the prototype's shader: items 7 and 15 done (2026-11-19, the migration plan's 3p entry);
-   item 3 is still open, after 3q (a room wall takes its neighbour's tag and tint, so the state texture needs a
-   per-vertex state source, and folding the overlays changes their order against `--light-post`'s occlusion).
+   item 3 is done in 3p-b (see item 3 for final comparisons and measurements).
 4. 3q blended ordering (item 5): done.
 5. 3j folded into lighting: done as lighting step 2 (`--light-shadows`).
 6. 3k on MultiMesh, with the flames (item 6): done (2026-11-19).

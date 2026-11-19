@@ -115,7 +115,7 @@ public partial class WorldScene
         mesh.ClearSurfaces();
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, null, null, TerrainCustomFormat);
         // Unity's ClassicMeshes.ForTexture: the one Ceiling texture, opaque, lit as the terrain is.
-        _roofMaterial ??= MaterialFor(new TerrainMaterialKey(
+        _roofMaterial ??= FixedTerrainMaterial(new TerrainMaterialKey(
             new ClassicMaterialRecipe(TerrainCeiling.TextureName, KmfBlend.Opaque, 0f), TerrainMaterialVariant.Plain));
         mesh.SurfaceSetMaterial(0, _roofMaterial);
         if (instance == null)

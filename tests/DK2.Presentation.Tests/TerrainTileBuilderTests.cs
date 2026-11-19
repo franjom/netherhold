@@ -20,6 +20,63 @@ namespace DK2.Presentation.Tests;
 /// once the lattice bends them) and everything else exactly.</summary>
 public class TerrainTileBuilderTests
 {
+    [Fact]
+    public void RoomWallStateNamesTheNeighbourRatherThanTheOwningRoom()
+    {
+        TileView[] tiles = Grid();
+        var builder = new TerrainTileBuilder(new FakePieces(), Width, Height, null, true);
+        var geometry = new TerrainTileGeometry();
+        builder.Prepare(1, 1, tiles, geometry);
+        builder.Build(geometry);
+        Vector2[] expected = [new(-1, -7), new(-1, -7), new(-1, 5), new(-1, 5),
+            new(1, 1), new(6, -1), new(9, 9), new(4, 4), new(4, 4)];
+        Assert.Equal(expected.Length, geometry.Pieces.Count);
+        for (int p = 0; p < geometry.Pieces.Count; p++)
+            for (int v = geometry.PieceStarts[p]; v < geometry.PieceStarts[p] + geometry.Pieces[p].Piece.Positions.Length; v++)
+                Assert.Equal(expected[p], geometry.StateSources[v]);
+    }
+
+    [Fact]
+    public void TextureStateSourcesReconstructEveryLegacyPieceLookAndKeepGeometry()
+    {
+        foreach (TileView[] tiles in new[] { Grid(), EdgeGrid() })
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            var oldBuilder = new TerrainTileBuilder(new FakePieces(), Width, Height);
+            var builder = new TerrainTileBuilder(new FakePieces(), Width, Height, null, true);
+            var old = new TerrainTileGeometry();
+            var current = new TerrainTileGeometry();
+            oldBuilder.Prepare(i % Width, i / Width, tiles, old);
+            builder.Prepare(i % Width, i / Width, tiles, current);
+            oldBuilder.Build(old);
+            builder.Build(current);
+            Assert.Equal(old.VertexCount, current.VertexCount);
+            for (int v = 0; v < old.VertexCount; v++)
+            {
+                Assert.Equal(old.Positions[v], current.Positions[v]);
+                Assert.Equal(old.Normals[v], current.Normals[v]);
+                Assert.Equal(old.Uvs[v], current.Uvs[v]);
+            }
+            for (int g = 0; g < old.Groups.Count; g++)
+            {
+                var group = old.Groups[g];
+                TerrainMaterialKey key = old.Keys[group.Slot];
+                int vertex = old.PieceStarts[group.Piece];
+                Vector2 source = current.StateSources[vertex];
+                Vector4 own = TerrainTileState.Encode(tiles[i]);
+                Vector4 tag = source.X < 0 ? default : TerrainTileState.Encode(tiles[(int)source.X]);
+                int tintIndex = source.Y < -1 ? -(int)source.Y - 2 : (int)source.Y;
+                Vector4 tint = tintIndex < 0 ? default : TerrainTileState.Encode(tiles[tintIndex]);
+                if (key.IsOverlay)
+                    Assert.Equal(new Vector3(TerrainMaterialLook.For(key).Colour.X, TerrainMaterialLook.For(key).Colour.Y,
+                        TerrainMaterialLook.For(key).Colour.Z), TerrainTileState.Overlay(own, tag));
+                else if (key.Variant != TerrainMaterialVariant.Fog)
+                    Assert.Equal(TerrainMaterialLook.For(key).AddedLight,
+                        TerrainTileState.AddedLight(key.Recipe, own, tag, tint, source.Y < -1));
+            }
+            Assert.DoesNotContain(current.Keys.Take(current.KeyCount), key => key.IsOverlay);
+        }
+    }
     private const int Width = 4, Height = 3;
     private const float Tolerance = 1e-6f;
 

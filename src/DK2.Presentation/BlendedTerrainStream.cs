@@ -15,7 +15,11 @@ public readonly record struct VertexColour(byte R, byte G, byte B, byte A)
 }
 
 /// <summary>One vertex of the blended stream, in the stream's local space of the renderers' frame.</summary>
-public readonly record struct BlendedVertex(Vector3 Position, Vector3 Normal, Vector2 Uv, Vector2 LightAnchor, VertexColour Colour);
+public readonly record struct BlendedVertex(Vector3 Position, Vector3 Normal, Vector2 Uv, Vector2 LightAnchor, VertexColour Colour)
+{
+    /// <summary>Terrain tag/tint sources; unused for models and effects.</summary>
+    public Vector2 StateSources { get; init; } = new(-1);
+}
 
 /// <summary>The stream's markers and its sorting-order rule, shared by every material type.</summary>
 public static class BlendedTerrainStream

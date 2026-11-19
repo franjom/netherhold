@@ -48,6 +48,7 @@ public sealed class TerrainChunkScheduler
     private static readonly Func<double> StopwatchMilliseconds = () => Stopwatch.GetTimestamp() * 1000.0 / Stopwatch.Frequency;
 
     private readonly TerrainLattice? _lattice;
+    private readonly bool _stateTexture;
     private readonly int _width, _height, _chunksX;
     private readonly TileView[] _tiles;
     private readonly bool[] _drawn, _stale;
@@ -65,13 +66,17 @@ public sealed class TerrainChunkScheduler
     {
     }
 
+    public TerrainChunkScheduler(ITerrainPieceSource pieces, int width, int height, TerrainLattice? lattice, bool stateTexture)
+        : this(pieces, width, height, lattice, null, stateTexture) { }
+
     /// <param name="now">The flush budget's clock in milliseconds (tests); the stopwatch when null.</param>
     internal TerrainChunkScheduler(ITerrainPieceSource pieces, int width, int height, TerrainLattice? lattice,
-        Func<double>? now)
+        Func<double>? now, bool stateTexture = false)
     {
+        _stateTexture = stateTexture;
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-        Builder = new TerrainTileBuilder(pieces, width, height, lattice);
+        Builder = new TerrainTileBuilder(pieces, width, height, lattice, stateTexture);
         _lattice = lattice;
         _width = width;
         _height = height;
@@ -112,11 +117,17 @@ public sealed class TerrainChunkScheduler
 
     /// <summary>Takes a pushed tile; false when it draws no terrain. With a lattice the change forgets its cells and
     /// marks the tiles within <see cref="StaleReach"/> stale; without, the tile alone if it draws or drew. A change of
-    /// the tag or the tint marks the four neighbours too: their room walls facing the tile take its tag and tint.</summary>
+    /// the tag or the tint marks the four neighbours too: their room walls facing the tile take its tag and tint.
+    /// In state-texture mode, tag, red and tint changes retain the geometry and lattice cells.</summary>
     public bool Set(int tileIndex, in TileView tile)
     {
-        JoinBuild();
         bool draws = TerrainTileBuilder.Draws(tile);
+        if (_stateTexture && _drawn[tileIndex] && TerrainTileState.GeometryEquals(_tiles[tileIndex], tile))
+        {
+            _tiles[tileIndex] = tile;
+            return draws;
+        }
+        JoinBuild();
         if (_lattice != null)
         {
             int x = tileIndex % _width, y = tileIndex / _width;
@@ -126,7 +137,7 @@ public sealed class TerrainChunkScheduler
                     MarkStale((ty * _width) + tx);
         }
         else if (draws || _drawn[tileIndex]) MarkStale(tileIndex);
-        if (tile.Tagged != _tiles[tileIndex].Tagged || tile.AmbientTint != _tiles[tileIndex].AmbientTint)
+        if (!_stateTexture && (tile.Tagged != _tiles[tileIndex].Tagged || tile.AmbientTint != _tiles[tileIndex].AmbientTint))
             MarkNeighboursStale(tileIndex);
         _tiles[tileIndex] = tile;
         _drawn[tileIndex] = draws;

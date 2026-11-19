@@ -16,11 +16,13 @@ public sealed class TerrainTileGeometry
     internal int[] PieceStarts = new int[8];
     internal int X, Y;
     internal bool Red;
+    internal bool StateTexture;
+    internal Vector2 DefaultStateSource;
 
     private TerrainMaterialKey[] _keys = new TerrainMaterialKey[4];
     private TerrainIndexList[] _triangles = new TerrainIndexList[4];
     private Vector3[] _positions = new Vector3[32], _normals = new Vector3[32];
-    private Vector2[] _uvs = new Vector2[32];
+    private Vector2[] _uvs = new Vector2[32], _stateSources = new Vector2[32];
 
     /// <summary>The key of each slot, in the tile's first-use order; <see cref="KeyCount"/> are in use.</summary>
     public TerrainMaterialKey[] Keys => _keys;
@@ -33,6 +35,8 @@ public sealed class TerrainTileGeometry
     public Vector3[] Positions => _positions;
     public Vector3[] Normals => _normals;
     public Vector2[] Uvs => _uvs;
+    /// <summary>Each vertex's tag source tile and tint source tile; -1 disables, -2-tile selects quarter tint.</summary>
+    public Vector2[] StateSources => _stateSources;
     public int VertexCount { get; internal set; }
 
     /// <summary>The light table every vertex of the tile reads: the tile's index and 1, the terrain kind.</summary>
@@ -70,6 +74,7 @@ public sealed class TerrainTileGeometry
         Array.Resize(ref _positions, size);
         Array.Resize(ref _normals, size);
         Array.Resize(ref _uvs, size);
+        Array.Resize(ref _stateSources, size);
     }
 }
 

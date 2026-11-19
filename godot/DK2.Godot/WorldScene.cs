@@ -45,7 +45,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private CageRibbon? _cage;
     private ScenePresenter? _presenter;
     private TerrainChunkScheduler? _terrain;
-    private MeshInstance3D?[] _chunks = [];
+    private MeshInstance3D?[] _chunks = [], _terrainOverlayChunks = [];
+    private readonly SurfaceBuffer _terrainOverlaySurface = new();
     private LiquidSurfaceField? _liquids;
     private LiquidLayer? _water, _lava;
     private float _seconds;
@@ -76,7 +77,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private int _blendedRefreshes, _blendedMaxRuns, _blendedMaxTriangles;
 
     private readonly Dictionary<TerrainMaterialKey, ShaderMaterial> _keyMaterials = new();
-    private readonly Dictionary<TerrainMaterialLook, ShaderMaterial> _lookMaterials = new();
+    private readonly Dictionary<(TerrainMaterialLook Look, bool Fog), ShaderMaterial> _lookMaterials = new();
     // The world shader per light mode (per vertex, per pixel, with shadows) and render state, made on first use and kept
     // for the run, so a level reload compiles none again.
     private static readonly Shader?[,] s_worldShaders = new Shader?[3, 4];
@@ -118,8 +119,9 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         // DungeonRunner's defaults: the lattice bends the terrain, with DK2's high walls.
         var lattice = new TerrainLattice(level.Database, world, viewer) { HighWalls = true };
         _lattice = lattice;
-        _terrain = new TerrainChunkScheduler(new InstallTerrainPieces(_art), world.Width, world.Height, lattice);
+        _terrain = new TerrainChunkScheduler(new InstallTerrainPieces(_art), world.Width, world.Height, lattice, stateTexture: true);
         _chunks = new MeshInstance3D?[_terrain.ChunkCount];
+        _terrainOverlayChunks = new MeshInstance3D?[_terrain.ChunkCount];
         _liquids = new LiquidSurfaceField(world.Width, world.Height);
         _water = new LiquidLayer(_liquids.Water);
         _lava = new LiquidLayer(_liquids.Lava);
@@ -133,6 +135,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         // Before any material: the lit shaders read the lighting's globals.
         OpenLighting(world, view, world.Width, world.Height);
         OpenShadows();
+        OpenTerrainState(world.Width, world.Height);
         using (Image white = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8))
         {
             white.Fill(Colors.White);
@@ -238,9 +241,13 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private void SetTile(int tileIndex, in TileView tile)
     {
         SetTileLight(tileIndex, tile);
-        _liquids!.Set(tileIndex, tile);
-        _latticeDirty?.Touch(tileIndex);
-        _roof?.TileChanged(tile.Position.X, tile.Position.Y);
+        bool geometryChanged = SetTerrainState(tileIndex, tile);
+        if (geometryChanged)
+        {
+            _liquids!.Set(tileIndex, tile);
+            _latticeDirty?.Touch(tileIndex);
+            _roof?.TileChanged(tile.Position.X, tile.Position.Y);
+        }
         _terrain!.Set(tileIndex, tile);
     }
 
@@ -271,6 +278,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// blended stream is sorted by <see cref="FinishFrame"/>, once the frame's camera is placed.</summary>
     public void Flush()
     {
+        FlushTerrainState();
         _terrain!.Flush(this);
         _liquids!.Animate(_seconds);
         _water!.Upload(this);
@@ -283,6 +291,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         foreach (SurfaceBuffer surface in _surfaces) _spareSurfaces.Add(surface);
         _surfaces.Clear();
         _surfaceOf.Clear();
+        _terrainOverlaySurface.Reset(default);
         _blendedVertices.Clear();
         foreach (List<int> list in _blendedByMaterial.Values) list.Clear();
     }
@@ -292,6 +301,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// <summary>Each opaque key's gathered vertices as one surface of the chunk's mesh; the blended ones join the stream.</summary>
     void ITerrainChunkSink.EndChunk(int chunk)
     {
+        UploadTerrainOverlayChunk(chunk);
         _blended!.BeginChunk(chunk, _blendedVertices);
         foreach (KeyValuePair<ShaderMaterial, List<int>> entry in _blendedByMaterial)
             if (entry.Value.Count != 0) _blended.AddChunkTriangles(entry.Key, entry.Value);
@@ -303,7 +313,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         foreach (SurfaceBuffer surface in _surfaces)
         {
             if (surface.IndexCount == 0) continue;
-            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, surface.ToArrays(), null, null, TerrainCustomFormat);
+            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, surface.ToArrays(), null, null, TerrainStateCustomFormat);
             mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, MaterialFor(surface.Key));
         }
         if (instance == null && mesh.GetSurfaceCount() > 0)
@@ -327,6 +337,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         {
             TerrainMaterialKey key = geometry.Keys[s];
             ShaderMaterial material = MaterialFor(key);
+            if (PostOcclusion || key.Recipe.Blend != KmfBlend.Opaque || key.Variant == TerrainMaterialVariant.Fog)
+            {
+                _generation++;
+                _terrainOverlaySurface.Append(geometry, geometry.Triangles[s], _remap, _stamp, _generation);
+            }
             if (_blendedMaterials.Contains(material))
             {
                 // Unity's chunk: the tile's vertices in the renderers' frame once, its blended triangles numbered from them.
@@ -335,7 +350,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                     blendedStart = _blendedVertices.Count;
                     for (int i = 0; i < geometry.VertexCount; i++)
                         _blendedVertices.Add(new BlendedVertex(geometry.Positions[i], geometry.Normals[i], geometry.Uvs[i],
-                            geometry.LightAnchor, VertexColour.White));
+                            geometry.LightAnchor, VertexColour.White) { StateSources = geometry.StateSources[i] });
                 }
                 if (!_blendedByMaterial.TryGetValue(material, out List<int>? list)) _blendedByMaterial.Add(material, list = new List<int>());
                 TerrainIndexList triangles = geometry.Triangles[s];
@@ -366,16 +381,17 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         return surface;
     }
 
-    /// <summary>The material a key draws with: one per <see cref="TerrainMaterialLook"/>, shared by every key that looks
-    /// the same.</summary>
+    /// <summary>The material a key draws with, shared by keys with the same look and sight-fog semantics.</summary>
     private ShaderMaterial MaterialFor(in TerrainMaterialKey key)
     {
         if (_keyMaterials.TryGetValue(key, out ShaderMaterial? material)) return material;
         TerrainMaterialLook look = TerrainMaterialLook.For(key);
-        if (!_lookMaterials.TryGetValue(look, out material))
+        var shaderKey = (look, key.Variant == TerrainMaterialVariant.Fog);
+        if (!_lookMaterials.TryGetValue(shaderKey, out material))
         {
             material = WorldMaterial(look.Texture, look.Blend, look.WritesDepth, look.FullLight, look.Colour, look.AddedLight);
-            _lookMaterials.Add(look, material);
+            ConfigureTerrainMaterial(material, key, look);
+            _lookMaterials.Add(shaderKey, material);
             // Unity's split: render queue Transparent, which every non-opaque look takes.
             if (look.Blend != KmfBlend.Opaque) _blendedMaterials.Add(material);
         }
@@ -386,8 +402,10 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         return material;
     }
 
-    /// <summary>The custom attribute layouts: a terrain vertex's table anchor (CUSTOM0 as two floats), a model's bound sphere
+    /// <summary>The custom attribute layouts: a terrain vertex's table anchor and state sources (CUSTOM0 as four floats), a model's bound sphere
     /// and its anchor and light kind (CUSTOM0 and CUSTOM1 as four), as Unity's TEXCOORD1-3.</summary>
+    private const Mesh.ArrayFormat TerrainStateCustomFormat =
+        (Mesh.ArrayFormat)((long)Mesh.ArrayCustomFormat.RgbaFloat << (int)Mesh.ArrayFormat.FormatCustom0Shift);
     private const Mesh.ArrayFormat TerrainCustomFormat =
         (Mesh.ArrayFormat)((long)Mesh.ArrayCustomFormat.RgFloat << (int)Mesh.ArrayFormat.FormatCustom0Shift);
     private const Mesh.ArrayFormat ModelCustomFormat =
@@ -593,6 +611,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _runSlots.Clear();
         _cage?.Free();
         _cage = null;
+        _terrainStateTexture?.Dispose();
+        _terrainStateImage?.Dispose();
         _art?.Dispose();
         _art = null;
     }
@@ -668,7 +688,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             _mesh ??= new ArrayMesh();
             _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, null, null,
                 Mesh.ArrayFormat.FlagUseDynamicUpdate | TerrainCustomFormat);
-            _mesh.SurfaceSetMaterial(0, scene.MaterialFor(
+            _mesh.SurfaceSetMaterial(0, scene.FixedTerrainMaterial(
                 new TerrainMaterialKey(new ClassicMaterialRecipe(wave.Texture, KmfBlend.Opaque, 0f), TerrainMaterialVariant.Plain)));
             var format = (RenderingServer.ArrayFormat)_mesh.SurfaceGetFormat(0);
             _normalOffset = (int)RenderingServer.MeshSurfaceGetFormatOffset(format, count, (int)Mesh.ArrayType.Normal);
@@ -837,8 +857,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             | RenderingServer.ArrayFormat.FormatNormal | RenderingServer.ArrayFormat.FormatTexUV
             | RenderingServer.ArrayFormat.FormatCustom0 | RenderingServer.ArrayFormat.FormatIndex
             | RenderingServer.ArrayFormat.FlagUseDynamicUpdate
-            | (RenderingServer.ArrayFormat)((long)RenderingServer.ArrayCustomFormat.RgFloat << (int)RenderingServer.ArrayFormat.FormatCustom0Shift);
-        private const int PositionStride = 12, NormalSize = 4, UvStride = 16;
+            | (RenderingServer.ArrayFormat)((long)RenderingServer.ArrayCustomFormat.RgbaFloat << (int)RenderingServer.ArrayFormat.FormatCustom0Shift);
+        private const int PositionStride = 12, NormalSize = 4, UvStride = 24;
 
         private readonly Rid _instance, _mesh;
         private ShaderMaterial? _material;
@@ -940,10 +960,12 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 Span<ushort> normal = MemoryMarshal.Cast<byte, ushort>(slot.Slice(_normalAt, NormalSize));
                 normal[0] = (ushort)Math.Clamp(o.X * 65535f, 0f, 65535f);
                 normal[1] = (ushort)Math.Clamp(o.Y * 65535f, 0f, 65535f);
-                uvs[i * 4] = vertex.Uv.X;
-                uvs[(i * 4) + 1] = vertex.Uv.Y;
-                uvs[(i * 4) + 2] = vertex.LightAnchor.X;
-                uvs[(i * 4) + 3] = vertex.LightAnchor.Y;
+                uvs[i * 6] = vertex.Uv.X;
+                uvs[(i * 6) + 1] = vertex.Uv.Y;
+                uvs[(i * 6) + 2] = vertex.LightAnchor.X;
+                uvs[(i * 6) + 3] = vertex.LightAnchor.Y;
+                uvs[(i * 6) + 4] = vertex.StateSources.X;
+                uvs[(i * 6) + 5] = vertex.StateSources.Y;
             }
             RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, from * PositionStride, scratch.Positions.AsSpan(0, count * PositionStride));
             RenderingServer.MeshSurfaceUpdateVertexRegion(_mesh, 0, _normalBlock + (from * _normalStride), normals);
@@ -992,7 +1014,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             Array.Fill(up, Vector3.Up);
             arrays[(int)Mesh.ArrayType.Normal] = up;
             arrays[(int)Mesh.ArrayType.TexUV] = new Vector2[vertices];
-            arrays[(int)Mesh.ArrayType.Custom0] = new float[vertices * 2];
+            arrays[(int)Mesh.ArrayType.Custom0] = new float[vertices * 4];
             arrays[(int)Mesh.ArrayType.Index] = new int[_indexCapacity];
             RenderingServer.MeshClear(_mesh);
             RenderingServer.MeshAddSurfaceFromArrays(_mesh, RenderingServer.PrimitiveType.Triangles, arrays, null, null,
@@ -1033,7 +1055,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private sealed class SurfaceBuffer
     {
         private NVector3[] _positions = new NVector3[256], _normals = new NVector3[256];
-        private NVector2[] _uvs = new NVector2[256], _anchors = new NVector2[256];
+        private NVector2[] _uvs = new NVector2[256], _anchors = new NVector2[256], _stateSources = new NVector2[256];
         private int[] _indices = new int[512];
         private int _vertexCount;
 
@@ -1064,32 +1086,36 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                         Array.Resize(ref _normals, _vertexCount * 2);
                         Array.Resize(ref _uvs, _vertexCount * 2);
                         Array.Resize(ref _anchors, _vertexCount * 2);
+                        Array.Resize(ref _stateSources, _vertexCount * 2);
                     }
                     _positions[_vertexCount] = RightHandedFrame.Point(tile.Positions[vertex]);
                     _normals[_vertexCount] = RightHandedFrame.Normal(tile.Normals[vertex]);
                     _uvs[_vertexCount] = tile.Uvs[vertex];
                     _anchors[_vertexCount] = tile.LightAnchor;
+                    _stateSources[_vertexCount] = tile.StateSources[vertex];
                     _vertexCount++;
                 }
                 _indices[IndexCount++] = remap[vertex];
             }
         }
 
-        /// <summary>The surface as Godot's exact-length arrays, with each vertex's table anchor (<see cref="TerrainCustomFormat"/>);
+        /// <summary>The surface as Godot's exact-length arrays, with each vertex's table anchor and state sources (<see cref="TerrainStateCustomFormat"/>);
         /// the index order is kept (<see cref="RightHandedFrame"/>).</summary>
         public Godot.Collections.Array ToArrays()
         {
             var positions = new Vector3[_vertexCount];
             var normals = new Vector3[_vertexCount];
             var uvs = new Vector2[_vertexCount];
-            var anchors = new float[_vertexCount * 2];
+            var anchors = new float[_vertexCount * 4];
             for (int i = 0; i < _vertexCount; i++)
             {
                 positions[i] = ToGodot(_positions[i]);
                 normals[i] = ToGodot(_normals[i]);
                 uvs[i] = new Vector2(_uvs[i].X, _uvs[i].Y);
-                anchors[i * 2] = _anchors[i].X;
-                anchors[(i * 2) + 1] = _anchors[i].Y;
+                anchors[i * 4] = _anchors[i].X;
+                anchors[(i * 4) + 1] = _anchors[i].Y;
+                anchors[(i * 4) + 2] = _stateSources[i].X;
+                anchors[(i * 4) + 3] = _stateSources[i].Y;
             }
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);

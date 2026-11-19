@@ -30,10 +30,15 @@ public sealed class TerrainTileBuilder
     private readonly ITerrainPieceSource _pieces;
     private readonly TerrainLattice? _lattice;
     private readonly int _width, _height;
+    private readonly bool _stateTexture;
 
     /// <param name="lattice">Bends the terrain as DK2 does; null draws it straight.</param>
     public TerrainTileBuilder(ITerrainPieceSource pieces, int width, int height, TerrainLattice? lattice = null)
+        : this(pieces, width, height, lattice, false) { }
+
+    public TerrainTileBuilder(ITerrainPieceSource pieces, int width, int height, TerrainLattice? lattice, bool stateTexture)
     {
+        _stateTexture = stateTexture;
         _pieces = pieces ?? throw new ArgumentNullException(nameof(pieces));
         if (width <= 0 || height <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         _width = width;
@@ -55,10 +60,12 @@ public sealed class TerrainTileBuilder
         if (geometry is null) throw new ArgumentNullException(nameof(geometry));
         ref readonly TileView tile = ref tiles[(y * _width) + x];
         geometry.Reset(x, y, _width, tile.RedHighlighted);
+        geometry.StateTexture = _stateTexture;
+        geometry.DefaultStateSource = new Vector2(y * _width + x);
         AddTile(geometry, tiles, x, y, in tile);
         if (!tile.SightFogOverlay.IsEmpty)
             Add(geometry, _pieces.Piece(tile.SightFogOverlay), 0, RenderWorld.Ground(x + .5f, y + .5f),
-                fogOpacity: tile.SightFogOpacity);
+                fogOpacity: tile.SightFogOpacity, stateSource: new Vector2(-1));
         _lattice?.Prepare(x, y);
     }
 
@@ -68,6 +75,8 @@ public sealed class TerrainTileBuilder
     {
         if (geometry is null) throw new ArgumentNullException(nameof(geometry));
         geometry.Reset(0, 0, _width, red: false);
+        geometry.StateTexture = _stateTexture;
+        geometry.DefaultStateSource = Vector2.Zero;
         Add(geometry, piece, 0, Vector3.Zero, tagged, tint);
     }
 
@@ -103,6 +112,7 @@ public sealed class TerrainTileBuilder
                 Vector3 normal = placed.InvertNormals ? -piece.Normals[i] : piece.Normals[i];
                 geometry.Normals[start + i] = Turn(normal, placed.Rotation);
                 geometry.Uvs[start + i] = piece.Uvs[i];
+                geometry.StateSources[start + i] = placed.StateSource;
             }
             geometry.VertexCount = needed;
         }
@@ -128,7 +138,12 @@ public sealed class TerrainTileBuilder
 
     private void AddTile(TerrainTileGeometry geometry, TileView[] tiles, int x, int y, in TileView tile)
     {
-        if (tile.BedKeys != null) AddSet(geometry, tile.Bed, null, tile.BedKeys, Centre(x, y));
+        if (tile.BedKeys != null)
+        {
+            geometry.DefaultStateSource = new Vector2(-1);
+            AddSet(geometry, tile.Bed, null, tile.BedKeys, Centre(x, y));
+            geometry.DefaultStateSource = new Vector2(y * _width + x);
+        }
         if (tile.RoomKeys != null)
         {
             AddRoom(geometry, tiles, x, y, tile);
@@ -161,6 +176,7 @@ public sealed class TerrainTileBuilder
     private void AddRoom(TerrainTileGeometry geometry, TileView[] tiles, int x, int y, in TileView tile)
     {
         RoomPieceKeys keys = tile.RoomKeys!;
+        geometry.DefaultStateSource = new Vector2(-1, y * _width + x);
         Vector3 centre = Centre(x, y);
         AddSet(geometry, tile.RoomFloor, keys, null, centre, tile.AmbientTint, tile.QuarterAmbientTint);
         if (!tile.ExtraRoomPiece.IsEmpty) Add(geometry, _pieces.Piece(tile.ExtraRoomPiece), 0, centre, tint: tile.AmbientTint);
@@ -170,14 +186,17 @@ public sealed class TerrainTileBuilder
         for (int side = 0; side < 4; side++)
         {
             bool tagged = FacesTag(tiles, x, y, side);
+            int nx = x + SideDx[side], ny = y + SideDy[side];
+            int neighbour = nx >= 0 && ny >= 0 && nx < _width && ny < _height ? ny * _width + nx : -1;
+            Vector2 source = new(neighbour, walls.IsWhole(side) && walls.WholePiece(side) < 7 ? -1 : neighbour);
             // Special gate walls have a separate native builder; its tint is not traced here.
             TerrainLightColour tint = walls.IsWhole(side) && walls.WholePiece(side) < 7 ? default : NeighbourTint(tiles, x, y, side);
             if (walls.IsWhole(side))
-                Add(geometry, _pieces.Piece(keys.Piece(walls.WholePiece(side))), walls.WholeRotation(side), centre, tagged, tint);
+                Add(geometry, _pieces.Piece(keys.Piece(walls.WholePiece(side))), walls.WholeRotation(side), centre, tagged, tint, stateSource: source);
             else if (walls.HasWall(side))
             {
-                Add(geometry, _pieces.Piece(keys.Piece(walls.HalfAPiece(side))), side, Quadrant(centre, side), tagged, tint);
-                Add(geometry, _pieces.Piece(keys.Piece(walls.HalfBPiece(side))), side, Quadrant(centre, (side + 1) & 3), tagged, tint);
+                Add(geometry, _pieces.Piece(keys.Piece(walls.HalfAPiece(side))), side, Quadrant(centre, side), tagged, tint, stateSource: source);
+                Add(geometry, _pieces.Piece(keys.Piece(walls.HalfBPiece(side))), side, Quadrant(centre, (side + 1) & 3), tagged, tint, stateSource: source);
             }
         }
     }
@@ -214,7 +233,8 @@ public sealed class TerrainTileBuilder
             for (int q = 0; q < 4; q++)
                 if (set.HasQuarter(q))
                     Add(geometry, _pieces.Piece(Key(room, bed, set.QuarterPiece(q))), set.QuarterRotation(q),
-                        Quadrant(centre, q), tint: quarterTint);
+                        Quadrant(centre, q), tint: quarterTint,
+                        stateSource: room != null ? new Vector2(-1, -2 - geometry.Y * _width - geometry.X) : new Vector2(-1));
         if (set.HasWhole) Add(geometry, _pieces.Piece(Key(room, bed, set.WholePiece)), set.WholeRotation, centre, tint: wholeTint);
     }
 
@@ -240,22 +260,24 @@ public sealed class TerrainTileBuilder
     /// <summary>Places one piece and keys each of its triangle groups (<see cref="TerrainMaterialKey.For"/>); a tagged
     /// or red piece draws a second time, additively (tag-highlight.md).</summary>
     private static void Add(TerrainTileGeometry geometry, TerrainPiece? piece, int rotation, Vector3 at, bool tagged = false,
-        TerrainLightColour tint = default, byte? fogOpacity = null, bool invertLightingNormals = false)
+        TerrainLightColour tint = default, byte? fogOpacity = null, bool invertLightingNormals = false, Vector2? stateSource = null)
     {
         if (piece == null) return;
         bool red = geometry.Red;
         int placed = geometry.Pieces.Count;
-        geometry.Pieces.Add(new PlacedPiece(piece, rotation, at, invertLightingNormals));
+        geometry.Pieces.Add(new PlacedPiece(piece, rotation, at, invertLightingNormals, stateSource ?? geometry.DefaultStateSource));
         for (int m = 0; m < piece.Triangles.Count; m++)
         {
-            TerrainMaterialKey key = TerrainMaterialKey.For(piece.Recipes[m], red, tagged, tint, fogOpacity);
+            TerrainMaterialKey key = TerrainMaterialKey.For(piece.Recipes[m],
+                geometry.StateTexture ? false : red, geometry.StateTexture ? false : tagged,
+                geometry.StateTexture ? default : tint, fogOpacity);
             geometry.Groups.Add(new TriangleGroup(placed, m, geometry.SlotOf(key)));
-            if (red || tagged)
+            if (!geometry.StateTexture && (red || tagged))
                 geometry.Groups.Add(new TriangleGroup(placed, m, geometry.SlotOf(TerrainMaterialKey.Overlay(red))));
         }
     }
 
-    internal readonly record struct PlacedPiece(TerrainPiece Piece, int Rotation, Vector3 At, bool InvertNormals);
+    internal readonly record struct PlacedPiece(TerrainPiece Piece, int Rotation, Vector3 At, bool InvertNormals, Vector2 StateSource);
 
     internal readonly record struct TriangleGroup(int Piece, int Group, int Slot);
 }

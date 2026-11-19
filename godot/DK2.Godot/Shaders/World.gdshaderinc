@@ -11,6 +11,16 @@ uniform vec3 added_light = vec3(0.0);
 // The look's switches: drawn at full white (no light step); a model's light inputs (CUSTOM0 the bound sphere, CUSTOM1
 // the anchor and kind) rather than a terrain vertex's (CUSTOM0.xy the anchor); the instance's tint and fade apply; the
 // KMF material blends (which red the hover asks of it).
+uniform bool terrain_state = false;
+uniform bool terrain_overlay_only = false;
+uniform bool terrain_overlay_deferred = false;
+uniform bool terrain_fog = false;
+global uniform sampler2D dk2_terrain_state;
+global uniform ivec2 dk2_terrain_grid;
+global uniform vec3 dk2_tag_tint;
+global uniform vec3 dk2_tag_overlay;
+varying flat vec3 dk2_state_added;
+varying flat vec3 dk2_state_overlay;
 uniform bool full_light = false;
 uniform bool model_vertex = false;
 uniform bool instance_look = false;
@@ -65,7 +75,26 @@ vec2 dk2_environment_uv(vec3 world, vec3 nws, mat4 view_matrix) {
     return vec2(n.z * eye.x - n.x * eye.z, n.z * eye.y - n.y * eye.z) + 0.5;
 }
 
+vec4 dk2_tile_state(int tile) {
+    return texelFetch(dk2_terrain_state, ivec2(tile % dk2_terrain_grid.x, tile / dk2_terrain_grid.x), 0);
+}
+vec3 dk2_unpack_tint(float packed) {
+    int v = int(packed);
+    return vec3(float(v & 255), float((v >> 8) & 255), float((v >> 16) & 255)) / 255.0;
+}
 void vertex() {
+    dk2_state_added = vec3(0.0);
+    dk2_state_overlay = vec3(0.0);
+    if (terrain_state) {
+        int tag_source = int(CUSTOM0.z), tint_source = int(CUSTOM0.w);
+        bool state_red = (int(dk2_tile_state(int(CUSTOM0.x)).b) & 2) != 0;
+        bool state_tag = tag_source >= 0 && (int(dk2_tile_state(max(0, tag_source)).b) & 1) != 0;
+        vec3 tint = vec3(0.0);
+        if (tint_source >= 0) tint = dk2_unpack_tint(dk2_tile_state(tint_source).r);
+        else if (tint_source <= -2) tint = dk2_unpack_tint(dk2_tile_state(-2 - tint_source).g);
+        dk2_state_added = terrain_fog ? vec3(0.0) : state_red ? vec3(1.0, 0.0, 0.0) : (state_tag ? dk2_tag_tint : tint);
+        dk2_state_overlay = state_red ? dk2_hover_red : (state_tag ? dk2_tag_overlay : vec3(0.0));
+    }
     vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
     vec3 nws = normalize(MODEL_NORMAL_MATRIX * NORMAL);
 #ifdef DK2_PER_PIXEL
@@ -83,7 +112,7 @@ void vertex() {
     vec4 bounds = model_vertex ? CUSTOM0 : vec4(0.0);
     vec2 anchor = model_vertex ? CUSTOM1.xy : CUSTOM0.xy;
     vec2 kind = model_vertex ? CUSTOM1.zw : vec2(0.0);
-    vec3 added = instance_look ? added_light + dk2_tint : added_light;
+    vec3 added = instance_look ? added_light + dk2_tint : added_light + dk2_state_added;
     if (!full_light)
         dk2_diffuse = dk2_light(anchor, bounds, kind, VERTEX, NORMAL, MODEL_MATRIX, world, nws, added, CAMERA_POSITION_WORLD);
     if (environment_pass && dk2_environment > 0.5)
@@ -126,7 +155,7 @@ void fragment() {
     bool red = kmf_blended ? dk2_red.y > 0.5 : dk2_red.x > 0.5;
     bool environment = environment_pass && dk2_environment > 0.5;
 #ifdef DK2_PER_PIXEL
-    vec3 added = instance_look ? added_light + dk2_tint : added_light;
+    vec3 added = instance_look ? added_light + dk2_tint : added_light + dk2_state_added;
     mat4 dk2_model = mat4(dk2_m0, dk2_m1, dk2_m2, dk2_m3);
     vec3 dk2_nos_px = normalize(dk2_nos), dk2_nws_px = normalize(dk2_nws);
 #ifdef DK2_TORCH_SHADOWS
@@ -190,6 +219,8 @@ void fragment() {
         c.rgb += extra;
     }
 #endif
+    if (terrain_state && !terrain_overlay_deferred) c.rgb += dk2_state_overlay;
+    if (terrain_overlay_only) c.rgb = dk2_state_overlay;
     c.rgb *= dk2_possession_brightness;
     ALBEDO = c.rgb;
 #ifdef DK2_BLEND_MIX

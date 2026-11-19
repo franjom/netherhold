@@ -14,6 +14,52 @@ namespace DK2.Presentation.Tests;
 /// checked one by one.</summary>
 public class TerrainChunkSchedulerTests
 {
+    [Fact]
+    public void TextureStatePushesKeepLatticeCellsAndAllocateNothing()
+    {
+        TerrainLattice lattice = Lattice();
+        var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), Width, Height, lattice, true)
+        { FlushBudgetMilliseconds = 0 };
+        for (int y = 0; y < Height; y++)
+            for (int x = 0; x < Width; x++) scheduler.Set(At(x, y), Floor(x, y));
+        scheduler.Flush(new CountingSink());
+        TileView plain = Floor(20, 17);
+        TileView tagged = Floor(20, 17, true, new TerrainLightColour(300, 1, 2));
+        for (int i = 0; i < 100; i++) scheduler.Set(At(20, 17), (i & 1) == 0 ? plain : tagged);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 100; i++) scheduler.Set(At(20, 17), (i & 1) == 0 ? plain : tagged);
+        Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+        Assert.True(lattice.IsBuilt(20, 17));
+        Assert.Equal(0, scheduler.PendingChunks);
+        Assert.False(scheduler.IsStale(At(20, 17)));
+        Assert.False(scheduler.IsStale(At(19, 17)));
+    }
+    [Fact]
+    public void TextureStateChangesSkipGeometryButClearAndStructuralChangesRebuild()
+    {
+        var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), 1, 1, null, true)
+        { FlushBudgetMilliseconds = 0 };
+        var sink = new SchedulerLog();
+        TileView Tile(bool tagged = false, bool red = false, int tint = 0, int face = -1) =>
+            new(new TilePos(0, 0), default, default, default, tagged, false, 0, 1000,
+                pieces: default(TerrainPieces).WithFloor(), pieceKeys: Rock, ambientTint: new TerrainLightColour(tint, 0, 0),
+                quarterAmbientTint: new TerrainLightColour(0, tint, 0), redHighlighted: red, faceTexture: face);
+        scheduler.Set(0, Tile());
+        scheduler.Flush(sink);
+        Assert.Single(sink.Uploads);
+        scheduler.Set(0, Tile(true, true, 300));
+        Assert.Equal(0, scheduler.PendingChunks);
+        scheduler.Flush(sink);
+        Assert.Single(sink.Uploads);
+        scheduler.Set(0, Tile(true, true, 300, 2));
+        Assert.Equal(1, scheduler.PendingChunks);
+        scheduler.Flush(sink);
+        Assert.Equal(2, sink.Uploads.Count);
+        scheduler.Clear();
+        scheduler.Set(0, Tile(true, true, 300, 2));
+        scheduler.Flush(sink);
+        Assert.Equal(3, sink.Uploads.Count);
+    }
     // Three by three chunks, the last row and column partial.
     private const int Width = 40, Height = 36;
 

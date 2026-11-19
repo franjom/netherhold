@@ -410,3 +410,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Pinned Godot Movie Maker can log Vulkan surface-capability error -13 on every frame; `--rendering-driver d3d12` produced clean captures here without changing the project renderer.
 - Painted capture fixtures must refresh navigation before saving: stale solid NAV can permanently reject first-frame gated effects despite visible non-solid terrain.
+- Godot Movie Maker can leave empty or truncated PNGs when the output disk fills without failing the process; reserve output space and validate the PNGs before comparing captures.
+- Detached Windows `Start-Process` children can survive a `ctx_execute` background-stop notice; inspect the task PIDs before relaunching to avoid duplicate runners.
