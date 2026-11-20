@@ -100,7 +100,14 @@ public partial class WorldScene : ISimulationEventSink
         ViewFrustum frustum = PlacedFrustum;
         // The same one-tile sphere as DungeonRunner.IsPointInCamera.
         for (int i = 0; i < 6; i++)
-            if (System.Numerics.Plane.DotCoordinate(frustum[i], point) < -1f) return false;
+            if (System.Numerics.Plane.DotCoordinate(frustum[i], point) < -1f)
+            {
+                if (PreviewPose is not ClassicCameraPose preview) return false;
+                ViewFrustum second = ViewFrustum.FromPose(preview, PreviewViewport.Width / (float)PreviewViewport.Height, .05f);
+                for (int j = 0; j < 6; j++)
+                    if (System.Numerics.Plane.DotCoordinate(second[j], point) < -1f) return false;
+                return true;
+            }
         return true;
     }
 
@@ -126,7 +133,7 @@ public partial class WorldScene : ISimulationEventSink
     /// model; a particle on a tile the possession view hides is not drawn.</summary>
     private void DrawEffects()
     {
-        foreach (EffectMesh mesh in _effectMeshList) mesh.Used = 0;
+        if (!_previewPass) foreach (EffectMesh mesh in _effectMeshList) mesh.Used = 0;
         if (_effects != null && _art != null && _camera != null)
         {
             _effectSprites ??= new InstallEffectSpriteProvider(_effectSimulation!.Database, _art.LoadTexture);
@@ -134,6 +141,11 @@ public partial class WorldScene : ISimulationEventSink
             // The draw list is in RenderWorld's left-handed frame; reflect only at the upload boundary.
             System.Numerics.Vector3 right = RightHandedFrame.Point(new(_camera.GlobalBasis.X.X, _camera.GlobalBasis.X.Y, _camera.GlobalBasis.X.Z));
             System.Numerics.Vector3 up = RightHandedFrame.Point(new(_camera.GlobalBasis.Y.X, _camera.GlobalBasis.Y.Y, _camera.GlobalBasis.Y.Z));
+            if (_previewPass && PreviewPose is ClassicCameraPose preview)
+            {
+                right = NVector3.Normalize(NVector3.Cross(preview.Up, preview.Forward));
+                up = NVector3.Cross(preview.Forward, right);
+            }
             float fraction = _effects.Fraction;
             EffectParticleStream particles = _effects.Particles;
             for (int i = 0; i < particles.Count; i++)
@@ -144,7 +156,7 @@ public partial class WorldScene : ISimulationEventSink
                 EffectGroupKind kind = EffectDrawList.Classify(particle.Definition, particle.MeshEntry);
                 if (kind != EffectGroupKind.Sprite)
                 {
-                    DrawEffectMesh(particle, key, kind, fraction);
+                    if (!_previewPass) DrawEffectMesh(particle, key, kind, fraction);
                     continue;
                 }
                 if (!_effectBatches.TryGetValue(key, out EffectSpriteBatch? batch))
@@ -167,7 +179,7 @@ public partial class WorldScene : ISimulationEventSink
             }
         }
         // Only the models shown last frame and not this one are hidden.
-        foreach (EffectMesh mesh in _effectMeshList)
+        if (!_previewPass) foreach (EffectMesh mesh in _effectMeshList)
         {
             for (int i = mesh.Used; i < mesh.Shown; i++) mesh.Slots[i].Node.Visible = false;
             mesh.Shown = mesh.Used;

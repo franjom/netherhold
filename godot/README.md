@@ -160,7 +160,17 @@ so a draw's capacity follows its count (doubled, halved after 120 frames at a qu
 uploaded. The exit line and the harness's `items.*` counters split the time (effects, flames, flowers, barriers, order,
 upload) and the allocation after the warm-up from what loading art and growing pools took.
 
-Possession (step 3m, `InGameHud.Possession.cs` and `WorldScene.Possession.cs`): `InGameHud` drives the shared `PossessionSession` every frame from the keys, the pointer's travel and the scene's engine clock, and the scene puts its pose on the same `Camera3D` while it holds the view (the fly-in, first person, the death view, the fly-out), with the possession cameras' near plane `PossessionCamera.NearClipDistance` (0.05; the ordinary camera keeps 0.3). The pointer lock is `Input.MouseMode = Captured` while `PointerLockWanted`, never under `--pointer-path` (the script's travel stands in; nothing warps the pointer). Virtual room-pillar roof joints are checked in a staged Treasury fixture with no pillar object states; [verification scope](../docs/research/possession-client-completion.md#virtual-room-pillar-roof). The roof includes virtual room-pillar occupancy from the same `RoomPillarLayout` used by room decoration and is one `MeshInstance3D` per 16x16 chunk (`TerrainCeilingScheduler`, `TerrainCeilingGeometry`), shown throughout the possession camera hold, including entry and return, in the terrain material on the `Ceiling` texture with anchor kind 2; the lattice latch (full-height walls, `PossessionScene.Latch`) and the hidden possessed model go through the `SceneFrame` sequence. Entry roof timing follows the [reviewed endpoint rule](../docs/research/kwd-terrain-rooms.md#ceiling-the-possession-view-roof); ordinary HUD display and possession-panel landing follow [the shared HUD rule](../docs/research/possession-hud.md#entry-and-landing). Entry/return hover and ordinary world-space badges use [the shared pointer feedback](../docs/research/possession-target-highlight.md#entry-pointer-feedback). Current capture comparisons are in [Q749](../docs/research/possession-entry-effect.md#capture-verification). Not exercised in Godot: real mouse capture, its re-capture after alt-tab, the walking keys and the death view. Remaining listener, lighting, mouse-calibration and object-death bridge boundaries: [client completion](../docs/research/possession-client-completion.md). Shot creation-effect sprites and lights are built ([adapter scope](#shot-effects)). Not done: the view's sounds are dropped (no sound player, step 4); the roof is black away from walls and torches (lighting); `--possess-first-creature` during Level1's opening path shows the possession camera, as the path camera (3n) is not ported.
+Possession (step 3m, `InGameHud.Possession.cs` and `WorldScene.Possession.cs`): `InGameHud` drives the shared `PossessionSession` every frame from the keys, the pointer's travel and the scene's engine clock, and the scene puts its pose on the same `Camera3D` while it holds the view (the fly-in, first person, the death view, the fly-out), with the possession cameras' near plane `PossessionCamera.NearClipDistance` (0.05; the ordinary camera keeps 0.3). The pointer lock is `Input.MouseMode = Captured` while `PointerLockWanted`, never under `--pointer-path` (the script's travel stands in; nothing warps the pointer). Virtual room-pillar roof joints are checked in a staged Treasury fixture with no pillar object states; [verification scope](../docs/research/possession-client-completion.md#virtual-room-pillar-roof). The roof includes virtual room-pillar occupancy from the same `RoomPillarLayout` used by room decoration and is one `MeshInstance3D` per 16x16 chunk (`TerrainCeilingScheduler`, `TerrainCeilingGeometry`), shown throughout the possession camera hold, including entry and return, in the terrain material on the `Ceiling` texture with anchor kind 2; the lattice latch (full-height walls, `PossessionScene.Latch`) and the hidden possessed model go through the `SceneFrame` sequence. Entry roof timing follows the [reviewed endpoint rule](../docs/research/kwd-terrain-rooms.md#ceiling-the-possession-view-roof); ordinary HUD display and possession-panel landing follow [the shared HUD rule](../docs/research/possession-hud.md#entry-and-landing). Entry/return hover and ordinary world-space badges use [the shared pointer feedback](../docs/research/possession-target-highlight.md#entry-pointer-feedback). Current capture comparisons are in [Q749](../docs/research/possession-entry-effect.md#capture-verification). Not exercised in Godot: real mouse capture, its re-capture after alt-tab, the walking keys and the death view. Remaining listener, lighting, mouse-calibration and object-death bridge boundaries: [client completion](../docs/research/possession-client-completion.md). Shot creation-effect sprites and lights are built ([adapter scope](#shot-effects)). Not done: the view's sounds are dropped (no sound player, step 4); the roof is black away from walls and torches (lighting).
+Scripted cameras (step 3n) use `ScriptedViewDirector.Pose` on the drawn world's tick, including path orientation,
+vertical FOV and view distance. Player camera input stays blocked during a path; `--perf-camera` keeps its explicit
+harness priority. Shared `RenderCameraJitter` offsets one frame and paths suppress it. Letterboxing builds the pose
+for the reduced view height, then expands its frustum into the full render target and covers the margins with bars.
+This avoids another main render target and keeps the inactive projection unchanged. Picking uses that projection
+and rejects the bars; SSAO and shadow views retain their own projection/depth inputs.
+The full map's preview is a shared-`World3D` `SubViewport`, with `FullMapPreview.Pose` looking down, north up,
+and the main camera's gamma/brightness environment. Its light view joins the publisher at distance 10. Blended
+terrain and items have independent preview culling, distance keys, pools and billboard geometry; opaque geometry
+and the terrain state texture stay shared. Closing the map disables preview rendering and hides its pooled draws.
 Run it by naming the scene, with
 optional user arguments after `--`:
 `<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1; add
@@ -302,7 +312,7 @@ powershell -File godot/editor.ps1 -Console --headless --quit-after 10        # r
 
 The last prints `DK2.Godot front end: page Main` once the menu is up; with `res://InGameHud.tscn` added it runs the
 in-game HUD instead and prints `DK2.Godot in-game HUD: Level1 seed 1`. `--headless` has no renderer; to see a
-frame, run the console build without it, e.g. `--path godot/DK2.Godot --write-movie <dir>/f.png --fixed-fps 30
+frame, run the console build without it, e.g. `--path godot/DK2.Godot --log-file <dir>/godot.log --write-movie <dir>/f.png --fixed-fps 30
 --quit-after 120` (Movie Maker writes every frame as a PNG; keep the output outside the repository).
 `editor.ps1` adds `--editor` to any run without `--headless`, so call the pinned console executable directly for this.
 To capture the world, run `res://InGameHud.tscn` that way at 1920x1080 (the `override.cfg` below) with
@@ -323,6 +333,12 @@ The window takes the desktop's size and `--windowed`/`--resolution` do not chang
 1920x1080 capture put a temporary `DK2.Godot/override.cfg` holding `[display]` / `window/size/mode=0` beside
 `project.godot`, and delete it afterwards.
 
+To capture the opening path, start Level1 without `--load`, with Movie Maker and a scripted pointer. To capture the
+preview, load a save after the path and add `--open-full-map`; place the pointer over explored territory on the map.
+Both pass `--log-file <temp>/godot.log` before `--` and the same temporary player-file overrides after it:
+`-- --level Level1 --seed 1 --settings <temp>/settings.ini --profile <temp>/profile.dk2p --saves <temp>/saves --hiscores <temp>/HiScores.dat --pointer-path "0:960,540"`.
+For the preview append `--load <name> --open-full-map` and use map-area pointer coordinates; repeat with
+`--light-perpixel --light-shadows --light-post` for the lighting check. Keep Movie Maker at 1920x1080 as above.
 The optional lightning fixture is `--stage-lightning` on `InGameHud.tscn`, normally with `--level Level1 --seed 1`. It places a Mistress and an opposing hero on dry owned floor, activates three Increase Level specials and a Mana Boost through ordinary commands, and lets combat produce the creature cast and electrification. After thirty turns it posts one ordinary paid Thunderbolt at a fresh target. It turns the ordinary camera through half a turn to face the hero. It is off by default; no simulation rule changes. Add `--possess-first-creature` for the possession-camera check. Use all four temporary player-file overrides and `--pointer-path` as above.
 
 ## Measuring performance
@@ -330,7 +346,8 @@ The optional lightning fixture is `--stage-lightning` on `InGameHud.tscn`, norma
 Every rendering change is measured (migration plan step 3o). `--perf-report <file>` on `InGameHud.tscn` adds
 `PerformanceReport`; without it nothing is added. After `--perf-warmup <n>` frames (120) it samples each frame into a
 preallocated buffer: the frame interval, the process time (its first process callback to `PerformanceReportTail`, the
-last), the viewport's CPU and GPU render time, frame setup, draw calls, objects, primitives, video, texture and buffer
+last), the main viewport's CPU and GPU render time (plus the full-map preview while open; shadow viewport times
+are excluded), frame setup, draw calls, objects, primitives, video, texture and buffer
 memory, managed bytes the main thread allocated, collections and pipeline compilations. Each frame is filed as still or
 moving by whether the drawn camera moved. The GPU time is the latest the GPU has finished, about two frames behind, so it
 smears two frames across a still/moving boundary. At `--perf-frames <n>` it prints mean, p50, p95, p99 and max per phase,

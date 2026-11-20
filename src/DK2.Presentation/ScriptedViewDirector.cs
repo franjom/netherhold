@@ -30,6 +30,9 @@ public sealed class ScriptedViewDirector(
     private readonly Dk2Lcg _bridgeRandom = new(1);
     public int PendingCameraJitters { get; private set; }
     public FpPosition3 CameraJitter { get; private set; }
+    /// <summary>One render frame's horizontal offset in the shared world frame; paths suppress shake.</summary>
+    public System.Numerics.Vector3 RenderCameraJitter => PathPlaying ? default : new(
+        CameraJitter.X.Raw / (float)Fp32.One, 0, -CameraJitter.Y.Raw / (float)Fp32.One);
     private CameraPathPlayback? _path;
     private TilePos? _move;
     private double _now;

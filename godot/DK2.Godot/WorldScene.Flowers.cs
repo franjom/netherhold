@@ -32,7 +32,13 @@ public partial class WorldScene
     /// <see cref="StatusFlowerLayers.Folder"/>, once per icon.</summary>
     public void DrawFlowers(IReadOnlyList<StatusFlower> flowers, bool possessing, Func<string, RgbaImage> art)
     {
-        if (View is not MinimapCameraView view || flowers.Count == 0) return;
+        if (!_previewPass && PreviewPose.HasValue)
+        {
+            SwapPreviewItems(); DrawFlowers(flowers, possessing, art); SwapPreviewItems();
+        }
+        MinimapCameraView? activeView = _previewPass && PreviewPose is ClassicCameraPose preview
+            ? MinimapCameraView.Of(preview, PreviewViewport) : View;
+        if (activeView is not MinimapCameraView view || flowers.Count == 0) return;
         long started = System.Diagnostics.Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
         NVector3 forward = NVector3.Normalize(view.Forward);
         NVector3 right = NVector3.Normalize(NVector3.Cross(view.Up, forward));

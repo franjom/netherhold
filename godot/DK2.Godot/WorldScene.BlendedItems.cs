@@ -24,8 +24,8 @@ public partial class WorldScene
     private const int FirstItemCapacity = 16, ItemEntries = 1024, ItemDrawsAtOpen = 512, ItemRunsAtOpen = 256;
     // Frames a draw's count must stay at a quarter of its capacity or less before the capacity halves.
     private const int ShrinkFrames = 120;
-    private readonly BlendedItemOrder _itemOrder = new();
-    private readonly List<ItemBatch> _itemBatches = new(64);
+    private BlendedItemOrder _itemOrder = new();
+    private List<ItemBatch> _itemBatches = new(64);
     private readonly List<ModelSlot> _transparentSlots = new(256);
     private float[] _itemData = new float[ItemEntries * ItemStride], _itemUpload = new float[ItemEntries * ItemStride];
     // Per item, its centre (Godot's frame) and radius: the draw's box, by which Godot culls it.
@@ -46,6 +46,48 @@ public partial class WorldScene
     private long _itemFrameBytes, _itemFrameGrowth, _itemLateGrowthBytes;
     private readonly long[] _itemTicks = new long[(int)ItemStep.Count];
     private enum ItemStep { Effects, Flames, Flowers, Barriers, Order, Upload, Count }
+
+    private sealed class PreviewItems
+    {
+        public BlendedItemOrder Order = new();
+        public List<ItemBatch> Batches = new(64);
+        public float[] Data = new float[ItemEntries * ItemStride], Upload = new float[ItemEntries * ItemStride];
+        public float[] Bounds = new float[ItemEntries * 4];
+        public Vector3 Eye;
+        public float EyeDistance;
+        public ViewFrustum Frustum;
+        public System.Numerics.Matrix4x4 ViewProjection;
+        public bool Open;
+    }
+    private readonly PreviewItems _previewItems = new();
+    private bool _previewPass, _previewItemsDrawn;
+
+    private void SwapPreviewItems()
+    {
+        (_itemOrder, _previewItems.Order) = (_previewItems.Order, _itemOrder);
+        (_itemBatches, _previewItems.Batches) = (_previewItems.Batches, _itemBatches);
+        (_itemData, _previewItems.Data) = (_previewItems.Data, _itemData);
+        (_itemUpload, _previewItems.Upload) = (_previewItems.Upload, _itemUpload);
+        (_itemBounds, _previewItems.Bounds) = (_previewItems.Bounds, _itemBounds);
+        (_itemEye, _previewItems.Eye) = (_previewItems.Eye, _itemEye);
+        (_itemEyeDistance, _previewItems.EyeDistance) = (_previewItems.EyeDistance, _itemEyeDistance);
+        (_itemFrustum, _previewItems.Frustum) = (_previewItems.Frustum, _itemFrustum);
+        (_itemViewProjection, _previewItems.ViewProjection) = (_previewItems.ViewProjection, _itemViewProjection);
+        (_itemsOpen, _previewItems.Open) = (_previewItems.Open, _itemsOpen);
+        _previewPass = !_previewPass;
+    }
+
+    private void BeginPreviewItems()
+    {
+        _previewItems.Open = PreviewPose.HasValue;
+        if (PreviewPose is not ClassicCameraPose pose) return;
+        _previewItems.Order.ClearItems();
+        _previewItems.Eye = ToGodot(RightHandedFrame.Point(pose.Position));
+        _previewItems.EyeDistance = pose.Position.Length();
+        _previewItems.Order.EyeDistance = _previewItems.EyeDistance;
+        _previewItems.Frustum = ViewFrustum.FromPose(pose, PreviewViewport.Width / (float)PreviewViewport.Height, .05f);
+        _previewItems.ViewProjection = _previewItems.Frustum.ViewProjection;
+    }
 
     /// <summary>A mesh drawn with a material: the instances of one sprite sheet, the flames, one flower icon.</summary>
     private sealed class ItemBatch(int id, Rid mesh, Rid material, BlendedItemBlend blend)
@@ -79,8 +121,9 @@ public partial class WorldScene
     /// <summary>A new batch of <paramref name="mesh"/> drawn with <paramref name="material"/>.</summary>
     private ItemBatch CreateItemBatch(Rid mesh, Rid material, BlendedItemBlend blend)
     {
-        var batch = new ItemBatch(_itemBatches.Count, mesh, material, blend);
-        _itemBatches.Add(batch);
+        List<ItemBatch> registry = _previewPass ? _previewItems.Batches : _itemBatches;
+        var batch = new ItemBatch(registry.Count, mesh, material, blend);
+        registry.Add(batch);
         return batch;
     }
 
@@ -103,6 +146,7 @@ public partial class WorldScene
     /// <summary>Starts the frame's items, measured from the placed camera's eye, the one the runs are keyed for.</summary>
     private void BeginItems()
     {
+        BeginPreviewItems();
         _itemFrameBytes = 0;
         _itemFrameGrowth = _itemGrowthBytes;
         _itemOrder.ClearItems();
@@ -123,6 +167,15 @@ public partial class WorldScene
     private void AddItem(ItemBatch batch, Vector3 centre, float radius, in Transform3D transform, Color colour, Color custom)
     {
         if (!_itemsOpen) return;
+        if (_previewPass)
+        {
+            while (_itemBatches.Count <= batch.Id)
+            {
+                ItemBatch source = _previewItems.Batches[_itemBatches.Count];
+                _itemBatches.Add(new ItemBatch(source.Id, source.Mesh, source.Material, source.Blend));
+            }
+            batch = _itemBatches[batch.Id];
+        }
         NVector3 at = RightHandedFrame.Point(new NVector3(centre.X, centre.Y, centre.Z));
         for (int i = 0; i < 6; i++)
             if (System.Numerics.Plane.DotCoordinate(_itemFrustum[i], at) < -radius) return;
@@ -160,6 +213,13 @@ public partial class WorldScene
     /// flowers and the cage, which the HUD's hover pass places). Hides the draws no segment took.</summary>
     public void DrawBlendedItems()
     {
+        if (!_previewPass && (PreviewPose.HasValue || _previewItemsDrawn))
+        {
+            SwapPreviewItems();
+            DrawBlendedItems();
+            SwapPreviewItems();
+            _previewItemsDrawn = PreviewPose.HasValue;
+        }
         long allocated = GC.GetAllocatedBytesForCurrentThread();
         long started = Stopwatch.GetTimestamp();
         foreach (ItemBatch batch in _itemBatches) batch.Used = 0;
@@ -239,6 +299,7 @@ public partial class WorldScene
         // A custom box, so Godot never measures the buffer; set to the items' box each frame.
         RenderingServer.MultimeshSetCustomAabb(multimesh, _worldBox);
         Rid instance = RenderingServer.InstanceCreate2(multimesh, _itemScenario);
+        RenderingServer.InstanceSetLayerMask(instance, _previewPass ? PreviewBlendedLayer : MainBlendedLayer);
         RenderingServer.InstanceGeometrySetCastShadowsSetting(instance, RenderingServer.ShadowCastingSetting.Off);
         RenderingServer.InstanceGeometrySetMaterialOverride(instance, batch.Material);
         batch.Draws[batch.Made++] = new ItemDraw
@@ -360,6 +421,10 @@ public partial class WorldScene
 
     private void FreeItems()
     {
+        if (!_previewPass && _previewItems.Batches.Count > 0)
+        {
+            SwapPreviewItems(); FreeItems(); SwapPreviewItems();
+        }
         int frames = Math.Max(1, _itemFrames);
         GD.Print("DK2.Godot blended items: ", _itemBatches.Count, " batches, ", _itemDrawsMade, " draws made; up to ", _itemMaxDraws,
             " draws and ", _itemMaxItems, " items a frame; ", _itemUploads, " uploads, ", _itemUploadsSkipped,

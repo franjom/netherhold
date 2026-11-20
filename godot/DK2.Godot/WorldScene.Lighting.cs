@@ -147,12 +147,12 @@ public partial class WorldScene
         ClassicCameraPose placed = _placed;
         var pose = new ClassicCameraPose(placed.Position, placed.Forward, placed.Up, placed.VerticalFieldOfView,
             placed.FarClipDistance, 0, 0);
-        float viewDistance = ClassicCamera?.NativeViewDistance ?? 0;
+        float viewDistance = ScriptedView?.Pose is CameraPathPose path ? path.ViewDistance : ClassicCamera?.NativeViewDistance ?? 0;
         // A moved camera finds its visible tiles again (ClassicLightVisibility), which allocates; counted apart.
         bool moved = !pose.Equals(_lightPose) || _placedViewport != _lightViewport;
         _lightPose = pose;
         _lightViewport = _placedViewport;
-        switch (_lightPublisher.Prepare(pose, _placedViewport, viewDistance))
+        switch (_lightPublisher.Prepare(pose, _placedViewport, viewDistance, PreviewPose, PreviewViewport))
         {
             case ClassicLightPublication.Unchanged:
                 _lightTables.Flush();

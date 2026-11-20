@@ -84,6 +84,7 @@ public partial class PerformanceReport : Node
 
     public override void _Ready()
     {
+        _world.MeasurePreviewRenderTime = true;
         _viewport = GetViewport().GetViewportRid();
         RenderingServer.ViewportSetMeasureRenderTime(_viewport, true);
     }
@@ -142,6 +143,13 @@ public partial class PerformanceReport : Node
         row[(int)FrameMetric.ProcessMs] = Math.Max(0, _tail.Stamp - _lastStamp) * 1000.0 / Stopwatch.Frequency;
         row[(int)FrameMetric.RenderCpuMs] = RenderingServer.ViewportGetMeasuredRenderTimeCpu(_viewport);
         row[(int)FrameMetric.RenderGpuMs] = RenderingServer.ViewportGetMeasuredRenderTimeGpu(_viewport);
+        // A SubViewport is a separate timed render; include it while the full map draws it.
+        if (_world.PreviewPose.HasValue && _world.PreviewRenderViewport is SubViewport preview)
+        {
+            Rid target = preview.GetViewportRid();
+            row[(int)FrameMetric.RenderCpuMs] += RenderingServer.ViewportGetMeasuredRenderTimeCpu(target);
+            row[(int)FrameMetric.RenderGpuMs] += RenderingServer.ViewportGetMeasuredRenderTimeGpu(target);
+        }
         row[(int)FrameMetric.SetupCpuMs] = RenderingServer.GetFrameSetupTimeCpu();
         row[(int)FrameMetric.DrawCalls] = RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame);
         row[(int)FrameMetric.Objects] = RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalObjectsInFrame);

@@ -404,7 +404,7 @@ group 2 is a list to audit, not a finding.
       `--profile` is given. `ClassicFrontEndMenu.Open` passes the return page to the profile load, so the won map's
       branch repair runs as in Unity (it writes the profile when the front end is entered with CampaignResults). New
       check arguments: `--from-map`, `--stage-win`, `--stage-loss`, `--leave-result`, `--escape-result`; Godot also
-      prints the viewer's status changes (`godot/README.md`). Not wired in Godot: the path camera, letterbox, subtitles, the win screen and tablet, and the post-win cutscene (needs media,
+      prints the viewer's status changes (`godot/README.md`). Not wired in Godot: subtitles, the win screen and tablet, and the post-win cutscene (needs media,
       step 4), so a won map goes straight to the results page. Owner question, product policy and not a DK2 unknown
       (so no Q row): is it fine that Godot's Space goes straight to the front end, skipping the title card and cutscene,
       until media lands in step 4. Verification: `dotnet test DK2.slnx` green (Presentation 2276, Simulation 5583,
@@ -1061,13 +1061,35 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         [transition pointer feedback and ordinary badges](../research/possession-target-highlight.md#entry-pointer-feedback) are built. Not
         verified: `unity-verify.sh` and `unity-probe.sh` (they cannot target a worktree); in Godot real mouse capture,
         alt-tab re-capture, the walking keys and the death view. Open: the view's sounds are dropped (no sound player, step
-        4); the roof is black away from walls and torches (lighting); during Level1's opening path Godot shows the
-        possession camera, as the path camera (3n) is not ported. Test gaps: `TerrainCeilingScheduler.Refresh` from a
+        4); the roof is black away from walls and torches (lighting). Scripted paths take camera priority over
+        possession (3n). Test gaps: `TerrainCeilingScheduler.Refresh` from a
         `WorldState` (its once-per-turn read) and `PossessionScene.Latch` with a terrain.
-  - [ ] 3n. The scripted paths with the full-map preview.
+  - [x] 3n. Scripted paths, letterbox, jitter and full-map preview (2026-11-20, ADR-0813; closed-map frame p50 within run noise: Level7 classic pairs split two better, two worse).
+        Shared render jitter and preview orientation are consumed by Unity and Godot; see
+        [camera wiring](../../godot/README.md) and the step-3 audit for the viewport and ordering choices.
+        Verification: Release solution build 0 warnings/errors; full suite 11,507 passed, 30 skipped; focused jitter/preview
+        11 passed and path-suppression 1 passed. HEAD/new Godot builds, imports and build-solutions clean. Turn-400 hash
+        B5C0CB842094AB59 unchanged. The exact main-checkout Unity verification script reports sync, compile, smoke
+        and save-smoke all exit 0. Reviewer code approved.
+        Capture root: `C:/Users/franj/AppData/Local/Temp/dk2-step3n-yypra1c1`; opening path frame
+        `captures/path/f00000089.png` has symmetric 135px bars at 1920x1080; the 1,100-frame path returns to the HUD.
+        All 460 ordinary, possession and lightning PNGs are byte-identical to archived HEAD. Populated Level1/Level7
+        preview crops were inspected for orientation, terrain, creatures, flames and ordering.
+        Preview-open Repeat 2 p50 means (frame ms / GPU ms / draws / allocated B): classic Level1
+        4.775 / 1.789 / 153 / 7136, Level7 7.847 / 2.611 / 350.5 / 9440; all lighting flags Level1
+        9.442 / 6.385 / 239 / 7136, Level7 13.026 / 6.947 / 526 / 9440. GPU is main plus preview, excluding shadow
+        viewports. Whole-frame allocation includes simulation and is identical between repeats; no accumulating preview
+        allocation observed. Exact reports and comparisons: `perf-summary/preview-summary.json` under the capture root.
+        Closed-map alternating Repeat 2 frame p50 means HEAD → new (ms): classic Level1 4.759 → 4.680;
+        all lighting flags Level1 9.381 → 9.094 and Level7 11.422 → 11.450. Classic Level7 was noisy, so four pairs
+        were run: median of run p50s 6.805 → 7.066 (+3.8%), with overlapping ranges 6.268–7.208 and 6.541–7.187;
+        two pairs improved and two worsened. GPU medians 2.426 → 2.393 ms; steady-camera allocation and draws
+        match. This does not establish the required absence of a regression; 3n and remaining-overlay acceptance stay
+        unchecked until the Level7 classic frame-time difference is resolved. Raw reports: `perf/`, `perf-modern/`,
+        `perf-preview/`; summaries: `perf-summary/`. No subtitles or function-record edits; subtitles remain step 4.
   - [ ] Then the remaining replacements in the audit's order: texture arrays (once 3o shows they pay), vertex animation,
         the minimap shader, AA, the HUD text atlas, liquid waves, the chunk upload tweak.
-- [ ] The remaining 3D overlays (the scripted paths, 3n), then the in-game HUD from step 1.
+- [x] The remaining 3D overlays (the scripted paths, 3n), then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging
 

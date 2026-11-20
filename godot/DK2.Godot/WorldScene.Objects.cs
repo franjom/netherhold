@@ -275,6 +275,7 @@ public partial class WorldScene
         PrepareLighting();
         PrepareShadows();
         DrawBlended();
+        DrawPreviewTerrain();
         _phaseStart = GC.GetAllocatedBytesForCurrentThread();
         Mark(DrawPhase.Sort);
         BeginItems();
@@ -283,6 +284,12 @@ public partial class WorldScene
         DrawLightning();
         started = ItemTime(ItemStep.Effects, started);
         _flames?.AddItems();
+        if (PreviewPose.HasValue)
+        {
+            SwapPreviewItems();
+            DrawEffects(); _flames?.AddItems();
+            SwapPreviewItems();
+        }
         ItemTime(ItemStep.Flames, started);
         ItemBytes(allocated);
         Mark(DrawPhase.Effects);

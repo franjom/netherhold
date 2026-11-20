@@ -139,7 +139,7 @@ public partial class WorldScene
                 _shadowPositions[i++] = torch.Value;
             }
         }
-        int count = ClassicTorchShadowSlots.Choose(Focus, _shadowKeys, _shadowPositions, ShadowReach, _shadowSlotKeys,
+        int count = ClassicTorchShadowSlots.Choose(ScriptedView?.PathPlaying == true ? _placed.Position : Focus, _shadowKeys, _shadowPositions, ShadowReach, _shadowSlotKeys,
             ShadowHysteresis, _shadowChosen);
         // A torch still chosen keeps its slot; the slots it frees take the newly chosen ones in order.
         for (int slot = 0; slot < ClassicTorchShadowSlots.MaximumTorches; slot++)

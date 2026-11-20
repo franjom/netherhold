@@ -189,15 +189,65 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// <summary>The classic camera's pose at <see cref="Focus"/> for the current viewport, through the frame change, with
     /// Unity's off-centre projection (<c>projection[1,2] = -shift</c>) as a frustum offset; the camera is written only
     /// when the pose changed. Allocation-free.</summary>
+    public ScriptedViewDirector? ScriptedView { get; set; }
+    public float LetterboxBar => ScriptedView?.LetterboxBar ?? 0;
+    public ClassicCameraPose? PreviewPose { get; set; }
+    public Godot.Environment? CameraEnvironment => _camera?.Environment;
+    public bool MeasurePreviewRenderTime { get; set; }
+    public SubViewport? PreviewRenderViewport { get; set; }
+    public CameraViewport PreviewViewport { get; set; }
+    private const uint MainBlendedLayer = 1u << 18, PreviewBlendedLayer = 1u << 19;
+    private readonly BlendedRunSlots<ShaderMaterial> _previewRunKeys = new();
+    private readonly List<RunSlot> _previewRunSlots = new();
+
+    private void DrawPreviewTerrain()
+    {
+        if (_blended == null || PreviewPose is not ClassicCameraPose pose)
+        {
+            foreach (RunSlot slot in _previewRunSlots) slot.Hide();
+            return;
+        }
+        var frustum = ViewFrustum.FromPose(pose, PreviewViewport.Width / (float)PreviewViewport.Height, .05f);
+        _blended.Refresh(NVector3.Normalize(pose.Forward), NMatrix4x4.Identity, frustum);
+        _previewRunKeys.Update(_blended, pose.Position);
+        _previewItems.Order.ClearRuns();
+        foreach (BlendedRunSlot<ShaderMaterial> run in _previewRunKeys.Drawn)
+        {
+            if (!run.TagOverlay) _previewItems.Order.AddRun(run.Distance);
+            while (_previewRunSlots.Count <= run.Id)
+                _previewRunSlots.Add(new RunSlot(GetWorld3D().Scenario, _worldBox, PreviewBlendedLayer));
+            _previewRunSlots[run.Id].Show(run, _previewRunKeys.Vertices, pose.Position.Length(), _runScratch);
+        }
+        for (int i = 0; i < _previewRunSlots.Count; i++)
+            if (!_previewRunKeys.Slots[i].Drawn) _previewRunSlots[i].Hide();
+    }
+
     public void PlaceCamera()
     {
         if (_camera == null || ClassicCamera == null) return;
+        _camera.CullMask = uint.MaxValue & ~PreviewBlendedLayer;
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
         if (width <= 0 || height <= 0) return;
         var viewport = new CameraViewport(width, width, height);
-        ClassicCameraPose? held = PossessionPose(viewport);
-        ClassicCameraPose pose = held ?? ClassicCamera.Pose(Focus, viewport);
+        var drawnViewport = LetterboxBar > 0
+            ? new CameraViewport(width, width, Math.Max(1, (int)(height * (1 - 2 * LetterboxBar)))) : viewport;
+        ClassicCameraPose? held = PossessionPose(drawnViewport);
+        ClassicCameraPose pose = held ?? ClassicCamera.Pose(Focus, drawnViewport);
+        if (ScriptedView?.Pose is CameraPathPose path)
+            pose = new ClassicCameraPose(path.Position, path.Forward, path.Up,
+                path.VerticalFieldOfView(width, Math.Max(1, (int)(height * (1 - 2 * LetterboxBar)))),
+                path.ViewDistance, 0, 0);
+        if (ScriptedView != null) pose = pose with { Position = pose.Position + ScriptedView.RenderCameraJitter };
+        if (LetterboxBar > 0)
+        {
+            float scale = 1 - 2 * LetterboxBar;
+            pose = pose with
+            {
+                VerticalFieldOfView = 2 * MathF.Atan(MathF.Tan(pose.VerticalFieldOfView * MathF.PI / 360) / scale) * 180 / MathF.PI,
+                ProjectionCentreShift = pose.ProjectionCentreShift * scale
+            };
+        }
         if (View != null && pose == _placed && viewport == _placedViewport) return;
         _near = held == null ? NearPlane : PossessionCamera.NearClipDistance;
         _camera.Near = _near;
@@ -220,6 +270,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     {
         origin = direction = default;
         if (View is not MinimapCameraView view || _placedViewport.Height <= 0) return false;
+        if (screen.Y < _placedViewport.Height * LetterboxBar || screen.Y >= _placedViewport.Height * (1 - LetterboxBar)) return false;
         origin = view.Position;
         direction = view.RayDirection(screen.X / _placedViewport.Width, 1f - screen.Y / _placedViewport.Height);
         return true;
@@ -607,6 +658,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 " run instances; uploaded ", _blendedUploadBytes, " B for ", _blendedUploadTriangles, " triangles drawn");
         FreeEffects();
         FreeObjects();
+        foreach (RunSlot slot in _previewRunSlots) slot.Free();
         foreach (RunSlot slot in _runSlots) slot.Free();
         _runSlots.Clear();
         _cage?.Free();
@@ -875,10 +927,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         private float _offset = float.NaN;
         private bool _visible = true;
 
-        public RunSlot(Rid scenario, Aabb box)
+        public RunSlot(Rid scenario, Aabb box, uint layers = MainBlendedLayer)
         {
             _mesh = RenderingServer.MeshCreate();
             _instance = RenderingServer.InstanceCreate2(_mesh, scenario);
+            RenderingServer.InstanceSetLayerMask(_instance, layers);
             RenderingServer.InstanceGeometrySetCastShadowsSetting(_instance, RenderingServer.ShadowCastingSetting.Off);
             // The world box only keeps Godot from culling the run (the stream culls); the pivot is the origin.
             RenderingServer.InstanceSetCustomAabb(_instance, box);

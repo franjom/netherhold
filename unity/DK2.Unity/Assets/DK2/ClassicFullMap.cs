@@ -117,7 +117,9 @@ namespace DK2.Unity
             _preview.style.left = preview.Origin.X; _preview.style.top = preview.Origin.Y;
             _preview.style.width = pw; _preview.style.height = ph;
             _previewCamera.transform.position = new Vector3(preview.Pose.Position.X, preview.Pose.Position.Y, preview.Pose.Position.Z);
-            _previewCamera.transform.rotation = Quaternion.LookRotation(Vector3.down, Vector3.forward);
+            _previewCamera.transform.rotation = Quaternion.LookRotation(
+                new Vector3(preview.Pose.Forward.X, preview.Pose.Forward.Y, preview.Pose.Forward.Z),
+                new Vector3(preview.Pose.Up.X, preview.Pose.Up.Y, preview.Pose.Up.Z));
             _previewCamera.fieldOfView = preview.Pose.VerticalFieldOfView;
             _previewCamera.farClipPlane = preview.Pose.FarClipDistance;
             _previewCamera.aspect = pw / (float)ph;

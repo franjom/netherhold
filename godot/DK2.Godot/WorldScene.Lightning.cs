@@ -103,6 +103,12 @@ public partial class WorldScene
                 // The shader reads these columns as positions, rather than transforming a parallelogram. All four
                 // ribbon corners survive unchanged, and the shared item path supplies the actual culling bounds.
                 AddItem(_lightningItems, centre, radius, new Transform3D(new Basis(b, c, d), a), Colors.White, Colors.White);
+                if (PreviewPose.HasValue)
+                {
+                    SwapPreviewItems();
+                    AddItem(_lightningItems, centre, radius, new Transform3D(new Basis(b, c, d), a), Colors.White, Colors.White);
+                    SwapPreviewItems();
+                }
             }
         }
         long bytes = GC.GetAllocatedBytesForCurrentThread() - allocated;

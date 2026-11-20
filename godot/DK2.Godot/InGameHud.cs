@@ -31,6 +31,29 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 {
     private readonly List<PlayerCommand> _pending = new();
     private LightningStaging? _lightningStage;
+    private ColorRect? _topBar, _bottomBar;
+
+    private void DrawLetterbox()
+    {
+        float bar = _world?.LetterboxBar ?? 0;
+        if (bar <= 0)
+        {
+            if (_topBar != null) { _topBar.Visible = false; _bottomBar!.Visible = false; }
+            return;
+        }
+        if (_topBar == null)
+        {
+            var layer = new CanvasLayer { Layer = 100 };
+            AddChild(layer);
+            _topBar = new ColorRect { Color = Colors.Black, MouseFilter = Control.MouseFilterEnum.Ignore };
+            _bottomBar = new ColorRect { Color = Colors.Black, MouseFilter = Control.MouseFilterEnum.Ignore };
+            layer.AddChild(_topBar); layer.AddChild(_bottomBar);
+        }
+        Vector2 size = GetViewport().GetVisibleRect().Size;
+        _topBar.Visible = _bottomBar!.Visible = true;
+        _topBar.Size = _bottomBar.Size = new Vector2(size.X, size.Y * bar);
+        _bottomBar.Position = new Vector2(0, size.Y * (1 - bar));
+    }
     private readonly PlayerInputTranslator _input = new();
     /// <summary>The tool, the panel's choice, the query tool and the selected corner, as Unity's runner keeps them.</summary>
     private readonly HudToolState _tools = new();
@@ -143,8 +166,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private CampaignResultFlow? _resultFlow;
     /// <summary>The level script's view requests (Unity's runner's <c>_scriptedView</c>): the camera path, the letterbox
     /// count and the flash, which hide the HUD, hold the options key and light the panel and the resources; Escape or Space
-    /// skips a path (<see cref="FrameDriver"/>). The path's camera, letterbox, subtitles and speech are not wired (plan steps 3
-    /// and 4).</summary>
+    /// skips a path (<see cref="FrameDriver"/>). Subtitles and speech remain in step 4.</summary>
     private ScriptedViewDirector? _scriptedView;
     private bool _pathPlaying;
     /// <summary>The viewer's status last printed (<see cref="ReportPath"/>).</summary>
@@ -555,7 +577,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // the keys before they end.
         UpdateCamera(visibility, delta);
         // The frame's one pose, which this frame's picks read; the follow below places it again only if it moved the focus.
+        _scriptedView.SeekCamera(_simulation.World.CurrentTick.Value + Math.Min(_pacer.Debt, 1d));
+        _world.ScriptedView = _scriptedView;
         _world.PlaceCamera();
+        DrawLetterbox();
+        _fullMap.PreparePreview(_world, _pointer);
         if (visibility.AllowOrdinaryInput && !_hudControls.Modal) ReadAmbientKeys();
         QueueInput(visibility, milliseconds);
         // DungeonRunner.Update before its present: the Hand's excavation drag previews its tags; off the map the far end keeps
@@ -622,7 +648,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // After the minimap, as DungeonRunner.DrawHudControls draws it.
         _options.Draw();
         // DungeonRunner.DrawHudControls captures it after the bottom panel and draws it after the menu.
-        _fullMap.Capture(_simulation.World, _simulation.Database, _viewer, minimapCaptured);
+        _fullMap.Capture(_simulation.World, _simulation.Database, _viewer, minimapCaptured, _pointer);
         _fullMap.Draw();
         // DungeonRunner.DrawHudControls draws it after the save browser; the two never show together.
         _gameOptionsPanel.Draw();
@@ -706,8 +732,6 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             if (_simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
         }
         _frameDriver.AfterTicks(_simulation.World, milliseconds);
-        // DungeonRunner.Present's seek: the path is placed on the turn now drawn, without taking requests.
-        _scriptedView.SeekCamera(_simulation.World.CurrentTick.Value + Math.Min(_pacer.Debt, 1d));
         // Unity's LateUpdate: the frame's journal record.
         _journal.EndFrame(_pending, _pacer.Debt);
     }

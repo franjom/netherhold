@@ -15,8 +15,7 @@ namespace DK2.GodotAdapter;
 /// by two <see cref="HudCanvas"/>es, the black backdrop under and the room icon, creature squares and legend over the map
 /// image, which <see cref="FullMapImage"/> colours from the minimap's class grid (<see cref="ClassicMinimap.Model"/>, as
 /// Unity's full map reads its minimap's) and this node only uploads (Unity blits the same image with a shader). The panel is in screen pixels. While it shows it takes every mouse press
-/// from the panels under it; what a press does is the host's <see cref="HudPressRouter"/> (<see cref="FullMapHud.Press"/>). Unity's camera preview at the
-/// top right needs the 3D world and is not drawn.</summary>
+/// from the panels under it; what a press does is the host's <see cref="HudPressRouter"/> (<see cref="FullMapHud.Press"/>).</summary>
 public partial class ClassicFullMap : Node
 {
     private readonly HudFrame _backFrame = new(), _frontFrame = new();
@@ -32,6 +31,48 @@ public partial class ClassicFullMap : Node
     private ImageTexture? _texture;
     /// <summary>The map image's rect as last recorded; empty before the first draw.</summary>
     private Rect2 _mapRect;
+    private SubViewport? _previewViewport;
+    private Camera3D? _previewCamera;
+    private TextureRect? _previewImage;
+
+    public void PreparePreview(WorldScene world, Vector2 pointer)
+    {
+        world.PreviewPose = null;
+        if (!Visible)
+        {
+            if (_previewViewport != null) _previewViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled;
+            if (_previewImage != null) _previewImage.Visible = false;
+            return;
+        }
+        Vector2 size = GetViewport().GetVisibleRect().Size;
+        FullMapPreview preview = _hud!.Layout((int)size.X, (int)size.Y).Preview((int)size.X, (int)size.Y,
+            new System.Numerics.Vector2(pointer.X, pointer.Y));
+        if (_previewViewport == null)
+        {
+            _previewViewport = new SubViewport { Name = "FullMapPreview", World3D = world.GetWorld3D(), HandleInputLocally = false };
+            AddChild(_previewViewport);
+            world.PreviewRenderViewport = _previewViewport;
+            if (world.MeasurePreviewRenderTime)
+                RenderingServer.ViewportSetMeasureRenderTime(_previewViewport.GetViewportRid(), true);
+            _previewCamera = new Camera3D { Current = true, Environment = world.CameraEnvironment, CullMask = uint.MaxValue & ~(1u << 18), Near = .05f, KeepAspect = Camera3D.KeepAspectEnum.Height };
+            _previewViewport.AddChild(_previewCamera);
+            _previewImage = new TextureRect { Name = "PreviewImage", MouseFilter = Control.MouseFilterEnum.Ignore,
+                Texture = _previewViewport.GetTexture(), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize };
+            AddChild(_previewImage);
+        }
+        _previewViewport.Size = new Vector2I((int)preview.Size.X, (int)preview.Size.Y);
+        _previewViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
+        _previewImage!.Position = new Vector2(preview.Origin.X, preview.Origin.Y);
+        _previewImage.Size = new Vector2(preview.Size.X, preview.Size.Y);
+        _previewImage.Visible = true;
+        RightHandedCamera basis = RightHandedFrame.Camera(preview.Pose);
+        _previewCamera!.Transform = new Transform3D(new Basis(ToGodot(basis.X), ToGodot(basis.Y), ToGodot(basis.Z)), ToGodot(basis.Origin));
+        _previewCamera.Fov = preview.Pose.VerticalFieldOfView;
+        _previewCamera.Far = preview.Pose.FarClipDistance;
+        world.PreviewPose = preview.Pose;
+        world.PreviewViewport = new CameraViewport((int)preview.Size.X, (int)preview.Size.X, (int)preview.Size.Y);
+    }
+    private static Vector3 ToGodot(System.Numerics.Vector3 value) => new(value.X, value.Y, value.Z);
 
     public bool Visible => _hud != null && _hud.Visible;
 
@@ -68,7 +109,7 @@ public partial class ClassicFullMap : Node
     /// <summary>The image and the markers, while the map shows; call after the minimap's capture, while the simulation is
     /// settled. The image is recoloured from the shared grid once after each capture, and uploaded only when it changed.</summary>
     /// <param name="gridCaptured">The minimap captured this frame (<see cref="ClassicMinimap.Capture"/>).</param>
-    public void Capture(WorldState world, GameDatabase database, PlayerId viewer, bool gridCaptured)
+    public void Capture(WorldState world, GameDatabase database, PlayerId viewer, bool gridCaptured, Vector2 pointer)
     {
         if (gridCaptured) _stale = true;
         if (_hud == null || _minimap == null || _pixels == null || _image == null || _texture == null || !_hud.Visible) return;
@@ -81,7 +122,7 @@ public partial class ClassicFullMap : Node
                 _texture.Update(_image);
             }
         }
-        _hud.Capture(world, database, viewer, ResolvePointer(GetViewport().GetMousePosition()));
+        _hud.Capture(world, database, viewer, ResolvePointer(pointer));
     }
 
     /// <summary>The tile under a screen pixel (top-left origin).</summary>

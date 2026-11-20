@@ -46,6 +46,22 @@ public class BurningViewTests
     }
 
     [Fact]
+    public void RenderJitterMapsHorizontalOffsetsAndClearsOnTheNextFrame()
+    {
+        var view = new ScriptedViewDirector(PlayerIds.FirstKeeper, _ => null, _ => null);
+        view.Emit(new SimEvent(default, "test", "shake", "")
+        { ScriptedView = new(ScriptedViewKind.CameraJitter, PlayerIds.FirstKeeper, 1, default, false) });
+        view.Update(0, 0);
+        var random = new Dk2Lcg(1);
+        var expected = new System.Numerics.Vector3(
+            (random.NextInt(200) - 100) / (float)Fp32.One, 0,
+            -(random.NextInt(200) - 100) / (float)Fp32.One);
+        Assert.NotEqual(System.Numerics.Vector3.Zero, expected);
+        Assert.Equal(expected, view.RenderCameraJitter);
+        view.Update(1, 0);
+        Assert.Equal(System.Numerics.Vector3.Zero, view.RenderCameraJitter);
+    }
+    [Fact]
     public void OnlyLocalInfernoRequestsConsumeTwoBridgeDrawsPerPresentationCall()
     {
         var view = new ScriptedViewDirector(PlayerIds.FirstKeeper, _ => null, _ => null);

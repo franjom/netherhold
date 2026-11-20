@@ -990,8 +990,8 @@ namespace DK2.Unity
             FollowQueriedCreature();
             if (Camera.main != null && !_scriptedView.PathPlaying)
             {
-                FpPosition3 jitter = _scriptedView.CameraJitter;
-                _appliedCameraJitter = new Vector3(jitter.X.Raw / (float)Fp32.One, 0, -jitter.Y.Raw / (float)Fp32.One);
+                System.Numerics.Vector3 jitter = _scriptedView.RenderCameraJitter;
+                _appliedCameraJitter = new Vector3(jitter.X, jitter.Y, jitter.Z);
                 Camera.main.transform.position += _appliedCameraJitter;
             }
             RefreshEffectCamera();

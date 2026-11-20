@@ -295,18 +295,16 @@ back faces.
   (done, 3m).
 
 ## Scripted camera paths, letterbox, jitter and the full-map preview
-
-- **Unity.** `ApplyPathCamera` (`DungeonRunner.cs:1326-1340`), `ApplyLetterbox` (`:1304-1310`), `DrawCinematic` bars
-  (`:1344-1361`), the camera jitter (`:995-1000`, removed next frame at `:856-857`), `SeekCamera` (`:981-987`).
-  `ClassicFullMap.PreparePreview` (`ClassicFullMap.cs:106-124`) renders a second camera straight down, north up (`:120`).
-- **Shared (S).** `ScriptedViewDirector` (`Pose`, `LetterboxBar`, `CameraJitter`, `PathPlaying`), `CameraPathPose`
-  (`VerticalFieldOfView`, `ViewDistance`), `EngineCameraPaths`, `FullMapHud.Layout().Preview`.
-- **B, small.** The jitter's mapping to the render frame (`:997-998`) belongs on `ScriptedViewDirector`; the preview's
-  down-and-north orientation belongs on `FullMapPreview`.
-- **Godot.** The letterbox shrinks the drawn area, so the 3D goes in a `SubViewportContainer` sized to the rect, or the
-  frustum is offset to match (prototype in 3n). The preview is a `SubViewport` sharing the main `World3D`. The light
-  publisher already joins the preview camera at view distance 10.
-
+- **Shared (S).** `ScriptedViewDirector` provides the path pose, letterbox and render-frame jitter mapping;
+  `CameraPathPose` provides FOV and view distance. `FullMapPreview.Pose` already held the down-and-north orientation;
+  Unity now reads it instead of hardcoding that rotation. Shared jitter tests cover mapping, removal and path suppression.
+- **Godot.** Paths seek on the drawn-world tick before camera placement. A reduced-height source pose is expanded
+  into the full-window frustum and opaque bars cover the margins, avoiding a second main render target. Picking
+  rejects bars; the inactive view is unchanged. Player camera input is blocked during paths; perf scripts keep priority.
+- **Preview.** A shared-world `SubViewport` uses the shared pose and main environment, and joins the light publisher
+  at view distance 10. Separate blended terrain/item keys, culling and billboards serve its top-down eye; opaque
+  geometry and terrain state texture stay shared. Closing the map disables its viewport and hides pooled draws.
+- **Acceptance.** See migration plan step 3n for capture, performance and gate results. Subtitles stay in step 4.
 ## Move order
 
 Each sub-step is one commit, leaves Unity working (its compile checked, and Unity calling any moved rule), and leaves
@@ -348,9 +346,9 @@ terrain and the camera; then each step adds one kind of thing to the world. From
   `TerrainCeilingGeometry`, `PossessionScene` (the latch and the roof's shown rule), `PossessionStaging` and the argument
   `--possess-first-creature`. Godot: the possession camera on the same `Camera3D` with a 0.05 near plane, the pointer lock,
   the chunked roof and the hidden model, checked by scripted-pointer captures (real mouse capture, the walking keys and the
-  death view not exercised). The path camera (3n) is not ported, so the opening path shows the possession camera.
-- **3n. Scripted paths and the full-map preview.** Godot: path camera, letterbox, jitter, subtitles stay in step 4, and
-  the full map's preview camera. Check: Level1's opening path played from turn 0 in a capture, letterboxed.
+  death view not exercised). Scripted paths now take priority over possession (3n).
+- **3n. Scripted paths and the full-map preview.** Implemented; strict no-regression performance gate inconclusive.
+  See migration plan step 3n for measured results; subtitles stay in step 4.
 
 ## How a step is checked here
 
@@ -363,8 +361,8 @@ outside the repository (`godot/README.md`, *Verifying*). Level1's opening path h
 
 ```powershell
 & "$env:LOCALAPPDATA\Programs\Godot\4.8-beta3\Godot_v4.8-beta3_mono_win64\Godot_v4.8-beta3_mono_win64_console.exe" `
-  --path godot/DK2.Godot res://InGameHud.tscn --write-movie <temp>/f.png --fixed-fps 30 --quit-after 120 `
-  -- --settings <temp>/settings.ini
+  --path godot/DK2.Godot res://InGameHud.tscn --log-file <temp>/godot.log --write-movie <temp>/f.png --fixed-fps 30 --quit-after 120 `
+  -- --settings <temp>/settings.ini --profile <temp>/profile.dk2p --saves <temp>/saves --hiscores <temp>/HiScores.dat
 ```
 
 It opens a window and needs the GPU. Every step that changes a Unity file reruns the stand-in compile

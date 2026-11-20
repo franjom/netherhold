@@ -25,6 +25,21 @@ public class CameraPathPlaybackTests
         [.. Enumerable.Range(0, count).Select(i => new KcsFrame(0, 0, z, Identity, 1f, 12000f))];
 
     [Fact]
+    public void PathSuppressesRenderJitterWithoutLeavingAnOffsetAfterItEnds()
+    {
+        var viewer = PlayerIds.FirstKeeper;
+        var director = new ScriptedViewDirector(viewer, _ => Frames(399), _ => null);
+        director.Emit(View(ScriptedViewKind.CameraPath, viewer, 1));
+        director.Emit(View(ScriptedViewKind.CameraJitter, viewer, 1));
+        director.Update(0, 0);
+        Assert.True(director.PathPlaying);
+        Assert.NotEqual(default, director.CameraJitter);
+        Assert.Equal(Vector3.Zero, director.RenderCameraJitter);
+        Assert.True(director.Skip());
+        director.Update(1, 0);
+        Assert.Equal(Vector3.Zero, director.RenderCameraJitter);
+    }
+    [Fact]
     public void SpeechEnabledSubtitlesFollowThePlayingLineAndDisabledSpeechUsesTheTimedFallback()
     {
         var viewer = new PlayerId(3);
