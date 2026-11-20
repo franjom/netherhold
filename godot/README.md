@@ -60,7 +60,9 @@ next pass over the whole triangle; step 3p), and a hovered gold object swaps to 
 when the hover state changes. The
 hover sound waits for step 4. The classic lighting (`WorldScene.Lighting.cs`, step 3i) lights every lit vertex with DK2's
 tile tables, ambient keys and Hand light with ADR-0522's distance fade (native ambient, as the owner's Unity scene has it; `--light-fill` adds Godot's fill); an environment pass is folded into its submesh's
-material, also over a plan, and the selection cage's box is the ribbon's, so it sorts by the ribbon's centre. The material model (step 3p): one world shader,
+material, also over a plan, and the selection cage's box is the ribbon's, so it sorts by the ribbon's centre. Native cage expectations and comparison limits are in
+[hand cursor rendering](../docs/research/hand-cursor-rendering.md#native-cage-observations).
+The material model (step 3p): one world shader,
 `Shaders/World.gdshaderinc` with DK2's light in `WorldLight.gdshaderinc`, in four render states (`WorldOpaque`, `WorldBlend`,
 `WorldBlendDepth`, `WorldAdd.gdshader`; the blend and depth write are not uniforms), each look a `ShaderMaterial` of uniforms
 (texture, colour, added light, full light, model inputs, environment pass), and an object's tint and fade, a structure's tint and the

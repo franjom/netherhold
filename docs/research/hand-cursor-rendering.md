@@ -297,6 +297,29 @@ profile is unchanged. D3D11 finite/additive regression results and the isolated
 launcher are documented in [the probe guide](../../tools/classic-unity-probe/README.md);
 owner acceptance in the live scene remains open.
 
+### Native cage observations
+
+CONFIRMED (2026-11-20, native Level 7 captures, independently reviewed): a blue
+cage appears over visible lava while the tooltip reads `Fog of War`. Evidence:
+`F:\DK2Evidence\studies\godot-highlight-compare--2026-11-20--005\native-fixture\level7-1795176060060552800.bmp`;
+receipt `run-1795176064036685400.json` in that fixture records SHA-256
+`98fbcfff7293bd51f01c19c60052aa4eb67084d825d7223ac260d3731c070b2f`.
+The image confirms this appearance; the fog/picking mechanism remains
+STRONGLY INFERRED from the binary, rather than established by the image alone.
+
+CONFIRMED (same review): the wall cage is visibly offset from the wall in
+`F:\DK2Evidence\studies\godot-highlight-compare--2026-11-20--004\native-fixture\level7-1795175917517724800.bmp`
+(SHA-256 `df48f9b7cf7f5d07a2c1e878df0ce6677c4bd2ee0bc01b1adc5f013aeaf0570c`).
+This does not measure the exact 0.05-tile bias or establish adapter parity.
+Reference crops are in `F:\DK2Evidence\studies\godot-highlight-compare--2026-11-20--006\crops\`
+(`native-head-wall-reference.png`, `native-head-lava-reference.png`). They compare
+native captures with unchanged HEAD using resampling and differing lighting and
+simulation state; exact tile and camera projection were not independently matched.
+They are not pixel-parity tests.
+These captures establish expectations for those scenes; live-scene acceptance
+across other views remains open. Native status-flower overlap with opaque
+walls remains UNKNOWN.
+
 ## Refused drop feedback (STRONGLY INFERRED, binary 2026-10-29)
 
 The click arm of `0x00408EE0` tests `0x0040D8F0` before submitting a normal

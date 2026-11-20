@@ -417,3 +417,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Detached Windows `Start-Process` children can survive a `ctx_execute` background-stop notice; inspect the task PIDs before relaunching to avoid duplicate runners.
 - A Godot preview sharing `World3D` does not inherit another camera's `Environment` override; assign the main gamma/brightness environment to the preview camera too.
 - Godot's `--profile`, `--settings`, `--saves` and `--hiscores` isolate game data, but not the engine log; captures must also pass `--log-file <temp>/godot.log` before `--` to avoid the real user log folder.
+- Context-mode runs as the owner while sandboxed `exec_command` uses a separate account here; verify the child token before native launches, because an isolated runtime copy does not isolate the owner's HKCU game profile.
+- A native DirectDraw fixture may have a larger auxiliary render window than its input window; preserve its owned foreground window, request only the COM input HWND, and use the verified matching client DC if PrintWindow returns black.

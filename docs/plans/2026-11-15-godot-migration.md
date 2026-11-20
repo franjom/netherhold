@@ -945,6 +945,8 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         Turn-400 hash unchanged (`B5C0CB842094AB59`); the full solution suite (3,233 Presentation tests), builds,
         Godot import/build-solutions and Unity sync/compile/smoke/save-smoke gates pass. Final captures, warmed dig-tag
         timing and alternating repeated performance results: [audit item 3](2026-11-18-godot-modern-rendering-audit.md).
+        This completes source parity for the terrain-state path; it does not establish native visual acceptance
+        in every scene. Native cage expectations and remaining comparison limits: [hand cursor rendering](../research/hand-cursor-rendering.md#native-cage-observations).
   - [x] 3q. Blended ordering, audit item 5 (2026-11-19, ADR-0813): `ZeroOrderOffset`, `SortFromOrigin` and the
         unindexed run rewrites are gone. The shared `BlendedRunSlots` (`DK2.Presentation`, tested, including a fake renderer
         that applies only what each update reports) keys each run of the stream by its distance from the eye to its
@@ -996,7 +998,8 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         element's tint as an instance uniform. Also wired: the group parts, the local pickup dust, the first model update.
         Footsteps and the beat sound are sound only (step 4); the dollar mesh is not drawn; lightning is drawn by 3l. Frames
         against HEAD (Movie Maker, 1920x1080, scripted pointer, flags off and `--light-perpixel --light-shadows
-        --light-post`): flames, flowers and all but the Heart byte-identical; new content judged right against
+        --light-post`): flames, flowers and all but the Heart byte-identical in those examples; this does not establish
+        native flower overlap with opaque walls ([comparison limits](../research/hand-cursor-rendering.md#native-cage-observations)). New content judged right against
         [heart-intro.md](../research/heart-intro.md): the plug lid, beam and burst at each level's start, the mana sparkles on
         a beat; the possession stars overlap differently (a batch now draws back to front, HEAD in particle order; the mana
         effect, the first update, the group parts and the culling were each ruled out). Harness (1080p, interleaved, 14 to
