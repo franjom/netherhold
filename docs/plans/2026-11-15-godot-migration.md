@@ -1115,3 +1115,26 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 - [ ] Update AGENTS.md, ARCHITECTURE, READMEs and `.gitignore`; remove the `unity-developer`
       agent and the `unity@claude-plugins-official` plugin; drop the Unity font fallback in
       `ClassicFrontEndMenuAssets`.
+
+## Step 6: tidy the C# codebase (owner, 2026-11-20; after step 5, on net10.0)
+
+A pass over every C# file in `src/`, `tests/` and `godot/` once Unity is gone and every assembly targets net10.0.
+Behaviour stays the same: the turn-400 hash, the replays and the frame captures are the checks.
+
+- [ ] Coding style, defined first and enforced by the build. Survey the styles in use, propose one per question
+      (`var`, braces, expression bodies, file-scoped namespaces, `using` placement, naming of private fields, constants
+      and async methods, pattern matching, collection expressions, primary constructors) for the owner to choose, then
+      write them into `.editorconfig` with severities. `EnforceCodeStyleInBuild` and `TreatWarningsAsErrors` make each
+      rule a build error, so each rule lands with `dotnet format` fixing every file it flags (`.editorconfig`'s header).
+      Rules the analysers cannot express (a number cast to an enum instead of a named member, magic numbers for DK2
+      ids) go in a small Roslyn analyzer or an `ArchitectureTests` check.
+- [ ] Modern .NET performance first: spans, `stackalloc`, `ArrayPool`, `FrozenDictionary` and `FrozenSet`,
+      `SearchValues`, `CollectionsMarshal`, generic math, `[SkipLocalsInit]` where measured, source-generated regex and
+      JSON, vectorisation (`TensorPrimitives`, `Vector128/256`) on hot loops; each change measured (BenchmarkDotNet or
+      the 3o harness), kept only when it pays. Use the agents' .NET skills: analyzing-dotnet-performance, vectorization,
+      microbenchmarking, csharp-refactoring.
+- [ ] Sloppy and generated-looking code refactored: casts of numbers to enums (add the member), primitives where a
+      meaningful type belongs (AGENTS.md), duplicated helpers, dead code, over-long methods, comments that narrate
+      instead of explain, defensive clutter, polyfills and `UnityBound` leftovers.
+- [ ] One area per commit (simulation, presentation, data, tools, Godot adapter), each with the hash, tests and
+      captures unchanged; any change to DK2 behaviour is a bug, not a tidy-up.
