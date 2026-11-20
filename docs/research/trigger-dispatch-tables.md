@@ -118,7 +118,7 @@ simulation has no object-possession state; no shipped record reaches it (Q280).
 
 | type | arm | reads | rule |
 |---|---|---|---|
-| 23 | `0x004C7DF0` | `+0x146`, else `+0x19E + 2n` | creatures **this** keeper killed: byte 02 zero is the total, a named player is that player's slot |
+| 23 | `0x004C7DF0` | `+0x146`, else `+0x19E + 2n` | creatures **this** keeper killed: byte 02 zero is the total, a named player is that player's slot. The total (`+0x146`) excludes IsGood victims and own-creature kills; no worker test in the writer `0x00487C70` ([PR audit 1296-1363](openkeeper-pr-audit-1296-1363.md)) |
 | 52 | `0x004C7E4E` | creature `+0x403` | count of owned non-worker creatures at or above byte 03's level |
 | 71 | `0x004C8491` | `+0xEE6` | `NumberOfSlaps` |
 | 73 | `0x004C8500` | `+0x134`, then `+0x488` | not possessing → **false without comparing**; possessing → compare the possessed creature's `+0x488` |

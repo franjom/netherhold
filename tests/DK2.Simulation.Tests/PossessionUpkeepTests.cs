@@ -138,7 +138,7 @@ public sealed class PossessionUpkeepTests
         int held = ManaRules.ImpAndTrapUpkeepPerSecondByPlayerIndex(world, db)[index];
         PlayerState probe = world.Player(Keeper);
         probe.Mana = 50_000;
-        ManaRules.ApplyOneSecond(db, ref probe, gain, upkeep);
+        ManaRules.ApplyOneSecond(db, ref probe, gain, upkeep, upkeepInsideCap: upkeep - held);
         int delta = probe.Mana - 50_000;
         world.Player(Keeper).Mana = held + Charge(db, world) + margin - delta;
         new GameSimulation(db, world, 1, [new ManaSystem()]).Run(SimulationTiming.TicksPerSecond);

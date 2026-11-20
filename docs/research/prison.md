@@ -163,16 +163,18 @@ that number.
 
 The applier's cadence and gate are its own prologue:
 
-1. If the counter at `state + 0xAB` is non-zero, the applier returns.
-2. Otherwise the counter is set to `variable19 * 4` — at 4 ticks a game second,
-   16 ticks.
+1. While the counter at `state + 0xAB` is non-zero, the applier returns.
+2. At zero the counter is set to `variable19 * 4` — at 4 ticks a game second,
+   16 — and the rest runs in that same tick, so the period is 17 ticks (STRONGLY
+   INFERRED, Ghidra, [PR audit 1296-1363](openkeeper-pr-audit-1296-1363.md) correction 6; the
+   Casino hook `0x0047AD70` reloads the same way, period 5).
 3. Only if `HungerFill` is non-zero and the creature `IsInARoom`:
    - health is reduced by `variable55 * 4` (−3 × 4 = −12);
    - anger is increased by `variable78`
      (`ModifyAngerInCompanyOfHatedCreaturesPerSecond`, 150), with reason 9.
 
-So the original applies **−12 every 16 ticks** — −12 every four game seconds, an
-average of exactly the −3 a second the variable's name promises. **Built that way
+So the original applies **−12 every 17 ticks** — a little over four game seconds, an
+average just under the −3 a second the variable's name promises. **Built that way
 since 2026-09-23** (ADR-0171), phase per creature from the moment of
 imprisonment, with the +150 anger the same hook adds in the same breath. This
 project used to apply −3 every game second and no anger at all.

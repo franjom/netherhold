@@ -600,7 +600,7 @@ shipped value is zero, then scan those globals for readers.** Twelve are zero.
 **Three of these are whole mechanics with the switch at zero:**
 
 - **Walls decay over time.** 145 and 146 are read by *one* routine,
-  `FUN_004BB6D0` — a count of deteriorations a second and a damage per
+  `FUN_004BB6D0` — a count of deteriorations a call (per tick, not per second: no time gate, called every tick; [PR audit 1296-1363](openkeeper-pr-audit-1296-1363.md) correction 3) and a damage per
   deterioration. A complete feature, shipped inert. Nothing in DK2 as played
   erodes a wall.
 - **A creature that cannot sleep takes damage**, and the reader is the **needs

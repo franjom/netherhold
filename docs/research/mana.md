@@ -244,12 +244,22 @@ must mean something, and wire up.
   3000, then 4500 (CONFIRMED, Q54). `ImpSupplySystem` refuses the command when
   mana is short and otherwise subtracts it.
 
-**The two halves are capped and netted separately, and both orders are
-observed.** `MaximumManaGainPerSecond` caps the *income* alone — netting first
-would let a large workforce raise a keeper's income cap — while the ceiling is
-applied to the net: the owner's screenshot of a full keeper reads exactly 200000
-with +400 and −297 on the orb, so income beating upkeep pins them at the top
-rather than 297 short. `ManaRules.ApplyOneSecond` does it in that order.
+### The income cap and the upkeep terms
+
+`0x004C10E0` adds the `0x004C17A0` result to the gain, caps the sum at `+0x10DE`, then subtracts
+`0x004C17A0` again, so those upkeep terms are charged only for the part past the cap (STRONGLY
+INFERRED, Ghidra, [PR audit 1296-1363](openkeeper-pr-audit-1296-1363.md) correction 4;
+`0x004C113D`-`0x004C1169` and the start of `0x004C17A0` re-read by the main session: it starts from
+`+0x10D6` + `+0x10D2`, then the possession term; its Call to Arms and Reaper terms come from its record). For the
+imp and trap upkeep, which the running word `+0x10E2` already nets (record `0x004C10E0`), that
+caps the gross income. The possession, Call to Arms and Reaper terms are free while the sum is
+under the cap. Built: `ManaRules.ApplyOneSecond` takes `upkeepInsideCap` (`ManaSystem` passes the upkeep less the
+imp and trap part); income is `min(gain + upkeepInsideCap, ManaRules.GainCapPerSecond)`, with
+`GainCapPerSecond` = `MaxGainPerSecond` + `TerrainManaGainCapBonus` (`+0x10DE`).
+
+The ceiling `+0x10EA` is applied to the net: the owner's screenshot of a full keeper reads exactly
+200000 with +400 and −297 on the orb, so income beating upkeep pins them at the top rather than 297
+short.
 
 **Mana floors at zero**, and a keeper that cannot pay is warned four times on
 the ten-second clock of `InsufficientManaImpEvaluationPeriodSeconds`, then loses

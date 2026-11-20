@@ -540,6 +540,16 @@ public static partial class ShotRules
             JackInTheBoxRules.Spring(context, shot);
             return;
         }
+        if (definition.ProcessType == WindRules.ProcessType)
+        {
+            WindRules.Blow(context, shot);
+            return;
+        }
+        if (definition.ProcessType == RaiseDeadRules.ProcessType)
+        {
+            RaiseDeadRules.Raise(context, shot);
+            return;
+        }
         if (definition.ProcessType is ImpCreationRules.CreateCreatureProcess or ImpCreationRules.CreateSingleCreatureProcess)
         {
             ImpCreationRules.FromShot(context, shot);
@@ -575,7 +585,9 @@ public static partial class ShotRules
             case InvisibleProcess: StatusEffectRules.MakeInvisible(context, target, shot.Data1 * perSecond); break;
             case ReaperStunProcess: StatusEffectRules.Stun(context, target, definitionOfTarget); break;
             case DrainProcess: StatusEffectRules.Drain(context, target, definitionOfTarget, world.CreatureById(shot.CasterId), shot.Data1, shot.OwnerPlayerId); break;
-            case PoisonProcess: StatusEffectRules.Poison(context, target, shot.Data2, shot.Data1, shot.OwnerPlayerId); break;
+            // 0x004B02B3-0x004B02C4: +0x13D (Data1) is pushed first, so 0x0048CC50 stores it as the
+            // countdown +0x45D; +0x141 (Data2) becomes the per-tick damage +0x45F.
+            case PoisonProcess: StatusEffectRules.Poison(context, target, shot.Data1, shot.Data2, shot.OwnerPlayerId); break;
             case ChickenProcess: ChickenRules.Strike(context, shot, target, definitionOfTarget); break;
             case TurncoatRules.ProcessType: TurncoatRules.Strike(context, shot, target, definitionOfTarget); break;
             case PossessionRules.ProcessType: PossessionRules.Strike(context, target); break;

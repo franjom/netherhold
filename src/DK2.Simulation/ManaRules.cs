@@ -154,16 +154,20 @@ public static class ManaRules
         }
 
         int fromHeart = hasHeart.Contains(true) ? HeartGainPerSecond(database) : 0;
-        int cap = MaxGainPerSecond(database);
         for (int i = 0; i < gain.Length; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
             gain[i] = Math.Min(player.TerrainManaGainPerSecond + (hasHeart[i] ? fromHeart : 0),
-                cap + player.TerrainManaGainCapBonus);
+                GainCapPerSecond(database, player));
         }
 
         return gain;
     }
+
+    /// <summary>A keeper's income cap, player <c>+0x10DE</c>: <see cref="MaxGainPerSecond"/> plus the
+    /// <c>MaxManaGain</c> its tiles add (ADR-0334).</summary>
+    public static int GainCapPerSecond(GameDatabase database, in PlayerState player) =>
+        MaxGainPerSecond(database) + player.TerrainManaGainCapBonus;
 
     /// <summary>What one imp costs its keeper per second, for as long as it is alive:
     /// <b>7</b>, CONFIRMED (owner, 2026-08-30, Q53) from the mana orb reading 28 with
@@ -239,23 +243,22 @@ public static class ManaRules
         return upkeep;
     }
 
-    /// <summary>One second of mana for one player: what their land earned, less what
-    /// their imps cost. Returns the change actually applied.
-    /// <para><b>The two halves are separate for the income cap and netted for the
-    /// ceiling</b>, and both are observed: <see cref="MaxGainPerSecond"/> caps the green
-    /// figure alone, so subtracting upkeep first would let a big workforce raise a
-    /// keeper's income cap; but the owner's screenshot of a full keeper reads exactly
-    /// 200000 with +400 and −297 on the orb, so income beating upkeep pins them at the
-    /// top rather than 297 short.</para>
-    /// <para>The net is added, then <c>0x004C10E0</c> (<c>0x004C11C1</c>–<c>0x004C11E7</c>)
-    /// clamps it: a net that is not negative cuts mana to the ceiling in one step, however far
-    /// above it a lump sum left it; a negative net only floors it at zero, so mana above the
-    /// ceiling falls by the upkeep alone (Q545).</para></summary>
+    /// <summary>One second of mana for one player: what their land earned, less upkeep. Returns
+    /// the change applied. <see cref="MaxGainPerSecond"/> caps the gain, not the net (a full
+    /// keeper's orb read exactly 200000 with +400 and −297). <paramref name="upkeepInsideCap"/>
+    /// (possession, Call to Arms, Reaper) joins the gain before the <c>+0x10DE</c> cap and leaves
+    /// after it (<c>0x004C113D</c>–<c>0x004C1169</c>). The net is then clamped
+    /// (<c>0x004C11C1</c>–<c>0x004C11E7</c>): one not negative cuts mana to the ceiling in one step,
+    /// however far a lump sum lifted it; a negative one floors it at zero, so mana above the
+    /// ceiling falls by the upkeep alone (Q545). See mana.md.</summary>
     public static int ApplyOneSecond(
-        GameDatabase database, ref PlayerState player, int gainPerSecond, int upkeepPerSecond = 0)
+        GameDatabase database, ref PlayerState player, int gainPerSecond, int upkeepPerSecond = 0, int upkeepInsideCap = 0)
     {
         int before = player.Mana;
-        long net = (long)gainPerSecond - upkeepPerSecond;
+        long income = upkeepInsideCap > 0
+            ? Math.Min((long)gainPerSecond + upkeepInsideCap, GainCapPerSecond(database, player))
+            : gainPerSecond;
+        long net = income - upkeepPerSecond;
         long mana = before + net;
         if (net >= 0) mana = Math.Min(mana, Threshold(database));
 

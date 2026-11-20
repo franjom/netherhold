@@ -82,7 +82,8 @@ by the class constructor `0x004B28D0` (`0x004B28F5`), which also links the class
    threshold `+0x78`, readiness (§4): 2 plays the no-mana effect and posts message 53 with
    Data1 1 once the owner's clock `+0xAA` is due, setting it 15 s on (`0x004A8490` →
    `0x004C1A30`; every readiness 2 in §9 does the same); 4 fires (§7).
-8. Animation and `0x004B3AD0` (frame advance); presentation.
+8. Animation and `0x004B3AD0` (frame advance); presentation. Step 8 (`0x004A8C6B`) sets no playback
+   rate itself; that the rate comes from the shared timing is a HYPOTHESIS (OpenKeeper #1360, [PR audit 1296-1363](openkeeper-pr-audit-1296-1363.md)).
 9. **Threat** (§8), every update while `+0x10F` is nonzero.
 10. **Trigger** (selector 3) with `+0x10D` nonzero: `+0x117` cleared unless a live creature,
     then the propagation (§9).

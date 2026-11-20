@@ -55,6 +55,9 @@ public sealed class TortureSystem : ISimulationSystem
                     TortureRules.Restrap(context.Hooks, creature, next);
                     context.Emit(SystemName, "restrapped",
                         $"creature={creature.Id} at=({next % world.Width},{next / world.Width})");
+                    // 136's own positioning arm runs the chair test too, and zeroes the roll words first.
+                    if (TortureRules.FreeDeviceAt(world, database, keeper, next, creature.Id) is ObjectState taken)
+                        ElectrocuteIfUnfit(context, creature, taken);
                     continue;
                 }
 
@@ -63,6 +66,7 @@ public sealed class TortureSystem : ISimulationSystem
                 continue;
             }
 
+            if (creature.Dk2StateId == TortureRules.TorturedState && ElectrocuteIfUnfit(context, creature, device)) continue;
             if (creature.Dk2StateId == TortureRules.TorturedState) TurnTheWheel(context, creature, device, here);
 
             if (CreatureStateMachine.UpdatingCategory(creature) != CreatureStateCategory.Torture) continue;
@@ -198,6 +202,26 @@ public sealed class TortureSystem : ISimulationSystem
             $"creature={creature.Id} type={definition.Name} from={from} to={keeper} " +
             $"at=({creature.Tile.X},{creature.Tile.Y})");
         Free(context, creature, "converted");
+    }
+
+    /// <summary>A creature that cannot be electrocuted, on an Electric Chair: 131's and 136's chair
+    /// arm (<c>0x00484590</c>, <c>0x00484CE0</c>) calls its slot <c>+0x20</c>, which writes health 0 and
+    /// nothing else (<c>0x004B2AD0</c>); the cleanup pass after the update takes it through
+    /// <c>0x00487C70</c> (our Die), with no information reward and no unconscious window. Returns
+    /// whether it died.</summary>
+    private static bool ElectrocuteIfUnfit(SimulationContext context, CreatureState creature, ObjectState device)
+    {
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        if (!TortureRules.KillsOnChair(device, definition)) return false;
+
+        creature.TortureRoll = 0; // 136 zeroes +0x64/+0x66/+0x68 before the call (0x00484CE0)
+        creature.Health = 0;
+        context.Emit(SystemName, "electrocuted_unfit",
+            $"creature={creature.Id} type={definition.Name} owner={creature.OwnerPlayerId}");
+        Free(context, creature, "electrocuted_unfit");
+        creature.CollapseDue = false;
+        CreatureHealthSystem.Die(context, SystemName, definition, creature);
+        return true;
     }
 
     /// <summary>Off the device and out of captivity.</summary>

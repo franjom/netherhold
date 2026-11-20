@@ -335,13 +335,9 @@ Implemented as `ManaRules.ImpUpkeepPerSecond` and
 `ManaRules.UpkeepPerSecondByPlayerIndex` (ADR-0022), charged for anything carrying
 `IsWorker` rather than for the Imp by name.
 
-**Income and upkeep stay separate for the income cap and are netted for the
-ceiling**, and both halves are observed. `MaximumManaGainPerSecond` (500) caps the
-green figure alone, so subtracting upkeep first would let a large enough workforce
-raise a keeper's income cap; but the owner's screenshot of a full keeper reads
-exactly 200000 with +400 and −297 on the orb, so income beating upkeep pins them at
-the top rather than 297 short. `ManaRules.ApplyOneSecond` therefore nets and *then*
-clamps, in that order.
+**The income cap and the ceiling** are in [mana.md](mana.md#the-income-cap-and-the-upkeep-terms):
+the binary adds the upkeep terms before the `MaximumManaGainPerSecond` (500) cap and takes them off
+after it, then clamps the net to the ceiling. `ManaRules.ApplyOneSecond` follows that order.
 
 Every imp is charged, **including the free four**: the owner's starting complement
 drains 28, so the floor is free to fill and not free to keep. That is the pressure

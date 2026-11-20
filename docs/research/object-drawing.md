@@ -110,8 +110,8 @@ Under the row-vector matrices below and the `(x, −z, −y)` frame conversion, 
 **+(h + 0x400)**, pitch is negative and roll positive. The half-turn is required: at Prison
 heading 0x400 the shipped door and bar face the south cell entrance with identity rotation.
 Two more RenderInfo words, `+0x20` and `+0x24`, are passed as angles × −π/1024; `+0x22`
-is not used by the mesh draw. The hand's hover jitter `0x004B4430` keeps all three within
-`0x7FF`. `Object_Init` zeroes `+0xF4` and `+0x102`.
+is not used by the mesh draw. The hand's hover jitter `0x004B4430` (a hovered special only,
+definition `+0xF4` bit 2) keeps all three within `0x7FF`. `Object_Init` zeroes `+0xF4` and `+0x102`.
 
 **Axes and order: STRONGLY INFERRED** (2026-10-10). RenderInfo is thing `+0x44`, so thing `+0x64` is
 `+0x20`, `+0x68` is `+0x24`, and thing `+0x95/+0x97/+0x99` are the offsets `+0x51/+0x53/+0x55`.

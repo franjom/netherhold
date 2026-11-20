@@ -1331,6 +1331,8 @@ internal static class Dk2TerrainFixture
     public const byte DrainShotId = 42;
     public const byte ReaperFireballShotId = 52;
     public const byte PoisonSpitShotId = 62;
+    public const byte RaiseDeadShotId = 40;
+    public const byte CycloneShotId = 41;
 
     private static readonly KwdArtResource NoArt = new("", 0, default, 0, 0, 0, 0);
     private static readonly KwdLight NoLight = new(0, 0, 0, 0, 0, 0, 0, 0, 0);
@@ -1448,6 +1450,10 @@ internal static class Dk2TerrainFixture
         Status("Drain", DrainShotId, 2048, 128, 0x27, 0x4, 2, 35),
         Status("Reaper Fireball", ReaperFireballShotId, 3686, 128, 0x123, 0x4, 2, 29, damageType: 7, attackCategory: 4),
         Status("Maiden Poison Spit", PoisonSpitShotId, 2048, 20, 0x123, 0x4, 2, 38),
+        // Process 17 and 18 (shots.md §8). The test wiring fires them on the first tick (0x40); the shipped
+        // event flags are not taken from the table.
+        Status("Cyclone", CycloneShotId, 1024, 128, 0x25, 0x40, 0, 17),
+        Status("Raise Dead", RaiseDeadShotId, 1024, 1, 0x23, 0x40, 4, 18),
         // The Heal chain (shots.md §8): the instant shot stands on its target and dies on it, chaining Modify Health.
         Status("Heal Instant Shot", HealInstantShotId, 0, 1, 0x2, 0x2, 1, 34, deathShot: ModifyHealthShotId),
         Status("Modify Health", ModifyHealthShotId, 3686, 128, 0x23, 0x4, 3, 3),

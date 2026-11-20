@@ -81,11 +81,14 @@ public static class TortureRules
     public static byte KeeperOf(CreatureState creature) =>
         PrisonRules.IsImprisoned(creature) ? (byte)creature.PrisonOwnerPlayerId : creature.OwnerPlayerId;
 
-    /// <summary>Whether a device will hold this creature. 131 (<c>0x00484590</c>) turns away,
-    /// from an Electric Chair, a creature without <see cref="CreatureFlags.CanBeElectrocuted"/>
-    /// (definition <c>+0x686</c> bit 19); the wheel takes anyone.</summary>
-    public static bool Holds(ObjectState device, CreatureDef creature) =>
-        device.ObjectTypeId != ElectricChairObjectId || ((creature.Flags & CreatureFlags.CanBeElectrocuted) == CreatureFlags.CanBeElectrocuted);
+    /// <summary>Whether the device kills this creature. Neither the free-device search
+    /// (<c>0x004F2180</c>) nor 136's nearest pick tests the flag, so any creature is strapped onto
+    /// any device; then 131's and 136's positioning arm (<c>0x00484590</c>, <c>0x00484CE0</c>), on an
+    /// Electric Chair, calls the victim's slot <c>+0x20</c> (<c>0x004B2AD0</c>, health to 0) for one
+    /// without <see cref="CreatureFlags.CanBeElectrocuted"/> (definition <c>+0x686</c> bit 19). The
+    /// wheel takes anyone.</summary>
+    public static bool KillsOnChair(ObjectState device, CreatureDef creature) =>
+        device.ObjectTypeId == ElectricChairObjectId && (creature.Flags & CreatureFlags.CanBeElectrocuted) == 0;
 
     /// <summary>The time served that converts: the definition's <c>TortureTimeToConvert</c> in
     /// turns (the loader stores seconds × variable 19, <c>0x0049391A</c>), scaled by the level row
@@ -133,7 +136,7 @@ public static class TortureRules
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
         ObjectState? device = FreeDeviceAt(world, database, keeper.Value, tileIndex, creature.Id);
-        if (device is null || !Holds(device, database.CreatureById(creature.CreatureTypeId))) return false;
+        if (device is null) return false;
 
         creature.PrisonOwnerPlayerId = keeper.Value;
         StrapOn(hooks, creature, device);
@@ -171,7 +174,7 @@ public static class TortureRules
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         if ((definition.Flags & CreatureFlags.IsHorny) != 0 || creature.CreatureTypeId == ImpTypeId) return false;
         ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, tileIndex, creature.Id);
-        if (device is null || !Holds(device, definition)) return false;
+        if (device is null) return false;
 
         StrapOn(hooks, creature, device);
         creature.CurrentJob = JobType.None;
@@ -179,14 +182,13 @@ public static class TortureRules
         return EnterTheDevice(hooks, creature);
     }
 
-    /// <summary>136's search: a free device that holds this creature, on its own tile or one
+    /// <summary>136's search: a free device, on its own tile or one
     /// orthogonally beside it. DK2 takes the nearest in the room and needs it within √1.5 of
     /// a tile (<c>0x1800</c> against the squared distance), which from a tile's centre is the
     /// tile itself or a side neighbour. Ours, stated: a tie goes to the lower tile index.</summary>
     public static int DeviceWithinReach(
         WorldState world, GameDatabase database, CreatureState creature, byte keeper)
     {
-        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         int x = creature.Tile.X, y = creature.Tile.Y;
         ReadOnlySpan<(int X, int Y)> order = [(x, y), (x, y - 1), (x - 1, y), (x + 1, y), (x, y + 1)];
         foreach ((int tx, int ty) in order)
@@ -194,7 +196,7 @@ public static class TortureRules
             if (tx < 0 || ty < 0 || tx >= world.Width || ty >= world.Height) continue;
             int index = (ty * world.Width) + tx;
             ObjectState? device = FreeDeviceAt(world, database, keeper, index, creature.Id);
-            if (device is not null && Holds(device, definition)) return index;
+            if (device is not null) return index;
         }
 
         return -1;
@@ -227,7 +229,7 @@ public static class TortureRules
         GameDatabase database = hooks.Database;
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, here, creature.Id);
-        if (device is null || !Holds(device, database.CreatureById(creature.CreatureTypeId))) return false;
+        if (device is null) return false;
         if (!EnterTortured(hooks, creature)) return false;
 
         StrapOn(hooks, creature, device);

@@ -324,9 +324,10 @@ public class CreatureStatusEffectTests
         CreatureState bleeding = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
         CreatureState frozen = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 12, 10);
         GameSimulation sim = Sim(db, world);
-        // Test words: 100 a tick for ten ticks (the Maiden's spit is 200 for ten, more than a Goblin has).
-        Fire(db, world, Dk2TerrainFixture.PoisonSpitShotId, Keeper, bleeding, 100, 10);
-        Fire(db, world, Dk2TerrainFixture.PoisonSpitShotId, Keeper, frozen, 100, 10);
+        // Test words: ten ticks (Data1, the countdown) of 100 a tick (Data2, the damage); the Maiden's
+        // spit is 200 ticks of 10 (0x004B0270 hands Data1 to +0x45D and Data2 to +0x45F).
+        Fire(db, world, Dk2TerrainFixture.PoisonSpitShotId, Keeper, bleeding, 10, 100);
+        Fire(db, world, Dk2TerrainFixture.PoisonSpitShotId, Keeper, frozen, 10, 100);
         Fire(db, world, Dk2TerrainFixture.FreezeShotId, Keeper, frozen, 10, 0);
 
         sim.Run(1);
@@ -458,6 +459,65 @@ public class CreatureStatusEffectTests
         StatusEffectRules.Hurt(world, db, def, goblin, 10, 0);
 
         Assert.Equal(after, goblin.StunTicks);
+    }
+
+    [Fact]
+    public void WindSpinsHurtsAndKnocksDownCreaturesInsideItsRadius_ButNotTheCaster()
+    {
+        // 0x004AE990 with R = 3 (the shipped Cyclone): one tile from the shot, the spread is
+        // isqrt(4096·4096) + 3·4096 = 16384, so the heading turns 3·0x600000 / 16384 = 1152 and
+        // an enemy takes Hp·16384 / (3·0x2000) × Data2 / 100 through the health routine.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState caster = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 10, 10);
+        CreatureState enemy = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 11, 10);
+        CreatureState friend = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 10, 11);
+        CreatureState far = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 14, 10);
+        int enemyHeading = enemy.Heading, friendHeading = friend.Heading, casterHeading = caster.Heading;
+        int enemyHealth = enemy.Health, friendHealth = friend.Health, farHealth = far.Health;
+        var events = new ListEventSink();
+        // The shot system alone: the mover would turn a knocked-down creature again in the same tick.
+        var sim = new GameSimulation(db, world, 1, [new ShotSystem()]);
+        sim.ObserveWith(events);
+
+        ShotRules.Spawn(world, db.Shots[Dk2TerrainFixture.CycloneShotId], new PlayerId(Keeper), caster.PosX, caster.PosY,
+            3, 100, caster.Id, FightTargetKind.Creature, enemy.Id, new PlayerId(Rival), -1, enemy.PosX, enemy.PosY);
+        sim.Run(1);
+
+        Assert.Equal((enemyHeading + 1152) & 0x7FF, enemy.Heading);
+        Assert.Equal((friendHeading + 1152) & 0x7FF, friend.Heading);
+        Assert.Equal(casterHeading, caster.Heading);
+        Assert.True(enemy.Health < enemyHealth);
+        Assert.Equal(friendHealth, friend.Health);
+        Assert.Equal(farHealth, far.Health);
+        Assert.True(TremorRules.IsRecovering(enemy) && enemy.ShouldDelayGetUp);
+        Assert.True(TremorRules.IsRecovering(friend) && friend.ShouldDelayGetUp);
+        Assert.False(TremorRules.IsRecovering(caster));
+        Assert.Equal(2, events.Events.Count(e => e.Kind == "wind_struck"));
+    }
+
+    [Fact]
+    public void RaiseDeadTurnsEachBodyOnTheTargetTileIntoTheShotsCreature()
+    {
+        // 0x004AE880: every body on the tile of +0x131 becomes a creature of type +0x13D for the
+        // shot's owner, whoever's body it was, and the body goes.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState vampire = Spawn(db, world, Dk2TerrainFixture.VampireCreatureId, Keeper, 8, 8);
+        CreatureState body = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 10, 10);
+        body.Health = 0;
+        CreatureDeathRules.BecomeCorpse(world, db, body);
+        Assert.True(CreatureDeathRules.IsCorpse(body));
+        int before = world.Creatures.Count;
+        GameSimulation sim = Sim(db, world);
+
+        ShotRules.Spawn(world, db.Shots[Dk2TerrainFixture.RaiseDeadShotId], new PlayerId(Keeper), vampire.PosX, vampire.PosY,
+            Dk2TerrainFixture.SkeletonCreatureId, 0, vampire.Id, FightTargetKind.None, 0, new PlayerId(0), -1, body.PosX, body.PosY);
+        sim.Run(1);
+
+        Assert.DoesNotContain(body, world.Creatures);
+        CreatureState raised = Assert.Single(world.Creatures, c => c.CreatureTypeId == Dk2TerrainFixture.SkeletonCreatureId);
+        Assert.Equal(Keeper, raised.OwnerPlayerId);
+        Assert.Equal(new TilePos(10, 10), raised.Tile);
+        Assert.Equal(before, world.Creatures.Count);
     }
 
     private static (GameDatabase, WorldState) OpenWorld()

@@ -41,7 +41,8 @@ public sealed class ManaSystem : ISimulationSystem
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
-            int changed = ManaRules.ApplyOneSecond(context.Database, ref player, gain[i], upkeep[i]);
+            int changed = ManaRules.ApplyOneSecond(context.Database, ref player, gain[i], upkeep[i],
+                upkeepInsideCap: upkeep[i] - impAndTrapUpkeep[i]);
 
             // Both halves are reported, not just the net, because that is what
             // the original puts on screen: a green figure and a red one.

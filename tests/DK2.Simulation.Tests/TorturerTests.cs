@@ -312,19 +312,34 @@ public class TorturerTests
     }
 
     [Fact]
-    public void AnElectricChairTurnsAwayACreatureThatCannotBeElectrocuted()
+    public void AnElectricChairKillsACreatureThatCannotBeElectrocuted()
     {
-        // 131 on a chair wants CanBeElectrocuted (definition +0x686 bit 19); the wheel does not.
+        // The free-device search (0x004F2180) takes the chair for anyone; 131's chair arm then calls slot
+        // +0x20 (0x004B2AD0, health 0) when definition +0x686 bit 19 is clear. The wheel takes anyone.
         GameDatabase db = Db;
         CreatureDef goblin = db.CreatureById(GoblinId);
         WorldState world = World(db, chair: true);
         ObjectState chair = world.Objects.Single(o => o.ObjectTypeId == TortureRules.ElectricChairObjectId);
         ObjectState wheel = world.Objects.Single(o => o.ObjectTypeId == TortureRules.WheelObjectId);
 
-        CreatureDef firefly = goblin with { Flags = goblin.Flags & ~CreatureFlags.CanBeElectrocuted };
-        Assert.False(TortureRules.Holds(chair, firefly));
-        Assert.True(TortureRules.Holds(wheel, firefly));
-        Assert.True(TortureRules.Holds(chair, goblin with { Flags = goblin.Flags | CreatureFlags.CanBeElectrocuted }));
+        CreatureDef unfit = goblin with { Flags = goblin.Flags & ~CreatureFlags.CanBeElectrocuted };
+        Assert.True(TortureRules.KillsOnChair(chair, unfit));
+        Assert.False(TortureRules.KillsOnChair(wheel, unfit));
+        Assert.False(TortureRules.KillsOnChair(chair, goblin with { Flags = goblin.Flags | CreatureFlags.CanBeElectrocuted }));
+
+        Assert.False(goblin.Flags.HasFlag(CreatureFlags.CanBeElectrocuted)); // the fixture's Goblin is unfit
+        CreatureState captive = world.SpawnCreature(db, GoblinId, Rival, Cell);
+        Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, Index(world, Cell)));
+        Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Chair)));
+        captive.Health = 1500;
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        sim.Run(1);
+
+        Assert.Contains(sink.Events, e => e.Kind == "electrocuted_unfit" && e.Detail.Contains($"creature={captive.Id} "));
+        Assert.True(captive.Health <= 0);
+        Assert.False(TortureRules.IsBeingTortured(captive));
     }
 
     [Fact]

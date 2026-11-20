@@ -143,11 +143,14 @@ itself, toward zero, capped at `StunDuration` (ADR-0348).
 States 209, 255, 256 and 257 are the stunned family (`0x0048F350`): while in one,
 **damage doubles** (§3).
 
-**Poison Spit** (type 38, `0x004B0270` → `0x0048CC50(creature, ShotData2,
-ShotData1)`). `+0x45D` = `ShotData2` (10 ticks), `+0x45F` = `ShotData1` (200),
-`+0x461` = the shot's owner: 200 a tick for ten ticks while not frozen, credited
-to the Maiden's keeper. Refused for a dying target. The sibling `0x0048CC70` sets
-the fear-over-time pair the same way.
+**Poison Spit** (type 38, `0x004B0270` → `0x0048CC50(creature, ShotData1,
+ShotData2)`, shot `+0x13D` and `+0x141`). `+0x45D` = `ShotData1`, the **timer** (200 ticks),
+`+0x45F` = `ShotData2`, the **damage a tick** (10), `+0x461` = the shot's owner: `0x0048E160`
+counts `+0x45D` down by 1 a tick and applies `+0x45F` as damage a tick while the freeze timer
+`+0x447` is 0, credited to the Maiden's keeper. STRONGLY INFERRED (Ghidra,
+[PR audit 1296-1363](openkeeper-pr-audit-1296-1363.md) correction 1). `ShotRules.PoisonProcess` now passes Data1 as the ticks and Data2 as the
+amount (`StatusEffectRules.Poison(ticks, amount)`); it was built the other way round before 2026-11-20. Refused for a dying target. The
+sibling `0x0048CC70` sets the fear-over-time pair the same way.
 
 **Drain** (type 35): `shots.md` §8 — `min(target health, ShotData1 % of its
 level-scaled Hp)` moved from target to caster.

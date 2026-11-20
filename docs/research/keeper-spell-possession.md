@@ -133,7 +133,9 @@ Spell2's25 is not the amount used by the audited charge branch.
 
 The owner chose the binary-read rule (2026-10-04). An Imp's cost is 0, which
 may explain the no-drain observation; the creature they possessed was not
-identified. Re-read 2026-10-04 (claude): the stat-27 row is
+identified. The cap order may also explain it, HYPOTHESIS: `0x004C10E0` adds this charge to the
+gain, caps the sum, then subtracts the charge again, so it costs nothing while income is far under
+the cap ([mana.md](mana.md#the-income-cap-and-the-upkeep-terms)); built so in `ManaRules.ApplyOneSecond` since 2026-11-20. Re-read 2026-10-04 (claude): the stat-27 row is
 `[0x006E4154]+0x2B5+2·level`, the shared per-level table at row
 `+0xE1+(stat−1)·18`; the upgrade percentage is the byte at 0x006F29D3;
 the payment's check precedes Call to Arms and the Reaper; the live test is

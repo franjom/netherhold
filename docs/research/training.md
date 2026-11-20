@@ -251,7 +251,7 @@ one is a global, is read raw, and is added raw: **20 a work hit**, so level 2 co
 | which also calls the creature **state** dispatcher | **`FUN_00476FC0`** (`+0x1700`) |
 
 And `FUN_00476FC0` runs **every tick**, from three independent facts established
-elsewhere here: the prison drain's 16-tick countdown (Q173), the slap timer's
+elsewhere here: the prison drain's 17-tick period (Q173), the slap timer's
 100 decrements over 25 game seconds (Q159, CONFIRMED by the owner off the status
 bar), and the ticks-in-state counter it increments once per call.
 

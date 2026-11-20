@@ -235,8 +235,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   any creature, a keeper's own included, is strapped on by 77, but a keeper's own Imp dropped from the Hand is not (`hand-drop-landing.md` §2). **136** (`0x00484CE0`),
   in a Torture Chamber, takes `0x004F2180`'s nearest free device and needs its squared
   distance under `0x1800` (1.5 tiles²): from a tile's centre, that tile or a side
-  neighbour. It moves onto it (sound `0x24` wheel, `0x25` chair; a chair turns away a
-  creature without `CanBeElectrocuted`) and sets 130; otherwise 0, idle. 136 is entered
+  neighbour. It moves onto it (sound `0x24` wheel, `0x25` chair) and sets 130; otherwise 0, idle. A creature on a chair whose definition lacks `CanBeElectrocuted` (`+0x686` bit `0x80000`) is **killed**, not turned away: the free-device search `0x004F2180` and 136's nearest pick do not test the flag, so any creature is strapped onto any device, and only the chair-positioning arm of 131 and 136 tests it and calls vtable slot `+0x20`, `0x004B2AD0` (`MOV [ECX+0x40],0`, health 0; CONFIRMED from the decompile; [PR audit 1296-1363](openkeeper-pr-audit-1296-1363.md) correction 2). Built: `TortureSystem.ElectrocuteIfUnfit`, `TortureRules.KillsOnChair`. 136 is entered
   from 131 when the device is gone (`0x00484920`), for every creature attached to a
   chamber by `0x004F1F10` (it then re-tests the room for devices, object type 8 or 61),
   by `0x004F1FB0` when the chamber is freed or taken, and by `0x004E44E0`, which moves the head

@@ -266,15 +266,18 @@ for damage type 0 only, workers kicked to state 210 — every shipped process-31
 damage type 2; **39** `0x004B02E0` the Jack In The Box, data1 to the worker named by data2,
 then a creature of type 0x2E in state 273, the trap destroyed (built, [jack-in-the-box.md](jack-in-the-box.md),
 which also has the area damage's 32-bit arithmetic). Since recorded: **1** `0x004AD7A0`
-(creature creation) and **17** `0x004AE990` (area knockdown). **37** `0x004B0050` the
+(creature creation) and **17** `0x004AE990` (Wind: area turn, damage and knockdown; built, `Combat/WindRules.cs`). **37** `0x004B0050` the
 Web (2026-10-04): `0x004B32A0` fear at the shot, then over the tiles within `+0x141`
 of it, each creature strictly inside that radius other than the thing tagged at `+0x16D`
 gets `0x0048CAD0(−90, +0x13D)`, `+0x4DD` = 0, and body bit 15 cleared and bit 16 set.
 `0x0048CAD0` divides unsigned, so −90 writes the top speed (variable 19 `<< 12`), not a
 slow. Slow sets the same bit 16, which `creature-status-effects.md` §2 reads as display;
 what, if anything, holds a webbed creature is unread (HYPOTHESIS).
-Unread: **18** Raise Dead (`0x004AE880`, not a defined function in the project), the
-buff table `0x006E4AC8` and area damage types 3, 4 and 8 (Q394, Q395).
+**18** Raise Dead `0x004AE880` (Ghidra 2026-11-20, STRONGLY INFERRED, OpenKeeper #1243): for every
+class 6 thing on the shot's tile it makes a creature of type shot `+0x13D` for the shot's owner, plays
+effect `0x144` and removes the body; no owner test. Built, `Combat/RaiseDeadRules.cs` ([record](functions/004AE880.md));
+creatures casting 17 or 18 are not built.
+Unread: the buff table `0x006E4AC8` and area damage types 3, 4 and 8 (Q394, Q395).
 
 **The events.** `0x004AD730`'s five direct callers raise 0x40 (`0x004AB281`), 0x2
 (`0x004AB30F`), 0x8 (`0x004AB4A5`), 0x80 (`0x004AB662`) and 0x4 (`0x004ABFC1`): none raises
