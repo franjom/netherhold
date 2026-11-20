@@ -55,6 +55,7 @@ public partial class ClassicFullMap : Node
             if (world.MeasurePreviewRenderTime)
                 RenderingServer.ViewportSetMeasureRenderTime(_previewViewport.GetViewportRid(), true);
             _previewCamera = new Camera3D { Current = true, Environment = world.CameraEnvironment, CullMask = uint.MaxValue & ~(1u << 18), Near = .05f, KeepAspect = Camera3D.KeepAspectEnum.Height };
+            world.AttachOcclusion(_previewCamera);
             _previewViewport.AddChild(_previewCamera);
             _previewImage = new TextureRect { Name = "PreviewImage", MouseFilter = Control.MouseFilterEnum.Ignore,
                 Texture = _previewViewport.GetTexture(), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize };

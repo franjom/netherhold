@@ -1,7 +1,7 @@
-// DK2's light for the world shaders, copied from the tested ClassicVertexLight (keep the two equal) in Godot's frame
-// (Z negated: every dot product and length is the same): the table a vertex reads, the bound skip, the per-flag sum
-// and the packed diffuse; then Godot's fill and fade around it as Unity's shader composes them. The formula lines are
-// pinned by ClassicVertexLightShaderTextTests, which also holds these three numbers to ClassicLightTableLayout's.
+// The classic per-vertex branch mirrors tested ClassicVertexLight in Godot's frame (Z negated); keep that reference pinned.
+// Only the fragment point-light branch (DK2_PER_PIXEL) uses the continuous reciprocal checked by TorchLightProbe.
+// Instance/radial lights, flags, source tables and packing retain the reference rules; Godot's fill and fade compose around them.
+// ClassicVertexLightShaderTextTests pins the legacy formulas and these three constants against ClassicLightTableLayout.
 #define TEXELS_PER_TILE 49
 #define TILES_PER_ROW 83
 #define MAXIMUM_SOURCES 24
@@ -37,6 +37,15 @@ bool dk2_point(vec3 v, vec3 n, vec4 pr, vec4 ci, out vec3 c) {
     if (pr.w <= 0.0 || d2 >= pr.w) return true;
     float incidence = dot(n, to_light) * ci.w;
     if (dk2_negative(incidence)) return true;
+#ifdef DK2_PER_PIXEL
+    // Native bin zero returns full colour, then jumps to the normal term at d2=1/16. Vertex interpolation hides
+    // that jump; fragment evaluation exposes a hard disc. Use the continuous reciprocal underlying the lookup
+    // for this rendering mode, retaining the same incidence, radius, flags and saturation.
+    if (incidence == 0.0) return false;
+    float factor = incidence * (0.25 + 1.0 / d2) * (pr.w - d2) / pr.w;
+    c = ci.rgb * min(factor, 1.0);
+    return true;
+#else
     int index = dk2_bin(d2);
     if (index < 0 || index >= 256) return false;
     if (index == 0) {
@@ -47,6 +56,7 @@ bool dk2_point(vec3 v, vec3 n, vec4 pr, vec4 ci, out vec3 c) {
     float factor = incidence * (0.25 + 16.0 / float(index)) * (pr.w - d2) / pr.w;
     c = ci.rgb * min(factor, 1.0);
     return true;
+#endif
 }
 bool dk2_instance(vec3 s, vec3 centre, vec3 vos, vec3 nos, mat3 basis, vec4 pr, vec4 ci, out vec3 c) {
     c = vec3(0.0);

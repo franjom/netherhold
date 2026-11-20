@@ -174,7 +174,7 @@ These are entry points, not a new priority order.
   Policy (owner, 2026-11-18, [ADR-0813](DECISIONS.md)): Godot's rendering uses the modern engine's features, not Unity's 20-year-old techniques; DK2's rules, simulation and AI stay faithful and DK2's data drives the presentation; Unity stays frozen as the classic reference and gets no modern work; Godot's classic path stays a switch until the owner accepts the modern look; modern items are accepted by the owner's eye, the harness numbers and gameplay correctness, not byte-identity with Unity.
   The performance harness (3o, ADR-0813): `--perf-report` with `godot/perf.ps1` and `godot/perf_compare.py` (`godot/README.md`, *Measuring performance*); the later items are measured by it. Its first baseline (GPU p50 at 1080p, classic Level1 1.9 ms and Level7 2.4 ms, modern 6.2 and 9.3 ms) came from a heavily loaded machine; a quiet re-run is pending.
   The per-pixel torch rim and AO noise have adapter fixes; the classic reference stays unchanged. Scope, historical
-  flag comparisons, focused GPU proof and pending scene/performance acceptance: [torch-light artifacts](research/godot-torch-light-artifacts.md).
+  flag comparisons, focused GPU proof, scene validation and measured costs: [torch-light artifacts](research/godot-torch-light-artifacts.md).
   GPU vertex animation is built; scope, capture comparisons and measurements are in [modern-rendering audit item 8](plans/2026-11-18-godot-modern-rendering-audit.md).
   Continue the remaining order in [the modern-rendering audit](plans/2026-11-18-godot-modern-rendering-audit.md);
   the torch correction does not complete items 16 or 17. [Migration plan](plans/2026-11-15-godot-migration.md).
