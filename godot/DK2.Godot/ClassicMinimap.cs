@@ -13,9 +13,9 @@ namespace DK2.GodotAdapter;
 
 /// <summary>The minimap, the Godot counterpart of Unity's <c>DungeonMinimap</c>: <see cref="MinimapHud"/> (ADR-0805) decides
 /// the frame, corners, north sprite, hit areas and presses, and a <see cref="HudCanvas"/> draws them bottom-docked under
-/// the HUD scale over the disc. The disc is <see cref="MinimapDiscImage"/>'s pixels (the CPU twin of Unity's
-/// <c>DK2Minimap.shader</c>), drawn again only when a capture, the zoom, the view or the size changed, and uploaded into
-/// one reused texture. It takes no press itself: the host asks <see cref="HandlePress"/> and <see cref="TryNavigate"/> in
+/// the HUD scale over the disc. <see cref="MinimapGpuDisc"/> draws the disc's tile and ordered marker passes into a
+/// reused GPU viewport when a capture, the zoom, the view or the size changes; <see cref="MinimapDiscImage"/> remains
+/// the independent CPU oracle. It takes no press itself: the host asks <see cref="HandlePress"/> and <see cref="TryNavigate"/> in
 /// Unity's order (<see cref="HudPressRouter"/>), and the press is not taken from the panels under it, as Unity's minimap
 /// canvas picks nothing. The camera footprint is the frame's first draw (<see cref="MinimapHud.SetCamera"/>).</summary>
 public partial class ClassicMinimap : Node
@@ -23,12 +23,10 @@ public partial class ClassicMinimap : Node
     private static readonly Vector2 Away = new(-1e9f, -1e9f);
     private readonly HudFrame _frame = new();
     private MinimapHud? _hud;
-    private MinimapDiscImage? _disc;
+    private MinimapGpuDisc? _disc;
     private HudCanvas? _canvas;
     private Node2D? _discNode;
     private Rid _discItem;
-    private Image? _image;
-    private ImageTexture? _texture;
     /// <summary>The disc's screen rect as last recorded; empty before the first draw.</summary>
     private Rect2 _discRect;
     private HudScaleLayout _layout;
@@ -50,6 +48,7 @@ public partial class ClassicMinimap : Node
 
     /// <summary>The model, whose class grid and palette the full map shares.</summary>
     public MinimapHud? Model => _hud;
+
 
     /// <summary>The palette from the native colour strip's PNG (<see cref="IMinimapAssets.PalettePng"/>), decoded by Godot
     /// as Unity's <c>DungeonMinimap</c> decodes it (stored bytes: <see cref="PngChunks.WithoutColourSpace"/>), and read by
@@ -87,9 +86,10 @@ public partial class ClassicMinimap : Node
         // minimap unopened and retryable.
         try { foreach (HudImage image in MinimapHud.Images()) canvas.Preload(image); }
         catch { canvas.Free(); throw; }
-        _hud = hud; _disc = new MinimapDiscImage(backdrop); _canvas = canvas;
+        _hud = hud; _disc = new MinimapGpuDisc(); _disc.Open(backdrop); _canvas = canvas;
         // Under the frame, as Unity's disc image is under its canvas.
         _discNode = new Node2D { Name = "Disc", Visible = false };
+        _discNode.AddChild(_disc);
         AddChild(_discNode);
         AddChild(_canvas);
     }
@@ -167,8 +167,8 @@ public partial class ClassicMinimap : Node
         if (resized || rect != _discRect) RecordDisc(rect);
     }
 
-    /// <summary>Draws and uploads the disc when a capture, the zoom, the zoomed focus, the heading or the size changed.</summary>
-    /// <returns>Whether the texture was replaced at a new size.</returns>
+    /// <summary>Schedules the GPU disc redraw when a capture, the zoom, the zoomed focus, the heading or the size changed.</summary>
+    /// <returns>Whether the disc viewport changed size.</returns>
     private bool DrawDisc(int diameter, FpPosition3 focus, Dk2Angle heading)
     {
         MinimapZoom zoom = _hud!.Zoom;
@@ -178,17 +178,9 @@ public partial class ClassicMinimap : Node
             _focus = focus;
             return false;
         }
-        _focus = focus; _heading = heading; _drawnZoom = zoom; _captured = false;
-        _disc.Render(diameter, _hud.Grid, _hud.Palette, _hud.Markers, zoom, focus, heading, _heart, _tick);
-        if (_image == null || resized)
-        {
-            _image?.Dispose();
-            _image = Image.CreateEmpty(diameter, diameter, false, Image.Format.Rgba8);
-        }
-        _image.SetData(diameter, diameter, false, Image.Format.Rgba8, _disc.Pixels);
-        if (_texture == null) _texture = ImageTexture.CreateFromImage(_image);
-        else if (resized) _texture.SetImage(_image);
-        else _texture.Update(_image);
+        _focus = focus; _heading = heading; _drawnZoom = zoom;
+        _disc.Render(diameter, _hud.Grid, _hud.Palette, _hud.Markers, zoom, focus, heading, _heart, _tick, _captured);
+        _captured = false;
         return resized;
     }
 
@@ -201,7 +193,7 @@ public partial class ClassicMinimap : Node
             RenderingServer.CanvasItemSetParent(_discItem, _discNode!.GetCanvasItem());
         }
         RenderingServer.CanvasItemClear(_discItem);
-        RenderingServer.CanvasItemAddTextureRect(_discItem, rect, _texture!.GetRid());
+        RenderingServer.CanvasItemAddTextureRect(_discItem, rect, _disc!.Texture.GetRid());
         _discRect = rect;
     }
 
@@ -241,7 +233,6 @@ public partial class ClassicMinimap : Node
         _hud = null; _disc = null;
         // The canvas item draws the texture, so it goes first.
         if (_discItem.IsValid) { RenderingServer.FreeRid(_discItem); _discItem = default; }
-        _texture?.Dispose(); _image?.Dispose(); _texture = null; _image = null;
         _canvas = null; _discNode = null;
     }
 

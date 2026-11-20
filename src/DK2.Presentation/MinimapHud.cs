@@ -12,7 +12,7 @@ namespace DK2.Presentation;
 
 /// <summary>The engine-free minimap (ADR-0805): its zoom, corner controls, frame and north sprite, its hit area and
 /// navigation, and the class grid and markers it captures for the engine's disc. Laid out bottom-docked in
-/// DK2's 1024x768 units; one is 2.5 virtual. The disc itself (Unity's GPU pass, or <see cref="MinimapDiscImage"/>) is the
+/// DK2's 1024x768 units; one is 2.5 virtual. The disc itself (the engine's GPU pass, or <see cref="MinimapDiscImage"/>) is the
 /// engine's (<see cref="Disc"/> is where it goes); the camera footprint over it is the frame's first draw.</summary>
 public sealed class MinimapHud
 {

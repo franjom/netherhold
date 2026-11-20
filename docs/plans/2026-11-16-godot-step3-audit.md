@@ -275,7 +275,7 @@ back faces.
 ## Minimap camera footprint and heading
 
 - **Unity.** `DungeonMinimap.Draw` (`:169-187`), `Heading` (`:92-93`), `MinimapFootprintVisual` (`:230-291`; deleted in 3b).
-- **Shared (S).** `MinimapCameraFootprint.TryBuild`, `MinimapHud`, `MinimapDiscImage` (Godot's CPU disc).
+- **Shared (S).** `MinimapCameraFootprint.TryBuild`, `MinimapHud`, `MinimapDiscImage` (retained CPU oracle; Godot's GPU replacement is modern-rendering audit item 10).
 - **B, moved in 3b.** `MinimapCameraView`: the view centre's and the four viewport corners' hits on the floor plane
   (rays through the off-centre frustum, `TileTopPlane.TryHit`), the yaw (Unity's `eulerAngles.y`) and the heading as yaw x
   2048/360, rounded half to even and unmasked. `MinimapCameraFootprint.Triangles` builds the ribbon's index list, UV and

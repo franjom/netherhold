@@ -179,13 +179,10 @@ group 2 is a list to audit, not a finding.
       north sprite, corners and zoom; the options corner opens the options menu, a right click on a tile
       opens the full map, `PointerOverHud` includes it, the hover text asks `MinimapControl`, and
       `ApplySettings` sets its HUD scale, a line in the twin list of `DungeonRunner.ApplyHudScale`). The
-      disc is `MinimapDiscImage` in `DK2.Presentation`, the tested CPU twin of `DK2Minimap.shader`'s tile
-      and marker passes (`[Dk2Behavior(StronglyInferred)]`, as `MinimapHeartTrail`'s is, while records
-      0x0041A9B0, 0x0041ADA0 and 0x0041C660 are HYPOTHESIS), redrawn only after a capture or a pose change
-      into one reused texture. The twins differ on the rock backdrop: the CPU one reads `Map-BG` top row
-      first, which the 0x0041ADA0 record's "matches the raster indexing" supports, while Unity's shader
-      samples a `LoadImage` texture bottom-up, so Unity's rock is flipped; both files say so
-      ([Q861](research/open-questions.md)). Godot has one `WorldView` and one `MinimapHud`, owned by the
+      disc uses the [GPU minimap pipeline](../../godot/README.md#gpu-minimap); `MinimapDiscImage`
+      remains the independent CPU oracle. The top-row-first rock backdrop is preserved; Unity's shader
+      samples bottom-up ([Q861](../research/open-questions.md)). This changes no confidence level in
+      records 0x0041A9B0, 0x0041ADA0 or 0x0041C660. Godot has one `WorldView` and one `MinimapHud`, owned by the
       minimap, with one full `Capture` per tick; the full map borrows the model (`ClassicMinimap.Model`),
       so the grid-only capture is gone and `ClassicFullMap.Open` takes the minimap. The pose is the
       level start's until step 3b moves the camera (`ClassicCamera.LevelStartFocus` and `LevelStartYaw` 256).
@@ -1090,8 +1087,8 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         match. This does not establish the required absence of a regression; 3n and remaining-overlay acceptance stay
         unchecked until the Level7 classic frame-time difference is resolved. Raw reports: `perf/`, `perf-modern/`,
         `perf-preview/`; summaries: `perf-summary/`. No subtitles or function-record edits; subtitles remain step 4.
-  - [ ] Then the remaining replacements in the audit's order: the minimap shader (10), AA, the HUD text atlas,
-        liquid waves, the chunk upload tweak. Vertex animation is complete; see audit item 8 (texture arrays remain measured/no-go, item 4).
+  - [ ] Then the remaining replacements: `skip_vertex_transform` cause (16), AA/scaling (17), the HUD text atlas,
+        liquid waves, the chunk upload tweak. The minimap shader is complete with audit item 10's limits; vertex animation is complete (item 8) (texture arrays remain measured/no-go, item 4).
 - [x] The remaining 3D overlays (the scripted paths, 3n), then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging

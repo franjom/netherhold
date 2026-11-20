@@ -420,3 +420,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Context-mode runs as the owner while sandboxed `exec_command` uses a separate account here; verify the child token before native launches, because an isolated runtime copy does not isolate the owner's HKCU game profile.
 - A native DirectDraw fixture may have a larger auxiliary render window than its input window; preserve its owned foreground window, request only the COM input HWND, and use the verified matching client DC if PrintWindow returns black.
 - Godot's default `physics_jitter_fix=0.5` varies raw `Process(delta)` even in fixed-FPS Movie Maker captures, causing false sparkle/frame differences; deterministic fixtures override `physics/common/physics_jitter_fix=0.0` without changing production timing.
+- Before simplifying minimap shader floating-point math, read `godot/DK2.Godot/Shaders/MinimapMath.gdshaderinc`; its operation barriers and compensated arithmetic preserve CPU-oracle bytes across Vulkan and D3D12.
+- Godot SubViewport targets have a 2x2 minimum; a one-pixel minimap fixture replicates that pixel in the 2x2 target (see MinimapParity.cs).
+- Pinned Godot's delayed viewport timestamps lose sparse minimap samples when draw_viewports clears timestamp_vp_map; harness render CPU/GPU timings cover main/preview only, not minimap or torch-shadow viewports.

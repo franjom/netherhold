@@ -144,10 +144,36 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 - **9. P3, S-M. Liquid waves**: positions and normals on the CPU, uploaded twice a frame (`WorldScene.cs:550-651`;
   `LiquidSurfaceWave.Wave`). Replace with a vertex shader from (tile, i, j) and time; DK2's phase masks are exact in GLSL
   integers. Gain: small (under 0.2 ms, estimate); a continuous-motion option. Low risk. Depends on lighting.
-- **10. P2, M. Minimap disc** rasterised on the CPU and uploaded per tick and heading change (`MinimapDiscImage.cs`;
-  `ClassicMinimap.cs:160-183`). Replace with a `canvas_item` shader ported from Unity's `DK2Minimap.shader`, markers as
-  quads. Gain: removes the O(d^2) raster and the upload (about 1 ms at 250 px, estimate). Keep `MinimapDiscImage` as the
-  oracle; the rock flip is Q861.
+- **10. Done, 2026-11-20. Minimap disc.** `MinimapGpuDisc` replaces the CPU raster/upload
+  with a reused RGBA8 viewport, a base canvas shader and ordered marker quads. Pipeline and parity command:
+  [Godot README](../../godot/README.md#gpu-minimap). `MinimapDiscImage` remains the independent CPU oracle;
+  Q861's top-row-first rock and the classification, clock, navigation and hit rules are preserved.
+  Source verifier: no findings. Vulkan and D3D12 each pass 434 RGBA byte/hash comparisons, six fractional-display
+  checks and reparenting, including two same-area map dimension changes. Cases include diameter 239 (default at 1080p)
+  and 96, plus one-pixel output replicated in Godot's minimum 2x2 target. The missing-marker counterfactual fails 366/434
+  cases (exit 1); restoring the shader passes (exit 0).
+  HEAD/new capture comparison: 1,141/1,200 frame pairs are byte-identical; all minimap regions match. The other
+  59 pairs (Level7 modern only) differ at one world pixel, (1232, 549), outside the minimap, maximum channel difference
+  15. A HEAD repeat matches its original 60/60 frames and the new build only 1/60, so the cause remains unresolved;
+  the preserved context crop shows a visually negligible wall texel at 1080p. No world or shadow fix is part of this change.
+  At the 239-pixel default, CPU disc rasters and 228,484 RGBA upload bytes per refresh fall to zero.
+  Render CPU/GPU timings cover main/preview only and exclude sparse minimap and torch-shadow viewports;
+  they cannot establish a total GPU improvement. Reviewer: approved with that measurement caveat.
+  Interleaved HEAD/new classic and all-flags batches, two runs of 1,800 frames per case; other CPU load 17-59%.
+  Each timing/draw value below is the mean of the two run medians (HEAD -> new); allocation means are per frame.
+
+  | Case | Frame ms | Partial GPU ms | Partial render CPU ms | Draws | Allocation median B | Allocation mean B |
+  |---|---|---|---|---|---|---|
+  | Classic Level1 | 5.374 -> 4.732 | 1.896 -> 2.240 | 0.548 -> 0.493 | 119.5 -> 120.5 | 7,296 -> 7,296 | 7,363.4 -> 7,214.9 |
+  | Classic Level7 | 7.367 -> 6.479 | 2.154 -> 3.285 | 0.831 -> 0.802 | 304 -> 305 | 10,296 -> 10,304 | 15,105.3 -> 14,714.3 |
+  | All flags Level1 | 11.384 -> 10.773 | 8.369 -> 7.569 | 0.466 -> 0.581 | 193 -> 193 | 7,296 -> 7,296 | 9,085.6 -> 8,828.7 |
+  | All flags Level7 | 12.507 -> 13.083 | 8.866 -> 9.000 | 0.694 -> 0.682 | 473 -> 473 | 10,336 -> 10,336 | 21,657.9 -> 21,694.2 |
+
+  Results are mixed and inconclusive within the measurement noise; no overall speedup is established. All-flags Level7's
+  mean allocation rises 0.17%; warm marker geometry allocates zero. Full suite: 11,520 passed, 30 skipped; Release build
+  has zero warnings/errors. Raw parity, counterfactual, capture and performance receipts:
+  `C:/Users/franj/AppData/Local/Temp/dk2-minimap-8ni3r_3e/` (`parity-final-vulkan/`, `parity-final-d3d12/`,
+  `counterfactual434-receipt.json`, `comparison.html`, `comparison.json`, `performance-summary.json`, `final-verification.json`).
 - **11. P3, M. HUD text, gauges and glows** as CPU pixels, one texture per distinct string
   (`HudCanvas.Textures.cs:60-103`). Replace with a glyph atlas per BF4 font, a gauge canvas shader, glows baked once or
   in a shader. Gain: no texture churn per hover string or counter. Low risk.
@@ -193,8 +219,8 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 6. 3k on MultiMesh, with the flames (item 6): done (2026-11-19).
 7. 3l.
 8. 3m and 3n (independent, parallel).
-9. Item 4 is measured/no-go above. The remaining replacements start with minimap shader (10),
-   AA (16 then 17), HUD text atlas (11), liquids (9), chunk upload tweak (12).
+9. Item 4 is measured/no-go above; the minimap shader is complete with the limits in item 10. The remaining replacements start
+   with the `skip_vertex_transform` cause (16), AA/scaling (17), HUD text atlas (11), liquids (9), chunk upload tweak (12).
 10. The rest of step 4 unchanged; its performance targets are set from 3o's numbers.
 
 Acceptance for a modern item: the owner's eye, the harness numbers and gameplay correctness (the turn-400 hash, the pick
@@ -204,7 +230,7 @@ and hover tests, scripted-pointer captures). Byte-identity with Unity no longer 
 
 (Done in 3q: `ZeroOrderOffset`, the origin-order run keys and the run vertex rewrites; creature copies/uploads: item 8.) The `NextPass` red and
 environment chains and the per-alpha and per-tint materials; the terrain variant keys and overlay triangles; the
-flame's per-frame materials; the minimap's CPU disc; the per-string HUD text
+flame's per-frame materials; the per-string HUD text
 textures; the CPU liquid wave; the gamma lookup (with the prototype).
 
 ## Shared `DK2.Presentation` code that becomes Unity-only or dead
@@ -214,7 +240,7 @@ textures; the CPU liquid wave; the gamma lookup (with the prototype).
   stay; per-key terrain surfacing for tagged, red, tinted and overlay (`TerrainMaterialKey.For` and the
   `TerrainMaterialLook` colours stay as rules); `LiquidSurfaceWave.Wave` (the constants stay shared, for the GLSL
   substitution); `ICreatureAnimationSurface.Upload` (the frozen Unity path; Godot uses the pose surface from item 8); `HudImagePixels.Fill`; `ClassicMeshShadow` and the silhouette code; `EffectQuadBuffer`.
-- **Dead in production:** `MinimapDiscImage` (keep as the shader-test oracle, or delete).
+- **Dead in production:** `MinimapDiscImage` (retained as the independent shader-test oracle).
 - **Stays shared:** `HudTextPixels.Measure`, `HudTriangles`, `ViewFrustum`, `TerrainChunkScheduler`,
   `TerrainTileBuilder`.
 - **Godot code that goes:** (`ZeroOrderOffset`, `SortFromOrigin`'s scheme and `RunSlot`'s vertex expansion went in 3q; `Copy` was removed in item 8)
