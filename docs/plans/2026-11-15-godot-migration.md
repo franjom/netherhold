@@ -882,14 +882,10 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 - [x] Modern lighting prototype (`--light-modern`, real omni lights and Godot's shadows over DK2's sources; built
       2026-11-18 in f8843f83): rejected by the owner for its look and removed (2026-11-18), with `ModernLightSelector`
       and `ClassicWorldLightCache.CopyPreparedSources`. Classic frames stayed byte-identical through the removal.
-- [ ] DK2 light per pixel (owner, 2026-11-18: DK2's light model stays and moves to modern means; step 1). Built behind
-      `--light-perpixel`, classic the default: the classic shaders' fragment step evaluates the same `dk2_light`
-      (tables, `ClassicVertexLight` formulas, clamp, pack) from the interpolated world position and normals, with the
-      tile anchor, bounds and model transform as flat varyings; `ClassicVertexLightShaderTextTests` pins both steps.
-      GPU p50 at Level1 1080p, `perf.ps1 -Repeat 2`, under 40 to 75% other CPU load: classic 2.27, per-pixel 3.49 ms.
-      By eye against Unity's in-game frames it is not yet a match: per pixel, DK2's falloff draws hard-rimmed discs
-      on walls by torches and seams where a wall's tile table changes, which per-vertex interpolation hides. Next
-      step: the owner's verdict.
+- [ ] DK2 light per pixel (`--light-perpixel`, classic the default; ADR-0813). The fragment point-light representation
+      is continuous; the classic per-vertex reference remains unchanged. Modern AO (`--light-post`) uses filtered
+      compute passes before transparency. Historical cause, focused proofs and final acceptance status:
+      [torch-light artifacts](../research/godot-torch-light-artifacts.md). Owner visual acceptance remains separate.
 - [ ] The rest of step 3, in the order of [the modern-rendering audit](2026-11-18-godot-modern-rendering-audit.md)
       (ADR-0813; it supersedes the step-3 audit's move order from 3j; acceptance is the owner's eye, 3o's numbers and
       gameplay correctness, not byte-identity with Unity):

@@ -600,9 +600,9 @@ shipped value is zero, then scan those globals for readers.** Twelve are zero.
 **Three of these are whole mechanics with the switch at zero:**
 
 - **Walls decay over time.** 145 and 146 are read by *one* routine,
-  `FUN_004BB6D0` — a count of deteriorations a call (per tick, not per second: no time gate, called every tick; [PR audit 1296-1363](openkeeper-pr-audit-1296-1363.md) correction 3) and a damage per
-  deterioration. A complete feature, shipped inert. Nothing in DK2 as played
-  erodes a wall.
+  `FUN_004BB6D0` ([record](functions/004BB6D0.md)) — an unsigned-byte count of picks a call (per tick, not per second; [PR audit 1296-1363](openkeeper-pr-audit-1296-1363.md) correction 3) and a signed-byte damage per pick (negative damages, positive heals) on a random solid wall of the keeper that touches its own floor.
+  A complete feature, shipped inert; no level overrides 145 or 146 ([variables-corpus-sweep.md](variables-corpus-sweep.md)), so nothing in DK2 as played erodes a wall.
+  Built (`WallDeteriorationRules`), so a level or mod that set the variables would act.
 - **A creature that cannot sleep takes damage**, and the reader is the **needs
   routine** this project has already read twice (Q185, ADR-0074). So the
   punishment for a bedless creature was meant to be health as well as anger, and
@@ -625,7 +625,7 @@ the reader uses the value as a plain rate. The value of the finding is
 the other way round: **it names ten mechanics a reimplementation might
 "helpfully" add, every one of which would be a divergence from DK2.** Wall
 deterioration is the obvious trap — it is the sort of thing that looks like an
-oversight.
+oversight; it is built as the binary reads it and does nothing at zero.
 
 Two smaller consequences:
 

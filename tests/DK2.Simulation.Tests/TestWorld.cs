@@ -78,6 +78,8 @@ internal static class TestWorld
     {
         var vars = new GlobalVariables();
         Set(vars, VariableTypeId.MaximumManaThreshold, 200000);
+        Set(vars, VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond, 0);
+        Set(vars, VariableTypeId.WallDeteriorationDamage, 0);
         Set(vars, VariableTypeId.MaximumManaGainPerSecond, 500);
         Set(vars, VariableTypeId.ExcessManaDecreaseRatePerSecond, 5);
         // The low-mana warning threshold and the warning/scan interval, as shipped (ADR-0277).

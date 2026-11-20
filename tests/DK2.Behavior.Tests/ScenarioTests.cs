@@ -568,6 +568,8 @@ public class ScenarioTests
             new MiscVariable(VariableTypeId.InsufficientManaImpEvaluationPeriodSeconds, 10, 0, 0);
         vars.Misc[VariableTypeId.MaximumManaThreshold] =
             new MiscVariable(VariableTypeId.MaximumManaThreshold, 200000, 0, 0);
+        vars.Misc[VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond] = new MiscVariable(VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond, 0, 0, 0);
+        vars.Misc[VariableTypeId.WallDeteriorationDamage] = new MiscVariable(VariableTypeId.WallDeteriorationDamage, 0, 0, 0);
         vars.Misc[VariableTypeId.MaximumManaGainPerSecond] =
             new MiscVariable(VariableTypeId.MaximumManaGainPerSecond, 500, 0, 0);
         vars.Misc[VariableTypeId.ExcessManaDecreaseRatePerSecond] =

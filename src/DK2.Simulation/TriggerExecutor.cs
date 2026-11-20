@@ -783,6 +783,8 @@ public sealed class TriggerExecutor
         19 => CreatureCount(parameters, world, database, playerId),
         20 => MoodCount(parameters, world, database, playerId, CreatureMood.Content),
         21 => MoodCount(parameters, world, database, playerId, CreatureMood.Angry),
+        22 => CreaturesKilledBy(world, playerId, Byte(parameters, "PlayerId")),
+        23 => KillsOf(world, playerId, Byte(parameters, "PlayerSlot")),
         24 => Rooms(parameters, world, database, playerId, run).Sum(room => room.TileCount),
         25 when Byte(parameters, "Comparison") != 0 =>
             Rooms(parameters, world, database, playerId, run).Count(),
@@ -795,6 +797,26 @@ public sealed class TriggerExecutor
         71 => world.Player(playerId).SlapCount,        // +0xEE6 "NumberOfSlaps"
         _ => null,
     };
+
+    /// <summary>Type 22, PLAYER_CREATURES_KILLED (<c>0x004C7D0F</c>): selector 0 is my own dead
+    /// (<c>+0x173</c>); player <paramref name="by"/> otherwise, how many of mine it is credited with
+    /// (its <c>+0x19E</c> word at my number). A selector naming no player reads 0.</summary>
+    private static int CreaturesKilledBy(WorldState world, PlayerId playerId, byte by)
+    {
+        if (by == 0) return world.Player(playerId).Statistics.OwnCreaturesKilled;
+        if (!world.HasPlayer(by) || playerId.Value >= KillTally.Length) return 0;
+        return world.Player(by).Statistics.KillsByVictimOwner[playerId.Value];
+    }
+
+    /// <summary>Type 23, PLAYER_KILLS_CREATURES (<c>0x004C7DF0</c>): selector 0 is my non-hero kills of
+    /// other owners (<c>+0x146</c>); otherwise my <c>+0x19E</c> word at that player number, which counts
+    /// every credited death of its creatures, heroes included.</summary>
+    private static int KillsOf(WorldState world, PlayerId playerId, byte of)
+    {
+        ref PlayerLevelStatistics stats = ref world.Player(playerId).Statistics;
+        if (of == 0) return stats.EnemyCreaturesKilled;
+        return of < KillTally.Length ? stats.KillsByVictimOwner[of] : 0;
+    }
 
     private static int DoorCount(
         IReadOnlyDictionary<string, long> parameters, WorldState world, PlayerId playerId)

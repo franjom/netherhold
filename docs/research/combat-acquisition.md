@@ -223,7 +223,7 @@ kind); bit 0 → an attack spell, selected by the readiness order in
 `combat-spells.md` §5; bit 1 with target class 4
 (`vtable+0x1B0(def+0x44)[0x6A]`) → a thing-targeting spell. The bits are named
 from the roster in `combat-spells.md` §2. The attack survey is built (ADR-0167); the
-friendly survey is built too (ADR-0170, `spell-friendly-arm.md`); the thing-targeting spell is not.
+friendly survey is built too (ADR-0170, `spell-friendly-arm.md`); the thing-targeting spell is not (§6.3).
 
 **The scans, in order.** Each keeps a running best and a tag; `d` is the
 squared distance of `combat-target-selection.md` §2.
@@ -231,7 +231,7 @@ squared distance of `combat-target-selection.md` §2.
 | | when | over | accepts |
 |---|---|---|---|
 | A | `AttackAbnormalTargets` set and `AttackingId` dead | every player's creatures (`[player+0x10FD]` is the game's player list; `+0x6`/`+0x10` its creatures) | attackable, not me, seen within sight (Imp: one tile) or reached within hearing (Imp: none); **no hostility test** |
-| B | a thing-targeting spell | the neutral player's `+0x12` list | within sight and seen |
+| B | a thing-targeting spell (Raise Dead, §6.3) | the neutral player's `+0x12` list | strict-nearest within sight and seen |
 | C | always, unless a live `AttackingId` short-circuits | **my own `+0x504`/`+0x514` — whoever is already attacking me**, spell then melee per slot | `Creeping` weighting (§6.1), alignment discount, strict `d < best`, attackable, **seen**, not `SneakingAs` my side; sight/hearing distance or **Imp**, and a route request succeeds |
 | — | no result yet | `PossessedCreatureFollowing` `+0x482` → its `+0x4D0` | re-acquisition, no strategy runs |
 | — | no result yet | **the fight-type dispatch** with the running best | `combat-target-selection.md` §5 |
@@ -297,6 +297,19 @@ see [0045CB00](functions/0045CB00.md) for the distance handoff and
    `SetState(199)` unless already in category 22, read through a walk (`0x00478050`), and not
    en route to a threat: state 6 resuming 251 or 202 (`0x0045E0C0`-`0x0045E0F4`). The approach,
    state 8 resuming 199, is left walking (ADR-0483).
+
+### 6.3 The body spell (Raise Dead; read 2026-11-20, STRONGLY INFERRED, not built)
+
+The survey's body branch (`0x0045E12E`) is in `combat-spells.md` section 12. With no forced target,
+scan B (`0x0045D095`-`0x0045D164`) walks the **neutral** player's class-6 (body) list (`0x006F2548`,
+player `+0x12`, next `+0x10`) and keeps the strict nearest by 2D distance² >> 12 within sight²
+(`def+0x77B`²) that `0x004512F0` sees. There is no carried, owner or Graveyard test beyond the neutral
+owner, so a body a Graveyard adopted never qualifies. Its distance seeds the bound the enemy scans
+must beat, and the trap scan is skipped when a body is chosen. Commit: `+0x502` the body's tag,
+`+0x4FE` the range² (36864), `+0x529` = slot `<< 4 | 3` (the friendly arm's nibble), then
+`SetState(199)`. `spFighting` keeps nibble 3 while the body lives (`+0x40`, its lifetime,
+[`DeadBody_Update`](functions/004B12D0.md) `0x004B12D0`, above 0) and approaches until
+`Combat_InReach` (`0x0045E8F0`).
 
 ## 7. The engagement record (`+0x4FE`…)
 

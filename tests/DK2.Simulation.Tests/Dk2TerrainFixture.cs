@@ -1659,6 +1659,9 @@ internal static class Dk2TerrainFixture
         Set(vars, VariableTypeId.MaxGoldPerDungeonHeartTile, 1000);
         Set(vars, VariableTypeId.MaxGoldPileOutsideTreasury, 2000);
         Set(vars, VariableTypeId.MaximumManaThreshold, 200000);
+        // Wall deterioration, switched off as shipped (ADR-0085).
+        Set(vars, VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond, 0);
+        Set(vars, VariableTypeId.WallDeteriorationDamage, 0);
         Set(vars, VariableTypeId.MaximumManaGainPerSecond, 500);
         Set(vars, VariableTypeId.ExcessManaDecreaseRatePerSecond, 5);
         Set(vars, VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond, 30);

@@ -34,6 +34,9 @@ public static class LevelStatisticsRules
         if (credited != 0 && !((creature.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood) && credited != state.OwnerPlayerId
             && world.HasPlayer(credited))
             world.Player(credited).Statistics.EnemyCreaturesKilled++;
+        // 0x00488322: every credited death, IsGood or own included, by the victim owner's number.
+        if (credited != 0 && world.HasPlayer(credited) && state.OwnerPlayerId < KillTally.Length)
+            unchecked { world.Player(credited).Statistics.KillsByVictimOwner[state.OwnerPlayerId]++; }
         if (world.HasPlayer(state.OwnerPlayerId)) world.Player(state.OwnerPlayerId).Statistics.OwnCreaturesKilled++;
     }
 

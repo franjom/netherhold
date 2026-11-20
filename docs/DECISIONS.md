@@ -1482,7 +1482,7 @@ Heart's centre was already closed to routing by ADR-0452's platform mask; a ruin
 masked, so a non-lava creature can no longer route onto a ruin's centre, as DK2's byte says.
 
 ## ADR-0085 — Ten mechanics DK2 built and switched off, and the audit that could not see them
-**Date:** 2026-09-07 · **Status:** accepted · amended 2026-09-07: a zero percentage can be fully live, the scan range was never the whole image, and a level file can switch a disabled mechanism back on · Q203, Q106 (a clause explained), Q212, Q84/Q85 · Research: `docs/research/balance-variables-in-the-binary.md` (final section), `docs/research/variables-corpus-sweep.md`
+**Date:** 2026-09-07 · **Status:** accepted · amended 2026-09-07: a zero percentage can be fully live, the scan range was never the whole image, and a level file can switch a disabled mechanism back on · amended 2026-11-20: wall deterioration counts per tick, and is built inert · Q203, Q106 (a clause explained), Q212, Q84/Q85 · Research: `docs/research/balance-variables-in-the-binary.md` (final section), `docs/research/variables-corpus-sweep.md`
 
 **Context.** Balance variables were retired as *dead* by one method: take the cached global, raw-scan for readers, find only the loader's setter stub, retire it. The blind spot was found by accident while reading training (ADR-0083): `EPLossSecondWhileNotTraining` has a real per-tick reader — a hook draining a creature's experience unless its state category is the training one — and a shipped value of **0**. A reader-scan cannot surface that, because the reader is there.
 
@@ -1508,8 +1508,8 @@ masked, so a non-lava creature can no longer route onto a ruin's centre, as DK2'
 "Shipped as zero" is an incomplete claim; the checkable form is *"zero globally, and not overridden in any of the 66 level files"*, which `dk2tools kwd varsweep` answers in one command. The other nine survive the sweep — none is overridden anywhere.
 
 **Consequences.**
-- **Nothing is built, and that is the finding.** The value runs the other way: it names **ten mechanics a reimplementation might "helpfully" add**, every one of which would be a divergence from DK2.
-- Three are whole features with the switch at zero. **Walls decay over time** — `NumberOfRandomWallDeteriorationsPerSecond` and `WallDeteriorationDamage` are read by one routine, `FUN_004BB6D0`, a count of deteriorations a second and a damage per deterioration: complete, inert, and the obvious trap, because it looks like an oversight. **A creature that cannot sleep takes damage**, and the reader is the needs routine `FUN_00477C20` (Q185, ADR-0074) — so the punishment for a bedless creature was meant to be health as well as anger and only the anger shipped, which explains a clause of **Q106**: a lair that turns a creature away was supposed to hurt it too. **Torture can kill on conversion**, rolled inside category 15's own per-tick hook at a chance of zero.
+- **Nothing was built, and that is the finding** (wall deterioration has since been built as DK2 has it, inert at the shipped zero). The value runs the other way: it names **ten mechanics a reimplementation might "helpfully" add**, every one of which would be a divergence from DK2.
+- Three are whole features with the switch at zero. **Walls decay over time** — `NumberOfRandomWallDeteriorationsPerSecond` and `WallDeteriorationDamage` are read by one routine, `0x004BB6D0`, which makes variable-145 picks per call with no time gate and is called every tick by `0x004BB2A0` (so the count is per tick, not per second), and a damage per deterioration: complete, inert, and the obvious trap, because it looks like an oversight. **A creature that cannot sleep takes damage**, and the reader is the needs routine `FUN_00477C20` (Q185, ADR-0074) — so the punishment for a bedless creature was meant to be health as well as anger and only the anger shipped, which explains a clause of **Q106**: a lair that turns a creature away was supposed to hurt it too. **Torture can kill on conversion**, rolled inside category 15's own per-tick hook at a chance of zero.
 - The other seven: `CannotLeaveModifyCreatureHealthPerSecond`, variable 112 (misnamed; converted-creature prayer-mana bonus), `HypnotismManaDrainPerSecond`, `EPLossSecondWhileNotTraining`, `BackOffMinimumDurationSeconds`, `TimeBeforeDungeonHeartConstructionBegins`, `TortureChanceOfDyingWhenConverted`.
 - `CreatureCriticalHealthPercentageOfMax` is confirmed cut against the whole image rather than against `.text`, so `CreatureHealthRules.IsCriticallyHurt` keeps its note and loses its caveat.
 - Nothing built changes under the level-override amendment either: id 218 and the prison drain are not implemented, and `MinimumImpThreshold` already reads through `GameDatabase` with per-level layering (ADR-0040), so the five levels that zero it are handled. Third time a true statement about one file was generalised to the game, after the `(13,1)` reading withdrawn in the same sweep and the `MaxGoldPileOutsideTreasury` name confusion. Q84 and Q85 were both catalogued low priority; the sweep that answered them found this.
@@ -4009,13 +4009,13 @@ the Imp's Teleport and Haste paths (Q401). The pit/torture exclusions are built;
 `combat-pit.md` section 9.
 
 ## ADR-0171 — A cell bites in fours, and anger cools in seven states not three
-**Date:** 2026-09-23 · **Status:** accepted · closes Q402, closes Q123's live divergence · Research: `docs/research/state-category-hooks.md` §3, `state-categories.md` §7.2, `prison.md`, `creature-anger.md`
+**Date:** 2026-09-23 · **Status:** accepted · amended 2026-11-20: the bite is every 17 ticks, not four seconds · closes Q402, closes Q123's live divergence · Research: `docs/research/state-category-hooks.md` §3, `state-categories.md` §7.2, `prison.md`, `creature-anger.md`
 
 **Context.** Reading all 36 state-category hook bodies reached two mechanics this project had already built, and both were built differently from the original. The stop rule in that brief recorded them as Q402 rather than changing behaviour on a research branch.
 
 **Decision.** Both are corrected to the original.
 
-1. **The prison charges in lumps.** `0x0047B7C0` reloads `variable19 << 2` and applies `4 × PrisonModifyCreatureHealthPerSecond` (−12) once every four game seconds, where ours took −3 every second. The average is identical and the moment of death is not, so a prisoner dies on a four-second boundary and a keeper's chicken has a coarser window. The phase is per creature, set by the enter hook at the moment of imprisonment, so two prisoners taken a second apart wither on different seconds — that needs state, and it is `CreatureState.PrisonWitherTicks`.
+1. **The prison charges in lumps.** `0x0047B7C0` reloads `variable19 << 2` and applies `4 × PrisonModifyCreatureHealthPerSecond` (−12) every 17 ticks (reload 16, then fire; ADR-0192), where ours took −3 every second. The moment of death differs, so a prisoner dies on a 17-tick boundary and a keeper's chicken has a coarser window. The phase is per creature, set by the enter hook at the moment of imprisonment, so two prisoners taken a second apart wither on different seconds — that needs state, and it is `CreatureState.PrisonWitherTicks`.
 2. **A cell angers as well as withers.** The same hook adds `ModifyAngerInCompanyOfHatedCreaturesPerSecond` (150, and 100 on campaign level 1) to bucket 0 with complaint selector 9, in the same breath as the health. It is **not** scaled by the four-second interval: the variable passes through whole, so a prisoner gains 150 an application, not 600. This is the variable's *second* reader; the mixed-alignment room rule is the other and is still unbuilt.
 3. **Cooling is category-gated, not bed-gated.** The lair effect `0x004DFF00` is called from the per-tick hooks of categories 6, 9 and 10 — seven states: 79 looking for the Lair, 80 making a home, 81 going to bed, 82/83/84 sleeping, 85 sulking. It tests nothing about tile or bed, so awake creatures cool too. `LairRules.CoolsAngerInLair` replaces `AsleepInOwnBed` at the anger site.
 
@@ -4394,14 +4394,14 @@ the Imp's Teleport and Haste paths (Q401). The pit/torture exclusions are built;
 - The lesson, for the record: a value with no writer can still be set, by the file.
 
 ## ADR-0196 — The Mistress's Torture job
-**Date:** 2026-09-24 · **Status:** accepted · advances ADR-0193, ADR-0195 · Research: `docs/research/state-category-hooks.md` §3.3
+**Date:** 2026-09-24 · **Status:** accepted · amended 2026-11-20: the chair kills a creature it cannot electrocute, it does not refuse it · advances ADR-0193, ADR-0195 · Research: `docs/research/state-category-hooks.md` §3.3
 
 **Context.** Only the Mistress carries the Torture job (Train 50, Torture 50). With category 0's bit read as 1 (ADR-0195, re-derived by Codex), her states 127–129 have ordinary exits, and the owner describes the job (Q426): she whips a victim over and over, and with none she gets on a device herself.
 
 **Decision.**
 1. `JobRules.StateFor(Torture)` is 127. While the keeper has a victim, the job goes to the nearest chamber holding one (`0x004F29A0`), else to any (`0x004F2B80`).
 2. `TorturerStep`, one original turn at a time: 127 walks in 6 to the first victim no torturer of the keeper's has in 129 (resuming 128), else onto the nearest free device (resuming 130), else idles and the job ends. 128 goes 1, 129 and starts the whip, action 63, for 6 turns, with effect `0xED` and no hurt; 129 goes 1, 128 when it ends. A whip every 7th turn.
-3. A Mistress on a device is her keeper's own, not a captive (`TortureRules.KeeperOf`): hurt and mood are her 0 and 0, and she does not convert. An Electric Chair holds only a creature with `CanBeElectrocuted`.
+3. A Mistress on a device is her keeper's own, not a captive (`TortureRules.KeeperOf`): hurt and mood are her 0 and 0, and she does not convert. An Electric Chair takes any creature; 131's and 136's chair arm kills one without `CanBeElectrocuted` through slot `+0x20` (`0x004B2AD0`; `TortureRules.KillsOnChair`).
 4. New hashed fields `TortureTargetTile` (state `+0x119`) and `WhipTurnsLeft`.
 
 **Consequences.**
@@ -15689,7 +15689,7 @@ absent after both pairs, so action 35's start drew nothing there.
 
 ## ADR-0672: a Hatchery's coops are placed again on every rebuild, with a draw each
 
-**Date:** 2026-11-05. **Status:** accepted. Builds Q733(f). Hash/save 416. · **Systems:** rooms
+**Date:** 2026-11-05. **Status:** accepted · amended 2026-11-20: wall deterioration now reaches the rebuild. Builds Q733(f). Hash/save 416. · **Systems:** rooms
 
 **Context.** `Room_Rebuild` (`0x004EDFC0`) runs after its caller deletes the room's auto-placed objects.
 Its Hatchery arm, `Hatchery_PlaceCoops` (`0x004DE220`), places `min(Size/6, 36)` coops along the slab
@@ -15724,7 +15724,7 @@ two-coop Hatchery refreshed twice by a dug wall.
   - the rebuild on a restored save;
   - other rooms' neighbour rebuilds, which draw nothing;
   - the conversion merge;
-  - walls that decay on their own (`0x004BB6D0`) and a moving thing's wall hit (`0x004B2575`);
+  - a moving thing's wall hit (`0x004B2575`); walls that decay on their own (`0x004BB6D0`) reach it since 2026-11-20 through `SpecialSystem.Work`;
   - the level start's per-player interleave with event 3.
 
 STRONGLY INFERRED from the disassembly. The record of each function, and `hatchery.md` §2, hold the
@@ -19435,8 +19435,9 @@ possible". The audit that follows from it is [the modern-rendering audit](plans/
    correctness: the turn-400 hash, the pick and hover tests, scripted-pointer captures. Byte-identity with Unity no
    longer applies to it.
 5. **Lighting** (owner, 2026-11-18): a real-lights prototype (pooled omni lights, Godot's shadows) was built and then
-   rejected for its look and removed. DK2's light model stays and moves to modern means; step 1 (`--light-perpixel`,
-   classic still the default) evaluates DK2's per-tile light per pixel: the same tables, formulas, clamp and pack.
+   rejected for its look and removed. DK2's data and classic per-vertex reference stay. `--light-perpixel` may smooth
+   the point-light representation for continuous fragment lighting; `--light-post` may filter modern AO. These adapter
+   changes preserve game rules and the classic switch. Scope and evidence: [torch-light artifacts](research/godot-torch-light-artifacts.md).
 
 **Relation.** ADR-0805 stands: behaviour moves to `DK2.Presentation` and the adapters draw. A rule is still moved, tested
 and shared; what changes is that a rule's drawing in Godot need not match Unity's, and code that exists only to match

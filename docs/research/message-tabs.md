@@ -305,7 +305,8 @@ Built (ADR-0532): `PlayerState.HeroesDestroyed` credited in `CreatureHealthSyste
 from `CreatureState.HealthSourcePlayerId` (`+0x36`, stamped at each health-change call site), `DeathUncounted`
 (`+0x3E6` bit 0x40, nothing sets it yet), `TriggerState.MaximumSlaps` (init -1) and `SpecialInfoPlayerId`
 set by actions 50 and 46. Not built: the level-end pass of [0x004BE630](functions/004BE630.md) (its
-`+0x146` and the `0x19E`/`0x173` tallies) and the My Pet Dungeon score for a hero kill.
+`+0x146`) and the My Pet Dungeon score for a hero kill. The per-death `+0x19E` and `+0x173` tallies are built
+([player-object.md](player-object.md), Q276).
 
 ## 10. Support audit (2026-10-24)
 

@@ -41,8 +41,9 @@ the PRs, so their claims are leads until the binary is read.
    Imp and Firefly lack the flag, so the death looks intended. Check the callers of `Holds` first.
 3. **Wall deterioration runs per tick ([#1315](https://github.com/tonihele/OpenKeeper/pull/1315)).**
    Ghidra, STRONGLY INFERRED. [0x004BB6D0] loops variable 145 times per call with no time gate,
-   and its only caller [0x004BB2A0] calls it every tick it runs. Our record says "per second"
-   (HYPOTHESIS). The sign of the damage and [0x004B9EC0] were not read.
+   and its only caller [0x004BB2A0] calls it every tick it runs. Built as `WallDeteriorationRules`
+   (HashVersion 534); the damage is a signed byte through Map_ApplyTileWork, per the
+   [0x004BB6D0](functions/004BB6D0.md) record. [0x004B9EC0] is Player_Tick, not a damage routine.
 4. **Mana cap order ([#1316](https://github.com/tonihele/OpenKeeper/pull/1316)).** Ghidra, STRONGLY
    INFERRED. In [0x004C10E0] the [0x004C17A0] result is added to the gain, the sum is capped at
    `+0x10DE`, then [0x004C17A0] is subtracted again, so those upkeep terms are charged only for the
@@ -73,7 +74,8 @@ All Ghidra, STRONGLY INFERRED unless stated.
   HYPOTHESIS and has none of the formulas.
 - **Raise Dead ([#1243](https://github.com/tonihele/OpenKeeper/pull/1243)).** No record of
   [0x004AE880]: it makes a creature of type (shot `+0x13D`) for the shot's owner from every class 6
-  thing on the tile, plays effect `0x144` and removes the body, with no owner test.
+  thing on the tile, plays effect `0x144` and removes the body, with no owner test; the caster's own
+  target scan takes only neutral-owned bodies ([combat-acquisition.md](combat-acquisition.md)).
 - **Speed change ([#1223](https://github.com/tonihele/OpenKeeper/pull/1223)).** No records of
   [0x004AE000] and [0x0048CAD0]. Percent is shot `+0x13D`, seconds `+0x141`; refused while `+0x459`
   is non-zero; clamped to [def `+0x5B4` >> 2, variable 19 << 12]. The cap is not "one tile a
@@ -100,11 +102,12 @@ All Ghidra, STRONGLY INFERRED unless stated.
 - **Kill tallies ([#1215](https://github.com/tonihele/OpenKeeper/pull/1215), [#1256](https://github.com/tonihele/OpenKeeper/pull/1256)).**
   Ghidra, STRONGLY INFERRED. [0x00487C70] credits the killer from tag `+0x36` or the first
   attacker's owner; IsGood victims add to `+0x14A`; otherwise a kill of another keeper's creature
-  adds to `+0x146`; `+0x19E[owner]` and `+0x173` tally every credited death. Condition 23
-  ([0x004C7DF0]) reads `+0x146` for selector 0, else `+0x19E + 2n`. #1215 says the type-23 total
-  "excludes workers"; no worker test exists in either writer. What is excluded is IsGood
-  victims and own-creature kills. Our evaluator has no condition 22 or 23 (Q276, "deliberately
-  not implemented", which predates the combat work).
+  adds to `+0x146`; `+0x19E[owner]` tallies every credited, counted death and `+0x173` every counted
+  death. Condition 23 ([0x004C7DF0]) reads `+0x146` for selector 0, else `+0x19E + 2n`. #1215 says
+  the type-23 total "excludes workers"; settled, the binary has no worker test: the only definition
+  test is IsGood (bit 8, `0x004882D0`) and the sole caller `0x004B7A36` is ungated. What the total
+  excludes is IsGood victims and own-creature kills. Conditions 22 and 23 are built (Q276,
+  HashVersion 534).
 
 ## Covered, or no DK2 claim
 

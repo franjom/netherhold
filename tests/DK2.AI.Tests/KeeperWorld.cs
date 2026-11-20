@@ -456,6 +456,8 @@ internal static class KeeperWorld
         foreach (int spell in new[] { KeeperSpellRules.SightOfEvil, 3, 6, 7, 9, 10, 11, KeeperSpellRules.CreateGold })
             vars.Availabilities.Add(new AvailabilityEntry(5, Keeper, spell, 1));
         vars.Misc[VariableTypeId.MaximumManaThreshold] = new MiscVariable(VariableTypeId.MaximumManaThreshold, 200000, 0, 0);
+        vars.Misc[VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond] = new MiscVariable(VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond, 0, 0, 0);
+        vars.Misc[VariableTypeId.WallDeteriorationDamage] = new MiscVariable(VariableTypeId.WallDeteriorationDamage, 0, 0, 0);
         vars.Misc[VariableTypeId.MinimumImpThreshold] = new MiscVariable(VariableTypeId.MinimumImpThreshold, 4, 0, 0);
         // The heart's health and regeneration, as the shipped global VARIABLES table
         // carries them (rows 174 and 131); a keeper's world needs both (ADR-0162).

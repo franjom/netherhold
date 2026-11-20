@@ -114,11 +114,12 @@ The creature branch is built from `PlayerState.PossessedCreatureId`, the other
 end of the same relation. The object branch still declines because this
 simulation has no object-possession state; no shipped record reaches it (Q280).
 
-## Four player arms read whole
+## Five player arms read whole
 
 | type | arm | reads | rule |
 |---|---|---|---|
-| 23 | `0x004C7DF0` | `+0x146`, else `+0x19E + 2n` | creatures **this** keeper killed: byte 02 zero is the total, a named player is that player's slot. The total (`+0x146`) excludes IsGood victims and own-creature kills; no worker test in the writer `0x00487C70` ([PR audit 1296-1363](openkeeper-pr-audit-1296-1363.md)) |
+| 22 | `0x004C7D0F` | `+0x173`, else `+0x19E + 2 x myNumber` of player s | byte 3 selects: 0 is my own losses, s is how many of **my** creatures s killed (compare `0x00519980`, codes 1 to 6 signed, others false) |
+| 23 | `0x004C7DF0` | `+0x146`, else `+0x19E + 2n` | creatures **this** keeper killed: byte 02 zero is the total, a named player is how many of that player's creatures I killed, heroes included. The total (`+0x146`) excludes IsGood victims and own-creature kills; no worker test in the writer `0x00487C70` ([PR audit 1296-1363](openkeeper-pr-audit-1296-1363.md)) |
 | 52 | `0x004C7E4E` | creature `+0x403` | count of owned non-worker creatures at or above byte 03's level |
 | 71 | `0x004C8491` | `+0xEE6` | `NumberOfSlaps` |
 | 73 | `0x004C8500` | `+0x134`, then `+0x488` | not possessing → **false without comparing**; possessing → compare the possessed creature's `+0x488` |
@@ -126,8 +127,9 @@ simulation has no object-possession state; no shipped record reaches it (Q280).
 Types 22 and 23 are the two directions of one array. `A[P][n]`, the word at
 player `P`'s `+0x19E + 2n`, is read by type 22 as `A[Q][me]` and by type 23 as
 `A[me][Q]`; the totals beside them, `+0x173` and `+0x146`, are "creatures of
-mine lost" and "enemy creatures killed" from the score block. Both therefore
-wait on kill attribution, which waits on combat.
+mine lost" and "enemy creatures killed" from the score block. Both are built
+(HashVersion 534, Q276; `TriggerExecutor.PlayerCounter`). Which player the walker
+is for each shipped record is not established.
 
 Type 52's byte 03 is a **level**: the arm compares it against the creature's own
 `+0x403` with `JC`, so the count is "level >= byte 03", and workers are excluded
@@ -341,7 +343,7 @@ the moment possession stops being zero. `NumberOfSlaps` counts slaps on the
 player's own things (`player-object.md`, Q278); the possessed creature's `+0x488`
 is unread (Q279).
 
-Declined and why: 22/23 combat, 20 `creature+0x28A` (Q269), 27/28 only when
+Declined and why: 20 `creature+0x28A` (Q269), 27/28 only when
 `Comparison == 0` asks unread availability, 64 party spawning and party
 identity (Q283), type 70's unused object branch (Q280), 2 the special timer id
 16 (Q232).

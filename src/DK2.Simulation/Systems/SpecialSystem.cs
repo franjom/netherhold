@@ -203,8 +203,8 @@ public sealed class SpecialSystem : ISimulationSystem
     /// <summary>One <c>Tile_ApplyWork</c> call (<see cref="TileWorkRules.ApplyDelta"/>) with the
     /// follow-ups <see cref="TileWorkSystem"/> makes for a strike: the slab chain, the neighbouring
     /// Hatchery's coops, the conversion's sound and effect, a broken tile's sound, effect and message 12
-    /// to the wall's owner, and spilled gold on the floor.</summary>
-    private static void Work(SimulationContext context, int index, int delta, PlayerId playerId)
+    /// to the wall's owner, and spilled gold on the floor. Also <see cref="WallDeteriorationRules"/>'s.</summary>
+    internal static void Work(SimulationContext context, int index, int delta, PlayerId playerId)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;

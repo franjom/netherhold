@@ -29,6 +29,9 @@ public struct PlayerLevelStatistics
     public int ThingsResearched;
     /// <summary><c>+0x183</c>: specials activated, plus those still held at the end.</summary>
     public int SpecialsFound;
+    /// <summary><c>+0x19E</c>: sixteen unsigned words, the deaths this player is credited with, by the
+    /// victim owner's player number (<c>0x00488322</c>); read by trigger conditions 22 and 23.</summary>
+    public KillTally KillsByVictimOwner;
 
     /// <summary>Set once <c>0x004BE630</c> has sampled the fields below.</summary>
     public bool Sampled;
@@ -58,6 +61,7 @@ public struct PlayerLevelStatistics
         hash.Add(CreaturesCommanded); hash.Add(CreatureTraining); hash.Add(LevelWon ? (byte)1 : (byte)0);
         hash.Add(EndTurn);
         AtVerdict.HashInto(ref hash);
+        for (int i = 0; i < KillTally.Length; i++) hash.Add(KillsByVictimOwner[i]);
     }
 
     public readonly void Write(BinaryWriter w)
@@ -68,9 +72,17 @@ public struct PlayerLevelStatistics
         w.Write(Sampled); w.Write(LandOwned); w.Write(ManaStored);
         w.Write(CreaturesCommanded); w.Write(CreatureTraining); w.Write(LevelWon); w.Write(EndTurn);
         AtVerdict.Write(w);
+        for (int i = 0; i < KillTally.Length; i++) w.Write(KillsByVictimOwner[i]);
     }
 
-    public static PlayerLevelStatistics Read(BinaryReader r) => new()
+    public static PlayerLevelStatistics Read(BinaryReader r)
+    {
+        PlayerLevelStatistics stats = ReadCounters(r);
+        for (int i = 0; i < KillTally.Length; i++) stats.KillsByVictimOwner[i] = r.ReadUInt16();
+        return stats;
+    }
+
+    private static PlayerLevelStatistics ReadCounters(BinaryReader r) => new()
     {
         DungeonHeartsDestroyed = r.ReadInt32(), EnemyCreaturesKilled = r.ReadInt32(), RoomsTakenOver = r.ReadInt32(),
         RoomExtraPoints = r.ReadInt32(), CreaturesConverted = r.ReadInt32(), OwnCreaturesKilled = r.ReadInt32(),
@@ -78,6 +90,38 @@ public struct PlayerLevelStatistics
         Sampled = r.ReadBoolean(), LandOwned = r.ReadInt32(), ManaStored = r.ReadInt32(),
         CreaturesCommanded = r.ReadInt32(), CreatureTraining = r.ReadInt32(), LevelWon = r.ReadBoolean(),
         EndTurn = r.ReadInt64(), AtVerdict = LevelCounters.Read(r),
+    };
+}
+
+/// <summary><c>player+0x19E</c>'s sixteen unsigned words, a value type so a copied player keeps its own
+/// (four to a <see cref="ulong"/>; the simulation targets netstandard2.1, which has no inline arrays).</summary>
+public struct KillTally
+{
+    public const int Length = 16;
+    private ulong _0, _1, _2, _3;
+
+    public ushort this[int index]
+    {
+        readonly get => (ushort)(Quad(index >> 2) >> ((index & 3) * 16));
+        set
+        {
+            int shift = (index & 3) * 16;
+            ulong quad = (Quad(index >> 2) & ~(0xFFFFUL << shift)) | ((ulong)value << shift);
+            switch (index >> 2)
+            {
+                case 0: _0 = quad; break;
+                case 1: _1 = quad; break;
+                case 2: _2 = quad; break;
+                case 3: _3 = quad; break;
+                default: throw new ArgumentOutOfRangeException(nameof(index));
+            }
+        }
+    }
+
+    private readonly ulong Quad(int quad) => quad switch
+    {
+        0 => _0, 1 => _1, 2 => _2, 3 => _3,
+        _ => throw new ArgumentOutOfRangeException(nameof(quad)),
     };
 }
 

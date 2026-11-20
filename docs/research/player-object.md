@@ -147,7 +147,16 @@ earlier test at `0x004882A9` (2026-10-23) skips **both** when a killer was found
 and the victim carries bit `0x40` at `+0x3E6`; the second test only matters when no
 killer was found. So a bit-`0x40` creature counts nowhere. The killer is the
 player tagged in the victim's word `+0x36` (the health routine's last source), else
-the owner of its first attacker ([00487C70](functions/00487C70.md)).
+the owner of its first attacker ([00487C70](functions/00487C70.md)). The `+0x173`
+increment runs for an uncredited death too (bit `0x40` clear); the `+0x19E` word needs a credited killer.
+
+Type 22 (`0x004C7D0F`): byte 0 the operator, byte 3 a selector, dword `+4` the value. Selector 0
+reads my `+0x173`; selector s reads player s's word at `+0x19E + 2 x myNumber`, how many of mine
+s killed. Type 23 (`0x004C7DF0`): byte 2 the selector; 0 reads my `+0x146`, else my word at
+`+0x19E + 2s`, how many of s's creatures I killed, heroes included. Both compare through
+`0x00519980` (STRONGLY INFERRED). Built (HashVersion 534): `PlayerLevelStatistics.KillsByVictimOwner`,
+incremented in `LevelStatisticsRules.CreditDeath` for every credited counted death, read by
+`TriggerExecutor.PlayerCounter` (Q276).
 
 **The array is 16 words and ends at `+0x1BE`**, exactly where the next dumped
 field begins, which is what fixes its length. The debug dumper names `+0x19E`
@@ -162,6 +171,7 @@ low word of its first dword at the local player's `+0x19E` and the low byte of i
 `+0x1BE`. No reader that draws it was found; the dumper (`0x004BD3C6`, `0x004BD4AF`) and the network
 copy (`0x0056EE44`) only carry it. So the kill tally and a scripted value share the offset, and the
 scripted write has no visible effect that was found ([audit 1000-1110](openkeeper-pr-audit-1000-1110.md), PR 1035).
+Other stores into the `+0x19E` range, unread: `0x004BB329`, `0x004BB34E`, `0x004BEB5C`, `0x004BEBAF`.
 
 ## Starting gold is paid into the heart (Q75)
 

@@ -48,6 +48,9 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             // the defeat verdict (keeper-refresh-clock.md, ADR-0706).
             if (player.KilledByPlayerId == 0 || player.KeeperFrameAfterDefeat)
             {
+                // 0x004BB58D: after the mana update, before the refresh clock's draw (0x004BB689).
+                WallDeteriorationRules.Run(context, id);
+                player = ref world.Player(id);
                 player.KeeperRefresh = KeeperRefreshClockRules.Advance(player.KeeperRefresh, context.Tick, context.Rng);
                 continue;
             }

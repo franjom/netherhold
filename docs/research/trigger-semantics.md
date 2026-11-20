@@ -288,7 +288,7 @@ are grouped; the count beside each type is its shipped record count.
 | 3 (22), 4 (37), 6 (158), 8 (88), 10 (4), 12 (2), 13 (4), 16 (30), 46 (1), 56 (1), 57 (1), 58 (1), 60 (1), 65 (1), 72 (137) | body `00..07` **N** |
 | 19 (205), 20 (2) | `Comparison:u8@00` **B**, `CreatureId:u8@01` **B**, `Value:s32@04` **B**; `02..03` **N** |
 | 22 (26) | `Comparison:u8@00` **B**, `PlayerId:u8@03` **B**, `Value:s32@04` **B**; `01..02` **N** |
-| 23 (1) | `Comparison:u8@00` **B**, `PlayerId:u8@02` **B** (0 = total killed; `trigger-dispatch-tables.md`, "Four player arms"), `Value:s32@04` **B**; `01,03` **N** |
+| 23 (1) | `Comparison:u8@00` **B**, `PlayerId:u8@02` **B** (0 = total killed; `trigger-dispatch-tables.md`, "Five player arms"), `Value:s32@04` **B**; `01,03` **N** |
 | 24 (24), 25 (85), 68 (5) | `Comparison:u8@00` **B**, `RoomId:u8@01` **B**, `Value:s32@04` **B**; `02..03` **N** |
 | 27 (3), 28 (7) | `Comparison:u8@00` **B**, `TargetId:u8@01` **T**, `Flag:u8@02` **T**, `Value:s32@04` **B**; `03` **N** |
 | 29 (80) | `TargetId:u8@01` **T**; all other body bytes **N** |

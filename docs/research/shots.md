@@ -275,8 +275,12 @@ slow. Slow sets the same bit 16, which `creature-status-effects.md` §2 reads as
 what, if anything, holds a webbed creature is unread (HYPOTHESIS).
 **18** Raise Dead `0x004AE880` (Ghidra 2026-11-20, STRONGLY INFERRED, OpenKeeper #1243): for every
 class 6 thing on the shot's tile it makes a creature of type shot `+0x13D` for the shot's owner, plays
-effect `0x144` and removes the body; no owner test. Built, `Combat/RaiseDeadRules.cs` ([record](functions/004AE880.md));
-creatures casting 17 or 18 are not built.
+effect `0x144` and removes the body; no owner test. Built, `Combat/RaiseDeadRules.cs` ([record](functions/004AE880.md)).
+**Shot 40** (Raise Dead): speed 2048, flags `0x23`, health 1, collide 4, process 18, `ShotProcessFlags` `0x4` (the hit
+event, raised at `0x004ABFC1`), timed effect 286. **Shot 41** (Wind): `ShotProcessFlags` `0x2`, the per-tick pre-move event
+(`0x004AB30F` in [`Shot_Update`](functions/004AB180.md)), speed 1024, health 128, flags `0x25`, collide 0; a creature's
+Wind has no range cutoff (`+0x155` stays 0, [combat-spells.md](combat-spells.md) section 12). What makes a creature cast
+Wind is built; what makes one cast Raise Dead is not (Q886).
 Unread: the buff table `0x006E4AC8` and area damage types 3, 4 and 8 (Q394, Q395).
 
 **The events.** `0x004AD730`'s five direct callers raise 0x40 (`0x004AB281`), 0x2

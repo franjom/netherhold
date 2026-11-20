@@ -29,7 +29,7 @@ The hooks do not use one universal countdown:
 | Category | Gate | Reload and cadence |
 |---|---|---|
 | Spectating (31) | state `+0xAB` | variable 19; once per game second |
-| Prison (14) | state `+0xAB` | variable 19 x 4; once per four game seconds |
+| Prison (14) | state `+0xAB` | variable 19 x 4; fires every 17 ticks (reload 16, then fire; `prison.md` section 4b) |
 | Torture (15) | state `+0xAC` | variable 19; once per game second |
 | Casino (17) | state `+0xB0` | variable 19; once per game second |
 | Training (13) | state `+0xB3` | variable 19; once per game second |
@@ -85,7 +85,7 @@ the category operation failed; a return of one means it remains valid.
 | `0x0047B4A0` | Torture leave | Switches off an Electric Chair's sparks and shows the device again (presentation); unless `TortureVoluntary` (`+0x3EA` bit 14), zeroes `DroppedToDoJobId` (state `+0x6E`); clears bit 14; releases. Built but the presentation: ADR-0322 (`leave-hook-bodies.md` §3). |
 | `0x0047B590` | Torture update | Once per second, adds variable 19 to creature `+0x4F6`, applies definition `TortureHpChange` (`+0x79F`) as health, and, when the station's `+0x1D` names the creature, applies definition **`TortureMoodChange` (`+0x7A1`)** to anger bucket 5 with selector 8. Thus the anger amount is per creature, not a global. At the level-scaled `TortureTimeToConvert` threshold it either kills on the variable-234 roll (shipped zero) or calls the conversion helper. |
 | `0x0047B740` | Prison enter | **STRONGLY INFERRED** (re-read 2026-10-01): the lookup and claim of §3.5; any refusal returns 0 with nothing else done, so no seed and **no event 7**. Once the claim takes, it seeds `+0xAB` from variable 19, fires creature trigger event 7 on the captive itself (`ECX` = state `+0x8`, pushes `7, 0, 0`), and returns 1. The claim's overcrowding message `0x2A` is on its success path, so 7 fires there too. Built: ADR-0311. |
-| `0x0047B7C0` | Prison update | Every four game seconds, and only for a creature with nonzero level-scaled `HungerFill` and a room id, applies `4 x PrisonModifyCreatureHealthPerSecond` (-12) and **`ModifyAngerInCompanyOfHatedCreaturesPerSecond` (+150)** to bucket 0 with selector 9. |
+| `0x0047B7C0` | Prison update | Every 17 ticks, and only for a creature with nonzero level-scaled `HungerFill` and a room id, applies `4 x PrisonModifyCreatureHealthPerSecond` (-12) and **`ModifyAngerInCompanyOfHatedCreaturesPerSecond` (+150)** to bucket 0 with selector 9. |
 | `0x0047B8C0` | Temple enter | Initializes `+0xAF` and claims. |
 
 ### 3.1 The Casino, re-read for building (2026-09-24)

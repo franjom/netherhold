@@ -268,10 +268,34 @@ itself is `shots.md` §10.
 
 **Built since (ADR-0170):** the ally arm §8 and the friendly survey
 (`spell-friendly-arm.md`). **Not built:** the thing-targeting
-survey; the approach's part-way point for a
+survey (section 12); the approach's part-way point for a
 spell nibble (`combat-fight-state.md` §2 step 10).
 Possession modifiers and its wind-up bypass are built under ADR-0350;
 see `keeper-spell-possession.md`.
+
+## 12. Raise Dead and Wind: what casts them (read 2026-11-20, STRONGLY INFERRED, not built)
+
+**Raise Dead** (spell 20, shot 40): spell flags `0x102` (bits 1 and 8), range 12288, recharge 69632
+(17 s), `ShotData1` 9, `ShotData2` 0; carried by the Vampire and Unique Vampire at level 10, slot 3.
+It is chosen in `SelectAVictim` (`0x0045CB00`), not by `spFighting`'s spell arm or the buff table.
+The slot survey (`0x0045CC6E`-`0x0045CE5D`, skipped for definition `+0x686` bit 0, which the Imp
+has) reaches the body branch at `0x0045E12E` for a slot whose flags have bit 1 and not bit 0, that
+is not castable-friendly, and whose shot definition's collide type (`+0x6A`) is 4. The scan, commit
+and reach are in `combat-acquisition.md` section 6.3. In reach, the nibble-3 arm (`0x00460011`)
+starts action 16 (`0x00498870`), one cast per acquisition; the aim (`+0x131`) is the body, at its
+height plus half `vtable+0x40`, led by `vtable+0x2C`. The shot (collide 4, process 18) is
+`shots.md` section 8.
+
+**Wind** (spell 21, shot 41): the Fairy (level 10, after Lightning level 4 and Armour level 8), the
+Firefly and Unique Firefly (level 8); flags `0x109`, range 4096, recharge 10 s. The ordinary attack
+survey chooses it, so ours casts it through the generic arm and process 17 acts
+(`Combat/WindRules.cs`). An AI-cast Wind has no range cutoff: shot `+0x155` is written only by
+the shot's init (`0x004AAD7F`, zero) and free-aim action 15 (`0x00498804`, possessed only), and the
+range test is skipped at zero, so it lives up to 128 ticks or until a solid tile.
+
+**Not built** (Q886): the body-spell survey slot, the neutral-corpse scan in `CombatTargetRules.Choose`,
+a body `FightTargetKind` with nibble 3, its approach and validity in `FightRules`, a `FireSpell`
+body arm, and the collide-4 finder walk in `ShotRules`.
 
 ## Confidence
 
