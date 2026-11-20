@@ -136,7 +136,7 @@ and every other style, needs the spell ready. This is why a Warlock stands off w
 its Fireball cools. The waiver sits before the slot's flags are read, so it covers a
 thing-targeting (bit 1) slot too; the friendly arm re-tests `0x0048C800` at `0x0045CCEB`
 and is not waived. Built for the attack survey as `SpellRules.SurveyAttack(whileRecharging)`
-(ADR-0325); the thing-targeting survey is not built.
+(ADR-0325); the body slot is `SpellRules.SurveyBody`, with the same waiver (section 12).
 
 ### Q732: current trap comparison, 2026-11-14
 
@@ -267,13 +267,12 @@ anyone else unlinks, is forced again on the old id and kind, and returns
 itself is `shots.md` §10.
 
 **Built since (ADR-0170):** the ally arm §8 and the friendly survey
-(`spell-friendly-arm.md`). **Not built:** the thing-targeting
-survey (section 12); the approach's part-way point for a
+(`spell-friendly-arm.md`) and the body spell (section 12). **Not built:** the approach's part-way point for a
 spell nibble (`combat-fight-state.md` §2 step 10).
 Possession modifiers and its wind-up bypass are built under ADR-0350;
 see `keeper-spell-possession.md`.
 
-## 12. Raise Dead and Wind: what casts them (read 2026-11-20, STRONGLY INFERRED, not built)
+## 12. Raise Dead and Wind: what casts them (read 2026-11-20, STRONGLY INFERRED, built, Q886)
 
 **Raise Dead** (spell 20, shot 40): spell flags `0x102` (bits 1 and 8), range 12288, recharge 69632
 (17 s), `ShotData1` 9, `ShotData2` 0; carried by the Vampire and Unique Vampire at level 10, slot 3.
@@ -293,9 +292,12 @@ survey chooses it, so ours casts it through the generic arm and process 17 acts
 the shot's init (`0x004AAD7F`, zero) and free-aim action 15 (`0x00498804`, possessed only), and the
 range test is skipped at zero, so it lives up to 128 ticks or until a solid tile.
 
-**Not built** (Q886): the body-spell survey slot, the neutral-corpse scan in `CombatTargetRules.Choose`,
-a body `FightTargetKind` with nibble 3, its approach and validity in `FightRules`, a `FireSpell`
-body arm, and the collide-4 finder walk in `ShotRules`.
+**Built** (Q886): the body-spell survey slot (`SpellRules.SurveyBody`), the neutral-corpse scan in
+`CombatTargetRules.Choose`, a body `FightTargetKind` with nibble 3, its approach and validity in
+`FightRules`, a `FireSpell` body arm, and the collide-4 finder walk in `ShotRules` (the first body
+in the walk, not the nearest; a carried body is not found, ours). The aim height is ours: the body's
+own, with no half height added (whether DK2 adds one for a body is not established). Stated choices:
+`combat-acquisition.md` section 6.3.
 
 ## Confidence
 

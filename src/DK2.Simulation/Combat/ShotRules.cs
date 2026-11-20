@@ -169,8 +169,8 @@ public static partial class ShotRules
     /// its tag is live, whatever the overlap, and spends the word; otherwise the overlap finder's
     /// (<c>0x00451570</c>): the first standing creature, in the <see cref="SearchWindow"/>, the collide
     /// class admits — an enemy by alliance, a friend by owner — that <see cref="Overlaps"/> the shot.
-    /// Traps are <see cref="FindTrapHit"/>; doors, objects and bodies are not looked for here; a shot
-    /// aimed at a door is <see cref="HitsDoor"/>.</summary>
+    /// Traps are <see cref="FindTrapHit"/>; doors and objects are not looked for here; collide type 4
+    /// looks only for bodies (<see cref="WalkBodies"/>); a shot aimed at a door is <see cref="HitsDoor"/>.</summary>
     public static CreatureState? FindHit(WorldState world, GameDatabase database, ShotState shot, ShotDef definition) =>
         FindHit(world, database, shot, definition, out _);
 
@@ -189,7 +189,8 @@ public static partial class ShotRules
             return forced is null || forced.Activity == CreatureActivity.Dead || !CombatPitRules.IsOnTheMap(forced) ? null : forced;
         }
         byte mode = definition.CollideType;
-        if (mode is CollideNone or CollideBodies) return null;
+        if (mode == CollideBodies) return WalkBodies(world, database, shot, definition, out bestOrder);
+        if (mode == CollideNone) return null;
         if (mode != CollideBoth) return Walk(world, database, shot, definition, enemies: mode == CollideEnemies, out bestOrder);
         // Both (0x004AC330): a whole enemies walk, then, only if it found nothing (a trap included),
         // a whole friends walk.
@@ -218,6 +219,29 @@ public static partial class ShotRules
                 ? (standing && CombatRules.IsHostile(world, shot.OwnerPlayerId, candidate.OwnerPlayerId)) || TurncoatRules.IsActive(candidate)
                 : standing && candidate.OwnerPlayerId == shot.OwnerPlayerId;
             if (!admitted) continue;
+            long order = window.Order(candidate.Tile, ChainRank(candidate));
+            if (order >= bestOrder) continue;
+            if (!Overlaps(shot, definition, candidate, database.CreatureById(candidate.CreatureTypeId))) continue;
+            best = candidate;
+            bestOrder = order;
+        }
+        return best;
+    }
+
+    /// <summary>Collide type 4 (shots.md §8, Raise Dead): the same walk over bodies, the first one the
+    /// overlap box admits in <see cref="SearchWindow"/> order, not the nearest; no owner or hostility test.
+    /// Ours, stated: a body a creature carries (off the map) is not found, and the corpse's creature
+    /// footprint stands for the body's, as <see cref="Overlaps"/> reads it.</summary>
+    private static CreatureState? WalkBodies(WorldState world, GameDatabase database, ShotState shot, ShotDef definition, out long bestOrder)
+    {
+        bestOrder = long.MaxValue;
+        var window = new SearchWindow(world, shot, definition);
+        CreatureState? best = null;
+        EntityList<CreatureState> creatures = world.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            CreatureState candidate = creatures[i];
+            if (!CreatureDeathRules.IsCorpse(candidate) || candidate.CarriedByCreatureId >= 0) continue;
             long order = window.Order(candidate.Tile, ChainRank(candidate));
             if (order >= bestOrder) continue;
             if (!Overlaps(shot, definition, candidate, database.CreatureById(candidate.CreatureTypeId))) continue;

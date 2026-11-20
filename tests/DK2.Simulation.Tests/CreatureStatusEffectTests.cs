@@ -509,9 +509,12 @@ public class CreatureStatusEffectTests
         int before = world.Creatures.Count;
         GameSimulation sim = Sim(db, world);
 
-        ShotRules.Spawn(world, db.Shots[Dk2TerrainFixture.RaiseDeadShotId], new PlayerId(Keeper), vampire.PosX, vampire.PosY,
+        // The shipped shot (collide 4, the hit event) flies to the body and runs the process when it finds it.
+        ShotDef raiseDead = db.Shots[Dk2TerrainFixture.RaiseDeadShotId];
+        ShotState shot = ShotRules.Spawn(world, raiseDead, new PlayerId(Keeper), vampire.PosX, vampire.PosY,
             Dk2TerrainFixture.SkeletonCreatureId, 0, vampire.Id, FightTargetKind.None, 0, new PlayerId(0), -1, body.PosX, body.PosY);
-        sim.Run(1);
+        ShotRules.Launch(shot, raiseDead, body.PosX, body.PosY);
+        sim.Run(12);
 
         Assert.DoesNotContain(body, world.Creatures);
         CreatureState raised = Assert.Single(world.Creatures, c => c.CreatureTypeId == Dk2TerrainFixture.SkeletonCreatureId);

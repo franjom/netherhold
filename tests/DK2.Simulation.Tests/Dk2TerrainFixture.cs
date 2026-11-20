@@ -1138,6 +1138,14 @@ internal static class Dk2TerrainFixture
         DecomposeValue = 0,
         MaxGoldHeld = 7500,
         InitialGoldHeld = 500,
+
+        // The shipped third slot: Raise Dead from level 10 (combat-spells.md §12); slots 1 and 2 are empty.
+        Spells =
+        [
+            new CreatureSpellSlot(0, 1, new Fp32(4096), 1),
+            new CreatureSpellSlot(0, 1, new Fp32(4096), 1),
+            new CreatureSpellSlot(RaiseDeadSpellId, 10, new Fp32(4096), 1),
+        ],
     };
 
     public const byte SkeletonCreatureId = 9;
@@ -1313,6 +1321,7 @@ internal static class Dk2TerrainFixture
     public const byte ArmourSpellId = 4;
     public const byte InvisibleSpellId = 5;
     public const byte HealSpellId = 6;
+    public const byte RaiseDeadSpellId = 20;
     public const byte ModifyHealthShotId = 4;
     public const byte HealInstantShotId = 53;
     public const byte FireballShotId = 1;
@@ -1357,6 +1366,13 @@ internal static class Dk2TerrainFixture
         Friendly("Cast Armour", ArmourSpellId, 0x104, SpellRules.ArmourBuff, ArmourShotId, 80, 50),
         Friendly("Invisible", InvisibleSpellId, 0x84, SpellRules.InvisibleBuff, InvisibleShotId, 15, 0),
         Friendly("Heal", HealSpellId, 0x104, SpellRules.HealBuff, HealInstantShotId, 3000, 0),
+        // Raise Dead as shipped (combat-spells.md §12): flags 0x102, three tiles, 17 s, makes a Skeleton from shot 40.
+        new(new byte[266])
+        {
+            Name = "Raise Dead", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = RaiseDeadSpellId,
+            Flags = 0x102, Range = 12288, RechargeTime = 69632, ShotTypeId = RaiseDeadShotId, ShotData1 = SkeletonCreatureId, ShotData2 = 0,
+            Unknown_00EF = default,
+        },
         // Flag carriers for the possessed spell arm's branches (keeper-spell-possession.md); not
         // shipped records: teleport (bit 5), speed (bit 6) and an attack firing shot type 30.
         new(new byte[266])
@@ -1450,10 +1466,10 @@ internal static class Dk2TerrainFixture
         Status("Drain", DrainShotId, 2048, 128, 0x27, 0x4, 2, 35),
         Status("Reaper Fireball", ReaperFireballShotId, 3686, 128, 0x123, 0x4, 2, 29, damageType: 7, attackCategory: 4),
         Status("Maiden Poison Spit", PoisonSpitShotId, 2048, 20, 0x123, 0x4, 2, 38),
-        // Process 17 and 18 (shots.md §8). The test wiring fires them on the first tick (0x40); the shipped
-        // event flags are not taken from the table.
+        // Process 17 and 18 (shots.md §8). Wind's test wiring fires it on the first tick (0x40); Raise Dead is as
+        // shipped: speed 2048, flags 0x23, health 1, collide 4 and the hit event (0x4).
         Status("Cyclone", CycloneShotId, 1024, 128, 0x25, 0x40, 0, 17),
-        Status("Raise Dead", RaiseDeadShotId, 1024, 1, 0x23, 0x40, 4, 18),
+        Status("Raise Dead", RaiseDeadShotId, 2048, 1, 0x23, 0x4, 4, 18),
         // The Heal chain (shots.md §8): the instant shot stands on its target and dies on it, chaining Modify Health.
         Status("Heal Instant Shot", HealInstantShotId, 0, 1, 0x2, 0x2, 1, 34, deathShot: ModifyHealthShotId),
         Status("Modify Health", ModifyHealthShotId, 3686, 128, 0x23, 0x4, 3, 3),

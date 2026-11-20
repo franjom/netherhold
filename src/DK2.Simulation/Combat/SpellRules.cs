@@ -10,7 +10,7 @@ namespace DK2.Simulation.Combat;
 /// <summary>A creature's spells as the fight uses them — docs/research/combat-spells.md: the three
 /// slots, the cooldown gate (<c>0x0048C800</c>), and the survey's choice of attack spell (§5).
 /// The friendly survey and the applicability table are docs/research/spell-friendly-arm.md
-/// (§1—§8). The thing-targeting spells are not built.</summary>
+/// (§1—§8). The body spell is §12 and combat-acquisition.md §6.3.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-spells.md")]
 public static class SpellRules
 {
@@ -97,6 +97,34 @@ public static class SpellRules
             if (best >= 0 && ready >= bestReady) continue;
             best = i;
             bestReady = ready;
+            chosen = spell;
+        }
+        return best;
+    }
+
+    /// <summary>The body spell's slot test (<c>0x0045CB00</c>'s branch at <c>0x0045E12E</c>, combat-spells.md
+    /// §12): flag bit 1 set, bit 0 and the friendly bit clear, and a shot whose collide type is 4.</summary>
+    public static bool IsBodySpell(GameDatabase database, CreatureSpellDef spell) =>
+        (spell.Flags & (AttackFlag | ThingTargetFlag | FriendlyFlag)) == ThingTargetFlag
+        && database.Shots.TryGetValue(spell.ShotTypeId, out ShotDef? shot) && shot.CollideType == ShotRules.CollideBodies;
+
+    /// <summary>The survey's body slot (Raise Dead, combat-acquisition.md §6.3): over the slots the level
+    /// allows that pass the generic castability gate (or <paramref name="whileRecharging"/>, the Support
+    /// waiver), one that <see cref="IsBodySpell"/>. Ours, stated: the last such slot wins, as the
+    /// friendly survey's does; no shipped creature has two. −1 when none.</summary>
+    public static int SurveyBody(GameDatabase database, CreatureState me, CreatureDef definition, long tick, out CreatureSpellDef? chosen,
+        bool whileRecharging = false)
+    {
+        chosen = null;
+        int best = -1;
+        int count = Math.Min(definition.Spells.Count, Slots);
+        for (int i = 0; i < count; i++)
+        {
+            if (definition.Spells[i].LevelAvailable > me.Level) continue;
+            if (!whileRecharging && !CanCast(database, me, definition, i, tick)) continue;
+            CreatureSpellDef? spell = SpellOf(database, definition, i);
+            if (spell is null || !IsBodySpell(database, spell)) continue;
+            best = i;
             chosen = spell;
         }
         return best;

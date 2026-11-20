@@ -44,10 +44,19 @@ public static class FightRules
             case FightTargetKind.Trap:
                 // The same step for a trap: one sold, broken or removed by the owner test is gone.
                 return world.TrapById(me.FightTargetId) is { Health: > 0 };
+            case FightTargetKind.Body:
+                // The body-spell arm (nibble 3, combat-acquisition.md §6.3): a body still lying, its lifetime above 0.
+                return world.CreatureById(me.FightTargetId) is { } body && IsLyingBody(database, body);
             default:
                 return false;
         }
     }
+
+    /// <summary>A body (<see cref="CreatureDeathRules.IsCorpse"/>) whose lifetime (<c>+0x40</c>,
+    /// <c>DeadBody_Update</c> <c>0x004B12D0</c>) is above 0: ours counts the window up in
+    /// <see cref="CreatureState.DyingTicks"/>, so it is the window not yet elapsed.</summary>
+    public static bool IsLyingBody(GameDatabase database, CreatureState body) =>
+        CreatureDeathRules.IsCorpse(body) && !CreatureDeathRules.BodyWindowElapsed(database, body);
 
     /// <summary>Where the target stands, in position units.</summary>
     public static bool TargetPosition(WorldState world, GameDatabase database, CreatureState me, out int x, out int y, out TilePos tile)
@@ -84,6 +93,13 @@ public static class FightRules
             x = trap.PosX;
             y = trap.PosY;
             tile = new TilePos(trap.X, trap.Y);
+            return true;
+        }
+        else if (me.FightTargetKind == FightTargetKind.Body && world.CreatureById(me.FightTargetId) is { } lying)
+        {
+            x = lying.PosX;
+            y = lying.PosY;
+            tile = lying.Tile;
             return true;
         }
         x = y = 0;
@@ -429,6 +445,17 @@ public static class FightRules
             targetTile = (trap.Y * world.Width) + trap.X;
             aimX = trap.PosX;
             aimY = trap.PosY;
+        }
+        else if (me.SwingTargetKind == FightTargetKind.Body && world.CreatureById(me.SwingTargetId) is { } body
+            && CreatureDeathRules.IsCorpse(body))
+        {
+            // Action 16 aims +0x131 at the body, led from its previous position as a creature is (a lying body has
+            // none). Ours, stated: the aim height is the body's own, with no added half height — not established for a body in DK2.
+            int distanceSquared = CombatRules.DistanceSquared(me.PosX, me.PosY, body.PosX, body.PosY);
+            long tiles = ShotRules.Isqrt((long)distanceSquared << 4) >> 8;
+            aimX = body.PosX + (int)((body.PosX - body.LastPosX) * tiles * 3 / 2);
+            aimY = body.PosY + (int)((body.PosY - body.LastPosY) * tiles * 3 / 2);
+            aimZ = body.PosZ;
         }
         else
         {

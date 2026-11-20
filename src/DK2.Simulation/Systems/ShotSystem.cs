@@ -92,6 +92,17 @@ public sealed class ShotSystem : ISimulationSystem
             ShotRules.ContactDamageTrap(context, shot, definition, trapHit);
             if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
         }
+        else if (hit != null && CreatureDeathRules.IsCorpse(hit))
+        {
+            // Collide type 4 found a body: the target word names it, the hit event runs (0x004ABFC1) and the
+            // shot dies on it. No damage, collapse or heading: the finder admits nothing but bodies.
+            shot.TargetKind = FightTargetKind.Body;
+            shot.TargetId = hit.Id;
+            ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition);
+            ShotRules.Chain(context, shot, definition.HitThingShotId, onThing: true);
+            ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, null);
+            if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+        }
         else if (hit != null)
         {
             // 0x004ABE7D: the thing struck is written into the target word before anything else.

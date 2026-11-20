@@ -223,7 +223,7 @@ kind); bit 0 → an attack spell, selected by the readiness order in
 `combat-spells.md` §5; bit 1 with target class 4
 (`vtable+0x1B0(def+0x44)[0x6A]`) → a thing-targeting spell. The bits are named
 from the roster in `combat-spells.md` §2. The attack survey is built (ADR-0167); the
-friendly survey is built too (ADR-0170, `spell-friendly-arm.md`); the thing-targeting spell is not (§6.3).
+friendly survey is built too (ADR-0170, `spell-friendly-arm.md`); the thing-targeting spell (Raise Dead) is §6.3, built (Q886).
 
 **The scans, in order.** Each keeps a running best and a tag; `d` is the
 squared distance of `combat-target-selection.md` §2.
@@ -298,7 +298,7 @@ see [0045CB00](functions/0045CB00.md) for the distance handoff and
    en route to a threat: state 6 resuming 251 or 202 (`0x0045E0C0`-`0x0045E0F4`). The approach,
    state 8 resuming 199, is left walking (ADR-0483).
 
-### 6.3 The body spell (Raise Dead; read 2026-11-20, STRONGLY INFERRED, not built)
+### 6.3 The body spell (Raise Dead; read 2026-11-20, STRONGLY INFERRED, built, Q886)
 
 The survey's body branch (`0x0045E12E`) is in `combat-spells.md` section 12. With no forced target,
 scan B (`0x0045D095`-`0x0045D164`) walks the **neutral** player's class-6 (body) list (`0x006F2548`,
@@ -310,6 +310,15 @@ must beat, and the trap scan is skipped when a body is chosen. Commit: `+0x502` 
 `SetState(199)`. `spFighting` keeps nibble 3 while the body lives (`+0x40`, its lifetime,
 [`DeadBody_Update`](functions/004B12D0.md) `0x004B12D0`, above 0) and approaches until
 `Combat_InReach` (`0x0045E8F0`).
+
+**Built** (`CombatTargetRules.ScanBodies`/`EngageBody`, `SpellRules.SurveyBody`, `FightRules.TargetIsValid`
+and `FireSpell`, `FightTargetKind.Body`, nibble 3 as `SpellAtAlly`). The seeded best is the arms' score, so a
+Blocker's enemy (score = distance) must be nearer than the body, while a Blitzer's (distance plus sight squared,
+which includes the shipped Vampire) never is in the arm; only a registered attacker (scan C, plain
+distance) nearer than the body displaces it. **Ours, stated:** the last body slot wins (none has two); an
+enemy chosen over the body that the route check then drops leaves no body, and the trap scan looks on; a
+chosen body also keeps scan E (the heart) out, as a target that is not a worker; the body's lifetime is
+the corpse window not yet elapsed (`DyingTicks`); the aim height is the body's own, with no half height added (whether DK2 adds one for a body is not established).
 
 ## 7. The engagement record (`+0x4FE`…)
 
@@ -356,8 +365,7 @@ in furniture-placement.md §6. Virtual ids stand in for original object handles.
 `LineOfSight` reproduces §5's walk; `CombatTargetRules.CanReach` §5's route sum.
 What a fighting creature then does is combat-fight-state.md.
 
-**Not built:** the thing-targeting survey and scan B;
-scan A; the Turncoat skips. `SneakingAs` is built (ADR-0446), the `Creeping` weighting too (ADR-0802). The flee
+**Not built:** the Turncoat skips. `SneakingAs` is built (ADR-0446), the `Creeping` weighting too (ADR-0802). The flee
 check is built since ADR-0165 (combat-fear.md §3.4).
 
 ## 10. What is left

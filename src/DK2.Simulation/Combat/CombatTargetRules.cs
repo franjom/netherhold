@@ -112,8 +112,8 @@ public sealed class HeartSites
 /// (scan E), the friendly scan (F), the final gate, and the fight-starter that registers the
 /// engagement and sets the reach (docs/research/combat-acquisition.md §6–§8), and the withdrawal of
 /// a hurt creature in place of the fight (combat-fear.md §3), and the attack-spell survey that lets
-/// a caster engage at its spell's range (combat-spells.md §5, ADR-0167). Not built and named there:
-/// the thing-targeting survey and scan B.</summary>
+/// a caster engage at its spell's range (combat-spells.md §5, ADR-0167), and the body spell with its
+/// scan B (Raise Dead, §6.3).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-acquisition.md")]
 public static class CombatTargetRules
 {
@@ -237,14 +237,15 @@ public static class CombatTargetRules
 
         // The spell survey (combat-spells.md §5), skipped for a worker: the attack spell the
         // fight-starter will pick over melee at range, and the last friendly slot for scan F.
-        // Thing-targeting spells are not built.
-        int spellSlot = -1, friendlySlot = -1;
-        CreatureSpellDef? spell = null, friendly = null;
+        // The body spell's slot (Raise Dead, §6.3) is surveyed with them.
+        int spellSlot = -1, friendlySlot = -1, bodySlot = -1;
+        CreatureSpellDef? spell = null, friendly = null, bodySpell = null;
         if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
         {
-            spellSlot = SpellRules.SurveyAttack(database, me, definition, context.Tick.Value, out spell,
-                whileRecharging: SpellWhileRecharging(context, me, definition, scratch));
+            bool waived = SpellWhileRecharging(context, me, definition, scratch);
+            spellSlot = SpellRules.SurveyAttack(database, me, definition, context.Tick.Value, out spell, whileRecharging: waived);
             friendlySlot = SpellRules.SurveyFriendly(database, me, definition, context.Tick.Value, out friendly);
+            bodySlot = SpellRules.SurveyBody(database, me, definition, context.Tick.Value, out bodySpell, whileRecharging: waived);
         }
 
         int best = int.MaxValue;
@@ -257,6 +258,8 @@ public static class CombatTargetRules
             chosen = ScanMissingForced(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
         }
         bool runOrdinaryScans = !forced && chosen is null;
+        // Scan B (0x0045D095): the nearest neutral body, whose distance seeds the best every enemy scan below must beat.
+        CreatureState? body = runOrdinaryScans && bodySlot >= 0 ? ScanBodies(context, sight, me, sightSq, ref best) : null;
         if (runOrdinaryScans)
             chosen = ScanAttackers(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
         // 0x0045D5BF: a follower takes its leader's last melee target over scan A's pick; with a
@@ -278,7 +281,10 @@ public static class CombatTargetRules
         // 0x0045D69D-0x0045D701: strategy scores choose the creature; the later
         // Heart comparison and commit use its plain distance, even if its route fails.
         if (chosen is not null && !forced)
+        {
             best = CombatRules.DistanceSquared(me.PosX, me.PosY, chosen.PosX, chosen.PosY);
+            body = null;   // an enemy that beat the body's distance replaces it
+        }
 
         // The route check on the arm's creature (0x0045D74A), before the thing scans: unwalkable, it is
         // dropped unless an attack spell can see it, and the scans below look on.
@@ -289,12 +295,14 @@ public static class CombatTargetRules
         // Scan D: an enemy's revealed trap, when no creature is left; skipped during Turncoat.
         TrapState? trap = null;
         int trapDistance = 0;
-        if (chosen is null) trap = ScanTraps(world, sight, me, definition, sightSq, out trapDistance);
+        // Skipped when a body was chosen (§6.3).
+        if (chosen is null && body is null) trap = ScanTraps(world, sight, me, definition, sightSq, out trapDistance);
 
         // Scan E: the enemy heart outranks nothing but a worker, and only an Imp or a Horned
-        // Reaper never looks at it; a trap outranks it (the class test at 0x0045D91B).
-        bool heartMayEnter = trap is null
-            && (chosen is null || ((database.CreatureById(chosen.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker));
+        // Reaper never looks at it; a trap outranks it (the class test at 0x0045D91B). Ours, stated:
+        // a chosen body is a target that is not a worker, so it keeps the heart out too.
+        bool heartMayEnter = trap is null && body is null
+            && (chosen is null ||((database.CreatureById(chosen.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker));
         int heartTile = -1;
         HeartPillar heartPillar = default;
         PlayerId heartOwner = 0;
@@ -308,6 +316,8 @@ public static class CombatTargetRules
             CreatureState? ally = FriendlyScan(context, sight, me, definition, friendly, sightSq, hearSq, scratch);
             if (ally != null) return EngageAlly(context, me, definition, ally, friendlySlot, friendly, scratch);
         }
+
+        if (body != null) return EngageBody(context, me, definition, body, bodySlot, bodySpell!);
 
         if (heartTile >= 0)
         {
@@ -476,6 +486,49 @@ public static class CombatTargetRules
         me.AttackSpellSlot = (byte)slot;
         me.AttackRangeSquared = SpellRules.RangeSquared(spell);
         Enter(context, me, mine, same, thing: false, $"ally={ally.Id} attack={(byte)me.AttackType} slot={slot}");
+        return true;
+    }
+
+    /// <summary>Scan B (<c>0x0045D095</c>–<c>0x0045D164</c>, combat-acquisition.md §6.3): the neutral player's
+    /// bodies in our list order, the strict nearest by plain distance within sight (inclusive) and seen;
+    /// a tie keeps the first met. Nothing else is tested: a carried body counts, a Graveyard's (owned) never
+    /// does. <paramref name="best"/> is left at the winner's distance, which the enemy scans must beat.</summary>
+    private static CreatureState? ScanBodies(SimulationContext context, ISightBlocker sight, CreatureState me, int sightSq, ref int best)
+    {
+        CreatureState? chosen = null;
+        EntityList<CreatureState> creatures = context.World.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            CreatureState candidate = creatures[i];
+            if (!CreatureDeathRules.IsCorpse(candidate) || candidate.BodyOwnerPlayerId != PlayerIds.Neutral) continue;
+            int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+            if (d >= best || d > sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY)) continue;
+            best = d;
+            chosen = candidate;
+        }
+        return chosen;
+    }
+
+    /// <summary>The body spell's commit (§6.3): the body as the target with nibble 3, the friendly arm's, the
+    /// slot and the spell's range squared, then state 199. No attacker slot is taken on a body.</summary>
+    private static bool EngageBody(
+        SimulationContext context, CreatureState me, CreatureDef mine, CreatureState body, int slot, CreatureSpellDef spell)
+    {
+        bool same = me.FightTargetKind == FightTargetKind.Body && me.FightTargetId == body.Id
+            && me.AttackType == CombatRules.AttackMode.SpellAtAlly;
+        if (me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId != CombatRules.NoTarget)
+        {
+            CreatureState? previous = context.World.CreatureById(me.FightTargetId);
+            if (previous != null) CombatRules.Unregister(previous, me.Id);
+        }
+        me.FightTargetKind = FightTargetKind.Body;
+        me.FightTargetId = body.Id;
+        me.FightTargetPlayerId = 0;
+        me.FightTargetTileIndex = -1;
+        me.AttackType = CombatRules.AttackMode.SpellAtAlly;
+        me.AttackSpellSlot = (byte)slot;
+        me.AttackRangeSquared = SpellRules.RangeSquared(spell);
+        Enter(context, me, mine, same, thing: false, $"body={body.Id} attack={(byte)me.AttackType} slot={slot}");
         return true;
     }
 
