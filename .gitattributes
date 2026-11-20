@@ -19,3 +19,7 @@ tests/DK2.Presentation.Tests/Fixtures/**/*.journal binary
 # Godot writes LF on every platform; without this, core.autocrlf checkouts make every
 # scene and resource the editor touches show as a whole-file diff (ADR-0810).
 godot/** text=auto eol=lf
+
+# C# source: stored LF in the repository, checked out in the platform's line endings
+# (CRLF on Windows, matching .editorconfig), so line endings never show as a diff.
+*.cs text

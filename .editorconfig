@@ -9,10 +9,11 @@ root = true
 
 [*.cs]
 
-# The repository is LF throughout. Say so explicitly, because `dotnet format`
-# will otherwise rewrite a whole file to CRLF on Windows the first time it
-# touches it, burying a one-line change in a few hundred lines of noise.
-end_of_line = lf
+# Working copies are CRLF (the owner works on Windows, 2026-11-20); the
+# repository stores LF. .gitattributes normalises *.cs with `text`, so git
+# converts on commit and checkout and a line-ending change never shows as a
+# diff. Editors and `dotnet format` write CRLF to match a Windows checkout.
+end_of_line = crlf
 insert_final_newline = true
 
 # ---------------------------------------------------------------------------
