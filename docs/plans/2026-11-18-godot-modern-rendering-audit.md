@@ -76,10 +76,19 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
   Final artifact root: `C:/Users/franj/AppData/Local/Temp/dk2-3pb-20261119/`; capture manifest/crops:
   `captures/comparisons-newbatch/results.json`; performance: `batch-perf/comparison.txt` and `summary.json`;
   drag samples: `captures/{headtiming,newbatchtiming}/drag-off/drag-timing.json`.
-- **4. P2, M-L. One opaque surface per texture key per chunk** (`WorldScene.cs:285-293`). Replace with a
-  `Texture2DArray`, a per-vertex layer and self-illumination: 1 to 2 surfaces per chunk. Gain: opaque draws drop from
-  hundreds (estimate; measure with item 0) to about 2 a chunk. Risks: per-size arrays; mips and clamp identical; phase
-  and decay need a layer-offset texel or a rebuild. Depends on 3 and 0.
+- **4. P2, M-L. Texture arrays: measured, not worth it (2026-11-20)** on the tested 1080p classic
+  Level1/Level7 workloads. Keep the opaque surfaces per texture key; no texture-array implementation was built.
+  Two interleaved rounds used the same turn-200 saves and 1,800-frame camera script on the integrated AMD GPU.
+  Loaded terrain had 34 surfaces in 6 chunks (maximum 13) on Level1 and 135 in 20 (maximum 45) on Level7;
+  hiding opaque chunks removed about 33/112 visible draws. Render-CPU p50 fell by 0.157/0.136 ms and
+  0.288/0.285 ms respectively: median upper bounds of 0.147/0.287 ms, not measured array savings.
+  A scratch HEAD probe split each surface into four, retaining its triangles and material, adding about 96/318
+  visible draws. GPU p50 control/split was 2.582/1.978 then 1.852/1.853 ms on Level1, and 2.341/2.320 then
+  2.492/2.808 ms on Level7. GPU benefit remains unresolved within noise (Level7 split repeat spread 0.488 ms).
+  Allocation p50 stayed 7,296 bytes/frame on Level1 and 10,296-10,304 on Level7. Modern lighting was not measured;
+  no pixel-equality or array-GPU claim follows. Revisit if another workload establishes a material submission cost.
+  Raw reports and probe sources: `C:/Users/franj/AppData/Local/Temp/dk2-item4-20261120/`; summary: `summary.txt`,
+  visibility runs: `probe/`, draw-sensitivity runs: `sensitivity/`. These are diagnostics, not product changes.
 - **5. P1, M. Blended terrain order. Done (3q, 2026-11-19).** The shared `BlendedRunSlots` keys each run by its
   distance to the eye (the nearest centroid, falling down the stream so the runs keep their order), Godot's own sort measure,
   so blended objects, flames, the cage and the effect batches, keyed by their box centres, fall between runs; terrain
@@ -160,7 +169,7 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 6. 3k on MultiMesh, with the flames (item 6): done (2026-11-19).
 7. 3l.
 8. 3m and 3n (independent, parallel).
-9. The remaining replacements: texture arrays (4, once 3o shows it pays), vertex animation (8), minimap shader (10),
+9. Item 4 is measured/no-go above. The remaining replacements start with vertex animation (8), minimap shader (10),
    AA (16 then 17), HUD text atlas (11), liquids (9), chunk upload tweak (12).
 10. The rest of step 4 unchanged; its performance targets are set from 3o's numbers.
 

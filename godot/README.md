@@ -373,6 +373,8 @@ python godot/perf_compare.py <dir>/classic <dir>/perpixel --phase moving
 prints each metric's change with the other CPU load and the spread of frame p50 across repeats (differences inside that
 spread are noise); it warns when the sides differ in camera script, frame counts, Godot, builds, V-Sync, GPU or seed.
 
+Texture arrays remain deferred after measurement; see [modern-rendering audit item 4](../docs/plans/2026-11-18-godot-modern-rendering-audit.md#items).
+
 ## Upgrading Godot
 
 1. Take the new build's file name and SHA-512 from the release's `SHA512-SUMS.txt`
