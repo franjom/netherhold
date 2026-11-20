@@ -131,7 +131,7 @@ public static class Recipes
             + "off, become keeper 3's Inferno (9) and Chicken (11) at availability 3.",
             b =>
             {
-                Recipes.All.Single(r => r.Name == "Q498Spells2").Build(b);
+                Recipes.All!.Single(r => r.Name == "Q498Spells2").Build(b);
                 if (!b.RepointAvailability(AvailabilityKind.Spell, Rival, 2, Keeper, 9, 3)
                     || !b.RepointAvailability(AvailabilityKind.Spell, Rival, 4, Keeper, 11, 3))
                     throw new InvalidOperationException("Small no longer carries keeper 4's spell rows 2 and 4");
@@ -143,7 +143,7 @@ public static class Recipes
             + "after the Chicken.",
             b =>
             {
-                Recipes.All.Single(r => r.Name == "Q498Spells3").Build(b);
+                Recipes.All!.Single(r => r.Name == "Q498Spells3").Build(b);
                 var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
                 b.InsertThing(door with { X = 23, Y = 4, DoorId = WoodenDoor, PlayerId = Keeper, Flags = 1 }, doorImage);
             }),
@@ -223,6 +223,38 @@ public static class Recipes
                 if (!b.RepointAvailability(AvailabilityKind.Spell, Rival, 2, Keeper, CallToArms, 3))
                     throw new InvalidOperationException("Small no longer carries keeper 4's spell row 2");
             }),
+        new("Q886RaiseDead", "Small",
+            "Q886 owner check (2026-11-20): does a level-10 Vampire raise fresh battlefield bodies but never ones already in a "
+            + "Graveyard? Small with keeper 4's AI off and every tile impenetrable rock but the Hearts and three sealed chambers of "
+            + "keeper 3's Claimed Path. V (x 20..22, rows 3..5): a level-10 keeper Vampire at (21,4), for the owner to pick up and "
+            + "drop. F (x 26..38, rows 3..9): the open ground; two keeper Sentries and four hero Dwarves at 1% health with "
+            + "DieInstantly (Flags2 bit 4), shot dead within seconds, so four fresh neutral bodies lie at x 30..31. G (x 26..36, "
+            + "rows 21..25): a keeper Graveyard (x 26..30) with two keeper Imps, a Sentry at (33,23) and three such Dwarves standing "
+            + "in it, whose bodies the Graveyard takes as the keeper's. No placed dead body exists in any shipped level (tag 202, "
+            + "Q221), so the Sentries make the bodies. A LevelRating override becomes DeadBodyDiesAfterSeconds 600, so bodies "
+            + "lie ten minutes, not one, while the owner walks the Vampire over.",
+            b =>
+            {
+                RaiseDeadHalls(b);
+                if (!b.RepointVariable(VariableTypeId.LevelRating, VariableTypeId.DeadBodyDiesAfterSeconds, 600))
+                    throw new InvalidOperationException("Small no longer carries a LevelRating override");
+            }),
+        new("Q886Wind", "Small",
+            "Q886 owner check (2026-11-20): does a Fairy's Wind drift well past one tile and last seconds? Small with keeper 4's AI "
+            + "off and two sealed straight halls of keeper 3's Claimed Path, x 2..45, three rows wide, no wall nearer than the far "
+            + "end. Rows 3..5: a level-10 keeper Fairy at (4,4) (Wind comes at level 10) and three level-10 hero Knights at x 12, "
+            + "eight tiles off. Rows 24..26: a level-8 keeper Firefly at (4,25) (Wind comes at level 8) and the same three Knights. "
+            + "The Firefly is the control: the Fairy may prefer Lightning, and a Knight knocked down far from the caster shows "
+            + "the wind reached it.",
+            WindHalls),
+        new("Q886Wind2", "Small",
+            "Q886Wind as played failed (2026-11-20): three level-10 Knights (Threat 213 x 5 at level 10, combat-fear.md) terrified the "
+            + "Fairy so she never cast, and the Firefly's three killed it. Same two halls (x 2..45, rows 3..5 and 24..26), now with "
+            + "both casters at level 10 (Firefly Fear 19 x 5 = 95) and level-1 hero Dwarves (Threat 20 each, under 95 even when "
+            + "four stand on it): in each hall at (5,4) and (6,3) to provoke the cast at one tile's range, then in row 4 at x 7, "
+            + "10, 14, 19, 24, 30 and 38 (3, 6, 10, 15, 20, 26 and 34 tiles from the caster at x 4), so a Dwarf knocked down "
+            + "far from the caster shows the wind travelled that far.",
+            WindHalls2),
     ];
 
     private const byte CallToArms = 3;
@@ -329,6 +361,104 @@ public static class Recipes
     }
 
     private const byte Rival = 4;
+    private const byte GraveyardTerrain = 23, Fairy = 20, Firefly = 12;
+
+    /// <summary>Small with keeper 4's AI off, every tile impenetrable rock but the two Hearts and the tiles
+    /// <paramref name="floor"/> names (a terrain id, owned by keeper 3), and the placed objects outside them removed.</summary>
+    private static void SealedHalls(LevelBuilder b, Func<int, int, byte?> floor)
+    {
+        LevelMap map = b.Map;
+        var rock = new MapTile(ImpenetrableRock, Neutral, 1, 0);
+        for (int y = 1; y < map.Height - 1; y++)
+            for (int x = 1; x < map.Width - 1; x++)
+                if (floor(x, y) is byte terrain) b.Paint(x, y, new MapTile(terrain, Keeper, 1, 0));
+                else if (map[x, y].TerrainId is not (9 or 14)) b.Paint(x, y, rock);
+        // One sealed tile of the heroes' own, so the remake's harness makes player 1 too (levelgen README).
+        b.Paint(44, 28, new MapTile(ClaimedPath, Heroes, 1, 0));
+        b.SetAiFlag(Rival, false);
+
+        var things = b.Things;
+        for (int i = things.Count - 1; i >= 0; i--)
+            if (things[i] is ObjectThing o && map[o.X, o.Y].TerrainId is not (9 or 14) && floor(o.X, o.Y) is null) b.RemoveThing(i);
+    }
+
+    /// <summary>The Q886RaiseDead layout: V, F and G (see the recipe).</summary>
+    private static void RaiseDeadHalls(LevelBuilder b)
+    {
+        SealedHalls(b, (x, y) =>
+            (x is >= 20 and <= 22 && y is >= 3 and <= 5) || (x is >= 26 and <= 38 && y is >= 3 and <= 9)
+            || (x is >= 31 and <= 36 && y is >= 21 and <= 25) ? ClaimedPath
+            : x is >= 26 and <= 30 && y is >= 21 and <= 25 ? GraveyardTerrain : null);
+
+        var (keeper, keeperImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Rival && c.CreatureId == Imp);
+        void Creature(int x, int y, byte id, byte level) => b.InsertThing(keeper with
+        {
+            X = x, Y = y, CreatureId = id, PlayerId = Keeper, Level = level, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+        }, keeperImage);
+        Creature(21, 4, Vampire, 10);
+        Creature(35, 22, Imp, 1);
+        Creature(35, 24, Imp, 1);
+
+        // 1% health and DieInstantly (Flags2 bit 4, creature-death.md): one Sentry shot kills a Dwarf where it stands
+        var (hero, heroImage) = b.Template<GoodCreatureThing>(g => g.CreatureId == Dwarf);
+        void Victim(int x, int y) => b.InsertThing(hero with
+        {
+            X = x, Y = y, CreatureId = Dwarf, Level = 1, InitialHealth = 1, ObjectiveTargetActionPointId = 0,
+            TriggerId = 0, PartyId = 0, Flags2 = (byte)(hero.Flags2 | 4),
+        }, heroImage);
+        foreach (var (x, y) in new[] { (30, 4), (30, 6), (30, 8), (31, 6) }) Victim(x, y);   // F
+        foreach (var (x, y) in new[] { (29, 22), (30, 23), (29, 24) }) Victim(x, y);          // G, on Graveyard tiles
+
+        var (sentry, sentryImage) = b.Template<TrapThing>(t => t.TrapId == HeroSentry);
+        foreach (var (x, y) in new[] { (27, 4), (27, 8), (32, 23) })
+            b.InsertThing(sentry with { X = x, Y = y, TrapId = SentryTrap, PlayerId = Keeper }, sentryImage);
+    }
+
+    /// <summary>The Q886Wind2 layout: Q886Wind's halls with both casters at level 10 and level-1 Dwarves, not Knights.</summary>
+    private static void WindHalls2(LevelBuilder b)
+    {
+        SealedHalls(b, (x, y) => x is >= 2 and <= 45 && (y is >= 3 and <= 5 || y is >= 24 and <= 26) ? ClaimedPath : null);
+
+        var (keeper, keeperImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Rival && c.CreatureId == Imp);
+        var (hero, heroImage) = b.Template<GoodCreatureThing>(g => g.CreatureId == Dwarf);
+        foreach (var (row, caster) in new[] { (4, Fairy), (25, Firefly) })
+        {
+            b.InsertThing(keeper with
+            {
+                X = 4, Y = row, CreatureId = (byte)caster, PlayerId = Keeper, Level = 10, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+            }, keeperImage);
+            foreach (var (x, y) in new[] { (5, row), (6, row - 1), (7, row), (10, row), (14, row), (19, row), (24, row), (30, row), (38, row) })
+                b.InsertThing(hero with
+                {
+                    X = x, Y = y, CreatureId = Dwarf, Level = 1, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+                    TriggerId = 0, PartyId = 0, Flags2 = (byte)(hero.Flags2 & ~4),
+                }, heroImage);
+        }
+    }
+
+    /// <summary>The Q886Wind layout: two straight halls, x 2..45 and three rows wide (rows 3..5 and 24..26).</summary>
+    private static void WindHalls(LevelBuilder b)
+    {
+        SealedHalls(b, (x, y) => x is >= 2 and <= 45 && (y is >= 3 and <= 5 || y is >= 24 and <= 26) ? ClaimedPath : null);
+
+        var (keeper, keeperImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Rival && c.CreatureId == Imp);
+        b.InsertThing(keeper with
+        {
+            X = 4, Y = 4, CreatureId = Fairy, PlayerId = Keeper, Level = 10, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+        }, keeperImage);
+        b.InsertThing(keeper with
+        {
+            X = 4, Y = 25, CreatureId = Firefly, PlayerId = Keeper, Level = 8, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+        }, keeperImage);
+
+        var (hero, heroImage) = b.Template<GoodCreatureThing>(g => g.CreatureId == Dwarf);
+        foreach (int y in new[] { 3, 4, 5, 24, 25, 26 })
+            b.InsertThing(hero with
+            {
+                X = 12, Y = y, CreatureId = Knight, Level = 10, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+                TriggerId = 0, PartyId = 0, Flags2 = (byte)(hero.Flags2 & ~4),
+            }, heroImage);
+    }
 
     /// <summary>Repaints the base level from a DK2 save of that level (terrain, owner and flags per tile)
     /// and drops placed objects now inside solid rock or wall.</summary>
