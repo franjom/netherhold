@@ -49,6 +49,7 @@ public partial class WorldScene
 
     private static void Offer(WorldHoverPicker picker, ModelSlot slot, WorldHoverHit candidate, NVector3 origin, NVector3 direction)
     {
+        if (slot.Sphere is PickSphere broad && !picker.Holds(broad.Centre, broad.Radius, out _)) return;
         slot.Measure(out PickBox bounds, out PickSphere? sphere);
         if (!picker.TryAdmit(candidate, bounds, sphere, out HoverPickProbe probe)) return;
         picker.Offer(candidate, probe, slot.NearestTriangle(origin, direction, picker.TerrainDistance));

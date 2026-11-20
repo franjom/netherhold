@@ -13,6 +13,24 @@ namespace DK2.Convert.Tests;
 
 public class RenderAnimationTests
 {
+    [Fact]
+    public void IndividualVerticesAndDecodedFramesMatchTheFullSamplerIncludingEndpoints()
+    {
+        var clip = new RenderAnimation(KmfReader.Read(AnimatedKmfFixture.TwoFrames()));
+        var full = new Vector3[clip.Mesh.Positions.Count];
+        foreach (float phase in new[] { -1f, 0f, .001f, .25f, .5f, .999f, 1f, 2f })
+        {
+            clip.Sample(phase, false, full);
+            for (int vertex = 0; vertex < full.Length; vertex++)
+                Assert.Equal(full[vertex], clip.SampleVertex(phase, vertex));
+        }
+        for (int frame = 0; frame < clip.FrameCount; frame++)
+        {
+            clip.Sample((float)frame / (clip.FrameCount - 1), false, full);
+            Assert.Equal(full, clip.Frame(frame).ToArray());
+        }
+    }
+
     [InstallTheory]
     [InlineData("Warlock", 147)]
     [InlineData("Goblin", 197)]

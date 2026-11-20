@@ -1090,8 +1090,8 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         match. This does not establish the required absence of a regression; 3n and remaining-overlay acceptance stay
         unchecked until the Level7 classic frame-time difference is resolved. Raw reports: `perf/`, `perf-modern/`,
         `perf-preview/`; summaries: `perf-summary/`. No subtitles or function-record edits; subtitles remain step 4.
-  - [ ] Then the remaining replacements in the audit's order: vertex animation (texture arrays measured/no-go; see audit item 4),
-        the minimap shader, AA, the HUD text atlas, liquid waves, the chunk upload tweak.
+  - [ ] Then the remaining replacements in the audit's order: the minimap shader (10), AA, the HUD text atlas,
+        liquid waves, the chunk upload tweak. Vertex animation is complete; see audit item 8 (texture arrays remain measured/no-go, item 4).
 - [x] The remaining 3D overlays (the scripted paths, 3n), then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging

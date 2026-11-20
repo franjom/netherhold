@@ -47,8 +47,11 @@ torches, bent by `TorchGeometry` and bent again in place when a tile near the wa
 camera-facing billboards, drawn upright: one texture array of the frames, every flame an instance of one batch with its frame
 in the custom data (audit item 6, step 3k). A blended object sorts by its AABB centre among the blended runs.
 Creatures (`WorldScene.Creatures.cs`, step 3g) are one node per creature on the same shared models, each
-clip played by `CreatureAnimationPlayer` with the vertex positions rewritten in place, from a clip set cached per entry and
-mesh copies per template. The scene hosts the shared `SceneFrame` (`ISceneFrameHost`), so a frame runs in Unity's order:
+clip timed by `CreatureAnimationPlayer`, with one shared mesh and RGBF position texture per clip
+(`WorldScene.VertexAnimation.cs`). The world vertex shader interpolates by each instance's phase before lighting;
+control points and lightning sample individual CPU vertices, and picking lazily samples the full pose after sphere rejection.
+Clip-wide bounds cover every frame while blended ordering keeps the first-frame centre. Measurements and capture scope:
+[modern-rendering audit item 8](../docs/plans/2026-11-18-godot-modern-rendering-audit.md). The scene hosts the shared `SceneFrame` (`ISceneFrameHost`), so a frame runs in Unity's order:
 each creature's place from `PoseInterpolator` (through `RightHandedFrame`), its clip, then its head point. A creature that dies
 or leaves is removed, and an idle creature's clip swap keeps the node and restarts the clip. A gem carrier's sparkle is
 requested from the frame (3k); crackle uses the shared `LightningDrawList` in that order (3l). Footsteps still wait for sound (step 4);

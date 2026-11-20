@@ -12,7 +12,7 @@ namespace DK2.Art;
 /// with. <typeparamref name="TResources"/> is the engine's per-clip set (mesh templates, materials).</summary>
 public interface ICreatureAnimationSurface<TResources>
 {
-    /// <summary>Make the engine copies for <paramref name="clips"/>, by <see cref="AnimationSegment"/>; null where the
+    /// <summary>Install the engine resources for <paramref name="clips"/>, by <see cref="AnimationSegment"/>; null where the
     /// clip has no such segment.</summary>
     void Install(RenderAnimation?[] clips, TResources resources);
 
@@ -22,6 +22,12 @@ public interface ICreatureAnimationSurface<TResources>
     /// <summary>The segment's vertices as just sampled, model-local in <see cref="RenderMesh"/>'s frame. The buffer is
     /// the player's and is rewritten by the next draw.</summary>
     void Upload(AnimationSegment segment, Vector3[] vertices);
+}
+
+/// <summary>A GPU renderer's optional surface: receives the shared clock's pose instead of CPU vertex uploads.</summary>
+public interface ICreatureAnimationPoseSurface
+{
+    void Pose(AnimationSegment segment, float phase);
 }
 
 /// <summary>A tagged point of the drawn clip, model-local in <see cref="RenderMesh"/>'s frame.</summary>
@@ -56,15 +62,13 @@ public static class CreatureAnimationArt
 }
 
 /// <summary>Plays one creature's or object's type-6 clip on the draw clock: the turn catch-up, the deferred replacement,
-/// the loop beat, the footstep marks and the sampling. Render only; it allocates a clock per started clip and a sample
-/// buffer per clip it has not drawn before, which it keeps.</summary>
+/// the loop beat, the footstep marks and the sampling. Render only; it allocates a clock per started clip and retains
+/// a buffer per fully sampled clip. Pose surfaces sample the full clip only on demand.</summary>
 public sealed class CreatureAnimationPlayer<TResources>
 {
-    private const int SegmentCount = 3;
     private const uint LightningPointLimit = 2000;
     private readonly ICreatureAnimationSurface<TResources> _surface;
-    private readonly Vector3[]?[] _samples = new Vector3[SegmentCount][];
-    // Each clip's own buffer, so switching between clips of different vertex counts allocates nothing once each has played.
+    // Retain each fully sampled clip's buffer; pose-only draws and tagged points need none.
     private readonly Dictionary<RenderAnimation, Vector3[]> _buffers = new();
     private readonly AnimationMarkWatcher _marks = new();
     private RenderAnimation?[]? _clips;
@@ -77,6 +81,8 @@ public sealed class CreatureAnimationPlayer<TResources>
     private TResources _pendingResources = default!;
     private int _resourceRevision;
     private int _mark1, _mark2;
+    private float _drawnPhase;
+    private bool _sampleCurrent;
 
     public CreatureAnimationPlayer(ICreatureAnimationSurface<TResources> surface) =>
         _surface = surface ?? throw new ArgumentNullException(nameof(surface));
@@ -145,7 +151,7 @@ public sealed class CreatureAnimationPlayer<TResources>
     }
 
     /// <summary>Draws the clip at <paramref name="seconds"/>: advances the clock one turn for each turn since the start
-    /// not yet advanced (the start's own turn included), samples the pose and hands the vertices to the surface.</summary>
+    /// not yet advanced (the start's own turn included), then hands the pose or sampled vertices to the surface.</summary>
     public void Draw(double seconds, Fp32? movementSpeed = null, bool hold = false, Fp32? phaseStepOverride = null)
     {
         if (_clock == null) return;
@@ -173,9 +179,26 @@ public sealed class CreatureAnimationPlayer<TResources>
             _surface.Show(segment);
             _drawnSegment = segment;
         }
-        Vector3[] sample = _samples[(int)segment]!;
-        _clips![(int)segment]!.Sample(pose.Phase, false, sample);
-        _surface.Upload(segment, sample);
+        _drawnPhase = pose.Phase;
+        _sampleCurrent = false;
+        if (_surface is ICreatureAnimationPoseSurface gpu) gpu.Pose(segment, pose.Phase);
+        else if (TryGetSample(out Vector3[] sample)) _surface.Upload(segment, sample);
+    }
+
+    /// <summary>The last drawn pose, sampled only on request and cached until the next draw.</summary>
+    public bool TryGetSample(out Vector3[] vertices)
+    {
+        vertices = Array.Empty<Vector3>();
+        if (_clock == null || !_drawnSegment.HasValue || _clips == null) return false;
+        int segment = (int)_drawnSegment.Value;
+        RenderAnimation? clip = _clips[segment];
+        if (clip == null) return false;
+        if (!_buffers.TryGetValue(clip, out Vector3[]? buffer))
+            _buffers.Add(clip, buffer = new Vector3[clip.Mesh.Positions.Count]);
+        vertices = buffer;
+        if (!_sampleCurrent) clip.Sample(_drawnPhase, false, vertices);
+        _sampleCurrent = true;
+        return true;
     }
 
     /// <summary>The drawn clip's tagged point <paramref name="id"/> (a KMF control point) as last drawn, model-local:
@@ -186,10 +209,9 @@ public sealed class CreatureAnimationPlayer<TResources>
         if (!_drawnSegment.HasValue || _clips == null) return false;
         int segment = (int)_drawnSegment.Value;
         RenderAnimation? clip = _clips[segment];
-        Vector3[]? sample = _samples[segment];
-        if (clip == null || sample == null || !clip.Mesh.ControlPoints.TryGetValue(id, out int index)
-            || index >= sample.Length) return false;
-        local = sample[index];
+        if (clip == null || !clip.Mesh.ControlPoints.TryGetValue(id, out int index)
+            || index >= clip.Mesh.Positions.Count) return false;
+        local = clip.SampleVertex(_drawnPhase, index);
         return true;
     }
 
@@ -201,14 +223,13 @@ public sealed class CreatureAnimationPlayer<TResources>
         if (!_drawnSegment.HasValue || _clips == null) return;
         int segment = (int)_drawnSegment.Value;
         RenderAnimation? clip = _clips[segment];
-        Vector3[]? sample = _samples[segment];
-        if (clip == null || sample == null) return;
+        if (clip == null) return;
         IReadOnlyList<RenderControlPoint> tagged = clip.Mesh.TaggedPoints;
         for (int i = 0; i < tagged.Count; i++)
         {
             RenderControlPoint control = tagged[i];
-            if (control.Id < LightningPointLimit && control.VertexIndex < sample.Length)
-                points.Add(new AnimationPoint(control.Id, sample[control.VertexIndex]));
+            if (control.Id < LightningPointLimit && control.VertexIndex < clip.Mesh.Positions.Count)
+                points.Add(new AnimationPoint(control.Id, clip.SampleVertex(_drawnPhase, control.VertexIndex)));
         }
     }
 
@@ -235,14 +256,7 @@ public sealed class CreatureAnimationPlayer<TResources>
         InstallationRevision++;
         _drawnSegment = null;
         _clips = clips;
-        for (int i = 0; i < SegmentCount; i++)
-        {
-            RenderAnimation? clip = i < clips.Length ? clips[i] : null;
-            if (clip == null) continue;
-            if (!_buffers.TryGetValue(clip, out Vector3[]? buffer))
-                _buffers.Add(clip, buffer = new Vector3[clip.Mesh.Positions.Count]);
-            _samples[i] = buffer;
-        }
+        _sampleCurrent = false;
         _surface.Install(clips, resources);
     }
 }

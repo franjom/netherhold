@@ -12,6 +12,115 @@ namespace DK2.Convert.Tests;
 
 public class CreatureAnimationPlayerTests
 {
+    [Fact]
+    public void PoseSurfaceDrawsWithoutUploadAndLazySamplesTrackTheLastDraw()
+    {
+        var surface = new PoseSurface();
+        var player = new CreatureAnimationPlayer<int>(surface);
+        RenderAnimation?[] clips = Clips();
+        player.Configure(clips, 1, Quarter, loop: true, start: 0);
+        player.Draw(.17);
+        Assert.Equal(2, surface.Poses);
+        Assert.True(player.TryGetSample(out Vector3[] first));
+        var expected = new Vector3[first.Length];
+        clips[1]!.Sample(surface.Phase, false, expected);
+        Assert.Equal(expected, first);
+        Assert.True(player.TryGetSample(out Vector3[] same));
+        Assert.Same(first, same);
+        player.Draw(.43);
+        Assert.True(player.TryGetSample(out Vector3[] next));
+        clips[1]!.Sample(surface.Phase, false, expected);
+        Assert.Equal(expected, next);
+        player.Stop();
+        Assert.False(player.TryGetSample(out _));
+    }
+
+    [Fact]
+    public void PoseOnlyControlPointsAndLightningMatchTheCpuPoseAcrossReplacement()
+    {
+        var surface = new PoseSurface();
+        var player = new CreatureAnimationPlayer<int>(surface);
+        RenderAnimation clip = new(KmfReader.Read(AnimatedKmfFixture.TwoFramesWithControls(
+            (1u << 16, KmfControlPoint.Head), (2u << 16, 10), (0, 1999))));
+        var expected = new Vector3[clip.Mesh.Positions.Count];
+        var points = new List<AnimationPoint>();
+        player.Configure([null, clip, null], 0, Quarter, loop: true, start: .1);
+        for (int i = 0; i < 20; i++)
+        {
+            player.Draw(i * .17);
+            clip.Sample(surface.Phase, false, expected);
+            Assert.True(player.TryGetControlPoint(KmfControlPoint.Head, out Vector3 head));
+            Assert.Equal(expected[1], head);
+            player.CollectLightningPoints(points);
+            Assert.Equal(new[] { new AnimationPoint(10, expected[2]), new AnimationPoint(1999, expected[0]) }, points);
+        }
+        Assert.True(player.TryGetSample(out Vector3[] old));
+        player.Configure(Clips(), 1, Quarter, loop: true, start: 4, replacement: AnimationReplacement.Deferred);
+        player.Draw(5);
+        Assert.True(player.TryGetSample(out Vector3[] replaced));
+        Assert.NotSame(old, replaced);
+        player.Stop();
+        player.Configure([null, clip, null], 0, Quarter, loop: true, start: 6);
+        Assert.True(player.TryGetSample(out Vector3[] restarted));
+        Assert.Same(old, restarted);
+        clip.Sample(surface.Phase, false, expected);
+        Assert.Equal(expected, restarted);
+    }
+
+    [Fact]
+    public void PoseOnlyDrawAndWarmLazySamplingAllocateNothing()
+    {
+        for (int pass = 0; pass < 2; pass++)
+        {
+            var player = new CreatureAnimationPlayer<int>(new PoseSurface());
+            player.Configure(Clips(), 0, Quarter, loop: true, start: 0);
+            player.TryGetSample(out _);
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            for (int i = 0; i < 200; i++)
+            {
+                player.Draw(i * .031);
+                player.TryGetSample(out _);
+            }
+            if (pass == 1) Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+            Assert.True(player.Clock!.CompletedLoops > 0);
+        }
+    }
+
+    [Fact]
+    public void PoseSurfaceSelectsAndSamplesTheSameStartMainAndEndAsTheUploadSurface()
+    {
+        RenderAnimation?[] clips = [new(KmfReader.Read(AnimatedKmfFixture.TwoFrames())),
+            new(KmfReader.Read(AnimatedKmfFixture.KeyedAtFramesZeroAndTwo())),
+            new(KmfReader.Read(AnimatedKmfFixture.TwoFramesWithControls((0, 7))))];
+        var timing = Quarter with { Flags = CreatureAnimationFlags.StartSegment | CreatureAnimationFlags.EndSegment,
+            StartSegmentFrames = 2, EndSegmentFrames = 2 };
+        var cpuSurface = new Surface();
+        var gpuSurface = new PoseSurface();
+        var cpu = new CreatureAnimationPlayer<int>(cpuSurface);
+        var gpu = new CreatureAnimationPlayer<int>(gpuSurface);
+        cpu.Configure(clips, 0, timing, loop: false, start: 0);
+        gpu.Configure(clips, 0, timing, loop: false, start: 0);
+        for (int i = 0; i < 40; i++)
+        {
+            cpu.Draw(i * .0625);
+            gpu.Draw(i * .0625);
+            Assert.Equal(cpu.DrawnSegment, gpu.DrawnSegment);
+            Assert.True(gpu.TryGetSample(out Vector3[] posed));
+            Assert.Equal(cpuSurface.Last, posed);
+        }
+        Assert.Equal(new[] { AnimationSegment.Start, AnimationSegment.Main, AnimationSegment.End }, cpuSurface.Shown);
+    }
+
+    private sealed class PoseSurface : ICreatureAnimationSurface<int>, ICreatureAnimationPoseSurface
+    {
+        public int Poses;
+        public float Phase;
+        public void Install(RenderAnimation?[] clips, int resources) { }
+        public void Show(AnimationSegment segment) { }
+        public void Upload(AnimationSegment segment, Vector3[] vertices) => throw new InvalidOperationException("Unexpected CPU upload");
+        public void Pose(AnimationSegment segment, float phase) { Poses++; Phase = phase; }
+    }
+
     // Eight frames at eight a second: a quarter of the clip (1024) a turn.
     private static readonly CreatureAnimationTiming Quarter = new() { ResourceType = 6, FrameCount = 8, FramesPerSecond = 8 };
 

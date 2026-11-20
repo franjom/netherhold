@@ -383,7 +383,7 @@ public partial class WorldScene
     /// environment pass or red pass draws as its next pass (<see cref="Extras"/>). The tint, fade and red themselves are
     /// the instance's (<see cref="ModelInstanceLook"/>, <see cref="ModelSlot.ApplyLooks"/>), so they make no material.</summary>
     private readonly record struct ObjectSurfaceKey(ObjectMaterialLook Look, ObjectMaterialLook? Environment, bool InstanceLook,
-        bool KmfBlended, bool Extras);
+        bool KmfBlended, bool Extras, VertexClip? Animation = null);
 
     private static readonly StringName ModelVertexParameter = "model_vertex", InstanceLookParameter = "instance_look",
         KmfBlendedParameter = "kmf_blended", EnvironmentPassParameter = "environment_pass",
@@ -392,7 +392,7 @@ public partial class WorldScene
         EnvironmentDrawnParameter = "dk2_environment", RedParameter = "dk2_red";
 
     // An alpha-blended surface's additive next pass, one per environment pass and KMF blend (Extras).
-    private readonly Dictionary<(ObjectMaterialLook? Environment, bool KmfBlended), ShaderMaterial> _extrasMaterials = new();
+    private readonly Dictionary<(ObjectMaterialLook? Environment, bool KmfBlended, VertexClip? Animation), ShaderMaterial> _extrasMaterials = new();
 
     /// <summary>The world material of a model surface, one per <see cref="ObjectSurfaceKey"/>; the shader is the terrain's
     /// (<see cref="ShaderFor"/>), lit through a model's light inputs.</summary>
@@ -403,7 +403,8 @@ public partial class WorldScene
         material = ModelMaterial(look.Texture, look.Blend, look.WritesDepth, look.FullLight, look.Colour, look.AddedLight,
             key.KmfBlended, key.Environment);
         if (key.InstanceLook) material.SetShaderParameter(InstanceLookParameter, true);
-        if (key.Extras) material.NextPass = Extras(key.Environment, key.KmfBlended);
+        key.Animation?.Bind(material);
+        if (key.Extras) material.NextPass = Extras(key.Environment, key.KmfBlended, key.Animation);
         _objectMaterials.Add(key, material);
         return material;
     }
@@ -427,12 +428,13 @@ public partial class WorldScene
 
     /// <summary>An alpha-blended surface's next pass: its environment pass and the hover's red added over the whole
     /// triangle, as DK2 and Unity draw them after the material, rather than weighed by the texture's alpha in its own pass.</summary>
-    private ShaderMaterial Extras(ObjectMaterialLook? environment, bool kmfBlended)
+    private ShaderMaterial Extras(ObjectMaterialLook? environment, bool kmfBlended, VertexClip? animation)
     {
-        if (_extrasMaterials.TryGetValue((environment, kmfBlended), out ShaderMaterial? material)) return material;
+        if (_extrasMaterials.TryGetValue((environment, kmfBlended, animation), out ShaderMaterial? material)) return material;
         material = ModelMaterial("", KmfBlend.Additive, false, true, System.Numerics.Vector4.One, default, kmfBlended, environment);
         material.SetShaderParameter(ExtrasOnlyParameter, true);
-        _extrasMaterials.Add((environment, kmfBlended), material);
+        animation?.Bind(material);
+        _extrasMaterials.Add((environment, kmfBlended, animation), material);
         return material;
     }
 
@@ -456,10 +458,9 @@ public partial class WorldScene
             new(Swap || other.Swap, RedOpaque || other.RedOpaque, RedBlended || other.RedBlended);
     }
 
-    /// <summary>Rewrites each surface's positions in place from <paramref name="vertices"/> (the renderers' frame, by
-    /// source vertex) through one reused buffer: a dynamic surface's vertex stream starts with its positions as one block (the
-    /// normals, kept, follow it; rendering_server.cpp at c51ff06e8), checked when an animated copy is made. <paramref name="box"/> is the box around the vertices the
-    /// surfaces use, in the renderers' frame (the Hand's pick measures it, as Unity's bounds follow each upload).</summary>
+    /// <summary>Rewrites bent torch positions through one reused buffer, by source vertex in the renderers' frame.
+    /// Dynamic surfaces store positions before normals (rendering_server.cpp at c51ff06e8).
+    /// <paramref name="box"/> encloses the surface vertices in the renderers' frame.</summary>
     private void UploadPositions(ArrayMesh mesh, ModelMesh model, ReadOnlySpan<NVector3> vertices, out PickBox box)
     {
         NVector3 low = new(float.MaxValue), high = new(float.MinValue);
@@ -484,25 +485,10 @@ public partial class WorldScene
         box = low.X <= high.X ? new PickBox(low, high) : default;
     }
 
-    // The clip copies alive (each a dynamic ArrayMesh: a 12-byte position, a 4-byte normal, an 8-byte UV and two 16-byte light
-    // inputs per vertex), and their peak.
-    private int _copies, _peakCopies;
-    private long _copyBytes, _peakCopyBytes;
-
-    private void CountCopy(ModelMesh template, int sign)
-    {
-        long vertices = 0;
-        foreach (int[] surface in template.SurfaceVertices) vertices += surface.Length;
-        _copies += sign;
-        _copyBytes += sign * vertices * 56;
-        _peakCopies = Math.Max(_peakCopies, _copies);
-        _peakCopyBytes = Math.Max(_peakCopyBytes, _copyBytes);
-    }
-
     private void FreeObjects()
     {
-        GD.Print("DK2.Godot clip copies: ", _copies, " alive (", _copyBytes, " vertex bytes), at most ", _peakCopies, " (",
-            _peakCopyBytes, " B)");
+        GD.Print("DK2.Godot vertex animation: ", _vertexClips.Count, " shared clips, ", _vertexTextureBytes,
+            " texture bytes, ", _animationPoseUpdates, " pose updates; 0 instance mesh copies, 0 animation vertex uploads");
         int playing = 0;
         foreach (ModelSlot slot in _objects.Values) if (slot.Animation?.Player.Clock != null) playing++;
         GD.Print("DK2.Godot objects: ", _objects.Count, " drawn (", playing, " playing a clip), ", _artless.Count, " without art, ", _structures.Count,
@@ -520,6 +506,10 @@ public partial class WorldScene
         _objects.Clear(); _structures.Clear(); _torches.Clear();
         _flames?.Free();
         _flames = null;
+        _vertexClips.Clear();
+        FreeVertexStaging();
+        _objectMaterials.Clear();
+        _extrasMaterials.Clear();
         ReportLighting();
     }
 
@@ -605,10 +595,12 @@ public partial class WorldScene
             var uvs = new Vector2[used.Count];
             var bounds = new float[used.Count * 4];
             var kinds = new float[used.Count * 4];
+            var sourceIndices = new float[used.Count];
             NVector3 centre = Sphere is PickSphere sphere ? RightHandedFrame.Point(sphere.Centre) : default;
             float radius = Sphere?.Radius ?? 0f, kindX = Sphere != null && instance ? 1f : 0f, kindY = Sphere != null ? 1f : 0f;
             for (int i = 0; i < used.Count; i++)
             {
+                sourceIndices[i] = used[i];
                 points[i] = ToGodot(RightHandedFrame.Point(positions[used[i]]));
                 turned[i] = ToGodot(RightHandedFrame.Normal(normals[used[i]]));
                 System.Numerics.Vector2 uv = Source.Uvs[used[i]];
@@ -623,6 +615,7 @@ public partial class WorldScene
             arrays[(int)Godot.Mesh.ArrayType.TexUV] = uvs;
             arrays[(int)Godot.Mesh.ArrayType.Custom0] = bounds;
             arrays[(int)Godot.Mesh.ArrayType.Custom1] = kinds;
+            arrays[(int)Godot.Mesh.ArrayType.Custom2] = sourceIndices;
             arrays[(int)Godot.Mesh.ArrayType.Index] = indices;
             return arrays;
         }
@@ -719,9 +712,14 @@ public partial class WorldScene
             Show(model, model.Mesh);
         }
 
-        public void Show(ModelMesh model, Mesh mesh)
+        private VertexClip? _vertexClip;
+
+        public void Show(ModelMesh model, Mesh mesh, VertexClip? clip = null)
         {
-            bool changed = !ReferenceEquals(_shown, model) || !ReferenceEquals(Node.Mesh, mesh);
+            bool changed = !ReferenceEquals(_shown, model) || !ReferenceEquals(Node.Mesh, mesh) || !ReferenceEquals(_vertexClip, clip);
+            _vertexClip = clip;
+            Node.CustomAabb = clip?.Box ?? model.Box;
+            if (clip == null) Node.SetInstanceShaderParameter(AnimationPhaseParameter, -1f);
             _shown = model;
             if (!ReferenceEquals(Node.Mesh, mesh)) Node.Mesh = mesh;
             if (changed) ApplyLooks();
@@ -782,7 +780,8 @@ public partial class WorldScene
                 bool extras = alphaBlended && ((environmentPass != null && instance.EnvironmentDrawn)
                     || (kmfBlended ? Hover.RedBlended : Hover.RedOpaque));
                 Node.SetSurfaceOverrideMaterial(surface,
-                    _scene.MaterialFor(new ObjectSurfaceKey(look, environmentPass, own, kmfBlended, extras)));
+                    _scene.MaterialFor(new ObjectSurfaceKey(look, environmentPass, InstanceLook: own, KmfBlended: kmfBlended,
+                        Extras: extras, Animation: _vertexClip)));
             }
             if (transparent != Transparent)
             {
@@ -867,8 +866,11 @@ public partial class WorldScene
             return _shown.Source.Positions;
         }
 
-        /// <summary>The Hand's measures of the model where it is drawn (Unity's renderer bounds and UV2 sphere): its box,
-        /// the box around the clip's last sample when one plays (taken in its upload), and its KMF sphere.</summary>
+        /// <summary>The shown model's KMF sphere placed in the drawn world, available before sampling the pose.</summary>
+        public PickSphere? Sphere => _shown.Sphere is PickSphere own && own.Usable
+            ? own.Placed(RenderPosition, RenderTurn, RenderScale) : null;
+
+        /// <summary>The exact posed box and KMF sphere where drawn; samples the current clip lazily.</summary>
         public void Measure(out PickBox bounds, out PickSphere? sphere)
         {
             Positions(out PickBox local);
@@ -900,23 +902,13 @@ public partial class WorldScene
         }
     }
 
-    /// <summary>Godot's side of <see cref="CreatureAnimationPlayer{TResources}"/> for an object (Unity's
-    /// <c>ClassicCreatureAnimation</c>): a copy of each segment's model whose positions are rewritten in place each draw.</summary>
-    private sealed class AnimatedModel : ICreatureAnimationSurface<ModelMesh?[]>
+    /// <summary>Godot's clip surface: shared geometry, an instance phase, and exact lazy CPU samples for picking.</summary>
+    private sealed class AnimatedModel : ICreatureAnimationSurface<ModelMesh?[]>, ICreatureAnimationPoseSurface
     {
         private readonly ModelSlot _slot;
-        private RenderAnimation?[] _clips = [];
         private ModelMesh?[] _templates = [];
-        private readonly ArrayMesh?[] _meshes = new ArrayMesh?[3];
-        // Each template's own copy, kept for the model's life so a clip started again (a creature's walk after its dig)
-        // makes none: bounded by the distinct clip templates the creature's or object's entries name. Unity's
-        // ClassicCreatureAnimation keeps its copies only while the clip set is the same and releases them on another.
-        private readonly Dictionary<ModelMesh, ArrayMesh> _copies = new();
+        private readonly VertexClip?[] _segments = new VertexClip?[3];
         private AnimationSegment _shown = AnimationSegment.Main;
-        // The player's last sample, its box and the segment it was drawn for: what the Hand's pick measures.
-        private NVector3[]? _sample;
-        private PickBox _sampleBox;
-        private AnimationSegment _sampled;
 
         public AnimatedModel(ModelSlot slot)
         {
@@ -925,83 +917,51 @@ public partial class WorldScene
         }
 
         public CreatureAnimationPlayer<ModelMesh?[]> Player { get; }
+        public bool ShowsMain => Player.Clock == null || _shown == AnimationSegment.Main;
 
-        /// <summary>The posed vertices of the shown segment as last drawn (the renderers' frame, by source vertex); false
-        /// while the clip has drawn none of it.</summary>
         public bool TryGetSample(out NVector3[] vertices, out PickBox box)
         {
-            vertices = _sample!;
-            box = _sampleBox;
-            return Player.Clock != null && _sample != null && _sampled == _shown;
+            bool sampled = Player.TryGetSample(out vertices);
+            NVector3 low = new(float.PositiveInfinity), high = new(float.NegativeInfinity);
+            if (sampled && _templates[(int)_shown] is ModelMesh template)
+                foreach (int[] surface in template.SurfaceVertices)
+                    foreach (int vertex in surface)
+                    {
+                        low = NVector3.Min(low, vertices[vertex]);
+                        high = NVector3.Max(high, vertices[vertex]);
+                    }
+            box = sampled && low.X <= high.X ? new PickBox(low, high) : default;
+            return sampled;
         }
-
-        /// <summary>Whether the main segment shows, the one a texture phase dresses.</summary>
-        public bool ShowsMain => Player.Clock == null || _shown == AnimationSegment.Main;
 
         void ICreatureAnimationSurface<ModelMesh?[]>.Install(RenderAnimation?[] clips, ModelMesh?[] templates)
         {
-            if (Same(clips, templates)) return;
-            _sample = null;
-            _clips = clips;
             _templates = templates;
-            for (int segment = 0; segment < _meshes.Length; segment++)
-            {
-                _meshes[segment] = null;
-                if (segment >= clips.Length || clips[segment] is not RenderAnimation clip || templates[segment] is not ModelMesh template)
-                    continue;
-                if (!_copies.TryGetValue(template, out ArrayMesh? mesh))
-                {
-                    mesh = new ArrayMesh();
-                    for (int surface = 0; surface < template.SurfaceVertices.Length; surface++)
-                        mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, template.Arrays(clip.Mesh.Positions, surface), null,
-                            null, Mesh.ArrayFormat.FlagUseDynamicUpdate | ModelCustomFormat);
-                    if (mesh.GetSurfaceCount() > 0 && RenderingServer.MeshSurfaceGetFormatVertexStride(
-                            (RenderingServer.ArrayFormat)mesh.SurfaceGetFormat(0), template.SurfaceVertices[0].Length) != 12)
-                        GD.PushError("DK2.Godot: an animated model's positions are not one 12-byte block; it draws wrong.");
-                    _copies.Add(template, mesh);
-                    _slot.Scene.CountCopy(template, +1);
-                }
-                _meshes[segment] = mesh;
-            }
+            for (int i = 0; i < _segments.Length; i++)
+                _segments[i] = i < clips.Length && i < templates.Length && clips[i] is RenderAnimation clip
+                    && templates[i] is ModelMesh template ? _slot.Scene.VertexAnimation(clip, template) : null;
         }
 
         void ICreatureAnimationSurface<ModelMesh?[]>.Show(AnimationSegment segment)
         {
             _shown = segment;
-            if (_templates[(int)segment] is ModelMesh template && _meshes[(int)segment] is ArrayMesh mesh)
-            {
-                _slot.Show(template, mesh);
-                // The clip's vertices leave the first frame's box, which Godot culls by; Unity recomputes its bounds each upload.
-                Aabb box = template.Box;
-                _slot.Node.CustomAabb = box.Grow(Math.Max(box.Size.X, Math.Max(box.Size.Y, box.Size.Z)));
-            }
+            if (_templates[(int)segment] is ModelMesh template && _segments[(int)segment] is VertexClip clip)
+                _slot.Show(template, template.Mesh, clip);
         }
 
-        void ICreatureAnimationSurface<ModelMesh?[]>.Upload(AnimationSegment segment, NVector3[] vertices)
+        public void Pose(AnimationSegment segment, float phase)
         {
-            if (_templates[(int)segment] is ModelMesh template && _meshes[(int)segment] is ArrayMesh mesh)
-            {
-                _slot.Scene.UploadPositions(mesh, template, vertices, out _sampleBox);
-                _sample = vertices;
-                _sampled = segment;
-            }
+            _slot.Node.SetInstanceShaderParameter(AnimationPhaseParameter, phase);
+            _slot.Scene._animationPoseUpdates++;
         }
 
-        private bool Same(RenderAnimation?[] clips, ModelMesh?[] templates)
-        {
-            if (clips.Length != _clips.Length || templates.Length != _templates.Length) return false;
-            for (int i = 0; i < clips.Length; i++)
-                if (!ReferenceEquals(clips[i], _clips[i]) || !ReferenceEquals(templates[i], _templates[i])) return false;
-            return true;
-        }
+        void ICreatureAnimationSurface<ModelMesh?[]>.Upload(AnimationSegment segment, NVector3[] vertices) =>
+            throw new InvalidOperationException("A GPU animation surface receives phases, not CPU uploads.");
 
         public void Free()
         {
-            for (int i = 0; i < _meshes.Length; i++) _meshes[i] = null;
-            _sample = null;
-            foreach (ModelMesh template in _copies.Keys) _slot.Scene.CountCopy(template, -1);
-            _copies.Clear();
-            _clips = [];
+            Player.Stop();
+            Array.Clear(_segments);
             _templates = [];
         }
     }
@@ -1082,8 +1042,8 @@ public partial class WorldScene
                 foreach (ObjectPass pass in _scene._passes)
                     if (!pass.Look.EnvironmentMapped && _model.SurfaceOf[pass.Submesh] >= 0)
                         mesh.SurfaceSetMaterial(_model.SurfaceOf[pass.Submesh],
-                            _scene.MaterialFor(new ObjectSurfaceKey(pass.Look, environment[pass.Submesh], true, false,
-                                pass.Look.Blend == KmfBlend.AlphaBlend && environment[pass.Submesh] != null)));
+                            _scene.MaterialFor(new ObjectSurfaceKey(pass.Look, environment[pass.Submesh], InstanceLook: true, KmfBlended: false,
+                                Extras: pass.Look.Blend == KmfBlend.AlphaBlend && environment[pass.Submesh] != null)));
                 return;
             }
             // Bent again in place, as Unity's ClassicTorchGeometry.Refresh rewrites its vertices.

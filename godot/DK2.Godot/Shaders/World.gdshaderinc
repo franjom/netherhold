@@ -23,6 +23,10 @@ varying flat vec3 dk2_state_added;
 varying flat vec3 dk2_state_overlay;
 uniform bool full_light = false;
 uniform bool model_vertex = false;
+uniform sampler2D animation_vertices : filter_nearest, repeat_disable;
+uniform ivec2 animation_layout = ivec2(1, 0);
+uniform int animation_frames = 1;
+instance uniform float dk2_animation_phase = -1.0;
 uniform bool instance_look = false;
 uniform bool kmf_blended = false;
 // The environment pass DK2 draws after an environment-mapped material (structure-drawing.md section 5): additive, lit
@@ -82,7 +86,18 @@ vec3 dk2_unpack_tint(float packed) {
     int v = int(packed);
     return vec3(float(v & 255), float((v >> 8) & 255), float((v >> 16) & 255)) / 255.0;
 }
+vec3 dk2_animation_vertex(int frame, int vertex) {
+    int texel = frame * animation_layout.y + vertex;
+    return texelFetch(animation_vertices, ivec2(texel % animation_layout.x, texel / animation_layout.x), 0).xyz;
+}
+
 void vertex() {
+    if (dk2_animation_phase >= 0.0 && animation_layout.y > 0) {
+        float frame = clamp(dk2_animation_phase, 0.0, 1.0) * float(animation_frames - 1);
+        int first = int(frame), second = min(first + 1, animation_frames - 1);
+        VERTEX = mix(dk2_animation_vertex(first, int(CUSTOM2.x)),
+            dk2_animation_vertex(second, int(CUSTOM2.x)), frame - float(first));
+    }
     dk2_state_added = vec3(0.0);
     dk2_state_overlay = vec3(0.0);
     if (terrain_state) {

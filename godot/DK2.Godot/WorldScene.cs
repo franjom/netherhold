@@ -461,7 +461,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         (Mesh.ArrayFormat)((long)Mesh.ArrayCustomFormat.RgFloat << (int)Mesh.ArrayFormat.FormatCustom0Shift);
     private const Mesh.ArrayFormat ModelCustomFormat =
         (Mesh.ArrayFormat)(((long)Mesh.ArrayCustomFormat.RgbaFloat << (int)Mesh.ArrayFormat.FormatCustom0Shift)
-            | ((long)Mesh.ArrayCustomFormat.RgbaFloat << (int)Mesh.ArrayFormat.FormatCustom1Shift));
+            | ((long)Mesh.ArrayCustomFormat.RgbaFloat << (int)Mesh.ArrayFormat.FormatCustom1Shift)
+            | ((long)Mesh.ArrayCustomFormat.RFloat << (int)Mesh.ArrayFormat.FormatCustom2Shift));
 
     /// <summary>The world shader's four render states (Shaders/World*.gdshader): what a uniform cannot switch.</summary>
     private static readonly string[] WorldShaderPaths =

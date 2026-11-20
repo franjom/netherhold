@@ -32,6 +32,19 @@ public sealed class RenderAnimation
     public int FrameCount => _frames.Length;
     public long PositionBytes => (long)FrameCount * Mesh.Positions.Count * 3 * sizeof(float);
 
+    /// <summary>One decoded frame in model-local render axes; shared, never mutated by a renderer.</summary>
+    public ReadOnlySpan<Vector3> Frame(int index) => _frames[index];
+
+    /// <summary>One vertex of the clamped drawn pose, for control points without a full mesh sample.</summary>
+    public Vector3 SampleVertex(float normalizedTime, int vertex)
+    {
+        if (float.IsNaN(normalizedTime) || float.IsInfinity(normalizedTime))
+            throw new ArgumentOutOfRangeException(nameof(normalizedTime));
+        float frame = Math.Clamp(normalizedTime, 0f, 1f) * (FrameCount - 1);
+        int first = (int)frame, second = Math.Min(first + 1, FrameCount - 1);
+        return Vector3.Lerp(_frames[first][vertex], _frames[second][vertex], frame - first);
+    }
+
     /// <summary>The animated drawer's fractional frame (kmf-animation-playback.md §2).
     /// Loop time 1 stays on the last frame; only values greater than 1 wrap.</summary>
     public void Sample(float normalizedTime, bool loop, Vector3[] positions)

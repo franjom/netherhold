@@ -19,11 +19,12 @@ presentation only; DK2's rules, simulation and AI stay faithful, and DK2's data 
    (`render_forward_clustered.cpp:896-900`), so MultiMesh for repeated objects gains little while materials are shared.
    What breaks batching is per-state materials: `Faded(alpha)` per alpha byte, cached forever
    (`ObjectMaterialLook.cs:85-90`, `WorldScene.Objects.cs:769`); one per `Tinted` added light; the red and environment
-   `NextPass` copies (`WorldScene.Objects.cs:404-440`); per-creature mesh copies.
+   `NextPass` copies (`WorldScene.Objects.cs:404-440`). Creature mesh sharing is covered by item 8.
 3. **4.8 APIs that fit:** `mesh_surface_update_index_region` (`rendering_server.h:230`) for index-only re-sort uploads;
    `instance_geometry_set_shader_parameter` (`rendering_server.h:782`) for per-instance uniforms.
-4. **In-place vertex rewrites get no motion vectors** (`render_forward_clustered.cpp:1090-1093`): creatures, liquids and
-   torch bends would ghost under TAA or FSR2. `project.godot` sets no AA, upscaling or frame pacing.
+4. **In-place vertex rewrites get no motion vectors** (`render_forward_clustered.cpp:1090-1093`): liquids and torch bends
+   remain CPU-updated. Creature animation now uses item 8; previous-pose motion vectors and TAA/FSR2 ghosting
+   have not been validated. AA remains deferred to items 16/17. `project.godot` sets no AA, upscaling or frame pacing.
 
 ## Items
 
@@ -71,8 +72,8 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
   Level1 draws 124.5 to 122.5, world materials 27 to 24, GPU 2.400 to 2.532 ms, frame 5.331 to 5.198 ms,
   allocation 7,296 B unchanged; Level7 draws 306 to 310.5, materials 94 to 95, GPU 3.434 to 3.053 ms,
   frame 6.869 to 6.341 ms, allocation 10,304 to 10,296 B. Level7 adds static overlay chunk draws and one shared
-  overlay material. Loaded-machine frame p50 spreads: Level1 HEAD 4.94–5.73/new 5.07–5.33 ms,
-  Level7 HEAD 6.51–7.23/new 6.23–6.45 ms; these runs do not isolate a speed gain from load variation.
+  overlay material. Loaded-machine frame p50 spreads: Level1 HEAD 4.94 to 5.73/new 5.07 to 5.33 ms,
+  Level7 HEAD 6.51 to 7.23/new 6.23 to 6.45 ms; these runs do not isolate a speed gain from load variation.
   Final artifact root: `C:/Users/franj/AppData/Local/Temp/dk2-3pb-20261119/`; capture manifest/crops:
   `captures/comparisons-newbatch/results.json`; performance: `batch-perf/comparison.txt` and `summary.json`;
   drag samples: `captures/{headtiming,newbatchtiming}/drag-off/drag-timing.json`.
@@ -109,14 +110,37 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
   `_chainedMaterials`, `Copy` and the unbounded per-alpha and per-tint materials, which restores batching. Risks: red is
   skipped on KMF-blended surfaces (a rule); a faded environment pass still draws black. Built together with the
   prototype's shader.
-- **8. P2, L. Per-template mesh copies, CPU frame lerp and an in-place upload every frame** per creature and animated
-  object (`WorldScene.Objects.cs:466-488`, `:856-958`; `CreatureAnimationPlayer.cs:176-178`;
-  `RenderAnimation.cs:37-54`). Replace with a vertex animation texture lerped in `vertex()` by an instance-uniform
-  phase, one mesh per clip (or blend shapes, for motion vectors); the CPU keeps the clock and samples on demand (control
-  points, lightning, picking after the sphere test). Gain: removes the lerp and the upload (about 100 creatures x 500
-  vertices, about 600 KB a frame, 0.3 to 0.6 ms; estimates), the copies' memory (3g open item 1) and the AABB hack.
-  Risk: picking needs a lazy sample after the sphere test, a new entry in the shared player. Depends on the lighting
-  `vertex()` and 3l.
+- **8. P2, L. GPU vertex animation** (`WorldScene.VertexAnimation.cs`, `CreatureAnimationPlayer.cs`).
+  One shared mesh and RGBF position texture per clip replaces per-instance copies and frame uploads. CUSTOM2
+  identifies source vertices; the world shader interpolates by instance phase before lighting in every pass.
+  The CPU retains the clock, samples control/lightning vertices individually and lazily caches full poses for exact
+  picking after sphere rejection. Clip-wide bounds replace the arbitrary AABB; blended ordering keeps the first-frame
+  centre. A retained scene-owned 4 MiB CPU staging pool avoids late-bake allocation and clears texture padding; reload frees resources.
+  Done (2026-11-20), independently reviewed with no findings. Verification: 11,513 Release tests passed, 30 skipped;
+  focused animation 38 and pick/hover 299 passed; both builds, pinned Godot import and solution builds clean.
+  Turn-400 hash: B5C0CB842094AB59. Captures: 18 pairs, 1,380 frames, 988 byte-identical and 392 differing;
+  maximum 290 pixels/frame (0.014%), sparse rounding/raster precision differences invisible at 1080p inspection.
+  Static lava also varies between equivalent captures; differences cannot all be attributed to VAT interpolation.
+  Inspection found no geometry, culling or timing change. Main, hover/red, possession, preview and shadow paths reviewed.
+  Performance: 32 reports, four measurements per build/mode/level (two interleaved single repeats plus a literal
+  `-Repeat 2` run), Debug adapter/Vulkan, 1920x1080, 120 warm-up and 1,800 measured frames each, zero dropped samples.
+  Pairs are HEAD -> new; medians of four run p50s, with pooled mean allocation. Modern is per-pixel/shadows/post.
+
+  | Mode / level | Frame ms | GPU ms | Render CPU ms | Draw calls | Allocation B/frame p50 | Allocation B/frame mean |
+  |---|---:|---:|---:|---:|---:|---:|
+  | classic / Level1 | 4.864 -> 4.585 | 1.984 -> 2.036 | 0.531 -> 0.462 | 123 -> 120.5 | 7296 -> 7296 | 7267.6 -> 7190.7 |
+  | classic / Level7 | 6.873 -> 6.540 | 2.554 -> 2.177 | 0.853 -> 0.675 | 311 -> 305 | 10296 -> 10296 | 14533.5 -> 14011.1 |
+  | modern / Level1 | 9.686 -> 9.835 | 6.366 -> 6.793 | 0.553 -> 0.583 | 211 -> 193 | 7296 -> 7296 | 8582.2 -> 8583.3 |
+  | modern / Level7 | 11.609 -> 10.781 | 6.791 -> 7.025 | 0.502 -> 0.578 | 482 -> 472.5 | 10328 -> 10328 | 21052.6 -> 20389.0 |
+
+  Classic frame and render-CPU gains repeat. Modern Level1 frame timing is inconclusive under load variation; Level7 frame
+  time improves, but render CPU rises in both levels. Modern GPU cost increases overall; Level1 GPU p50 rises
+  6.7%, higher in all four paired runs. Other CPU load ranged from 12.7% to 47.1%; no statistical significance is claimed.
+  Allocation p50 is unchanged in all cases. Mean allocation falls except modern Level1 (+1.16 B/frame, 0.014%,
+  within roughly 100 B/frame run spread); steady allocation falls in every run, including modern Level1.
+  Level1/Level7 peak private clip copies fall from 9/63 to zero, with zero animation position uploads. Shared clip
+  textures number 3/16, with RGBF payloads 811,152/2,389,416 bytes. Reported classic texture memory grows by
+  about 3.4/3.8 MiB; GPU storage exceeds the packed payload.
 - **9. P3, S-M. Liquid waves**: positions and normals on the CPU, uploaded twice a frame (`WorldScene.cs:550-651`;
   `LiquidSurfaceWave.Wave`). Replace with a vertex shader from (tile, i, j) and time; DK2's phase masks are exact in GLSL
   integers. Gain: small (under 0.2 ms, estimate); a continuous-motion option. Low risk. Depends on lighting.
@@ -169,7 +193,7 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 6. 3k on MultiMesh, with the flames (item 6): done (2026-11-19).
 7. 3l.
 8. 3m and 3n (independent, parallel).
-9. Item 4 is measured/no-go above. The remaining replacements start with vertex animation (8), minimap shader (10),
+9. Item 4 is measured/no-go above. The remaining replacements start with minimap shader (10),
    AA (16 then 17), HUD text atlas (11), liquids (9), chunk upload tweak (12).
 10. The rest of step 4 unchanged; its performance targets are set from 3o's numbers.
 
@@ -178,9 +202,9 @@ and hover tests, scripted-pointer captures). Byte-identity with Unity no longer 
 
 ## Built pieces to replace, in order
 
-(Done in 3q: `ZeroOrderOffset`, the origin-order run keys and the run vertex rewrites.) The `NextPass` red and
+(Done in 3q: `ZeroOrderOffset`, the origin-order run keys and the run vertex rewrites; creature copies/uploads: item 8.) The `NextPass` red and
 environment chains and the per-alpha and per-tint materials; the terrain variant keys and overlay triangles; the
-flame's per-frame materials; creature mesh copies and CPU uploads; the minimap's CPU disc; the per-string HUD text
+flame's per-frame materials; the minimap's CPU disc; the per-string HUD text
 textures; the CPU liquid wave; the gamma lookup (with the prototype).
 
 ## Shared `DK2.Presentation` code that becomes Unity-only or dead
@@ -189,12 +213,11 @@ textures; the CPU liquid wave; the gamma lookup (with the prototype).
   (`PlaceItems`, `RunsBehind`, `ItemOrders`, `AddEffect`, `RepeatEffect`), while collect, cull, depth order and runs
   stay; per-key terrain surfacing for tagged, red, tinted and overlay (`TerrainMaterialKey.For` and the
   `TerrainMaterialLook` colours stay as rules); `LiquidSurfaceWave.Wave` (the constants stay shared, for the GLSL
-  substitution); the full-buffer `RenderAnimation.Sample` and `ICreatureAnimationSurface.Upload` (the player stays, with
-  a new lazy-sample entry); `HudImagePixels.Fill`; `ClassicMeshShadow` and the silhouette code; `EffectQuadBuffer`.
+  substitution); `ICreatureAnimationSurface.Upload` (the frozen Unity path; Godot uses the pose surface from item 8); `HudImagePixels.Fill`; `ClassicMeshShadow` and the silhouette code; `EffectQuadBuffer`.
 - **Dead in production:** `MinimapDiscImage` (keep as the shader-test oracle, or delete).
 - **Stays shared:** `HudTextPixels.Measure`, `HudTriangles`, `ViewFrustum`, `TerrainChunkScheduler`,
   `TerrainTileBuilder`.
-- **Godot code that goes:** (`ZeroOrderOffset`, `SortFromOrigin`'s scheme and `RunSlot`'s vertex expansion went in 3q) `Copy`,
+- **Godot code that goes:** (`ZeroOrderOffset`, `SortFromOrigin`'s scheme and `RunSlot`'s vertex expansion went in 3q; `Copy` was removed in item 8)
   `_redMaterials`, `_chainedMaterials`, `GammaOutput`, `GammaTable`.
 - Unity keeps its emulation as the frozen classic reference until step 5 (owner stopped Unity performance work
   2026-11-15); no modern work is ported to it. Godot's classic path stays a switch until the owner accepts the modern
