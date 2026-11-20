@@ -53,10 +53,13 @@ public static class FightRules
     }
 
     /// <summary>A body (<see cref="CreatureDeathRules.IsCorpse"/>) whose lifetime (<c>+0x40</c>,
-    /// <c>DeadBody_Update</c> <c>0x004B12D0</c>) is above 0: ours counts the window up in
-    /// <see cref="CreatureState.DyingTicks"/>, so it is the window not yet elapsed.</summary>
+    /// <c>DeadBody_Update</c> <c>0x004B12D0</c>) is above 0 (ours counts the window up in
+    /// <see cref="CreatureState.DyingTicks"/>, so it is the window not yet elapsed) and that is on the map:
+    /// <c>spFighting</c> drops a nibble 2 or 3 target whose <c>+0x16</c> is 2, and <c>Combat_InReach</c>
+    /// (<c>0x0045E8F0</c>) refuses it (<see cref="CombatPitRules.IsOnTheMap"/>, the carried or held reading).</summary>
     public static bool IsLyingBody(GameDatabase database, CreatureState body) =>
-        CreatureDeathRules.IsCorpse(body) && !CreatureDeathRules.BodyWindowElapsed(database, body);
+        CreatureDeathRules.IsCorpse(body) && !CreatureDeathRules.BodyWindowElapsed(database, body)
+        && CombatPitRules.IsOnTheMap(body);
 
     /// <summary>Where the target stands, in position units.</summary>
     public static bool TargetPosition(WorldState world, GameDatabase database, CreatureState me, out int x, out int y, out TilePos tile)
@@ -95,7 +98,8 @@ public static class FightRules
             tile = new TilePos(trap.X, trap.Y);
             return true;
         }
-        else if (me.FightTargetKind == FightTargetKind.Body && world.CreatureById(me.FightTargetId) is { } lying)
+        else if (me.FightTargetKind == FightTargetKind.Body && world.CreatureById(me.FightTargetId) is { } lying
+            && CombatPitRules.IsOnTheMap(lying))
         {
             x = lying.PosX;
             y = lying.PosY;
@@ -374,7 +378,10 @@ public static class FightRules
     {
         int slot = me.AttackSpellSlot;
         StartCast(context, me, mine, slot, tell: false);
-        context.Emit(SystemName, "casts_on_ally", $"creature={me.Id} ally={me.FightTargetId} slot={slot}");
+        if (me.FightTargetKind == FightTargetKind.Body)
+            context.Emit(SystemName, "casts_on_body", $"creature={me.Id} body={me.FightTargetId} slot={slot}");
+        else
+            context.Emit(SystemName, "casts_on_ally", $"creature={me.Id} ally={me.FightTargetId} slot={slot}");
         me.FightTargetId = CombatRules.NoTarget;
         me.FightTargetKind = FightTargetKind.None;
         me.FightTargetPlayerId = 0;
@@ -449,12 +456,11 @@ public static class FightRules
         else if (me.SwingTargetKind == FightTargetKind.Body && world.CreatureById(me.SwingTargetId) is { } body
             && CreatureDeathRules.IsCorpse(body))
         {
-            // Action 16 aims +0x131 at the body, led from its previous position as a creature is (a lying body has
-            // none). Ours, stated: the aim height is the body's own, with no added half height — not established for a body in DK2.
-            int distanceSquared = CombatRules.DistanceSquared(me.PosX, me.PosY, body.PosX, body.PosY);
-            long tiles = ShotRules.Isqrt((long)distanceSquared << 4) >> 8;
-            aimX = body.PosX + (int)((body.PosX - body.LastPosX) * tiles * 3 / 2);
-            aimY = body.PosY + (int)((body.PosY - body.LastPosY) * tiles * 3 / 2);
+            // Action 16 aims +0x131 at the body. The lead is the body's last move, and DeadBody_Update copies +0x1A to
+            // +0xF6 on every turn it is not carried (0x004B12F7), so a lying body leads 0. The aim height is the
+            // body's own: its vtable +0x40 (0x00402AD0) returns 0, so the added half height (0x00498AF4) is 0.
+            aimX = body.PosX;
+            aimY = body.PosY;
             aimZ = body.PosZ;
         }
         else

@@ -86,6 +86,7 @@ public sealed class ShotSystem : ISimulationSystem
             // The target word now names a trap, which no creature-side process handler acts on.
             shot.TargetKind = FightTargetKind.None;
             shot.TargetId = CombatRules.NoTarget;
+            AimAtHit(shot, trapHit.PosX, trapHit.PosY);
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition);
             ShotRules.Chain(context, shot, definition.HitThingShotId, onThing: true);
             ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, null);
@@ -98,9 +99,13 @@ public sealed class ShotSystem : ISimulationSystem
             // shot dies on it. No damage, collapse or heading: the finder admits nothing but bodies.
             shot.TargetKind = FightTargetKind.Body;
             shot.TargetId = hit.Id;
+            AimAtHit(shot, hit.PosX, hit.PosY);
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition);
             ShotRules.Chain(context, shot, definition.HitThingShotId, onThing: true);
             ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, null);
+            // 0x004ABFE7-0x004AC00C: a class 6 thing struck sounds 0x31A in the shot's category at the body.
+            ShotRules.RequestShotSound(context, shot, definition, ThingSoundEvent.ShotHitBody,
+                at: new FpPosition3(new Fp32(hit.PosX), new Fp32(hit.PosY), new Fp32(hit.PosZ)));
             if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
         }
         else if (hit != null)
@@ -108,6 +113,7 @@ public sealed class ShotSystem : ISimulationSystem
             // 0x004ABE7D: the thing struck is written into the target word before anything else.
             shot.TargetKind = FightTargetKind.Creature;
             shot.TargetId = hit.Id;
+            AimAtHit(shot, hit.PosX, hit.PosY);
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition,
                 attachedCreatureId: new CreatureId(hit.Id));
             ShotRules.Chain(context, shot, definition.HitThingShotId, onThing: true);
@@ -154,6 +160,15 @@ public sealed class ShotSystem : ISimulationSystem
         if (shot.Health > 0 && !stopped && (definition.Flags & ShotRules.CountsDown) != 0) shot.Health--;
         if (shot.Health <= 0) Die(context, shot, definition, deathShot: !stopped, showDeathEffect: !stopped);
         if (!stopped) ShotRules.RequestTimedEffect(context, shot, definition, shot.ViewPosition);
+    }
+
+    /// <summary><c>0x004ABE6F</c>-<c>0x004ABE84</c>: on every non-forced finder hit the thing's position (<c>+0x1A</c>) is copied into
+    /// the shot's aim (<c>+0x131</c>) by <c>0x004AB830</c>, so a process that acts on the aim (Raise Dead, <c>0x004AE880</c>) acts
+    /// where the thing struck stands, not where the shot was sent. Ours keeps no aim height.</summary>
+    private static void AimAtHit(ShotState shot, int x, int y)
+    {
+        shot.TargetX = x;
+        shot.TargetY = y;
     }
 
     /// <summary><c>0x004ABD60</c> with nothing struck: the collision test is repeated where the shot is and

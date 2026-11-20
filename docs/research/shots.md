@@ -280,7 +280,7 @@ effect `0x144` and removes the body; no owner test. Built, `Combat/RaiseDeadRule
 event, raised at `0x004ABFC1`), timed effect 286. **Shot 41** (Wind): `ShotProcessFlags` `0x2`, the per-tick pre-move event
 (`0x004AB30F` in [`Shot_Update`](functions/004AB180.md)), speed 1024, health 128, flags `0x25`, collide 0; a creature's
 Wind has no range cutoff (`+0x155` stays 0, [combat-spells.md](combat-spells.md) section 12). What makes a creature cast
-Wind is built, and so is what makes one cast Raise Dead (Q886, [combat-acquisition.md](combat-acquisition.md) section 6.3); collide type 4 finds the first body in the finder's walk (`ShotRules.FindHit`).
+Wind is built, and so is what makes one cast Raise Dead (Q886, [combat-acquisition.md](combat-acquisition.md) section 6.3); collide type 4 finds the first body in the finder's walk (`ShotRules.FindHit`, [`0x004AC390`](functions/004AC390.md)). On every non-forced finder hit `0x004AB830` copies the struck thing's position into the aim (`+0x131`), so Raise Dead raises on the struck body's tile; ours does it for creature, trap and body hits (`ShotSystem.AimAtHit`). A body hit also sounds `0x31A` in the shot's category at the body.
 Unread: the buff table `0x006E4AC8` and area damage types 3, 4 and 8 (Q394, Q395).
 
 **The events.** `0x004AD730`'s five direct callers raise 0x40 (`0x004AB281`), 0x2

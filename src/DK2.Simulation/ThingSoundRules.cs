@@ -165,6 +165,8 @@ public enum ThingSoundEvent : ushort
     ShotEnded = 0xF4,
     /// <summary>The world stopped a shot (<c>Shot_Update</c> <c>0x004AB49B</c>).</summary>
     ShotHitSolid = 0x1BC,
+    /// <summary>A shot struck a body (class 6), at the body's position (<c>Shot_Collide</c> <c>0x004ABFE7</c>-<c>0x004AC00C</c>).</summary>
+    ShotHitBody = 0x31A,
     /// <summary>The Sight of Evil has twenty updates left (<c>Shot_ProcessSightOfEvil</c> <c>0x004AF1BF</c>).</summary>
     SightOfEvilEnding = 0xE8,
     /// <summary>A creature finishes its melee swing, in its own category (<c>Combat_MeleeSwing</c> <c>0x004992EB</c>), or a shot

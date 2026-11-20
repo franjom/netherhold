@@ -295,9 +295,24 @@ range test is skipped at zero, so it lives up to 128 ticks or until a solid tile
 **Built** (Q886): the body-spell survey slot (`SpellRules.SurveyBody`), the neutral-corpse scan in
 `CombatTargetRules.Choose`, a body `FightTargetKind` with nibble 3, its approach and validity in
 `FightRules`, a `FireSpell` body arm, and the collide-4 finder walk in `ShotRules` (the first body
-in the walk, not the nearest; a carried body is not found, ours). The aim height is ours: the body's
-own, with no half height added (whether DK2 adds one for a body is not established). Stated choices:
-`combat-acquisition.md` section 6.3.
+in the walk, not the nearest; a carried or held body is not found, `0x004B59B0`). The aim height is the
+body's own (its vtable `+0x40` returns 0), and the shot raises on the tile of the body it strikes, not the
+one it was aimed at (`0x004AB830` copies the struck thing's position into the aim on every non-forced hit).
+The reads and the one remaining choice: `combat-acquisition.md` section 6.3.
+
+**Read for the body spell** (STRONGLY INFERRED, independent re-read 2026-11-20): the last qualifying body slot wins (`0x0045E152`-`0x0045E16A`
+overwrite the range and the slot each time); an enemy chosen over the body overwrites its id at `[-0x8]`,
+and `0x0045D77D` zeroes it when the route check drops the enemy, so no body remains and the trap scan looks
+on; a chosen body skips the trap scan (`0x0045D782`) and scan E (`0x0045D91B` reads the target's class `+0x12`,
+nonzero for a body); the aim height is the body's own, since the body's vtable `+0x40` (`0x00402AD0`) returns 0
+and action 16 adds half of it (`0x00498AF4`), and a settled body has no lead (`DeadBody_Update` copies `+0x1A` to
+`+0xF6` every turn it is not carried, `0x004B12F7`). Scan B has no `+0x16` test (`0x0045D0CB`-`0x0045D164`),
+but `spFighting` drops a nibble 2 or 3 target whose `+0x16` is 2 and `Combat_InReach` refuses it, so DK2 can
+commit to a carried body and let it go next tick with no cast and no recharge spent; ours does the same
+(`CombatPitRules.IsOnTheMap`, the existing carried or held reading of `+0x16 == 2`; the
+[`DeadBody_Update`](functions/004B12D0.md) record lists `+0x16 == 2` UNREAD). **Ours, stated:** a tie between
+two equally near bodies goes to the first in our creature list (DK2 walks the neutral chain from its head);
+the body's lifetime is the corpse window not yet elapsed (`DyingTicks`).
 
 ## Confidence
 

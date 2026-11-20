@@ -314,11 +314,15 @@ must beat, and the trap scan is skipped when a body is chosen. Commit: `+0x502` 
 **Built** (`CombatTargetRules.ScanBodies`/`EngageBody`, `SpellRules.SurveyBody`, `FightRules.TargetIsValid`
 and `FireSpell`, `FightTargetKind.Body`, nibble 3 as `SpellAtAlly`). The seeded best is the arms' score, so a
 Blocker's enemy (score = distance) must be nearer than the body, while a Blitzer's (distance plus sight squared,
-which includes the shipped Vampire) never is in the arm; only a registered attacker (scan C, plain
-distance) nearer than the body displaces it. **Ours, stated:** the last body slot wins (none has two); an
-enemy chosen over the body that the route check then drops leaves no body, and the trap scan looks on; a
-chosen body also keeps scan E (the heart) out, as a target that is not a worker; the body's lifetime is
-the corpse window not yet elapsed (`DyingTicks`); the aim height is the body's own, with no half height added (whether DK2 adds one for a body is not established).
+which includes the shipped Vampire) is not in the arm, except a Support candidate, which the Blitzer arm
+(`0x0045B800`) scores by its distance alone; a registered attacker (scan C, plain distance) nearer than
+the body also displaces it.
+
+The slot, displacement, scan E, aim and carried-body readings (STRONGLY INFERRED, independent re-read
+2026-11-20) are in [combat-spells.md](combat-spells.md) section 12. Scan B has no `+0x16` test, but `spFighting`
+and `Combat_InReach` refuse a body whose `+0x16` is 2, so DK2 can commit to a carried body and drop it next
+tick with no cast; ours does the same. **Ours, stated:** a tie between equally near bodies goes to the first in
+our creature list (DK2 walks the neutral chain from its head); the lifetime is the corpse window not yet elapsed.
 
 ## 7. The engagement record (`+0x4FE`…)
 

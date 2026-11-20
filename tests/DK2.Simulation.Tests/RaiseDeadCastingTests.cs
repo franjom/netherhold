@@ -35,7 +35,7 @@ public class RaiseDeadCastingTests
         SimEvent engaged = sink.Events.First(e => e.Kind == "engaged" && e.Detail.Contains("creature=" + vampire.Id));
         Assert.Contains($"body={bodyId} attack=3 slot=2", engaged.Detail);
         Assert.Contains("reach2=36864", engaged.Detail);
-        Assert.Single(sink.Events, e => e.Kind == "casts_on_ally" && e.Detail.Contains("creature=" + vampire.Id));
+        Assert.Single(sink.Events, e => e.Kind == "casts_on_body" && e.Detail.Contains("creature=" + vampire.Id));
         Assert.DoesNotContain(world.Creatures, c => c.Id == bodyId);
         CreatureState raised = Assert.Single(world.Creatures, c => c.CreatureTypeId == Dk2TerrainFixture.SkeletonCreatureId);
         Assert.Equal(Keeper, raised.OwnerPlayerId);
@@ -118,7 +118,8 @@ public class RaiseDeadCastingTests
     }
 
     /// <summary>The shipped Vampire is a Blitzer, whose score is the distance plus the squared sight range, so
-    /// with the body's bare distance as the bound to beat no enemy in the arm wins: the body is raised first.</summary>
+    /// with the body's bare distance as the bound to beat an ordinary enemy in the arm never wins: the body is
+    /// raised first. A Support candidate is scored by its distance alone (<c>0x0045B800</c>), so a nearer one does win.</summary>
     [Fact]
     public void ABlitzersEnemyScoresDistancePlusSight_SoItNeverBeatsTheBodyInTheArm()
     {
@@ -136,6 +137,51 @@ public class RaiseDeadCastingTests
     }
 
     [Fact]
+    public void ABlitzersNearerSupportEnemyBeatsTheBody()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState vampire = Vampire(db, world, 5, 10);
+        Corpse(db, world, 8, 10);
+        CreatureState warlock = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Rival, 7, 10);
+        GameSimulation sim = Sim(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Run(14);
+
+        SimEvent engaged = sink.Events.First(e => e.Kind == "engaged" && e.Detail.Contains("creature=" + vampire.Id + " "));
+        Assert.Contains($"target={warlock.Id} ", engaged.Detail);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "engaged" && e.Detail.Contains("body="));
+    }
+
+    [Fact]
+    public void ACarriedBodyIsDroppedAsATargetWithoutACast_AndTheRechargeIsNotSpent()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState vampire = Vampire(db, world, 5, 10);
+        CreatureState body = Corpse(db, world, 6, 10);
+        CreatureState carrier = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 6, 11);
+        body.CarriedByCreatureId = carrier.Id;
+        GameSimulation sim = Sim(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Run(40);
+
+        // Scan B has no carried test, so the body is chosen; the fight state then refuses it every tick.
+        Assert.Contains(sink.Events, e => e.Kind == "engaged" && e.Detail.Contains($"body={body.Id} attack=3"));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "casts_on_body");
+        Assert.Equal(CreatureState.NeverUsed, vampire.SpellStamps[2]);
+        Assert.Contains(body, world.Creatures);
+        Assert.DoesNotContain(world.Creatures, c => c.CreatureTypeId == Dk2TerrainFixture.SkeletonCreatureId);
+        vampire.FightTargetKind = FightTargetKind.Body;
+        vampire.FightTargetId = body.Id;
+        Assert.False(FightRules.TargetIsValid(world, db, vampire));
+        body.CarriedByCreatureId = -1;
+        Assert.True(FightRules.TargetIsValid(world, db, vampire));
+    }
+
+    [Fact]
     public void TheRechargePreventsAnImmediateSecondCast_AndEndsAfterSeventeenSeconds()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
@@ -148,13 +194,13 @@ public class RaiseDeadCastingTests
         int recharge = SpellRules.RechargeTicks(db.CreatureSpells[Dk2TerrainFixture.RaiseDeadSpellId]);
 
         sim.Run(100);
-        Assert.Single(sink.Events, e => e.Kind == "casts_on_ally");
+        Assert.Single(sink.Events, e => e.Kind == "casts_on_body");
         Assert.Equal(1, world.Creatures.Count(c => c.CreatureTypeId == Dk2TerrainFixture.SkeletonCreatureId));
         Assert.Equal(1, new[] { first, second }.Count(b => world.Creatures.Contains(b)));
         Assert.True(vampire.SpellStamps[2] != CreatureState.NeverUsed);
 
         sim.Run(recharge + 100);
-        Assert.Equal(2, sink.Events.Count(e => e.Kind == "casts_on_ally"));
+        Assert.Equal(2, sink.Events.Count(e => e.Kind == "casts_on_body"));
         Assert.Equal(2, world.Creatures.Count(c => c.CreatureTypeId == Dk2TerrainFixture.SkeletonCreatureId));
     }
 
@@ -206,6 +252,29 @@ public class RaiseDeadCastingTests
         standing.PosX = shot.PosX;
         standing.PosY = shot.PosY;
         Assert.Null(ShotRules.FindHit(world, db, shot, def));
+    }
+
+    [Fact]
+    public void TheShotRaisesTheBodyItStrikesFirst_NotTheOneItWasAimedAt()
+    {
+        // 0x004AB830 copies the struck thing's position into the aim, and process 18 raises on that tile.
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState vampire = Vampire(db, world, 5, 10);
+        CreatureState near = Corpse(db, world, 7, 10);
+        CreatureState far = Corpse(db, world, 9, 10);
+        ShotDef def = db.Shots[Dk2TerrainFixture.RaiseDeadShotId];
+        ShotState shot = ShotRules.Spawn(world, def, new PlayerId(Keeper), vampire.PosX, vampire.PosY,
+            Dk2TerrainFixture.SkeletonCreatureId, 0, vampire.Id, FightTargetKind.Body, far.Id, new PlayerId(0), -1, far.PosX, far.PosY);
+        ShotRules.Launch(shot, def, far.PosX, far.PosY);
+        GameSimulation sim = Sim(db, world);
+
+        sim.Run(12);
+
+        Assert.DoesNotContain(near, world.Creatures);
+        Assert.Contains(far, world.Creatures);
+        CreatureState raised = Assert.Single(world.Creatures, c => c.CreatureTypeId == Dk2TerrainFixture.SkeletonCreatureId);
+        Assert.Equal(new TilePos(7, 10), raised.Tile);
+        Assert.Equal(near.PosX, shot.TargetX);
     }
 
     [Fact]

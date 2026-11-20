@@ -110,8 +110,8 @@ public static class SpellRules
 
     /// <summary>The survey's body slot (Raise Dead, combat-acquisition.md §6.3): over the slots the level
     /// allows that pass the generic castability gate (or <paramref name="whileRecharging"/>, the Support
-    /// waiver), one that <see cref="IsBodySpell"/>. Ours, stated: the last such slot wins, as the
-    /// friendly survey's does; no shipped creature has two. −1 when none.</summary>
+    /// waiver), one that <see cref="IsBodySpell"/>. The last such slot wins (<c>0x0045E152</c>-<c>0x0045E16A</c> overwrite the
+    /// range and the slot each time), as the friendly survey's does; no shipped creature has two. −1 when none.</summary>
     public static int SurveyBody(GameDatabase database, CreatureState me, CreatureDef definition, long tick, out CreatureSpellDef? chosen,
         bool whileRecharging = false)
     {

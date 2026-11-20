@@ -230,8 +230,8 @@ public static partial class ShotRules
 
     /// <summary>Collide type 4 (shots.md §8, Raise Dead): the same walk over bodies, the first one the
     /// overlap box admits in <see cref="SearchWindow"/> order, not the nearest; no owner or hostility test.
-    /// Ours, stated: a body a creature carries (off the map) is not found, and the corpse's creature
-    /// footprint stands for the body's, as <see cref="Overlaps"/> reads it.</summary>
+    /// A body off the map (<c>+0x16 == 2</c>: carried or held) is rejected, as the predicate <c>0x004B59B0</c> does.
+    /// Ours, stated: the corpse's creature footprint stands for the body's, as <see cref="Overlaps"/> reads it.</summary>
     private static CreatureState? WalkBodies(WorldState world, GameDatabase database, ShotState shot, ShotDef definition, out long bestOrder)
     {
         bestOrder = long.MaxValue;
@@ -241,7 +241,7 @@ public static partial class ShotRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            if (!CreatureDeathRules.IsCorpse(candidate) || candidate.CarriedByCreatureId >= 0) continue;
+            if (!CreatureDeathRules.IsCorpse(candidate) || !CombatPitRules.IsOnTheMap(candidate)) continue;
             long order = window.Order(candidate.Tile, ChainRank(candidate));
             if (order >= bestOrder) continue;
             if (!Overlaps(shot, definition, candidate, database.CreatureById(candidate.CreatureTypeId))) continue;

@@ -295,14 +295,15 @@ public static class CombatTargetRules
         // Scan D: an enemy's revealed trap, when no creature is left; skipped during Turncoat.
         TrapState? trap = null;
         int trapDistance = 0;
-        // Skipped when a body was chosen (§6.3).
+        // Skipped when a body was chosen (0x0045D782, §6.3). An enemy that displaced the body and was then dropped by
+        // the route check leaves none: its id overwrote the body's and 0x0045D77D zeroes it.
         if (chosen is null && body is null) trap = ScanTraps(world, sight, me, definition, sightSq, out trapDistance);
 
         // Scan E: the enemy heart outranks nothing but a worker, and only an Imp or a Horned
-        // Reaper never looks at it; a trap outranks it (the class test at 0x0045D91B). Ours, stated:
-        // a chosen body is a target that is not a worker, so it keeps the heart out too.
+        // Reaper never looks at it; a trap outranks it (the class test at 0x0045D91B). A chosen body
+        // keeps the heart out too: that test reads the target's class (+0x12), a body's 6, as not a worker.
         bool heartMayEnter = trap is null && body is null
-            && (chosen is null ||((database.CreatureById(chosen.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker));
+            && (chosen is null || ((database.CreatureById(chosen.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker));
         int heartTile = -1;
         HeartPillar heartPillar = default;
         PlayerId heartOwner = 0;
@@ -491,8 +492,9 @@ public static class CombatTargetRules
 
     /// <summary>Scan B (<c>0x0045D095</c>–<c>0x0045D164</c>, combat-acquisition.md §6.3): the neutral player's
     /// bodies in our list order, the strict nearest by plain distance within sight (inclusive) and seen;
-    /// a tie keeps the first met. Nothing else is tested: a carried body counts, a Graveyard's (owned) never
-    /// does. <paramref name="best"/> is left at the winner's distance, which the enemy scans must beat.</summary>
+    /// a tie keeps the first met (ours, stated: the first in our creature list, where DK2 walks the neutral player's
+    /// chain from its head). Nothing else is tested, 0x0045D0CB-0x0045D164: a carried body counts, a Graveyard's
+    /// (owned) never does; <see cref="FightRules.IsLyingBody"/> drops a carried one on the next tick. <paramref name="best"/> is left at the winner's distance, which the enemy scans must beat.</summary>
     private static CreatureState? ScanBodies(SimulationContext context, ISightBlocker sight, CreatureState me, int sightSq, ref int best)
     {
         CreatureState? chosen = null;
