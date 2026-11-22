@@ -135,6 +135,7 @@ class Contracts(unittest.TestCase):
         task = task or dict(id='actual', description='task' * 15000, allowed_paths=['source file.txt', 'new file.txt'], acceptance_criteria=['done'], validation_commands=[['validator']])
         def worker(argv, cwd, timeout, env=None):
             if argv[0] == 'validator':
+                self.assertNotEqual(behavior, 'worker_ignored', 'Validation must not run after ignored worker writes')
                 self.assertNotIn('QWEN_API_KEY', env)
                 self.assertNotIn('GH_TOKEN', env)
                 self.assertEqual(env['QWEN_WORKER_ACTIVE'], '1')
@@ -151,10 +152,21 @@ class Contracts(unittest.TestCase):
             summary.write_text(json.dumps(dict(status='completed', changes=[], tests=[], unresolved_issues=[])))
             (cwd / 'source file.txt').write_text('worker changed source')
             (cwd / 'new file.txt').write_text('new source')
+            if behavior == 'worker_ignored':
+                injected = cwd / 'src/X/obj/X.csproj.nuget.g.props'
+                injected.parent.mkdir(parents=True)
+                injected.write_text('worker-created build import')
             return 0, '{}'
         with patch.object(d, 'executable', return_value='fake'), patch.object(d, 'execute', side_effect=worker), patch.dict(d.os.environ, {'GH_TOKEN': 'must-not-inherit'}):
             return d.run_task(task, self.root / ('output-' + d.uuid.uuid4().hex))
 
+    def test_worker_ignored_output_blocks_validation(self):
+        self.git_fixture()
+        result = self.actual_run('worker_ignored')
+        self.assertEqual(result['status'], 'failed')
+        self.assertEqual(result['validation_results'], [])
+        self.assertIn('src/X/obj/X.csproj.nuget.g.props', result['ignored_artifacts'])
+        self.assertTrue(any('Ignored files created by worker' in error for error in result['errors']))
     def test_ignored_build_outputs_and_new_file_diff(self):
         self.git_fixture()
         result = self.actual_run('success')

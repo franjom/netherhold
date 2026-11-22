@@ -15,6 +15,7 @@ TestResults/
 tools/qwen/.runtime/
 tools/qwen/.env
 .worktrees/
+.claude/worktrees/
 
 # ---------------------------------------------------------------
 # NEVER COMMIT: original Dungeon Keeper 2 material.

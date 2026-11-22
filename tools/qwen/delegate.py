@@ -292,6 +292,9 @@ def run_task(task, output):
         unauthorized = [p for p in changed if task.get('mode', 'edit') == 'review' or not in_scope(p, task['allowed_paths'])]
         if unauthorized:
             raise ValueError('Unauthorized modifications: ' + ', '.join(unauthorized))
+        worker_ignored = ignored_files(worktree)
+        if worker_ignored:
+            raise ValueError('Ignored files created by worker: ' + ', '.join(worker_ignored))
         for command in task.get('validation_commands', []):
             code, log = execute(command, worktree, task.get('timeout_seconds', 300), validation_environment())
             result['validation_results'].append({'argv': command, 'exit_code': code, 'output': log})
