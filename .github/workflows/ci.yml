@@ -156,6 +156,9 @@ jobs:
       - name: Rendered capture comparison regression tests (no GPU required)
         run: python -m unittest discover -s tools/tester-package -p "test_*.py" -v
 
+      - name: Supervised Qwen adapter regression tests (no inference required)
+        run: python -m unittest discover -s tools/qwen -p "test_*.py" -v
+
       - name: Native decision recorder gate (no DK2 install)
         if: runner.os == 'Windows'
         run: python -m unittest discover -s tools/oracle -p test_decision_boundary.py -v

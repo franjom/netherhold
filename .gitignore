@@ -8,7 +8,13 @@ TestResults/
 *.suo
 .vs/
 .idea/
-.vscode/
+.vscode/*
+!.vscode/tasks.json
+
+# Local Qwen harness and credentials (templates remain tracked).
+tools/qwen/.runtime/
+tools/qwen/.env
+.worktrees/
 
 # ---------------------------------------------------------------
 # NEVER COMMIT: original Dungeon Keeper 2 material.

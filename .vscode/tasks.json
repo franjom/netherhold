@@ -1,0 +1,49 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Qwen: install pinned OpenCode",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/qwen/setup.ps1"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Qwen: validate remote API",
+      "type": "process",
+      "command": "python",
+      "args": ["tools/qwen/delegate.py", "validate-api"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Qwen: interactive session",
+      "type": "process",
+      "command": "python",
+      "args": ["tools/qwen/delegate.py", "launch"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Qwen: delegate task",
+      "type": "process",
+      "command": "python",
+      "args": ["tools/qwen/delegate.py", "run", "--task-file", "${input:qwenTask}", "--output", "${input:qwenOutput}"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Qwen: adapter tests",
+      "type": "process",
+      "command": "python",
+      "args": ["-m", "unittest", "discover", "-s", "tools/qwen", "-p", "test_*.py", "-v"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {"id": "qwenTask", "type": "promptString", "description": "Supervisor-authored task JSON path", "default": "tools/qwen/task.example.json"},
+    {"id": "qwenOutput", "type": "promptString", "description": "New output directory (must not exist)", "default": "artifacts/qwen/task-001"}
+  ]
+}

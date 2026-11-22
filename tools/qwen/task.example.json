@@ -1,0 +1,13 @@
+{
+  "id": "readme-review",
+  "description": "Read README.md and docs/HANDOFF.md. Identify up to three inconsistencies in their description of the current engine. Cite file paths and lines. Do not modify files or claim original DK2 behavior.",
+  "mode": "review",
+  "allowed_paths": [],
+  "acceptance_criteria": [
+    "Return a review citing both repository files, or explicitly report no inconsistencies found.",
+    "Leave every repository file unchanged."
+  ],
+  "timeout_seconds": 180,
+  "attempt": 1,
+  "validation_commands": []
+}

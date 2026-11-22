@@ -1,4 +1,5 @@
 # Traps
+- OpenCode 1.18.35 can report misleading `EEXIST` for a sandbox-denied user config directory; set isolated `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `XDG_CACHE_HOME` and `XDG_STATE_HOME` under the task artifacts.
 
 - Ghidra rejects a project path containing a dot-prefixed directory such as `.claude`; put query project clones under an ordinary path and pass output/cache paths explicitly.
 

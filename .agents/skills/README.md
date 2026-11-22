@@ -18,6 +18,10 @@ and refresh both the lock and Claude metadata when a skill changes.
 
 ## Selected skills
 
+Local remote-worker integration: [delegate-qwen](delegate-qwen/SKILL.md).
+Its installation and shared adapter are in [tools/qwen](../../../tools/qwen/README.md).
+
+
 | Skill | Project use |
 |---|---|
 | csharp-refactoring | Preserve behavior across binding-aware structural edits. |
