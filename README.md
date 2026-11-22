@@ -1,7 +1,7 @@
 # Netherhold — Dungeon Keeper 2 Remake & Reimplementation
 
 **Netherhold** is an open-source, work-in-progress **Dungeon Keeper 2 remake** and
-reimplementation in C#/.NET, with a Unity presentation layer. The project aims
+reimplementation in C#/.NET, with a Godot presentation layer. The project aims
 to reproduce the original 1999 game's observable behavior while keeping its
 deterministic simulation independent of the renderer.
 
