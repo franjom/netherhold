@@ -24,7 +24,26 @@ def redact(text, key=None):
 
 
 def save(path, value):
-    Path(path).write_text(redact(json.dumps(value, indent=2)), encoding='utf-8')
+    Path(path).write_text(json.dumps(redact_value(value), indent=2), encoding='utf-8')
+
+
+def redact_value(value):
+    if isinstance(value, str):
+        return redact(value)
+    if isinstance(value, list):
+        return [redact_value(item) for item in value]
+    if isinstance(value, dict):
+        return {redact(str(key)): redact_value(item) for key, item in value.items()}
+    return value
+
+
+def validation_environment():
+    allowed = {'PATH', 'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PATHEXT', 'TEMP', 'TMP', 'HOME',
+               'USERPROFILE', 'LOCALAPPDATA', 'APPDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)',
+               'DOTNET_ROOT', 'DOTNET_CLI_HOME', 'NUGET_PACKAGES'}
+    env = {key: value for key, value in os.environ.items() if key.upper() in allowed}
+    env.update(QWEN_WORKER_ACTIVE='1', PYTHONDONTWRITEBYTECODE='1')
+    return env
 
 
 def configuration(require_model=True):
@@ -49,11 +68,19 @@ def request_api(suffix, payload=None):
         raise ValueError('API unreachable or timed out') from None
 
 
+def read_response(response):
+    try:
+        body = response.read(262144)
+        return body.decode('utf-8') if isinstance(body, bytes) else body
+    except (OSError, TimeoutError):
+        raise ValueError('API response read failed or timed out') from None
+
+
 def validate_api():
     _, _, model = configuration()
     report = {}
     with request_api('/models') as response:
-        models = json.load(response)
+        models = json.loads(read_response(response))
     if model not in [m.get('id') for m in models.get('data', [])]:
         raise ValueError('Configured QWEN_MODEL_ID absent from /models; discover identifiers locally')
     report['model_discovery'] = 'passed'
@@ -64,7 +91,7 @@ def validate_api():
         payload = {'model': model, 'messages': [{'role': 'user', 'content': 'Call ping if available; otherwise reply pong.'}], 'max_tokens': 64, **extra}
         try:
             with request_api('/chat/completions', payload) as response:
-                body = response.read(262144).decode()
+                body = read_response(response)
             if name == 'streaming':
                 valid = 'data:' in body and '[DONE]' in body
             else:
@@ -80,7 +107,7 @@ def validate_api():
 
 def models():
     with request_api('/models') as response:
-        return [item['id'] for item in json.load(response).get('data', [])]
+        return [item['id'] for item in json.loads(read_response(response)).get('data', [])]
 
 
 def validate_task(task):
@@ -99,6 +126,8 @@ def validate_task(task):
         raise ValueError('Edit tasks require allowed_paths')
     if task.get('attempt', 1) not in (1, 2, 3):
         raise ValueError('At most three supervisor-controlled attempts')
+    if task.get('attempt', 1) > 1 and (not isinstance(task.get('previous_result'), str) or not task['previous_result']):
+        raise ValueError('Retries require previous_result path')
     timeout = task.get('timeout_seconds', 300)
     if not isinstance(timeout, int) or not 1 <= timeout <= 1800:
         raise ValueError('Timeout must be 1-1800 seconds')
@@ -136,8 +165,10 @@ def execute(argv, cwd, timeout, env=None):
 
 
 def git(*args, cwd=None):
-    result = subprocess.run(['git', *args], cwd=cwd or ROOT, capture_output=True, check=True)
-    return result.stdout.decode('utf-8', errors='replace').strip()
+    result = subprocess.run(['git', *args], cwd=cwd or ROOT, capture_output=True)
+    if result.returncode:
+        raise ValueError('Git failed: ' + redact(result.stderr.decode('utf-8', errors='replace').strip()))
+    return result.stdout.decode('utf-8', errors='replace')
 
 
 def executable():
@@ -163,15 +194,16 @@ def runtime_environment(directory):
     return env
 
 
-def overlay(task, worktree, summary):
+def overlay(task=None, worktree=None, summary=None):
     _, _, model = configuration()
     edits = {'*': 'deny'}
-    if task.get('mode', 'edit') != 'review':
+    if task and task.get('mode', 'edit') != 'review':
         for path in task['allowed_paths']:
             for key in (path, path.rstrip('/') + '/*', str(worktree / path).replace('\\', '/'), str(worktree / path).replace('\\', '/') + '/*'):
                 edits[key] = 'allow'
-    edits[str(summary).replace('\\', '/')] = 'allow'
-    edits[summary.name] = 'allow'
+    if summary:
+        edits[str(summary).replace('\\', '/')] = 'allow'
+        edits[summary.name] = 'allow'
     config = {'$schema': 'https://opencode.ai/config.json', 'model': 'qwen/' + model,
         'enabled_providers': ['qwen'], 'share': 'disabled', 'autoupdate': False,
         'provider': {'qwen': {'npm': '@ai-sdk/openai-compatible', 'name': 'Remote Qwen',
@@ -191,19 +223,33 @@ def overlay(task, worktree, summary):
 
 
 def inventory(worktree):
-    result = {}
-    for path in worktree.rglob('*'):
-        if path.is_file() and path.name != '.git':
-            result[path.relative_to(worktree).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
-    return result
+    # Hash only source changes; ordinary ignored build/cache outputs stay out of scope.
+    return {name: hashlib.sha256((worktree / name).read_bytes()).hexdigest()
+            if (worktree / name).is_file() else '<deleted>' for name in source_changes(worktree)}
+
+
+def ignored_files(worktree):
+    return [name for name in git('ls-files', '-z', '--others', '--ignored', '--exclude-standard', cwd=worktree).split('\0') if name]
+
+
+def source_changes(worktree):
+    entries = iter(git('status', '--porcelain=v1', '-z', '--untracked-files=all', cwd=worktree).split('\0'))
+    paths = []
+    for entry in entries:
+        if not entry:
+            continue
+        paths.append(entry[3:])
+        if 'R' in entry[:2] or 'C' in entry[:2]:
+            paths.append(next(entries))
+    return paths
 
 
 def run_task(task, output):
+    if os.environ.get('QWEN_WORKER_ACTIVE'):
+        raise ValueError('Recursive delegation denied')
     validate_task(task)
     configuration()
     binary = executable()
-    if os.environ.get('QWEN_WORKER_ACTIVE'):
-        raise ValueError('Recursive delegation denied')
     if task.get('attempt', 1) > 1:
         prior = json.loads(Path(task['previous_result']).read_text(encoding='utf-8'))
         if prior['task_id'] != task['id'] or prior['attempt'] != task['attempt'] - 1 or prior['supervisor_decision'] not in ('reject', 'revise'):
@@ -211,7 +257,7 @@ def run_task(task, output):
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=False)
     token = task['id'] + '-' + uuid.uuid4().hex[:12]
-    worktree = ROOT / '.worktrees' / ('qwen-' + token)
+    worktree = ROOT / '.claude' / 'worktrees' / ('qwen-' + token)
     result = {'task_id': task['id'], 'attempt': task.get('attempt', 1), 'status': 'failed',
         'supervisor_decision': 'pending', 'worktree': str(worktree), 'branch': 'qwen/' + token,
         'files_modified': [], 'validation_results': [], 'errors': [], 'diff_location': str(output / 'changes.diff')}
@@ -228,7 +274,9 @@ def run_task(task, output):
             'Write your structured report to ' + summary.name + ' as JSON with status completed/blocked/failed, '
             'changes (string array), tests (string array), unresolved_issues (string array). Never claim tests you did not run. '
             'Task specification:\n' + json.dumps(task))
-        code, log = execute([binary, 'run', '--pure', '--format', 'json', '--model', 'qwen/' + configuration()[2], prompt], worktree, task.get('timeout_seconds', 300), env)
+        prompt_file = output / 'prompt.txt'
+        prompt_file.write_text(redact(prompt), encoding='utf-8')
+        code, log = execute([binary, 'run', '--pure', '--format', 'json', '--model', 'qwen/' + configuration()[2], 'Execute the attached supervisor task.', '--file', str(prompt_file)], worktree, task.get('timeout_seconds', 300), env)
         (output / 'worker.jsonl').write_text(log, encoding='utf-8')
         if code:
             raise ValueError('Worker process failed with exit code ' + str(code))
@@ -236,13 +284,16 @@ def run_task(task, output):
         if result['worker_summary']['status'] != 'completed':
             raise ValueError('Worker did not complete task')
         after = inventory(worktree)
-        changed = sorted(p for p in before.keys() | after.keys() if before.get(p) != after.get(p) and p != summary.name)
+        changed = sorted(set(source_changes(worktree)) | {p for p in before.keys() | after.keys() if before.get(p) != after.get(p)})
+        changed = [p for p in changed if p != summary.name]
+        result['worker_files_modified'] = changed
         result['files_modified'] = changed
+        worker_snapshot = after
         unauthorized = [p for p in changed if task.get('mode', 'edit') == 'review' or not in_scope(p, task['allowed_paths'])]
         if unauthorized:
             raise ValueError('Unauthorized modifications: ' + ', '.join(unauthorized))
         for command in task.get('validation_commands', []):
-            code, log = execute(command, worktree, task.get('timeout_seconds', 300), dict(os.environ, PYTHONDONTWRITEBYTECODE='1'))
+            code, log = execute(command, worktree, task.get('timeout_seconds', 300), validation_environment())
             result['validation_results'].append({'argv': command, 'exit_code': code, 'output': log})
             if code:
                 raise ValueError('Supervisor validation failed')
@@ -255,20 +306,27 @@ def run_task(task, output):
                 after = inventory(worktree)
                 result['files_modified'] = sorted(p for p in before.keys() | after.keys()
                     if before.get(p) != after.get(p) and p != summary.name)
+                result['files_modified'] = sorted(set(result['files_modified']) | {p for p in source_changes(worktree) if p != summary.name})
+                result['ignored_artifacts'] = ignored_files(worktree)
+                if 'worker_snapshot' in locals():
+                    changed_by_validation = [p for p in worker_snapshot.keys() | after.keys() if worker_snapshot.get(p) != after.get(p) and p != summary.name]
+                    if changed_by_validation:
+                        result['status'] = 'failed'
+                        result['errors'].append('Validation modified source files: ' + ', '.join(changed_by_validation))
                 unauthorized = [p for p in result['files_modified']
                     if task.get('mode', 'edit') == 'review' or not in_scope(p, task.get('allowed_paths', []))]
                 if unauthorized:
                     result['status'] = 'failed'
                     result['errors'].append('Unauthorized modifications after execution: ' + ', '.join(unauthorized))
                 patch = git('diff', '--binary', 'HEAD', cwd=worktree)
-                for p in git('ls-files', '--others', cwd=worktree).splitlines():
-                    if p != summary.name:
+                for p in git('ls-files', '-z', '--others', '--exclude-standard', cwd=worktree).split('\0'):
+                    if p and p != summary.name:
                         item = subprocess.run(['git', 'diff', '--no-index', '--binary', '--', os.devnull, p], cwd=worktree, capture_output=True)
                         patch += '\n' + item.stdout.decode('utf-8', errors='replace')
                 (output / 'changes.diff').write_text(redact(patch), encoding='utf-8')
-            except (OSError, subprocess.SubprocessError):
+            except (ValueError, OSError, subprocess.SubprocessError) as error:
                 result['status'] = 'failed'
-                result['errors'].append('Unable to capture diff; inspect preserved worktree')
+                result['errors'].append('Unable to capture diff; inspect preserved worktree: ' + redact(str(error)))
         save(output / 'result.json', result)
     return result
 
@@ -301,7 +359,7 @@ def main():
             return 0
         if args.command == 'launch':
             env = runtime_environment(ROOT / 'tools/qwen/.runtime')
-            env['OPENCODE_CONFIG_CONTENT'] = json.dumps(overlay({'allowed_paths': ['src', 'tests', 'docs'], 'mode': 'edit'}, ROOT, ROOT / '.qwen-interactive-summary.json'))
+            env['OPENCODE_CONFIG_CONTENT'] = json.dumps(overlay())
             interactive = json.loads(env['OPENCODE_CONFIG_CONTENT'])
             interactive['permission']['bash'] = 'ask'
             interactive['permission']['edit'] = 'ask'
@@ -315,7 +373,7 @@ def main():
             save(args.result, result)
         else:
             path = Path(result['worktree']).resolve()
-            if path.parent != ROOT / '.worktrees' or not path.name.startswith('qwen-'):
+            if path.parent not in (ROOT / '.claude' / 'worktrees', ROOT / '.worktrees') or not path.name.startswith('qwen-'):
                 raise ValueError('Unexpected worktree path')
             print('Owner approval required before deletion. Preserved paths:')
             print(path)
