@@ -50,7 +50,7 @@ questions live in their canonical documents; this file links to them.
   and [performance policy](PERFORMANCE.md).
 
 ## Active continuation
-- Continue the modern-rendering audit with the chunk upload tweak (12); items 9, 11, 16 and 17 are done; see [replacement order](plans/2026-11-18-godot-modern-rendering-audit.md#revised-order). Minimap implementation and acceptance are tracked in item 10 there.
+- The modern-rendering audit's replacements are done: the chunk upload tweak (12) landed after items 9, 11, 16 and 17; see [replacement order](plans/2026-11-18-godot-modern-rendering-audit.md#revised-order). Minimap implementation and acceptance are tracked in item 10 there.
 
 Q712, the Level 5 draw-continuation investigation, is answered through turn 1900.
 At hash 524 with ADR-0811, with the replay inputs including the five hero guards

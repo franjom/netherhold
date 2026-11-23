@@ -12,15 +12,17 @@ Unity's player it starts full screen (see *Verifying* for a window of a fixed si
 
 `InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
 Unity's `DungeonRunner` does and ticks it at the default game speed, over the level's terrain (`WorldScene`, plan steps 3a
-to 3i: a `Camera3D` that the shared camera rules move (3b), one `MeshInstance3D` per 16x16 chunk with one `ArrayMesh`
-surface per recipe, with shared materials distinguished by look and sight-fog semantics). Tag, red and tint changes
+to 3i: a `Camera3D` that the shared camera rules move (3b), one `RenderingServer` mesh instance per 16x16 chunk with
+one surface per recipe, with shared materials distinguished by look and sight-fog semantics). Tag, red and tint changes
 write one texel in a persistent RGBA float state image without rebuilding chunks (step 3p-b). `TerrainTileBuilder`
 chooses each vertex's tag and tint sources, carried beside its lighting anchor in `CUSTOM0`: room walls can read their
 neighbour, room floors can read quarter tint, and red reads the drawn tile. `TerrainTileState` packs ambient and quarter
 RGB bytes, tag/red flags and fog opacity. One `ImageTexture.Update` uploads the image after a dirty frame; this public
 Godot API uploads the whole image. Sight fog keeps its opacity material and rebuild path. Geometry changes still use
 the shared `TerrainChunkScheduler`: the 5x5 tiles around them are marked stale, built on the thread pool and uploaded
-within a 4 ms budget, lowest chunk first. Unity keeps the scheduler's default material-state path. Water and lava wave
+within a 4 ms budget, lowest chunk first. The build task also packs each rebuilt chunk's opaque surfaces as Godot's own
+vertex bytes (`ITerrainChunkPacker`, `WorldScene.ChunkUpload.cs`, audit item 12), which `RenderingServer.MeshAddSurface`
+takes as they are. Unity keeps the scheduler's default material-state path. Water and lava wave
 on the GPU (audit item 9): each liquid is one static mesh, rebuilt only when its tiles change (`LiquidSurfaceField.Refresh`),
 whose vertices carry their grid point (`LiquidSurfaceWave.Points`, CUSTOM1); `Shaders/WorldLiquid.gdshader` (the world
 shader with `DK2_LIQUID`) computes each position and normal from it and DK2's frame, the one uniform set per frame, with
@@ -296,7 +298,8 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `DK2.Godot/Main.tscn`, `Main.cs` | the main scene: the front-end menu (`ClassicFrontEndMenu`) |
 | `DK2.Godot/UserFolders.cs` | `GameFolders` over `user://` with the `--profile`, `--settings`, `--saves` and `--hiscores` overrides, for both scenes |
 | `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD over a running campaign level and its `WorldScene` (see above) |
-| `DK2.Godot/WorldScene.cs` | the 3D world: `TerrainTileBuilder`'s chunks as `MeshInstance3D`s through `RightHandedFrame`, rebuilt by `TerrainChunkScheduler` (`ITerrainChunkSink`) with shared recipe materials on the world shader (`ShaderFor`, `WorldMaterial`), the liquids waved by `WorldLiquid.gdshader` (`LiquidLayer`, `LiquidSurfaceField`), the blended runs (`BlendedTerrainStream`, `ViewFrustum`, one `RenderingServer` instance per run), the gamma-space output `Environment`, the selection cage (`CageRibbon`, `TileHoverOutline.Build`'s ribbon with Godot's own additive shader), `TryPickRay` (the pointer's ray), and the classic `Camera3D`, placed once a frame at the focus the scene moves |
+| `DK2.Godot/WorldScene.cs` | the 3D world: `TerrainTileBuilder`'s chunks through `RightHandedFrame`, rebuilt by `TerrainChunkScheduler` (`ITerrainChunkSink`) with shared recipe materials on the world shader (`ShaderFor`, `WorldMaterial`), the liquids waved by `WorldLiquid.gdshader` (`LiquidLayer`, `LiquidSurfaceField`), the blended runs (`BlendedTerrainStream`, `ViewFrustum`, one `RenderingServer` instance per run), the gamma-space output `Environment`, the selection cage (`CageRibbon`, `TileHoverOutline.Build`'s ribbon with Godot's own additive shader), `TryPickRay` (the pointer's ray), and the classic `Camera3D`, placed once a frame at the focus the scene moves |
+| `DK2.Godot/WorldScene.ChunkUpload.cs` | the opaque terrain chunks' upload (audit item 12): `ChunkPacker`, the scheduler's `ITerrainChunkPacker`, gathers each rebuilt chunk's opaque surfaces on the build task and writes them as Godot's uncompressed vertex, attribute and index bytes (`PackedSurface`, the layout checked against a surface Godot built at open); the frame's thread hands them to `RenderingServer.MeshAddSurface`, one mesh and instance per chunk |
 | `DK2.Godot/WorldScene.TerrainState.cs` | the persistent tile-state image, dirty-frame texture upload, state shader parameters and static overlay chunk batches (3p-b); mapping and state comparison belong to `DK2.Presentation` |
 | `DK2.Godot/WorldScene.Objects.cs` | the objects, structures and torches (`WorldScene`, partial): shared model meshes, a node per object with per-surface looks (`ObjectMaterialLook`, one material per `ObjectSurfaceKey`, the tint, fade and red as instance uniforms), the Heart through `CreatureAnimationPlayer` and `HeartPulse`, the door tint, blueprint and lock mesh, torch meshes (`TorchGeometry`, re-bent in place, with a `CustomAabb`), flames as additive billboards, and `ZeroOrderOffset` for blended draws |
 | `DK2.Godot/WorldScene.Lighting.cs` | the classic lighting (`WorldScene`, partial, step 3i): the scene's lights in a `ClassicWorldLightCache`, the visible tables published by `ClassicLightPublisher` into a float texture array (a layer per tile row, changed rows uploaded alone), the shader globals the light step in `Shaders/WorldLight.gdshaderinc` reads (per vertex, or with `--light-perpixel` per pixel over flat anchors and model transforms: the `ClassicVertexLight` copy, the optional fill and the distance fade), the ambient keys and the Hand's light; options gamma is owned by the final [screen-colour pass](../docs/research/possession-colour-rendering.md) |

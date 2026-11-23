@@ -435,6 +435,174 @@ public class TerrainChunkSchedulerTests
         Assert.Equal(2, TerrainChunkScheduler.StaleReach);
     }
 
+    /// <summary>With a packer every upload follows a pack of the same chunk over the same tiles: the first flush packs
+    /// every chunk inline, a budgeted flush leaves the rebuilt chunk to the build task, which packs it, and nothing is
+    /// uploaded before the build is taken over.</summary>
+    [Fact]
+    public void APackerPacksEachRebuiltChunkBeforeItsUploadOnTheBuildTask()
+    {
+        var log = new PackLog();
+        var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), Width, Height) { Packer = log };
+        for (int y = 0; y < Height; y++)
+            for (int x = 0; x < Width; x++)
+                scheduler.Set(At(x, y), Floor(x, y));
+        scheduler.Flush(log);
+        Assert.Equal(Enumerable.Range(0, 9), log.Packs.Select(p => p.Chunk));
+        Assert.All(log.Packs, p => Assert.Equal(Environment.CurrentManagedThreadId, p.Thread));
+        Assert.Equal(9, log.Uploads.Count);
+
+        log.Packs.Clear();
+        log.Uploads.Clear();
+        using var gate = new ManualResetEventSlim(false);
+        scheduler.BuildGate = gate;
+        scheduler.Set(At(20, 20), Floor(20, 20, tagged: true));
+        scheduler.Flush(log);
+        Assert.Empty(log.Packs);
+        Assert.Empty(log.Uploads);
+        gate.Set();
+        scheduler.WaitForBuild();
+        // Packed by the build itself (WaitForBuild may run the task inline, so the thread is not asserted).
+        Assert.Equal([4], log.Packs.Select(p => p.Chunk));
+        scheduler.Flush(log);
+        Assert.Equal([4], log.Uploads.Select(u => u.Chunk));
+        Assert.Equal(0, log.Overlaps);
+    }
+
+    /// <summary>A chunk whose changed tile stopped drawing has nothing to build: it is packed on the flushing thread
+    /// and uploaded in the same flush, as without a packer.</summary>
+    [Fact]
+    public void AChunkWithNothingToBuildIsPackedInlineAndUploadedAtOnce()
+    {
+        var log = new PackLog();
+        var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), 16, 16) { Packer = log };
+        scheduler.Set(0, Floor(0, 0));
+        scheduler.Set(1, Floor(1, 0));
+        scheduler.Flush(log);
+        log.Packs.Clear();
+        scheduler.Set(0, new TileView(new TilePos(0, 0), default, default, default, false, false, 0, 1000));
+        scheduler.Flush(log);
+        Assert.False(scheduler.IsBuilding);
+        Assert.Single(log.Packs);
+        Assert.Equal(Environment.CurrentManagedThreadId, log.Packs[0].Thread);
+        Assert.Single(log.Packs[0].Tiles);
+        Assert.Equal(2, log.Uploads.Count);
+        Assert.Equal([1], log.Uploads[1].Tiles);
+    }
+
+    /// <summary>A chunk the budget left for a later flush keeps its pack: the next build packs only the chunks whose
+    /// tiles changed since.</summary>
+    [Fact]
+    public void ADeferredChunkIsNotPackedAgain()
+    {
+        double clock = 0;
+        var log = new PackLog { Uploaded = () => clock += 10 };
+        var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), Width, Height, null, () => clock)
+        {
+            Packer = log,
+        };
+        for (int y = 0; y < Height; y++)
+            for (int x = 0; x < Width; x++)
+                scheduler.Set(At(x, y), Floor(x, y));
+        scheduler.Flush(log);
+        log.Packs.Clear();
+        log.Uploads.Clear();
+        foreach (int x in new[] { 35, 1, 20 }) scheduler.Set(At(x, 1), Floor(x, 1, tagged: true));
+        scheduler.Flush(log);
+        scheduler.WaitForBuild();
+        scheduler.Flush(log);
+        Assert.Equal([0, 1, 2], log.Packs.Select(p => p.Chunk).Order());
+        Assert.Equal([0], log.Uploads.Select(u => u.Chunk));
+
+        log.Packs.Clear();
+        scheduler.Set(At(5, 34), Floor(5, 34, tagged: true));
+        scheduler.Flush(log);
+        scheduler.WaitForBuild();
+        while (scheduler.PendingChunks > 0) scheduler.Flush(log);
+        Assert.Equal([6], log.Packs.Select(p => p.Chunk));
+        Assert.Equal([0, 1, 2, 6], log.Uploads.Select(u => u.Chunk));
+    }
+
+    /// <summary>A packer that allocates nothing keeps an inline rebuild allocation-free once warm.</summary>
+    [Fact]
+    public void PackingAllocatesNothingOnceWarm()
+    {
+        var log = new CountingSink();
+        var packer = new CountingPacker();
+        var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), Width, Height) { Packer = packer };
+        for (int y = 0; y < Height; y++)
+            for (int x = 0; x < Width; x++)
+                scheduler.Set(At(x, y), Floor(x, y));
+        scheduler.Flush(log);
+        scheduler.FlushBudgetMilliseconds = 0;
+        TileView tagged = Floor(9, 9, tagged: true), plain = Floor(9, 9);
+        for (int warm = 0; warm < 3; warm++)
+        {
+            scheduler.Set(At(9, 9), tagged);
+            scheduler.Flush(log);
+            scheduler.Set(At(9, 9), plain);
+            scheduler.Flush(log);
+        }
+        int packs = packer.Packs;
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        scheduler.Set(At(9, 9), tagged);
+        scheduler.Flush(log);
+        Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+        Assert.Equal(packs + 1, packer.Packs);
+    }
+
+    private sealed class CountingPacker : ITerrainChunkPacker
+    {
+        public int Packs;
+        public void PackChunk(int chunk, ReadOnlySpan<TerrainTileGeometry> tiles) => Packs++;
+    }
+
+    /// <summary>Records packs and uploads, and checks each upload's tiles against the chunk's last pack.</summary>
+    private sealed class PackLog : ITerrainChunkPacker, ITerrainChunkSink
+    {
+        private readonly Dictionary<int, TerrainTileGeometry[]> _lastPack = new();
+        private readonly List<TerrainTileGeometry> _uploading = new();
+        private SchedulerLog.Upload? _open;
+        private int _inside;
+
+        public List<(int Chunk, int Thread, TerrainTileGeometry[] Tiles)> Packs { get; } = new();
+        public List<SchedulerLog.Upload> Uploads { get; } = new();
+        public Action? Uploaded { get; set; }
+        public int Overlaps;
+
+        public void PackChunk(int chunk, ReadOnlySpan<TerrainTileGeometry> tiles)
+        {
+            if (Interlocked.Increment(ref _inside) != 1) Interlocked.Increment(ref Overlaps);
+            TerrainTileGeometry[] copy = tiles.ToArray();
+            lock (Packs)
+            {
+                Packs.Add((chunk, Environment.CurrentManagedThreadId, copy));
+                _lastPack[chunk] = copy;
+            }
+            Interlocked.Decrement(ref _inside);
+        }
+
+        public void BeginChunk(int chunk)
+        {
+            _open = new SchedulerLog.Upload(chunk);
+            _uploading.Clear();
+        }
+
+        public void AddTile(int tileIndex, TerrainTileGeometry geometry)
+        {
+            _open!.Add(tileIndex, geometry);
+            _uploading.Add(geometry);
+        }
+
+        public void EndChunk(int chunk)
+        {
+            TerrainTileGeometry[]? packed;
+            lock (Packs) Assert.True(_lastPack.TryGetValue(chunk, out packed), "chunk " + chunk + " was never packed");
+            Assert.Equal(packed, _uploading);
+            Uploads.Add(_open!);
+            Uploaded?.Invoke();
+        }
+    }
+
     private sealed class CountingSink : ITerrainChunkSink
     {
         public int Tiles;

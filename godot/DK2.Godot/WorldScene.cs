@@ -21,8 +21,8 @@ using NVector3 = System.Numerics.Vector3;
 namespace DK2.GodotAdapter;
 
 /// <summary>The 3D world under <see cref="InGameHud"/> (plan steps 3a to 3c): the terrain as <see cref="TerrainTileBuilder"/>
-/// builds it and <see cref="TerrainChunkScheduler"/> schedules it, one <see cref="MeshInstance3D"/> per 16x16-tile chunk
-/// with a surface per <see cref="TerrainMaterialKey"/> drawn as <see cref="TerrainMaterialLook"/> describes it, and the
+/// builds it and <see cref="TerrainChunkScheduler"/> schedules it, one mesh instance per 16x16-tile chunk
+/// (WorldScene.ChunkUpload.cs) with a surface per <see cref="TerrainMaterialKey"/> drawn as <see cref="TerrainMaterialLook"/> describes it, and the
 /// waving water and lava (<see cref="LiquidSurfaceField"/>), lit by DK2's vertex light (WorldScene.Lighting.cs), seen from the classic
 /// camera; blended faces go back to front through <see cref="BlendedTerrainStream{TMaterial}"/> (step 3d, <see cref="RunSlot"/>).
 /// Everything crosses into Godot's right-handed frame through <see cref="RightHandedFrame"/>. Objects, structures and
@@ -45,15 +45,12 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private CageRibbon? _cage;
     private ScenePresenter? _presenter;
     private TerrainChunkScheduler? _terrain;
-    private MeshInstance3D?[] _chunks = [], _terrainOverlayChunks = [];
+    private MeshInstance3D?[] _terrainOverlayChunks = [];
     private readonly SurfaceBuffer _terrainOverlaySurface = new();
     private LiquidSurfaceField? _liquids;
     private LiquidLayer? _water, _lava;
     private float _seconds;
 
-    private readonly Dictionary<TerrainMaterialKey, SurfaceBuffer> _surfaceOf = new();
-    private readonly List<SurfaceBuffer> _surfaces = new();
-    private readonly List<SurfaceBuffer> _spareSurfaces = new();
     private int[] _remap = new int[256], _stamp = new int[256];
     private int _generation;
 
@@ -120,7 +117,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         var lattice = new TerrainLattice(level.Database, world, viewer) { HighWalls = true };
         _lattice = lattice;
         _terrain = new TerrainChunkScheduler(new InstallTerrainPieces(_art), world.Width, world.Height, lattice, stateTexture: true);
-        _chunks = new MeshInstance3D?[_terrain.ChunkCount];
+        OpenChunkUpload(_terrain);
         _terrainOverlayChunks = new MeshInstance3D?[_terrain.ChunkCount];
         _liquids = new LiquidSurfaceField(world.Width, world.Height);
         _water = new LiquidLayer(_liquids.Water);
@@ -339,9 +336,6 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     void ITerrainChunkSink.BeginChunk(int chunk)
     {
         _changed = true;
-        foreach (SurfaceBuffer surface in _surfaces) _spareSurfaces.Add(surface);
-        _surfaces.Clear();
-        _surfaceOf.Clear();
         _terrainOverlaySurface.Reset(default);
         _blendedVertices.Clear();
         foreach (List<int> list in _blendedByMaterial.Values) list.Clear();
@@ -349,7 +343,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     void ITerrainChunkSink.AddTile(int tileIndex, TerrainTileGeometry geometry) => GatherTile(geometry);
 
-    /// <summary>Each opaque key's gathered vertices as one surface of the chunk's mesh; the blended ones join the stream.</summary>
+    /// <summary>The opaque keys' surfaces the build task packed as the chunk's mesh (WorldScene.ChunkUpload.cs); the
+    /// blended ones join the stream.</summary>
     void ITerrainChunkSink.EndChunk(int chunk)
     {
         UploadTerrainOverlayChunk(chunk);
@@ -357,25 +352,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         foreach (KeyValuePair<ShaderMaterial, List<int>> entry in _blendedByMaterial)
             if (entry.Value.Count != 0) _blended.AddChunkTriangles(entry.Key, entry.Value);
         _blended.EndChunk();
-
-        MeshInstance3D? instance = _chunks[chunk];
-        var mesh = instance?.Mesh as ArrayMesh ?? new ArrayMesh();
-        mesh.ClearSurfaces();
-        foreach (SurfaceBuffer surface in _surfaces)
-        {
-            if (surface.IndexCount == 0) continue;
-            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, surface.ToArrays(), null, null, TerrainStateCustomFormat);
-            mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, MaterialFor(surface.Key));
-        }
-        if (instance == null && mesh.GetSurfaceCount() > 0)
-        {
-            instance = new MeshInstance3D { Name = "Chunk" + chunk, Mesh = mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
-            if (TorchShadowsActive) instance.Layers = ShadowCasterLayers;
-            AddChild(instance);
-            _chunks[chunk] = instance;
-        }
+        UploadChunkSurfaces(chunk);
     }
 
+    /// <summary>A tile's overlay and blended faces; every key's material is looked up in the tile's order, so the
+    /// materials are made in the order they were when this thread gathered the opaque faces too.</summary>
     private void GatherTile(TerrainTileGeometry geometry)
     {
         if (_remap.Length < geometry.VertexCount)
@@ -406,30 +387,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 if (!_blendedByMaterial.TryGetValue(material, out List<int>? list)) _blendedByMaterial.Add(material, list = new List<int>());
                 TerrainIndexList triangles = geometry.Triangles[s];
                 for (int i = 0; i < triangles.Count; i++) list.Add(blendedStart + triangles.Items[i]);
-                continue;
             }
-            if (!_surfaceOf.TryGetValue(key, out SurfaceBuffer? surface))
-            {
-                surface = TakeSurface(key);
-                _surfaceOf.Add(key, surface);
-                _surfaces.Add(surface);
-            }
-            _generation++;
-            surface.Append(geometry, geometry.Triangles[s], _remap, _stamp, _generation);
         }
-    }
-
-    private SurfaceBuffer TakeSurface(in TerrainMaterialKey key)
-    {
-        SurfaceBuffer surface;
-        if (_spareSurfaces.Count > 0)
-        {
-            surface = _spareSurfaces[^1];
-            _spareSurfaces.RemoveAt(_spareSurfaces.Count - 1);
-        }
-        else surface = new SurfaceBuffer();
-        surface.Reset(key);
-        return surface;
     }
 
     /// <summary>The material a key draws with, shared by keys with the same look and sight-fog semantics.</summary>
@@ -668,6 +627,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 Milliseconds(_blendedMaxTicks), " ms max; allocated ", _blendedWarmUpBytes, " B in the first ", BlendedWarmUp,
                 " and ", _blendedLateBytes, " B after; up to ", _blendedMaxRuns, " runs and ", _blendedMaxTriangles, " triangles, ", _runSlots.Count,
                 " run instances; uploaded ", _blendedUploadBytes, " B for ", _blendedUploadTriangles, " triangles drawn");
+        FreeChunkUpload();
         FreeEffects();
         FreeObjects();
         foreach (RunSlot slot in _previewRunSlots) slot.Free();
@@ -1101,7 +1061,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     }
 
     /// <summary>One key's surface in the chunk being built: the vertices its triangles use, each copied once, in
-    /// Godot's frame, and its triangles renumbered to them.</summary>
+    /// Godot's frame, and its triangles renumbered to them. The overlay's on the frame's thread, the opaque keys' on the
+    /// build task (<see cref="ChunkPacker"/>).</summary>
     private sealed class SurfaceBuffer
     {
         private NVector3[] _positions = new NVector3[256], _normals = new NVector3[256];
@@ -1111,6 +1072,13 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
         public TerrainMaterialKey Key { get; private set; }
         public int IndexCount { get; private set; }
+        public int VertexCount => _vertexCount;
+        public ReadOnlySpan<NVector3> Positions => _positions.AsSpan(0, _vertexCount);
+        public ReadOnlySpan<NVector3> Normals => _normals.AsSpan(0, _vertexCount);
+        public ReadOnlySpan<NVector2> Uvs => _uvs.AsSpan(0, _vertexCount);
+        public ReadOnlySpan<NVector2> Anchors => _anchors.AsSpan(0, _vertexCount);
+        public ReadOnlySpan<NVector2> StateSources => _stateSources.AsSpan(0, _vertexCount);
+        public ReadOnlySpan<int> Indices => _indices.AsSpan(0, IndexCount);
 
         public void Reset(in TerrainMaterialKey key)
         {

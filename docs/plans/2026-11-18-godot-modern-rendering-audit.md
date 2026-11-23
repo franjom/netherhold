@@ -240,10 +240,50 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
   frame 300, and 1 gauge upload; new 517, none after frame 300, no uploads, 5 GPU gauge fills. Live HUD texture bytes at
   the end 9.95 -> 10.08 MB (peak 10.10 -> 10.22 MB): the atlases and the gauges' rank and viewport textures cost more than
   the few text textures they replace. Raw reports: `.../dk2-item11/perf/`.
-- **12. Keep, P3, S-M. CPU-built merged terrain chunks** (`WorldScene.cs:278-300`, `:987-1009`): the pieces are bent
-  by the lattice and picking needs the CPU geometry. Tweak only: Godot-format vertex bytes on the pool thread and
-  `MeshAddSurface`; attribute compression. No MultiMesh per piece, no occlusion culling, no mesh LOD, no visibility
-  ranges. Gain: fewer main-thread milliseconds per rebuild.
+- **12. Keep, P3, S-M. CPU-built merged terrain chunks. Done (2026-11-24): the vertex bytes are packed on the build
+  task.** The pieces are bent by the lattice and picking needs the CPU geometry, so the chunks stay CPU-built; no
+  MultiMesh per piece, no occlusion culling, no mesh LOD, no visibility ranges. `TerrainChunkScheduler` takes an
+  optional `ITerrainChunkPacker` (`DK2.Presentation`, unit-tested; Unity sets none): its build task, after the tiles it
+  rebuilt, packs every chunk holding one of them, and a chunk whose changed tiles all stopped drawing is packed inline,
+  so uploads land on the same flush as before. Godot's packer (`WorldScene.ChunkUpload.cs`) gathers the opaque keys
+  as the frame thread did and writes the bytes `_surface_set_data` writes (positions, then octahedral normal and
+  the derived tangent, then UV and CUSTOM0; 16-bit indices); the frame thread only calls `RenderingServer.MeshAddSurface`
+  on one `RenderingServer` mesh and instance per chunk (no `ArrayMesh` or `MeshInstance3D`). The blended stream and the
+  overlay batch stay on the frame thread, and every key's material is still looked up there in tile order. The format
+  is read from a surface Godot built at open and its strides checked (docs/TRAPS.md). Attribute compression is not
+  used: `ARRAY_FLAG_COMPRESS_ATTRIBUTES` quantises positions to 16 bits over the surface's box and UVs to 16 bits,
+  which is lossy for these floats (not captured).
+  Byte check (scratch build comparing each packed surface with `MeshAddSurfaceFromArrays` from the same arrays via
+  `MeshGetSurface`): 2,787 surfaces (644,502 vertices) over Level1 to turn 70 with flags off and on, Level7, possession
+  and the dig scene; format, bounds, vertex, attribute and index bytes all equal. Captures (Movie Maker 1920x1080,
+  `--pointer-path`, clean `git archive` HEAD against HEAD plus this change): Level1 to turn 70 flags off and with all
+  three lighting flags, Level7 start both ways, `--possess-first-creature`, and a dig scene (a turn-200 Level1 save,
+  two dig areas tagged by the scripted pointer, 81 chunk rebuilds in 900 frames) both ways: 3,480 of 3,480 HEAD/new
+  frame pairs byte-identical. Turn-400 hash `F5C7BAE552173778` on both copies.
+  Rebuild timing (scratch-instrumented copies, Debug, no Movie Maker, two interleaved runs each; one rebuild is one
+  chunk's `BeginChunk` to `EndChunk` on the frame thread, the level's opening build excluded):
+
+  | Case | Rebuilds | Frame-thread ms per rebuild, median | p95 | Flushes that uploaded, median ms | Build-task pack ms, median (p95) |
+  |---|---:|---:|---:|---:|---:|
+  | Dig scene | 162 | 1.096 -> 0.387 | 3.836 -> 0.803 | 1.126 -> 0.413 | 1.170 (1.546) |
+  | Level1 to turn 70 | 42 | 0.762 -> 0.299 | 8.537 -> 7.855 | 2.618 -> 1.070 | 0.790 (4.175) |
+  | Level7, 600 frames | 276 | 2.061 -> 1.046 | 3.416 -> 1.511 | 3.063 -> 1.402 | 1.555 (2.010) |
+
+  Level1's p95 is the first use of a material (the shader compile in the gather), the same on both. The pack moves
+  0.8-1.6 ms a chunk onto the build task, which a budgeted flush does not wait for (docs/TRAPS.md).
+  Performance, `perf.ps1` 1080p, two interleaved repeats (medians of run p50s, HEAD -> new; Debug, iGPU, other CPU
+  load 8-15%). The display was off during these runs (`Couldn't get Vulkan surface capabilities` every frame), so
+  Godot measured no render CPU or GPU time and the frame times are not comparable with the items above:
+
+  | Case | Frame ms | Process ms | Render CPU ms | GPU ms | Draws | Allocation B/frame p50 | mean |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | Level1 | 8.205 -> 8.053 | 3.415 -> 3.345 | n/a | n/a | 123 -> 122.5 | 11,120 -> 11,120 | 11,288 -> 10,582 |
+  | Level7 | 9.539 -> 9.621 | 4.189 -> 4.289 | n/a | n/a | 304.5 -> 305 | 14,152 -> 14,148 | 20,815 -> 19,398 |
+
+  The perf camera script rebuilds few chunks, so steady frames do not change beyond the repeat spread (8.14-8.27 and
+  7.96-8.14 ms on Level1, 9.50-9.58 and 9.53-9.71 ms on Level7); the allocation mean falls 6-7% (the frame thread no
+  longer builds the arrays). Rerun with the display on for the GPU columns. Raw reports and comparison logs:
+  `C:/Users/franj/AppData/Local/Temp/dk2-item12/` (`perf/`, `results/`, `runs/`).
 - **13. Keep. C# frustum tests** (`ViewFrustum`): the pre-sort cull, DK2-derived hover admission (gameplay), the Heart's
   beat point test and light visibility. Changing them risks picking.
 - **14. Keep. HUD from `HudFrame` triangles** through canvas items, `HudTriangles.ClipToCircle`; re-recording only on
@@ -327,8 +367,8 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 6. 3k on MultiMesh, with the flames (item 6): done (2026-11-19).
 7. 3l.
 8. 3m and 3n (independent, parallel).
-9. Item 4 is measured/no-go above; the minimap shader is complete with the limits in item 10; items 9, 11, 16 and 17
-   are done. The remaining replacement: the chunk upload tweak (12).
+9. Item 4 is measured/no-go above; the minimap shader is complete with the limits in item 10; items 9, 11, 12, 16 and
+   17 are done. No replacement remains.
 10. The rest of step 4 unchanged; its performance targets are set from 3o's numbers.
 
 Acceptance for a modern item: the owner's eye, the harness numbers and gameplay correctness (the turn-400 hash, the pick

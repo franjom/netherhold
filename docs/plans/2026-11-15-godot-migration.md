@@ -1084,8 +1084,9 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         match. This does not establish the required absence of a regression; 3n and remaining-overlay acceptance stay
         unchecked until the Level7 classic frame-time difference is resolved. Raw reports: `perf/`, `perf-modern/`,
         `perf-preview/`; summaries: `perf-summary/`. No subtitles or function-record edits; subtitles remain step 4.
-  - [ ] Then the remaining replacement: the chunk upload tweak (the liquid waves, item 9, the HUD text atlas, item 11,
-        the `skip_vertex_transform` cause, item 16, and AA/scaling, item 17, are done). The minimap shader is complete with audit item 10's limits; vertex animation is complete (item 8) (texture arrays remain measured/no-go, item 4).
+  - [x] Then the remaining replacement: the chunk upload tweak (audit item 12, done 2026-11-24: the build task packs
+        the opaque chunk surfaces as Godot's vertex bytes; the liquid waves, item 9, the HUD text atlas, item 11, the
+        `skip_vertex_transform` cause, item 16, and AA/scaling, item 17, are done too). No replacement remains. The minimap shader is complete with audit item 10's limits; vertex animation is complete (item 8) (texture arrays remain measured/no-go, item 4).
 - [x] The remaining 3D overlays (the scripted paths, 3n), then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging

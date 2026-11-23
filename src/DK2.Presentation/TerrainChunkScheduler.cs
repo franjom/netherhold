@@ -20,11 +20,24 @@ public interface ITerrainChunkSink
     void EndChunk(int chunk);
 }
 
+/// <summary>Prepares a chunk's upload ahead of its <see cref="ITerrainChunkSink"/> calls (audit item 12): an engine packs
+/// the chunk's vertices in its own format here, so the flushing thread only hands them over. Called on the build task,
+/// after the tiles it rebuilt, for every chunk holding one of them; on the flushing thread for an inline build and for
+/// a chunk whose changed tiles all stopped drawing. Never two calls at once, and never for a chunk that is being
+/// uploaded; a chunk is packed again only after one of its tiles changed.</summary>
+public interface ITerrainChunkPacker
+{
+    /// <param name="tiles">The chunk's drawn tiles that have geometry, rows from the north, as the sink will get them;
+    /// valid for the call only.</param>
+    void PackChunk(int chunk, ReadOnlySpan<TerrainTileGeometry> tiles);
+}
+
 /// <summary>Which terrain chunks to rebuild and when, for every engine (godot-step3-audit.md, 3c): a pushed tile marks
 /// the tiles whose pieces it can change stale, each tile keeps its geometry, and a flush builds the stale ones and
 /// uploads their 16x16 chunks lowest first within a budget (ADR-0457). With a budget the vertices are built on a
 /// thread-pool task between flushes (ADR-0696); a change, a <see cref="Clear"/> or <see cref="JoinBuild"/> waits for
-/// it. The task reads only the prepared geometry and lattice cells, so the world may be ticked meanwhile.</summary>
+/// it. The task reads only the prepared geometry and lattice cells, so the world may be ticked meanwhile. With a
+/// <see cref="Packer"/> the task also packs the chunks it rebuilt for the engine (audit item 12).</summary>
 public sealed class TerrainChunkScheduler
 {
     public const int ChunkSize = 16;
@@ -53,12 +66,13 @@ public sealed class TerrainChunkScheduler
     private readonly TileView[] _tiles;
     private readonly bool[] _drawn, _stale;
     private readonly TerrainTileGeometry?[] _geometry;
-    private readonly bool[] _dirty, _shown;
+    private readonly bool[] _dirty, _shown, _packed;
     private readonly int[] _order;
-    private readonly int[] _building;
+    private readonly int[] _building, _packing;
+    private readonly TerrainTileGeometry[] _packTiles = new TerrainTileGeometry[ChunkSize * ChunkSize];
     private readonly Action _buildPending;
     private readonly Func<double> _now;
-    private int _dirtyCount, _shownCount, _buildingCount;
+    private int _dirtyCount, _shownCount, _buildingCount, _packingCount;
     private Task? _buildTask;
 
     public TerrainChunkScheduler(ITerrainPieceSource pieces, int width, int height, TerrainLattice? lattice = null)
@@ -88,8 +102,10 @@ public sealed class TerrainChunkScheduler
         _geometry = new TerrainTileGeometry?[width * height];
         _dirty = new bool[ChunkCount];
         _shown = new bool[ChunkCount];
+        _packed = new bool[ChunkCount];
         _order = new int[ChunkCount];
         _building = new int[width * height];
+        _packing = new int[ChunkCount];
         _buildPending = BuildOnPool;
         _now = now ?? StopwatchMilliseconds;
     }
@@ -112,6 +128,10 @@ public sealed class TerrainChunkScheduler
 
     /// <summary>Where to time the flush's spans (<see cref="Markers"/>); called on the flushing thread only.</summary>
     public ISimulationProfiler Profiler { get; set; } = NullSimulationProfiler.Instance;
+
+    /// <summary>Packs each rebuilt chunk before its upload (<see cref="ITerrainChunkPacker"/>); null packs nothing.
+    /// Set it before the first <see cref="Flush"/>.</summary>
+    public ITerrainChunkPacker? Packer { get; set; }
 
     public int ChunkOf(int tileIndex) => (tileIndex / _width / ChunkSize * _chunksX) + (tileIndex % _width / ChunkSize);
 
@@ -189,6 +209,7 @@ public sealed class TerrainChunkScheduler
         JoinBuild();
         Array.Clear(_dirty, 0, _dirty.Length);
         Array.Clear(_shown, 0, _shown.Length);
+        Array.Clear(_packed, 0, _packed.Length);
         _dirtyCount = 0;
         _shownCount = 0;
         Array.Clear(_drawn, 0, _drawn.Length);
@@ -213,6 +234,8 @@ public sealed class TerrainChunkScheduler
             {
                 for (int i = 0; i < _buildingCount; i++) _stale[_building[i]] = false;
                 _buildingCount = 0;
+                for (int i = 0; i < _packingCount; i++) _packed[_packing[i]] = true;
+                _packingCount = 0;
             }
         }
     }
@@ -248,6 +271,7 @@ public sealed class TerrainChunkScheduler
     {
         _stale[tileIndex] = true;
         int chunk = ChunkOf(tileIndex);
+        _packed[chunk] = false;
         if (_dirty[chunk]) return;
         _dirty[chunk] = true;
         _dirtyCount++;
@@ -290,6 +314,7 @@ public sealed class TerrainChunkScheduler
     private void StartBuild(int count)
     {
         PrepareStale(count);
+        PlanPacking(count);
         if (_buildingCount == 0) return;
         _buildTask = Task.Run(_buildPending);
     }
@@ -297,20 +322,65 @@ public sealed class TerrainChunkScheduler
     private void BuildInline(int count)
     {
         PrepareStale(count);
-        using (Profiler.Scope(Markers.Geometry)) BuildPending();
+        PlanPacking(count);
+        using (Profiler.Scope(Markers.Geometry))
+        {
+            BuildPending();
+            PackPending();
+        }
         for (int i = 0; i < _buildingCount; i++) _stale[_building[i]] = false;
         _buildingCount = 0;
+        for (int i = 0; i < _packingCount; i++) _packed[_packing[i]] = true;
+        _packingCount = 0;
     }
 
     private void BuildOnPool()
     {
         BuildGate?.Wait(BuildGateTimeout);
         BuildPending();
+        PackPending();
     }
 
     private void BuildPending()
     {
         for (int i = 0; i < _buildingCount; i++) Builder.Build(_geometry[_building[i]]!);
+    }
+
+    /// <summary>After <see cref="PrepareStale"/>: the dirty chunks not packed since their last change. One with a tile
+    /// to build waits for the build (its tiles stay stale until then, so no flush uploads it meanwhile); one whose
+    /// changed tiles all stopped drawing is packed here, so it uploads in this flush as without a packer.</summary>
+    private void PlanPacking(int count)
+    {
+        if (Packer == null) return;
+        for (int i = 0; i < count; i++)
+        {
+            int chunk = _order[i];
+            if (_packed[chunk]) continue;
+            if (AnyStale(chunk)) _packing[_packingCount++] = chunk;
+            else
+            {
+                Pack(chunk);
+                _packed[chunk] = true;
+            }
+        }
+    }
+
+    private void PackPending()
+    {
+        for (int i = 0; i < _packingCount; i++) Pack(_packing[i]);
+    }
+
+    private void Pack(int chunk)
+    {
+        int count = 0;
+        int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
+        for (int y = y0; y < Math.Min(y0 + ChunkSize, _height); y++)
+            for (int x = x0; x < Math.Min(x0 + ChunkSize, _width); x++)
+            {
+                int index = (y * _width) + x;
+                if (_drawn[index] && _geometry[index] is TerrainTileGeometry geometry) _packTiles[count++] = geometry;
+            }
+        Packer!.PackChunk(chunk, new ReadOnlySpan<TerrainTileGeometry>(_packTiles, 0, count));
     }
 
     private void Upload(int chunk, ITerrainChunkSink sink)
