@@ -80,7 +80,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private readonly Dictionary<(TerrainMaterialLook Look, bool Fog), ShaderMaterial> _lookMaterials = new();
     // The world shader per light mode (per vertex, per pixel, with shadows) and render state, made on first use and kept
     // for the run, so a level reload compiles none again.
-    private static readonly Shader?[,] s_worldShaders = new Shader?[3, 4];
+    private static readonly Shader?[,] s_worldShaders = new Shader?[3, 5];
     private readonly Dictionary<string, Texture2D> _textures = new();
     private ImageTexture? _white;
     // The world ShaderMaterials made so far, for the performance report.
@@ -330,9 +330,10 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     {
         FlushTerrainState();
         _terrain!.Flush(this);
-        _liquids!.Animate(_seconds);
-        _water!.Upload(this);
-        _lava!.Upload(this);
+        _liquids!.Refresh();
+        int frame = LiquidSurfaceWave.Frame(_seconds);
+        _water!.Show(this, frame);
+        _lava!.Show(this, frame);
     }
 
     void ITerrainChunkSink.BeginChunk(int chunk)
@@ -463,12 +464,16 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             | ((long)Mesh.ArrayCustomFormat.RgbaFloat << (int)Mesh.ArrayFormat.FormatCustom1Shift)
             | ((long)Mesh.ArrayCustomFormat.RFloat << (int)Mesh.ArrayFormat.FormatCustom2Shift));
 
-    /// <summary>The world shader's four render states (Shaders/World*.gdshader): what a uniform cannot switch.</summary>
+    /// <summary>The world shader's four render states (Shaders/World*.gdshader): what a uniform cannot switch; then the
+    /// opaque state waving the liquids (<see cref="LiquidShaderState"/>).</summary>
     private static readonly string[] WorldShaderPaths =
     [
         "res://Shaders/WorldOpaque.gdshader", "res://Shaders/WorldBlend.gdshader", "res://Shaders/WorldBlendDepth.gdshader",
-        "res://Shaders/WorldAdd.gdshader",
+        "res://Shaders/WorldAdd.gdshader", "res://Shaders/WorldLiquid.gdshader",
     ];
+
+    /// <summary>The index in <see cref="WorldShaderPaths"/> of Shaders/WorldLiquid.gdshader.</summary>
+    private const int LiquidShaderState = 4;
 
     /// <summary>The line of each World*.gdshader that <see cref="ShaderFor"/> puts the light mode's defines before.</summary>
     private const string LightModeMarker = "// DK2_LIGHT_MODE";
@@ -478,15 +483,18 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// The default per-vertex light is the resource as it ships; <see cref="PerPixelLight"/> and
     /// <see cref="TorchShadowsActive"/> add their defines to its text, once a run. Everything else a look varies is a
     /// uniform (<see cref="WorldMaterial"/>) or, per drawn thing, an instance uniform (<see cref="ModelSlot.ApplyLooks"/>).</summary>
-    private Shader ShaderFor(KmfBlend blend, bool writesDepth)
+    private Shader ShaderFor(KmfBlend blend, bool writesDepth) => ShaderFor(blend switch
     {
-        int state = blend switch
-        {
-            KmfBlend.Opaque => 0,
-            KmfBlend.AlphaBlend when writesDepth => 2,
-            KmfBlend.AlphaBlend => 1,
-            _ => 3,
-        };
+        KmfBlend.Opaque => 0,
+        KmfBlend.AlphaBlend when writesDepth => 2,
+        KmfBlend.AlphaBlend => 1,
+        _ => 3,
+    });
+
+    /// <summary>The world shader of <paramref name="state"/>, an index in <see cref="WorldShaderPaths"/>, in the run's
+    /// light mode.</summary>
+    private Shader ShaderFor(int state)
+    {
         int mode = WorldLightMode;
         if (s_worldShaders[mode, state] is Shader shader) return shader;
         if (mode == 0) shader = GD.Load<Shader>(WorldShaderPaths[state]);
@@ -510,9 +518,13 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// <paramref name="addedLight"/> unless at <paramref name="fullLight"/>; a terrain vertex's light inputs unless the
     /// caller sets <c>model_vertex</c>. Uniforms left at the shader's defaults are not set.</summary>
     private ShaderMaterial WorldMaterial(string texture, KmfBlend blend, bool writesDepth, bool fullLight,
-        System.Numerics.Vector4 colour, NVector3 addedLight)
+        System.Numerics.Vector4 colour, NVector3 addedLight) =>
+        WorldMaterial(ShaderFor(blend, writesDepth), texture, fullLight, colour, addedLight);
+
+    private ShaderMaterial WorldMaterial(Shader shader, string texture, bool fullLight, System.Numerics.Vector4 colour,
+        NVector3 addedLight)
     {
-        var material = new ShaderMaterial { Shader = ShaderFor(blend, writesDepth) };
+        var material = new ShaderMaterial { Shader = shader };
         _worldMaterialsMade++;
         material.SetShaderParameter(AlbedoParameter, TextureFor(texture));
         material.SetShaderParameter(ColourParameter, new Color(colour.X, colour.Y, colour.Z, colour.W));
@@ -669,47 +681,46 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _art = null;
     }
 
-    /// <summary>One liquid's surface: a mesh built when its tiles change, whose positions and normals (the wave's, as Unity's
-    /// <c>LiquidSurfaces</c> uploads them) are rewritten in place every frame from reused buffers: Godot's vertex stream
-    /// holds the positions as one block and the octahedral normals after it (<see cref="RenderingServer.MeshSurfaceGetFormatOffset"/>,
-    /// rendering_server.cpp at c51ff06e8). Each vertex carries its tile's table anchor.</summary>
+    private const Mesh.ArrayFormat LiquidCustomFormat = TerrainCustomFormat
+        | (Mesh.ArrayFormat)((long)Mesh.ArrayCustomFormat.RgbaFloat << (int)Mesh.ArrayFormat.FormatCustom1Shift);
+    private static readonly StringName LiquidSinesParameter = "liquid_sines", LiquidPhaseParameter = "liquid_phase",
+        LiquidRestParameter = "liquid_rest", LiquidAmplitudeParameter = "liquid_amplitude", LiquidFrameParameter = "liquid_frame";
+
+    /// <summary>A liquid's material: the plain terrain look of its texture (<see cref="TerrainMaterialLook"/>) on
+    /// Shaders/WorldLiquid.gdshader, with <see cref="LiquidSurfaceWave"/>'s sine table, phase steps, rest height and
+    /// signed amplitude, by which the shader waves each vertex.</summary>
+    private ShaderMaterial LiquidMaterial(LiquidSurfaceWave wave)
+    {
+        TerrainMaterialLook look = TerrainMaterialLook.For(
+            new TerrainMaterialKey(new ClassicMaterialRecipe(wave.Texture, KmfBlend.Opaque, 0f), TerrainMaterialVariant.Plain));
+        ShaderMaterial material = WorldMaterial(ShaderFor(LiquidShaderState), look.Texture, look.FullLight, look.Colour, look.AddedLight);
+        var sines = new float[LiquidSurfaceWave.MaximumSines];
+        LiquidSurfaceWave.Sines(wave.Kind).CopyTo(sines);
+        material.SetShaderParameter(LiquidSinesParameter, sines);
+        material.SetShaderParameter(LiquidPhaseParameter, new Vector3I(LiquidSurfaceWave.PhaseTileStep(wave.Kind),
+            LiquidSurfaceWave.PhaseVertexStep(wave.Kind), LiquidSurfaceWave.PhaseMask(wave.Kind)));
+        material.SetShaderParameter(LiquidRestParameter, LiquidSurfaceWave.Rest(wave.Kind));
+        material.SetShaderParameter(LiquidAmplitudeParameter, LiquidSurfaceWave.SignedAmplitude(wave.Kind));
+        return material;
+    }
+
+    /// <summary>One liquid's surface: a static mesh built when its tiles change, each vertex carrying its tile's table
+    /// anchor (CUSTOM0) and its grid point (CUSTOM1, <see cref="LiquidSurfaceWave.Points"/>), waved on the GPU by
+    /// Shaders/WorldLiquid.gdshader at DK2's frame, the one uniform set when the frame moves. Nothing is uploaded after
+    /// the build, and the mesh carries no normals: the shader computes them.</summary>
     private sealed class LiquidLayer(LiquidSurfaceWave wave)
     {
-        private int _version = -1, _normalOffset;
+        private int _version = -1, _frame = -1;
         private MeshInstance3D? _instance;
         private ArrayMesh? _mesh;
-        private byte[] _stream = [], _normalStream = [];
-        private bool _checked;
+        private ShaderMaterial? _material;
 
-        public void Upload(WorldScene scene)
+        public void Show(WorldScene scene, int frame)
         {
             if (_version != wave.Version) Rebuild(scene);
-            if (_mesh == null || wave.VertexCount == 0) return;
-            int count = wave.VertexCount;
-            Span<float> positions = MemoryMarshal.Cast<byte, float>(_stream.AsSpan(0, count * 12));
-            for (int i = 0; i < count; i++)
-            {
-                NVector3 p = RightHandedFrame.Point(wave.Positions[i]);
-                positions[i * 3] = p.X;
-                positions[(i * 3) + 1] = p.Y;
-                positions[(i * 3) + 2] = p.Z;
-            }
-            _mesh.SurfaceUpdateVertexRegion(0, 0, _stream.AsSpan(0, count * 12));
-            EncodeNormals(count);
-            _mesh.SurfaceUpdateVertexRegion(0, _normalOffset, _normalStream.AsSpan(0, count * 4));
-        }
-
-        /// <summary>The wave's normals as Godot stores them: <see cref="Vector3.OctahedronEncode"/>, each half as an unsigned
-        /// 16-bit fraction, truncated (<c>_surface_set_data</c>).</summary>
-        private void EncodeNormals(int count)
-        {
-            Span<ushort> normals = MemoryMarshal.Cast<byte, ushort>(_normalStream.AsSpan(0, count * 4));
-            for (int i = 0; i < count; i++)
-            {
-                Vector2 o = ToGodot(RightHandedFrame.Normal(wave.Normals[i])).OctahedronEncode();
-                normals[i * 2] = (ushort)Math.Clamp(o.X * 65535f, 0f, 65535f);
-                normals[(i * 2) + 1] = (ushort)Math.Clamp(o.Y * 65535f, 0f, 65535f);
-            }
+            if (_material == null || frame == _frame) return;
+            _frame = frame;
+            _material.SetShaderParameter(LiquidFrameParameter, frame);
         }
 
         private void Rebuild(WorldScene scene)
@@ -718,37 +729,34 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             _mesh?.ClearSurfaces();
             int count = wave.VertexCount;
             if (count == 0) return;
+            // The positions only bound the mesh (the shader places every vertex): the wave at frame 0, from SetTiles.
             var positions = new Vector3[count];
-            var normals = new Vector3[count];
             var uvs = new Vector2[count];
             var anchors = new float[count * 2];
+            var points = new float[count * 4];
             for (int i = 0; i < count; i++)
             {
                 positions[i] = ToGodot(RightHandedFrame.Point(wave.Positions[i]));
-                normals[i] = ToGodot(RightHandedFrame.Normal(wave.Normals[i]));
                 uvs[i] = new Vector2(wave.Uvs[i].X, wave.Uvs[i].Y);
                 anchors[i * 2] = wave.LightAnchors[i].X;
                 anchors[(i * 2) + 1] = wave.LightAnchors[i].Y;
+                LiquidGridPoint point = wave.Points[i];
+                points[i * 4] = point.Tile.X;
+                points[(i * 4) + 1] = point.Tile.Y;
+                points[(i * 4) + 2] = point.Column;
+                points[(i * 4) + 3] = point.Row;
             }
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
             arrays[(int)Mesh.ArrayType.Vertex] = positions;
-            arrays[(int)Mesh.ArrayType.Normal] = normals;
             arrays[(int)Mesh.ArrayType.TexUV] = uvs;
             arrays[(int)Mesh.ArrayType.Custom0] = anchors;
+            arrays[(int)Mesh.ArrayType.Custom1] = points;
             arrays[(int)Mesh.ArrayType.Index] = wave.Triangles.AsSpan(0, wave.IndexCount).ToArray();
             _mesh ??= new ArrayMesh();
-            _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, null, null,
-                Mesh.ArrayFormat.FlagUseDynamicUpdate | TerrainCustomFormat);
-            _mesh.SurfaceSetMaterial(0, scene.FixedTerrainMaterial(
-                new TerrainMaterialKey(new ClassicMaterialRecipe(wave.Texture, KmfBlend.Opaque, 0f), TerrainMaterialVariant.Plain)));
-            var format = (RenderingServer.ArrayFormat)_mesh.SurfaceGetFormat(0);
-            _normalOffset = (int)RenderingServer.MeshSurfaceGetFormatOffset(format, count, (int)Mesh.ArrayType.Normal);
-            if (RenderingServer.MeshSurfaceGetFormatVertexStride(format, count) != 12 || _normalOffset != count * 12)
-                GD.PushError("DK2.Godot: a liquid's vertex stream is not positions then normals; it draws wrong.");
-            if (_stream.Length < count * 12) _stream = new byte[count * 12];
-            if (_normalStream.Length < count * 4) _normalStream = new byte[count * 4];
-            if (!_checked) CheckNormals(count);
+            _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, null, null, LiquidCustomFormat);
+            _material ??= scene.LiquidMaterial(wave);
+            _mesh.SurfaceSetMaterial(0, _material);
             if (_instance == null)
             {
                 _instance = new MeshInstance3D { Name = wave.Kind + "Surface", Mesh = _mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
@@ -758,17 +766,6 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             Aabb box = _mesh.GetAabb();
             float reach = 2f * Math.Max(LiquidSurfaceWave.WaterAmplitude, LiquidSurfaceWave.LavaAmplitude);
             _instance.CustomAabb = new Aabb(box.Position - new Vector3(0, reach, 0), box.Size + new Vector3(0, 2 * reach, 0));
-        }
-
-        /// <summary>Once: the normals encoded here against the bytes Godot built from the same normals.</summary>
-        private void CheckNormals(int count)
-        {
-            _checked = true;
-            byte[] built = RenderingServer.MeshGetSurface(_mesh!.GetRid(), 0)["vertex_data"].AsByteArray();
-            EncodeNormals(count);
-            bool same = built.Length >= _normalOffset + (count * 4)
-                && built.AsSpan(_normalOffset, count * 4).SequenceEqual(_normalStream.AsSpan(0, count * 4));
-            GD.Print("DK2.Godot: ", wave.Kind, "'s ", count, " normals encoded ", same ? "as Godot encodes them" : "UNLIKE Godot; the wave draws wrong");
         }
     }
 
@@ -1006,7 +1003,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 positions[i * 3] = at.X;
                 positions[(i * 3) + 1] = at.Y;
                 positions[(i * 3) + 2] = at.Z;
-                // Godot's own normal encoding (LiquidLayer.EncodeNormals), then the tangent Godot built, when it holds one.
+                // Godot's own normal encoding (_surface_set_data), then the tangent Godot built, when it holds one.
                 Vector2 o = ToGodot(RightHandedFrame.Normal(vertex.Normal)).OctahedronEncode();
                 Span<byte> slot = normals.Slice(i * _normalStride, _normalStride);
                 if (_normalStride > NormalSize) MemoryMarshal.Write(slot[(NormalSize - _normalAt)..], in s_tangent);

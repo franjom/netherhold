@@ -193,7 +193,7 @@ public class ClassicVertexLightShaderTextTests
     public void EveryWorldShaderTakesTheLightModeBeforeItsInclude()
     {
         string[] files = Directory.GetFiles(Path.Combine(RepositoryRoot(), "godot/DK2.Godot/Shaders"), "World*.gdshader");
-        Assert.Equal(4, files.Length);
+        Assert.Equal(5, files.Length);
         foreach (string file in files)
         {
             string[] lines = File.ReadAllLines(file);
@@ -201,6 +201,29 @@ public class ClassicVertexLightShaderTextTests
             int include = Array.FindIndex(lines, line => line == "#include \"res://Shaders/World.gdshaderinc\"");
             Assert.True(marker >= 0 && include > marker, Path.GetFileName(file));
         }
+    }
+
+    /// <summary>The liquids' shader (WorldLiquid.gdshader, DK2_LIQUID) waves each vertex as LiquidSurfaceWave.Vertex does:
+    /// the phase index in integers, the height as rest plus signed amplitude times the two sines, the same grid and the
+    /// same triangle sum; its sine array holds the longer table. The numbers are uniforms set from LiquidSurfaceWave.</summary>
+    [Fact]
+    public void GodotsLiquidWaveIsTheSharedVertexWave()
+    {
+        string liquid = Read("godot/DK2.Godot/Shaders/WorldLiquid.gdshader");
+        Assert.Contains("#define DK2_BLEND_OPAQUE", liquid);
+        Assert.Contains("#define DK2_LIQUID", liquid);
+        string world = Normalise(Preprocess(Read(GodotWorld), "DK2_LIQUID"));
+        Assert.Contains($"uniform float liquid_sines[{LiquidSurfaceWave.MaximumSines}];", world);
+        foreach (string statement in new[]
+        {
+            "return liquid_sines[(tile * liquid_phase.x + vertex * liquid_phase.y + liquid_frame) & liquid_phase.z];",
+            "grid[j * 3 + i] = vec3(float(x) + float(i) * 0.5, liquid_rest + liquid_amplitude * (row + column[i]), -(float(y) + float(j) * 0.5));",
+            "if (v == a || v == b || v == d) sum += normalize(cross(grid[b] - grid[a], grid[d] - grid[a]));",
+            "if (v == a || v == d || v == c) sum += normalize(cross(grid[d] - grid[a], grid[c] - grid[a]));",
+            "dk2_liquid_wave(CUSTOM1, liquid_position, liquid_normal); VERTEX = liquid_position; NORMAL = liquid_normal;",
+        })
+            Assert.Contains(statement, world);
+        Assert.DoesNotContain("liquid_sines", Normalise(Preprocess(Read(GodotWorld))));
     }
 
     /// <summary>Godot places every world vertex, and in each light mode the world shader writes VERTEX and discards, so

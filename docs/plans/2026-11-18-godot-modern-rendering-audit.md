@@ -141,9 +141,42 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
   Level1/Level7 peak private clip copies fall from 9/63 to zero, with zero animation position uploads. Shared clip
   textures number 3/16, with RGBF payloads 811,152/2,389,416 bytes. Reported classic texture memory grows by
   about 3.4/3.8 MiB; GPU storage exceeds the packed payload.
-- **9. P3, S-M. Liquid waves**: positions and normals on the CPU, uploaded twice a frame (`WorldScene.cs:550-651`;
-  `LiquidSurfaceWave.Wave`). Replace with a vertex shader from (tile, i, j) and time; DK2's phase masks are exact in GLSL
-  integers. Gain: small (under 0.2 ms, estimate); a continuous-motion option. Low risk. Depends on lighting.
+- **9. P3, S-M. Liquid waves. Done (2026-11-23).** Each liquid is one static mesh, rebuilt only when its tiles change,
+  whose vertices carry their grid point (`LiquidSurfaceWave.Points`, CUSTOM1); `Shaders/WorldLiquid.gdshader` (the world
+  shader's opaque state with `DK2_LIQUID`) computes position and normal from it and DK2's frame, the one uniform set when
+  the frame moves. The phase is DK2's integer mask (water's 4096-multiples reduced to a 32-entry index, lava's 128) into
+  a sine table built once by the old `Phase` expression; rest, signed amplitude and phase steps are uniforms from
+  `LiquidSurfaceWave`, whose `Vertex` mirrors the shader and is pinned bit for bit to `Wave` (positions and normals,
+  overflowing frames included). Was two `SurfaceUpdateVertexRegion`s a frame (16 B/vertex), whose 4-byte normal write
+  into Godot's 8-byte normal-tangent block garbled the liquids' normals (`docs/TRAPS.md`). Liquid upload per frame:
+  Level9 (503 water tiles) 72,432 B -> 0, Level7 (43 lava) 6,192 B -> 0, Level1 (none) 0 -> 0.
+  Captures (Movie Maker 1920x1080, `--pointer-path`, clean `git archive` HEAD, HEAD plus this change, and a scratch
+  reference "fix" = HEAD rebuilding the liquid mesh every frame so Godot encodes the CPU normals correctly): Level1 to
+  turn 70 flags off and all three on, 1,080 of 1,080 HEAD/new pairs identical (no liquids). Level9 (water) and Level7
+  (lava), 300 frames each, off and on: new differs from HEAD only on liquid surfaces (Level9 every frame, up to 281,571
+  pixels, max channel 21; Level7 80 of 300, up to 10,925 pixels, max 18), as HEAD vs fix does to within a pixel count:
+  HEAD's normals were wrong. New against fix: Level9 off 72 of 300 frames differ (at most 8,762 pixels), on 300 (at most
+  336), Level7 off 3 (70), on 69 (12), every difference 1 in one channel: the shader's float normal against Godot's
+  16-bit octahedral one, and GPU against CPU rounding; positions and phase match (no edge or timing differences).
+  A HEAD repeat of Level7 matched 300 of 300. `--possess-first-creature` from turn-200 saves of Level9 and Level7,
+  flags off (and Level9 on): new = fix in all 900 frames (HEAD differs in one Level9 frame by 7 pixels, max 3); the
+  possessed creatures stayed away from liquid, so possession over liquid is not covered. Crops (HEAD | new |
+  difference x16): `C:/Users/franj/AppData/Local/Temp/dk2-item9/results/<case>/<a>-vs-<b>/`.
+  Turn-400 hash `F5C7BAE552173778` on clean HEAD and new copies alike. Performance, `perf.ps1` 1080p, two interleaved
+  repeats (medians of run p50s, HEAD -> new; Debug, iGPU, other CPU load 10-17%):
+
+  | Case | Frame ms | GPU ms | Render CPU ms | Draws | Allocation B/frame p50 | mean |
+  |---|---:|---:|---:|---:|---:|---:|
+  | classic Level1 | 4.672 -> 4.716 | 1.989 -> 2.047 | 0.485 -> 0.493 | 120 -> 120 | 7,296 -> 7,296 | 6,935 -> 6,950 |
+  | classic Level9 | 10.023 -> 9.288 | 3.260 -> 3.227 | 0.786 -> 0.871 | 404 -> 403 | 9,056 -> 9,064 | 38,687 -> 36,696 |
+  | all flags Level1 | 11.954 -> 11.296 | 9.473 -> 8.938 | 0.752 -> 0.738 | 192 -> 192 | 8,088 -> 8,088 | 9,315 -> 9,315 |
+  | all flags Level9 | 16.784 -> 16.976 | 10.163 -> 10.958 | 1.206 -> 1.066 | 594 -> 594 | 9,936 -> 9,936 | 67,387 -> 66,542 |
+
+  Level1 has no liquid, so its changes are noise. Level9's process time falls 11-17% (the CPU wave of 4,527 vertices is
+  gone), but render CPU and all-flags GPU move in opposite directions between modes (classic render CPU +0.085 ms;
+  all-flags GPU +0.80 ms with a candidate frame p50 spread of 16.29-17.66 ms); no GPU gain or loss is established. The
+  shader evaluates 8 face normals a vertex in every pass that draws the liquid. Raw reports:
+  `C:/Users/franj/AppData/Local/Temp/dk2-item9/perf/`.
 - **10. Done, 2026-11-20. Minimap disc.** `MinimapGpuDisc` replaces the CPU raster/upload
   with a reused RGBA8 viewport, a base canvas shader and ordered marker quads. Pipeline and parity command:
   [Godot README](../../godot/README.md#gpu-minimap). `MinimapDiscImage` remains the independent CPU oracle;
@@ -294,8 +327,8 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 6. 3k on MultiMesh, with the flames (item 6): done (2026-11-19).
 7. 3l.
 8. 3m and 3n (independent, parallel).
-9. Item 4 is measured/no-go above; the minimap shader is complete with the limits in item 10; items 11, 16 and 17 are
-   done. The remaining replacements: liquids (9), chunk upload tweak (12).
+9. Item 4 is measured/no-go above; the minimap shader is complete with the limits in item 10; items 9, 11, 16 and 17
+   are done. The remaining replacement: the chunk upload tweak (12).
 10. The rest of step 4 unchanged; its performance targets are set from 3o's numbers.
 
 Acceptance for a modern item: the owner's eye, the harness numbers and gameplay correctness (the turn-400 hash, the pick
@@ -306,15 +339,15 @@ and hover tests, scripted-pointer captures). Byte-identity with Unity no longer 
 (Done in 3q: `ZeroOrderOffset`, the origin-order run keys and the run vertex rewrites; creature copies/uploads: item 8.) The `NextPass` red and
 environment chains and the per-alpha and per-tint materials; the terrain variant keys and overlay triangles; the
 flame's per-frame materials; the per-string HUD text
-textures; the CPU liquid wave; the gamma lookup (with the prototype).
+textures; the CPU liquid wave (done, item 9); the gamma lookup (with the prototype).
 
 ## Shared `DK2.Presentation` code that becomes Unity-only or dead
 
 - **Unity-only:** `BlendedTerrainStream.SortingOrder`; the tag-overlay predicate; the flower and effect slots
   (`PlaceItems`, `RunsBehind`, `ItemOrders`, `AddEffect`, `RepeatEffect`), while collect, cull, depth order and runs
   stay; per-key terrain surfacing for tagged, red, tinted and overlay (`TerrainMaterialKey.For` and the
-  `TerrainMaterialLook` colours stay as rules); `LiquidSurfaceWave.Wave` (the constants stay shared, for the GLSL
-  substitution); `ICreatureAnimationSurface.Upload` (the frozen Unity path; Godot uses the pose surface from item 8); `HudImagePixels.Fill`; `ClassicMeshShadow` and the silhouette code; `EffectQuadBuffer`.
+  `TerrainMaterialLook` colours stay as rules); `LiquidSurfaceWave.Wave` and `LiquidSurfaceField.Animate` (Godot calls `Refresh` and waves in
+  `WorldLiquid.gdshader`; the constants, sine tables, phase steps, `Points` and the `Vertex` mirror stay shared); `ICreatureAnimationSurface.Upload` (the frozen Unity path; Godot uses the pose surface from item 8); `HudImagePixels.Fill`; `ClassicMeshShadow` and the silhouette code; `EffectQuadBuffer`.
 - **Dead in production:** `MinimapDiscImage` (retained as the independent shader-test oracle).
 - **Stays shared:** `HudTextPixels.Measure`, `HudTriangles`, `ViewFrustum`, `TerrainChunkScheduler`,
   `TerrainTileBuilder`.

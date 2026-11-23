@@ -3,6 +3,7 @@
 // World*.gdshader files differ only in their render state, which a uniform cannot change, and define one of
 // DK2_BLEND_OPAQUE, DK2_BLEND_MIX or DK2_BLEND_ADD. The light step is per vertex, or per pixel with DK2_PER_PIXEL
 // (--light-perpixel), and DK2_TORCH_SHADOWS (--light-shadows) adds the torch shadows; WorldScene defines those two.
+// WorldLiquid.gdshader is the opaque state with DK2_LIQUID, the liquids' wave in the vertex step.
 // The colour buffer holds the stored bytes over 255 and blends them there, as DK2 and Unity's gamma space do.
 uniform sampler2D albedo_texture : filter_linear_mipmap, repeat_disable;
 // A Color set on a plain vec4 is turned linear (material_storage.cpp, _fill_std140_variant_ubo_value).
@@ -90,8 +91,58 @@ vec3 dk2_animation_vertex(int frame, int vertex) {
     int texel = frame * animation_layout.y + vertex;
     return texelFetch(animation_vertices, ivec2(texel % animation_layout.x, texel / animation_layout.x), 0).xyz;
 }
+#ifdef DK2_LIQUID
+// A liquid's wave (WorldLiquid.gdshader; LiquidSurfaceWave.Vertex, which pins this to the CPU wave bit for bit): CUSTOM1
+// is the vertex's grid point (its tile's column and row, its half-tile steps east and south). Its tile's nine heights
+// come from DK2's integer phase masks and the liquid's sine table, then the vertex is at its height with the normalised
+// sum of the unit normals of the tile's triangles that share it, in the renderers' frame, mirrored into Godot's (z
+// negated). Every number is LiquidSurfaceWave's, set by WorldScene.LiquidMaterial; the frame by LiquidLayer.Show.
+uniform float liquid_sines[128];
+uniform ivec3 liquid_phase = ivec3(0, 0, 0);
+uniform float liquid_rest = 0.0;
+uniform float liquid_amplitude = 0.0;
+uniform int liquid_frame = 0;
+
+float dk2_liquid_sine(int tile, int vertex) {
+    return liquid_sines[(tile * liquid_phase.x + vertex * liquid_phase.y + liquid_frame) & liquid_phase.z];
+}
+
+void dk2_liquid_wave(vec4 point, out vec3 position, out vec3 normal) {
+    int x = int(point.x);
+    int y = int(point.y);
+    int v = int(point.w) * 3 + int(point.z);
+    float column[3];
+    for (int i = 0; i < 3; i++) column[i] = dk2_liquid_sine(x, i);
+    vec3 grid[9];
+    for (int j = 0; j < 3; j++) {
+        float row = dk2_liquid_sine(y, j);
+        for (int i = 0; i < 3; i++)
+            grid[j * 3 + i] = vec3(float(x) + float(i) * 0.5, liquid_rest + liquid_amplitude * (row + column[i]), -(float(y) + float(j) * 0.5));
+    }
+    vec3 sum = vec3(0.0);
+    for (int qj = 0; qj < 2; qj++) {
+        for (int qi = 0; qi < 2; qi++) {
+            int a = qj * 3 + qi;
+            int b = a + 1;
+            int c = a + 3;
+            int d = a + 4;
+            if (v == a || v == b || v == d) sum += normalize(cross(grid[b] - grid[a], grid[d] - grid[a]));
+            if (v == a || v == d || v == c) sum += normalize(cross(grid[d] - grid[a], grid[c] - grid[a]));
+        }
+    }
+    position = grid[v] * vec3(1.0, 1.0, -1.0);
+    normal = normalize(sum) * vec3(1.0, 1.0, -1.0);
+}
+#endif
 
 void vertex() {
+#ifdef DK2_LIQUID
+    vec3 liquid_position;
+    vec3 liquid_normal;
+    dk2_liquid_wave(CUSTOM1, liquid_position, liquid_normal);
+    VERTEX = liquid_position;
+    NORMAL = liquid_normal;
+#endif
     if (dk2_animation_phase >= 0.0 && animation_layout.y > 0) {
         float frame = clamp(dk2_animation_phase, 0.0, 1.0) * float(animation_frames - 1);
         int first = int(frame), second = min(first + 1, animation_frames - 1);

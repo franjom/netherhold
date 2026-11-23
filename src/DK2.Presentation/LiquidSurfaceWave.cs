@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Numerics;
+using DK2.Core;
 
 namespace DK2.Presentation;
 
@@ -26,6 +27,7 @@ public sealed class LiquidSurfaceWave
     private int[] _tiles = new int[16];
     private Vector3[] _positions = new Vector3[16 * VerticesPerTile], _normals = new Vector3[16 * VerticesPerTile];
     private Vector2[] _uvs = new Vector2[16 * VerticesPerTile], _lightAnchors = new Vector2[16 * VerticesPerTile];
+    private LiquidGridPoint[] _points = new LiquidGridPoint[16 * VerticesPerTile];
     private int[] _triangles = new int[16 * IndicesPerTile];
 
     public LiquidSurfaceWave(LiquidSurface kind, int width)
@@ -67,13 +69,48 @@ public sealed class LiquidSurfaceWave
     /// <summary>DK2's frame counter at <paramref name="seconds"/>.</summary>
     public static int Frame(float seconds) => (int)(seconds * FramesPerSecond);
 
+    /// <summary>The longest sine table (lava's): the size a shader's copy of <see cref="Sines"/> needs.</summary>
+    public const int MaximumSines = 128;
+
+    private static readonly float[] s_waterSines = BuildSines(LiquidSurface.Water);
+    private static readonly float[] s_lavaSines = BuildSines(LiquidSurface.Lava);
+
+    /// <summary>Each axis phase as a whole step of its liquid's sine table, the table's index being
+    /// (tile*<see cref="PhaseTileStep"/> + vertex*<see cref="PhaseVertexStep"/> + frame) &amp; <see cref="PhaseMask"/>:
+    /// water's ((tile*0x10000 + vertex*0x8000 + 4096*frame) &amp; 0x1FFFF) is 4096 times its index, as every term is a
+    /// multiple of 4096 (and the wrap of an overflowing product keeps its low 17 bits); lava's is DK2's own mask.</summary>
+    public static int PhaseTileStep(LiquidSurface kind) => kind == LiquidSurface.Water ? 16 : -64;
+
+    /// <inheritdoc cref="PhaseTileStep"/>
+    public static int PhaseVertexStep(LiquidSurface kind) => kind == LiquidSurface.Water ? 8 : 32;
+
+    /// <inheritdoc cref="PhaseTileStep"/>
+    public static int PhaseMask(LiquidSurface kind) => kind == LiquidSurface.Water ? 31 : 127;
+
+    /// <summary>The index into <see cref="Sines"/> of one axis at vertex step <paramref name="vertex"/> (0 to 2) of tile
+    /// coordinate <paramref name="tile"/> at <paramref name="frame"/>: integer steps only, as a shader evaluates them.</summary>
+    public static int PhaseIndex(LiquidSurface kind, int tile, int vertex, int frame) =>
+        ((tile * PhaseTileStep(kind)) + (vertex * PhaseVertexStep(kind)) + frame) & PhaseMask(kind);
+
+    /// <summary>The liquid's sine table: entry n is the sine DK2's masked phase n (times 4096 for water) gives,
+    /// evaluated once as <see cref="Phase"/> always did, so a shader reading it gets the same floats.</summary>
+    public static ReadOnlySpan<float> Sines(LiquidSurface kind) => kind == LiquidSurface.Water ? s_waterSines : s_lavaSines;
+
+    private static float[] BuildSines(LiquidSurface kind)
+    {
+        var sines = new float[PhaseMask(kind) + 1];
+        for (int n = 0; n < sines.Length; n++)
+            sines[n] = kind == LiquidSurface.Water
+                ? (float)Math.Sin((n * 4096) * (float)Math.PI / 65536f)
+                : (float)Math.Sin(n * (float)Math.PI / 64f);
+        return sines;
+    }
+
     /// <summary>The sine of one axis at vertex step <paramref name="vertex"/> (0 to 2) of tile coordinate
     /// <paramref name="tile"/>: water's ((tile*0x10000 + vertex*0x8000 + 4096*frame) &amp; 0x1FFFF)*pi/65536, lava's
     /// ((vertex*32 - tile*64 + frame) &amp; 127)*pi/64; two tiles a period.</summary>
     public static float Phase(LiquidSurface kind, int tile, int vertex, int frame) =>
-        kind == LiquidSurface.Water
-            ? (float)Math.Sin((((tile * 0x10000) + (vertex * 0x8000) + (4096 * frame)) & 0x1FFFF) * (float)Math.PI / 65536f)
-            : (float)Math.Sin(((((vertex * 32) - (tile * 64)) + frame) & 127) * (float)Math.PI / 64f);
+        Sines(kind)[PhaseIndex(kind, tile, vertex, frame)];
 
     /// <summary>The surface's height above the floor at a vertex whose row and column phases are given: DK2's z (up is
     /// -z) is -0.9 - 0.03*s for water and -0.85 + 0.04*s for lava.</summary>
@@ -81,6 +118,43 @@ public sealed class LiquidSurfaceWave
         kind == LiquidSurface.Water
             ? WaterRest + (WaterAmplitude * (row + column))
             : LavaRest - (LavaAmplitude * (row + column));
+
+    /// <summary>The rest height of <see cref="Height"/>.</summary>
+    public static float Rest(LiquidSurface kind) => kind == LiquidSurface.Water ? WaterRest : LavaRest;
+
+    /// <summary>The amplitude of <see cref="Height"/> with its sign: rest + amplitude*(row + column) is
+    /// <see cref="Height"/> to the bit, as a negated product is exact.</summary>
+    public static float SignedAmplitude(LiquidSurface kind) => kind == LiquidSurface.Water ? WaterAmplitude : -LavaAmplitude;
+
+    /// <summary>One vertex of the wave on its own, as a vertex shader computes it from its grid point and the frame alone:
+    /// its tile's nine heights, then the unit normals of the triangles of <see cref="Triangles"/> that share it, summed in
+    /// that order and normalised. Equal to the vertex's <see cref="Positions"/> and <see cref="Normals"/> after
+    /// <see cref="Wave"/>, to the bit.</summary>
+    public static (Vector3 Position, Vector3 Normal) Vertex(LiquidSurface kind, LiquidGridPoint point, int frame)
+    {
+        Span<Vector3> grid = stackalloc Vector3[VerticesPerTile];
+        int x = point.Tile.X, y = point.Tile.Y;
+        for (int j = 0; j < 3; j++)
+        {
+            float row = Phase(kind, y, j, frame);
+            for (int i = 0; i < 3; i++)
+                grid[(j * 3) + i] = RenderWorld.Ground(x + (i * 0.5f), y + (j * 0.5f), Height(kind, row, Phase(kind, x, i, frame)));
+        }
+        int v = (point.Row * 3) + point.Column;
+        Vector3 sum = Vector3.Zero;
+        for (int qj = 0; qj < 2; qj++)
+            for (int qi = 0; qi < 2; qi++)
+            {
+                int a = (qj * 3) + qi, b = a + 1, c = a + 3, d = a + 4;
+                if (v == a || v == b || v == d) sum += Vector3.Normalize(Vector3.Cross(grid[b] - grid[a], grid[d] - grid[a]));
+                if (v == a || v == d || v == c) sum += Vector3.Normalize(Vector3.Cross(grid[d] - grid[a], grid[c] - grid[a]));
+            }
+        return (grid[v], Vector3.Normalize(sum));
+    }
+
+    /// <summary>Each vertex's grid point (its tile and its half-tile steps east and south), in vertex order: what a
+    /// shader needs to wave it (<see cref="Vertex"/>).</summary>
+    public LiquidGridPoint[] Points => _points;
 
     /// <summary>Takes every tile of <paramref name="kinds"/> (a surface kind per tile index) that is this liquid, lays
     /// their grids out and waves them at frame 0.</summary>
@@ -97,6 +171,7 @@ public sealed class LiquidSurfaceWave
             _normals = new Vector3[size * VerticesPerTile];
             _uvs = new Vector2[size * VerticesPerTile];
             _lightAnchors = new Vector2[size * VerticesPerTile];
+            _points = new LiquidGridPoint[size * VerticesPerTile];
             _triangles = new int[size * IndicesPerTile];
         }
         TileCount = 0;
@@ -105,12 +180,14 @@ public sealed class LiquidSurfaceWave
 
         for (int k = 0; k < TileCount; k++)
         {
+            var tile = new TilePos(_tiles[k] % _width, _tiles[k] / _width);
             for (int j = 0; j < 3; j++)
                 for (int i = 0; i < 3; i++)
                 {
                     int vertex = (k * VerticesPerTile) + (j * 3) + i;
                     _uvs[vertex] = new Vector2(i * 0.5f, 1f - (j * 0.5f));
                     _lightAnchors[vertex] = new Vector2(_tiles[k], 1);
+                    _points[vertex] = new LiquidGridPoint(tile, i, j);
                 }
             int n = k * IndicesPerTile;
             for (int j = 0; j < 2; j++)
@@ -182,15 +259,20 @@ public sealed class LiquidSurfaceField
     /// <paramref name="seconds"/>.</summary>
     public void Animate(float seconds)
     {
-        if (_dirty)
-        {
-            Water.SetTiles(_kinds);
-            Lava.SetTiles(_kinds);
-            _dirty = false;
-        }
+        Refresh();
         int frame = LiquidSurfaceWave.Frame(seconds);
         Water.Wave(frame);
         Lava.Wave(frame);
+    }
+
+    /// <summary>Lays both layers out again if a tile changed, without waving them: for an adapter that waves the
+    /// surface in a shader from <see cref="LiquidSurfaceWave.Points"/>.</summary>
+    public void Refresh()
+    {
+        if (!_dirty) return;
+        Water.SetTiles(_kinds);
+        Lava.SetTiles(_kinds);
+        _dirty = false;
     }
 
     public void Clear()
@@ -201,3 +283,7 @@ public sealed class LiquidSurfaceField
         _dirty = false;
     }
 }
+
+/// <summary>A liquid vertex's place in its tile's 3x3 grid: <see cref="Column"/> half-tile steps east and
+/// <see cref="Row"/> south of the tile's corner (0 to 2 each).</summary>
+public readonly record struct LiquidGridPoint(TilePos Tile, int Column, int Row);

@@ -65,6 +65,68 @@ public class LiquidSurfaceWaveTests
         Assert.Equal(LiquidSurfaceWave.Phase(LiquidSurface.Lava, 3, 2, 5), LiquidSurfaceWave.Phase(LiquidSurface.Lava, 5, 2, 5));
     }
 
+    /// <summary>The sine tables and integer phase indices a shader reads give the old phases to the bit, for every tile
+    /// parity, vertex step and frame residue, including frames whose 4096*frame overflows.</summary>
+    [Fact]
+    public void ThePhaseTablesGiveTheOldPhases()
+    {
+        int[] frames = [0, 1, 7, 31, 32, 127, 128, 1234, 524_287, 524_288, 600_000, int.MaxValue - 200];
+        foreach (LiquidSurface kind in new[] { LiquidSurface.Water, LiquidSurface.Lava })
+        {
+            Assert.True(LiquidSurfaceWave.Sines(kind).Length <= LiquidSurfaceWave.MaximumSines);
+            Assert.Equal(LiquidSurfaceWave.PhaseMask(kind) + 1, LiquidSurfaceWave.Sines(kind).Length);
+            foreach (int start in frames)
+                for (int frame = start; frame < start + 130 && frame >= start; frame++)
+                    for (int tile = 0; tile < 4; tile++)
+                        for (int vertex = 0; vertex < 3; vertex++)
+                            Assert.Equal(BitConverter.SingleToInt32Bits(Legacy.Phase(kind, tile, vertex, frame)),
+                                BitConverter.SingleToInt32Bits(LiquidSurfaceWave.Phase(kind, tile, vertex, frame)));
+        }
+    }
+
+    /// <summary>The signed amplitude a shader multiplies by gives <see cref="LiquidSurfaceWave.Height"/> to the bit for
+    /// every pair of table sines.</summary>
+    [Fact]
+    public void TheSignedAmplitudeGivesTheHeights()
+    {
+        foreach (LiquidSurface kind in new[] { LiquidSurface.Water, LiquidSurface.Lava })
+            foreach (float row in LiquidSurfaceWave.Sines(kind).ToArray())
+                foreach (float column in LiquidSurfaceWave.Sines(kind).ToArray())
+                    Assert.Equal(BitConverter.SingleToInt32Bits(LiquidSurfaceWave.Height(kind, row, column)),
+                        BitConverter.SingleToInt32Bits(LiquidSurfaceWave.Rest(kind) + (LiquidSurfaceWave.SignedAmplitude(kind) * (row + column))));
+    }
+
+    /// <summary>Each vertex waved on its own from its grid point and the frame, as the Godot shader waves it, is the
+    /// vertex <see cref="LiquidSurfaceWave.Wave"/> builds with the whole tile: position and normal to the bit.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(17)]
+    [InlineData(30)]
+    [InlineData(1234)]
+    [InlineData(600_000)]
+    public void EachVertexOnItsOwnIsTheWave(int frame)
+    {
+        LiquidSurface[] kinds = Kinds();
+        foreach (LiquidSurface kind in new[] { LiquidSurface.Water, LiquidSurface.Lava })
+        {
+            var wave = new LiquidSurfaceWave(kind, Width);
+            wave.SetTiles(kinds);
+            wave.Wave(frame);
+            for (int v = 0; v < wave.VertexCount; v++)
+            {
+                LiquidGridPoint point = wave.Points[v];
+                int tile = wave.Tiles[v / LiquidSurfaceWave.VerticesPerTile];
+                Assert.Equal(new TilePos(tile % Width, tile / Width), point.Tile);
+                Assert.Equal(v % 3, point.Column);
+                Assert.Equal(v % LiquidSurfaceWave.VerticesPerTile / 3, point.Row);
+                (Vector3 position, Vector3 normal) = LiquidSurfaceWave.Vertex(kind, point, frame);
+                Assert.Equal(wave.Positions[v], position);
+                Assert.Equal(wave.Normals[v], normal);
+            }
+        }
+    }
+
     [Theory]
     [InlineData(0f, 0)]
     [InlineData(1f, 30)]
@@ -217,7 +279,7 @@ public class LiquidSurfaceWaveTests
             }
         }
 
-        private static float Phase(LiquidSurface kind, int tile, int vertex, int frame) =>
+        public static float Phase(LiquidSurface kind, int tile, int vertex, int frame) =>
             kind == LiquidSurface.Water
                 ? (float)Math.Sin(((tile * 0x10000) + (vertex * 0x8000) + (4096 * frame) & 0x1FFFF) * PI / 65536f)
                 : (float)Math.Sin((((vertex * 32) - (tile * 64) + frame) & 127) * PI / 64f);
