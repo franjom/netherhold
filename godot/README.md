@@ -220,6 +220,21 @@ after the transparent pass. TAA and FSR 2 are not offered: the vertex-animation 
 no previous positions, so animated surfaces would have no motion vectors (audit item 17). Costs and captures:
 [modern-rendering audit item 17](../docs/plans/2026-11-18-godot-modern-rendering-audit.md#items).
 
+### HUD text atlas, gauges and glows
+Audit item 11. Set text (`HudText`) drawn one texel per screen pixel, which is every HUD text since the fonts are chosen
+by screen height, is drawn as `HudTextPixels.Pieces` out of one luminance-alpha atlas per BF4 font
+(`HudCanvas.Atlas.cs`), shared by every canvas, so a new hover string or a changing counter makes no texture. No two
+pieces ink one pixel (where glyph ink overlaps, `Render`'s winner keeps the pixel and the other glyph is cut into
+one-row runs), and nearest sampling at texel centres gives `HudTextPixels.Render`'s pixels; the pieces pass no UV clamp
+(`docs/TRAPS.md`). A text stretched over a rect of another size keeps its own texture, as before. The Heart and payday
+gauges are a `SubViewport` each (`HudCanvas.Gauges.cs`), refilled on the GPU by `Shaders/HudGauge.gdshader` from
+`HudGaugeMask`'s per-texel ranks when the lit count changes, and sampled as the CPU-filled texture was. A glow is
+baked once per label or image as two textures (the full glow and quarters 1-3's alphas in red, green and blue), drawn
+through `Shaders/HudGlow.gdshader` with the second as the draw's normal map, so the hardware filters each quarter as it
+filtered the four separate textures. Front-end label bitmaps stay one texture per label: they are drawn scaled and
+bilinearly filtered across glyph edges, which pieces cannot reproduce, and they change only with the page. Captures and
+costs: [modern-rendering audit item 11](../docs/plans/2026-11-18-godot-modern-rendering-audit.md#items).
+
 ### GPU minimap
 `ClassicMinimap` presents `MinimapGpuDisc`'s reused RGBA8 `SubViewport`: a base `canvas_item` shader
 samples the class grid, palette and rock, then a `MultiMesh2D` draws ordered marker quads from

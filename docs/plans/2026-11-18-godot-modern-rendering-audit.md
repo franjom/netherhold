@@ -174,9 +174,39 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
   has zero warnings/errors. Raw parity, counterfactual, capture and performance receipts:
   `C:/Users/franj/AppData/Local/Temp/dk2-minimap-8ni3r_3e/` (`parity-final-vulkan/`, `parity-final-d3d12/`,
   `counterfactual434-receipt.json`, `comparison.html`, `comparison.json`, `performance-summary.json`, `final-verification.json`).
-- **11. P3, M. HUD text, gauges and glows** as CPU pixels, one texture per distinct string
-  (`HudCanvas.Textures.cs:60-103`). Replace with a glyph atlas per BF4 font, a gauge canvas shader, glows baked once or
-  in a shader. Gain: no texture churn per hover string or counter. Low risk.
+- **11. P3, M. HUD text, gauges and glows. Done (2026-11-23).** Set text drawn one texel per pixel (every HUD text) is
+  `HudTextPixels.Pieces` out of one luminance-alpha atlas per BF4 font, shared by all canvases; pieces never ink a pixel
+  twice (glyph ink meets in 0.9-14% of character pairs of the shipped fonts; `Render`'s winner keeps the pixel), so nearest
+  sampling gives `Render`'s pixels. A stretched text keeps its own texture. Gauges: a `SubViewport` per gauge filled by
+  `HudGauge.gdshader` from `HudGaugeMask` ranks (exact against `HudGaugeFraction.Contains`). Glows: baked once as two
+  textures (full glow; quarters 1-3 in RGB), `HudGlow.gdshader` reading the second as the normal map so the hardware filters
+  each quarter as before. Front-end label bitmaps keep a texture per label: they are drawn scaled and bilinear across glyph
+  edges, which pieces cannot reproduce, and change only with the page ([README](../../godot/README.md#hud-text-atlas-gauges-and-glows)).
+  Captures (Movie Maker 1920x1080, `--pointer-path`, clean `git archive` HEAD against HEAD plus this change; Level1 start
+  to turn 70 and with all three lighting flags, Level1 after the path hovering a creature, wall, floor and panel buttons
+  (tooltips) flags off and on, Level7 start, possession, full map, query, message panel, in-game options root, Game
+  Options and Save pages, `--stage-lightning`, the front end): 2,470 of 2,470 frame pairs byte-identical; 990 of them again with
+  the final code. The front end and the options panel read the OS cursor (`docs/TRAPS.md`), so their hover, label glows
+  and scroll-bar glows were checked with a scratch-only patch feeding `--pointer-path` to both sides: 1,040 of 1,040
+  identical (740 again with the final code); the front-end set and `L1hover` also identical on D3D12. Two first runs differed only in hover state (an
+  options entry lit by the real cursor; a bottom-panel tooltip while another window took focus); both reruns were
+  identical. Crops: `C:/Users/franj/AppData/Local/Temp/dk2-item11/results-prelim/optroot-run1/`,
+  `.../results/L1hoverflags-run2/`. Turn-400 hash `F5C7BAE552173778` on clean HEAD and new copies alike.
+  Performance, `perf.ps1` 1080p, two interleaved repeats (medians of run p50s, HEAD -> new; Debug, iGPU, other load
+  17-22%); the hover run cycles the pointer over world and panel targets every 30 frames:
+
+  | Case | Frame ms | GPU ms | Render CPU ms | Draws | Objects | Allocation B/frame p50 | mean |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | Level1 | 4.238 -> 4.420 | 1.986 -> 2.010 | 0.436 -> 0.459 | 119 -> 119.5 | 172 -> 217 | 7,296 -> 7,296 | 7,228 -> 6,932 |
+  | Level7 | 6.038 -> 6.010 | 2.290 -> 2.221 | 0.669 -> 0.652 | 305 -> 304.5 | 352 -> 397 | 10,304 -> 10,304 | 13,705 -> 13,400 |
+  | Level1 hover | 4.195 -> 4.264 | 1.909 -> 1.983 | 0.434 -> 0.445 | 119 -> 119 | 172 -> 219 | 7,296 -> 7,296 | 8,905 -> 8,014 |
+
+  Frame and GPU differences are inside the repeat spread and load; draws do not change (pieces batch on one atlas), the
+  object count rises by the glyph rects, allocation p50 is unchanged and its mean falls 2-10%. Video memory +0.2 MiB.
+  Texture churn (scratch-instrumented copies, hover run, 1,920 frames): HEAD 529 HUD texture creations, 6 of them after
+  frame 300, and 1 gauge upload; new 517, none after frame 300, no uploads, 5 GPU gauge fills. Live HUD texture bytes at
+  the end 9.95 -> 10.08 MB (peak 10.10 -> 10.22 MB): the atlases and the gauges' rank and viewport textures cost more than
+  the few text textures they replace. Raw reports: `.../dk2-item11/perf/`.
 - **12. Keep, P3, S-M. CPU-built merged terrain chunks** (`WorldScene.cs:278-300`, `:987-1009`): the pieces are bent
   by the lattice and picking needs the CPU geometry. Tweak only: Godot-format vertex bytes on the pool thread and
   `MeshAddSurface`; attribute compression. No MultiMesh per piece, no occlusion culling, no mesh LOD, no visibility
@@ -264,8 +294,8 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 6. 3k on MultiMesh, with the flames (item 6): done (2026-11-19).
 7. 3l.
 8. 3m and 3n (independent, parallel).
-9. Item 4 is measured/no-go above; the minimap shader is complete with the limits in item 10; items 16 and 17 are done.
-   The remaining replacements: HUD text atlas (11), liquids (9), chunk upload tweak (12).
+9. Item 4 is measured/no-go above; the minimap shader is complete with the limits in item 10; items 11, 16 and 17 are
+   done. The remaining replacements: liquids (9), chunk upload tweak (12).
 10. The rest of step 4 unchanged; its performance targets are set from 3o's numbers.
 
 Acceptance for a modern item: the owner's eye, the harness numbers and gameplay correctness (the turn-400 hash, the pick

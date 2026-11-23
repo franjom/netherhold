@@ -23,10 +23,19 @@ public readonly record struct HudGaugeFraction(int Value, int Maximum)
     {
         if (Maximum <= 0 || Value <= 0) return false;
         if (Value >= Maximum) return true;
+        return Angle(fromCentre) <= Limit;
+    }
+
+    /// <summary>The clockwise angle from 12 o'clock that <see cref="Contains"/> compares with <see cref="Limit"/>.</summary>
+    public static double Angle(Vector2 fromCentre)
+    {
         double angle = Math.Atan2(fromCentre.X, -fromCentre.Y);
         if (angle < 0) angle += Math.PI * 2;
-        return angle <= Math.PI * 2 * Value / Maximum;
+        return angle;
     }
+
+    /// <summary>The largest angle a partly filled gauge covers.</summary>
+    public double Limit => Math.PI * 2 * Value / Maximum;
 }
 
 /// <summary>Settled resource facts; the renderer never reads a running world.</summary>

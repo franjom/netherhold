@@ -71,11 +71,10 @@ public static class HudImagePixels
     {
         for (int row = 0; row < h; row++)
         {
-            int y = h - 1 - row;
             for (int x = 0; x < w; x++)
             {
                 int i = (row * w + x) * 4;
-                bool lit = fraction.Contains(new Vector2(x + .5f - w / 2f, h / 2f - y - .5f));
+                bool lit = fraction.Contains(GaugeOffset(x, row, w, h));
                 into[i] = lit ? rgba[i] : (byte)0;
                 into[i + 1] = lit ? rgba[i + 1] : (byte)0;
                 into[i + 2] = lit ? rgba[i + 2] : (byte)0;
@@ -83,6 +82,11 @@ public static class HudImagePixels
             }
         }
     }
+
+    /// <summary>A gauge pixel's centre from the image's centre as the gauge mask measures it: <paramref name="row"/>
+    /// counts from the top of the stored image and, as the class remarks, y from its bottom.</summary>
+    public static Vector2 GaugeOffset(int x, int row, int width, int height) =>
+        new(x + .5f - width / 2f, height / 2f - (height - 1 - row) - .5f);
 
     private static float Repeat(float t, float length) =>
         Math.Min(Math.Max(t - (float)Math.Floor(t / length) * length, 0f), length);

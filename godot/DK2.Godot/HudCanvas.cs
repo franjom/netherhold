@@ -27,7 +27,7 @@ public partial class HudCanvas : Node2D
     private bool _invalid = true;
 
     /// <summary>A draw's texture as the rebuild uses it.</summary>
-    private readonly record struct Resolved(Rid Texture, Vector2 Size, bool Nearest)
+    private readonly record struct Resolved(Rid Texture, Vector2 Size, bool Nearest, Rid Material = default)
     {
         public bool IsValid => Texture.IsValid;
     }
@@ -44,22 +44,32 @@ public partial class HudCanvas : Node2D
         if (_resolved.Length < frame.Count)
         {
             int size = Math.Max(frame.Count, _resolved.Length * 2);
-            _resolved = new Resolved[size]; _glyphs = new FontGlyph[]?[size];
+            _resolved = new Resolved[size]; _glyphs = new FontGlyph[]?[size]; _text = new TextLayout?[size];
         }
         // Textures first: if loading throws, the frame is not taken and the next one tries again.
         ReadOnlySpan<HudDraw> draws = frame.Draws;
-        _textInUse.Clear(); _labelsDrawn.Clear();
+        _textInUse.Clear(); _labelsDrawn.Clear(); _layoutsInUse.Clear();
         for (int i = 0; i < draws.Length; i++) if (draws[i].Image.Label != null) _labelsDrawn.Add(draws[i].Image.Label!);
         PrepareFont(draws, scale * pixelsPerUnit);
+        // Placed first: a text is drawn from its font's atlas only when its snapped rect is its own size. Invalid until
+        // the frame is taken, so a throw below cannot leave the new placement looking drawn.
+        _invalid = true; _origin = origin; _scale = scale; _pixelsPerUnit = pixelsPerUnit;
         for (int i = 0; i < draws.Length; i++)
         {
+            _text[i] = null;
             // A label set in the replacement font needs no bitmap; its bitmap texture is released below.
             if (draws[i].Kind == HudDrawKind.Fill || _glyphs[i] != null) { _resolved[i] = default; continue; }
+            if (draws[i].Image.Text != null && TextFromAtlas(draws[i]) is TextLayout layout)
+            {
+                _text[i] = layout;
+                _resolved[i] = new Resolved(layout.Atlas.Texture, default, true);
+                continue;
+            }
             _resolved[i] = Texture(draws[i].Image);
-            if (draws[i].Image.IsGenerated) _textInUse.Add(draws[i].Image);
+            if (draws[i].Image.IsGenerated && draws[i].Image.Variant != HudImageVariant.Glow) _textInUse.Add(draws[i].Image);
         }
-        _origin = origin; _scale = scale; _pixelsPerUnit = pixelsPerUnit; _shown.CopyFrom(frame); _invalid = false;
-        ReleaseUnusedText();
+        _shown.CopyFrom(frame); _invalid = false;
+        ReleaseUnusedText(); ReleaseUnusedLayouts(); ReleaseUnusedGlows();
         Record();
     }
 
@@ -72,20 +82,22 @@ public partial class HudCanvas : Node2D
         int run = -1;
         HudBlend blend = HudBlend.Alpha;
         bool nearest = false;
+        Rid material = default;
         for (int i = 0; i < draws.Length; i++)
         {
             HudDraw draw = draws[i];
             Resolved texture = _resolved[i];
             FontGlyph[]? glyphs = _glyphs[i];
             if (glyphs == null && draw.Kind != HudDrawKind.Fill && !texture.IsValid) continue;
-            if (run < 0 || draw.Blend != blend || texture.Nearest != nearest)
+            if (run < 0 || draw.Blend != blend || texture.Nearest != nearest || texture.Material != material)
             {
-                run++; blend = draw.Blend; nearest = texture.Nearest;
-                Begin(run, blend, nearest);
+                run++; blend = draw.Blend; nearest = texture.Nearest; material = texture.Material;
+                Begin(run, blend, nearest, material);
             }
             Rid item = _items[run];
             var tint = new Color(draw.Tint.R / 255f, draw.Tint.G / 255f, draw.Tint.B / 255f, draw.Tint.A / 255f);
             if (glyphs != null) { RecordGlyphs(item, draw, glyphs, tint); continue; }
+            if (_text[i] is TextLayout text) { RecordText(item, draw, text, tint); continue; }
             if (draw.Kind == HudDrawKind.Triangles) { RecordTriangles(item, _shown.Vertices(draw), texture.Texture, tint); continue; }
             Rect2 r = Snapped(draw.Rect);
             if (draw.Kind == HudDrawKind.Sector)
@@ -171,8 +183,9 @@ public partial class HudCanvas : Node2D
         }
     }
 
-    /// <summary>Readies pooled canvas item <paramref name="run"/> for a run of draws with one blend and filter.</summary>
-    private void Begin(int run, HudBlend blend, bool nearest)
+    /// <summary>Readies pooled canvas item <paramref name="run"/> for a run of draws with one blend, filter and material
+    /// (a partial glow's; glows are alpha-blended, so a material never meets the additive blend).</summary>
+    private void Begin(int run, HudBlend blend, bool nearest, Rid material)
     {
         while (_items.Count <= run)
         {
@@ -182,7 +195,8 @@ public partial class HudCanvas : Node2D
         }
         Rid item = _items[run];
         _additive ??= new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
-        RenderingServer.CanvasItemSetMaterial(item, blend == HudBlend.Additive ? _additive.GetRid() : default);
+        if (material.IsValid && blend == HudBlend.Additive) GD.PushError("HudCanvas: an additive glow is drawn alpha-blended.");
+        RenderingServer.CanvasItemSetMaterial(item, material.IsValid ? material : blend == HudBlend.Additive ? _additive.GetRid() : default);
         RenderingServer.CanvasItemSetDefaultTextureFilter(item, nearest
             ? RenderingServer.CanvasItemTextureFilter.Nearest : RenderingServer.CanvasItemTextureFilter.Linear);
         RenderingServer.CanvasItemSetDrawIndex(item, run);
@@ -212,7 +226,7 @@ public partial class HudCanvas : Node2D
         foreach (Rid item in _items) RenderingServer.FreeRid(item);
         _items.Clear();
         _additive?.Dispose(); _additive = null;
-        ReleaseTextures();
+        ReleaseTextures(); ReleaseAtlases(); ReleaseGauges(); ReleaseGlows();
         _fontInfo.Clear();
         _shown.Clear(); _invalid = true;
     }
