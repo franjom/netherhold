@@ -1271,6 +1271,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_handCursor != null) _handCursor.UiScale = scale;
         // The brightness curve on the 3D view (Unity's ClassicSettingsRendering).
         _world?.SetBrightness(DisplaySettings.BrightnessExponent(settings.Gamma));
+        // Ours, not DK2's: the 3D view's anti-aliasing and render scale (audit item 17), off by default.
+        _world?.SetRenderQuality(settings);
     }
 
     /// <summary>The settings file as <see cref="GameSettingsFile"/> reads it; the defaults, with a warning, when it cannot

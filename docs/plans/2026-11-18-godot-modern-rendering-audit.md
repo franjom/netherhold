@@ -23,8 +23,8 @@ presentation only; DK2's rules, simulation and AI stay faithful, and DK2's data 
 3. **4.8 APIs that fit:** `mesh_surface_update_index_region` (`rendering_server.h:230`) for index-only re-sort uploads;
    `instance_geometry_set_shader_parameter` (`rendering_server.h:782`) for per-instance uniforms.
 4. **In-place vertex rewrites get no motion vectors** (`render_forward_clustered.cpp:1090-1093`): liquids and torch bends
-   remain CPU-updated. Creature animation now uses item 8; previous-pose motion vectors and TAA/FSR2 ghosting
-   have not been validated. AA remains deferred to items 16/17. `project.godot` sets no AA, upscaling or frame pacing.
+   remain CPU-updated. Creature animation now uses item 8, whose phase has no previous value either, so TAA/FSR2 stay
+   deferred (item 17); MSAA, SMAA and the render scale are settings (item 17).
 
 ## Items
 
@@ -188,10 +188,55 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 - **15. P2, S-M. About 48 runtime shader variants** built from code strings (`WorldScene.cs:387-413`; the flame and the
   cage). Replace with a few `.gdshader` resources (an uber shader plus uniforms) and precompilation or the shader baker
   (verify in 4.8). Gain: fewer first-use hitches. Low risk. Depends on lighting.
-- **16. P2, S. `skip_vertex_transform` workaround**, cause unknown (`WorldScene.Lighting.cs:461-466`; `docs/TRAPS.md`).
-  Find the cause before real shadows and TAA; it unblocks items 17 and 2.
-- **17. P2, S. No AA, upscaling or frame pacing** (`project.godot`). MSAA 4x or SMAA now; TAA or FSR2 after items 8 and
-  16; `scaling_3d` as a performance setting; a separate render thread model. Risk: TAA ghosting on in-place meshes.
+- **16. P2, S. `skip_vertex_transform` workaround. Done (2026-11-23): cause found, workaround removed.** Godot draws the
+  depth prepass of an opaque `cull_back` shader that neither writes `VERTEX` nor discards with its default material
+  (`uses_shared_shadow_material`, scene_shader_forward_clustered.h at c51ff06e8), and with the prepass the opaque pass
+  tests `COMPARE_OP_EQUAL` (scene_shader_forward_clustered.cpp). The 3i lit shaders only read `VERTEX`, so the two
+  programs' depths had to match bit for bit; on this machine's AMD Vulkan driver they do not for transformed models, and
+  whole triangles kept the clear colour. Writing `VERTEX` (the workaround's real effect) gives the shader its own prepass.
+  Reproduced on HEAD's shader (Level7 start, 90 frames): no `VERTEX` write and no discard draws the Heart, torch holders
+  and creatures black (all 90 frames differ); the same with `rendering/driver/depth_prepass/enable=false`, or with only a
+  `VERTEX = VERTEX + vec3(0.0)` added, draws them correctly, the two byte-identical. Today's world shader writes `VERTEX`
+  (vertex animation) and discards (possession tiles), pinned by `EveryWorldShaderKeepsItsOwnDepthPrepass`, so Godot now
+  places the vertex: `skip_vertex_transform` and the placement lines are gone from the four `World*.gdshader` states
+  (the possession fade reads `MODELVIEW_MATRIX * VERTEX`). `Lightning.gdshader` keeps it on purpose (camera-space
+  corners). Main, possession, full-map preview and torch-shadow cameras all use the same shaders: HEAD and new frames
+  are byte-identical in every scenario of item 17's capture set, flags off and with all three lighting flags.
+- **17. P2, S. AA and scaling. Done (2026-11-23).** Settings-file keys `RenderMsaa`, `RenderSmaa`, `RenderScale`,
+  `RenderScaleFsr` (`GameSettings`, off by default; Unity's `Msaa` stays its own), applied by
+  `WorldScene.RenderQuality.cs` ([Godot README](../../godot/README.md#anti-aliasing-and-render-scale)). Checked by eye:
+  additive and blended terrain, alpha-blended KMF surfaces, sprites, lightning and the possession view change only at
+  edges; the torch-shadow views never take MSAA; the full-map preview takes MSAA/SMAA (preview pixels only change).
+  `--light-post` under MSAA was broken by design (Godot resolves the multisampled colour after the transparent pass,
+  dropping the compute write), so the filter writes a factor image that a full-screen draw multiplies into the samples;
+  its 400 B/frame callback allocation is HEAD's (`GetRenderSceneData`). TAA and FSR 2: deferred. In Godot's
+  motion-vector pass `vertex()` runs again with the previous transform but the same instance uniforms, so the
+  vertex-animation phase has no previous value, and the in-place rewrites (liquids, torch bends) have none either:
+  animated surfaces would get zero motion and ghost. Needs a previous-phase instance uniform first.
+  Separate render thread (`rendering/driver/threads/thread_model=2`, experimental warning in 4.8): no gain, keep the default.
+  Captures (Movie Maker 1920x1080, `--pointer-path`, clean `git archive` HEAD against HEAD plus this change; Level1 to
+  turn 70, Level7 start, `--possess-first-creature`, `--stage-lightning`, `--open-full-map`; flags off and all three
+  lighting flags): 2,560 of 2,560 HEAD/new frame pairs byte-identical. Each AA setting against new with the same
+  lighting differs as expected: MSAA 4x at most 109,805 pixels (edges), SMAA 147,544 (edges and texture detail),
+  scale 75% and FSR 75% every pixel, the full map only in its preview (at most 368 pixels). Crops (HEAD | new |
+  difference x16): `C:/Users/franj/AppData/Local/Temp/dk2-item1617-20261123/results/` (`<a>_vs_<b>/<scenario>/`).
+  Turn-400 hash `F5C7BAE552173778` on clean HEAD and new copies alike. Performance, `perf.ps1` 1080p, two interleaved
+  repeats (medians of run p50s, HEAD -> new; Debug, iGPU, other CPU load 15-63%):
+
+  | Case | Frame ms | GPU ms | Render CPU ms | Draws | Allocation B/frame p50 | mean |
+  |---|---:|---:|---:|---:|---:|---:|
+  | classic Level1 | 4.397 -> 4.959 | 2.166 -> 2.664 | 0.430 -> 0.517 | 119.5 -> 121 | 7,296 -> 7,296 | 7,213 -> 7,275 |
+  | classic Level7 | 5.432 -> 5.473 | 2.851 -> 2.965 | 0.631 -> 0.678 | 302.5 -> 303 | 10,304 -> 10,300 | 13,368 -> 13,629 |
+  | all flags Level1 | 14.109 -> 13.172 | 11.368 -> 10.854 | 0.784 -> 0.784 | 192 -> 192 | 8,096 -> 8,096 | 10,529 -> 10,385 |
+  | all flags Level7 | 16.522 -> 15.928 | 11.968 -> 11.517 | 0.940 -> 0.921 | 468 -> 468.5 | 11,156 -> 11,148 | 24,545 -> 24,722 |
+
+  The frames are identical and the default path runs no new per-frame code (the AO callback adds one `GetMsaa3D`), so
+  these differences are load noise (classic Level1's new run 1 ran at 63% other load; ranges overlap elsewhere).
+  Settings cost against new, frame / GPU ms, Level1 then Level7: MSAA 4x +0.45/+0.75 and +1.62/+0.64 (+104 MiB video);
+  SMAA +0.69/+0.93 and +1.98/+0.84; scale 75% bilinear -0.77/-0.80 and +0.25/-0.71; FSR 75% -0.12/+0.11 and +1.13/+0.07;
+  MSAA 4x with all flags +8.12/+8.07 and +6.11/+7.98 (+120 MiB). Separate thread: classic +0.10/-0.56 and +1.63/-0.23,
+  all flags +0.76/-0.68 and +2.70/-0.43, main-thread process p50 +2.0 to +12.5 ms. Draws and main-thread allocation p50 do not grow for any setting (the
+  separate thread moves the AO callback's off the main thread). Raw reports: `.../dk2-item1617-20261123/perf/`.
 
 ## Planned steps under the policy
 
@@ -219,8 +264,8 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
 6. 3k on MultiMesh, with the flames (item 6): done (2026-11-19).
 7. 3l.
 8. 3m and 3n (independent, parallel).
-9. Item 4 is measured/no-go above; the minimap shader is complete with the limits in item 10. The remaining replacements start
-   with the `skip_vertex_transform` cause (16), AA/scaling (17), HUD text atlas (11), liquids (9), chunk upload tweak (12).
+9. Item 4 is measured/no-go above; the minimap shader is complete with the limits in item 10; items 16 and 17 are done.
+   The remaining replacements: HUD text atlas (11), liquids (9), chunk upload tweak (12).
 10. The rest of step 4 unchanged; its performance targets are set from 3o's numbers.
 
 Acceptance for a modern item: the owner's eye, the harness numbers and gameplay correctness (the turn-400 hash, the pick

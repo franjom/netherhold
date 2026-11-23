@@ -134,12 +134,10 @@ void vertex() {
         dk2_env_diffuse = dk2_light(anchor, bounds, kind, VERTEX, NORMAL, MODEL_MATRIX, world, nws, vec3(0.0), CAMERA_POSITION_WORLD);
 #endif
     if (environment_pass) dk2_env_uv = dk2_environment_uv(world, nws, VIEW_MATRIX);
-    // Every world shader places its vertex itself (skip_vertex_transform), after the light step (VERTEX and NORMAL stay
-    // model-space before it): with Godot placing it, the lit shaders drew whole triangles of moved models in the clear
-    // colour, as if they failed the depth test against the prepass (the cause is not established; docs/TRAPS.md).
-    NORMAL = normalize((MODELVIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
-    VERTEX = (MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-    dk2_possession_brightness = dk2_possession_fade(VERTEX, PROJECTION_MATRIX);
+    // Godot places the vertex after this step. The VERTEX write above (and the discard in fragment()) also keeps this
+    // shader's own depth prepass: an opaque cull_back shader with neither gets Godot's default material there, and the
+    // colour pass's EQUAL depth test then drops whole triangles of transformed models (docs/TRAPS.md).
+    dk2_possession_brightness = dk2_possession_fade((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz, PROJECTION_MATRIX);
     dk2_possession_tile = int(CUSTOM0.x);
 }
 

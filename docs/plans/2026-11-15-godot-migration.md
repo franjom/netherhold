@@ -856,7 +856,8 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       effect sprite uploads and lights are now wired; [scope](../../godot/README.md#shot-effects)); the environment pass as the submesh material's `NextPass`, also over plans (a faded
       one draws black); the cage's `ZeroOrderOffset` key, set in the frame; the liquids' normals uploaded; exposure folded
       into the gamma table of the camera's colour correction, with no canvas pass; and `skip_vertex_transform` on every
-      world shader (Godot 4.8 drew moved models black otherwise; the cause is not established, `docs/TRAPS.md`).
+      world shader (Godot 4.8 drew moved models black otherwise; the cause, Godot's shared depth-prepass material, was
+      found and the workaround removed in audit item 16, `docs/TRAPS.md`).
       Look (owner, 2026-11-18): the target is Unity's real in-game look, from the owner's saved scene (native initial
       ambient 1, fog of war on): DK2's own light with ADR-0522's distance fade 0.5 to 1, and no fill or sun. Godot
       defaults to that; `--light-fill` adds ADR-0522's fill (tint 0.55/0.44/0.28, unlit 0.25, floor 0.5, sun 1.1, Godot's
@@ -1083,8 +1084,8 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         match. This does not establish the required absence of a regression; 3n and remaining-overlay acceptance stay
         unchecked until the Level7 classic frame-time difference is resolved. Raw reports: `perf/`, `perf-modern/`,
         `perf-preview/`; summaries: `perf-summary/`. No subtitles or function-record edits; subtitles remain step 4.
-  - [ ] Then the remaining replacements: `skip_vertex_transform` cause (16), AA/scaling (17), the HUD text atlas,
-        liquid waves, the chunk upload tweak. The minimap shader is complete with audit item 10's limits; vertex animation is complete (item 8) (texture arrays remain measured/no-go, item 4).
+  - [ ] Then the remaining replacements: the HUD text atlas, liquid waves, the chunk upload tweak (the
+        `skip_vertex_transform` cause, item 16, and AA/scaling, item 17, are done). The minimap shader is complete with audit item 10's limits; vertex animation is complete (item 8) (texture arrays remain measured/no-go, item 4).
 - [x] The remaining 3D overlays (the scripted paths, 3n), then the in-game HUD from step 1.
 
 ## Step 4: media, tools, packaging

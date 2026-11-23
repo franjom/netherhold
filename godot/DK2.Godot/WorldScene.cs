@@ -194,7 +194,6 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     public ClassicCameraPose? PreviewPose { get; set; }
     public Godot.Environment? CameraEnvironment => _camera?.Environment;
     public bool MeasurePreviewRenderTime { get; set; }
-    public SubViewport? PreviewRenderViewport { get; set; }
     public CameraViewport PreviewViewport { get; set; }
     private const uint MainBlendedLayer = 1u << 18, PreviewBlendedLayer = 1u << 19;
     private readonly BlendedRunSlots<ShaderMaterial> _previewRunKeys = new();

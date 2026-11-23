@@ -16,7 +16,12 @@ void main() {
  ivec2 pixel=ivec2(gl_GlobalInvocationID.xy);
  if(any(greaterThanEqual(pixel,ivec2(params.size))))return;
  vec4 centre=texelFetch(ao_texture,pixel,0);
+#ifdef AO_FACTOR
+ // Under MSAA the factor goes to its own image, multiplied into the multisampled colour afterwards (WorldOcclusionEffect).
+ if(dot(centre.xyz,centre.xyz)<.5){imageStore(color_texture,pixel,vec4(1.));return;}
+#else
  if(dot(centre.xyz,centre.xyz)<.5)return;
+#endif
  vec3 p=view_at(pixel);float sum=0.,weights=0.;
  for(int y=-2;y<=2;y++)for(int x=-2;x<=2;x++) {
   ivec2 q=clamp(pixel+ivec2(x,y),ivec2(0),ivec2(params.size)-1);
@@ -32,6 +37,10 @@ void main() {
 #ifdef AO_UNFILTERED
  ao=centre.w;
 #endif
+#ifdef AO_FACTOR
+ imageStore(color_texture,pixel,vec4(1.-.6*ao));
+#else
  vec4 color=imageLoad(color_texture,pixel);
  imageStore(color_texture,pixel,vec4(color.rgb*(1.-.6*ao),color.a));
+#endif
 }

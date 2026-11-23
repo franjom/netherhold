@@ -21,6 +21,15 @@ public sealed record GameSettings
     public int UiScale { get; init; } = 100;
     /// <summary>Ours, not DK2's: multisample anti-aliasing samples per pixel (1 = off, 2, 4 or 8).</summary>
     public int Msaa { get; init; } = 4;
+    /// <summary>Ours, the Godot adapter's 3D view (audit item 17), all off by default; Unity reads <see cref="Msaa"/>
+    /// instead. Multisample anti-aliasing samples per pixel (1 = off, 2, 4 or 8).</summary>
+    public int RenderMsaa { get; init; } = 1;
+    /// <summary>Ours: SMAA, a post-process edge anti-aliasing of the 3D view.</summary>
+    public bool RenderSmaa { get; init; } = false;
+    /// <summary>Ours: the 3D view's render resolution, in percent of the window (50..100; 100 = off).</summary>
+    public int RenderScale { get; init; } = 100;
+    /// <summary>Ours: upscale a reduced <see cref="RenderScale"/> with FSR 1 (spatial, sharpened) rather than bilinear.</summary>
+    public bool RenderScaleFsr { get; init; } = false;
     public bool WaterTranslucency { get; init; } = true;
     public bool EnvironmentMapping { get; init; } = true;
     public bool Headphones { get; init; } = false;
@@ -53,6 +62,8 @@ public sealed record GameSettings
         ScrollSpeed = Math.Clamp(ScrollSpeed, 5, 20),
         UiScale = Math.Clamp(UiScale, 50, 200),
         Msaa = Msaa >= 8 ? 8 : Msaa >= 4 ? 4 : Msaa >= 2 ? 2 : 1,
+        RenderMsaa = RenderMsaa >= 8 ? 8 : RenderMsaa >= 4 ? 4 : RenderMsaa >= 2 ? 2 : 1,
+        RenderScale = Math.Clamp(RenderScale, 50, 100),
         Bindings = Array.AsReadOnly((Bindings ?? Array.Empty<GameKeyBinding>())
             .Where(b => (int)b.Action >= 0 && (int)b.Action < 64 && b.ScanCode >= 0 && b.ScanCode < 256
                 && (b.Modifiers & ~KeyModifiers.All) == 0).GroupBy(b => b.Action).Select(g => g.Last()).ToArray()),

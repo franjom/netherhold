@@ -208,6 +208,18 @@ on a failed check. Add `--occlusion-negative 1` after `--` in a separate AO run 
 must fail. Performance reports retain the viewport timing scope under *Measuring performance*; compare overall
 frame time and allocation as well as those partial render timings.
 
+### Anti-aliasing and render scale
+Ours, not DK2's, and off by default (audit item 17): the settings file (`--settings`, `GameSettingsFile`) takes
+`RenderMsaa=1|2|4|8`, `RenderSmaa=True`, `RenderScale=50..100` (percent of the window) and `RenderScaleFsr=True` (FSR 1
+instead of bilinear, only below 100). Unity's `Msaa` key is separate and ignored here. No Game Options control shows them:
+DK2's graphics page is kept as it was. `WorldScene.RenderQuality.cs` applies MSAA and SMAA to the main view and the full
+map's preview and the scale to the main view; the torch-shadow distance maps never take them, and a default value writes
+nothing, so the frames with every setting off are HEAD's. Under MSAA, `--light-post`'s filter writes its factor to its
+own image and a full-screen draw multiplies it into every sample, because Godot resolves the multisampled colour again
+after the transparent pass. TAA and FSR 2 are not offered: the vertex-animation phase and the in-place vertex rewrites give
+no previous positions, so animated surfaces would have no motion vectors (audit item 17). Costs and captures:
+[modern-rendering audit item 17](../docs/plans/2026-11-18-godot-modern-rendering-audit.md#items).
+
 ### GPU minimap
 `ClassicMinimap` presents `MinimapGpuDisc`'s reused RGBA8 `SubViewport`: a base `canvas_item` shader
 samples the class grid, palette and rock, then a `MultiMesh2D` draws ordered marker quads from
@@ -275,6 +287,7 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `DK2.Godot/WorldScene.BlendedItems.cs` | the blended items (`WorldScene`, partial, step 3k): batches of MultiMesh draws ordered among the blended runs by `BlendedItemOrder` |
 | `DK2.Godot/WorldScene.Flowers.cs` | the status flowers (`WorldScene`, partial, step 3k): each layer an instance of its icon's batch among the blended items |
 | `DK2.Godot/WorldScene.PostEffects.cs`, `WorldOcclusionHost.cs`, `WorldOcclusionEffect.cs` | `--light-post`: attaches camera-owned C# AO compute passes after opaque drawing and before transparency; main/full-map preview resources follow camera tree entry/exit ([pipeline](#torch-light-and-ao-probes)) |
+| `DK2.Godot/WorldScene.RenderQuality.cs` | the settings' MSAA, SMAA and render scale on the main view and the preview ([anti-aliasing](#anti-aliasing-and-render-scale)) |
 | `DK2.Godot/WorldScene.Shadows.cs` | `--light-shadows` (step 2 of the lighting direction): the two torches nearest the focus (`ClassicTorchShadowSlots`) each render a distance map from a downward 150-degree `SubViewport` camera that sees only the casters' layers (terrain chunks, creatures, objects, structures); a wall's shadow multiplies only that torch's DK2 term, a creature's or object's darkens the whole per-pixel light by DK2's strength (1 - coverage x strength), with the caster fade from `ClassicShadowSourceSelector` (DK2's three nearest torches within 2.5 tiles, fading from the fourth); a torch holding a map counts 1.5 tiles nearer, so the maps do not swap back and forth |
 | `DK2.Godot/WorldScene.Creatures.cs` | the creatures (`WorldScene`, partial, the `ISceneFrameHost` of `SceneFrame`): a `ModelSlot` per creature on the shared model meshes, clips through `CreatureAnimationPlayer` with in-place vertex upload, clip sets cached per entry, the drawn place and head point through `RightHandedFrame`, removal on death or exit; crackle goes through `WorldScene.Lightning.cs` (3l); footsteps wait for sound (step 4); the gem sparkle is `WorldScene.Effects.cs`'s |
 | `DK2.Godot/WorldScene.Possession.cs` | the possession's drawn world (`WorldScene`, partial, step 3m): the camera's possession pose and near plane, the lattice latch and the hidden possessed model before the present, and the roof (`TerrainCeilingScheduler` into one `MeshInstance3D` per chunk, shown during entry, first person and return by the shared possession-camera hold rule) |

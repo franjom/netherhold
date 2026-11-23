@@ -30,6 +30,10 @@ public static class GameSettingsFile
         text.Append("ScrollSpeed=").Append(settings.ScrollSpeed.ToString()).Append('\n');
         text.Append("UiScale=").Append(settings.UiScale.ToString()).Append('\n');
         text.Append("Msaa=").Append(settings.Msaa.ToString()).Append('\n');
+        text.Append("RenderMsaa=").Append(settings.RenderMsaa.ToString()).Append('\n');
+        text.Append("RenderSmaa=").Append(settings.RenderSmaa.ToString()).Append('\n');
+        text.Append("RenderScale=").Append(settings.RenderScale.ToString()).Append('\n');
+        text.Append("RenderScaleFsr=").Append(settings.RenderScaleFsr.ToString()).Append('\n');
         text.Append("WaterTranslucency=").Append(settings.WaterTranslucency.ToString()).Append('\n');
         text.Append("EnvironmentMapping=").Append(settings.EnvironmentMapping.ToString()).Append('\n');
         text.Append("Headphones=").Append(settings.Headphones.ToString()).Append('\n');
@@ -68,6 +72,8 @@ public static class GameSettingsFile
                     "ScrollSpeed" => settings with { ScrollSpeed = number },
                     "UiScale" => settings with { UiScale = number },
                     "Msaa" => settings with { Msaa = number },
+                    "RenderMsaa" => settings with { RenderMsaa = number },
+                    "RenderScale" => settings with { RenderScale = number },
                     _ => settings,
                 };
             if (bool.TryParse(value, out bool flag))
@@ -82,6 +88,8 @@ public static class GameSettingsFile
                     "QSound" => settings with { QSound = flag },
                     "EnvironmentalEffects" => settings with { EnvironmentalEffects = flag },
                     "InvertMouse" => settings with { InvertMouse = flag },
+                    "RenderSmaa" => settings with { RenderSmaa = flag },
+                    "RenderScaleFsr" => settings with { RenderScaleFsr = flag },
                     _ => settings,
                 };
             string[] pair = value.Split(',');

@@ -203,6 +203,22 @@ public class ClassicVertexLightShaderTextTests
         }
     }
 
+    /// <summary>Godot places every world vertex, and in each light mode the world shader writes VERTEX and discards, so
+    /// Godot's depth prepass draws it with its own shader rather than the default material, whose depths the opaque
+    /// pass's EQUAL test rejected on transformed models (docs/TRAPS.md; audit item 16).</summary>
+    [Fact]
+    public void EveryWorldShaderKeepsItsOwnDepthPrepass()
+    {
+        foreach (string file in Directory.GetFiles(Path.Combine(RepositoryRoot(), "godot/DK2.Godot/Shaders"), "World*.gdshader"))
+            Assert.DoesNotContain("skip_vertex_transform", File.ReadAllText(file), StringComparison.Ordinal);
+        foreach (string[] defined in new[] { Array.Empty<string>(), new[] { PerPixel }, new[] { PerPixel, Shadows } })
+        {
+            string world = Normalise(Preprocess(Read(GodotWorld), defined));
+            Assert.Matches(@"void vertex\(\) \{((?!void fragment\(\)).)*\bVERTEX = ", world);
+            Assert.Matches(@"void fragment\(\) \{.*\bdiscard;", world);
+        }
+    }
+
     private static double Number(string text, string pattern)
     {
         Match match = Regex.Match(text, pattern);

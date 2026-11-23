@@ -17,6 +17,7 @@ public class GameSettingsFileTests
             EnvironmentalEffects = false, WaterTranslucency = false, EnvironmentMapping = false,
             Headphones = true, InvertMouse = true, GameSpeed = 11, ScrollSpeed = 17,
             MouseSensitivity = 19, UiScale = 150, Msaa = 2,
+            RenderMsaa = 8, RenderSmaa = true, RenderScale = 67, RenderScaleFsr = true,
             Bindings = new[] { new GameKeyBinding(GameAction.Heart, 0x20, KeyModifiers.Control) } };
         GameSettings restored = GameSettingsFile.Read(GameSettingsFile.Write(original) + "FutureOption=91\n");
         Assert.Equal(GameSettingsFile.Write(original), GameSettingsFile.Write(restored));
@@ -47,6 +48,27 @@ public class GameSettingsFileTests
     [InlineData(64, 8)]
     public void MsaaRoundsDownToASupportedSampleCount(int stored, int expected) =>
         Assert.Equal(expected, GameSettingsFile.Read($"Msaa={stored}\n").Msaa);
+
+    [Fact]
+    public void TheModernViewSettingsDefaultOff()
+    {
+        GameSettings s = GameSettingsFile.Read("");
+        Assert.Equal(1, s.RenderMsaa); Assert.False(s.RenderSmaa);
+        Assert.Equal(100, s.RenderScale); Assert.False(s.RenderScaleFsr);
+        // Unity's own setting is a separate key: setting it does not turn on the Godot view's MSAA.
+        Assert.Equal(1, GameSettingsFile.Read("Msaa=8\n").RenderMsaa);
+    }
+
+    [Theory]
+    [InlineData("RenderMsaa=3\nRenderScale=20\n", 2, 50)]
+    [InlineData("RenderMsaa=64\nRenderScale=150\n", 8, 100)]
+    [InlineData("RenderMsaa=0\nRenderScale=75\n", 1, 75)]
+    public void TheModernViewSettingsAreClamped(string text, int msaa, int scale)
+    {
+        GameSettings s = GameSettingsFile.Read(text);
+        Assert.Equal(msaa, s.RenderMsaa);
+        Assert.Equal(scale, s.RenderScale);
+    }
 
     [Fact]
     public void MissingFileReturnsDefaultsWithoutCreatingAFile()
