@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
-using DK2.Data;
 using DK2.Presentation;
 using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Scene root: shows the classic front-end menu over a black screen. The install is DK2_DIR, else the usual
-/// install locations (<see cref="Dk2Install"/>); its files are read in place and never copied into the project. The
+/// <summary>Scene root: shows the classic front-end menu over a black screen, after the <see cref="Launcher"/> when the
+/// process's first start asks for it (<see cref="LauncherSettingsStore.Decide"/>; scripted runs never see it). The install
+/// is <see cref="LauncherSettingsStore.FindInstall"/>'s; its files are read in place and never copied into the project. The
 /// campaign profile and hi-score table are the player's files under <see cref="UserFolders"/>. The first front end of the
 /// process runs the title screen and the intro movies, unless <c>--skip-startup</c> is given or there is no display
 /// (<c>--headless</c>). <c>--play-movie &lt;path&gt;</c> plays one movie, relative to the install, and quits, as Unity's
@@ -20,6 +20,8 @@ public partial class Main : Node
     /// <summary>The page a level that ended hands this scene (Unity's <c>GameSessionRequest.FrontEnd(returnPage)</c>);
     /// taken and cleared by <see cref="_Ready"/>.</summary>
     internal static FrontEndPage s_returnPage;
+    /// <summary>Whether this process has made its start decision; a later entry (a level that ended) goes straight on.</summary>
+    private static bool s_started;
 
     private readonly HashSet<int> _skipFrames = new();
     private int _frame, _quitFrame = -1;
@@ -29,13 +31,39 @@ public partial class Main : Node
         FrontEndPage returnPage = s_returnPage;
         s_returnPage = FrontEndPage.None;
         RenderingServer.SetDefaultClearColor(Colors.Black);
-        string? install = Dk2Install.Find();
+        string[] args = OS.GetCmdlineUserArgs();
+        if (!s_started)
+        {
+            s_started = true;
+            switch (LauncherSettingsStore.Decide(args))
+            {
+                case LauncherStart.ShowLauncher:
+                    var launcher = new Launcher { Name = "Launcher" };
+                    launcher.Open(args);
+                    launcher.PlayRequested += settings =>
+                    {
+                        launcher.QueueFree();
+                        LauncherDisplay.Apply(GetTree().Root, settings);
+                        Start(args, returnPage);
+                    };
+                    AddChild(launcher);
+                    return;
+                case LauncherStart.StartWithSavedScreen:
+                    LauncherDisplay.Apply(GetTree().Root, LauncherSettingsStore.Current(args));
+                    break;
+            }
+        }
+        Start(args, returnPage);
+    }
+
+    private void Start(string[] args, FrontEndPage returnPage)
+    {
+        string? install = LauncherSettingsStore.FindInstall(args);
         if (install is null)
         {
-            GD.PushError("DK2.Godot: no Dungeon Keeper 2 install found; set DK2_DIR.");
+            GD.PushError("DK2.Godot: no Dungeon Keeper 2 install found; choose it in the launcher (--launcher) or set DK2_DIR.");
             return;
         }
-        string[] args = OS.GetCmdlineUserArgs();
         int skipAt = Array.IndexOf(args, "--movie-skip-frame");
         if (skipAt >= 0 && skipAt + 1 < args.Length)
             foreach (string frame in args[skipAt + 1].Split(','))

@@ -18,6 +18,14 @@ research provenance belongs in `docs/research/`, not in this notice file.
 - `src/DK2.Data/Wad/WadDecompressor.cs` adapts the WAD entry decompression
   algorithm from GLKeeper's `src/DK2WADArchive.cpp`.
 
+## Launcher fonts
+
+- UnifrakturMaguntia (Copyright (c) 2010 j. 'mach' wust, Copyright (c) 2009 Peter Wiegel) and Alegreya Sans
+  (Copyright 2013 The Alegreya Sans Project Authors), SIL Open Font License 1.1, unmodified from
+  https://github.com/google/fonts (`ofl/unifrakturmaguntia`, `ofl/alegreyasans`).
+- Used only by the Godot launcher, `godot/DK2.Godot/Launcher/`, beside their licences
+  (`UnifrakturMaguntia-OFL.txt`, `AlegreyaSans-OFL.txt`).
+
 ## Research references
 
 These projects were consulted for file formats, structure and behaviour.

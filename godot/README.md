@@ -8,8 +8,9 @@ first front end of the process (*Movies* below). Not wired yet: station scenery 
 (*Sound* below). The campaign entries fly to the campaign map page and the movie gallery shows which
 movies are unlocked, but with no station scene there is no land picking, briefing or launch, and name typing is not
 reachable; the model disables the save buttons, and the settings pages open but their controls are inert. The front end
-loads a real campaign profile and hi-score table, and reads and writes the files listed under *The player's files*. Like
-Unity's player it starts full screen (see *Verifying* for a window of a fixed size).
+loads a real campaign profile and hi-score table, and reads and writes the files listed under *The player's files*. A
+start without a scene shows the Netherhold launcher first (*The launcher* below), which sets the install, the menu font and
+the screen mode; a scripted run never sees it and opens full screen as before (see *Verifying* for a window of a fixed size).
 
 `InGameHud.tscn` is the in-game HUD, ported panel by panel (migration plan step 1b): it starts a campaign level as
 Unity's `DungeonRunner` does and ticks it at the default game speed, over the level's terrain (`WorldScene`, plan steps 3a
@@ -311,6 +312,35 @@ The synthetic GPU/CPU parity scene needs no DK2 install. From the repository roo
 Repeat with `--rendering-driver d3d12` and a separate output directory. The scene exits nonzero on a mismatch and
 writes `parity.json` (RGBA byte differences, image hashes and fractional HUD scaling) and `lifecycle.json` (reparent check).
 
+### The launcher
+
+`Main.tscn` decides once a process (`LauncherSettingsStore.Decide` over the shared `LauncherStartRule`): `--launcher` always
+shows the launcher; a scripted run starts as before (no display, Movie Maker, a scene named on the command line, which
+never loads `Main.tscn` unless it is `Main.tscn`, or `--play-movie`); otherwise Shift held at start (read from the OS on
+Windows), no saved "Start the game directly next time" or no install found shows it, and a saved start goes straight
+into the front end in the saved screen mode. Play saves, applies the mode (`LauncherDisplay`: a resizable window of the
+chosen size centred on its screen, exclusive full screen, or Godot's borderless full-screen window) and opens the front end
+as before; Quit or Esc quits, Enter is Play once an install is found. A level that ends returns to the menu without it.
+
+The settings are `user://launcher.cfg` (`%APPDATA%/Godot/app_userdata/DK2.Godot/launcher.cfg`; key=value lines, written
+only by Play), or the file `--launcher-config <file>` names, which every scripted run passes so it never reads the
+player's. Their format, the install check, the window sizes offered (16:9 and common sizes that fit the screen with a
+frame; first the largest 16:9 within 90%), the start rule and the words are `DK2.Presentation`'s (`LauncherSettings`,
+`LauncherWindowSizes`, `LauncherStartRule`, `LauncherCopy`, `LauncherTests`); the install rule is `Dk2Install.Check`.
+The install is DK2_DIR, then `--dk2Install <dir>`, then the launcher's folder while it still holds an install, then the
+development default (`Dk2Install.Resolve`). The menu font is DK2_REPLACEMENT_FONT, then `--menu-font <file>`, then the
+launcher's file (`MenuFontSearch`), then the gitignored copies below; empty, the menu draws DK2's BF4 bitmap font.
+
+The launcher uses no DK2 art or lettering: its fonts are UnifrakturMaguntia (the title) and Alegreya Sans, SIL OFL, in
+`Launcher/` with their licences (`THIRD-PARTY-NOTICES.md`), and its stone and seam are canvas shaders
+(`Launcher/LauncherStone.gdshader`, `LauncherSeam.gdshader`). Its one unprompted motion is the seam's lava run (0.9 s)
+when an install is found; `--reduce-motion`, or Windows' "Animation effects" off, lights it at once. A check drives it
+with `--launcher-keys "frame:Key;..."` (Godot key names, `Shift+` for a shifted press; frames from its first), through
+Godot's input, never the OS. Movie Maker keeps the window size it starts with and scales a later resize into it, so a
+capture of the launcher runs a copy of `DK2.Godot` (with its `.godot` folder) outside the repository whose `override.cfg`
+holds `window/size/mode=0`, `window/size/viewport_width=1100` and `viewport_height=680`, with `-- --launcher` and the
+temporary player-file overrides.
+
 ### The player's files
 
 `UserFolders.FromArguments` builds `GameFolders` over `user://` (`%APPDATA%/Godot/app_userdata/DK2.Godot/`), never Unity's
@@ -345,6 +375,7 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `editor.ps1` | starts the pinned editor on the project, from the repository root |
 | `DK2.Godot/` | the Godot project: `project.godot`, `DK2.Godot.csproj` (`ProjectReference`s into `src/`), scenes, C# |
 | `DK2.Godot/Main.tscn`, `Main.cs` | the main scene: the front-end menu (`ClassicFrontEndMenu`) |
+| `DK2.Godot/Launcher/` | the launcher (*The launcher*): `Launcher.cs` (the page), `LauncherTheme.cs`, `LauncherDisplay.cs` (applies the screen mode), `LauncherSettingsStore.cs` (the saved file, the install, the start decision), `LauncherSystem.cs` (Shift and reduced motion from Windows), the two shaders and the OFL fonts |
 | `DK2.Godot/UserFolders.cs` | `GameFolders` over `user://` with the `--profile`, `--settings`, `--saves` and `--hiscores` overrides, for both scenes |
 | `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD over a running campaign level and its `WorldScene` (see above) |
 | `DK2.Godot/WorldScene.cs` | the 3D world: `TerrainTileBuilder`'s chunks through `RightHandedFrame`, rebuilt by `TerrainChunkScheduler` (`ITerrainChunkSink`) with shared recipe materials on the world shader (`ShaderFor`, `WorldMaterial`), the liquids waved by `WorldLiquid.gdshader` (`LiquidLayer`, `LiquidSurfaceField`), the blended runs (`BlendedTerrainStream`, `ViewFrustum`, one `RenderingServer` instance per run), the gamma-space output `Environment`, the selection cage (`CageRibbon`, `TileHoverOutline.Build`'s ribbon with Godot's own additive shader), `TryPickRay` (the pointer's ray), and the classic `Camera3D`, placed once a frame at the focus the scene moves |
@@ -398,10 +429,10 @@ powershell -File godot/setup.ps1     # editor into %LOCALAPPDATA%\Programs\Godot
 powershell -File godot/editor.ps1    # open the editor
 ```
 
-The game reads the original install in place: `DK2_DIR`, else the usual install locations
-(`DK2.Data.Dk2Install`); the in-game scene needs it for its models and textures as well as the HUD art. The front end's replacement TrueType face is Bullfrog's DungeonKeeperII.ttf, which is not
+The game reads the original install in place: `DK2_DIR`, else the launcher's choice, else the usual install locations
+(`DK2.Data.Dk2Install`, *The launcher*); the in-game scene needs it for its models and textures as well as the HUD art. The front end's replacement TrueType face is Bullfrog's DungeonKeeperII.ttf, which is not
 ours to ship (download: see `unity/README.md`). It is read from an absolute path, never imported:
-`DK2_REPLACEMENT_FONT`, else `DK2.Godot/Fonts/DungeonKeeperII.ttf` (gitignored), else the Unity project's
+`DK2_REPLACEMENT_FONT`, else `--menu-font`, else the launcher's choice, else `DK2.Godot/Fonts/DungeonKeeperII.ttf` (gitignored), else the Unity project's
 gitignored copy. Without it the menu draws DK2's BF4 bitmap font.
 
 `-InstallRoot` or `DK2_GODOT_ROOT` puts editors elsewhere. Each version gets its own folder, so
@@ -473,7 +504,7 @@ The window takes the desktop's size and `--windowed`/`--resolution` do not chang
 To capture the opening path, start Level1 without `--load`, with Movie Maker and a scripted pointer. To capture the
 preview, load a save after the path and add `--open-full-map`; place the pointer over explored territory on the map.
 Both pass `--log-file <temp>/godot.log` before `--` and the same temporary player-file overrides after it:
-`-- --level Level1 --seed 1 --settings <temp>/settings.ini --profile <temp>/profile.dk2p --saves <temp>/saves --hiscores <temp>/HiScores.dat --pointer-path "0:960,540"`.
+`-- --level Level1 --seed 1 --settings <temp>/settings.ini --profile <temp>/profile.dk2p --saves <temp>/saves --hiscores <temp>/HiScores.dat --launcher-config <temp>/launcher.cfg --pointer-path "0:960,540"`.
 For the preview append `--load <name> --open-full-map` and use map-area pointer coordinates; repeat with
 `--light-perpixel --light-shadows --light-post` for the lighting check. Keep Movie Maker at 1920x1080 as above.
 The optional lightning fixture is `--stage-lightning` on `InGameHud.tscn`, normally with `--level Level1 --seed 1`. It places a Mistress and an opposing hero on dry owned floor, activates three Increase Level specials and a Mana Boost through ordinary commands, and lets combat produce the creature cast and electrification. After thirty turns it posts one ordinary paid Thunderbolt at a fresh target. It turns the ordinary camera through half a turn to face the hero. It is off by default; no simulation rule changes. Add `--possess-first-creature` for the possession-camera check. Use all four temporary player-file overrides and `--pointer-path` as above.

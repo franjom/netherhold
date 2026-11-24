@@ -66,26 +66,21 @@ public class InstallGateTests
     [Fact]
     public void NoTestLooksTheInstallUpForItself_BecauseThatIsHowTheSilentSkipHappened()
     {
-        // Two things this got wrong on the way, both worth keeping:
-        //
-        // Doc comments are stripped first, because this very file names the old
-        // pattern in prose in order to explain it — the first run failed on
-        // itself, which was a pleasing kind of correct.
-        //
-        // And the needle carries its dot. "Dk2Install" is a PREFIX of
-        // "Dk2InstallGate", so a bare substring search flagged all 39 files
-        // that use the replacement correctly. A guard that fires on the right
-        // answer is worse than no guard.
-        // The needle is assembled rather than written, so that this file does not
-        // contain it verbatim and flag itself. The alternative — excluding this
-        // file by name — would be a hole somebody could hide a violation in.
-        string needle = "Dk2Install" + ".";
+        // Doc comments are stripped (this file names the old pattern in prose); needles carry their dot ("Dk2Install" is a
+        // prefix of "Dk2InstallGate") and are assembled so this file does not flag itself. Only the lookups that read
+        // the real install (Find, Require) are flagged; Check and Resolve take their folders as arguments. A static
+        // import is flagged because it would hide a bare Find().
+        string type = "Dk2Install";
+        string[] needles = [type + ".Find", type + ".Require", "using static DK2.Data." + type];
 
         string[] offenders =
         [
             .. TestSources()
-               .Where(f => CodeOnly(File.ReadAllLines(f))
-                           .Contains(needle, StringComparison.Ordinal))
+               .Where(f =>
+               {
+                   string code = CodeOnly(File.ReadAllLines(f));
+                   return needles.Any(n => code.Contains(n, StringComparison.Ordinal));
+               })
                .Select(Path.GetFileName)
                .OfType<string>()
                .Order()

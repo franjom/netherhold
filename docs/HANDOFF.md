@@ -164,6 +164,8 @@ These are entry points, not a new priority order.
   3n scripted paths and the letterbox; step 4 subtitles; sound, the level sound driver and movies are done (step 4, [Sound](../godot/README.md#sound) and [Movies](../godot/README.md#movies): `ClassicSoundMixer`, `LevelSoundDriver` and `MoviePlayback` in `DK2.Presentation`, Unity's copy left as it is until step 5). The 3D station scenery and
   most keys are also unwired (`ClassicKeyboard` reads the options and full-map keys, the save name and the key being bound so far);
   the options menu's session action after Restart, Return to Menu or Quit is dropped.
+  A start without a scene now shows the Netherhold launcher (install folder, menu font, screen mode; [godot/README.md](../godot/README.md), *The launcher*);
+  scripted runs skip it.
   Open readings: whether secret-level and My Pet Dungeon briefing lines show in play ([Q854](research/open-questions.md)); whether `ClassicKeyNames`, equal to Unity's
   `KeyCode` names, matches DK2's own ([Q857](research/open-questions.md)); whether the front end's brightness, after `PngChunks.WithoutColourSpace` drops Godot's gAMA handling,
   is Unity's ([Q859](research/open-questions.md), [0x005B6030](research/functions/005B6030.md)).

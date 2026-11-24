@@ -236,13 +236,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     {
         if (_simulation != null) return;   // re-entering the tree keeps the running level
         RenderingServer.SetDefaultClearColor(Colors.Black);
-        string? install = Dk2Install.Find();
+        string[] args = OS.GetCmdlineUserArgs();
+        string? install = LauncherSettingsStore.FindInstall(args);
         if (install is null)
         {
-            GD.PushError("DK2.Godot: no Dungeon Keeper 2 install found; set DK2_DIR.");
+            GD.PushError("DK2.Godot: no Dungeon Keeper 2 install found; choose it in the launcher or set DK2_DIR.");
             return;
         }
-        string[] args = OS.GetCmdlineUserArgs();
         LaunchArguments launch = LaunchArguments.Parse(args, "--");
         // A save the previous instance loaded: its level, return page and restored simulation replace the arguments'.
         GameSessionRequest? resume = s_resume;

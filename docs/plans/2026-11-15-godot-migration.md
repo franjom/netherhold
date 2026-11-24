@@ -1109,6 +1109,11 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       `HudPilot.Compile.csproj` already fails to compile (25 errors: `ClassicHudScaling` and
       `Input` missing from its compile list, stale signatures), so do not repair it.
 - [ ] Performance targets set again in Godot, from 3o's harness numbers (owner, 2026-11-15: Unity FPS work stopped).
+- [x] The Netherhold launcher (owner-approved 2026-11-24), the tester package's first screen: the install folder, an optional
+      menu font and the screen mode, saved to `user://launcher.cfg` (`--launcher-config` for scripted runs); DK2_DIR, then
+      `--dk2Install`, then the saved folder, then the development default find the install. Rules in `DK2.Presentation`
+      (`LauncherTests`); scripted runs skip it (Level1 turn-400 hash and Level1/Level7 captures unchanged). `godot/README.md`
+      (*The launcher*). Owner use with a real mouse, the native file dialog and a resize of the game window are unchecked.
 - [ ] Tester package as a Godot export (export templates, committed export preset).
 - [ ] CI builds `godot/DK2.Godot` (no editor needed) and the architecture gate checks Godot.
 

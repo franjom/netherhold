@@ -20,8 +20,9 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
     public ClassicFrontEndMenuAssets(string install) => _sources = new InstallFrontEndSources(install, DecodePng);
 
     /// <summary>Bullfrog's DungeonKeeperII TrueType face, or null when this machine has none. It is not ours to ship, so
-    /// it is never committed or imported: it is read from an absolute path, in order DK2_REPLACEMENT_FONT, then
-    /// <c>Fonts/DungeonKeeperII.ttf</c> in this project (gitignored), then the Unity project's (gitignored) copy.</summary>
+    /// it is never committed or imported: it is read from an absolute path, in order DK2_REPLACEMENT_FONT, <c>--menu-font</c>,
+    /// the launcher's menu font (<see cref="MenuFontSearch"/>), then <c>Fonts/DungeonKeeperII.ttf</c> in this project
+    /// (gitignored), then the Unity project's (gitignored) copy.</summary>
     public FontFile? ReplacementFont
     {
         get
@@ -39,11 +40,13 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
 
     private static string? FindReplacementFont()
     {
-        string? configured = System.Environment.GetEnvironmentVariable("DK2_REPLACEMENT_FONT");
-        if (!string.IsNullOrWhiteSpace(configured))
+        string[] args = OS.GetCmdlineUserArgs();
+        foreach ((string source, string path) in MenuFontSearch.Named(
+                     System.Environment.GetEnvironmentVariable(MenuFontSearch.EnvironmentVariable),
+                     LaunchArguments.Value(args, MenuFontSearch.Argument), LauncherSettingsStore.Current(args).MenuFont))
         {
-            if (File.Exists(configured)) return configured;
-            GD.PushWarning("DK2.Godot: DK2_REPLACEMENT_FONT names a missing file: " + configured);
+            if (File.Exists(path)) return path;
+            GD.PushWarning($"DK2.Godot: {source} names a missing file: {path}");
         }
         string project = ProjectSettings.GlobalizePath("res://");
         if (string.IsNullOrEmpty(project)) return null;
