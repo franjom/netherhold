@@ -1,28 +1,27 @@
 <#
 .SYNOPSIS
-    Builds the tester package: a release player of the game (IL2CPP), the pinned PresentMon, the
-    capture script and its instructions, zipped for someone on other hardware (docs/PERFORMANCE.md,
-    the desktop tier). See README.md.
+    Builds the tester package: a release export of the Godot game (godot/DK2.Godot/export_presets.cfg), the pinned
+    PresentMon, the capture script and its instructions, zipped for someone on other hardware (docs/PERFORMANCE.md, the
+    desktop tier). See README.md.
 #>
 param(
-    [string]$Unity = 'C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Unity.exe',
-    [string]$OutputRoot = 'D:/DungeonKeeperRemake/build/tester-package',
+    [string]$OutputRoot = (Join-Path (Resolve-Path "$PSScriptRoot/../..").Path 'build/tester-package'),
+    # A debug export (Godot's debug template): for diagnosis only; summarise_capture.py rates its captures invalid.
     [switch]$Development,
-    [switch]$SkipSync
+    [string]$InstallRoot = $(if ($env:DK2_GODOT_ROOT) { $env:DK2_GODOT_ROOT } else { Join-Path $env:LOCALAPPDATA 'Programs\Godot' })
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
+$project = Join-Path $repo 'godot/DK2.Godot'
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $package = Join-Path $OutputRoot $stamp
-New-Item -ItemType Directory -Path "$package/tools" -Force | Out-Null
+$game = Join-Path $package 'game'
+New-Item -ItemType Directory -Path $game, "$package/tools" -Force | Out-Null
 
-if (!(Test-Path -LiteralPath (Join-Path (Split-Path $Unity) 'Data/PlaybackEngines/windowsstandalonesupport/Variations/win64_player_nondevelopment_il2cpp'))) {
-    throw "$Unity has no Windows IL2CPP module (ADR-0690); install it or pass -Unity for an install that has it"
-}
-
-# The shared scratch project (never alongside a game-unity-probe run), without the probe's sources.
-$project = & "$repo/tools/game-unity-probe/prepare-project.ps1" -Repo $repo -SkipSync:$SkipSync
-Copy-Item -LiteralPath "$PSScriptRoot/ReleasePlayerBuild.cs" -Destination "$project/Assets/DK2/Editor/ReleasePlayerBuild.cs" -Force
+# The pinned editor and its .NET export templates, both verified by hash (godot/godot-version.json).
+& "$repo/godot/setup.ps1" -InstallRoot $InstallRoot -ExportTemplates | Out-Host
+$pin = Get-Content -Raw "$repo/godot/godot-version.json" | ConvertFrom-Json
+$console = Join-Path (Join-Path $InstallRoot $pin.editor.version) $pin.editor.windowsConsoleExe
 
 function Run-Native([string]$Executable, [string[]]$Arguments, [int]$Minutes) {
     $quoted = foreach ($argument in $Arguments) {
@@ -30,22 +29,29 @@ function Run-Native([string]$Executable, [string[]]$Arguments, [int]$Minutes) {
         '"' + $argument + '"'
     }
     $process = Start-Process -FilePath $Executable -ArgumentList ($quoted -join ' ') -WindowStyle Hidden -PassThru
+    $null = $process.Handle   # kept open, or ExitCode can come back empty
     $deadline = (Get-Date).AddMinutes($Minutes)
     while (!$process.WaitForExit(1000)) {
-        if ((Get-Date) -gt $deadline) { $process.Kill(); throw "Timed out: $Executable; $package" }
+        if ((Get-Date) -gt $deadline) { $process.Kill(); throw "Timed out: $Executable" }
     }
-    if ($process.ExitCode -ne 0) { throw "Failed ($($process.ExitCode)): $Executable; see the logs in $package" }
+    return $process.ExitCode
 }
 
-$player = "$package/player/DK2.exe"
-Write-Host "Building the release player (IL2CPP compiles C++; allow several minutes)..."
-$buildArguments = @('-batchmode', '-quit', '-nographics', '-projectPath', $project,
-    '-executeMethod', 'DK2.Unity.Editor.ReleasePlayerBuild.Build', '-playerBuild', $player, '-logFile', "$package/build.log")
-if ($Development) { $buildArguments += @('-playerDevelopment', '1') }
-Run-Native $Unity $buildArguments 60
-if (!(Test-Path -LiteralPath $player)) { throw "No player was built; see $package/build.log" }
-# The IL2CPP symbols folder is for crash dumps here, not for the tester: it is most of the size.
-Get-ChildItem -LiteralPath "$package/player" -Directory -Filter '*BackUpThisFolder*' | Remove-Item -Recurse -Force
+# The export, headless. Godot exits 0 even when the .NET part fails, so its log and the output are checked too.
+$log = Join-Path ([IO.Path]::GetTempPath()) "dk2-tester-export-$stamp.log"
+$mode = if ($Development) { '--export-debug' } else { '--export-release' }
+Write-Host "Exporting the game ($mode; the C# is published as part of it)..."
+$exit = Run-Native $console @('--headless', '--path', $project, '--log-file', $log, $mode, 'Windows Desktop', (Join-Path $game 'DK2.exe')) 20
+$errors = @(Select-String -LiteralPath $log -Pattern '^(ERROR|SCRIPT ERROR):' -ErrorAction SilentlyContinue)
+$data = Join-Path $game 'data_DK2.Godot_windows_x86_64'
+if ($exit -ne 0 -or $errors.Count -or !(Test-Path -LiteralPath "$game/DK2.pck") -or !(Test-Path -LiteralPath "$data/DK2.Godot.dll")) {
+    throw "The export failed (exit $exit, $($errors.Count) errors); see $log"
+}
+Remove-Item -LiteralPath $log
+
+# The pack must hold only our own files: the game reads every DK2 file from the player's install.
+& python -I "$PSScriptRoot/pck_contents.py" "$game/DK2.pck" | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "The exported pack holds files it must not (pck_contents.py exit $LASTEXITCODE)" }
 
 # The pinned PresentMon (hash and publisher signature checked by the installer).
 $presentMon = "$repo/build/profiling-tools/PresentMon-2.6.0-x64.exe"
@@ -54,22 +60,26 @@ Copy-Item -LiteralPath $presentMon -Destination "$package/tools/PresentMon-2.6.0
 
 Copy-Item -LiteralPath "$PSScriptRoot/capture.ps1" -Destination "$package/capture.ps1" -Force
 Copy-Item -LiteralPath "$PSScriptRoot/package-README.md" -Destination "$package/README.txt" -Force
+Copy-Item -LiteralPath "$repo/LICENSE" -Destination "$package/LICENSE.txt" -Force
+Copy-Item -LiteralPath "$repo/THIRD-PARTY-NOTICES.md" -Destination "$package/THIRD-PARTY-NOTICES.txt" -Force
 
-# What the package was built from, so a capture names its build.
+# What the package was built from, so a capture names its build. --no-optional-locks: reading the status never writes the index.
 $commit = git -C $repo rev-parse HEAD
-$dirty = git -C $repo status --short
-$hashes = @(Get-ChildItem -LiteralPath "$package/player" -Recurse -File | Where-Object { $_.Name -in @('DK2.exe', 'GameAssembly.dll', 'UnityPlayer.dll') }) +
-    @(Get-ChildItem -LiteralPath "$repo/unity/DK2.Unity/Assets/Plugins/DK2" -Filter '*.dll')
+$dirty = git -C $repo --no-optional-locks status --porcelain
+function Hash([string]$Path) { (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash }
+# Every file of the .NET data folder, as one hash over its sorted relative paths and their hashes.
+$listing = Get-ChildItem -LiteralPath $data -Recurse -File | ForEach-Object { "$($_.FullName.Substring($data.Length + 1).Replace('\', '/')) $(Hash $_.FullName)" } |
+    Sort-Object
+$dataHash = [BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes(($listing -join "`n")))).Replace('-', '')
+$assemblies = Get-ChildItem -LiteralPath $data -File | Where-Object { $_.Name -like 'DK2.*.dll' -or $_.Name -eq 'GodotSharp.dll' } | Sort-Object Name
 $manifest = @("Package=$stamp", "Commit=$commit", "WorktreeClean=$([string]::IsNullOrWhiteSpace($dirty))",
-    "Unity=$((Get-Content -LiteralPath "$repo/unity/DK2.Unity/ProjectSettings/ProjectVersion.txt" -TotalCount 1) -replace '^m_EditorVersion:\s*', '')",
-    "Backend=IL2CPP", "Development=$($Development.IsPresent)", "PresentMon=2.6.0") +
-    @($hashes | ForEach-Object { "SHA256 $($_.Name)=$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)" })
+    "Godot=$($pin.editor.version)", "Backend=Godot .NET", "Development=$($Development.IsPresent)", "PresentMon=2.6.0",
+    "SHA256 DK2.exe=$(Hash "$game/DK2.exe")", "SHA256 DK2.pck=$(Hash "$game/DK2.pck")") +
+    @($assemblies | ForEach-Object { "SHA256 $($_.Name)=$(Hash $_.FullName)" }) + @("SHA256 data folder=$dataHash")
 Set-Content -LiteralPath "$package/manifest.txt" -Value $manifest
-Set-Content -LiteralPath "$package/build-commit.txt" -Value $commit
 if ($dirty) { Set-Content -LiteralPath "$package/worktree-status.txt" -Value $dirty }
-Remove-Item -LiteralPath "$package/build.log" -Force
 
 $zip = Join-Path $OutputRoot "dk2-tester-$stamp.zip"
 Compress-Archive -Path "$package/*" -DestinationPath $zip -CompressionLevel Optimal
-Write-Host "Package: $zip"
+Write-Host "Package: $zip ($([math]::Round((Get-Item -LiteralPath $zip).Length / 1MB)) MB)"
 Write-Output $zip

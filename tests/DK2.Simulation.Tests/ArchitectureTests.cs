@@ -10,7 +10,8 @@ namespace DK2.Simulation.Tests;
 
 /// <summary>
 /// Guards the project's central architectural rule: the simulation must never
-/// depend on Unity. (docs/DECISIONS.md ADR-0002)
+/// depend on an engine (docs/DECISIONS.md ADR-0002), and the engine adapters
+/// only draw (ADR-0805).
 /// </summary>
 public class ArchitectureTests
 {
@@ -23,12 +24,13 @@ public class ArchitectureTests
     // in their own test projects — the guard lives beside the assembly it guards
     // rather than dragging references into the simulation's own tests. Between
     // them the five files cover every assembly Unity loads, on both rules.
-    public void SimulationAssemblies_DoNotReferenceUnity(string assemblyName)
+    public void SimulationAssemblies_DoNotReferenceAnEngine(string assemblyName)
     {
         var assembly = Assembly.Load(assemblyName);
         var offenders = assembly.GetReferencedAssemblies()
             .Where(r => r.Name is not null &&
-                        r.Name.StartsWith("Unity", StringComparison.OrdinalIgnoreCase))
+                        (r.Name.StartsWith("Unity", StringComparison.OrdinalIgnoreCase)
+                         || r.Name.StartsWith("Godot", StringComparison.OrdinalIgnoreCase)))
             .Select(r => r.Name)
             .ToList();
 
@@ -59,6 +61,63 @@ public class ArchitectureTests
             ?.FrameworkName;
 
         Assert.Equal(".NETStandard,Version=v2.1", target);
+    }
+
+    /// <summary>No assembly under <c>src/</c> references Godot (ADR-0805): no Godot SDK or package in a project file and
+    /// no <c>using Godot</c> in its source, so every one stays engine-neutral and loadable by either adapter.</summary>
+    [Fact]
+    public void NothingUnderSrcReferencesGodot()
+    {
+        string src = Path.Combine(RepositoryRoot(), "src");
+        string[] projects = Directory.GetFiles(src, "*.csproj", SearchOption.AllDirectories);
+        Assert.NotEmpty(projects);
+        var offenders = projects
+            .Where(f => Regex.IsMatch(File.ReadAllText(f), @"Godot\.NET\.Sdk|Include=""Godot|GodotSharp", RegexOptions.IgnoreCase))
+            .Concat(SourceFiles(src).Where(f => Regex.IsMatch(File.ReadAllText(f), @"^\s*using\s+(static\s+)?Godot\b", RegexOptions.Multiline)))
+            .Select(f => Path.GetRelativePath(src, f))
+            .ToArray();
+        Assert.Empty(offenders);
+    }
+
+    /// <summary>The Godot adapter draws <c>DK2.Presentation</c>'s output and forwards input (ADR-0805): its one project
+    /// reference is <c>DK2.Presentation</c>, it takes no NuGet package beyond its SDK, and its C# never opens the keeper AI
+    /// or the tools. It is C# only; GDScript lives only in the third-party <c>addons/</c>.</summary>
+    [Fact]
+    public void TheGodotAdapterOnlyDraws()
+    {
+        string root = RepositoryRoot();
+        string adapter = Path.Combine(root, "godot", "DK2.Godot");
+        var project = System.Xml.Linq.XDocument.Load(Path.Combine(adapter, "DK2.Godot.csproj")).Root!;
+        Assert.StartsWith("Godot.NET.Sdk/", (string?)project.Attribute("Sdk"));
+        string[] references = project.Descendants("ProjectReference")
+            .Select(r => Path.GetRelativePath(root, Path.GetFullPath(Path.Combine(adapter, (string)r.Attribute("Include")!)))
+                .Replace('\\', '/'))
+            .ToArray();
+        Assert.Equal(["src/DK2.Presentation/DK2.Presentation.csproj"], references);
+        Assert.Empty(project.Descendants("PackageReference"));
+
+        string[] sources = AdapterFiles(adapter, "*.cs").ToArray();
+        Assert.NotEmpty(sources);
+        var reachesPast = sources
+            .Where(f => Regex.IsMatch(File.ReadAllText(f), @"^\s*using\s+(static\s+)?DK2\.(AI|Tools|Harness|Convert)\b", RegexOptions.Multiline))
+            .Select(f => Path.GetRelativePath(adapter, f));
+        Assert.Empty(reachesPast);
+        Assert.Empty(AdapterFiles(adapter, "*.gd").Select(f => Path.GetRelativePath(adapter, f)));
+    }
+
+    /// <summary>The adapter's own files: not Godot's <c>.godot</c> cache, the build output or the third-party addons.</summary>
+    private static IEnumerable<string> AdapterFiles(string adapter, string pattern)
+    {
+        char s = Path.DirectorySeparatorChar;
+        return SourceFiles(adapter, pattern).Where(f => !f.Contains($"{s}.godot{s}", StringComparison.Ordinal)
+                                                        && !f.Contains($"{s}addons{s}", StringComparison.Ordinal));
+    }
+
+    private static IEnumerable<string> SourceFiles(string directory, string pattern = "*.cs")
+    {
+        char s = Path.DirectorySeparatorChar;
+        return Directory.GetFiles(directory, pattern, SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{s}obj{s}", StringComparison.Ordinal) && !f.Contains($"{s}bin{s}", StringComparison.Ordinal));
     }
 
     [Fact]

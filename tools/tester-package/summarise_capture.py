@@ -20,6 +20,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "game-unity-prob
 from draw_clock import analyse as draw_clock  # noqa: E402
 
 WARM_UP_SECONDS = 2.0
+# What a release capture's metadata.txt must say (Godot's FrameRecorder writes it; godot/README.md, Probes).
+RELEASE_BACKEND = "Godot .NET"
+RENDERING_APIS = ("vulkan", "d3d12")
 
 
 def read_pairs(path):
@@ -68,21 +71,31 @@ def worst_frames(rows, count=10):
     return worst
 
 
+def release_problems(metadata, resolution):
+    """Why a recording cannot stand for the release game at resolution: a debug export, another engine or backend, no GPU
+    (a headless run), a renderer other than Forward+'s Vulkan or Direct3D 12, or another resolution."""
+    problems = []
+    if metadata.get("Development") != "False":
+        problems.append(f"Development is {metadata.get('Development')!r}: a debug export cannot stand for a release")
+    if metadata.get("Backend") != RELEASE_BACKEND or not metadata.get("Godot", "").strip():
+        problems.append(f"backend is {metadata.get('Backend')!r}, the release is the Godot .NET export")
+    for key in ("CPU", "GPU"):
+        if not metadata.get(key, "").strip():
+            problems.append(f"metadata names no {key}")
+    if metadata.get("API") not in RENDERING_APIS:
+        problems.append(f"rendering API {metadata.get('API')!r} is not one of {RENDERING_APIS}")
+    if metadata.get("Resolution") != resolution:
+        problems.append(f"resolution {metadata.get('Resolution')!r} is not {resolution}")
+    return problems
+
+
 def summarise(rows, metadata, machine, presents, tier):
     """rows: the recorder's frames; presents: PresentMon rows or None; tier: name, minimum_fps, resolution."""
     budget = 1000.0 / tier["minimum_fps"]
     problems = []
     if not rows:
         problems.append("no frames recorded")
-    if metadata.get("Development", "False") != "False":
-        problems.append("a development player cannot stand for a release")
-    if metadata.get("Backend") != "IL2CPP":
-        problems.append(f"backend is {metadata.get('Backend')!r}, players ship as IL2CPP (ADR-0690)")
-    if metadata.get("Resolution") != tier["resolution"]:
-        problems.append(f"resolution {metadata.get('Resolution')!r} is not the tier's {tier['resolution']}")
-    for key in ("CPU", "GPU"):
-        if not metadata.get(key, "").strip():
-            problems.append(f"metadata names no {key}")
+    problems += release_problems(metadata, tier["resolution"])
     judged = [float(r["frame_ms"]) for r in rows if float(r["play_seconds"]) >= WARM_UP_SECONDS]
     warm_up = [float(r["frame_ms"]) for r in rows if 0 < float(r["play_seconds"]) < WARM_UP_SECONDS]
     frames = interval_metrics(judged, budget)

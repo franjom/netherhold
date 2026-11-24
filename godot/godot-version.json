@@ -7,6 +7,12 @@
     "windowsExe": "Godot_v4.8-beta3_mono_win64/Godot_v4.8-beta3_mono_win64.exe",
     "windowsConsoleExe": "Godot_v4.8-beta3_mono_win64/Godot_v4.8-beta3_mono_win64_console.exe"
   },
+  "exportTemplates": {
+    "tpz": "Godot_v4.8-beta3_mono_export_templates.tpz",
+    "tpzSha512": "e208ca4b8914cc9a23e071d4baace4ff77673d3b147921424e95efbf461257aebc9ec9e3a2ffb87fae5b4752c2ded99ce1dde1386d1eae435ef0c14b148a432f",
+    "sums": "SHA512-SUMS.txt",
+    "folder": "4.8.beta3.mono"
+  },
   "godotNetSdk": "4.8.0-beta.3",
   "godotAi": {
     "version": "4.4.1",

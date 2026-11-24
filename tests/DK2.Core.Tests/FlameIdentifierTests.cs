@@ -91,16 +91,22 @@ public class FlameIdentifierTests
             Path.Combine(root, "src"),
             Path.Combine(root, "tests"),
             Path.Combine(root, "unity", "DK2.Unity", "Assets"),
+            Path.Combine(root, "godot", "DK2.Godot"),
         ];
 
         string obj = $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}";
         string bin = $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}";
+        // Godot's import cache and the third-party addons are not the adapter's own source.
+        string cache = $"{Path.DirectorySeparatorChar}.godot{Path.DirectorySeparatorChar}";
+        string addons = $"{Path.DirectorySeparatorChar}addons{Path.DirectorySeparatorChar}";
 
         return roots
             .Where(Directory.Exists)
             .SelectMany(d => Directory.EnumerateFiles(d, "*.cs", SearchOption.AllDirectories))
             .Where(f => !f.Contains(obj, StringComparison.Ordinal) &&
-                        !f.Contains(bin, StringComparison.Ordinal));
+                        !f.Contains(bin, StringComparison.Ordinal) &&
+                        !f.Contains(cache, StringComparison.Ordinal) &&
+                        !f.Contains(addons, StringComparison.Ordinal));
     }
 
     private static string RepositoryRoot()

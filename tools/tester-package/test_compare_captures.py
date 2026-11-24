@@ -27,21 +27,21 @@ class ComparisonTests(unittest.TestCase):
     def capture(self, name, frame_ms=10):
         path = self.root / name
         (path / "recorder").mkdir(parents=True)
-        metadata = dict(Backend="IL2CPP", Development="False", Level="level6a", Seed="1",
+        metadata = dict(Backend="Godot .NET", Development="False", Level="Level6a", Seed="1",
                         Resolution="1920x1080", CPU="cpu", GPU="gpu", GraphicsDriver="driver",
-                        API="Vulkan", OS="Windows", Unity="6000.6.0f1", Fullscreen="False",
-                        FrameCap="-1", VSync="0", RefreshHz="165.00")
+                        API="vulkan", OS="Windows", Godot="4.8-beta3 (official)", Fullscreen="False",
+                        FrameCap="0", VSync="Disabled", RefreshHz="165.00")
         (path / "recorder/metadata.txt").write_text("\n".join(f"{k}={v}" for k, v in metadata.items()))
         (path / "machine.txt").write_text("Seconds=40\n")
-        (path / "manifest.txt").write_text("Commit=" + "a" * 40 + "\nSHA256 GameAssembly.dll=" + "b" * 64)
-        (path / "Player.log").write_text("normal game log\n")
+        (path / "manifest.txt").write_text("Commit=" + "a" * 40 + "\nSHA256 DK2.Godot.dll=" + "b" * 64)
+        (path / "godot.log").write_text("normal game log\n")
         def chunk(kind, payload):
             return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", zlib.crc32(kind + payload))
         pixels = b"\0\xff\0\0" + bytes(1919 * 3) + (b"\0" + bytes(1920 * 3)) * 1079
         (path / "screenshot.png").write_bytes(b"\x89PNG\r\n\x1a\n" +
             chunk(b"IHDR", struct.pack(">IIBBBBB", 1920, 1080, 8, 2, 0, 0, 0)) +
             chunk(b"IDAT", zlib.compress(pixels)) + chunk(b"IEND", b""))
-        (path / "player-arguments.txt").write_text("-level level6a -seed 1 -recordFrames x -logFile y")
+        (path / "player-arguments.txt").write_text("--log-file y -- --level Level6a --seed 1 --record-frames x")
         with (path / "recorder/frames.csv").open("w", newline="") as stream:
             writer = csv.DictWriter(stream, fieldnames=["play_seconds", "frame_ms", "wait_tick_ms",
                 "tick_ms", "chunk_rebuild_ms", "gc_collections", "render_tick", "path", "cam_x", "cam_y", "cam_z"])
@@ -92,15 +92,16 @@ class ComparisonTests(unittest.TestCase):
     def test_mismatched_settings_or_hardware_are_invalid(self):
         file = self.candidate[0] / "recorder/metadata.txt"
         original = file.read_text()
-        for old, new in [("GPU=gpu", "GPU=other"), ("FrameCap=-1", "FrameCap=60"),
-                         ("Backend=IL2CPP", "Backend=Mono"), ("Level=level6a", "Level=level1")]:
+        for old, new in [("GPU=gpu", "GPU=other"), ("FrameCap=0", "FrameCap=60"),
+                         ("Backend=Godot .NET", "Backend=IL2CPP"), ("Development=False", "Development=True"),
+                         ("API=vulkan", "API=d3d12"), ("Level=Level6a", "Level=Level1")]:
             file.write_text(original.replace(old, new))
             self.assertEqual("invalid", compare(self.baseline, self.candidate)["status"])
 
     def test_equal_capped_runs_cannot_mask_a_rendering_regression(self):
         for path in self.baseline + self.candidate:
             file = path / "recorder/metadata.txt"
-            file.write_text(file.read_text().replace("FrameCap=-1", "FrameCap=60"))
+            file.write_text(file.read_text().replace("FrameCap=0", "FrameCap=60"))
         self.assertEqual("invalid", compare(self.baseline, self.candidate)["status"])
 
     def test_nonfinite_and_missing_measurements_are_invalid(self):
@@ -150,13 +151,13 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual("fail", compare(self.baseline, self.candidate)["status"])
 
     def test_missing_evidence_or_errors_are_invalid(self):
-        for name in ["manifest.txt", "screenshot.png", "Player.log", "player-arguments.txt"]:
+        for name in ["manifest.txt", "screenshot.png", "godot.log", "player-arguments.txt"]:
             file = self.candidate[0] / name
             original = file.read_bytes()
             file.unlink()
             self.assertEqual("invalid", compare(self.baseline, self.candidate)["status"])
             file.write_bytes(original)
-        (self.candidate[0] / "Player.log").write_text("NullReferenceException: bad\n")
+        (self.candidate[0] / "godot.log").write_text("ERROR: Condition \"p_index < 0\" is true.\n")
         self.assertEqual("invalid", compare(self.baseline, self.candidate)["status"])
 
     def test_a_png_signature_without_an_image_is_invalid(self):
@@ -165,8 +166,8 @@ class ComparisonTests(unittest.TestCase):
 
     def test_argument_paths_with_spaces_do_not_change_capture_settings(self):
         for path in self.baseline + self.candidate:
-            tokens = ["-level", "level6a", "-seed", "1", "-recordFrames", str(path / "folder with spaces"),
-                      "-logFile", str(path / "Player.log")]
+            tokens = ["--log-file", str(path / "godot.log"), "--", "--level", "Level6a", "--seed", "1",
+                      "--record-frames", str(path / "folder with spaces"), "--profile", str(path / "files/profile.dk2p")]
             (path / "player-arguments.txt").write_text(" ".join(tokens))
             (path / "player-arguments.json").write_text(json.dumps(tokens))
         self.assertEqual("pass", compare(self.baseline, self.candidate)["status"])
@@ -204,8 +205,8 @@ class ComparisonTests(unittest.TestCase):
             [int]$FrameCap, [int]$VSync, [string]$Output)
             New-Item -ItemType Directory -Path $Output | Out-Null
             Copy-Item -Path 'FIXTURE/*' -Destination $Output -Recurse
-            $playerArguments = @('-level', 'level6a', '-seed', '1', '-recordFrames', (Join-Path $Output 'recorder'),
-                '-logFile', (Join-Path $Output 'Player.log'))
+            $playerArguments = @('--log-file', (Join-Path $Output 'godot.log'), '--', '--level', 'Level6a', '--seed', '1',
+                '--record-frames', (Join-Path $Output 'recorder'))
             Set-Content -LiteralPath (Join-Path $Output 'player-arguments.txt') -Value ($playerArguments -join ' ')
             ConvertTo-Json -InputObject $playerArguments | Set-Content -LiteralPath (Join-Path $Output 'player-arguments.json') -Encoding UTF8
             $PSBoundParameters | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Output 'invocation.json')
@@ -226,7 +227,7 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(3, len(invocations))
         for file in invocations:
             settings = json.loads(file.read_text(encoding="utf-8-sig"))
-            self.assertEqual(("level6a", 1, 40, 1920, 1080, -1, 0),
+            self.assertEqual(("Level6a", 1, 40, 1920, 1080, -1, 0),
                 tuple(settings[key] for key in ("Level", "Seed", "Seconds", "Width", "Height", "FrameCap", "VSync")))
 
 

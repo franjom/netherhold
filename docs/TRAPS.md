@@ -40,6 +40,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Build a hash manifest's inventory before opening its output file; otherwise a recursive scan can include the manifest's own empty-file hash.
 - `git archive` can export CRLF while `git show` returns an LF blob; compare blobs with blobs and archived files with their own manifests.
 - A Godot `git archive` baseline omits the ignored `addons/godot_ai` dependency; copy that existing add-on into the scratch project before import, or its autoload fails.
+- Godot 4.8's headless `--export-release` of a C# project exits 0 when its .NET part fails ("no solution file was found" without `DK2.Godot.sln` beside the project) and still writes `DK2.exe` and a pack with no assemblies; check the log for `ERROR:` and the `data_*` folder, as `tools/tester-package/build.ps1` does.
+- Godot's release export templates refuse a scene on the command line (exit 1, "compiled without support for path overrides"); an exported run starts a level with `-- --level <name>` on the main scene.
 - An isolated native DK2 runtime needs `DK2TextureCache` as well as `Data`; omitting it crashed startup with `EngineTestLight` missing.
 - During a solution test run, an app's `bin` can retain old dependency copies until that project builds; wait for its build before checking schema compatibility.
 - For `Unknown journal record 0` on an old v1 journal, check `CommandCodec` history: hash 462 added the Drop heading marker without changing the envelope version.

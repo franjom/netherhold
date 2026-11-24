@@ -186,7 +186,7 @@ and the terrain state texture stay shared. Closing the map disables preview rend
 Run it by naming the scene, with
 optional user arguments after `--`:
 `<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1; add
-`--glide-to x,y` to glide the camera to a tile one second in (a check; it waits for the opening path to end), `--light-probe-no-torches` and `--light-probe-shift` for frames to compare with Unity's `ClassicWorldLightingProbe` (no torch lights; the camera moved by (1, 0, 1), its shifted frames), each printing the frame each turn is first drawn on, as `--light-probe` alone does, `--light-fill` to add Godot's fill (off by default, as native ambient is in the owner's Unity scene), `--light-perpixel` for continuous fragment point lighting over DK2's sources (classic per-vertex lighting stays the default; [scope](../docs/research/godot-torch-light-artifacts.md)), `--light-shadows` with `--light-perpixel` for real torch shadows (step 2, `WorldScene.Shadows.cs`; nothing without per-pixel light), `--light-post` for filtered compute ambient occlusion before transparency ([pipeline and probes](#torch-light-and-ao-probes)), `--pointer-path "frame:x,y[:LlRr];..."` to drive the pointer from a script in place of the OS one (a check, below: keys in strictly increasing frames of this scene counted from 0, x and y in screen pixels from the top left, a straight line between keys, `L`/`l` pressing and releasing the primary button and `R`/`r` the secondary; a malformed value warns and the OS pointer is used), `--query-first-creature` to show the query details, `--possess-first-creature` to focus the ordinary camera on the viewer's first eligible creature before staging possession and its authored creation request (an unpaid check, `PossessionStaging`; [scope](../docs/research/possession-entry-effect.md)), `--stage-battle` to show the battle tab, `--stage-lightning` for the lightning fixture described below, `--open-options [Entry]` to open the options menu at an entry, `Save` or `Load` for those pages, `--saves <dir>` for the saves directory the pages list, `--save-as <name>` with `--save-tick <n>` to save under that name once the turn reaches n (a check, through the Save page), `--load <name>` to load a save of that name on the first frame, `--hash-at <n>` to print the state hash at turn n (a resumed instance ignores `--save-as` and `--load`; a `--load` run overwrites the profile file, so pass `--profile <temp file>`), `--settings <file>` for the settings file, `--profile <file>` and `--hiscores <file>` for the front end's profile and hi-score table (every scene takes all four of `--profile`, `--settings`, `--saves` and `--hiscores`, through `UserFolders`), `--open-full-map` to open the full map, `--from-map` to start the level as the campaign map launches it (it plays the profile's slot and runs `CampaignResultFlow`; the level end then writes the profile, so pass `--profile <temp file>`), `--stage-win` or `--stage-loss` to end the viewer's game after the first turn, `--leave-result` to press Space once the result is recorded, `--escape-result` to press Escape once on the result, print the commands it posted, and then press Space (the three result checks need `--from-map`; Godot prints the viewer's status changes and a camera path's start and end). `--record-frames <dir>` writes per-frame telemetry ([Probes](#probes)). `--input-journal <dir>` writes the session's input journals (`frames.journal` and `input.journal`) into a new folder there; it is Godot's only journal switch, because `DK2_INPUT_JOURNAL` is Unity's only (a globally set variable must not make every Godot run write); the header carries `source=godot`, `keys=Godot.Key` and `godot.version`. `LaunchArguments` also parses `--dk2Install <path>`, which the scene ignores: it still uses `Dk2Install.Find()`).
+`--glide-to x,y` to glide the camera to a tile one second in (a check; it waits for the opening path to end), `--light-probe-no-torches` and `--light-probe-shift` for frames to compare with Unity's `ClassicWorldLightingProbe` (no torch lights; the camera moved by (1, 0, 1), its shifted frames), each printing the frame each turn is first drawn on, as `--light-probe` alone does, `--light-fill` to add Godot's fill (off by default, as native ambient is in the owner's Unity scene), `--light-perpixel` for continuous fragment point lighting over DK2's sources (classic per-vertex lighting stays the default; [scope](../docs/research/godot-torch-light-artifacts.md)), `--light-shadows` with `--light-perpixel` for real torch shadows (step 2, `WorldScene.Shadows.cs`; nothing without per-pixel light), `--light-post` for filtered compute ambient occlusion before transparency ([pipeline and probes](#torch-light-and-ao-probes)), `--pointer-path "frame:x,y[:LlRr];..."` to drive the pointer from a script in place of the OS one (a check, below: keys in strictly increasing frames of this scene counted from 0, x and y in screen pixels from the top left, a straight line between keys, `L`/`l` pressing and releasing the primary button and `R`/`r` the secondary; a malformed value warns and the OS pointer is used), `--query-first-creature` to show the query details, `--possess-first-creature` to focus the ordinary camera on the viewer's first eligible creature before staging possession and its authored creation request (an unpaid check, `PossessionStaging`; [scope](../docs/research/possession-entry-effect.md)), `--stage-battle` to show the battle tab, `--stage-lightning` for the lightning fixture described below, `--open-options [Entry]` to open the options menu at an entry, `Save` or `Load` for those pages, `--saves <dir>` for the saves directory the pages list, `--save-as <name>` with `--save-tick <n>` to save under that name once the turn reaches n (a check, through the Save page), `--load <name>` to load a save of that name on the first frame, `--hash-at <n>` to print the state hash at turn n (a resumed instance ignores `--save-as` and `--load`; a `--load` run overwrites the profile file, so pass `--profile <temp file>`), `--settings <file>` for the settings file, `--profile <file>` and `--hiscores <file>` for the front end's profile and hi-score table (every scene takes all four of `--profile`, `--settings`, `--saves` and `--hiscores`, through `UserFolders`), `--open-full-map` to open the full map, `--from-map` to start the level as the campaign map launches it (it plays the profile's slot and runs `CampaignResultFlow`; the level end then writes the profile, so pass `--profile <temp file>`), `--stage-win` or `--stage-loss` to end the viewer's game after the first turn, `--leave-result` to press Space once the result is recorded, `--escape-result` to press Escape once on the result, print the commands it posted, and then press Space (the three result checks need `--from-map`; Godot prints the viewer's status changes and a camera path's start and end). `--record-frames <dir>` writes per-frame telemetry ([Probes](#probes)). `--input-journal <dir>` writes the session's input journals (`frames.journal` and `input.journal`) into a new folder there; it is Godot's only journal switch, because `DK2_INPUT_JOURNAL` is Unity's only (a globally set variable must not make every Godot run write); the header carries `source=godot`, `keys=Godot.Key` and `godot.version`. `--dk2Install <path>` names the install (*The launcher*)). An exported game cannot name a scene, so `Main.tscn` with `--level` starts `InGameHud.tscn` with the same arguments (*Exporting*).
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
 
 ### Torch-light and AO probes
@@ -336,7 +336,7 @@ writes `parity.json` (RGBA byte differences, image hashes and fractional HUD sca
 
 `Main.tscn` decides once a process (`LauncherSettingsStore.Decide` over the shared `LauncherStartRule`): `--launcher` always
 shows the launcher; a scripted run starts as before (no display, Movie Maker, a scene named on the command line, which
-never loads `Main.tscn` unless it is `Main.tscn`, or `--play-movie`); otherwise Shift held at start (read from the OS on
+never loads `Main.tscn` unless it is `Main.tscn`, `--play-movie` or `--level`); otherwise Shift held at start (read from the OS on
 Windows), no saved "Start the game directly next time" or no install found shows it, and a saved start goes straight
 into the front end in the saved screen mode. Play saves, applies the mode (`LauncherDisplay`: a resizable window of the
 chosen size centred on its screen, exclusive full screen, or Godot's borderless full-screen window) and opens the front end
@@ -390,10 +390,11 @@ The in-game scene loads the profile on the first save or load, from the same pat
 
 | File | Role |
 |---|---|
-| `godot-version.json` | the one pin: editor build and SHA-512, `Godot.NET.Sdk` version, Godot AI version and SHA-256 |
-| `setup.ps1` | installs the pinned editor and the Godot AI addon, verified; warns on drift from the pin |
+| `godot-version.json` | the one pin: editor build and SHA-512, the .NET export templates and SHA-512, `Godot.NET.Sdk` version, Godot AI version and SHA-256 |
+| `setup.ps1` | installs the pinned editor and the Godot AI addon, and with `-ExportTemplates` the export templates, verified; warns on drift from the pin |
 | `editor.ps1` | starts the pinned editor on the project, from the repository root |
 | `DK2.Godot/` | the Godot project: `project.godot`, `DK2.Godot.csproj` (`ProjectReference`s into `src/`), scenes, C# |
+| `DK2.Godot/export_presets.cfg`, `DK2.Godot.sln` | the one export preset and the solution file the .NET export requires (*Exporting*) |
 | `DK2.Godot/Main.tscn`, `Main.cs` | the main scene: the front-end menu (`ClassicFrontEndMenu`) |
 | `DK2.Godot/Launcher/` | the launcher (*The launcher*): `Launcher.cs` (the page), `LauncherTheme.cs`, `LauncherDisplay.cs` (applies the screen mode), `LauncherSettingsStore.cs` (the saved file, the install, the start decision), `LauncherSystem.cs` (Shift and reduced motion from Windows), the two shaders and the OFL fonts |
 | `DK2.Godot/UserFolders.cs` | `GameFolders` over `user://` with the `--profile`, `--settings`, `--saves` and `--hiscores` overrides, for both scenes |
@@ -459,7 +460,20 @@ ours to ship (download: see `unity/README.md`). It is read from an absolute path
 gitignored copy. Without it the menu draws DK2's BF4 bitmap font.
 
 `-InstallRoot` or `DK2_GODOT_ROOT` puts editors elsewhere. Each version gets its own folder, so
-an upgrade never touches the version you are leaving. Export templates are not installed yet.
+an upgrade never touches the version you are leaving.
+
+## Exporting
+
+`setup.ps1 -ExportTemplates` installs the pinned .NET export templates (about 1.2 GB; SHA-512 pinned and listed in the
+release's `SHA512-SUMS.txt`) into `%APPDATA%\Godot\export_templates\4.8.beta3.mono`, where the editor looks.
+`DK2.Godot/export_presets.cfg` has one preset, *Windows Desktop*: x86_64, the PCK beside `DK2.exe` (not embedded, so it
+can be listed and hashed on its own), no .NET debug symbols, every resource but `addons/` (agent tooling; Godot AI strips
+its autoload from an export), `Fonts/` (the gitignored DungeonKeeperII.ttf) and the probe scenes, plus the launcher
+fonts' OFL texts. The game reads every DK2 file from the install at run time, so the pack holds none;
+`tools/tester-package/pck_contents.py` lists a pack and refuses one that could. The .NET export needs `DK2.Godot.sln`
+beside the project and, without it, still exits 0 (`docs/TRAPS.md`). `tools/tester-package/build.ps1` is the recipe
+(README there). Godot's release template refuses a scene on the command line, so an exported run starts a level with
+`-- --level <name>` and the same user arguments as `InGameHud.tscn`.
 
 ## Connecting Claude Code and Codex (Godot AI)
 
@@ -575,9 +589,9 @@ the frame's thread, so `wait_tick_ms` is 0; `hud_ms` also holds the hover and th
 drawn eye in the renderers' frame, as Unity's. Run it in real time (no `--fixed-fps`, which decouples the draw clock from
 the wall clock), e.g. `--headless --max-fps 60 --quit-after 1500 res://InGameHud.tscn -- --level Level1 --seed 1
 --record-frames <temp>/rec` with the temporary player files, then `python tools/game-unity-probe/draw_clock.py
-<temp>/rec/frames.csv`. `tools/tester-package/summarise_capture.py` reads it under `recorder/`, and rates it invalid until
-the tester package exports a release build (its backend, development and resolution checks). Headless, the metadata has no
-GPU and a 64x64 resolution.
+<temp>/rec/frames.csv`. `tools/tester-package/summarise_capture.py` reads it under `recorder/` and rates a capture valid
+only from the release export (its development, backend, API and resolution checks; *Exporting*). Headless, the metadata has
+no GPU and a 64x64 resolution, which it rates invalid.
 
 The Unity probes (migration plan step 4), by verdict. *Covered*: Godot has its own check; *obsolete*: a Unity-only check
 or reference whose purpose ended; step 5 deletes them.
@@ -603,8 +617,9 @@ or reference whose purpose ended; step 5 deletes them.
 ## Upgrading Godot
 
 1. Take the new build's file name and SHA-512 from the release's `SHA512-SUMS.txt`
-   (`github.com/godotengine/godot-builds/releases/<version>`), and the matching `Godot.NET.Sdk`
-   version from NuGet. Update `godot-version.json`.
+   (`github.com/godotengine/godot-builds/releases/<version>`), the same for its
+   `..._mono_export_templates.tpz` (with the templates' folder name, their `version.txt`), and the matching
+   `Godot.NET.Sdk` version from NuGet. Update `godot-version.json`.
 2. Run `setup.ps1`, then `editor.ps1`. On a new minor version the editor offers its project
    upgrade tool and rewrites the `Sdk` in `DK2.Godot.csproj` and `config/features` in
    `project.godot`; accept it. `setup.ps1` warns until the csproj and the pin agree.

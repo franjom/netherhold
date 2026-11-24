@@ -168,6 +168,9 @@ These are entry points, not a new priority order.
   scripted runs skip it.
   Step 4's probes item is done: `--record-frames` writes Unity's recorder's `frames.csv` for `draw_clock.py`; every other
   Unity probe is covered or obsolete ([Probes](../godot/README.md#probes)); `tools/hud-probe` is deleted.
+  The tester package is a release Godot export (`tools/tester-package`, [Exporting](../godot/README.md#exporting)); its first
+  capture here is valid and fails both tiers ([PERFORMANCE.md](PERFORMANCE.md)). CI builds `godot/DK2.Godot` and the
+  architecture gate holds it to its one `DK2.Presentation` reference. Step 4 leaves only the Godot performance targets.
   Open readings: whether secret-level and My Pet Dungeon briefing lines show in play ([Q854](research/open-questions.md)); whether `ClassicKeyNames`, equal to Unity's
   `KeyCode` names, matches DK2's own ([Q857](research/open-questions.md)); whether the front end's brightness, after `PngChunks.WithoutColourSpace` drops Godot's gAMA handling,
   is Unity's ([Q859](research/open-questions.md), [0x005B6030](research/functions/005B6030.md)).

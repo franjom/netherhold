@@ -16333,6 +16333,14 @@ the frame went, and the probe exists only as a development player built from thi
   `F:\DK2Evidence\`. The dig burst is not in a capture yet: a release player has no test controller.
 - A tester's install path is in the capture's `player-arguments.txt`; the instructions say so.
 
+**Amendment (2026-11-24, Godot migration step 4).** The package carries a release export of the Godot game, not a
+Unity player: `build.ps1` exports `godot/DK2.Godot` headless with the pinned editor, its hash-pinned .NET templates and
+the committed preset, refuses a pack that could hold DK2 material (`pck_contents.py`), and hashes the exe, pack and
+assemblies. `--record-frames` (`FrameTelemetry`, Godot's `FrameRecorder`) is the recorder; the release template takes no
+scene on its command line, so the main scene starts a `--level` run in `InGameHud.tscn`. `summarise_capture.py` and
+`compare_captures.py` hold Godot's metadata to the same strictness (release template, Godot .NET, Vulkan or Direct3D 12,
+a GPU, the tier's resolution) and no longer read Unity captures. Details: `tools/tester-package/README.md`.
+
 ## ADR-0692: the HUD and the full camera draw once in the first frames of play
 
 **Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** presentation-unity
@@ -19221,7 +19229,7 @@ pointer state and the commands a click posts. Left there, every HUD fix would ha
 | A HUD panel's DK2 behaviour, layout, draw list, pixel variants | `src/DK2.Presentation/<Panel>Hud.cs`, flat like the rest of the project; tests in `tests/DK2.Presentation.Tests/<Panel>HudTests.cs` |
 | Any other engine-neutral rule or value | where ADR-0002 and `ARCHITECTURE.md` already put it; never in an adapter |
 | Unity: the one `HudFrame` renderer | `unity/DK2.Unity/Assets/DK2/HudCanvas.cs`; a panel's Unity file is only its facade |
-| Godot: the adapter | `godot/DK2.Godot/` (the Godot project root), C# using `ProjectReference`s to `src/`; outside `DK2.slnx` until CI builds it. Its HUD renderer mirrors `HudCanvas` |
+| Godot: the adapter | `godot/DK2.Godot/` (the Godot project root), C# with one `ProjectReference`, to `DK2.Presentation`; outside `DK2.slnx`, built by CI in a step of its own, and held to that reference by the architecture gate. Its HUD renderer mirrors `HudCanvas` |
 | Engine-specific on purpose | 3D overlay drawing (the cage's ribbon material, possession; the cage's geometry and the placement cursor's draw list are shared, Godot step 3e), movie playback, the GPU minimap image, shaders and GPU light buffers, TrueType glyph rasterizing for the replacement font: written once per engine |
 
 New DK2 behaviour written into a Unity or Godot file is a defect under this ADR.

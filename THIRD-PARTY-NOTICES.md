@@ -18,6 +18,14 @@ research provenance belongs in `docs/research/`, not in this notice file.
 - `src/DK2.Data/Wad/WadDecompressor.cs` adapts the WAD entry decompression
   algorithm from GLKeeper's `src/DK2WADArchive.cpp`.
 
+## Godot Engine and .NET
+
+- https://godotengine.org, the version `godot/godot-version.json` pins — MIT License, Copyright (c) 2014-present
+  Godot Engine contributors, Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur. Its bundled components' notices
+  are in Godot's `COPYRIGHT.txt`.
+- The tester package (`tools/tester-package`) ships Godot's Windows export template, GodotSharp and the .NET runtime
+  (https://github.com/dotnet/runtime, MIT License, Copyright (c) .NET Foundation and Contributors).
+
 ## Launcher fonts
 
 - UnifrakturMaguntia (Copyright (c) 2010 j. 'mach' wust, Copyright (c) 2009 Peter Wiegel) and Alegreya Sans

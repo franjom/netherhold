@@ -153,7 +153,7 @@ jobs:
           python-version: '3.13'
           architecture: 'x64'
 
-      - name: Rendered capture comparison regression tests (no GPU required)
+      - name: Tester package checks and rendered capture comparison tests (no GPU required)
         run: python -m unittest discover -s tools/tester-package -p "test_*.py" -v
 
       - name: Supervised Qwen adapter regression tests (no inference required)
@@ -179,7 +179,12 @@ jobs:
         # style gate.
         run: dotnet build DK2.slnx --no-restore --configuration Release
 
-      - name: Architecture gate (simulation must not reference Unity)
+      - name: Build the Godot adapter (no editor)
+        # Godot.NET.Sdk comes from NuGet, so godot/DK2.Godot builds with dotnet alone
+        # (ADR-0810); it is outside DK2.slnx, so it restores and builds on its own.
+        run: dotnet build godot/DK2.Godot/DK2.Godot.csproj --configuration Release
+
+      - name: Architecture gate (no engine in src/, the Godot adapter only draws)
         run: >
           dotnet test tests/DK2.Simulation.Tests/DK2.Simulation.Tests.csproj
           --no-build --configuration Release

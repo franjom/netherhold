@@ -18,12 +18,12 @@ import sys
 import zlib
 from pathlib import Path
 
-from summarise_capture import read_pairs, read_rows, interval_metrics, draw_clock
+from summarise_capture import read_pairs, read_rows, interval_metrics, draw_clock, release_problems
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "classic-unity-probe"))
 from frame_budget import verify_render_proof  # noqa: E402
 
-SETTINGS = ("CPU", "GPU", "GraphicsDriver", "API", "OS", "Unity", "Resolution", "Fullscreen",
+SETTINGS = ("CPU", "GPU", "GraphicsDriver", "API", "OS", "Godot", "Resolution", "Fullscreen",
             "FrameCap", "VSync", "RefreshHz", "Level", "Seed", "Backend", "Development")
 NUMBERS = ("play_seconds", "frame_ms", "wait_tick_ms", "tick_ms", "chunk_rebuild_ms",
            "gc_collections", "render_tick", "cam_x", "cam_y", "cam_z")
@@ -32,6 +32,9 @@ MAX_RATIO = 1.20
 MIN_RUNS = 3
 DURATION_SECONDS = 40
 ANALYSIS_SECONDS = 30
+# capture.ps1 arguments whose value is a path of that capture (its folder, log or install).
+CAPTURE_PATHS = ("--log-file", "--dk2Install", "--record-frames", "--perf-report", "--profile", "--settings", "--saves",
+                 "--hiscores", "--launcher-config")
 
 
 def arguments(path):
@@ -45,7 +48,7 @@ def arguments(path):
     for token in tokens:
         if skip:
             skip = False
-        elif token in ("-recordFrames", "-logFile", "-dk2Install"):
+        elif token in CAPTURE_PATHS:
             skip = True
         else:
             result.append(token)
@@ -57,24 +60,23 @@ def load_capture(path):
     for key in SETTINGS:
         if not metadata.get(key, "").strip():
             raise ValueError(f"metadata is missing {key}")
-    if metadata["Backend"] != "IL2CPP" or metadata["Development"] != "False":
-        raise ValueError("a release IL2CPP player is required")
+    problems = release_problems(metadata, "1920x1080")
+    if problems:
+        raise ValueError("a release Godot export at the fixture's 1920x1080 is required: " + "; ".join(problems))
     if metadata["Level"].lower() != "level6a" or metadata["Seed"] != "1":
         raise ValueError("the fixture is Level6a, seed 1")
-    if metadata["Resolution"] != "1920x1080":
-        raise ValueError("the fixture is 1920x1080")
-    if (metadata["Fullscreen"], metadata["FrameCap"], metadata["VSync"]) != ("False", "-1", "0"):
+    if (metadata["Fullscreen"], metadata["FrameCap"], metadata["VSync"]) != ("False", "0", "Disabled"):
         raise ValueError("the fixture is windowed, uncapped and VSync off")
     machine = read_pairs(path / "machine.txt")
     if machine.get("Seconds") != str(DURATION_SECONDS):
         raise ValueError("the fixture needs a 40-second capture")
     manifest = (path / "manifest.txt").read_text(encoding="utf-8-sig")
     if not re.search(r"(?m)^Commit=[0-9a-fA-F]{40}$", manifest) or not re.search(
-            r"(?m)^SHA256 GameAssembly.dll=[0-9a-fA-F]{64}$", manifest):
-        raise ValueError("manifest must name the commit and GameAssembly SHA256")
-    log = (path / "Player.log").read_text(encoding="utf-8-sig", errors="replace")
+            r"(?m)^SHA256 DK2.Godot.dll=[0-9a-fA-F]{64}$", manifest):
+        raise ValueError("manifest must name the commit and the DK2.Godot.dll SHA256")
+    log = (path / "godot.log").read_text(encoding="utf-8-sig", errors="replace")
     if re.search(r"Exception|(?:^|\n).*\b(?:Error|ERROR|Assert|Assertion)\b", log):
-        raise ValueError("Player.log contains an exception, error or assertion")
+        raise ValueError("godot.log contains an exception, error or assertion")
     # capture.ps1 screenshots the desktop; the player resolution is checked independently above.
     verify_render_proof(path / "screenshot.png", expected_size=None)
     player_arguments = arguments(path / "player-arguments.txt")

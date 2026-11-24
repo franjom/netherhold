@@ -13,7 +13,7 @@ Selecting a backend does not certify the frame budget.
 
 ## Measurement and acceptance
 
-- Capture real screen rendering in a release player, with the ordinary
+- Capture real screen rendering in a release build, with the ordinary
   simulation, camera, lighting, effects and UI. Development captures diagnose
   markers; they cannot certify the release target.
 - Include the first use of effects and assets. Level loading is measured
@@ -72,7 +72,7 @@ without the harness hash; CI skips this installed-data guard.
 
 The local rendered regression gate uses at least three reviewed baseline
 captures and three candidate captures, run serially on the same idle hardware
-and player settings: release IL2CPP, Level6a, seed 1, 1920x1080, uncapped,
+and settings: the release Godot export, Level6a, seed 1, 1920x1080, uncapped,
 VSync off, windowed. Each capture lasts 40 wall seconds and must contain the
 first 30 gameplay seconds. Analysis includes first use and the frame interval
 crossing the 30-second endpoint; loading time does not replace gameplay time.
@@ -102,9 +102,10 @@ FPS target or the remaining scenario coverage.
 
 ## Godot adapter
 
-The Godot adapter is measured by its own harness, not by the Unity captures above: `--perf-report` and the recipe
+Changes to the Godot adapter are measured by its own harness: `--perf-report` and the recipe
 `godot/perf.ps1`, compared with `godot/perf_compare.py` (`godot/README.md`, *Measuring performance*; migration plan
-step 3o). It runs the editor binary with Debug C#, so its numbers compare changes to Godot, not against the floor.
+step 3o). It runs the editor binary with Debug C#, so its numbers compare changes to Godot, not against the floor;
+the release export in the tester package (below) is what a capture against the floor or a tier runs.
 The first baseline came from a heavily loaded machine and is rough; the targets for Godot are set again from quiet
 re-runs, which are pending (migration plan, step 4). The draw-clock metric reads Godot's `--record-frames`
 (`godot/README.md`, *Probes*).
@@ -118,40 +119,40 @@ The owner's laptop is the floor, not the goal. Revised targets, by tier:
 | floor | the owner's laptop (`performance-target.json`) | 1920x1080 | 60 FPS, every frame | 100+ |
 | desktop | RTX 3060 class or better | 1920x1080 | 120 FPS, every frame | — |
 
-Players are built with IL2CPP (ADR-0690); a Mono player measures the editor's
-runtime, not the game's, and the game probe says which backend a run used.
+A capture stands for the release only from the Godot .NET export with the release
+template: a debug export or the editor's Debug C# measures something else, and the
+recorder's metadata says which ran.
 
 The desktop tier has no machine here. The tester package captures on other
-hardware without this repository, Unity or the developer's install paths,
+hardware without this repository, Godot or the developer's install paths,
 and returns files for review (ADR-0691):
 
 1. **A tester package** (`tools/tester-package`, built by its `build.ps1`): one
-   release player (IL2CPP; Vulkan with the Direct3D12 fallback), the pinned
+   release export of the Godot game (Vulkan with the Direct3D12 fallback), the pinned
    PresentMon binary, and `capture.ps1`, which records the machine's
    CPU/GPU/driver/display, starts the trace, plays one campaign level with a
    fixed seed hands-off (its opening fly-by is the level's own camera path),
    stops the trace, takes a screenshot outside the timed interval and zips
-   the result with `Player.log`, the player's own hardware metadata and the
+   the result with `godot.log`, the game's own hardware metadata and the
    build's SHA256 manifest. `summarise_capture.py` judges the capture against
    a tier. `frame_budget.py` takes `--tier` as well, for the Level2 portal
    introduction capture its shape belongs to.
-2. **Telemetry inside the release player** (`FrameRecorder`, unity/README.md):
-   off by default, on by `-recordFrames [directory]` or a `record-frames` file
-   beside the executable, allocation-free on ordinary frames: per frame the
+2. **Telemetry inside the release game** (`--record-frames <dir>`, `FrameTelemetry` and
+   Godot's `FrameRecorder`, godot/README.md, *Probes*; Unity's player had the same
+   columns, ADR-0691): off by default, allocation-free on ordinary frames: per frame the
    interval, ticks run, the join wait, Present, the animated frame, chunk
    rebuilds, GC collections, the draw clock, the camera and whether a path
-   plays, in the game probe's columns, from stopwatches of its own since the
-   profiler's recorders exist only in development players. Written at exit.
-   The hitch lines (first-use art by kind) stay in `Player.log`, which the
-   capture includes. Checked against the probe's recorders on the same run:
-   Present, the animated frame and chunk rebuilds agree to 0.01 ms.
+   plays, in the game probe's columns, from stopwatches of its own. Written at
+   exit, with `perf-report.json` from the harness (`--perf-report`: GPU and render
+   times, draw calls, allocation). `godot.log` is in the capture.
 3. **The draw-clock evenness metric** (`tools/game-unity-probe/draw_clock.py`,
    the Level8 motion metric) is in the same summary, since a fly-by can stutter
-   at a flat 120 FPS. The 2026-11-06 Level6a measurement failed it at 12% with
-   frame time flat, before ADR-0687.
+   at a flat 120 FPS. The first capture of the release export (2026-11-24, the
+   owner's laptop, windowed 1920x1080, Level6a, 32 s of play) failed it at 20% of
+   path frames, 19% of steady ones, so not by hitches; the frames failed both tiers.
 4. **Scenario coverage**: the opening fly-by is covered; the dig burst
-   (`terrain-edit-burst`) is not yet, since a release player has no test
-   controller to tag walls with. The list in `performance-target.json` stands.
+   (`terrain-edit-burst`) is not yet, since a release run has no scripted
+   digging. The list in `performance-target.json` stands.
 
 A desktop-tier number is still only as good as the capture behind it: a
 tester's FPS counter is not one, and the policy above does not accept it. Evidence from another machine goes to

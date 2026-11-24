@@ -7,10 +7,15 @@
 # Safe to rerun. The addon is extracted only when addons/godot_ai is absent: Godot AI forbids
 # extracting a release over an existing tree. Update it with the dock's Update button, then pin
 # the new version here; or delete the folder, change the pin and rerun.
+# -ExportTemplates also installs the pinned .NET export templates (about 1.2 GB) where the editor looks for them,
+# for tools/tester-package/build.ps1.
 [CmdletBinding()]
 param(
     # Where editors are unpacked, one folder per version. DK2_GODOT_ROOT overrides the default.
-    [string] $InstallRoot = $(if ($env:DK2_GODOT_ROOT) { $env:DK2_GODOT_ROOT } else { Join-Path $env:LOCALAPPDATA 'Programs\Godot' })
+    [string] $InstallRoot = $(if ($env:DK2_GODOT_ROOT) { $env:DK2_GODOT_ROOT } else { Join-Path $env:LOCALAPPDATA 'Programs\Godot' }),
+    [switch] $ExportTemplates,
+    # The editor's own templates folder (not self-contained mode): one subfolder per version, named by its version.txt.
+    [string] $TemplatesRoot = (Join-Path $env:APPDATA 'Godot\export_templates')
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest is many times slower with the progress bar
@@ -80,7 +85,40 @@ if (-not (Test-Path $addon)) {
     }
 }
 
-# 3. Drift between the pin and what the project says (the editor rewrites both on upgrade).
+# 3. The .NET export templates, on request: the archive is pinned by SHA-512, and the release's own checksum file must
+#    list the same hash. Unpacked beside the target and renamed into place, like the editor.
+if ($ExportTemplates) {
+    $templates = Join-Path $TemplatesRoot $pin.exportTemplates.folder
+    $marker = Join-Path $templates 'version.txt'
+    if ((Test-Path $marker) -and (Get-Content -Raw $marker).Trim() -eq $pin.exportTemplates.folder -and
+        (Test-Path (Join-Path $templates 'windows_release_x86_64.exe'))) {
+        Write-Host "Export templates $($pin.exportTemplates.folder) are installed: $templates"
+    } else {
+        if (Test-Path $templates) { throw "$templates exists without a matching version.txt; delete it and rerun." }
+        $staging = "$templates.partial"
+        if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
+        New-Item -ItemType Directory -Force $staging | Out-Null
+        $sums = Join-Path $staging $pin.exportTemplates.sums
+        Invoke-WebRequest -UseBasicParsing -Uri ($pin.editor.releaseUrl + $pin.exportTemplates.sums) -OutFile $sums
+        $listed = Get-Content $sums | Where-Object { $_ -match ('^([0-9a-f]{128})\s+' + [regex]::Escape($pin.exportTemplates.tpz) + '$') } |
+            ForEach-Object { $Matches[1] }
+        if ($listed -ne $pin.exportTemplates.tpzSha512) { throw "The release's $($pin.exportTemplates.sums) lists $listed for $($pin.exportTemplates.tpz), not the pin." }
+        $tpz = Join-Path $staging $pin.exportTemplates.tpz
+        Get-Verified ($pin.editor.releaseUrl + $pin.exportTemplates.tpz) $tpz 'SHA512' $pin.exportTemplates.tpzSha512
+        # A .tpz is a zip; Expand-Archive refuses the extension.
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [IO.Compression.ZipFile]::ExtractToDirectory($tpz, (Join-Path $staging 'unpacked'))
+        $unpacked = Join-Path $staging 'unpacked\templates'
+        $version = (Get-Content -Raw (Join-Path $unpacked 'version.txt')).Trim()
+        if ($version -ne $pin.exportTemplates.folder) { throw "The archive's templates are $version, the pin says $($pin.exportTemplates.folder)." }
+        New-Item -ItemType Directory -Force $TemplatesRoot | Out-Null
+        Move-Item $unpacked $templates
+        Remove-Item -Recurse -Force $staging
+        Write-Host "Installed export templates $version into $templates"
+    }
+}
+
+# 4. Drift between the pin and what the project says (the editor rewrites both on upgrade).
 $sdk = ([xml](Get-Content -Raw (Join-Path $project 'DK2.Godot.csproj'))).Project.Sdk
 if ($sdk -ne "Godot.NET.Sdk/$($pin.godotNetSdk)") { Write-Warning "DK2.Godot.csproj uses $sdk; godot-version.json pins Godot.NET.Sdk/$($pin.godotNetSdk)." }
 $cfg = Get-Content (Join-Path $addon 'plugin.cfg') | Where-Object { $_ -match '^version=' }

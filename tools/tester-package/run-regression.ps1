@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Records three Level6a release runs serially and compares them with three reviewed baseline captures.
+    Records three Level6a release runs of the Godot export serially and compares them with three reviewed baseline captures.
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Package,
@@ -18,7 +18,7 @@ $null = New-Item -ItemType Directory -Path $runRoot
 $candidates = @()
 for ($index = 1; $index -le 3; $index++) {
     $destination = Join-Path $runRoot "run-$index"
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $captureScript -Install $Install -Level level6a `
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $captureScript -Install $Install -Level Level6a `
         -Seed 1 -Seconds 40 -Width 1920 -Height 1080 -Windowed -FrameCap -1 -VSync 0 -Output $destination
     if ($LASTEXITCODE -ne 0) { throw "Capture $index failed; evidence is in $runRoot" }
     $candidates += $destination

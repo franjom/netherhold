@@ -7,7 +7,8 @@ import unittest
 from summarise_capture import summarise, interval_metrics
 
 TIER = dict(name="desktop", minimum_fps=120, resolution="1920x1080")
-METADATA = dict(Backend="IL2CPP", Development="False", Resolution="1920x1080", CPU="i5", GPU="RTX 3060")
+METADATA = dict(Godot="4.8-beta3 (official)", Backend="Godot .NET", Development="False", Resolution="1920x1080",
+                CPU="i5", GPU="RTX 3060", API="vulkan")
 
 
 def frames(count, frame_ms=8.0, path_until=0):
@@ -43,10 +44,19 @@ class SummariseTests(unittest.TestCase):
         self.assertEqual("pass", result["status"])
         self.assertEqual(1, result["warm_up"]["over_budget"])
 
-    def test_mono_or_development_or_wrong_resolution_is_invalid(self):
-        for change in (dict(Backend="Mono"), dict(Development="True"), dict(Resolution="2560x1440"), dict(GPU="")):
+    def test_another_engine_or_a_debug_export_or_wrong_resolution_is_invalid(self):
+        for change in (dict(Backend="IL2CPP"), dict(Godot=""), dict(Development="True"), dict(Development=""),
+                       dict(Resolution="2560x1440"), dict(GPU=""), dict(API="opengl3")):
             metadata = dict(METADATA, **change)
             self.assertEqual("invalid", summarise(frames(1500), metadata, {}, None, TIER)["status"], change)
+
+    def test_a_headless_recording_is_invalid(self):
+        metadata = dict(METADATA, GPU="", GraphicsDriver="", Resolution="64x64")
+        problems = summarise(frames(1500), metadata, {}, None, TIER)["problems"]
+        self.assertEqual(["metadata names no GPU", "resolution '64x64' is not 1920x1080"], problems)
+
+    def test_direct3d_12_is_a_release_api(self):
+        self.assertEqual("pass", summarise(frames(1500), dict(METADATA, API="d3d12"), {}, None, TIER)["status"])
 
     def test_presents_are_judged_too(self):
         presents = [dict(MsBetweenPresents="8.0")] * 1000 + [dict(MsBetweenPresents="12.0")]

@@ -36,7 +36,8 @@ public static class LauncherStartRule
     }
 
     /// <summary>Whether a run is scripted: <paramref name="headless"/>, Movie Maker on, an engine argument naming a scene
-    /// (<c>.tscn</c> or <c>.scn</c>), or a <c>--play-movie</c> user argument.</summary>
+    /// (<c>.tscn</c> or <c>.scn</c>), or a <c>--play-movie</c> or <c>--level</c> user argument (an exported game cannot
+    /// name a scene, so its main scene starts a <c>--level</c> run in the level's scene).</summary>
     public static bool IsAutomated(IReadOnlyList<string> engineArgs, IReadOnlyList<string> userArgs, bool headless,
         bool movieMaker)
     {
@@ -48,7 +49,7 @@ public static class LauncherStartRule
                 && (arg.EndsWith(".tscn", StringComparison.OrdinalIgnoreCase) || arg.EndsWith(".scn", StringComparison.OrdinalIgnoreCase)))
                 return true;
         foreach (string arg in userArgs)
-            if (arg == "--play-movie") return true;
+            if (arg is "--play-movie" or "--level") return true;
         return false;
     }
 

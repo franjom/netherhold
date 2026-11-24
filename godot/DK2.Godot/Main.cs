@@ -14,7 +14,8 @@ namespace DK2.GodotAdapter;
 /// process runs the title screen and the intro movies, unless <c>--skip-startup</c> is given or there is no display
 /// (<c>--headless</c>). <c>--play-movie &lt;path&gt;</c> plays one movie, relative to the install, and quits, as Unity's
 /// <c>DK2/Movies</c> menu does; <c>--movie-skip-frame &lt;n,...&gt;</c> sends an Esc press at each frame n (counted from this scene's start) to test
-/// skipping.</summary>
+/// skipping. <c>--level &lt;name&gt;</c> starts <c>InGameHud.tscn</c> instead, as naming that scene does, since an exported game
+/// cannot name a scene on its command line.</summary>
 public partial class Main : Node
 {
     /// <summary>The page a level that ended hands this scene (Unity's <c>GameSessionRequest.FrontEnd(returnPage)</c>);
@@ -22,6 +23,8 @@ public partial class Main : Node
     internal static FrontEndPage s_returnPage;
     /// <summary>Whether this process has made its start decision; a later entry (a level that ended) goes straight on.</summary>
     private static bool s_started;
+
+    private const string InGameHudScene = "res://InGameHud.tscn";
 
     private readonly HashSet<int> _skipFrames = new();
     private int _frame, _quitFrame = -1;
@@ -51,6 +54,12 @@ public partial class Main : Node
                 case LauncherStart.StartWithSavedScreen:
                     LauncherDisplay.Apply(GetTree().Root, LauncherSettingsStore.Current(args));
                     break;
+            }
+            if (Array.IndexOf(args, "--level") >= 0)
+            {
+                // InGameHud reads the same user arguments (--level, --seed, ...).
+                Callable.From(() => GetTree().ChangeSceneToFile(InGameHudScene)).CallDeferred();
+                return;
             }
         }
         Start(args, returnPage);

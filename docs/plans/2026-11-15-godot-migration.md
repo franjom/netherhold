@@ -1111,7 +1111,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       `godot/README.md` (*Probes*). Only Unity's release-player recorder and `tools/game-unity-probe`'s `frames.csv` had
       no Godot equivalent: `--record-frames <dir>` on `InGameHud.tscn` (`FrameTelemetry` in `DK2.Presentation`, Godot's
       `FrameRecorder`) writes it in Unity's columns, so `draw_clock.py` and `tools/tester-package/summarise_capture.py`
-      read it unchanged (the summariser rates a Godot capture invalid until the tester package exports a release build).
+      read it unchanged.
       Every other probe is covered by Godot's check arguments, Movie Maker recipes, `perf.ps1` and the probe scenes, or
       by `DK2.Presentation` tests, or was a Unity-only check or reference frame whose purpose ended. `tools/hud-probe` is
       deleted (it did not compile); its ignored `bin/` and `obj/` are left for the owner's cleanup. Step 5 may delete the
@@ -1124,8 +1124,22 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       `--dk2Install`, then the saved folder, then the development default find the install. Rules in `DK2.Presentation`
       (`LauncherTests`); scripted runs skip it (Level1 turn-400 hash and Level1/Level7 captures unchanged). `godot/README.md`
       (*The launcher*). Owner use with a real mouse, the native file dialog and a resize of the game window are unchecked.
-- [ ] Tester package as a Godot export (export templates, committed export preset).
-- [ ] CI builds `godot/DK2.Godot` (no editor needed) and the architecture gate checks Godot.
+- [x] Tester package as a Godot export, 2026-11-24. `godot/setup.ps1 -ExportTemplates` installs the pinned .NET templates
+      (SHA-512 in `godot-version.json`, cross-checked against the release's `SHA512-SUMS.txt`); `export_presets.cfg` (*Windows
+      Desktop*, release, PCK beside the exe) and the `DK2.Godot.sln` the .NET export needs are committed. `build.ps1` exports
+      headless, fails on a log error or a missing assembly, refuses a pack that could hold DK2 material (`pck_contents.py`:
+      117 files, none refused) and writes the manifest; `capture.ps1` runs `DK2.exe -- --level ...` (the release template takes
+      no scene, so `Main.tscn` starts a `--level` run in `InGameHud.tscn`, a scripted start in `LauncherStartRule`) with the
+      recorder, the harness and the run's own player files; `summarise_capture.py` and `compare_captures.py` hold Godot's
+      metadata to the same strictness and drop Unity's. Checked: the package (74 MB) unzipped and run outside the repository
+      against the GOG install, windowed 1920x1080, 40 s: a valid release capture (Vulkan, AMD iGPU, no log errors) that fails
+      both tiers (frame p99 22.8 ms; draw clock 20% over limit). Turn-400 hash `F5C7BAE552173778` and Level1/Level7 Movie
+      Maker frames byte-identical to clean HEAD. `tools/tester-package/ReleasePlayerBuild.cs` is now unreferenced: step 5
+      deletes it.
+- [x] CI builds `godot/DK2.Godot` (no editor needed) and the architecture gate checks Godot, 2026-11-24: a `dotnet build` step of
+      the csproj on both runners (it stays outside `DK2.slnx`); `ArchitectureTests` hold the adapter to its one
+      `DK2.Presentation` reference, no packages, no `using DK2.AI`/tools and no GDScript outside `addons/`, and every `src/`
+      assembly to no Godot reference; the Flame identifier gate scans the adapter. CI had no step building the Unity compile stand-in to remove.
 
 ## Step 5: remove Unity (one change, at parity)
 
