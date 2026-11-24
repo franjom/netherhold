@@ -17,7 +17,7 @@ class Contracts(unittest.TestCase):
     def setUp(self):
         self.fixture = tempfile.TemporaryDirectory(prefix='qwen-contract-')
         self.addCleanup(self.fixture.cleanup)
-        self.root = pathlib.Path(self.fixture.name)
+        self.root = pathlib.Path(self.fixture.name).resolve()
         self.root_patch = patch.object(d, 'ROOT', self.root)
         self.root_patch.start()
         self.addCleanup(self.root_patch.stop)
