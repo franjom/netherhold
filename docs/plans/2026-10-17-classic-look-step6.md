@@ -35,7 +35,8 @@ existing command/camera interfaces. No gameplay rules move into UI callbacks.
   plumbing; an alternative toolkit requires the ADR-0497 amendment it describes.
 
 Rendering feasibility passed in an isolated URP project at both reference and
-1440p sizes; [pilot checks, captures and limits](../../tools/hud-probe/README.md).
+1440p sizes; the pilot's checks, captures and limits were in `tools/hud-probe/README.md`, deleted in the Godot
+migration's step 4 (`git show 4dafadc15:tools/hud-probe/README.md`).
 The native raster/overlay reading is in [minimap-rendering.md](../research/minimap-rendering.md).
 Remaining interactions, complete widget/art mapping and production font metrics remain
 research gates; the shader pilot does not close the whole milestone.

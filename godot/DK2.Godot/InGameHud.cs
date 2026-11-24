@@ -231,6 +231,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>The <c>--light-probe-*</c> checks print the frame each turn is first drawn on, for captures at a turn.</summary>
     private bool _reportTicks;
     private long _reportedTick = -1;
+    /// <summary>The <c>--record-frames</c> telemetry (Unity's runner's <c>_recorder</c>); null without the argument.</summary>
+    private FrameRecorder? _recorder;
 
     public override void _Ready()
     {
@@ -470,6 +472,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         OpenPossessionHud(install, level);
         // --perf-report: the performance harness (PerformanceReport.cs); without it, no node.
         PerformanceReport.Attach(this, args, levelName, seed, _world, _simulation.World.Width, _simulation.World.Height);
+        // --record-frames <dir>: Unity's recorder's frames.csv (FrameRecorder.cs); without it, no node.
+        _recorder = FrameRecorder.Attach(this, args, levelName, seed);
         // DungeonRunner's heart health observer: each change queued for the next frame's beat.
         int maximumHeartHealth = level.Database[VariableTypeId.DungeonHeartObjectHealth];
         WorldScene world = _world;
@@ -552,25 +556,31 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             || _gameOptionsPanel == null || _fullMap == null || _minimap == null || _worldView == null || _scriptedView == null
             || _resultFlow == null || _frameDriver == null || _world == null || _hoverCursor == null || _handCursor == null
             || _placement == null || _leaving) return;
+        _recorder?.BeginFrame();
         SamplePointer();
         JournalBeginFrame(delta);
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         long milliseconds = (long)(_elapsed * 1000);
         // DungeonRunner.Update's first step: the effects whose clips finished decoding, then the speech line.
+        long started = _recorder?.Stamp() ?? 0;
         _mixer?.PlayDecoded(milliseconds);
         _mixer?.UpdateSpeech(milliseconds);
+        _recorder?.Spent(FrameTelemetryPart.Sound, started);
         if (_loadName != null || (_saveAs != null && _simulation.World.CurrentTick >= _saveTick)) RunSaveLoadCheck();
         // DungeonRunner.UpdateWorldSound after its present, before the HUD draws: the thing sounds, the voices, the ambience
         // around the tile under the screen's centre (last frame's HUD, as Unity's ScreenToTile reads it), the speech line's
         // subtitle, and the music once a settled turn, whose battle records the battle tab reads.
+        started = _recorder?.Stamp() ?? 0;
         if (_sound != null)
             _sound.Update(_simulation.World, PointerTile(GetViewport().GetVisibleRect().Size * .5f, _pressVisibility), milliseconds);
         else _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
+        _recorder?.Spent(FrameTelemetryPart.Sound, started);
         // Once per settled turn, as DungeonRunner captures it before the HUD draws; the full map reads the same grid.
         bool minimapCaptured = _minimap.Capture(_simulation.World, _worldView, _simulation.Navigation);
         // DungeonRunner.Update's script step (FrameDriver): the scripted view on the drawn turn plus the debt toward the next
         // (this scene ticks inline, so none is pending), then the level end, which may leave for the front end.
+        started = _recorder?.Stamp() ?? 0;
         _frameDriver.UpdateScript(_scriptedView, milliseconds, _simulation.World, _viewer, ticksPending: 0);
         ReportPath();
         bool checkKeys = _resultFlow.ResultRecorded && !_scriptedView.PathPlaying;
@@ -578,12 +588,15 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         bool? speechPlaying = _mixer != null && _mixer.SpeechEnabled ? _mixer.SpeechBusy : null;
         var result = new CampaignResultFrame(_viewer, _scriptedView.PathPlaying, milliseconds, speechPlaying,
             _keyboard.SpacePressed || (_leaveResult && checkKeys && !escapeCheck), _keyboard.EscapePressed || escapeCheck);
-        if (_resultFlow.Update(_simulation.World, _simulation.Database, result, _pending))
+        bool leave = _resultFlow.Update(_simulation.World, _simulation.Database, result, _pending);
+        _recorder?.Spent(FrameTelemetryPart.Script, started);
+        if (leave)
         {
             LeaveForFrontEnd();
             return;
         }
         if (escapeCheck) ReportEscape();
+        started = _recorder?.Stamp() ?? 0;
         // DungeonRunner.Update's input step (FrameDriver): the local pickups, then Escape or Space ends a playing camera path
         // and posts SkipCameraPathCommand (0x00405362); the script's glide starts.
         _frameDriver.AdvancePickups(_simulation.World, _viewer, milliseconds);
@@ -631,16 +644,22 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         TilePos? dragFrom = _input.DragFrom(PlayerToolMode.Hand);
         _dragTo = dragFrom == null ? null : PointerTile(_pointer, visibility) ?? _dragTo ?? dragFrom;
         _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
+        _recorder?.Spent(FrameTelemetryPart.Input, started);
         // DungeonRunner.Update's present: the settled world's changes, before the frame's ticks; the chunk build it
         // starts runs on the thread pool while they do (ADR-0696).
         // DungeonRunner's frame time before its present, then DrawCreatureFrame's objects after it: the drawn turn and how
         // far toward the next (this scene ticks inline, so the debt left by the last frame).
         float drawFraction = (float)Math.Min(_pacer.Debt, 1d);
+        double renderTick = _simulation.World.CurrentTick.Value + (double)drawFraction;
         _world.SetFrameTime(_simulation.World.CurrentTick, drawFraction, milliseconds);
         _world.LatchPossession(_simulation.World, _viewer);
+        started = _recorder?.Stamp() ?? 0;
         _world.Present(_simulation.World, _elapsed);
         _world.PresentRoof(_simulation.World, _simulation.Database);
+        _recorder?.Spent(FrameTelemetryPart.Present, started);
+        started = _recorder?.Stamp() ?? 0;
         _world.DrawFrame(_simulation.World.CurrentTick, drawFraction);
+        _recorder?.Spent(FrameTelemetryPart.Animation, started);
         // DungeonRunner.FollowQueriedCreature, after DrawCreatureFrame there: the focus keeps the queried creature where it
         // is drawn, so the view and the minimap below draw the same focus; the camera is placed again only if it moved,
         // then the blended draws are sorted for it.
@@ -648,8 +667,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         FollowQueriedCreature();
         if (_world.Focus != focus) _world.PlaceCamera();
         // The pick is last frame's: the hover is resolved after the HUD is drawn, below (DungeonRunner's order).
+        started = _recorder?.Stamp() ?? 0;
         _world.SetHandLight(_handLight);
         _world.FinishFrame();
+        _recorder?.Spent(FrameTelemetryPart.Lights, started);
         if (_reportTicks && _simulation.World.CurrentTick.Value != _reportedTick)
         {
             _reportedTick = _simulation.World.CurrentTick.Value;
@@ -658,6 +679,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _keyboard.EndFrame();
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         // As DungeonRunner.DrawHudControls captures it and CaptureWorldHover shows and draws it.
+        started = _recorder?.Stamp() ?? 0;
         _resourceFacts = _resourceView.Capture(_simulation.World, displayHealth: visibility.ShowNormalHud);
         // FLASH_BUTTON, dropped once its item is in use, as DungeonRunner.DrawHudControls resolves it before the resources
         // draw their flash.
@@ -745,6 +767,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Every blended item is in (the effects and flames since FinishFrame, the flowers above), and every blended thing
         // Godot sorts on its own is placed and looked (the hover's looks, the cage): ordered among them and drawn.
         _world.DrawBlendedItems();
+        _recorder?.Spent(FrameTelemetryPart.Hud, started);
 
         // DungeonRunner.Update's tick step (FrameDriver): ready drops after the input, then the tick gate (no turn runs, and
         // none accrues, while it holds), the hand-off and the clear. The frame is clamped as Unity's runner clamps it
@@ -754,6 +777,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         FrameTicks ticks = _frameDriver.TakeTicks(_simulation.World, _viewer, Math.Min(delta, TickPacer.MaximumFrameSeconds), 1f,
             _settings.GameSpeed, _hudControls.TicksPaused, TickPacer.DefaultMaxTicksPerFrame, poses: _possession);
         _journal.Ticks(_simulation.World.CurrentTick, ticks.Count);
+        started = _recorder?.Stamp() ?? 0;
         for (int i = 0; i < ticks.Count; i++)
         {
             InputFrame input = ticks.InputFor(i);
@@ -771,7 +795,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _journal.AfterTick(tick + 1, _simulation);
             if (_simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
         }
+        double tickMs = _recorder?.Elapsed(started) ?? 0;
         _frameDriver.AfterTicks(_simulation.World, milliseconds);
+        // Unity's runner's EndFrame: the draw clock is the drawn turn and fraction, the camera the drawn view's eye.
+        _recorder?.EndFrame(ticks.Count, tickMs, renderTick, _world.View?.Position ?? default, _scriptedView.PathPlaying,
+            _world.ChunkFlushMilliseconds);
         // Unity's LateUpdate: the frame's journal record.
         _journal.EndFrame(_pending, _pacer.Debt);
     }

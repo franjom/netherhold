@@ -305,6 +305,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     {
         if (_presenter == null || _terrain == null) return;
         _seconds = (float)seconds;
+        ChunkFlushMilliseconds = 0;
         _changed = _terrain.PendingChunks > 0;
         long before = GC.GetAllocatedBytesForCurrentThread();
         _presenter.Present(world);
@@ -321,12 +322,18 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         }
     }
 
+    /// <summary>The chunk upload of this frame's <see cref="Flush"/> in milliseconds (<see cref="FrameRecorder"/>'s
+    /// <c>chunk_rebuild_ms</c>); zero when <see cref="Present"/> flushed nothing.</summary>
+    public double ChunkFlushMilliseconds { get; private set; }
+
     /// <summary>The scheduler's flush (the <see cref="ITerrainChunkSink"/> calls below upload), then the liquids' wave; the
     /// blended stream is sorted by <see cref="FinishFrame"/>, once the frame's camera is placed.</summary>
     public void Flush()
     {
         FlushTerrainState();
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
         _terrain!.Flush(this);
+        ChunkFlushMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
         _liquids!.Refresh();
         int frame = LiquidSurfaceWave.Frame(_seconds);
         _water!.Show(this, frame);

@@ -24,7 +24,7 @@ group 2 is a list to audit, not a finding.
 | 1. glue over `DK2.Presentation` | HUD panels whose model is already in `src/` | `ClassicBottomPanel` (+`Assets`), `ClassicResourceHud`, `ClassicMessageTabs`, `ClassicHoverHud`, `ClassicCreatureQueryPanel`, `ClassicCreatureOverview` (+`CreatureOverviewAssets`), `ClassicOptionsPanel`, `ClassicGameOptionsPanel`, `ClassicSaveLoadPanel`, `ClassicBattleTab`, `ClassicFullMap`, `DungeonMinimap`, `ClassicHudScaling`, `ClassicBitmapText`, `ClassicCreatureNames`, `MinimapFrameVisual` |
 | 2. audit: likely DK2 logic | game flow and scene mapping | `DungeonRunner` (13 partial files, ~4,000 lines: startup, settings, saves, input journal, possession, cutscene, finale, level end, preview, sound, HUD, front end), `DungeonScene` (1,320), `ClassicConstructionEffects`, `ClassicCreatureAnimation`, `ClassicStatusFlowers`, `ClassicFlowerDollar`, `ClassicKeyBindings`, `ClassicSettingsRendering` |
 | 3. engine-specific rewrite | ADR-0805's list | terrain and meshes (`ClassicMeshes`, `TerrainChunks`, `TransparentTerrain`, `LiquidSurfaces`); lighting and shadows (tile/torch/fill light buffers, `ClassicCreatureShadows`, `ClassicLightning`, torch flames); 13 shaders; 3D overlays (hover outline, placement, possession, `MinimapGpuMap`); `ClassicSoundPlayer`, `ClassicMoviePlayer`, `ClassicHandCursor`; `FrameRecorder`, `DebugFrameOverlay`, `UnitySimulationProfiler`, `JitWarmup` |
-| 4. tooling | probes and packaging | 14 editor probes; `tools/classic-unity-probe`, `tools/game-unity-probe`, `tools/hud-probe` (delete), `tools/tester-package`; `unity/DK2.Unity.Compile`, `sync-assemblies.ps1`, `copy-runtime-assemblies.ps1` (delete) |
+| 4. tooling | probes and packaging | 15 editor scripts; `tools/classic-unity-probe`, `tools/game-unity-probe`, `tools/hud-probe` (deleted in step 4), `tools/tester-package`; `unity/DK2.Unity.Compile`, `sync-assemblies.ps1`, `copy-runtime-assemblies.ps1` (delete) |
 
 ## Step 1: shared loaders, then the in-game HUD in Godot
 
@@ -1107,10 +1107,17 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       `ScriptedViewDirector.Subtitle` and `CampaignCutsceneRunner.VisibleTitle`; drawn from the HUD's shared BF4 glyph atlas, or
       in the menu's replacement face when one is found (owner, 2026-11-24). The card's Mentor line is decoded before the front
       end's first frame. `godot/README.md` (*Subtitles*).
-- [ ] Godot equivalents of the probes that are still needed (headless scenes, Movie Maker
-      captures; keep the Python summarisers). `tools/hud-probe` is deleted here; its
-      `HudPilot.Compile.csproj` already fails to compile (25 errors: `ClassicHudScaling` and
-      `Input` missing from its compile list, stale signatures), so do not repair it.
+- [x] Godot equivalents of the probes that are still needed, 2026-11-24. The inventory and each probe's verdict are in
+      `godot/README.md` (*Probes*). Only Unity's release-player recorder and `tools/game-unity-probe`'s `frames.csv` had
+      no Godot equivalent: `--record-frames <dir>` on `InGameHud.tscn` (`FrameTelemetry` in `DK2.Presentation`, Godot's
+      `FrameRecorder`) writes it in Unity's columns, so `draw_clock.py` and `tools/tester-package/summarise_capture.py`
+      read it unchanged (the summariser rates a Godot capture invalid until the tester package exports a release build).
+      Every other probe is covered by Godot's check arguments, Movie Maker recipes, `perf.ps1` and the probe scenes, or
+      by `DK2.Presentation` tests, or was a Unity-only check or reference frame whose purpose ended. `tools/hud-probe` is
+      deleted (it did not compile); its ignored `bin/` and `obj/` are left for the owner's cleanup. Step 5 may delete the
+      Unity probe tools and the 15 editor scripts, after moving what the tester package reads by path
+      (`game-unity-probe/draw_clock.py` and its test, `classic-unity-probe`'s `performance-target.json`, `frame_budget.py`
+      and `install-presentmon.ps1`) and `capture-native-render-inputs.py`, which reads DK2's process, not Unity.
 - [ ] Performance targets set again in Godot, from 3o's harness numbers (owner, 2026-11-15: Unity FPS work stopped).
 - [x] The Netherhold launcher (owner-approved 2026-11-24), the tester package's first screen: the install folder, an optional
       menu font and the screen mode, saved to `user://launcher.cfg` (`--launcher-config` for scripted runs); DK2_DIR, then
@@ -1122,7 +1129,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 
 ## Step 5: remove Unity (one change, at parity)
 
-- [ ] Delete `unity/`, the Unity-only tools and the CI steps for them.
+- [ ] Delete `unity/`, the Unity-only tools and the CI steps for them (first move the files step 4's probes item lists).
 - [ ] Move every `src/` assembly from netstandard2.1 to net10.0: drop `src/Shared/UnityBound.props`
       and the polyfills.
 - [ ] Supersede ADR-0690 (IL2CPP players); close ADR-0041's licensing question.

@@ -166,6 +166,8 @@ These are entry points, not a new priority order.
   the options menu's session action after Restart, Return to Menu or Quit is dropped.
   A start without a scene now shows the Netherhold launcher (install folder, menu font, screen mode; [godot/README.md](../godot/README.md), *The launcher*);
   scripted runs skip it.
+  Step 4's probes item is done: `--record-frames` writes Unity's recorder's `frames.csv` for `draw_clock.py`; every other
+  Unity probe is covered or obsolete ([Probes](../godot/README.md#probes)); `tools/hud-probe` is deleted.
   Open readings: whether secret-level and My Pet Dungeon briefing lines show in play ([Q854](research/open-questions.md)); whether `ClassicKeyNames`, equal to Unity's
   `KeyCode` names, matches DK2's own ([Q857](research/open-questions.md)); whether the front end's brightness, after `PngChunks.WithoutColourSpace` drops Godot's gAMA handling,
   is Unity's ([Q859](research/open-questions.md), [0x005B6030](research/functions/005B6030.md)).
