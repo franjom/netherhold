@@ -9,6 +9,14 @@ namespace DK2.Presentation;
 public enum FrontEndStartupStage : byte { Title, BullfrogIntro, Intro, Done }
 public enum FrontEndMovie : byte { BullfrogIntro, Intro }
 
+/// <summary>Where the startup's and the attract's movies are, relative to the install.</summary>
+public static class FrontEndMoviePaths
+{
+    public const string BullfrogIntro = "Data/Movies/BullfrogIntro.tgq", Intro = "Data/Movies/Intro.tgq";
+
+    public static string Of(FrontEndMovie movie) => movie == FrontEndMovie.BullfrogIntro ? BullfrogIntro : Intro;
+}
+
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/front-end-menus.md#2-start-up-sequence")]
 public sealed class FrontEndStartup
 {

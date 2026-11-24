@@ -401,10 +401,8 @@ group 2 is a list to audit, not a finding.
       `--profile` is given. `ClassicFrontEndMenu.Open` passes the return page to the profile load, so the won map's
       branch repair runs as in Unity (it writes the profile when the front end is entered with CampaignResults). New
       check arguments: `--from-map`, `--stage-win`, `--stage-loss`, `--leave-result`, `--escape-result`; Godot also
-      prints the viewer's status changes (`godot/README.md`). Not wired in Godot: subtitles, the win screen and tablet, and the post-win cutscene (needs media,
-      step 4), so a won map goes straight to the results page. Owner question, product policy and not a DK2 unknown
-      (so no Q row): is it fine that Godot's Space goes straight to the front end, skipping the title card and cutscene,
-      until media lands in step 4. Verification: `dotnet test DK2.slnx` green (Presentation 2276, Simulation 5583,
+      prints the viewer's status changes (`godot/README.md`). Not wired in Godot: subtitles and the win screen and tablet; the post-win title card and cutscene play
+      in the front end since step 4's movies (the card's text waits for the subtitles). Verification: `dotnet test DK2.slnx` green (Presentation 2276, Simulation 5583,
       Behavior 674 with 5 skipped); Godot builds clean and the Unity compile has 0 errors; headless Level3 `--from-map`
       with temp folders: a win then Space leaves, a win then Escape posts Continue then Reveal and the game keeps
       playing, a loss then Escape posts nothing and Space leaves; 17 + 8 mutations across the review all fail a test.
@@ -1095,7 +1093,11 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       (positioned beside the camera at DK2's distance gain), the GUI, hover, Heart beat, footsteps, party pop and possession
       sounds, the terrain ambience, speech with its queue and duck, and the music and ambience streams; the front end plays
       its pages' sounds. `godot/README.md` (*Sound*) has the files and the checks.
-- [ ] Movies (decoding stays in `src/`).
+- [x] Movies (decoding stays in `src/`), 2026-11-24. `MoviePlayback` (`DK2.Presentation`) holds every decision Unity's
+      `ClassicMoviePlayer` made (start delay, audio-clock pacing, dropping three behind, skip input, end) and decodes ahead on
+      one worker; Godot's `ClassicMoviePlayer` uploads frames into one texture and feeds an `AudioStreamGenerator`. The front
+      end plays the startup, attract, gallery and trailer movies and a won map's title card and cutscene. Not drawn yet: the
+      title card's text (subtitles batch). `godot/README.md` (*Movies*) has the files and the checks.
 - [x] The level sound driver (`DungeonRunner.Sound`, deferred from step 2k), 2026-11-24: its decisions and the player's are
       `LevelSoundDriver` and `ClassicSoundMixer` in `DK2.Presentation`, behind `ISoundOutput`; Godot calls them. Owner
       ruling (2026-11-24): Unity is being phased out, so nothing under `unity/` changed and Unity keeps its own copy

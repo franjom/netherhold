@@ -15,8 +15,9 @@ namespace DK2.GodotAdapter;
 /// page, and a <see cref="HudCanvas"/> draws its frame. This node runs the session's clock, converts the pointer to
 /// 640 x 480 units and forwards it. The campaign profile and hi-score table load as in Unity
 /// (<see cref="CampaignProfileStore"/>, <see cref="HiScoreStore"/>), so the hi-score and movie gallery pages show the
-/// player's rows and the campaign entries open the map page; with no station scene there is no land to pick, no level
-/// launches, and no movie plays. The saves and settings pages are not wired, so the model leaves their buttons disabled.
+/// player's rows and the campaign entries open the map page; with no station scene there is no land to pick and no level
+/// launches. The movies (the startup, the gallery, the attract and a won map's cutscene) are in
+/// <c>ClassicFrontEndMenu.Movies.cs</c>. The saves and settings pages are not wired, so the model leaves their buttons disabled.
 /// The pages' sounds play through the shared <see cref="ClassicSoundMixer"/> at the saved settings' volumes.</summary>
 public partial class ClassicFrontEndMenu : Node
 {
@@ -63,7 +64,8 @@ public partial class ClassicFrontEndMenu : Node
     /// unusable one falls back to memory (<see cref="UserFolders.LoadProfile"/>).</summary>
     /// <param name="returnPage">The page a level that ended returns to, as Unity's runner passes it to the session and the
     /// profile load (<see cref="FrontEndPage.CampaignResults"/> repairs the won map's branch row).</param>
-    public void Open(string install, GameFolders folders, FrontEndPage returnPage = FrontEndPage.None)
+    /// <param name="skipStartup">No title screen and intro movies, as Unity's runner's <c>skipStartup</c>.</param>
+    public void Open(string install, GameFolders folders, FrontEndPage returnPage = FrontEndPage.None, bool skipStartup = false)
     {
         if (_hud != null) throw new InvalidOperationException("The menu is already open.");
         _assets = new ClassicFrontEndMenuAssets(install);
@@ -91,7 +93,8 @@ public partial class ClassicFrontEndMenu : Node
             effects: settings.SoundEffectVolume, speechOn: settings.SpeechSwitch, musicOn: settings.MusicSwitch,
             effectsOn: settings.SfxSwitch);
         UseReplacementFont = true;
-        _session.Update(TimeSpan.Zero);
+        OpenMovies(install, skipStartup, returnPage);
+        if (_startup == null) _session.Update(TimeSpan.Zero);
     }
 
     /// <summary>The hi-score table; one that cannot be read for an IO reason warns and shows empty rows.</summary>
@@ -107,6 +110,7 @@ public partial class ClassicFrontEndMenu : Node
 
     public override void _Input(InputEvent @event)
     {
+        NoteKeyPress(@event);
         // Only the wheel comes from events; the position is polled each frame, as Unity reads Input.mousePosition.
         if (@event is InputEventMouseButton button)
         {
@@ -125,7 +129,9 @@ public partial class ClassicFrontEndMenu : Node
         // DungeonRunner.Update's first step, the front end's too.
         _mixer?.PlayDecoded(milliseconds);
         _mixer?.UpdateSpeech(milliseconds);
-        _session.Update(TimeSpan.FromSeconds(_elapsed));
+        // The startup, a won map's cutscene, or a movie holds the screen; the menu runs once they are over.
+        if (UpdateMovies()) { _wheel = 0; return; }
+        _session.Update(FrontEndTime);
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
         bool sized = width > 0 && height > 0;
@@ -178,6 +184,7 @@ public partial class ClassicFrontEndMenu : Node
     {
         if (_session != null) _session.PageChanged -= PageChanged;
         if (_profiles != null) _profiles.Changed -= RefreshMovies;
+        CloseMovies();
         _hud?.Dispose(); _hud = null;
         _mixer?.Dispose(); _mixer = null;
         _campaign?.Dispose(); _campaign = null; _profiles = null;

@@ -154,7 +154,7 @@ public sealed class TqiDecoder
         // 0x005AAB10. q = 100 is a flat 8 * S; otherwise S scaled by the intra matrix and
         // (107 - q) / 16. Coefficient 0 always takes 0x10000. DK2 indexes M by the transposed
         // position; with the natural zigzag used here the multiplier is M at the transposed index.
-        var natural = new int[64];
+        Span<int> natural = stackalloc int[64];
         float factor = (107 - quantiser) * 0.0625f;
         for (int i = 0; i < 64; i++)
             natural[i] = quantiser == 100

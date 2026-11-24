@@ -852,8 +852,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     /// <summary>DungeonRunner.UpdateCampaignResult's Space: the session ends and the front end opens at the session's return
     /// page (<c>Main.tscn</c>, as Unity's runner loads <c>GameSessionRequest.FrontEnd(returnPage)</c>), deferred to the
-    /// frame's end as a load's reload is. The won map's title card and cutscene that Unity plays first need media (plan
-    /// step 4).</summary>
+    /// frame's end as a load's reload is. The front end plays the won map's title card and cutscene first
+    /// (<c>ClassicFrontEndMenu.Movies.cs</c>).</summary>
     private void LeaveForFrontEnd()
     {
         _leaving = true;

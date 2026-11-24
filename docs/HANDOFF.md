@@ -161,7 +161,7 @@ These are entry points, not a new priority order.
   Shot creation-effect sprites and lights are wired; entry stars and capture limits are in [Q749](research/possession-entry-effect.md), roof timing in [the ceiling note](research/kwd-terrain-rooms.md#ceiling-the-possession-view-roof), and entry/return HUD display in [the HUD note](research/possession-hud.md#entry-and-landing).
   Lightning rendering (3l) is implemented; its remaining acceptance checks are in [the migration plan](plans/2026-11-15-godot-migration.md).
   Not wired yet, by plan step: 3j shadows; 3k remaining effect uploads and dollar-mesh flowers;
-  3n scripted paths and the letterbox; step 4 movies and subtitles; sound and the level sound driver are done (step 4, [Sound](../godot/README.md#sound): `ClassicSoundMixer` and `LevelSoundDriver` in `DK2.Presentation`, Unity's copy left as it is until step 5). The 3D station scenery and
+  3n scripted paths and the letterbox; step 4 subtitles; sound, the level sound driver and movies are done (step 4, [Sound](../godot/README.md#sound) and [Movies](../godot/README.md#movies): `ClassicSoundMixer`, `LevelSoundDriver` and `MoviePlayback` in `DK2.Presentation`, Unity's copy left as it is until step 5). The 3D station scenery and
   most keys are also unwired (`ClassicKeyboard` reads the options and full-map keys, the save name and the key being bound so far);
   the options menu's session action after Restart, Return to Menu or Quit is dropped.
   Open readings: whether secret-level and My Pet Dungeon briefing lines show in play ([Q854](research/open-questions.md)); whether `ClassicKeyNames`, equal to Unity's
