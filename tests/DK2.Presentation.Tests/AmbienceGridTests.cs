@@ -92,4 +92,25 @@ public sealed class AmbienceGridTests
         Array.Fill(cells, "");
         Assert.Empty(AmbienceGrid.Emitters(cells, new TilePos(5, 5), _ => true));
     }
+
+    [Fact]
+    public void TheReusedListIsClearedAndRefilledWithoutAllocating()
+    {
+        var cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
+        Array.Fill(cells, "");
+        for (int i = 0; i < 30; i++) cells[i] = "TERRAIN_LAVA";
+        for (int i = 30; i < 40; i++) cells[i] = "ROOM_GRAVEYARD";
+        for (int i = 40; i < 70; i++) cells[i] = "TERRAIN_WATER";
+        Func<string, bool> any = _ => true;
+        var into = new List<AmbienceGrid.Emitter> { new("STALE", Vector3.Zero) };
+        AmbienceGrid.Emitters(cells, new TilePos(20, 20), any, into);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        AmbienceGrid.Emitters(cells, new TilePos(20, 20), any, into);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(0, allocated);
+        Assert.Equal(["TERRAIN_LAVA", "TERRAIN_WATER"], into.Select(e => e.Category));
+        Assert.Equal(AmbienceGrid.Emitters(cells, new TilePos(20, 20), any), into);
+    }
 }

@@ -746,7 +746,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       (it needs the owner's mouse), and hiding the OS pointer. Open: (1) the shared `HoverCursorResolver.Resolve` still
       allocates 128 B a frame with the Hand and 360 B with a room tool, because `PlacementCursor.Room` builds a new List and
       HashSet per call; it is older than 3e and Unity hits it too, so it belongs in a separate `DK2.Presentation` change.
-      (2) 3h took the world hover text and the red tint; the hand light came in 3i; the hover sound is step 4's.
+      (2) 3h took the world hover text and the red tint; the hand light came in 3i; the hover sound came in step 4.
 - [x] 3f. Objects, structures and torch meshes (2026-11-17, ADR-0805). In `DK2.Presentation`: `RenderRotation` (yaw, roll
       about Z, pitch about X as a `System.Numerics` quaternion, plus `Heading`; Unity's `RenderEulerRotation` only converts
       it, and the composition now has tests). `ObjectMaterialLook`, `ObjectPass` and `ObjectModelPasses`, out of
@@ -759,7 +759,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       phase offsets in first-seen order. Unity's `ClassicMeshes`, `ClassicTorchFlames` and `RenderEulerRotation` call
       them. Godot, in the new `WorldScene.Objects.cs`: shared model meshes and one node per object with per-surface looks; the
       Heart, animated through `CreatureAnimationPlayer` with `HeartPulse`'s beat (its on-screen test is a point test on the
-      origin, where Unity uses `renderer.isVisible`; the mana effect came in 3k, the beat sound waits for step 4); structures
+      origin, where Unity uses `renderer.isVisible`; the mana effect came in 3k, the beat sound in step 4); structures
       (the door tint, the blinking blueprint, the lock mesh); torch meshes bent by `TorchGeometry`, bent again in place on
       tile changes and given a `CustomAabb`; flames as additive billboards. `ZeroOrderOffset` puts blended objects and
       flames in Unity's sorting-order-0 window: after the tag overlays and before runs >= 1, back to front by distance to
@@ -801,7 +801,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       change), clip sets cached per entry, pose interpolation and orientation through `RightHandedFrame` with the head point
       converted back, removal on death or exit, and `ZeroOrderOffset` for blended surfaces. On an idle-clip swap Godot keeps the
       node and restarts the clip, which the reviewer confirmed is equivalent on screen to Unity's rebuild. Crackle is wired in 3l;
-      footsteps wait for sound (step 4); the sparkle came in 3k, the burning red in 3h, the possession hide in 3m. The query follow now runs after `DrawFrame` and reads the drawn position, as
+      footsteps came with sound (step 4); the sparkle came in 3k, the burning red in 3h, the possession hide in 3m. The query follow now runs after `DrawFrame` and reads the drawn position, as
       Unity's does (this resolves 3b's note); the blended stream's sort moved from `Flush` into `FinishFrame`, after the follow
       places the camera. Mutation checks: the developer's 30 and the reviewer's 27, each killed except the head table's lock,
       which a two-thread test covers. Verification: `dotnet test DK2.slnx` 10,814 passed, 30 skipped (Presentation 2,790,
@@ -834,7 +834,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       texture twin. Looks are re-applied only when a model's hover state changes. The world hover text, with a creature's own
       name, goes through the screen-space hover HUD, as in Unity, not through 3D text. Pickup and drop needed no new code (wired
       in 3e). `WorldScene.PlacedFrustum` is the one accessor of the pose's frustum, shared by the blended stream and the pick.
-      Not wired: the hover sound (step 4); the Hand's light came in 3i. Verification: `dotnet test DK2.slnx` 10,833 passed, 30
+      The hover sound came in step 4; the Hand's light in 3i. Verification: `dotnet test DK2.slnx` 10,833 passed, 30
       skipped (Presentation 2,809, the hover tests 67); the Level1 turn-400 hash is unchanged (`D7290428D81A902F`); the
       `DK2.Unity.Compile` stand-in passes; Unity's batch compile, `SmokeTest` and `SaveSmokeTest` passed, and `ClassicWorldLightingProbe`'s
       Level1 frames were byte-identical to 3g's, before and after the review fixes. Mutation checks: 33 run, 29 killed,
@@ -990,7 +990,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         in the custom data (was one instance and one material per frame per flame); sprites and flower icons are `.gdshader`
         files; mesh particles (the Heart's plug, group parts, type-6 frames, shot bodies) are pooled models per mesh with the
         element's tint as an instance uniform. Also wired: the group parts, the local pickup dust, the first model update.
-        Footsteps and the beat sound are sound only (step 4); the dollar mesh is not drawn; lightning is drawn by 3l. Frames
+        Footsteps and the beat sound are sound only (wired in step 4); the dollar mesh is not drawn; lightning is drawn by 3l. Frames
         against HEAD (Movie Maker, 1920x1080, scripted pointer, flags off and `--light-perpixel --light-shadows
         --light-post`): flames, flowers and all but the Heart byte-identical in those examples; this does not establish
         native flower overlap with opaque walls ([comparison limits](../research/hand-cursor-rendering.md#native-cage-observations)). New content judged right against
@@ -1091,9 +1091,15 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 
 ## Step 4: media, tools, packaging
 
-- [ ] Sound and movies (decoding stays in `src/`).
-- [ ] The level sound driver (`DungeonRunner.Sound`, deferred from step 2k): move it to `src/` behind the audio
-      abstraction, which Unity and Godot then both call.
+- [x] Sound (decoding stays in `src/`), 2026-11-24. Godot plays what Unity's player plays: world and effect sounds
+      (positioned beside the camera at DK2's distance gain), the GUI, hover, Heart beat, footsteps, party pop and possession
+      sounds, the terrain ambience, speech with its queue and duck, and the music and ambience streams; the front end plays
+      its pages' sounds. `godot/README.md` (*Sound*) has the files and the checks.
+- [ ] Movies (decoding stays in `src/`).
+- [x] The level sound driver (`DungeonRunner.Sound`, deferred from step 2k), 2026-11-24: its decisions and the player's are
+      `LevelSoundDriver` and `ClassicSoundMixer` in `DK2.Presentation`, behind `ISoundOutput`; Godot calls them. Owner
+      ruling (2026-11-24): Unity is being phased out, so nothing under `unity/` changed and Unity keeps its own copy
+      (`ClassicSoundPlayer`, `DungeonRunner.Sound`) until step 5 deletes it.
 - [ ] Godot's speech subtitles (deferred from step 2k): wrap with `BitmapTextLayout`, pack a `.bf4` atlas, and blit
       `BitmapTextPlacement.Place` in `SubtitleLayout`'s boxes, timed by the speech playback.
 - [ ] Godot equivalents of the probes that are still needed (headless scenes, Movie Maker

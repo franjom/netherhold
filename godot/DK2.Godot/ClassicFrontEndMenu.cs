@@ -16,7 +16,8 @@ namespace DK2.GodotAdapter;
 /// 640 x 480 units and forwards it. The campaign profile and hi-score table load as in Unity
 /// (<see cref="CampaignProfileStore"/>, <see cref="HiScoreStore"/>), so the hi-score and movie gallery pages show the
 /// player's rows and the campaign entries open the map page; with no station scene there is no land to pick, no level
-/// launches, and no movie plays. The saves and settings pages are not wired, so the model leaves their buttons disabled.</summary>
+/// launches, and no movie plays. The saves and settings pages are not wired, so the model leaves their buttons disabled.
+/// The pages' sounds play through the shared <see cref="ClassicSoundMixer"/> at the saved settings' volumes.</summary>
 public partial class ClassicFrontEndMenu : Node
 {
     private readonly HudFrame _frame = new();
@@ -26,6 +27,7 @@ public partial class ClassicFrontEndMenu : Node
     private CampaignMapController? _campaign;
     private FrontEndMenuHud? _hud;
     private HudCanvas? _canvas;
+    private ClassicSoundMixer? _mixer;
     private double _elapsed;
     private Vector2 _pointer;
     private int _wheel;
@@ -78,6 +80,16 @@ public partial class ClassicFrontEndMenu : Node
         _session.PageChanged += PageChanged;
         _canvas = new HudCanvas { Name = "HudCanvas", Load = _assets.Load };
         AddChild(_canvas);
+        // DungeonRunner's sound player, which its front end has too, at the saved settings' volumes: the pages' sounds only
+        // (no music, and the throttle never runs there).
+        var output = new ClassicSoundOutput { Name = "Sound" };
+        AddChild(output);
+        _mixer = new ClassicSoundMixer(output, new InstallClassicSoundAssets(install), 0);
+        GameSettings settings = InGameHud.LoadSettings(folders.Settings);
+        _mixer.SoundQuality = settings.SoundQuality;
+        _mixer.SetVolumes(master: settings.MasterVolume, speech: settings.SpeechVolume, music: settings.MusicVolume,
+            effects: settings.SoundEffectVolume, speechOn: settings.SpeechSwitch, musicOn: settings.MusicSwitch,
+            effectsOn: settings.SfxSwitch);
         UseReplacementFont = true;
         _session.Update(TimeSpan.Zero);
     }
@@ -109,6 +121,10 @@ public partial class ClassicFrontEndMenu : Node
         if (_hud == null || _session == null || _canvas == null) return;
         // Engine time rather than the wall clock, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
+        long milliseconds = (long)(_elapsed * 1000);
+        // DungeonRunner.Update's first step, the front end's too.
+        _mixer?.PlayDecoded(milliseconds);
+        _mixer?.UpdateSpeech(milliseconds);
         _session.Update(TimeSpan.FromSeconds(_elapsed));
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
@@ -123,9 +139,17 @@ public partial class ClassicFrontEndMenu : Node
         }
         _hud.Advance(pointer, sized ? _wheel : 0, _elapsed);
         _wheel = 0;
-        // No sound player yet: drop the requests so they do not pile up.
-        _hud.Model.Sounds.Clear();
-        _campaign?.Sounds.Clear();
+        // DungeonRunner.UpdateFrontEnd: the menu's and the campaign map's sounds.
+        if (_mixer != null)
+        {
+            _mixer.Play(_hud.Model.Sounds);
+            if (_campaign != null) _mixer.Play(_campaign.Sounds);
+        }
+        else
+        {
+            _hud.Model.Sounds.Clear();
+            _campaign?.Sounds.Clear();
+        }
         _hud.Sync();
         if (!sized) return;
         _frame.Clear();
@@ -155,6 +179,7 @@ public partial class ClassicFrontEndMenu : Node
         if (_session != null) _session.PageChanged -= PageChanged;
         if (_profiles != null) _profiles.Changed -= RefreshMovies;
         _hud?.Dispose(); _hud = null;
+        _mixer?.Dispose(); _mixer = null;
         _campaign?.Dispose(); _campaign = null; _profiles = null;
         _assets?.Dispose(); _assets = null;
         _session = null; _canvas = null;

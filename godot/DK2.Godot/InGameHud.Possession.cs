@@ -12,7 +12,7 @@ namespace DK2.GodotAdapter;
 /// <summary>The host side of the first-person view (plan step 3m), the Godot counterpart of Unity's
 /// <c>DungeonRunner.Possession.cs</c>: reads the keys, the pointer's travel and the scene's clock into a
 /// <see cref="PossessionInput"/>, and applies what <see cref="PossessionSession"/> answers (the camera through
-/// <see cref="WorldScene.Possession"/>, the pointer lock, commands; its sounds wait for the sound player, step 4). Every
+/// <see cref="WorldScene.Possession"/>, the pointer lock, commands and its sounds). Every
 /// rule is the session's (ADR-0805).</summary>
 public partial class InGameHud
 {
@@ -83,7 +83,8 @@ public partial class InGameHud
             _pending, _possessionSounds);
         UpdateScreenColours();
         DrawPossessionForeground(milliseconds);
-        // No sound player yet (step 4): the view's footsteps are dropped.
+        // Unity's runner plays the view's sounds (its footsteps) as they come.
+        for (int i = 0; i < _possessionSounds.Count; i++) _mixer?.Play(_possessionSounds[i]);
         _possessionSounds.Clear();
         if (update.Entered) _input.CancelPointerGesture();
         if (update.OrdinaryFocus is System.Numerics.Vector3 focus) _world.Focus = focus;

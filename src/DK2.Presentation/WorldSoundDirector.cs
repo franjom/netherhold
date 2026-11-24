@@ -22,6 +22,7 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, 
     private readonly ConcurrentQueue<SoundRequest> _pending = new();
     public bool TryTake(out SoundRequest request) => _pending.TryDequeue(out request);
     private uint _alternator;
+    private readonly SoundCategoryNames _categories = new();
 
     public void Emit(in SimEvent simEvent)
     {
@@ -36,10 +37,10 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, 
         downstream?.Emit(simEvent);
     }
 
-    private static SoundRequest Listener(in ThingSoundRequest sound)
+    private SoundRequest Listener(in ThingSoundRequest sound)
     {
         var place = new Vector3(sound.Position.X.Raw / 4096f, sound.Position.Z.Raw / 4096f, -sound.Position.Y.Raw / 4096f);
-        return new(new SoundCategory(sound.Category.ToLowerInvariant()), new SoundId((uint)sound.Event),
+        return new(_categories.Of(sound.Category), new SoundId((uint)sound.Event),
             sound.ListenerRelative ? null : place, sound.Voiced ? VoiceOf(sound.Source) : SoundVoiceId.None,
             VolumeAnchor: sound.ListenerRelative ? place : null);
     }

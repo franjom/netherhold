@@ -17,7 +17,7 @@ namespace DK2.GodotAdapter;
 /// <see cref="CreatureAnimationPlayer{TResources}"/> with each segment's positions rewritten in place, and each frame drawn
 /// in <see cref="SceneFrame"/>'s order, which this scene hosts; the hover overlay's frame and the burning red are
 /// WorldScene.Hover.cs's, the possessed model's hiding WorldScene.Possession.cs's and the crackle WorldScene.Lightning.cs's.
-/// Footsteps wait for the sound player.</summary>
+/// Footsteps go to <see cref="Sound"/>.</summary>
 public partial class WorldScene : ISceneFrameHost
 {
     private readonly SceneFrame _frame;
@@ -176,8 +176,14 @@ public partial class WorldScene : ISceneFrameHost
 
     int ISceneFrameHost.FootstepCrossing(CreatureId creature) => _drawn!.Slot.Animation?.Player.FootstepCrossing ?? 0;
 
-    // A footstep is a sound only (CreatureFootsteps): it waits for the sound player (step 4).
-    void ISceneFrameHost.RequestFootstep(CreatureId creature, in CreatureView pose, int crossing) { }
+    // Unity's scene hands its runner the drawn point, and the runner sounds a step only for a creature the camera sees, as
+    // DK2's pass draws only those (CreatureFootsteps).
+    void ISceneFrameHost.RequestFootstep(CreatureId creature, in CreatureView pose, int crossing)
+    {
+        if (_sound == null) return;
+        NVector3 at = _drawn!.Slot.RenderPosition;
+        if (PointInPlacedCamera(at)) _sound.Footstep(creature.Value, pose.SoundCategory, pose.Wading, crossing, at);
+    }
 
     void ISceneFrameHost.DrawCrackle(CreatureId creature, GameTick tick) => DrawCreatureLightning(creature, tick);
 

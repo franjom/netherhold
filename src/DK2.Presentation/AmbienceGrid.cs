@@ -31,6 +31,15 @@ public static class AmbienceGrid
     public static string[] Cells(WorldState world, GameDatabase database, PlayerId viewer, TilePos listener)
     {
         var cells = new string[Side * Side];
+        Cells(world, database, viewer, listener, cells);
+        return cells;
+    }
+
+    /// <summary><see cref="Cells(WorldState, GameDatabase, PlayerId, TilePos)"/> written into <paramref name="cells"/>, which holds
+    /// at least <see cref="Side"/> squared, so a frame that rebuilds the grid allocates nothing.</summary>
+    public static void Cells(WorldState world, GameDatabase database, PlayerId viewer, TilePos listener, string[] cells)
+    {
+        if (cells is null || cells.Length < Side * Side) throw new ArgumentException("The grid needs 121 cells.", nameof(cells));
         for (int row = 0; row < Side; row++)
             for (int column = 0; column < Side; column++)
             {
@@ -38,19 +47,29 @@ public static class AmbienceGrid
                 cells[(row * Side) + column] = world.Contains(new TilePos(x, y)) && world.Tile(x, y).IsExploredBy(viewer)
                     ? database.TerrainById(world.Tile(x, y).TerrainId).SoundCategory : "";
             }
-        return cells;
     }
 
     /// <summary>An emitter for each of the two heaviest categories in <paramref name="cells"/> (by cell count) among those <paramref name="hasAmbience"/> says have the ambient group.</summary>
     public static List<Emitter> Emitters(string[] cells, TilePos listener, Func<string, bool> hasAmbience)
     {
         var emitters = new List<Emitter>();
-        var seen = new HashSet<string>();
-        var counts = new List<int>();
+        Emitters(cells, listener, hasAmbience, emitters);
+        return emitters;
+    }
+
+    /// <summary><see cref="Emitters(string[], TilePos, Func{string, bool})"/> written into <paramref name="into"/> (cleared first), without
+    /// allocating: the grid is rebuilt every turn while the camera rests.</summary>
+    public static void Emitters(string[] cells, TilePos listener, Func<string, bool> hasAmbience, List<Emitter> into)
+    {
+        if (cells is null) throw new ArgumentNullException(nameof(cells));
+        if (hasAmbience is null) throw new ArgumentNullException(nameof(hasAmbience));
+        if (into is null) throw new ArgumentNullException(nameof(into));
+        into.Clear();
+        Span<int> counts = cells.Length <= Side * Side ? stackalloc int[Side * Side] : new int[cells.Length];
         for (int i = 0; i < cells.Length; i++)
         {
             string category = cells[i];
-            if (category.Length == 0 || !seen.Add(category) || !hasAmbience(category)) continue;
+            if (category.Length == 0 || SeenBefore(cells, i) || !hasAmbience(category)) continue;
             float x = 0, y = 0;
             int count = 0;
             for (int j = i; j < cells.Length; j++)
@@ -60,13 +79,33 @@ public static class AmbienceGrid
                 y += listener.Y - Reach + (j / Side) + .5f;
                 count++;
             }
-            emitters.Add(new Emitter(category, new Vector3(x / count, 0f, -y / count)));
-            counts.Add(count);
+            counts[into.Count] = count;
+            into.Add(new Emitter(category, new Vector3(x / count, 0f, -y / count)));
         }
         // 0x00609CE0 pops the best two records from a heap ordered by tile count and weight, and the pass keeps those categories only (the loop bound
         // at +0x28 is unread but at most two). The comparator and its tie-break are unread: ours ranks by cell count, the first seen winning a tie (INFERRED).
-        if (emitters.Count <= MaxEmitters) return emitters;
-        return emitters.Select((emitter, i) => (emitter, i)).OrderByDescending(p => counts[p.i]).ThenBy(p => p.i).Take(MaxEmitters)
-            .Select(p => p.emitter).ToList();
+        if (into.Count <= MaxEmitters) return;
+        int first = Heaviest(counts.Slice(0, into.Count), -1), second = Heaviest(counts.Slice(0, into.Count), first);
+        Emitter best = into[first], next = into[second];
+        into.Clear();
+        into.Add(best);
+        into.Add(next);
+    }
+
+    private static bool SeenBefore(string[] cells, int index)
+    {
+        string category = cells[index];
+        for (int i = 0; i < index; i++)
+            if (cells[i] == category) return true;
+        return false;
+    }
+
+    /// <summary>The index of the largest count, the first of equals, skipping <paramref name="skip"/>.</summary>
+    private static int Heaviest(ReadOnlySpan<int> counts, int skip)
+    {
+        int best = -1;
+        for (int i = 0; i < counts.Length; i++)
+            if (i != skip && (best < 0 || counts[i] > counts[best])) best = i;
+        return best;
     }
 }

@@ -247,7 +247,7 @@ public partial class WorldScene
 
     /// <summary>Unity's <c>DrawCreatureFrame</c> in <see cref="SceneFrame"/>'s order (this scene is its host): the Hearts'
     /// queued health steps, each creature's drawn place, clip and head, each moving object's drawn pose, each clip's frame
-    /// and a Heart's beat (its mana effect requested; its sound waits for step 4), the torches near a changed tile bent
+    /// and a Heart's beat (its mana effect and its sound requested), the torches near a changed tile bent
     /// again; then the flames advanced. <see cref="FinishFrame"/> sorts once the camera is placed.
     /// Allocation-free.</summary>
     public void DrawFrame(GameTick tick, float fraction)
@@ -342,6 +342,7 @@ public partial class WorldScene
             HeartBeat beat = _heartPulse.TryBeat(pose, beatPending: true, visible, _effectClock!, tick);
             if (!beat.Consumed) continue;
             animated.Player.ConsumeBeat();
+            _sound?.HeartBeat(pose);
             if (beat.Effect is ViewEffectRequest mana) RequestHeartEffect(mana);
         }
         Mark(DrawPhase.Objects);

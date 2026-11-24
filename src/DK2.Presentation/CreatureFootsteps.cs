@@ -19,9 +19,13 @@ public static class CreatureFootsteps
     public const uint Walk = 0x314, WalkAlternate = 0x315, Wade = 0x337, WadeAlternate = 0x338;
 
     /// <param name="crossing">The helper's result: 0 none, 1 before the clip's wrap, 2 after it.</param>
-    public static SoundRequest? For(string category, int creatureId, int crossing, bool wading, Vector3 position)
+    public static SoundRequest? For(string category, int creatureId, int crossing, bool wading, Vector3 position) =>
+        For(category.Length == 0 ? SoundCategory.None : new SoundCategory(category.ToLowerInvariant()), creatureId, crossing, wading, position);
+
+    /// <summary>As the overload with the data's name, with its category already made (<see cref="SoundCategoryNames"/>), so a step allocates nothing.</summary>
+    public static SoundRequest? For(SoundCategory category, int creatureId, int crossing, bool wading, Vector3 position)
     {
-        if (crossing is not (1 or 2) || category.Length == 0) return null;
+        if (crossing is not (1 or 2) || category.IsNone) return null;
         uint id = (wading, crossing) switch
         {
             (false, 1) => Walk,
@@ -29,7 +33,7 @@ public static class CreatureFootsteps
             (true, 1) => Wade,
             _ => WadeAlternate,
         };
-        return new SoundRequest(new SoundCategory(category.ToLowerInvariant()), new SoundId(id), position,
+        return new SoundRequest(category, new SoundId(id), position,
             WorldSoundDirector.CreatureVoice(creatureId));
     }
 }

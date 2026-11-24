@@ -68,15 +68,31 @@ public readonly record struct SoundDistanceMapping(float Minimum, float Maximum,
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-playback.md#category-and-sample-selection")]
 public sealed class SoundResolver(BankMap banks, SfxMap map)
 {
+    // The first group of each id, as a search of the map's groups in order finds it; built on first use, so a request
+    // costs one lookup and allocates nothing (the frame's thread asks several times per sound).
+    private Dictionary<SoundId, SoundGroup>? _groups;
+
+    private SoundGroup? Group(SoundId id)
+    {
+        if (_groups == null)
+        {
+            var groups = new Dictionary<SoundId, SoundGroup>(map.Groups.Count);
+            foreach (SoundGroup group in map.Groups)
+                if (!groups.ContainsKey(group.Id)) groups.Add(group.Id, group);
+            _groups = groups;
+        }
+        return _groups.TryGetValue(id, out SoundGroup? found) ? found : null;
+    }
+
     /// <summary>Whether the group repeats on its own: bit <c>0x08</c> of its flag word (group <c>+0x10</c>) makes the instance flags 6, and flag 4 gives the
     /// voice a repeat count of 9999 (<c>0x0060C960</c>, <c>0x0060CDB0</c>). Only the fireball's and firebomb's <c>0xF2</c> trail has it in the shipped maps: the other
     /// long sounds (flags <c>0x04</c> and <c>0x02</c>) end with their sample and are asked for again by their thing.</summary>
     public bool IsLooping(SoundId id) =>
-        map.Groups.FirstOrDefault(g => g.Id == id) is { Items.Count: > 0 } group
+        Group(id) is { Items.Count: > 0 } group
         && (System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(group.Unknown0x08.AsSpan(8)) & 0x08) != 0;
     /// <summary>Whether the group has exactly one item with samples, the only kind <see cref="Resolve"/> plays; a linked or delayed group has its own director.</summary>
     public bool IsSingleItem(SoundId id) =>
-        map.Groups.FirstOrDefault(g => g.Id == id) is { Items.Count: 1 } group && group.Items[0].Sounds.Count > 0;
+        Group(id) is { Items.Count: 1 } group && group.Items[0].Sounds.Count > 0;
 
     /// <summary>The voice's distance mapping in mixer units, two to a tile (<c>0x0060E4B0</c>), as <c>SoundInstance_BindVoice</c>
     /// (<c>0x0060CDB0</c>) builds it for QMixer: minimum 2.0 (one tile), maximum the item's float at <c>+0x22</c> raised to 2.1
@@ -86,7 +102,7 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
     /// times that range instead of the item's float; which requests pass one is unread.</summary>
     public SoundDistanceMapping? DistanceMappingOf(SoundId id)
     {
-        SoundGroup? group = map.Groups.FirstOrDefault(g => g.Id == id);
+        SoundGroup? group = Group(id);
         if (group is not { Items.Count: > 0 }) return null;
         if ((System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(group.Unknown0x08.AsSpan(8)) & 0x200) != 0) return null;
         return SoundDistanceMapping.Of(group.Items[0]);
@@ -94,12 +110,12 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
 
     public SoundPriority? PriorityOf(SoundId id)
     {
-        SoundGroup? group = map.Groups.FirstOrDefault(g => g.Id == id);
+        SoundGroup? group = Group(id);
         return group is { Items.Count: > 0 } ? new SoundPriority(System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(group.Unknown0x08.AsSpan(4))) : null;
     }
     public ResolvedSound? Resolve(SoundId id, SoundRand random)
     {
-        SoundGroup? group = map.Groups.FirstOrDefault(g => g.Id == id);
+        SoundGroup? group = Group(id);
         // Linked/delayed multi-item players are selected by their own directors.
         return group is { Items.Count: 1 } ? ResolveItem(group.Items[0], random) : null;
     }

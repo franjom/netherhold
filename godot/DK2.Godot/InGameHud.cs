@@ -65,7 +65,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// held state.</summary>
     private PickupFlow? _pickups;
     /// <summary>The hand cursor's transient states (Unity's runner's <c>_cursorFeedback</c>), shared by the pickups, the world
-    /// pointer and the hover; their sounds are dropped, as no sound plays here.</summary>
+    /// pointer and the hover, whose sounds the mixer plays.</summary>
     private readonly HandCursorFeedback _cursorFeedback = new();
     /// <summary>The cursor, placement and cage the pointer shows (DungeonRunner.CaptureWorldHover after the pick).</summary>
     private HoverCursorResolver? _hoverCursor;
@@ -147,8 +147,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private ClassicCreatureOverview? _overview;
     private CreatureQueryView? _queryView;
     private ClassicCreatureQueryPanel? _queryPanel;
-    /// <summary>The battle records the battle tab reads (Unity's runner keeps it for the music; no music is played here).</summary>
+    /// <summary>The battle records the battle tab reads: the sound driver's music observer, as Unity's runner shares it.</summary>
     private MusicWorldObserver? _battles;
+    /// <summary>The level's sound (plan step 4): Godot's players (<see cref="ClassicSoundOutput"/>) under the shared mixer and
+    /// driver, which decide what plays (Unity's runner's <c>_soundPlayer</c> and <c>DungeonRunner.Sound</c>).</summary>
+    private ClassicSoundOutput? _soundOutput;
+    private ClassicSoundMixer? _mixer;
+    private LevelSoundDriver? _sound;
     private ClassicBattleTab? _battleTab;
     private ClassicOptionsPanel? _options;
     /// <summary>The save and load pages' list, as Unity's runner keeps it.</summary>
@@ -166,7 +171,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private CampaignResultFlow? _resultFlow;
     /// <summary>The level script's view requests (Unity's runner's <c>_scriptedView</c>): the camera path, the letterbox
     /// count and the flash, which hide the HUD, hold the options key and light the panel and the resources; Escape or Space
-    /// skips a path (<see cref="FrameDriver"/>). Subtitles and speech remain in step 4.</summary>
+    /// skips a path (<see cref="FrameDriver"/>). Its speech plays through <see cref="_sound"/>; the subtitles remain in step 4.</summary>
     private ScriptedViewDirector? _scriptedView;
     private bool _pathPlaying;
     /// <summary>The viewer's status last printed (<see cref="ReportPath"/>).</summary>
@@ -347,8 +352,26 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             messageText.Resolve, messageText.Briefing, message => messageView.LocationOncePerTick(simulation.World, message),
             (x, y) => StartGlide(new TilePos((int)Math.Floor(x), (int)Math.Floor(y))), PlayerNames.From(level.Players));
         AddChild(_messages);
+        // DungeonRunner.StartGame's sound player: the level's likely clips decode on workers while the level loads, read
+        // before the first tick; the rest decode on first use, also off this thread.
+        _soundOutput = new ClassicSoundOutput { Name = "Sound", Spatial = true };
+        AddChild(_soundOutput);
+        _mixer = new ClassicSoundMixer(_soundOutput, new InstallClassicSoundAssets(install), 0);
+        _sound = new LevelSoundDriver(_mixer, level.Database, _viewer);
+        Task soundPrefetch = _mixer.Prefetch(LevelSoundPrefetch.Categories(level.Database, _simulation.World, _sound.LevelSpeech),
+            Math.Max(1, System.Environment.ProcessorCount - 1));
         // Created after the tabs, as DungeonRunner creates it, with their sorting order 14 over the panel's 12.
-        _battles = new MusicWorldObserver(_viewer, new MusicDirector());
+        _battles = _sound.Music;
+        // --sound-log: each request as it starts on a source, with its sample (a check; nothing subscribes otherwise).
+        if (Array.IndexOf(args, "--sound-log") >= 0)
+        {
+            GameSimulation logged = _simulation;
+            _mixer.Started += (request, sample) => GD.Print("DK2.Godot sound: frame ", Engine.GetProcessFrames(), " tick ",
+                logged.World.CurrentTick.Value, " ", request.Category.Name, " 0x", request.Id.Value.ToString("X", CultureInfo.InvariantCulture),
+                request.Voice == SoundVoiceId.None ? "" : " voice 0x" + request.Voice.Value.ToString("X8", CultureInfo.InvariantCulture),
+                request.World is System.Numerics.Vector3 at ? " at " + at.ToString("F2", CultureInfo.InvariantCulture) : "",
+                " -> ", sample.Archive, ":", sample.Entry.Value);
+        }
         _battleTab = new ClassicBattleTab { Name = "BattleTab" };
         _battleTab.Open(_art.Image, _art.Text);
         _battleTab.Clicked += BattleTabClicked;
@@ -414,8 +437,12 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             LevelSubtitles.Open(install, level.Database.Level?.TextTableId ?? 0, warning => GD.PushWarning(warning)).Line);
         _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
         _scriptedView.ZoomRequested += ScriptZoom;
-        _simulation.ObserveWith(_scriptedView);
+        // Unity's runner's chain: the thing sounds, the scripted view and Level6a's torture speech (ADR-0809); the effects
+        // observe it next.
+        _sound.WireSpeech(_scriptedView);
+        _simulation.ObserveWith(_sound.Observe(new Level6aTortureSpeech(level.Database, _messageView, _scriptedView)));
         _world.OpenEffects(_simulation, _worldView, _viewer, seed);
+        _world.Sound = _sound;
         _frameDriver = new FrameDriver(_pending, _worldView, _pacer, _journal);
         // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
         if (resume == null)
@@ -508,6 +535,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture), ", saves in ", savesDirectory,
             ", settings in ", _settingsPath);
         if (resume != null) PrintHash("resumed " + resume.Resume!.Session.Header.DisplayName + " at");
+        // DungeonRunner.StartGame waits for the sound prefetch before the first frame.
+        try { soundPrefetch.Wait(); }
+        catch (AggregateException e) { GD.PushWarning("DK2.Godot: sound prefetch failed: ", e.InnerException?.Message); }
+        GD.Print("DK2.Godot: sound prefetch decoded ", _mixer.DecodedMegabytes.ToString("F1", CultureInfo.InvariantCulture),
+            " MB of samples");
     }
 
     public override void _Process(double delta)
@@ -523,19 +555,27 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         JournalBeginFrame(delta);
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
+        long milliseconds = (long)(_elapsed * 1000);
+        // DungeonRunner.Update's first step: the effects whose clips finished decoding, then the speech line.
+        _mixer?.PlayDecoded(milliseconds);
+        _mixer?.UpdateSpeech(milliseconds);
         if (_loadName != null || (_saveAs != null && _simulation.World.CurrentTick >= _saveTick)) RunSaveLoadCheck();
-        // Once per settled turn, before the HUD draws, as DungeonRunner.UpdateWorldSound captures it.
-        _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
+        // DungeonRunner.UpdateWorldSound after its present, before the HUD draws: the thing sounds, the voices, the ambience
+        // around the tile under the screen's centre (last frame's HUD, as Unity's ScreenToTile reads it), the speech line's
+        // subtitle, and the music once a settled turn, whose battle records the battle tab reads.
+        if (_sound != null)
+            _sound.Update(_simulation.World, PointerTile(GetViewport().GetVisibleRect().Size * .5f, _pressVisibility), milliseconds);
+        else _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
         // Once per settled turn, as DungeonRunner captures it before the HUD draws; the full map reads the same grid.
         bool minimapCaptured = _minimap.Capture(_simulation.World, _worldView, _simulation.Navigation);
-        long milliseconds = (long)(_elapsed * 1000);
         // DungeonRunner.Update's script step (FrameDriver): the scripted view on the drawn turn plus the debt toward the next
         // (this scene ticks inline, so none is pending), then the level end, which may leave for the front end.
         _frameDriver.UpdateScript(_scriptedView, milliseconds, _simulation.World, _viewer, ticksPending: 0);
         ReportPath();
         bool checkKeys = _resultFlow.ResultRecorded && !_scriptedView.PathPlaying;
         bool escapeCheck = _escapeResult && checkKeys;
-        var result = new CampaignResultFrame(_viewer, _scriptedView.PathPlaying, milliseconds, SpeechPlaying: null,
+        bool? speechPlaying = _mixer != null && _mixer.SpeechEnabled ? _mixer.SpeechBusy : null;
+        var result = new CampaignResultFrame(_viewer, _scriptedView.PathPlaying, milliseconds, speechPlaying,
             _keyboard.SpacePressed || (_leaveResult && checkKeys && !escapeCheck), _keyboard.EscapePressed || escapeCheck);
         if (_resultFlow.Update(_simulation.World, _simulation.Database, result, _pending))
         {
@@ -626,9 +666,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _model.GamePaused = _hudControls.TicksPaused;
         _panel.Draw(milliseconds);
         _messageView.Capture(_simulation.World, milliseconds, visibility);
-        // No sound player yet: drop the requests so they do not pile up.
-        _model.Sounds.Clear(); _view.Sounds.Clear(); _messageView.Sounds.Clear(); _messageView.Speech.Clear();
-        _hudControls.Sounds.Clear(); _optionsPages.Sounds.Clear();
+        // DungeonRunner.DrawHudControls's sounds, in its order (the warm frames are not ported, so none is dropped).
+        PlayHudSounds();
         // As the HUD shows; taking input unless the options menu holds it.
         HudVisibility tabs = _hudControls.ModalInput(visibility);
         _messages.Draw(tabs, _model.Collapsed,
@@ -656,8 +695,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _queryPanel.Draw(_queryView.Capture(_simulation.World), visibility, modal);
         DrawPossessionHud(milliseconds);
         // The hover, after the HUD is drawn (DungeonRunner.CaptureWorldHover): over the HUD, the panels' text; over the world
-        // the pick and its text, the Hand's light, then the cursor, placement, tint and cage (HoverCursorResolver). The hover
-        // sound waits for the sound player (step 4).
+        // the pick and its text, the Hand's light, then the cursor, placement, tint, cage and hover sound (HoverCursorResolver).
         _hover.SetVisibility(visibility, milliseconds);
         // A failed pick with nothing hovered sends DK2's light to an edge tile, which blacks it out (0x0043BCB8); with
         // ordinary input off (a cutscene) it keeps its place.
@@ -693,8 +731,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         DrawPossessionEntryBadge(milliseconds, pick, feedback, visibility.ShowNormalHud);
         _world.CommitHoverOverlay();
         if (_pickFrames > 0 && pick != null) _pickBytes += GC.GetAllocatedBytesForCurrentThread() - tintBefore;
-        // No sound player yet (step 4): the hover's (feedback.HoverSound) and the cursor's requests are dropped.
-        _cursorFeedback.Sounds.Clear();
+        if (_mixer != null && feedback.HoverSound is SoundRequest hoverSound) _mixer.Play(hoverSound);
+        if (_mixer != null) _mixer.Play(_cursorFeedback.Sounds); else _cursorFeedback.Sounds.Clear();
         _handCursor.Update(feedback.Cursor, allowed, milliseconds);
         _handCursor.Draw(_pointer);
         _hover.Draw(hover, _pointer, feedback.TooltipReach, milliseconds);
@@ -1251,12 +1289,19 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     }
 
     /// <summary>DungeonRunner.ApplyGameSettings for what this scene has: the settings it reads (game speed, key bindings)
-    /// and the HUD scale on the ported panels (ApplyHudScale), the camera's scroll speed and the gamma. The other rendering
-    /// settings (shadows, water, environment mapping) and the sound volumes and switches need systems not ported yet:
-    /// their values change, and nothing acts on them.</summary>
+    /// and the HUD scale on the ported panels (ApplyHudScale), the camera's scroll speed, the gamma and the sound
+    /// (ApplySoundSettings). The other rendering settings (shadows, water, environment mapping) need systems not ported
+    /// yet: their values change, and nothing acts on them.</summary>
     private void ApplySettings(GameSettings settings)
     {
         _settings = settings;
+        if (_mixer != null)
+        {
+            _mixer.SoundQuality = settings.SoundQuality;
+            _mixer.SetVolumes(master: settings.MasterVolume, speech: settings.SpeechVolume, music: settings.MusicVolume,
+                effects: settings.SoundEffectVolume, speechOn: settings.SpeechSwitch, musicOn: settings.MusicSwitch,
+                effectsOn: settings.SfxSwitch);
+        }
         if (_world?.Controls is ClassicCameraControls controls) controls.ScrollSpeed = settings.ScrollSpeed;
         // The twin of DungeonRunner.ApplyHudScale's panel list: the two change together while both adapters exist.
         int scale = settings.UiScale;
@@ -1277,7 +1322,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     /// <summary>The settings file as <see cref="GameSettingsFile"/> reads it; the defaults, with a warning, when it cannot
     /// be read.</summary>
-    private static GameSettings LoadSettings(string path)
+    internal static GameSettings LoadSettings(string path)
     {
         try { return GameSettingsFile.Load(path); }
         catch (Exception e) when (IsFileError(e))
@@ -1366,6 +1411,25 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
     private void PostGuiButton(GuiButtonTarget target) => _pending.Add(new GuiButtonCommand(_viewer, target));
 
+    /// <summary>DungeonRunner.DrawHudControls: the controls', the panel's, its view's, the messages' and the settings pages'
+    /// requests, then the messages' speech; without a mixer they are dropped so they do not pile up.</summary>
+    private void PlayHudSounds()
+    {
+        if (_model == null || _view == null || _messageView == null || _optionsPages == null) return;
+        if (_mixer == null)
+        {
+            _hudControls.Sounds.Clear(); _model.Sounds.Clear(); _view.Sounds.Clear(); _messageView.Sounds.Clear();
+            _optionsPages.Sounds.Clear(); _messageView.Speech.Clear();
+            return;
+        }
+        _mixer.Play(_hudControls.Sounds);
+        _mixer.Play(_model.Sounds);
+        _mixer.Play(_view.Sounds);
+        _mixer.Play(_messageView.Sounds);
+        _mixer.Play(_optionsPages.Sounds);
+        _mixer.QueueSpeech(_messageView.Speech);
+    }
+
     /// <summary>The panels this scene has, asked as DungeonRunner.PointerOverHud asks its own (<see cref="HudPointerMap"/>).</summary>
     private bool PointerOverHud(Vector2 position, HudVisibility visibility) =>
         HudPointerMap.Over(new PointerPanels(this, position, visibility), fullMapVisible: _hudControls.FullMapVisible,
@@ -1406,11 +1470,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     KeeperResourceKind IHudHoverSources.Resource() => _resources?.ResourceAt(_pointer) ?? KeeperResourceKind.None;
 
     /// <summary>Every key event reaches the keyboard, as Unity's <c>Input.GetKey</c> reads the keys whatever the UI holds.</summary>
-    /// <summary>Unity's runner removes its heart health observer when the level goes; so does this scene.</summary>
+    /// <summary>Unity's runner removes its heart health observer and disposes its sound player when the level goes; so
+    /// does this scene.</summary>
     public override void _ExitTree()
     {
         if (_heartHealthObserver != null && _simulation != null) _simulation.World.HeartHealthChanged -= _heartHealthObserver;
         _heartHealthObserver = null;
+        _mixer?.Dispose();
         ClosePossession();
     }
 

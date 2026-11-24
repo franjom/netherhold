@@ -24,7 +24,11 @@ public static class HeartBeatSound
             ? database.TerrainById(room.TerrainId).SoundCategory : "";
 
     public static SoundRequest? For(string category, in ObjectView heart) =>
-        category.Length == 0 ? null
-            : new SoundRequest(new SoundCategory(category.ToLowerInvariant()), new SoundId(EventId),
+        For(category.Length == 0 ? SoundCategory.None : new SoundCategory(category.ToLowerInvariant()), heart);
+
+    /// <summary>As the overload with the data's name, with its category already made, so a beat allocates nothing.</summary>
+    public static SoundRequest? For(SoundCategory category, in ObjectView heart) =>
+        category.IsNone ? null
+            : new SoundRequest(category, new SoundId(EventId),
                 new Vector3(heart.PosX / 4096f, heart.Height / 4096f, -heart.PosY / 4096f));
 }

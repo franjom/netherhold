@@ -73,6 +73,31 @@ public partial class WorldScene : ISimulationEventSink
         simulation.ObserveWith(new VisibilityEventSink(view, world, viewer, this));
     }
 
+    /// <summary>The level's sound (plan step 4): the Heart's beat and the creatures' steps the frame lets through, and the
+    /// effects the model creates (a Casino party's pop), as Unity's runner wires its scene's and model's callbacks. Set after
+    /// <see cref="OpenEffects"/>.</summary>
+    public LevelSoundDriver? Sound
+    {
+        get => _sound;
+        set
+        {
+            _sound = value;
+            if (_effects != null) _effects.Model.EffectCreated = value == null ? null : value.EffectCreated;
+        }
+    }
+    private LevelSoundDriver? _sound;
+
+    /// <summary>DungeonRunner.IsPointInCamera: a one-tile sphere at <paramref name="point"/> (the view's space) against the
+    /// placed camera's frustum; everything counts before the camera is placed.</summary>
+    private bool PointInPlacedCamera(System.Numerics.Vector3 point)
+    {
+        if (View == null) return true;
+        ViewFrustum frustum = PlacedFrustum;
+        for (int i = 0; i < 6; i++)
+            if (System.Numerics.Plane.DotCoordinate(frustum[i], point) < -1f) return false;
+        return true;
+    }
+
     /// <summary>Unity's runner after the turns before the first frame: the effect model runs one update.</summary>
     public void StartEffects() => _effects?.Model.UpdateNow();
 
@@ -111,7 +136,7 @@ public partial class WorldScene : ISimulationEventSink
         return true;
     }
 
-    /// <summary>A Heart's beat let through: its mana effect (the beat's sound waits for the sound player, step 4).</summary>
+    /// <summary>A Heart's beat let through: its mana effect (its sound is <see cref="Sound"/>'s).</summary>
     private void RequestHeartEffect(in ViewEffectRequest request) => _effectFrame?.RequestFromScene(request);
 
     /// <summary>Step 1 of the frame's effect requests (<see cref="EffectFrame"/>), after the present and before the scene
