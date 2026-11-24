@@ -111,6 +111,48 @@ public sealed class ClassicSoundMixerTests
     }
 
     [Fact]
+    public async Task APrefetchedLineStartsOnTheFrameItIsQueued()
+    {
+        var output = new FakeOutput();
+        var mixer = new ClassicSoundMixer(output, Assets(), 0);
+
+        await mixer.PrefetchSpeech(Speech, new SoundId(1));
+        mixer.QueueSpeech(Speech, new SoundId(1));
+        mixer.UpdateSpeech(5_000);
+
+        Assert.True(output.Speech!.IsPlaying);
+    }
+
+    [Fact]
+    public void AnUnprefetchedLineWaitsForItsDecode()
+    {
+        var output = new FakeOutput();
+        var assets = new HeldAssets(Assets());
+        var mixer = new ClassicSoundMixer(output, assets, 0);
+
+        mixer.QueueSpeech(Speech, new SoundId(1));
+        mixer.UpdateSpeech(5_000);
+        bool playing = output.Speech!.IsPlaying;
+        assets.Release.Set();
+
+        Assert.False(playing);
+        Assert.True(mixer.SpeechBusy);
+    }
+
+    /// <summary>Clips whose decode waits for <see cref="Release"/>, so a test sees the frame before a decode lands.</summary>
+    private sealed class HeldAssets(FakeAssets inner) : IClassicSoundAssets
+    {
+        public ManualResetEventSlim Release { get; } = new();
+        public SoundMaps Maps(SoundCategory category) => inner.Maps(category);
+
+        public PcmClip? Clip(ResolvedSound reference)
+        {
+            Release.Wait();
+            return inner.Clip(reference);
+        }
+    }
+
+    [Fact]
     public async Task WhileALinePlaysEffectsRunAtTwoThirdsOfTheirSetting()
     {
         (ClassicSoundMixer mixer, FakeOutput output) = await Mixer();

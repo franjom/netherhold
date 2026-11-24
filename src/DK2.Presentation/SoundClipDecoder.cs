@@ -63,6 +63,14 @@ public sealed class SoundClipDecoder
         Parallel.ForEach(todo, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, workers) }, Decode);
     });
 
+    /// <summary>Decodes <paramref name="references"/> on one worker, skipping those decoded or decoding; the caller decides
+    /// whether to wait.</summary>
+    public Task Prefetch(IReadOnlyList<ResolvedSound> references) => Task.Run(() =>
+    {
+        foreach (ResolvedSound reference in references)
+            if (!_ready.ContainsKey(reference) && _decoding.TryAdd(reference, 0)) Decode(reference);
+    });
+
     private void SamplesOf(SoundCategory category, HashSet<ResolvedSound> into)
     {
         if (category.IsNone) return;

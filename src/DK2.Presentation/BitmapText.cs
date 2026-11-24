@@ -254,6 +254,55 @@ public readonly struct PlacedBitmapGlyphs(BitmapFont font, HudRect box, IReadOnl
     }
 }
 
+/// <summary>A wrapped, centred text kept between frames, as Unity's <c>ClassicBitmapText.DrawCentred</c> keeps its wrap: the
+/// text is wrapped again only when the font, the text or the wrap width changes, so a subtitle that stays allocates
+/// nothing. <see cref="Update"/> says when the glyphs may have changed, for an adapter that keeps its draw until then.</summary>
+public sealed class BitmapTextBlock
+{
+    private IReadOnlyList<BitmapTextLine> _lines = [];
+    private int _wrapWidth = -1;
+
+    /// <summary>The font of the text shown, or null when nothing is shown.</summary>
+    public BitmapFont? Font { get; private set; }
+
+    public string? Text { get; private set; }
+    public HudRect Box { get; private set; }
+    public float Scale { get; private set; }
+
+    /// <summary>The lines shown, wrapped to the box at the scale (<see cref="BitmapTextPlacement.WrapWidth"/>).</summary>
+    public IReadOnlyList<BitmapTextLine> Lines => _lines;
+
+    /// <summary>Shows <paramref name="text"/> in <paramref name="font"/>, centred in <paramref name="box"/> at
+    /// <paramref name="scale"/>; a null font or text shows nothing.</summary>
+    /// <returns>Whether the glyphs may differ from the last call's.</returns>
+    public bool Update(BitmapFont? font, string? text, HudRect box, float scale)
+    {
+        if (font == null || text == null)
+        {
+            if (Font == null) return false;
+            Font = null;
+            Text = null;
+            _lines = [];
+            _wrapWidth = -1;
+            return true;
+        }
+        int wrapWidth = BitmapTextPlacement.WrapWidth(box.Width, scale);
+        bool rewrap = !ReferenceEquals(font, Font) || wrapWidth != _wrapWidth || !string.Equals(text, Text, StringComparison.Ordinal);
+        if (!rewrap && box == Box && scale == Scale) return false;
+        if (rewrap) _lines = BitmapTextLayout.Wrap(font, text, wrapWidth);
+        Font = font;
+        Text = text;
+        Box = box;
+        Scale = scale;
+        _wrapWidth = wrapWidth;
+        return true;
+    }
+
+    /// <summary>The glyphs <see cref="BitmapTextPlacement.Place"/> places for the text shown, while <see cref="Font"/> is set.</summary>
+    public PlacedBitmapGlyphs Glyphs => BitmapTextPlacement.Place(
+        Font ?? throw new InvalidOperationException("No text is shown."), Box, _lines, Scale);
+}
+
 /// <summary>
 /// Where the remake shows speech subtitles, the win screen's text and the cutscene title card, in screen pixels.
 /// Our layout, not DK2's: that DK2 shows no win-screen text is carried over uncited from the runner, and its title

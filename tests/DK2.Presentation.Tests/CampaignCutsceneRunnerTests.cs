@@ -55,6 +55,7 @@ public sealed class CampaignCutsceneRunnerTests
         Assert.Equal(cutscene.TitleTextId, asked);
         Assert.Equal("The Lord", runner.VisibleTitle);
         Assert.True(runner.Blackout(movieHasFrame: false));
+        Assert.Equal(new SoundId(cutscene.TitleTextId + 1), runner.TitleSpeech);
 
         Assert.True(runner.Update(10.2f));
         Assert.Empty(host.Calls);
@@ -87,6 +88,7 @@ public sealed class CampaignCutsceneRunnerTests
         var host = new Host();
         var runner = new CampaignCutsceneRunner(host);
         runner.Begin(Won(1), "install", _ => null, 0f);
+        Assert.Null(runner.TitleSpeech);
         Assert.Null(runner.VisibleTitle);
 
         Assert.True(runner.Update(0f));

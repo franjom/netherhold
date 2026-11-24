@@ -107,7 +107,7 @@ turn 1 and writes nothing, the HUD hides during the opening camera path, and its
 flashes and the options-key hold follow Unity's rules (`PlayedHud`, `PanelFlash`). Escape or Space skips a playing camera path and posts `SkipCameraPathCommand`
 (`FrameDriver`; the options key is held that frame). The binary also gates Escape
 on a flag and Space on a player bit, which `FrameDriver` does not mirror (ADR-0496, [0x00405010](../docs/research/functions/00405010.md)). Not wired:
-the path's camera and the letterbox (plan step 3n), the subtitles (step 4). The level end is `CampaignResultFlow`, shared with Unity: a
+the path's camera and the letterbox (plan step 3n). The Mentor's subtitle shows during a path (*Subtitles*). The level end is `CampaignResultFlow`, shared with Unity: a
 level started with `--from-map` (as the campaign map launches one) runs it, so a verdict writes the profile and Space
 then switches to `Main.tscn` at the session's return page, the campaign results page;
 Escape after a win posts `ContinueAfterResultCommand` and then `RevealMapCommand`, and the level goes on. The won map's
@@ -244,7 +244,8 @@ likely clips decode on workers before the first frame, as Unity's runner waits f
 time, as the rest of the scene's (a clip still decoding is heard late, so a capture's WAV can vary with the machine). `InGameHud` calls the mixer and driver in Unity's
 order (decoded effects and the speech line first, the driver after the present, the panels' requests and the messages'
 speech as the HUD draws, then the hover's and the cursor's); the settings' volumes and switches apply; the result flow reads
-whether speech is busy. `--sound-log` prints each request as it starts (frame, turn, category, id, voice, place, sample). A Movie Maker
+whether speech is busy. `--sound-log` prints each request as it starts (frame, turn, category, id, voice, place, sample); on `Main.tscn` it prints
+the front end's (frame, clock in ms, category, id, sample) and when the title card queues its line. A Movie Maker
 capture (*Verifying*) also writes the mixed audio: `<name>.wav` beside PNG frames (48 kHz, 32-bit stereo), or in an `.avi`.
 Not wired: the battle fly-in's sounds and the win screen's speech (no fly-in or win screen yet).
 
@@ -262,8 +263,10 @@ frame). Nothing else is ducked, as in Unity: the menu does not run while a movie
 runs Unity's `DungeonRunner.Startup` and `.Cutscene`: the title screen for 10 s, `BullfrogIntro.tgq` and `Intro.tgq` once a
 process (`FrontEndStartupGate`; skipped with `-- --skip-startup` and when there is no display, `--headless`), the attract
 movies after 180 s idle, the gallery's and the trailer's movies, and a won map's card, its Mentor line and
-`CutSceneLevel<N>.tgq` when a `--from-map` level returns (`CampaignCutsceneRunner`); the card's text waits for the
-subtitles. `ClassicFrontEndMenu.PlayingMovie.Playback` and `.Cutscenes` are the state the subtitles will follow. Each
+`CutSceneLevel<N>.tgq` when a `--from-map` level returns (`CampaignCutsceneRunner`), with the card's title drawn (*Subtitles*);
+the card's line is decoded before the front end's first frame (`ClassicSoundMixer.PrefetchSpeech`, the runner's `TitleSpeech`),
+since the front end prefetches nothing else, so it starts on the frame the card queues it. No movie shows subtitles, as in
+Unity. Each
 movie logs one summary line: frames shown and dropped, decode ms, how late each frame was by the audio clock and its
 drift, and the adapter's main-thread ms, upload ms and managed allocation. `Main.tscn -- --play-movie <path>` plays one
 movie (relative to the install) and quits; `--movie-skip-frame <n,...>` sends Esc at those frames of `Main.tscn`, through
@@ -274,6 +277,23 @@ for pixel with every 4x2 block uniform, 187 of 189 frames identified in order; t
 Real time (headless, the editor's Debug C#): decode 8 to 13 ms a frame on the worker, the main thread 0.04 to 0.07 ms a
 frame and 0.1 ms an upload, at most 88 managed bytes once after the first picture (none in Intro's 17,154 frames), frames
 6.5 to 7.7 ms after due on average (at most 16.5) and 1 to 2.5 ms drift over BullfrogIntro, Intro and CutSceneLevel3. Not driven: a gallery press (the menu reads the OS pointer and has no scripted one).
+
+### Subtitles
+
+Step 4 (migration plan). What shows, where and when is `DK2.Presentation`'s, as Unity's runner draws it: the in-game
+subtitle is `ScriptedViewDirector.Subtitle` (only while a camera path plays, timed by the speech line, or by
+`SubtitleQueue` with the speech switch off) in `SubtitleLayout.SpeechBox`; the won map's title card is
+`CampaignCutsceneRunner.VisibleTitle` while its black is up, in `SubtitleLayout.TitleBox` at `TitleScale`. The face is
+`InterfaceFonts.LegibleFileName`'s BF4 font for the screen height, wrapped and placed by `BitmapTextBlock` (`BitmapTextLayout.Wrap`
+and `BitmapTextPlacement.Place`, the wrap kept until the text, font or wrap width changes). `BitmapTextItem` draws it into one
+canvas item, recorded again only when the block changes: each glyph blitted, nearest-filtered, from the font's shared
+`BitmapGlyphAtlas` (the HUD's atlas, audit item 11), or, when the menu's replacement face is found (*Setting up a machine*;
+`ClassicFrontEndMenuAssets.LoadReplacementFont`) and has every character of the text, as that face's glyph centred on the
+bitmap glyph's ink, sized so the text's tallest glyph fills its ink height, white: the menu's own substitution
+(`HudCanvas.Font.cs`), so the lines and boxes stay the bitmap layout's. Unity draws its TrueType face at its own size
+(`SubtitleLayout.TrueTypePixelSize`), wrapped by the engine; Godot follows the menu instead (owner, 2026-11-24). The
+in-game text is canvas layer 102 (`InGameHud.Subtitles.cs`), over the letterbox and the hand cursor and under the screen
+colours; the card's is a child of the front end's cover. The win screen's text has no screen to show on yet.
 
 ### HUD text atlas, gauges and glows
 Audit item 11. Set text (`HudText`) drawn one texel per screen pixel, which is every HUD text since the fonts are chosen
@@ -418,6 +438,8 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `DK2.Godot/ClassicMinimap.cs` | the minimap: `MinimapHud` drawn by `HudCanvas` bottom-docked over `MinimapGpuDisc`'s viewport texture, hit-tests corner and map presses for the router without taking them from the panels under it |
 | `DK2.Godot/ClassicMessageTabs.cs` | the message tabs, message and objective panels, indicators: `MessageTabsHud` drawn by `HudCanvas`, bottom-docked, mouse forwarded |
 | `DK2.Godot/HudCanvas*.cs` | the one `HudFrame` renderer every panel draws through |
+| `DK2.Godot/BitmapGlyphAtlas.cs` | one luminance-alpha glyph atlas per BF4 font, shared by the HUD canvases and the subtitles |
+| `DK2.Godot/BitmapTextItem.cs`, `InGameHud.Subtitles.cs` | the subtitles and the title card's text (*Subtitles*) |
 
 ## Setting up a machine
 

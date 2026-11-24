@@ -55,13 +55,13 @@ public static class LauncherCopy
         _ => new("Choose the folder that holds DKII.EXE and the Data folder.", LauncherTone.Plain),
     };
 
-    /// <summary>Without a face the front end draws its labels in DK2's own bitmap font (<c>ClassicFrontEndMenu</c>).</summary>
+    /// <summary>Without a face the front end draws its labels, and both scenes their subtitles, in DK2's own bitmap font.</summary>
     public static LauncherMessage Font(LauncherFontCheck check) => check switch
     {
-        LauncherFontCheck.Found => new("The menu's labels will use this font.", LauncherTone.Ready),
+        LauncherFontCheck.Found => new("The menu's labels and the subtitles will use this font.", LauncherTone.Ready),
         LauncherFontCheck.Missing => new("There is no file at this path.", LauncherTone.Problem),
         LauncherFontCheck.NotAFont => new("Choose a TrueType or OpenType font (.ttf or .otf).", LauncherTone.Problem),
-        _ => new("Leave this empty and the menu uses the game's own lettering.", LauncherTone.Plain),
+        _ => new("Leave this empty and the menu and the subtitles use the game's own lettering.", LauncherTone.Plain),
     };
 
     public static LauncherFontCheck CheckFont(string? path, Func<string, bool> fileExists)

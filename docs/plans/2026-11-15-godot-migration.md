@@ -1096,14 +1096,17 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 - [x] Movies (decoding stays in `src/`), 2026-11-24. `MoviePlayback` (`DK2.Presentation`) holds every decision Unity's
       `ClassicMoviePlayer` made (start delay, audio-clock pacing, dropping three behind, skip input, end) and decodes ahead on
       one worker; Godot's `ClassicMoviePlayer` uploads frames into one texture and feeds an `AudioStreamGenerator`. The front
-      end plays the startup, attract, gallery and trailer movies and a won map's title card and cutscene. Not drawn yet: the
-      title card's text (subtitles batch). `godot/README.md` (*Movies*) has the files and the checks.
+      end plays the startup, attract, gallery and trailer movies and a won map's title card and cutscene; the card's text is
+      the subtitles item's. `godot/README.md` (*Movies*) has the files and the checks.
 - [x] The level sound driver (`DungeonRunner.Sound`, deferred from step 2k), 2026-11-24: its decisions and the player's are
       `LevelSoundDriver` and `ClassicSoundMixer` in `DK2.Presentation`, behind `ISoundOutput`; Godot calls them. Owner
       ruling (2026-11-24): Unity is being phased out, so nothing under `unity/` changed and Unity keeps its own copy
       (`ClassicSoundPlayer`, `DungeonRunner.Sound`) until step 5 deletes it.
-- [ ] Godot's speech subtitles (deferred from step 2k): wrap with `BitmapTextLayout`, pack a `.bf4` atlas, and blit
-      `BitmapTextPlacement.Place` in `SubtitleLayout`'s boxes, timed by the speech playback.
+- [x] Godot's speech subtitles (deferred from step 2k), 2026-11-24: the Mentor's subtitle during a camera path and a won
+      map's title card text, wrapped and placed by the shared `BitmapTextBlock` in `SubtitleLayout`'s boxes and timed by
+      `ScriptedViewDirector.Subtitle` and `CampaignCutsceneRunner.VisibleTitle`; drawn from the HUD's shared BF4 glyph atlas, or
+      in the menu's replacement face when one is found (owner, 2026-11-24). The card's Mentor line is decoded before the front
+      end's first frame. `godot/README.md` (*Subtitles*).
 - [ ] Godot equivalents of the probes that are still needed (headless scenes, Movie Maker
       captures; keep the Python summarisers). `tools/hud-probe` is deleted here; its
       `HudPilot.Compile.csproj` already fails to compile (25 errors: `ClassicHudScaling` and

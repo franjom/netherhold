@@ -171,7 +171,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private CampaignResultFlow? _resultFlow;
     /// <summary>The level script's view requests (Unity's runner's <c>_scriptedView</c>): the camera path, the letterbox
     /// count and the flash, which hide the HUD, hold the options key and light the panel and the resources; Escape or Space
-    /// skips a path (<see cref="FrameDriver"/>). Its speech plays through <see cref="_sound"/>; the subtitles remain in step 4.</summary>
+    /// skips a path (<see cref="FrameDriver"/>). Its speech plays through <see cref="_sound"/>, its subtitle in <c>InGameHud.Subtitles.cs</c>.</summary>
     private ScriptedViewDirector? _scriptedView;
     private bool _pathPlaying;
     /// <summary>The viewer's status last printed (<see cref="ReportPath"/>).</summary>
@@ -440,6 +440,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Unity's runner's chain: the thing sounds, the scripted view and Level6a's torture speech (ADR-0809); the effects
         // observe it next.
         _sound.WireSpeech(_scriptedView);
+        OpenSubtitles();
         _simulation.ObserveWith(_sound.Observe(new Level6aTortureSpeech(level.Database, _messageView, _scriptedView)));
         _world.OpenEffects(_simulation, _worldView, _viewer, seed);
         _world.Sound = _sound;
@@ -621,6 +622,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _world.ScriptedView = _scriptedView;
         _world.PlaceCamera();
         DrawLetterbox();
+        DrawSubtitles();
         _fullMap.PreparePreview(_world, _pointer);
         if (visibility.AllowOrdinaryInput && !_hudControls.Modal) ReadAmbientKeys();
         QueueInput(visibility, milliseconds);
@@ -1477,6 +1479,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_heartHealthObserver != null && _simulation != null) _simulation.World.HeartHealthChanged -= _heartHealthObserver;
         _heartHealthObserver = null;
         _mixer?.Dispose();
+        CloseSubtitles();
         ClosePossession();
     }
 

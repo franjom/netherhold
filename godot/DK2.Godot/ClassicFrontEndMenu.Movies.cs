@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Globalization;
 using DK2.Art.Textures;
 using DK2.Data.Media;
 using DK2.Data.Model;
@@ -14,7 +15,8 @@ namespace DK2.GodotAdapter;
 /// title screen and the two intros on the first front end of the process (<see cref="FrontEndStartup"/>), the attract movies
 /// after three idle minutes (<see cref="FrontEndAttract"/>), the gallery's and the trailer's movies, and a won map's title
 /// card and cutscene before the front end runs (<see cref="CampaignCutsceneRunner"/>). While any of them runs the menu does
-/// not. The title card's text is not drawn yet (the subtitles' batch); the card is black.</summary>
+/// not. The card's title is drawn as Unity's <c>DrawCutsceneTitle</c> draws it (<see cref="DrawTitle"/>); no movie shows
+/// subtitles, as in Unity.</summary>
 public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
 {
     private static readonly FrontEndStartupGate StartupGate = new();
@@ -27,13 +29,16 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
     private CanvasLayer? _coverLayer;
     private Rid _cover;
     private ImageTexture? _titleImage;
+    private BitmapTextItem? _title;
+    private InstallHudSources? _titleSources;
+    private BitmapFont? _titleFont;
+    private int _titleFontHeight = -1;
     private Vector2 _coverSize = -Vector2.One;
     private int _coverState = -1;
     private Vector2 _lastPointer;
     private bool _keyPressed;
 
-    /// <summary>The movie on screen (a startup, attract, gallery or cutscene movie), or null: its playback state is what the
-    /// subtitles will follow.</summary>
+    /// <summary>The movie on screen (a startup, attract, gallery or cutscene movie), or null.</summary>
     public ClassicMoviePlayer? PlayingMovie => _movie ?? _cutscenePlayer;
 
     /// <summary>The won map's title card and cutscene runner, or null outside one.</summary>
@@ -67,6 +72,13 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
         {
             _cutscenes = new CampaignCutsceneRunner(this);
             _cutscenes.Begin(profile, install, id => CampaignCutsceneRunner.SpeechText(install, id), (float)_elapsed);
+            // The front end prefetches nothing else, so the card's line is decoded before the first frame, as the level's
+            // likely clips are (InGameHud), and starts when the card queues it rather than a decode later.
+            if (_cutscenes.TitleSpeech is SoundId line && _mixer is { SpeechEnabled: true })
+            {
+                try { _mixer.PrefetchSpeech(SoundCategory.Mentor, line).Wait(); }
+                catch (AggregateException e) { GD.PushWarning("DK2.Godot: the title card's line did not decode: ", e.InnerException?.Message); }
+            }
         }
     }
 
@@ -76,6 +88,7 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
         bool held = UpdateStartup() || UpdateCutscene() || UpdateAttract();
         _keyPressed = false;
         DrawCover();
+        DrawTitle();
         if (_canvas != null) _canvas.Visible = !held;
         return held;
     }
@@ -159,8 +172,45 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
             new Rect2((size.X - 640 * scale) / 2, (size.Y - 480 * scale) / 2, 640 * scale, 480 * scale), _titleImage.GetRid());
     }
 
+    /// <summary>Unity's <c>DrawCutsceneTitle</c>: while the card's black is up, its title centred over the whole screen
+    /// (<see cref="SubtitleLayout.TitleBox"/>) at <see cref="SubtitleLayout.TitleScale"/> in the subtitle's font, or the
+    /// menu's replacement face; on the cover, after its black.</summary>
+    private void DrawTitle()
+    {
+        string? title = _cutscenes != null && _cutscenes.Blackout(_cutscenePlayer != null && _cutscenePlayer.HasFrame)
+            ? _cutscenes.VisibleTitle : null;
+        if (title == null && _title == null) return;
+        _title ??= new BitmapTextItem(_cover);
+        _title.ReplacementFont = _canvas?.ReplacementFont;
+        Vector2 size = GetViewport().GetVisibleRect().Size;
+        int width = (int)size.X, height = (int)size.Y;
+        _title.Show(title == null ? null : TitleFont(height), title, SubtitleLayout.TitleBox(width, height), SubtitleLayout.TitleScale);
+    }
+
+    /// <summary>The bitmap font for the screen height, read once a height; null, with one warning, when the install lacks it.</summary>
+    private BitmapFont? TitleFont(int height)
+    {
+        if (height == _titleFontHeight || _install == null) return _titleFont;
+        _titleFontHeight = height;
+        _titleSources ??= new InstallHudSources(_install);
+        try
+        {
+            _titleFont = _titleSources.Font(InterfaceFonts.LegibleFileName(height));
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            _titleFont = null;
+            GD.PushWarning("DK2.Godot: title card font unavailable: " + ex.Message);
+        }
+        return _titleFont;
+    }
+
     private void CloseMovies()
     {
+        _title?.Dispose();
+        _title = null;
+        _titleSources?.Dispose();
+        _titleSources = null;
         if (_hud != null) _hud.Model.MovieRequested -= PlayFrontEndMovie;
         if (_cover.IsValid) RenderingServer.FreeRid(_cover);
         _cover = default;
@@ -169,8 +219,12 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
 
     bool ICampaignCutsceneHost.SpeechBusy => _mixer?.SpeechBusy ?? false;
 
-    void ICampaignCutsceneHost.QueueSpeech(SoundId speech) =>
+    void ICampaignCutsceneHost.QueueSpeech(SoundId speech)
+    {
+        if (_soundLog) GD.Print("DK2.Godot front-end sound: frame ", Engine.GetProcessFrames(), " ms ", (long)(_elapsed * 1000),
+            " queued the title card's line 0x", speech.Value.ToString("X", CultureInfo.InvariantCulture));
         _mixer?.QueueSpeech(SoundCategory.Mentor, speech, clearWaiting: true);
+    }
 
     bool ICampaignCutsceneHost.MoviePlaying => _cutscenePlayer != null;
 

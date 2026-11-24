@@ -22,20 +22,27 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
     /// <summary>Bullfrog's DungeonKeeperII TrueType face, or null when this machine has none. It is not ours to ship, so
     /// it is never committed or imported: it is read from an absolute path, in order DK2_REPLACEMENT_FONT, <c>--menu-font</c>,
     /// the launcher's menu font (<see cref="MenuFontSearch"/>), then <c>Fonts/DungeonKeeperII.ttf</c> in this project
-    /// (gitignored), then the Unity project's (gitignored) copy.</summary>
+    /// (gitignored), then the Unity project's (gitignored) copy. The subtitles use it too (<see cref="LoadReplacementFont"/>).</summary>
     public FontFile? ReplacementFont
     {
         get
         {
             if (_replacementSearched) return _replacementFont;
             _replacementSearched = true;
-            string? path = FindReplacementFont();
-            if (path == null) return null;
-            var font = new FontFile();
-            if (font.LoadDynamicFont(path) != Error.Ok) { font.Dispose(); GD.PushWarning("DK2.Godot: cannot read font " + path); return null; }
-            GD.Print("DK2.Godot: replacement font ", path);
-            return _replacementFont = font;
+            return _replacementFont = LoadReplacementFont();
         }
+    }
+
+    /// <summary>The <see cref="ReplacementFont"/> search and load, for a scene without the menu's assets (the in-game
+    /// subtitles); the caller owns the face.</summary>
+    internal static FontFile? LoadReplacementFont()
+    {
+        string? path = FindReplacementFont();
+        if (path == null) return null;
+        var font = new FontFile();
+        if (font.LoadDynamicFont(path) != Error.Ok) { font.Dispose(); GD.PushWarning("DK2.Godot: cannot read font " + path); return null; }
+        GD.Print("DK2.Godot: replacement font ", path);
+        return font;
     }
 
     private static string? FindReplacementFont()

@@ -43,6 +43,10 @@ public sealed class CampaignCutsceneRunner(ICampaignCutsceneHost host)
 
     public bool Playing => Cutscene != null;
 
+    /// <summary>The title card's voiced line, the Mentor-bank id after the title's text, or null when the card has no title;
+    /// a host may decode it ahead (<see cref="ClassicSoundMixer.PrefetchSpeech"/>) so it starts when it is queued.</summary>
+    public SoundId? TitleSpeech => Cutscene != null && Title != null ? new SoundId(Cutscene.TitleTextId + 1) : null;
+
     /// <summary>The title to draw this frame, or null once the card is over.</summary>
     public string? VisibleTitle => Cutscene != null && _titlePhase < 3 ? Title : null;
 
@@ -82,7 +86,7 @@ public sealed class CampaignCutsceneRunner(ICampaignCutsceneHost host)
             if (now < _titleEnds) return true;
             if (_titlePhase == 0)
             {
-                _host.QueueSpeech(new SoundId(Cutscene.TitleTextId + 1));
+                _host.QueueSpeech(TitleSpeech!.Value);
                 _titlePhase = 1;
                 return true;
             }

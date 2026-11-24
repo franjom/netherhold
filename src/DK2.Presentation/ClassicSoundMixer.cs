@@ -329,6 +329,15 @@ public sealed class ClassicSoundMixer : IDisposable
         _throttle.BeginFrame(unchecked((uint)nowMilliseconds));
     }
 
+    /// <summary>Decodes every variant of a speech line on a worker, for a host that knows the line is coming and can wait,
+    /// as the front end waits for a won map's title-card line (<see cref="CampaignCutsceneRunner.TitleSpeech"/>).</summary>
+    public Task PrefetchSpeech(SoundCategory category, SoundId id)
+    {
+        var samples = new List<ResolvedSound>();
+        Resolver(category).SamplesOf(id, samples);
+        return _decoder.Prefetch(samples);
+    }
+
     /// <summary>Decodes the level's likely clips on workers while it loads (<see cref="LevelSoundPrefetch"/>).</summary>
     public Task Prefetch(IReadOnlyCollection<SoundCategory> categories, int workers) => _decoder.Prefetch(categories, workers);
 

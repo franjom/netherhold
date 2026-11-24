@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Globalization;
 using DK2.Data.Campaign;
 using DK2.Data.Model;
 using DK2.Data.Settings;
@@ -92,9 +93,21 @@ public partial class ClassicFrontEndMenu : Node
         _mixer.SetVolumes(master: settings.MasterVolume, speech: settings.SpeechVolume, music: settings.MusicVolume,
             effects: settings.SoundEffectVolume, speechOn: settings.SpeechSwitch, musicOn: settings.MusicSwitch,
             effectsOn: settings.SfxSwitch);
+        // --sound-log, as the in-game scene's: each request as it starts, on the front end's clock.
+        if (Array.IndexOf(OS.GetCmdlineUserArgs(), "--sound-log") >= 0) LogSounds(_mixer);
         UseReplacementFont = true;
         OpenMovies(install, skipStartup, returnPage);
         if (_startup == null) _session.Update(TimeSpan.Zero);
+    }
+
+    private bool _soundLog;
+
+    private void LogSounds(ClassicSoundMixer mixer)
+    {
+        _soundLog = true;
+        mixer.Started += (request, sample) => GD.Print("DK2.Godot front-end sound: frame ", Engine.GetProcessFrames(), " ms ",
+            mixer.Now, " ", request.Category.Name, " 0x", request.Id.Value.ToString("X", CultureInfo.InvariantCulture), " -> ",
+            sample.Archive, ":", sample.Entry.Value);
     }
 
     /// <summary>The hi-score table; one that cannot be read for an IO reason warns and shows empty rows.</summary>

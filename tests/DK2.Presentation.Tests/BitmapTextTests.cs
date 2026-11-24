@@ -176,6 +176,71 @@ public class BitmapTextTests
         return [.. placed];
     }
 
+    [Fact]
+    public void ATextBlockPlacesWhatWrapAndPlacementDo()
+    {
+        BitmapFont font = Font();
+        var box = new HudRect(10, 20, 100, 100);
+        var block = new BitmapTextBlock();
+
+        Assert.True(block.Update(font, "aa bb cc", box, 2f));
+
+        // Wrapped to 50 font pixels (100 / 2), as Unity's ClassicBitmapText.DrawCentred wraps it.
+        IReadOnlyList<BitmapTextLine> lines = BitmapTextLayout.Wrap(font, "aa bb cc", 50);
+        Assert.Equal(lines, block.Lines);
+        Assert.Equal(Placed(font, box, lines, 2f, centred: true), Placed(block));
+    }
+
+    [Fact]
+    public void ATextBlockChangesOnlyWithItsInputs()
+    {
+        BitmapFont font = Font();
+        var box = new HudRect(0, 0, 100, 40);
+        var block = new BitmapTextBlock();
+
+        Assert.False(block.Update(null, "aa", box, 1f));
+        Assert.True(block.Update(font, "aa", box, 1f));
+        IReadOnlyList<BitmapTextLine> wrapped = block.Lines;
+        Assert.False(block.Update(font, new string('a', 2), box, 1f));
+        Assert.Same(wrapped, block.Lines);
+        // A move keeps the wrap; a narrower box wraps again.
+        Assert.True(block.Update(font, "aa", box with { Y = 5 }, 1f));
+        Assert.Same(wrapped, block.Lines);
+        Assert.True(block.Update(font, "aa", box with { Width = 60 }, 1f));
+        Assert.NotSame(wrapped, block.Lines);
+        Assert.True(block.Update(font, "bb", box, 1f));
+        Assert.True(block.Update(font, null, box, 1f));
+        Assert.Null(block.Font);
+        Assert.Empty(block.Lines);
+        Assert.False(block.Update(font, null, box, 1f));
+    }
+
+    [Fact]
+    public void AnUnchangedTextBlockDoesNotAllocate()
+    {
+        BitmapFont font = Font();
+        var box = new HudRect(0, 0, 200, 100);
+        var block = new BitmapTextBlock();
+        block.Update(font, "aa bb cc", box, 1f);
+        float sum = 0;
+        foreach (PlacedBitmapGlyph glyph in block.Glyphs) sum += glyph.Rect.X;
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        bool changed = block.Update(font, "aa bb cc", box, 1f);
+        foreach (PlacedBitmapGlyph glyph in block.Glyphs) sum += glyph.Rect.X;
+
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        Assert.False(changed);
+        Assert.True(sum > 0);
+    }
+
+    private static PlacedBitmapGlyph[] Placed(BitmapTextBlock block)
+    {
+        var placed = new List<PlacedBitmapGlyph>();
+        foreach (PlacedBitmapGlyph glyph in block.Glyphs) placed.Add(glyph);
+        return [.. placed];
+    }
+
     private static BitmapFont Font() => new(18,
     [
         new BitmapGlyph('a', 8, 8, 0, 0, 10, new byte[64]),
