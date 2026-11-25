@@ -25,8 +25,8 @@ position. Routing is a later caller decision.
 
 Special room types use first-slab rules instead; their existing simulation
 adapters are outside this ordinary-room change. KeeperView already computes
-an ordinary centroid but uses a nearest-tile fallback; that separate AI
-approximation is recorded in the function record and is not this Level 5 case.
+an ordinary centroid and, as of 2026-11-25, walks the same spiral from it (it
+took the nearest room tile before); it is not this Level 5 case.
 
 ## Mismatches recorded before implementation
 
@@ -63,8 +63,8 @@ They do not establish the aggregate exposure/254 gap's cause.
 
 `RoomIndex` derives the ordinary centroid and exact-component spiral fallback;
 `RoomGeometry` passes typed bounds/position to `RoomInstance`, whose shared
-field readers use the result. Special-room bounding-box adapters and the AI
-nearest-tile fallback remain separate boundaries. No room order, RNG or routing
+field readers use the result. Special-room bounding-box adapters remain a separate
+boundary; `KeeperView.PositionOf` has its own spiral (hash 536). No room order, RNG or routing
 change is included. Geometry remains derived from the saved tile state.
 
 Hash/save 369 has pin `0xDA38F477882C0B87`. All 11 focused cases pass. Archived

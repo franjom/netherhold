@@ -81,11 +81,19 @@ public static class CombatPitRules
 
     private static void Force(WorldState world, CreatureState creature, int targetId)
     {
+        ForceTarget(world, creature, targetId, FightTargetKind.Creature);
+        creature.CombatPitFighter = true;
+    }
+
+    /// <summary><c>0x0048F390</c>: a thing becomes the creature's forced target. A forced target it
+    /// already held goes first, and its engagement with it (<c>0x0045EF50</c>); with none held, a
+    /// fight in progress is left alone.</summary>
+    public static void ForceTarget(WorldState world, CreatureState creature, int targetId, FightTargetKind kind)
+    {
         if (creature.AttackingId != CombatRules.NoTarget) ClearForcedTarget(world, creature);
         creature.AttackAbnormalTargets = true;
         creature.AttackingId = targetId;
-        creature.AttackingKind = FightTargetKind.Creature;
-        creature.CombatPitFighter = true;
+        creature.AttackingKind = kind;
     }
 
     /// <summary><c>0x0048F3F0</c>: the forced target goes, and with it the engagement

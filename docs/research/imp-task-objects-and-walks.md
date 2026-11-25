@@ -189,9 +189,9 @@ without deleting the old entry's holder. These entry orders and holders are hash
 
 **Remaining limits.** The existing tag model has no finite task-pool capacity, so the native
 20-free-entry floor remains unmodelled. Matched original-game acceptance is pending.
-Automatic reveal is a separate, unbuilt `0x004A55F0` arm: an opening completed Secret Door
-checks nearby enemies, category/fight eligibility and line of sight, then clears the flag,
-posts presentation command 0x11 and rewrites navigation. The Imp completion reports its
+Automatic reveal is a separate `0x004A55F0` arm, built as `DoorSystem.SeenOpen` ([door-blocking.md](door-blocking.md) §6.8): an open completed Secret Door checks nearby enemies, category/fight eligibility
+and line of sight, then forces the target and clears the flag. Not built: command 0x11 and the
+navigation rewrite. The Imp completion reports its
 notification as a simulation event; the presentation refresh is outside this change.
 The counted action uses action 1's existing diggable-wall guard and owner-dependent rate:
 a flagged solid, diggable tile receives one strike; ordinary door floor receives none.

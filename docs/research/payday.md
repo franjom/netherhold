@@ -186,7 +186,7 @@ Re-checks that the tile under the creature is a room of type 1 or 5 owned by its
 keeper (`FUN_004539b0`, as §4.4) and bails if not — so a treasury sold out from
 under a creature during the walk aborts the trip. On arrival: `SetState(0xbd)` = **189**, but only when the region test
 `0x004B2AE0` returns a zero word; otherwise 188 returns 1 and
-waits. That test is the turn toward a point, so 188 waits while it turns (read 2026-09-25, `tunnelling.md` §3). The point is **not** the tile centre: `0x4726F0..0x472707` shifts the creature's 12.12 position left 12 and adds `0x800` without first shifting it right 12, where Imp state 28 (`0x466A58`) writes `SAR 12; SHL 12; +0x800`. The creature therefore turns toward a bearing that depends on its absolute map position, not on the gold (re-read 2026-11-25, STRONGLY INFERRED, a suspected original defect; `openkeeper-pr-audit-1366-1400.md`).
+waits. That test is the turn toward a point, so 188 waits while it turns (read 2026-09-25, `tunnelling.md` §3). The point is **not** the tile centre: `0x4726F0..0x472707` shifts the creature's 12.12 position left 12 and adds `0x800` without first shifting it right 12, where Imp state 28 (`0x466A58`) writes `SAR 12; SHL 12; +0x800`. The creature therefore turns toward a bearing that depends on its absolute map position, not on the gold (re-read 2026-11-25, STRONGLY INFERRED, a suspected original defect; `openkeeper-pr-audit-1366-1400.md`). Ours: `PaydaySystem.Arrived` does the room re-check (a failure returns to idle) and the wait, toward `PaydayRules.ArrivalFacingPoint`, which is DK2's mis-scaled point built as it is (ADR-0783).
 
 ### 4.4 State 189 `FUN_00472740` — take it
 

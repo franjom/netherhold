@@ -19,8 +19,8 @@ A creature's animation object sits at creature `+0x44`, so its fields appear at 
   Creatures.kwd's art slot fields, loaded as `CreatureAnimationTiming`.
 - **Durations:** a segment of n frames lasts `D = n*4096/fps`.
 - **Rate:** `min(4095, 4096*4096/(D*4))`, from [0x004B41E0](functions/004B41E0.md). The
-  divisor 4 is the tick-rate global `0x006F2590`; that it holds 4 is HYPOTHESIS, and it
-  reproduces both Imp rates.
+  divisor is the tick-rate global `0x006F2590`, the level's ticks-per-second variable (variable 19),
+  4 in every shipped level; ours writes the constant 4, which reproduces both Imp rates.
 - **Carry:** `over*4096 / (Dnext*4096/Dprev)`, truncating at each division.
 - **Imp art slot 5:** 15 Main frames, 8 End frames, 20 FPS and no Start segment. That gives a
   Main rate of 1365 and an End rate of 2560.

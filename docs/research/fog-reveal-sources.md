@@ -387,7 +387,7 @@ wooden door at (35,26); ours drew unexplored rock until a creature went in.
   that nibble; an open door or a blueprint leaves floor (`0x004A66F0`). Exception: `0x004A55F0`'s
   secret-door reveal arm (`+0x10D` open, `+0x109` 0, def `+0x8B` bit 5) calls `Door_WriteNavByte(1)`
   at `0x004A6625` when an enemy sees the door, so a revealed open secret door blocks sight in DK2
-  (unbuilt in ours: nothing diverges). Ours stopped sight at any door thing (ADR-0318's reading).
+  (the write is not built in ours: `DoorSystem.SeenOpen` forces the target and clears the marker only). Ours stopped sight at any door thing (ADR-0318's reading).
   Doors open when an eligible creature is beside them, so a creature at the Hatchery's south edge,
   which touches the Workshop's north door (37,24), or at the Training Room's east edge sees in.
   STRONGLY INFERRED as a rule; HYPOTHESIS that it is what the owner saw.

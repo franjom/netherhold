@@ -47,6 +47,16 @@ public static class CreatureHealthRules
         return Math.Max(state.Health, 0) - Math.Max(before, 0);
     }
 
+    /// <summary>An ordinary health change aimed at a creature that is down: <c>0x004B2CE0</c> stamps
+    /// the source (<c>0x004B2CF3</c>) and then returns health unchanged, for a heal or for damage,
+    /// while the dying bit (<c>+0x3E6</c> bit 21) is set and the caller passed mode 0
+    /// (<c>0x004B2DE7</c>). Only the dying countdown passes another mode. Returns what landed: nothing.</summary>
+    public static int RefuseForTheDying(CreatureState state, byte source)
+    {
+        state.HealthSourcePlayerId = source;
+        return 0;
+    }
+
     internal static void NotifyPossessionDamage(CreatureDef definition, CreatureState state)
     {
         if ((definition.Flags & (CreatureFlags.IsHorny | CreatureFlags.OnlyAttackableByHorny)) != 0

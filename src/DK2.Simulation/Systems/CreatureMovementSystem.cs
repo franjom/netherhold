@@ -263,10 +263,7 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         if (!CombatRules.MayLookForAFight(world, context.Database, creature, force: true)) return false;
 
         if (CombatRules.InCombat(creature)) CombatRules.Disengage(context.Hooks, creature);
-        if (creature.AttackingId != CombatRules.NoTarget) CombatPitRules.ClearForcedTarget(world, creature);
-        creature.AttackAbnormalTargets = true;
-        creature.AttackingId = door.Id;
-        creature.AttackingKind = FightTargetKind.Door;
+        CombatPitRules.ForceTarget(world, creature, door.Id, FightTargetKind.Door);
         creature.StopMoving();
         context.Emit(SystemName, "meets_door", $"creature={creature.Id} door={door.Id} player={creature.OwnerPlayerId} door_player={door.PlayerId}");
         CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch);

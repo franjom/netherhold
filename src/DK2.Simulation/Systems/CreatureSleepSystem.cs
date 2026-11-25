@@ -427,9 +427,13 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
             creature.LastSleptTick = context.Tick;
         }
         creature.SleepTicks++;
-        Snore(context, creature);
 
-        if (!LairRules.HasSleptEnough(context.Database, definition, creature)) return;
+        if (!LairRules.HasSleptEnough(context.Database, definition, creature))
+        {
+            // The waking call leaves before the snore block (0x0046FCF1).
+            Snore(context, creature);
+            return;
+        }
 
         context.Emit(SystemName, "woke_up",
             $"creature={creature.Id} type={definition.Name} " +

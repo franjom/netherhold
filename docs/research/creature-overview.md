@@ -36,7 +36,7 @@ and moods27/26/25. Filter6 excludes activity4/5; filter23 excludes5/20/21;
 filter24 excludes4/22. Filter21 also accepts CombatPitFighter, although the
 training counter counts activity21 alone. Mood counters read the retained mood
 class: content0, unhappy1, angry2. The activity mapping already implemented by
-CreatureActivityRules matches `00478AE0` for these views; its canonical category
+`CreatureActivityRules.JobCode` matches `00478AE0` for these views; its canonical category
 table remains in [computer keeper management](computer-keeper-management.md#8-slapping--0x00502f00).
 
 ## Retained default-mode layout

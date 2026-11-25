@@ -205,8 +205,8 @@ action 62 spends one allowance. `+0x459` is `SpeedChangeTimer`, not
 `LastSlapTick` or `WorkFasterTimer` (`hand-of-evil.md` §§4–5).
 The step has no Horny gate and skips the hand's slap predicate `0x004918B0`, so a computer keeper can dismiss its own Reaper (ADR-0776; [0x00502F00](functions/00502F00.md)).
 
-The accessor's 5 does **not** mean working. State-object `+0x3C` values 1/2
-override it with 26/25. For nonworkers it reads the category's `+0x3C` default,
+The accessor's 5 does **not** mean working. State-object `+0x3C`, the mood band, answers first (1 gives 26, 2 gives 25, for a worker too), so an unhappy or angry creature is never slapped or job-placed: `CreatureActivityRules.Code`; its twin `0x00478AE0`, with no mood test, is `JobCode`.
+For nonworkers it reads the category's `+0x3C` default,
 substituting the resume category during movement. Reconstructing the runtime
 table from `0x004798D0..0x004805F0` confirms idle category 1 returns 5, whereas
 research/manufacture return 20 and training returns 21. For workers, nonzero

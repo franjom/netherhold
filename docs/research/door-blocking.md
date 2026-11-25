@@ -104,7 +104,7 @@ stands on the target's tile.
 Line walker `0x004512F0(a, b, f1, f2)` asks `0x004511A0(x, y, f1, f2)` per tile; every scan
 passes `f2 = 1`. A navigation byte with bit 3 (Solid) blocks. With `f1 = 0` a door blocks only
 while the tile's navigation byte carries a door owner (`0x004528E0` tests that nibble first), which
-a closed, completed door writes (so does a revealed secret door while open, `0x004A6625`, unbuilt); then a door
+a closed, completed door writes (so does a revealed secret door while open, `0x004A6625`; ours does not write it, §6.8); then a door
 thing blocks unless it is a barricade (`def+0x8B` bit 6).
 An open door and a blueprint leave floor, so they let sight through (corrected 2026-11-05, ADR-0683;
 ADR-0318 had them block). With `f1 = 1` and `f2 = 1` no door blocks, only Solid.
@@ -152,8 +152,11 @@ Update `0x004A55F0`, in its order:
    Magic **218**; Secret, Barricade and Hero Barricade **62**. `DoorHealthSystem` requests both
    dead-arm effects through `ViewEffectRequest`; position limits: [structure drawing section 2](structure-drawing.md#2-placement-and-visibility). The door's
    cleanup `Door_Cleanup` `0x004A5290` requests no effect.
-8. Opening (doors-and-traps.md); an open built Secret Door within four tiles of an enemy that
-   sees it makes it that enemy's forced target and reveals it; not built.
+8. Opening (doors-and-traps.md); then the reveal (`0x004A64A3`..`0x004A6661`): an open, built, live
+   Secret Door is the forced target (`0x0048F390`) of each enemy creature strictly within four
+   tiles, outside the combat category, allowed to look for a fight unforced, with a line no solid
+   tile crosses (§4, flags 1 and 1), and its tile marker is cleared. Built as `DoorSystem.SeenOpen`
+   (`SecretDoorSeenTests`). Not built: the navigation-byte rewrite `0x004A66F0(1)` and command `0x11`.
 
 **CONFIRMED (owner, 2026-10-02):** digging out a wall beside a door destroys the door.
 
@@ -191,14 +194,14 @@ table on 2026-11-06: STRONGLY INFERRED. Built in `DropCombatRules` (ADR-0698).
 ## Built (ADR-0318) and left
 
 Built: §1 except the bits 17/18 clear (nothing here sets them) and `+0x16` (unnamed, Q364); §2;
-§3; §4; §5's melee arm and the shot stand-in; §6's recovery, owner, push, support and death-effect
-requests; §7's removal and its
+§3; §4; §5's melee arm and the shot stand-in; §6's recovery, owner, push, support, death-effect
+requests and secret-door reveal; §7's removal and its
 timing. A door's id is stable and blueprints hold ids, so a removal leaves every other
 reference intact.
 
 Section 8 is built (ADR-0698); verification limits: [hand-drop-landing.md](hand-drop-landing.md#built-scope-and-verification-adr-0698-hashsave-430).
 
-Left: the secret-door reveal (§6.8), the linked objects, other effects and
+Left: the reveal's navigation-byte rewrite (§6.8), the linked objects, other effects and
 sounds, area damage on doors.
 
 ## Open questions

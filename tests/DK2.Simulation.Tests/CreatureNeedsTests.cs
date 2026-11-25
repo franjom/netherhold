@@ -435,6 +435,39 @@ public class CreatureNeedsTests
         Assert.Contains(events.Events, e => e.Kind == "creature_terrain_health");
     }
 
+    /// <summary>An ordinary health change is refused for a creature that is down
+    /// (<c>0x004B2CE0</c>, mode 0 with the dying bit), so a terrain that heals, as the Hero Lair's
+    /// does, lifts a standing creature and not a collapsed one; the source is stamped either way
+    /// (<c>0x004B2CF3</c>).</summary>
+    [Fact]
+    public void AHealingTerrainHealsTheStandingAndNotTheDown()
+    {
+        GameDatabase fixture = Db;
+        var db = new GameDatabase(
+            fixture.Terrain.Values.Select(t => t.TerrainId == Dk2TerrainFixture.Water ? t with { Damage = -67 } : t),
+            fixture.Rooms.Values, fixture.Creatures.Values, fixture.Variables, objects: fixture.Objects.Values);
+        WorldState world = World(db);
+        TilePos pond = new(3, 6), otherPond = new(4, 6);
+        const byte TileOwner = 5;
+        foreach (TilePos at in new[] { pond, otherPond })
+        {
+            world.Tile(at.X, at.Y).TerrainId = Dk2TerrainFixture.Water;
+            world.Tile(at.X, at.Y).OwnerPlayerId = TileOwner;
+        }
+
+        CreatureState standing = world.SpawnCreature(db, VampireId, Keeper, pond);
+        standing.Health = 1000;
+        CreatureState down = world.SpawnCreature(db, VampireId, Keeper, otherPond);
+        down.Health = 0;
+        Assert.True(CreatureDeathRules.Collapse(new StateHookContext(world, db), down));
+
+        new GameSimulation(db, world, 42, [new CreatureHealthSystem()]).Run(Second);
+
+        Assert.Equal(1067, standing.Health);
+        Assert.Equal(0, down.Health);
+        Assert.Equal(TileOwner, down.HealthSourcePlayerId);
+    }
+
     [Fact]
     public void AGoblinWadesTheSameWaterForNothing()
     {

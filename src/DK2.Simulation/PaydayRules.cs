@@ -71,7 +71,7 @@ public static class PaydayRules
 
     /// <summary>The point a creature arriving for its wages turns toward in state 188
     /// (<c>0x004726F0</c>).
-    /// <para>Suspected DK2 defect, built as DK2 does it (ADR-0783). The state means to face the
+    /// <para>DK2 defect DK2-050, built as DK2 does it (ADR-0783). The state means to face the
     /// centre of the tile it stands on, as Imp state 28 does (<c>0x00466A58</c>), but it hands the
     /// tile-centre formula the creature's world position where a tile number belongs. The result is
     /// a point far off the map, so the creature faces a direction set by where on the map it

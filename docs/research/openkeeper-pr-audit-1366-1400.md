@@ -20,8 +20,8 @@ colours and camera, C health and doors, D the computer player). Each verdict is 
 - **grep**: the reviewer only checked that our docs or function records have a matching entry.
   Read those as triage, not as a check of the binary.
 
-Confidence is on the usual scale. Nothing here was checked against a native capture, so nothing
-about observable behaviour is CONFIRMED; CONFIRMED below means the bytes or instructions were read.
+Confidence is on the one scale (ADR-0642). Nothing here was checked against a native capture, so
+nothing is CONFIRMED: a claim read from the instructions is STRONGLY INFERRED.
 
 ## Corrections to our docs and code
 
@@ -32,10 +32,10 @@ about observable behaviour is CONFIRMED; CONFIRMED below means the bytes or inst
    when that value moves to 1 and message 18 plus creature event `0xB` when it moves to 2, which
    are our CreatureUnhappy and CreatureAngry messages, so `+0x3C` is the mood band (records
    0x00476FC0 and 0x00487030 already say `+0x3C` = creature `+0x28A`). `CreatureActivityRules.Code`
-   (`src/DK2.Simulation/CreatureActivityRules.cs`, remark at lines 12-13, body 37-47) says the
-   override's writers are unread and skips it, so our computer keeper slaps unhappy idle creatures
-   (`src/DK2.AI/KeeperAI.cs:206`) and picks them up for jobs (`KeeperResearchStep.cs:28,115` through
-   `KeeperView.cs:143`). Native-captured views already carry DK2's value. Built: `Code` answers the
+   (`src/DK2.Simulation/CreatureActivityRules.cs`) said the override's writers were unread and
+   skipped it, so our computer keeper slapped unhappy idle creatures
+   (`src/DK2.AI/KeeperAI.cs`) and picked them up for jobs (`KeeperResearchStep.cs` through
+   `KeeperView.cs`). Native-captured views already carry DK2's value. Built: `Code` answers the
    mood first; the creature panel keeps the mood-free `JobCode`.
 2. **Payday state 188 does not turn to the tile centre
    ([#1396](https://github.com/tonihele/OpenKeeper/pull/1396)).** Ghidra, STRONGLY INFERRED.
@@ -53,10 +53,11 @@ about observable behaviour is CONFIRMED; CONFIRMED below means the bytes or inst
    [0x004B2CE0] returns health unchanged for a creature when the mode argument is 0 and `+0x3E6`
    bit 21 is set, for either sign of the delta. The terrain call at `0x48A640..0x48A789` passes
    mode 0, and the Hero Lair heal at `0x488A8F` is jumped over when bit 21 is set (`0x488A73`).
-   `CreatureHealthSystem.cs:47-62` applies terrain health before its dying `continue` at line 79,
-   and its comment says terrain "applies to the dying". A negative delta is harmless there; the +67
-   of Hero Lair terrain lifts a dying creature's health above 0, which DK2 does not. Built: terrain
-   health skips a creature that is down; no regression test, the fixture has no healing terrain. Every other heal and damage path the reviewer traced is guarded, so
+   `CreatureHealthSystem` applied terrain health before its dying `continue`, and its comment said
+   terrain "applies to the dying". A negative delta is harmless there; the +67
+   of Hero Lair terrain lifted a dying creature's health above 0, which DK2 does not. Built: terrain
+   health is refused for a creature that is down and the source is still stamped
+   (`CreatureHealthRules.RefuseForTheDying`, tested in `CreatureNeedsTests`). Every other heal and damage path the reviewer traced is guarded, so
    OpenKeeper's banked-heal bug has no counterpart in ours. Not traced for a dying target:
    `CreatureLevelRules.cs:119`, `EatingRules.cs:326`, `PossessionRules.Objects.cs:51`,
    `CreatureJobSystem.cs:793`, `TortureSystem.cs:129-130`.
@@ -64,14 +65,14 @@ about observable behaviour is CONFIRMED; CONFIRMED below means the bytes or inst
    a dying creature. The binary refuses every mode-0 delta while bit 21 is set, lair heal included;
    the lair heal acts only after state 45 clears the bit (`0x468483`, `0x4684B5`). Our code already
    behaves this way. Sentence corrected.
-5. **Tremor does not set the fleeing state (#1400).** Ghidra, STRONGLY INFERRED. [0x004764A0]
-   travels with resume state 1, not `0xDC`; the record said it "sets Fleeing". Record corrected.
+5. **Withdrawn (#1400).** This said the [0x004764A0] record wrongly had Tremor set the fleeing
+   state. The record's "Fleeing" is the flag `+0x3EA` bit 20 (set at `0x4769AB`), not state 220, and
+   its body already gave resume state 1. Nothing was wrong; the reviewer of the build caught it.
 6. **The walk-pace tick rate is hard-coded
-   ([#1380](https://github.com/tonihele/OpenKeeper/pull/1380)).** Ghidra, CONFIRMED for the
-   arithmetic. [0x004B41E0] divides the animation's `+0` word by the ticks-per-second global
+   ([#1380](https://github.com/tonihele/OpenKeeper/pull/1380)).** Ghidra, STRONGLY INFERRED. [0x004B41E0] divides the animation's `+0` word by the ticks-per-second global
    (`0x6F2590`, variable 19); `src/DK2.Art/RenderAnimationClock.cs:175,180` writes 4. Every shipped
-   level sets 4, so nothing changes today. `animation-clock.md:22` and the record's "taken as 4,
-   HYPOTHESIS" are out of date. Not changed.
+   level sets 4, so nothing changes today. `animation-clock.md` and the record now say the divisor
+   is the level's variable; the code keeps the constant 4.
 
 ## Gaps in our records (the binary agrees with the PR)
 
@@ -84,7 +85,9 @@ about observable behaviour is CONFIRMED; CONFIRMED below means the bytes or inst
   forces the creature's target onto the door ([0x0048F390]), posts command `0x11`, clears the tile
   marker (`0x450FF0(x, y, 0)`) and rewrites the nav byte, on every tick, already discovered or not.
   Our record had only the guards and the nav write. The simulation had no reveal;
-  it is built as `DoorSystem.SeenOpen` (`SecretDoorSeenTests`). Command `0x11` is not sent.
+  it is built as `DoorSystem.SeenOpen` (`SecretDoorSeenTests`), with the sight line that only solid
+  tiles stop (the arm passes flags 1 and 1). Not built: the nav-byte rewrite `0x4A66F0(1)`, which
+  in DK2 makes the open door read as shut until it next changes state, and command `0x11`.
 - **A hidden secret door is not drawn for a non-owner (#1372).** Ghidra, STRONGLY INFERRED for this
   branch. [0x004A6E10] returns 0 for a secret door whose owner is not the local viewer while the
   tile marker is set, with no alliance test (`0x4A6E95..0x4A6ED3`). `src/DK2.Presentation` does not
@@ -97,7 +100,7 @@ about observable behaviour is CONFIRMED; CONFIRMED below means the bytes or inst
   Presentation only: effects are view objects on their own random stream. Built as a view-effect
   request in `CreatureSleepSystem.Snore`.
 - **Player colour table ([#1388](https://github.com/tonihele/OpenKeeper/pull/1388), open).** Ghidra,
-  CONFIRMED for the table. [0x004C04C0] fills 8 numbers by 3 variants at `0x6E5058`: 0 black,
+  STRONGLY INFERRED. [0x004C04C0] fills 8 numbers by 3 variants at `0x6E5058`: 0 black,
   1 (191,213,224), 2 white, 3 red (230,50,50), 4 blue (50,78,230), 5 green (50,230,51), 6 yellow
   (226,230,50), 7 purple (230,50,212). [0x0050F830] indexes it by the player's byte at `+0x10FC`
   and falls back to number 1. `ClassicKeeperPalette.cs` is exactly this table, so OpenKeeper's
@@ -119,7 +122,7 @@ about observable behaviour is CONFIRMED; CONFIRMED below means the bytes or inst
 ## Approximations of ours the PRs confirm
 
 All known and documented; listed because #1400 re-derives the exact rule ([0x004E4590], Ghidra,
-STRONGLY INFERRED).
+STRONGLY INFERRED). The first was built the same day.
 
 - `KeeperView.PositionOf` took the nearest room tile when an ordinary room's centroid is outside
   it; it now walks the spiral, as DK2 and `RoomIndex.FindOrdinaryCentre` do.
@@ -158,7 +161,7 @@ Covered by our records and code, with the binary re-read this session (Ghidra, S
 unless noted): #1394 bed heading, the snap onto the bed, the hidden bed except the Hero bed, the
 restarted sleep action and the wake offset; #1395 the stand-off distance and the Library, Workshop
 and Casino stand points, one gambler per object, and the alcove term that masks to zero (our Q572);
-#1396 the 8-spot pay table (CONFIRMED against the bytes); #1380 the walk and run scaling and the
+#1396 the 8-spot pay table (the bytes at `0x698C20` were read); #1380 the walk and run scaling and the
 unscaled drunk and stealth walks (slots 34 and 38); #1371 the 20 Hz gate, integer phase steps,
 random start and play-once flags; #1391 the Prison admission heal of a tenth and the 17-tick wither;
 #1366 allied opening; #1400 heal targeting, the Call to Arms gate order and heart route, the Portal
@@ -201,5 +204,5 @@ Not read: the body of 0x468010 (only its call order), the consumers of the force
 removal-path marker clear at `0x4C37E9`, whether 0x4599D0 is the only non-zero-mode caller of
 0x4B2CE0, the load order of level camera records against GlobalVariables.kwd, the parent effect's
 sprite install in 0x4347E0, and the claimed sequence of the 39 shipped camera records. The PRs' own
-measurements and probes were not checked. No replay outcome, simulation hash or gameplay acceptance
-changed. `tools/openkeeper-review/last-reviewed.txt` moves to 1400.
+measurements and probes were not checked. The build moved the pinned simulation hash (HashVersion
+536, `hash-versions.md`); no native replay or gameplay acceptance was run. `tools/openkeeper-review/last-reviewed.txt` moves to 1400.

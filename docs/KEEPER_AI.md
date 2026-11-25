@@ -480,7 +480,8 @@ tick is skipped (the counters still run).
     point each (`research/computer-keeper-management.md` §11).
 13. If budget and `Flags` bit 5: **slap** (`0x502F00`): accessor `0x00478A20 == 5`,
     health above half, `SpeedChangeTimer == 0`, and a 1 % roll (action 62).
-    The accessor includes idle creatures and excludes ordinary research/training;
+    The accessor includes idle creatures and excludes ordinary research/training, and an
+    unhappy or angry creature never gives 5 (the mood band answers first);
     it is not a working-state test (`research/computer-keeper-management.md` §8).
 14. If budget: **prisoners** (`0x5006D0`, §5.8, built as `KeeperPrisonerStep`, ADR-0726); if that returned budget and
     `UseSightOfEvil` ≠ 0: **Sight of Evil** (`0x5003A0`): a random map position, drawn

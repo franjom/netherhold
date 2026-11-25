@@ -46,9 +46,9 @@ public static class CreatureActivityRules
         return JobCode(definition, creature);
     }
 
-    /// <summary>The code with no mood test, as the near-twin <c>0x00478AE0</c> has none. The creature
-    /// panel counts jobs with this and moods beside them; which of the two DK2's panel calls is
-    /// unread.</summary>
+    /// <summary>The code with no mood test: <c>0x00478AE0</c>, the same function from the worker test
+    /// on. DK2's creature panel calls this one (six call sites, <c>0x00415DC4</c> to
+    /// <c>0x00418811</c>); the slap step and the job placement call <c>0x00478A20</c>.</summary>
     public static int JobCode(CreatureDef definition, CreatureState creature)
     {
         CreatureStateCategory category = NeedRules.ResolvedCategory(creature);

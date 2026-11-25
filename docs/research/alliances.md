@@ -87,8 +87,8 @@ themselves (combat-acquisition.md §3).
 
 **Not built here, and what their builders need:**
 
-- State 265's door forcing (`0x00476AA8`) and the secret-door reveal (`0x004A64FC`): the ally test
-  only, no neutral exemption.
+- State 265's door forcing (`0x00476AA8`): the ally test only, no neutral exemption. The
+  secret-door reveal (`0x004A64FC`) is built that way (`DoorSystem.SeenOpen`).
 - Creature_AttackAdjacentDoor (`0x004814B7`): a neutral door is attacked even when allied
   (`0x004814A7`).
 - The Reaper's forced target (`0x0045E208`, `0x0045E32A`): no neutral exemption, so neutral

@@ -45,18 +45,15 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
             // Terrain first. A creature that can cross the hazard pays nothing — which for water
-            // is all but the two vampires (CONFIRMED, Q118). Not for a creature that is down: the
-            // terrain call (0x0048A789) passes mode 0, and 0x004B2CE0 returns health unchanged for
-            // a mode-0 change while the dying bit (+0x3E6 bit 21) is set, so neither lava nor the
-            // Hero Lair's heal reaches it.
-            int terrain = CreatureDeathRules.IsDown(state)
-                ? 0
-                : CreatureHealthRules.TerrainHealthPerSecond(world, database, creature, state);
+            // is all but the two vampires (CONFIRMED, Q118).
+            int terrain = CreatureHealthRules.TerrainHealthPerSecond(world, database, creature, state);
             if (terrain != 0)
             {
                 // 0x0048A789: the source is the owner of the tile underfoot (+8 & 0xFFF).
-                int landed = CreatureHealthRules.Apply(database, creature, state, terrain,
-                    world.Tile(state.Tile.X, state.Tile.Y).OwnerPlayerId);
+                byte tileOwner = world.Tile(state.Tile.X, state.Tile.Y).OwnerPlayerId;
+                int landed = CreatureDeathRules.IsDown(state)
+                    ? CreatureHealthRules.RefuseForTheDying(state, tileOwner)
+                    : CreatureHealthRules.Apply(database, creature, state, terrain, tileOwner);
                 if (landed != 0)
                 {
                     context.Emit(SystemName, "creature_terrain_health",

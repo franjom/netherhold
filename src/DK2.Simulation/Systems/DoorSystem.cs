@@ -46,56 +46,51 @@ public sealed class DoorSystem : ISimulationSystem
             if (door.Open != was && !DoorRules.IsDead(door))
                 ThingSoundRules.Request(context, Name, door, door.Open ? ThingSoundEvent.DoorOpened : ThingSoundEvent.DoorClosed);
 
-            if (door.Open && definition is not null && (definition.Flags & DoorFlags.Secret) == DoorFlags.Secret)
+            // DK2 leaves the update for a dead door before this arm.
+            if (door.Open && !DoorRules.IsDead(door)
+                && definition is not null && (definition.Flags & DoorFlags.Secret) == DoorFlags.Secret)
                 SeenOpen(context, door);
         }
     }
 
-    /// <summary>The update's last arm (<c>0x004A64A3</c>–<c>0x004A6661</c>): an open, completed
-    /// Secret Door is seen by every creature of a player who is an enemy of its owner
-    /// (<c>0x004BF390</c>) that stands strictly within four tiles of it on the plane, is outside the
-    /// combat category, may look for a fight unforced (<c>0x0045A6D0(0)</c>, which refuses the
-    /// possessed creature) and has a clear line to it (<c>0x004512F0</c>). Each such creature gets
-    /// the door as its forced target (<c>0x0048F390</c>) and the tile's secret-door marker is
-    /// cleared (<c>0x00450FF0</c>), every tick and whether or not the marker was still set. DK2 also
-    /// posts command <c>0x11</c>, which is presentation.</summary>
+    /// <summary>The update's last arm (<c>0x004A64A3</c>–<c>0x004A6661</c>): an open, completed Secret
+    /// Door is seen by every creature of an enemy of its owner (<c>0x004BF390</c>) that stands
+    /// strictly within <see cref="SeeingRangeTiles"/> tiles of it, is outside the combat category, may
+    /// look for a fight unforced (<c>0x0045A6D0(0)</c>, which refuses the possessed creature) and has a
+    /// line no solid tile crosses (<c>0x004512F0</c> with both flags set, so no door stops it). Each
+    /// gets the door as its forced target (<c>0x0048F390</c>) and the tile's marker is cleared
+    /// (<c>0x00450FF0</c>), every tick, marker still set or not.
+    /// <para>Not built: the door's navigation byte rewritten as a shut door's (<c>0x004A66F0(1)</c>),
+    /// which stops sight and door-respecting routes through the open door until it next changes
+    /// state, and command <c>0x11</c>, whose consumer is unread. DK2 walks the players, then their
+    /// creatures; ours walks the world's list, which only changes which creature the event
+    /// names.</para></summary>
     private void SeenOpen(SimulationContext context, DoorState door)
     {
         WorldState world = context.World;
         int doorX = CreatureState.CentreOf(door.X), doorY = CreatureState.CentreOf(door.Y);
+        ISightBlocker? solidTiles = null;
         foreach (CreatureState creature in world.Creatures)
         {
+            // A body stays in the list with no state; in DK2 it is another class of thing.
+            if (!CreatureStateMachine.HasState(creature)) continue;
             if (world.AreAllied(creature.OwnerPlayerId, door.PlayerId)) continue;
-            if (!IsWithinSeeingRange(creature, doorX, doorY)) continue;
+            if (CombatRules.DistanceSquared(creature.PosX, creature.PosY, doorX, doorY) >= SeeingRangeSquared) continue;
             if (NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Combat) continue;
             if (!CombatRules.MayLookForAFight(world, context.Database, creature, force: false)) continue;
-            if (!LineOfSight.Clear(Sight(context), creature.PosX, creature.PosY, doorX, doorY)) continue;
 
-            ForceOnto(world, creature, door);
+            solidTiles ??= SolidTiles(context);
+            if (!LineOfSight.Clear(solidTiles, creature.PosX, creature.PosY, doorX, doorY)) continue;
+
+            CombatPitRules.ForceTarget(world, creature, door.Id, FightTargetKind.Door);
             Unhide(context, door, seenBy: creature);
         }
     }
 
-    /// <summary>Strictly nearer than four tiles on the plane; height is not measured
-    /// (<c>0x004A6521</c>–<c>0x004A656C</c>).</summary>
-    private static bool IsWithinSeeingRange(CreatureState creature, int doorX, int doorY)
-    {
-        long offsetX = creature.PosX - doorX, offsetY = creature.PosY - doorY;
-        long distanceSquared = ((offsetX * offsetX) / Fp32.One) + ((offsetY * offsetY) / Fp32.One);
-        return distanceSquared < SeeingRangeSquared;
-    }
+    private const int SeeingRangeTiles = 4;
 
-    private const long SeeingRangeSquared = 4 * 4 * Fp32.One;
-
-    /// <summary><c>0x0048F390</c>: the door becomes the creature's forced target. A forced target it
-    /// already had is unlinked first; a fight in progress is left alone.</summary>
-    private static void ForceOnto(WorldState world, CreatureState creature, DoorState door)
-    {
-        if (creature.AttackingId != CombatRules.NoTarget) CombatPitRules.ClearForcedTarget(world, creature);
-        creature.AttackAbnormalTargets = true;
-        creature.AttackingId = door.Id;
-        creature.AttackingKind = FightTargetKind.Door;
-    }
+    /// <summary>In <see cref="CombatRules.DistanceSquared"/>'s unit.</summary>
+    private const int SeeingRangeSquared = SeeingRangeTiles * SeeingRangeTiles * Fp32.One;
 
     /// <summary><c>0x00450FF0(x, y, 0)</c>: the tile stops being marked as a hidden door, for every
     /// player at once.</summary>
@@ -111,15 +106,16 @@ public sealed class DoorSystem : ISimulationSystem
     private WorldSight? _sight;
     private WorldState? _sightWorld;
 
-    private WorldSight Sight(SimulationContext context)
+    /// <summary>The sight rule that only solid tiles stop, over this tick's navigation bytes.</summary>
+    private ISightBlocker SolidTiles(SimulationContext context)
     {
+        context.Navigation.Refresh();
         if (!ReferenceEquals(_sightWorld, context.World))
         {
-            context.Navigation.Refresh();
             _sight = new WorldSight(context.Navigation, context.World, context.Database);
             _sightWorld = context.World;
         }
-        return _sight!;
+        return _sight!.SolidOnly;
     }
 
     /// <summary>The owner's lock command (<c>0x00513800</c>): a door of this player's, toggled

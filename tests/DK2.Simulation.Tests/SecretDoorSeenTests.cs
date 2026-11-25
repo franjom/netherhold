@@ -104,6 +104,38 @@ public sealed class SecretDoorSeenTests
         Assert.False(enemy.AttackAbnormalTargets);
     }
 
+    /// <summary>A body stays in the creature list with no state, where DK2 keeps it as another class
+    /// of thing: it sees nothing, and the arm must not ask its state for a category.</summary>
+    [Fact]
+    public void AnEnemyBodyBesideTheDoorSeesNothing()
+    {
+        var (sim, world, _, _) = Start();
+        Goblin(sim, Rival, DoorTile);
+        CreatureState body = Goblin(sim, Keeper, Beside);
+        CreatureDeathRules.BecomeCorpse(world, sim.Database, body);
+
+        sim.Tick();
+
+        Assert.True(world.Tile(DoorTile).SecretDoor);
+        Assert.False(body.AttackAbnormalTargets);
+    }
+
+    /// <summary>The arm skips a creature whose state resolves to the combat category
+    /// (<c>0x00478050</c> giving <c>0x16</c>), so one already fighting is not pulled onto the door.</summary>
+    [Fact]
+    public void AnEnemyAlreadyInCombatIsLeftToItsFight()
+    {
+        var (sim, world, _, _) = Start();
+        Goblin(sim, Rival, DoorTile);
+        CreatureState enemy = Goblin(sim, Keeper, Beside);
+        enemy.Dk2StateId = CreatureStateTable.InCategory(CreatureStateCategory.Combat).First();
+
+        sim.Tick();
+
+        Assert.True(world.Tile(DoorTile).SecretDoor);
+        Assert.False(enemy.AttackAbnormalTargets);
+    }
+
     /// <summary>The door is forced again every tick, marker or no marker (<c>0x004A65BF</c> is
     /// unconditional), so an enemy arriving after the door was seen is still drawn to it.</summary>
     [Fact]
