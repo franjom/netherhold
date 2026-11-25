@@ -354,10 +354,10 @@ subtract health per tick, not per second.**
 
 Two corollaries:
 
-- **Own-land regeneration is suppressed for a dying creature (DK2's bit 21, ADR-0764); lair healing is not.**
-  The owner's answer gives exactly one route off the floor, so passive
-  regeneration must not be a second one — and lair healing must still work at
-  zero, because that *is* the rescue. The Imp's instant death removed the guard's
+- **Own-land regeneration is suppressed for a dying creature (DK2's bit 21, ADR-0764), and so is every other mode-0 health change, lair healing included.**
+  The owner's answer gives exactly one route off the floor. The lair heal is the rescue, but only
+  after state 45 clears bit 21 (`0x468483`): while set, `0x004B2CE0` refuses any mode-0 delta
+  (re-read 2026-11-25, `openkeeper-pr-audit-1366-1400.md`). The Imp's instant death removed the guard's
   original subject, but **King Reginald** regenerates **400** a second on his own
   land *and* does leave a body, so he collapses and would heal back up every
   second he lay there. He is the only creature in the shipped data with both

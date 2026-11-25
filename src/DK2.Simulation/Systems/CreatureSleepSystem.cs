@@ -427,6 +427,7 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
             creature.LastSleptTick = context.Tick;
         }
         creature.SleepTicks++;
+        Snore(context, creature);
 
         if (!LairRules.HasSleptEnough(context.Database, definition, creature)) return;
 
@@ -439,6 +440,28 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
             StateShadow.Move(context, SystemName, creature, LairRules.MistressBedExitState);
         else Wake(context, creature);
     }
+
+    /// <summary>A sleeper asks for the Lair's own effect (67 in the shipped data, the snore) at
+    /// itself, for its owner, once every <see cref="SnoreIntervalTicks"/> ticks of sleep. A view
+    /// effect: it is not simulation state.
+    /// <para>State 83's last block (<c>0x0046FDF3</c>) keeps a byte counter for it: 48 on the first
+    /// tick, one less each tick, and the tick that finds it at zero asks for the effect and sets it
+    /// back to 48, so the effect comes on every 49th tick. <see cref="CreatureState.SleepTicks"/>
+    /// counts the same ticks.</para></summary>
+    private static void Snore(SimulationContext context, CreatureState creature)
+    {
+        if (creature.Dk2StateId != LairRules.SleepingState) return;
+        if (creature.SleepTicks % SnoreIntervalTicks != 0) return;
+
+        ushort lairEffect = context.Database.Room(RoomTypeId.Lair).RoomEffect425Id;
+        if (lairEffect == 0) return;
+
+        var atTheSleeper = new FpPosition3(new(creature.PosX), new(creature.PosY), new(creature.PosZ));
+        context.RequestEffect(SystemName, new ViewEffectRequest(
+            new EffectId(lairEffect), creature.OwnerPlayerId, atTheSleeper, new Dk2Angle((ushort)creature.Heading)));
+    }
+
+    private const int SnoreIntervalTicks = 49;
 
     private static void ExitMistressBed(SimulationContext context, CreatureState creature)
     {

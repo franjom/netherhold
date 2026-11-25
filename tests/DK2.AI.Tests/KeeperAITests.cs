@@ -338,6 +338,22 @@ public class KeeperAITests
         Assert.NotEqual(first, second);
     }
 
+    /// <summary>An ordinary room whose centroid is not one of its tiles takes the first room tile on
+    /// the spiral out from it, east first (<c>0x004E4759..0x004E4954</c>), not the nearest one
+    /// listed: a U open to the north has its centroid in the gap, and the tile east of it wins over
+    /// the equally near tile west of it.</summary>
+    [Fact]
+    public void ARoomsStoredPositionSpiralsOutFromACentroidThatIsNotItsOwn()
+    {
+        WorldState world = KeeperWorld.World(Db);
+        foreach ((int x, int y) in new[] { (3, 3), (5, 3), (3, 4), (5, 4), (3, 5), (4, 5), (5, 5) })
+            KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.LairFloor, KeeperWorld.Keeper);
+        var view = new KeeperView(Db, world, KeeperWorld.Keeper);
+
+        KeeperRoomView lair = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == RoomTypeId.Lair);
+        Assert.Equal(new TilePos(5, 4), view.PositionOf(lair));
+    }
+
     /// <summary>The site search starts at a room's stored position (+0x27, <c>0x004FC690</c>), not its
     /// bounding-box middle: for a keeper with only its heart, the heart room's first slab plus three.
     /// On Level 11A, Morgana's Lair site and the path to it sat one row north of DK2's until this

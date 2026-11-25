@@ -78,7 +78,7 @@ public sealed class CreatureOverview
             if(creature.Dk2StateId!=193 && !Suppressed(creature))
             {
                 _counts[type]++;
-                int activity=CreatureActivityRules.Code(_database.CreatureById(creature.CreatureTypeId),creature);
+                int activity=CreatureActivityRules.JobCode(_database.CreatureById(creature.CreatureTypeId),creature);
                 if(activity<28) _filteredCounts[type*28+activity]++;
                 _filteredCounts[type*28+(creature.Mood==CreatureMood.Angry?25:creature.Mood==CreatureMood.Unhappy?26:27)]++;
                 if(activity!=5 && activity!=20 && activity!=21) _filteredCounts[type*28+23]++;
@@ -133,7 +133,7 @@ public sealed class CreatureOverview
     private static bool MatchesFilter(CreatureDef definition,CreatureState creature,CreatureOverviewFilter filter)
     {
         if(filter==CreatureOverviewFilter.All) return true;
-        int activity=CreatureActivityRules.Code(definition,creature);
+        int activity=CreatureActivityRules.JobCode(definition,creature);
         return filter switch
         {
             CreatureOverviewFilter.Busy => activity!=4 && activity!=5,

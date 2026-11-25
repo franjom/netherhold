@@ -9,12 +9,17 @@ namespace DK2.Simulation;
 
 /// <summary>A creature's activity code, <c>0x00478A20</c>: the keeper's slap step
 /// (<c>0x00502F00</c>) slaps only on <see cref="Slappable"/> (computer-keeper-management.md §8).</summary>
-/// <remarks>Not modelled: the state object's <c>+0x3C</c> overrides (1 gives 26, 2 gives 25),
-/// whose writers are unread.</remarks>
 public static class CreatureActivityRules
 {
     /// <summary>The code the slap step asks for.</summary>
     public const int Slappable = 5;
+
+    /// <summary>The state object's <c>+0x3C</c>, the mood band, answers before anything else, for a
+    /// worker too: 1 gives 26 and 2 gives 25, so an unhappy or angry creature is never
+    /// <see cref="Slappable"/>. <c>0x00478B80</c> and <c>0x00478C30</c> post the unhappy and angry
+    /// messages (17, 18) as the band moves.</summary>
+    public const int Unhappy = 0x1A;
+    public const int Angry = 0x19;
 
     /// <summary>A worker in combat; any other busy worker is <see cref="WorkerBusy"/>.</summary>
     public const int WorkerFighting = 4;
@@ -35,6 +40,16 @@ public static class CreatureActivityRules
     /// Otherwise <see cref="WorkerFighting"/> in the combat category, else <see cref="WorkerBusy"/>.</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-management.md")]
     public static int Code(CreatureDef definition, CreatureState creature)
+    {
+        if (creature.Mood == CreatureMood.Unhappy) return Unhappy;
+        if (creature.Mood == CreatureMood.Angry) return Angry;
+        return JobCode(definition, creature);
+    }
+
+    /// <summary>The code with no mood test, as the near-twin <c>0x00478AE0</c> has none. The creature
+    /// panel counts jobs with this and moods beside them; which of the two DK2's panel calls is
+    /// unread.</summary>
+    public static int JobCode(CreatureDef definition, CreatureState creature)
     {
         CreatureStateCategory category = NeedRules.ResolvedCategory(creature);
         if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))

@@ -716,6 +716,53 @@ public class PaydayTests
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 
+    /// <summary>188 (<c>0x00472690</c>) turns before 189 takes the money, and not toward the gold:
+    /// the point is the creature's own position shifted left 12 plus <c>0x800</c>
+    /// (<c>0x004726F0</c>), so the bearing comes from where on the map it stands.</summary>
+    [Fact]
+    public void AGoblinTurnsToTheMisScaledPointBeforeItTakesItsWages()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Treasury(world, Floor, 2000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor).Unstaggered();
+        goblin.WageOwed = 500;
+        GameSimulation sim = Simulation(db, world);
+
+        // Hold it in 188 with the turn still to make: a quarter turn a tick is never enough at once.
+        sim.Tick();
+        int target = BearingToArrivalFacingPoint(goblin);
+        for (int t = 0; t < 40 && goblin.WageOwed != 0; t++) sim.Tick();
+
+        Assert.Equal(0, goblin.WageOwed);
+        Assert.Equal(target, goblin.Heading);
+    }
+
+    private static int BearingToArrivalFacingPoint(CreatureState creature)
+    {
+        (int pointX, int pointY) = PaydayRules.ArrivalFacingPoint(creature);
+        return DK2.Simulation.Steering.Bearing.Of(pointX - creature.PosX, pointY - creature.PosY);
+    }
+
+    [Fact]
+    public void AGoblinStillTurningInOneEightyEightHasNotBeenPaid()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Treasury(world, Floor, 2000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor).Unstaggered();
+        goblin.WageOwed = 500;
+        int target = BearingToArrivalFacingPoint(goblin);
+        goblin.Heading = (target + DK2.Simulation.Steering.Bearing.HalfTurn) & DK2.Simulation.Steering.Bearing.Mask;
+        Assert.True(CreatureStateMachine.TrySetState(default, goblin, PaydayRules.ArrivingState));
+
+        Simulation(db, world).Tick();
+
+        Assert.Equal(PaydayRules.ArrivingState, goblin.Dk2StateId);
+        Assert.Equal(500, goblin.WageOwed);
+        Assert.NotEqual(target, goblin.Heading);
+    }
+
     /// <summary>187's two world draws (ADR-0677): the start tile, <c>0x004E4D90</c>'s <c>random(size)</c>,
     /// then <c>random(8)</c> for the point in the pile's tile; none when no paying room holds gold.</summary>
     [Theory]

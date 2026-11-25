@@ -444,14 +444,8 @@ public static class CasinoStep
     }
 
     /// <summary>The turn step <c>0x004B2AE0</c> toward a point: the angle still to turn.</summary>
-    internal static int TurnTo(SimulationContext context, CreatureState creature, int x, int y)
-    {
-        int heading = creature.Heading;
-        int rate = SimulationTiming.TurnRatePerTick(context.Database.CreatureById(creature.CreatureTypeId));
-        int left = Bearing.TurnToward(ref heading, Bearing.Of(x - creature.PosX, y - creature.PosY), rate);
-        creature.Heading = heading;
-        return left;
-    }
+    internal static int TurnTo(SimulationContext context, CreatureState creature, int x, int y) =>
+        CreatureTurn.Toward(context.Database, creature, x, y);
 
     /// <summary>A walk to a point resuming <paramref name="resume"/>, options <c>0x80</c>.</summary>
     private static bool Walk(SimulationContext context, string system, CreatureState creature, int x, int y, int resume)

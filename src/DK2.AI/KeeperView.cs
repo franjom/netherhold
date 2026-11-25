@@ -258,8 +258,9 @@ public sealed class KeeperView : INavByteGrid
 
     /// <summary>A room's <c>CentrePos</c> (<c>+0x27</c>) as <c>0x004E4590</c> writes it: the first slab
     /// plus one for a Portal, plus three for the Heart, the first slab itself for ids 18 to 24, and
-    /// otherwise the slabs' integer centroid, or the room tile nearest it when the centroid is not
-    /// the room's (DK2 spirals out from it; ours takes the nearest, first listed on a tie).</summary>
+    /// otherwise the slabs' integer centroid, or, when the centroid is not the room's, the first
+    /// room tile on the square spiral out from it: east, south, west, north, every second side one
+    /// longer (<c>0x004E4759..0x004E4954</c>, as <c>RoomIndex.FindOrdinaryCentre</c>).</summary>
     public TilePos PositionOf(KeeperRoomView room)
     {
         TilePos first = FirstSlabOf(room);
@@ -274,15 +275,29 @@ public sealed class KeeperView : INavByteGrid
         foreach (int index in room.TileIndices) { sumX += index % Width; sumY += index / Width; }
         var centroid = new TilePos(sumX / room.TileIndices.Count, sumY / room.TileIndices.Count);
         if (room.TileIndices.Contains(IndexOf(centroid))) return centroid;
-        TilePos best = first;
-        int bestDistance = int.MaxValue;
-        foreach (int index in room.TileIndices)
-        {
-            int distance = DistanceSquared(FromIndex(index), centroid);
-            if (distance < bestDistance) { bestDistance = distance; best = FromIndex(index); }
-        }
-        return best;
+        return FirstRoomTileSpirallingOutFrom(centroid, room);
     }
+
+    /// <summary>Walks the square spiral round a point (sides of 1, 1, 2, 2, 3, 3, ... tiles) and
+    /// returns the first tile of the room it steps on. The room has a tile and the spiral covers the
+    /// plane, so the walk ends.</summary>
+    private TilePos FirstRoomTileSpirallingOutFrom(TilePos centre, KeeperRoomView room)
+    {
+        TilePos point = centre;
+        for (int side = 0; ; side++)
+        {
+            TilePos step = SpiralSteps[side % SpiralSteps.Length];
+            int sideLength = (side / 2) + 1;
+            for (int walked = 0; walked < sideLength; walked++)
+            {
+                point += step;
+                if (InBounds(point) && room.TileIndices.Contains(IndexOf(point))) return point;
+            }
+        }
+    }
+
+    /// <summary>East, south, west, north.</summary>
+    private static readonly TilePos[] SpiralSteps = [new(1, 0), new(0, 1), new(-1, 0), new(0, -1)];
 
     /// <summary>The place validators of a Call to Arms cast at a tile (<c>0x004BB8A0</c>): location
     /// 4's navigation solid bit, and target 4's exclusions on the keeper's own room tiles, captured

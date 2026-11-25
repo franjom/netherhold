@@ -127,15 +127,41 @@ public sealed class SleepJobTests
         Assert.DoesNotContain(sink.Events, e => e.Kind == "job_started" && e.Detail.Contains("job=Sleep"));
     }
 
+    /// <summary>State 83's counter (<c>0x0046FDF3</c>): loaded with <c>0x30</c> on the first call, so the
+    /// Lair's own effect (67 in the shipped data) is asked for on every 49th sleeping tick, at the
+    /// sleeper, for its owner.</summary>
+    [Fact]
+    public void ASleeperAsksForTheLairsEffectOnEveryFortyNinthSleepingTick()
+    {
+        (GameSimulation sim, CreatureState goblin, ListEventSink sink) = Start(withPayday: false, lairEffect: 67);
+        goblin.SleepDebtTicks = 120;
+
+        Drop(sim, goblin, Adjacent);
+        var asked = new List<int>();
+        for (int t = 0; t < 400 && !sink.Events.Any(e => e.Kind == "woke_up"); t++)
+        {
+            int before = sink.Events.Count(e => e.EffectRequest?.EffectId == new EffectId(67));
+            sim.Tick();
+            if (sink.Events.Count(e => e.EffectRequest?.EffectId == new EffectId(67)) != before) asked.Add(goblin.SleepTicks);
+        }
+
+        Assert.Equal([49, 98], asked);
+        ViewEffectRequest request = sink.Events.First(e => e.EffectRequest?.EffectId == new EffectId(67)).EffectRequest!.Value;
+        Assert.Equal(Keeper, request.Owner.Value);
+    }
+
     private static void Drop(GameSimulation sim, CreatureState creature, TilePos at)
     {
         sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, at)));
     }
 
-    private static (GameSimulation, CreatureState, ListEventSink) Start(bool withPayday)
+    private static (GameSimulation, CreatureState, ListEventSink) Start(bool withPayday, ushort lairEffect = 0)
     {
-        GameDatabase database = Dk2TerrainFixture.Database();
+        GameDatabase fixture = Dk2TerrainFixture.Database();
+        GameDatabase database = lairEffect == 0 ? fixture : new GameDatabase(fixture.Terrain.Values,
+            fixture.Rooms.Values.Select(r => r.TypeId == RoomTypeId.Lair ? r with { RoomEffect425Id = lairEffect } : r),
+            fixture.Creatures.Values, fixture.Variables, objects: fixture.Objects.Values);
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, Keeper]);
         // A 3x3 Lair whose room point (the centre) is not the bed, so the job's walk has somewhere to go.

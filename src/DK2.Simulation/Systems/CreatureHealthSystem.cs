@@ -44,13 +44,14 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
-            // Terrain first, and it applies to the dying as well as the
-            // standing: a creature that collapses in lava is still in lava, and
-            // lying in it is no safer than walking through it. A creature that
-            // can cross the hazard pays nothing — which for water is all but
-            // the two vampires (CONFIRMED, Q118).
-            int terrain = CreatureHealthRules.TerrainHealthPerSecond(
-                world, database, creature, state);
+            // Terrain first. A creature that can cross the hazard pays nothing — which for water
+            // is all but the two vampires (CONFIRMED, Q118). Not for a creature that is down: the
+            // terrain call (0x0048A789) passes mode 0, and 0x004B2CE0 returns health unchanged for
+            // a mode-0 change while the dying bit (+0x3E6 bit 21) is set, so neither lava nor the
+            // Hero Lair's heal reaches it.
+            int terrain = CreatureDeathRules.IsDown(state)
+                ? 0
+                : CreatureHealthRules.TerrainHealthPerSecond(world, database, creature, state);
             if (terrain != 0)
             {
                 // 0x0048A789: the source is the owner of the tile underfoot (+8 & 0xFFF).

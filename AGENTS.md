@@ -456,6 +456,19 @@ Signals that a signature has the problem:
 
 When touching existing code that has the problem, fix the signature you are changing and its callers; do not sweep the codebase. Wrappers go in the assembly that owns the concept (DK2.Core for engine-neutral values, DK2.Data.Model for ids the map format defines, DK2.Simulation for simulation-only state), and they must remain Unity-loadable like everything else there.
 
+## Write C#, not transliterated disassembly
+
+Owner rule, 2026-11-25. Code that mirrors a DKII.EXE function must read as C# written by someone who understands what the function is for. The binary decides *what* the code does; it never decides how the code looks.
+
+- **No raw shift-and-mask arithmetic at a call site.** `(creature.PosX << 12) + 0x800 - creature.PosX` is a decompiler line. Use the named helper that already exists (`CreatureState.CentreOf`, `Fp32.One`, `Bearing`, `TilePos`), or add one with a name that says what the value means.
+- **Name the intent, then cite the address.** A step gets a method or a local whose name states its purpose (`ArrivalFacingPoint`, `IsWithinSeeingRange`, `stillTurning`); the address and the offsets go in the doc comment, not in the expression.
+- **No magic numbers.** `0x10000`, `0x30 + 1` and `& 3` become named constants or expressions in domain units (`4 * 4 * Fp32.One`, `SnoreIntervalTicks = 49`).
+- **A mirrored defect is still readable.** Say in the doc comment what DK2 meant, what it does instead and that it is built on purpose (ADR-0783), and write the code so the mistake is visible as a mistake (a world position passed where a tile belongs), not as unexplained arithmetic.
+- **`unchecked` and wrap-around only where the wrap is the behaviour**, inside the one helper that owns it, with a sentence saying when it is reachable.
+- **Reuse before repeating.** If three lines already exist in another system (turn toward a point, force a target), move them to a shared helper and call it from both.
+
+A reviewer rejects a change that breaks these, the same as a wrong claim about the binary.
+
 ## Commit messages
 
 - Match the language of recent commits in the repo (`git log --oneline -20`).

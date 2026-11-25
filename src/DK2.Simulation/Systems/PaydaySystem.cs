@@ -286,14 +286,41 @@ public sealed class PaydaySystem : ICreatureUpdateStep
             creature, StateShadow.TravelToPoint, PaydayRules.ArrivingState);
     }
 
-    /// <summary>The walk ends in 188, which moves to 189 to take the money. 188 first
-    /// re-checks the keeper still owns a treasury or heart, and waits while it turns to face the
-    /// tile centre (<c>0x004B2AE0</c>, the turn, tunnelling.md §3); ours does neither.</summary>
+    /// <summary>The walk ends in 188 (<c>0x00472690</c>), which moves to 189 to take the money.
+    /// 188 first re-checks that the tile underfoot is a Treasury or Heart of the creature's keeper
+    /// (<c>0x004539B0</c>, types 1 then 5) and returns 0 if not, then waits while the creature turns
+    /// (<c>0x004B2AE0</c>).
+    /// <para>The turn is not toward the gold: see <see cref="PaydayRules.ArrivalFacingPoint"/>.</para></summary>
     private static void Arrived(SimulationContext context, CreatureState creature)
     {
         StateShadow.Arrive(context, SystemName, creature);
+
+        WorldState world = context.World;
+        int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
+        RoomInstance? room = RoomIndex.RoomAt(world, context.Database, here);
+        if (room is null || !PaydayRules.IsPayingRoomOf(room, creature.OwnerPlayerId))
+        {
+            NotHere(context, creature);
+            return;
+        }
+
+        (int faceX, int faceY) = PaydayRules.ArrivalFacingPoint(creature);
+        bool stillTurning = Steering.CreatureTurn.Toward(context.Database, creature, faceX, faceY) != 0;
+        if (stillTurning) return;
+
         StateShadow.Move(context, SystemName, creature, PaydayRules.TakeItState);
         Take(context, creature);
+    }
+
+    /// <summary>188 and 189 returning 0 off a paying room: the creature drops to idle and no attempt
+    /// is counted.</summary>
+    private static void NotHere(SimulationContext context, CreatureState creature)
+    {
+        creature.StopMoving();
+        StateShadow.ToIdle(context, SystemName, creature);
+        context.Emit(SystemName, "wages_not_here",
+            $"creature={creature.Id} player={creature.OwnerPlayerId} " +
+            $"owed={creature.WageOwed} at=({creature.Tile.X},{creature.Tile.Y})");
     }
 
     /// <summary>
@@ -315,11 +342,7 @@ public sealed class PaydaySystem : ICreatureUpdateStep
         RoomInstance? room = RoomIndex.RoomAt(world, context.Database, here);
         if (room is null || !PaydayRules.IsPayingRoomOf(room, creature.OwnerPlayerId))
         {
-            creature.StopMoving();
-            StateShadow.ToIdle(context, SystemName, creature);
-            context.Emit(SystemName, "wages_not_here",
-                $"creature={creature.Id} player={creature.OwnerPlayerId} " +
-                $"owed={creature.WageOwed} at=({creature.Tile.X},{creature.Tile.Y})");
+            NotHere(context, creature);
             return;
         }
 

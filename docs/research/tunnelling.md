@@ -43,7 +43,7 @@ This is `0x00471890` at `0x0047193A`–`0x00471A56`, and `0x00471A70` alike.
 
 **`+0x208` is the route map's solid bit.** DK2's own `CWorld` vtable, found through RTTI, is `0x0066E3EC`. Slot `+0x208` is `0x00509200`, bit 3 of the per-tile byte map at `world+0x9F2`. The route helper's own target check `0x004B35C0` refuses the same bit.
 
-**`0x004B2AE0` turns; it is not a region test.** It steps the heading toward a point by at most the definition's turn rate (`+0x6A0 & 0x7FF`) and returns what is left. Ours has it as `Bearing.TurnToward`. That answers half of Q371: the fight state's pre-swing test is a turn to face the target. Payday's 188 likewise waits while it turns to face the tile (`payday.md` §4.3).
+**`0x004B2AE0` turns; it is not a region test.** It steps the heading toward a point by at most the definition's turn rate (`+0x6A0 & 0x7FF`) and returns what is left. Ours has it as `Bearing.TurnToward`. That answers half of Q371: the fight state's pre-swing test is a turn to face the target. Payday's 188 likewise waits while it turns, toward a mis-scaled point and not the tile (`payday.md` §4.3).
 
 ## 4. The next dig tile, `0x00485EF0` — STRONGLY INFERRED
 

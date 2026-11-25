@@ -64,6 +64,19 @@ public sealed class CreatureActivityRulesTests
         Assert.Equal(0x15, CreatureActivityRules.Code(Dk2TerrainFixture.Goblin(), goblin));
     }
 
+    /// <summary><c>0x00478A20</c> tests the mood band (<c>+0x3C</c>) before the worker test and the
+    /// category table, so no unhappy or angry creature is slappable.</summary>
+    [Theory]
+    [InlineData(CreatureMood.Unhappy, CreatureActivityRules.Unhappy)]
+    [InlineData(CreatureMood.Angry, CreatureActivityRules.Angry)]
+    public void AnUnhappyOrAngryCreatureAnswersItsMoodWhateverItDoes(CreatureMood mood, int code)
+    {
+        var goblin = new CreatureState { Dk2StateId = 1, Mood = mood };
+        var imp = new CreatureState { Dk2StateId = 6, UtilityNewState = 87, WorkerIdle = true, Mood = mood };
+        Assert.Equal(code, CreatureActivityRules.Code(Dk2TerrainFixture.Goblin(), goblin));
+        Assert.Equal(code, CreatureActivityRules.Code(Dk2TerrainFixture.Imp(), imp));
+    }
+
     [Fact]
     public void AnImpInCombatIsFighting()
     {

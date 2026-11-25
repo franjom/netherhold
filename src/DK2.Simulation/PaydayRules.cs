@@ -69,6 +69,16 @@ public static class PaydayRules
     /// is idle, unless the Drink job takes over (§4.4, Q421).</summary>
     public const int TakeItState = 189;
 
+    /// <summary>The point a creature arriving for its wages turns toward in state 188
+    /// (<c>0x004726F0</c>).
+    /// <para>Suspected DK2 defect, built as DK2 does it (ADR-0783). The state means to face the
+    /// centre of the tile it stands on, as Imp state 28 does (<c>0x00466A58</c>), but it hands the
+    /// tile-centre formula the creature's world position where a tile number belongs. The result is
+    /// a point far off the map, so the creature faces a direction set by where on the map it
+    /// stands, not the gold.</para></summary>
+    public static (int X, int Y) ArrivalFacingPoint(CreatureState creature) =>
+        (CreatureState.CentreOf(creature.PosX), CreatureState.CentreOf(creature.PosY));
+
     /// <summary>What this creature is owed for one payday: its record's <c>Pay</c> scaled by the
     /// level table's <see cref="CreatureStatId.Pay"/> row, 105 % at L2 rising to 250 % at L10
     /// (Q119). An imp is unpaid by its own <c>pay=0</c>, not by a rule.</summary>
