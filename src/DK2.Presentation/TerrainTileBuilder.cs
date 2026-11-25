@@ -166,7 +166,9 @@ public sealed class TerrainTileBuilder
         if (pieces.Quarters == QuarterKind.None) return;
 
         for (int q = 0; q < 4; q++)
-            Add(geometry, _pieces.Piece(keys.Quarter(pieces.QuarterSet, pieces.QuarterPiece(q))),
+            Add(geometry, _pieces.Piece(pieces.Quarters == QuarterKind.HeroLair
+                    ? keys.HeroLairQuarter(pieces.QuarterPiece(q))
+                    : keys.Quarter(pieces.QuarterSet, pieces.QuarterPiece(q))),
                 TerrainPieces.QuarterRotation(q), Quadrant(centre, q), tagged, tile.AmbientTint,
                 invertLightingNormals: pieces.Quarters == QuarterKind.Top);
     }

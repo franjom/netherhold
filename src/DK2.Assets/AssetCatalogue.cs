@@ -219,7 +219,23 @@ public static class AssetCatalogue
             for (int set = 0; set < ClaimedSets; set++)
                 for (int piece = 0; piece < ClaimedPieces; piece++)
                     yield return TerrainQuarter(terrain.Name, set, piece);
+
+        if (terrain.TerrainId == HeroLairTerrainId)
+            for (int piece = 0; piece < HeroLairPieces; piece++)
+                yield return HeroLairPiece(terrain.Name, piece);
     }
+
+    /// <summary>Terrain 0x23, the Hero Lair, whose floor quarters are its own five pieces
+    /// "hero_outpost_floor0..4" (world vtable +0x2AC, loaded by <c>0x004C2880</c> for the hero
+    /// player; floor-and-terrain-pieces.md section 5).</summary>
+    public const byte HeroLairTerrainId = 0x23;
+
+    /// <summary>The Hero Lair's floor quarter pieces, numbered as the claimed quarters (0..4).</summary>
+    public const int HeroLairPieces = 5;
+
+    /// <summary>Hero Lair floor quarter <paramref name="piece"/> (0..4).</summary>
+    public static AssetRef HeroLairPiece(string terrainName, int piece) =>
+        AssetRef.ForTerrain(terrainName, AssetKind.Mesh, "outpost" + piece);
 
     /// <summary>A hero-owned PlayerColouredWall's faces are pieces 4..8 of the hero wall set,
     /// "Herowall_LevelDefaultPart4..8" (floor-and-terrain-pieces.md section 5).</summary>

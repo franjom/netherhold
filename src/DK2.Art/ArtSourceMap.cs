@@ -119,6 +119,12 @@ public static class ArtSourceMap
                     "hero wall face"));
                 continue;
             }
+            if (variant.StartsWith("outpost", StringComparison.Ordinal))
+            {
+                entries.Add(Model(reference, new Dk2ArtResource("hero_outpost_floor" + variant.Substring(7), 0),
+                    "hero lair floor quarter"));
+                continue;
+            }
             if (variant.StartsWith("quarter", StringComparison.Ordinal))
             {
                 string name = (wall ? "Claimed Top" : "Claimed Floor") + variant[7] + "_" + variant[8];

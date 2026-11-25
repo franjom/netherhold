@@ -319,7 +319,8 @@ public sealed class InstallArtProviderTests
         GameDatabase database = GameDatabaseLoader.Load(install);
         using InstallArtProvider provider = InstallArtProvider.Open(install, database);
 
-        string[] terrains = ["Impenetrable Rock", "Rock", "Dirt Path", "Gold", "Gems", "Claimed Path", "Reinforced Wall"];
+        string[] terrains = ["Impenetrable Rock", "Rock", "Dirt Path", "Gold", "Gems", "Claimed Path", "Reinforced Wall",
+            "Hero Lair"];
         int loaded = 0;
         foreach (string name in terrains)
         {

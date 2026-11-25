@@ -165,7 +165,7 @@ Matched native coverage and the earlier Level 2 report remain open.
 ### The quarters (STRONGLY INFERRED, `0x0043FF5A..0x004402F0`)
 
 - Entered for PlayerColouredPath or PlayerColouredWall, when drawn as fog, or for terrain 0x23
-  (whose piece comes from vtable `+0x2AC`, unread).
+  (the Hero Lair, whose piece comes from world vtable `+0x2AC`; see *What each terrain draws*).
 - The mask is the tile byte `+0xC` (written by `0x00450470`: a bit per neighbour off the map, or for
   an open tile of another terrain, or for a solid tile not nav-solid). PlayerColouredWall, or a
   tile drawn as fog, scans live instead (`0x0043FFC8..0x00440088`): bit k when neighbour k is on
@@ -220,6 +220,20 @@ Matched native coverage and the earlier Level 2 report remain open.
 - **Dirt Path.** One whole "ROCK FLOOR" piece. STRONGLY INFERRED.
 - **Water and Lava.** 0x0043E440 builds the bed from WATER/LAVA BED0..7 and the
   tile byte +0xC (`room-floors-and-liquids.md` §3); open water draws no bed.
+- **Hero Lair (0x23).** Four quarters by the same mask, table `0x0066DA08` and fixed rotations as
+  Claimed Path, but the piece is world vtable `+0x2AC`(table value) (`0x004401D2..0x004401FA`, taken
+  when the terrain's Solid bit and `[ESP+0x28]` are clear) instead of the owner's `+0x10AA` set, so
+  every owner draws the same five pieces. `+0x2AC` is `0x005097F0`, which returns world
+  `+0xA34F`[n]; its setter `+0x2B0` (`0x00509800`) is called only by `0x004C2880`, which zeroes the
+  five slots and then loads "hero_outpost_floor0..4" (format "%s%d", Meshes.WAD holds all five) when
+  the live-thing byte `0x006ED540` of the thing at its object `+0x0A` is set. `Player_Initialise`
+  (`0x004B8640`) calls it only for the hero player (`+0x10FC` == 1), right after loading the
+  Herowall_LevelDefault faces. STRONGLY INFERRED for the piece choice (disassembly) and the loader
+  (decompile, strings); which thing `+0x0A` names is unread, so the gate on `0x006ED540` is a
+  HYPOTHESIS. **BUILT 2026-11-25** (`QuarterKind.HeroLair`, `AssetCatalogue.HeroLairPiece`): the
+  remake drew nothing on terrain 0x23, so Level16's opening flew over a black hole where the hero
+  lair island stands. The arm has no fog test of its own; in the remake a fogged Hero Lair is drawn
+  as the fog terrain before this point.
 - **Mana Vault.** MANA_VAULT when owned by the neutral player, else
   MANA_VAULT_CLAIMED. STRONGLY INFERRED, and the owner sees the two looks (2026-10-09). Not built.
 

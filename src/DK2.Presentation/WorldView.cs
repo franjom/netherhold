@@ -517,7 +517,7 @@ public sealed partial class WorldView
                 ? AssetRef.ForTerrain(terrain.Name, AssetKind.Mesh)
                 : AssetRef.ForTerrain(terrain.Name, AssetKind.Texture);
             _terrainSolid[entry.Key] = terrain.IsSolid;
-            _pieceKeys[entry.Key] = new TerrainPieceKeys(terrain.Name);
+            _pieceKeys[entry.Key] = new TerrainPieceKeys(terrain.Name, terrain.TerrainId == HeroLairTerrainId);
             _solidById[entry.Key] = terrain.IsSolid;
         }
 
@@ -1308,28 +1308,38 @@ public sealed partial class WorldView
     // bits. 3 interior, 0 and 4 the two straight edges, 1 an outer corner, 2 an inner corner.
     private static readonly byte[] ClaimedQuarterPiece = [3, 0, 2, 0, 4, 1, 4, 1];
 
-    // Terrains 0x1F (Mana Vault: MANA_VAULT or MANA_VAULT_CLAIMED by owner) and 0x23 (another
-    // quarter source, vtable +0x2AC) have arms of their own in 0x0043E860 that are not built.
-    private const byte ManaVaultTerrainId = 0x1F, OtherQuarterTerrainId = 0x23;
+    // Terrain 0x1F (Mana Vault: MANA_VAULT or MANA_VAULT_CLAIMED by owner) has an arm of its own
+    // in 0x0043E860 that is not built. Terrain 0x23 (Hero Lair) takes its quarters from world
+    // vtable +0x2AC (0x005097F0, world +0xA34F[piece]), which the hero player's set-up fills with
+    // "hero_outpost_floor0..4" (0x004C2880): the claimed-floor table and rotations, one set for
+    // every owner (floor-and-terrain-pieces.md section 5).
+    private const byte ManaVaultTerrainId = 0x1F, HeroLairTerrainId = AssetCatalogue.HeroLairTerrainId;
 
     /// <summary>
     /// The plain terrain builder <c>0x0043E860</c> (floor-and-terrain-pieces.md §5): a solid tile
     /// draws a face on each side whose neighbour is off the map, or explored and open, except
     /// against a room that draws its own walls when this terrain is AllowRoomWalls; then a top, or
     /// for a PlayerColouredWall the owner's top quarters. An open tile draws the owner's floor
-    /// quarters when PlayerColouredPath, else its whole floor.
+    /// quarters when PlayerColouredPath (the Hero Lair its own, <see cref="QuarterKind.HeroLair"/>),
+    /// else its whole floor.
     /// <para>A hero-owned PlayerColouredWall draws no art-1 faces here: its faces are the hero wall
     /// pieces <see cref="HeroWallFacesOf"/> puts in <see cref="TileView.Walls"/>.</para>
-    /// <para>Deviates: solidity stands in for the art test and for nav-solidity; the Mana Vault,
-    /// terrain 0x23 and the top variant are not built (floor-and-terrain-pieces.md §5).</para>
+    /// <para>Deviates: solidity stands in for the art test and for nav-solidity; the Mana Vault and
+    /// the top variant are not built (floor-and-terrain-pieces.md §5).</para>
     /// </summary>
     private TerrainPieces PiecesOf(WorldState world, int x, int y, in TileState tile, TerrainDef terrain,
         bool drawnAsFog)
     {
         TerrainFlags flags = terrain.Flags;
         if ((flags & (TerrainFlags.Room | TerrainFlags.ConstructionTypeWater)) != 0
-            || tile.TerrainId is ManaVaultTerrainId or OtherQuarterTerrainId)
+            || tile.TerrainId == ManaVaultTerrainId)
             return default;
+        // 0x004401C7..0x004401FA: with the terrain's Solid bit and [ESP+0x28] clear, a tile of
+        // terrain 0x23 asks world vtable +0x2AC for the table's piece instead of the owner's +0x10AA
+        // set. A fogged Hero Lair never reaches here: the fog arm above draws it as the fog terrain.
+        if (tile.TerrainId == HeroLairTerrainId && !terrain.IsSolid)
+            return default(TerrainPieces).WithQuarters(QuarterKind.HeroLair, 0,
+                QuarterPieces(FloorEdges(world, x, y, tile.TerrainId)));
 
         // The owner's set: player id − 1, so 0 the heroes and 1 neutral (AssetCatalogue.ClaimedSets).
         int set = Math.Clamp((tile.OwnerPlayerId == 0 ? PlayerIds.Neutral : tile.OwnerPlayerId) - 1,

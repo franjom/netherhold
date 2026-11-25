@@ -8,13 +8,14 @@ using DK2.Assets;
 
 namespace DK2.Presentation;
 
-/// <summary>What fills a tile's four quarters: nothing, a player-coloured floor or a
-/// player-coloured wall top.</summary>
+/// <summary>What fills a tile's four quarters: nothing, a player-coloured floor, a
+/// player-coloured wall top, or the Hero Lair's floor (terrain 0x23, one set for every owner).</summary>
 public enum QuarterKind : byte
 {
     None,
     Floor,
     Top,
+    HeroLair,
 }
 
 /// <summary>
@@ -50,7 +51,8 @@ public readonly struct TerrainPieces : IEquatable<TerrainPieces>
 
     public QuarterKind Quarters => (QuarterKind)((_bits >> KindShift) & 3);
 
-    /// <summary>The player set the quarters come from: the owner's id − 1.</summary>
+    /// <summary>The player set the quarters come from: the owner's id − 1; 0 for
+    /// <see cref="QuarterKind.HeroLair"/>, which has one set.</summary>
     public int QuarterSet => (int)((_bits >> SetShift) & 7);
 
     /// <summary>Quadrant <paramref name="quadrant"/>'s piece, 0..4.</summary>
@@ -88,8 +90,12 @@ public sealed class TerrainPieceKeys
     private readonly AssetRef[] _quarters;
     private readonly AssetRef[] _beds = new AssetRef[AssetCatalogue.BedPieces];
     private readonly AssetRef[] _heroFaces = new AssetRef[AssetCatalogue.HeroWallPieces];
+    private readonly AssetRef[] _heroLair;
 
-    internal TerrainPieceKeys(string terrainName)
+    /// <param name="terrainName">The terrain's name.</param>
+    /// <param name="heroLair">Whether the terrain is the Hero Lair (0x23), whose floor quarters
+    /// are <see cref="AssetCatalogue.HeroLairPiece"/>.</param>
+    internal TerrainPieceKeys(string terrainName, bool heroLair = false)
     {
         for (int k = 0; k < _beds.Length; k++) _beds[k] = AssetCatalogue.TerrainBed(terrainName, k);
         Side = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainSide);
@@ -100,6 +106,8 @@ public sealed class TerrainPieceKeys
         Floor = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainFloor);
         for (int k = 0; k < _heroFaces.Length; k++)
             _heroFaces[k] = AssetCatalogue.HeroWallPiece(terrainName, AssetCatalogue.FirstHeroWallPiece + k);
+        _heroLair = new AssetRef[heroLair ? AssetCatalogue.HeroLairPieces : 0];
+        for (int k = 0; k < _heroLair.Length; k++) _heroLair[k] = AssetCatalogue.HeroLairPiece(terrainName, k);
         _quarters = new AssetRef[AssetCatalogue.ClaimedSets * AssetCatalogue.ClaimedPieces];
         for (int set = 0; set < AssetCatalogue.ClaimedSets; set++)
             for (int piece = 0; piece < AssetCatalogue.ClaimedPieces; piece++)
@@ -113,6 +121,9 @@ public sealed class TerrainPieceKeys
     public AssetRef Floor { get; }
 
     public AssetRef Quarter(int set, int piece) => _quarters[(set * AssetCatalogue.ClaimedPieces) + piece];
+
+    /// <summary>The Hero Lair's floor quarter <paramref name="piece"/> (0..4); empty for any other terrain.</summary>
+    public AssetRef HeroLairQuarter(int piece) => piece >= 0 && piece < _heroLair.Length ? _heroLair[piece] : default;
 
     /// <summary>A hero-owned wall's face piece 4..8 (<see cref="TileView.Walls"/>); empty otherwise.</summary>
     public AssetRef HeroFace(int piece) =>
@@ -132,5 +143,6 @@ public sealed class TerrainPieceKeys
         foreach (AssetRef quarter in _quarters) yield return quarter;
         foreach (AssetRef bed in _beds) yield return bed;
         foreach (AssetRef face in _heroFaces) yield return face;
+        foreach (AssetRef quarter in _heroLair) yield return quarter;
     }
 }

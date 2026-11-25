@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Assets;
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
@@ -256,6 +257,30 @@ public class TerrainPiecesTests
         patch.Set(0, Y0, "Rock");
 
         Assert.True(patch.At(0, Y0).HasFace(W));
+    }
+
+    /// <summary><c>0x004401D2..0x004401FA</c>: an open Hero Lair tile (terrain 0x23) takes its
+    /// quarters from world vtable +0x2AC, the "hero_outpost_floor0..4" pieces <c>0x004C2880</c>
+    /// loads, by the claimed-floor table, whoever owns it. It drew nothing before, which left the
+    /// Level16 opening's lair island a black hole under its heroes.</summary>
+    [InstallFact]
+    public void AHeroLairDrawsItsOwnQuartersByTheClaimedTableForEveryOwner()
+    {
+        Patch patch = Block("Dirt Path");
+        patch.Set(X0 + 3, Y0 + 3, "Hero Lair", Keeper);
+        for (int x = X0 + 1; x <= X0 + 5; x++) patch.Set(x, Y0 + 1, "Hero Lair", 1);
+
+        TileView isolated = patch.View.TileAt(patch.World, X0 + 3, Y0 + 3);
+        Assert.Equal(QuarterKind.HeroLair, isolated.Pieces.Quarters);
+        Assert.Equal(0, isolated.Pieces.QuarterSet);
+        for (int q = 0; q < 4; q++) Assert.Equal(1, isolated.Pieces.QuarterPiece(q));
+        Assert.Equal(AssetCatalogue.HeroLairPiece("Hero Lair", 1), isolated.PieceKeys!.HeroLairQuarter(1));
+        Assert.True(TerrainTileBuilder.Draws(isolated));
+
+        // The middle of an east-west run: the claimed corridor's two straight edges.
+        TerrainPieces corridor = patch.At(X0 + 3, Y0 + 1);
+        Assert.Equal(QuarterKind.HeroLair, corridor.Quarters);
+        Assert.Equal([0, 4, 0, 4], Enumerable.Range(0, 4).Select(corridor.QuarterPiece));
     }
 
     [InstallFact]
