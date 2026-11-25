@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://doiwfwf26kc2b"
+path="res://.godot/imported/WorldOcclusionRaw.glsl-4966fdd059f251b8f994df257c9f379d.res"
+
+[deps]
+
+source_file="res://Shaders/WorldOcclusionRaw.glsl"
+dest_files=["res://.godot/imported/WorldOcclusionRaw.glsl-4966fdd059f251b8f994df257c9f379d.res"]
+
+[params]
+
