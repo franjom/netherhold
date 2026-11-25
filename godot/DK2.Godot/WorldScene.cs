@@ -123,8 +123,9 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _water = new LiquidLayer(_liquids.Water);
         _lava = new LiquidLayer(_liquids.Lava);
         _blended = new BlendedTerrainStream<ShaderMaterial>(_overlayMaterials.Contains);
-        // Every run instance sorts from the origin; the box only keeps Godot from culling it (the stream culls).
-        _worldBox = new Aabb(new Vector3(-1, -4, -world.Height - 1), new Vector3(world.Width + 2, 16, world.Height + 2));
+        // Every run instance sorts from the origin; the box, in Godot's frame, only keeps Godot from culling it (the
+        // stream culls): one in the renderers' frame lies off the map, and a short far plane culls every run by it.
+        _worldBox = WorldBox(world.Width, world.Height);
         OpenPossessionRendering();
         OpenPossessionVisibility(level.Database, world.Width, world.Height);
         _cage = new CageRibbon(GetWorld3D().Scenario, _worldBox);
@@ -256,6 +257,16 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _camera.Far = Math.Max(_near + 0.01f, pose.FarClipDistance);
         RightHandedCamera basis = RightHandedFrame.Camera(pose);
         _camera.Transform = new Transform3D(new Basis(ToGodot(basis.X), ToGodot(basis.Y), ToGodot(basis.Z)), ToGodot(basis.Origin));
+    }
+
+    /// <summary>A box over the whole map in Godot's frame, a tile past each edge and from 4 below the floor to 12 above it:
+    /// the renderers' corners (-1, -4, 1) and (width + 1, 12, -height - 1) turned by <see cref="RightHandedFrame.Point"/>.</summary>
+    private static Aabb WorldBox(int width, int height)
+    {
+        Vector3 a = ToGodot(RightHandedFrame.Point(new NVector3(-1, -4, 1)));
+        Vector3 b = ToGodot(RightHandedFrame.Point(new NVector3(width + 1, 12, -height - 1)));
+        Vector3 low = a.Min(b);
+        return new Aabb(low, a.Max(b) - low);
     }
 
     /// <summary>The ray through a screen pixel (top-left origin), in the renderers' frame, as Unity's <c>ScreenPointToRay</c>
