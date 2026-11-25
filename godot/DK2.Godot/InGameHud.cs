@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Diagnostics;
 using System.Globalization;
 using DK2.Core;
 using DK2.Data;
@@ -249,6 +250,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             GD.PushError("DK2.Godot: no Dungeon Keeper 2 install found; choose it in the launcher or set DK2_DIR.");
             return;
         }
+        // Level load, not the opening path: the code a first frame runs compiles on another thread while the level loads
+        // (JitWarmUp), and the level's first ticks run on a throwaway simulation below (LevelWarmUp). --no-warm-up skips both.
+        bool warmUp = Array.IndexOf(args, "--no-warm-up") < 0;
+        if (warmUp) StartJitWarmUp();
         LaunchArguments launch = LaunchArguments.Parse(args, "--");
         // A save the previous instance loaded: its level, return page and restored simulation replace the arguments'.
         GameSessionRequest? resume = s_resume;
@@ -263,6 +268,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         CampaignLevelData level = CampaignLevelData.Load(install, levelName);
         _simulation = resume?.Resume?.Simulation ?? level.CreateSimulation(seed, fogOfWarEnabled: true);
         _simulation.World.LocalPlayerId = _viewer;
+        // Level load, not the opening path: the first ticks compile on a throwaway simulation (LevelWarmUp).
+        if (resume == null && warmUp)
+        {
+            long warmStarted = Stopwatch.GetTimestamp();
+            LevelWarmUp.Run(level, seed, fogOfWarEnabled: true);
+            GD.Print("DK2.Godot: level warm-up ", Stopwatch.GetElapsedTime(warmStarted).TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture), " ms.");
+        }
         // DungeonRunner's session: a direct start returns to no page, as Unity's runner started from its scene does;
         // --from-map starts it as the campaign map launches a level (GameSessionRequest.Campaign).
         FrontEndPage returnPage = Array.IndexOf(args, "--from-map") >= 0
@@ -554,6 +566,32 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         catch (AggregateException e) { GD.PushWarning("DK2.Godot: sound prefetch failed: ", e.InnerException?.Message); }
         GD.Print("DK2.Godot: sound prefetch decoded ", _mixer.DecodedMegabytes.ToString("F1", CultureInfo.InvariantCulture),
             " MB of samples");
+        // The first frame is not drawn until the compile is done, so it does not wait on a method the thread has yet to reach.
+        _jitWarmUp?.Join(TimeSpan.FromSeconds(JitWarmUpSeconds));
+        GD.Print("DK2.Godot: level ready ", Time.GetTicksMsec().ToString(CultureInfo.InvariantCulture), " ms after the engine started.");
+    }
+
+    /// <summary>The longest the level load waits for <see cref="JitWarmUp"/>; a thread still running then goes on beside the frames.</summary>
+    private const double JitWarmUpSeconds = 5;
+
+    private Thread? _jitWarmUp;
+
+    private void StartJitWarmUp()
+    {
+        _jitWarmUp = new Thread(() =>
+        {
+            long started = Stopwatch.GetTimestamp();
+            int methods = JitWarmUp.Prepare(
+            [
+                typeof(InGameHud).Assembly, typeof(JitWarmUp).Assembly, typeof(GameSimulation).Assembly, typeof(GameDatabase).Assembly,
+                typeof(GameDatabaseLoader).Assembly, typeof(TilePos).Assembly, typeof(DK2.Pathfinding.ReachableTiles).Assembly,
+                typeof(DK2.Art.Dk2ArtCatalogue).Assembly,
+            ]);
+            GD.Print("DK2.Godot: compiled ", methods.ToString(CultureInfo.InvariantCulture), " methods ahead of use in ",
+                Stopwatch.GetElapsedTime(started).TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture), " ms.");
+        })
+        { Name = "DK2 JIT warm-up", IsBackground = true, Priority = System.Threading.ThreadPriority.BelowNormal };
+        _jitWarmUp.Start();
     }
 
     public override void _Process(double delta)

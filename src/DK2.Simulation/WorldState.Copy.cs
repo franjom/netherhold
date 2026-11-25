@@ -52,6 +52,7 @@ public sealed partial class WorldState
         RoomBorderCursorList.Clear();
         RoomBorderCursorList.AddRange(source.RoomBorderCursorList);
         Array.Copy(source._tiles, _tiles, _tiles.Length);
+        TileState.NoteBulkKeyWrite();
         NextSlabOrder = source.NextSlabOrder;
         NextRoomListPosition = source.NextRoomListPosition;
         NextPlaceClaim = source.NextPlaceClaim;

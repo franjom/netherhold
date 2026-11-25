@@ -79,6 +79,10 @@ public sealed class StructureBlocks
         // mask stands while that list is the same, and a scan that compares the list is the whole
         // cost of asking again (ADR-0454).
         Cache cache = world.StructureCache;
+        // No change to any tile's terrain, owner or ruin bit since the last scan leaves the list the same.
+        long writes = TileState.KeyWriteCount;
+        if (cache.Blocks is not null && ReferenceEquals(cache.Database, database) && cache.KeyWrites == writes)
+            return cache.Blocks;
         List<long> seeds = cache.Scratch;
         seeds.Clear();
         for (int i = 0; i < world.TileCount; i++)
@@ -93,11 +97,15 @@ public sealed class StructureBlocks
         }
 
         if (cache.Blocks is not null && ReferenceEquals(cache.Database, database) && SameSeeds(seeds, cache.Seeds))
+        {
+            cache.KeyWrites = writes;
             return cache.Blocks;
+        }
 
         StructureBlocks blocks = Compute(world, database, seeds);
         cache.Database = database;
         cache.Blocks = blocks;
+        cache.KeyWrites = writes;
         (cache.Seeds, cache.Scratch) = (seeds, cache.Seeds);
         return blocks;
     }
@@ -107,6 +115,7 @@ public sealed class StructureBlocks
     {
         internal GameDatabase? Database;
         internal StructureBlocks? Blocks;
+        internal long KeyWrites;
         internal List<long> Seeds = [];
         internal List<long> Scratch = [];
     }

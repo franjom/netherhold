@@ -86,17 +86,18 @@ public static class TrapRules
     /// Trigger, Guard Post, Magic Door, Spare Door 1 and Hero Sentry.</summary>
     public static bool FiringBuilt(GameDatabase database, TrapDef definition)
     {
-        Dictionary<byte, bool> known = Scope.GetValue(database, _ => []);
-        lock (known)
-        {
-            if (!known.TryGetValue(definition.TrapId, out bool built))
-                known[definition.TrapId] = built = definition.ShotTypeId == 0 || ShotBuilt(database, definition.ShotTypeId, 0);
-            return built;
-        }
+        // One byte per trap id, 0 for not yet worked out. Two threads that work it out at once store the same
+        // answer, so a plain store needs no lock; the lock this replaces was the tick's busiest.
+        byte[] known = Scope.GetValue(database, _ => new byte[256]);
+        byte state = known[definition.TrapId];
+        if (state == 0)
+            known[definition.TrapId] = state = definition.ShotTypeId == 0 || ShotBuilt(database, definition.ShotTypeId, 0)
+                ? (byte)1 : (byte)2;
+        return state == 1;
     }
 
     // The answer depends only on the database's definitions, so it is worked out once per trap type.
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GameDatabase, Dictionary<byte, bool>> Scope = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GameDatabase, byte[]> Scope = new();
 
     private static bool ShotBuilt(GameDatabase database, byte shotId, int depth)
     {

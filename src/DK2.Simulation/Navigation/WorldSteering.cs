@@ -34,6 +34,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private StructureBlocks? _structures;
     private IReadOnlyList<int> _platformCentres = [];
     private uint[] _tileKeys = [];
+    private long _tileKeyWrites;
     private readonly List<DoorKey> _doorSnapshot = [];
     private readonly List<long> _cryptSnapshot = [];
     private readonly List<long> _cryptScratch = [];
@@ -229,22 +230,30 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private static uint TileKeyOf(in TileState tile) =>
         tile.TerrainId | ((uint)tile.OwnerPlayerId << 8) | (tile.RoomRuined ? 1u << 16 : 0u) | (tile.SecretDoor ? 1u << 17 : 0u);
 
-    /// <summary>Whether every tile's <see cref="TileKeyOf"/> is what the last refresh saw.</summary>
+    /// <summary>Whether every tile's <see cref="TileKeyOf"/> is what the last refresh saw. Those four fields
+    /// count their changes (<see cref="TileState.KeyWriteCount"/>), so none counted since the last look is the
+    /// answer without reading the tiles.</summary>
     private bool SameTileKeys()
     {
         ReadOnlySpan<TileState> tiles = _world.Tiles;
         ReadOnlySpan<uint> keys = _tileKeys;
         if (tiles.Length != keys.Length) return false;
+        long writes = TileState.KeyWriteCount;
+        if (writes == _tileKeyWrites) return true;
         for (int i = 0; i < keys.Length; i++)
             if (TileKeyOf(in tiles[i]) != keys[i]) return false;
+        _tileKeyWrites = writes;
         return true;
     }
 
     private void StoreTileKeys()
     {
+        // Counted before the tiles are read, so a change made meanwhile makes the next look read them again.
+        long writes = TileState.KeyWriteCount;
         ReadOnlySpan<TileState> tiles = _world.Tiles;
         if (_tileKeys.Length != tiles.Length) _tileKeys = new uint[tiles.Length];
         for (int i = 0; i < tiles.Length; i++) _tileKeys[i] = TileKeyOf(in tiles[i]);
+        _tileKeyWrites = writes;
     }
 
     /// <summary>The crypts on the map, as a Graveyard's floor slots read them

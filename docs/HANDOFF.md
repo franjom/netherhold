@@ -171,8 +171,10 @@ These are entry points, not a new priority order.
   The tester package is a release Godot export (`tools/tester-package`, [Exporting](../godot/README.md#exporting)). CI builds
   `godot/DK2.Godot` and the architecture gate holds it to its one `DK2.Presentation` reference. Step 4 is complete: the Godot
   targets are `tools/tester-package/performance-target.json` (tiers and harness ceilings, each with its source). Level6a's
-  release capture passes the draw clock since the frame ticks first on a real delta, and fails both tiers on its inline
-  4 Hz ticks (10-35 ms each); the next performance step is ticking off the frame thread ([PERFORMANCE.md](PERFORMANCE.md)).
+  release capture passes the draw clock since the frame ticks first on a real delta, and its tick cost 3 ms p50 and 8 ms p95
+  (16.6 and 33) once the export compiled optimised, the tile-key caches replaced the per-query tile scans and level load did the
+  first-use work; no tick frame misses the budget. The floor tier still fails on 2-4 frames (the first draw, the HUD's first
+  show when the path ends, a chunk rebuild), the desktop tier on 2-3% ([PERFORMANCE.md](PERFORMANCE.md)).
   Open readings: whether secret-level and My Pet Dungeon briefing lines show in play ([Q854](research/open-questions.md)); whether `ClassicKeyNames`, equal to Unity's
   `KeyCode` names, matches DK2's own ([Q857](research/open-questions.md)); whether the front end's brightness, after `PngChunks.WithoutColourSpace` drops Godot's gAMA handling,
   is Unity's ([Q859](research/open-questions.md), [0x005B6030](research/functions/005B6030.md)).

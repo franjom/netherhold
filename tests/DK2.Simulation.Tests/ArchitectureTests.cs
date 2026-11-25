@@ -195,6 +195,7 @@ public class ArchitectureTests
         ["DK2.Simulation.SimulationMarker.ByName"] = "profiling registry, outside the state hash; written under its lock",
         ["DK2.Simulation.ActivityRules.JobStates"] = "a lookup filled by its initialiser and only read",
         ["DK2.Simulation.InputLog.TagKinds"] = "the default tag filter, filled by its initialiser and only read",
+        ["DK2.Simulation.TileState.s_keyWriteCount"] = "a count of tile key changes, only incremented (Interlocked); a racing or stale read costs a recheck",
     };
 
     [Fact]

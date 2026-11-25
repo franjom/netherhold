@@ -112,8 +112,8 @@ level harness ceilings, the quiet medians at 1080p on the floor machine plus the
 `godot/perf_targets.py` checks. The draw-clock metric reads Godot's `--record-frames` (`godot/README.md`, *Probes*).
 
 Level6a's first release capture (2026-11-24) failed both tiers, and so did a re-run with the display presenting
-(windowed 1920x1080, Vulkan, 40 s: floor 148 frames over budget, p99 24.0 ms, draw clock 19% of path frames). Two
-causes, both on the opening fly-by the owner saw stutter:
+(windowed 1920x1080, Vulkan, 40 s: floor 148 frames over budget, p99 24.0 ms, draw clock 19% of path frames). The
+causes, all on the opening fly-by the owner saw stutter:
 
 - **Pacing.** Godot's `physics_jitter_fix` bent the process delta toward its physics clock, and the frame ran its
   ticks after drawing, so each frame drew the last frame's time; the iGPU alternates short and long frames (3.3/6.5 ms).
@@ -121,13 +121,27 @@ causes, both on the opening fly-by the owner saw stutter:
   19% to 0% of path frames; Movie Maker frames and the turn-400 hash unchanged.
 - **Every frame.** `ScenePresenter` compared the whole tile map byte by byte each frame; it now uses the runtime's
   vectorised compare where there is one: present p50 1.03 to 0.68 ms, mean 1.40 to 0.97 ms.
-- **Long frames.** The simulation ticks inline at 4 a second and a Level6a tick takes 10-35 ms in the release
-  build, so every tick frame is over the floor budget (146 over, 106 of 106 on the path). Running the batch beside
-  Godot's render (joined after the draw) measured worse (tick p50 14.4 to 17.1 ms) and was dropped. Ticking first puts
-  the tick's present in its own frame, one taller spike instead of two (p99 24.0 to 30.4 ms; harness Level7 slow frames
-  13 to 40). What remains needs the ticks off the frame thread (Unity's presented-copy worker, ADR-0694) or a cheaper
-  tick in `DK2.Simulation`. The first second's first-use frames (up to 295 ms: lights, HUD, present) and a few render
-  stalls with a short update (up to 269 ms) are not yet explained.
+- **The tick** (2026-11-25). A Level6a tick cost 16.6 ms p50 and 31-34 ms p95 in the release capture, 10 ms headless. Three
+  causes. The export built `DK2.Simulation` and `DK2.Presentation` as `ExportRelease`, which the SDK leaves unoptimised
+  (`DebuggableAttribute` 0x0107: the JIT never optimised them; `Directory.Build.props` now sets `Optimize`, TRAPS). Every
+  room query read all of the map's tiles to check its cached sweep, and the structure mask and the navigation bytes did the
+  same; each now compares one count of changes to a tile's terrain, owner, ruin bit or Secret Door bit
+  (`TileState.KeyWriteCount`, `TileKeyCacheTests`, `TileKeyCachesOnRealDataTests`). And the 4 Hz ticks' methods stayed in
+  tier 0 for seconds (runtime config in `DK2.Godot.csproj`, below). Headless Level6a ticks 1-200, seed 1, p50 / p95 ms
+  (median of three rounds of eight runs after three warm-up runs, `GameSimulation.Tick` alone): as exported 10.08 / 28.8;
+  optimised 1.69 / 3.61; room cache 0.84 / 2.80; structure mask and navigation check 0.72 / 2.67; trap lookup without a
+  lock 0.70 / 2.72; exported now 0.76 / 2.75. Allocation stays 29 KB a tick (32.9 as exported). The state hashes of ten
+  levels at five turns up to 3000, Level1 turn 400 (`F5C7BAE552173778`) and Level6a turn 400 are unchanged.
+- **Release capture** (windowed 1920x1080, Vulkan, 40 s, two runs before and five after): tick p50 16.5 / 16.6 to
+  2.9-3.2 ms, p95 31-34 to 7.5-7.7, max 92-100 to 10-11.5; frames over 16.67 ms 143 and 165 to 7-11, frame p99
+  29.5-30.2 to 9.4-10.2 ms; after the warm-up the floor tier counts 135 and 151 frames over budget and then 2-4.
+  The draw clock passes in all. No tick frame misses the budget now.
+- **First use.** Level load now does the first-use work (`JitWarmUp`, `LevelWarmUp`; godot/README.md, *Measuring
+  performance*): the first frame's update fell from 206-220 to 62-72 ms (lights 71-76 to 23-29, HUD 39-42 to 9-10), the
+  first tick frame's from 127-129 to 25-27 ms (the tick 92-100 to 10-11), the first drawn frame's interval from 292-311 to
+  167-181 ms. The load takes about 0.5 s longer. Still over the floor budget: that first draw (Godot's own), one render
+  stall of 43-72 ms at 26.6 s when the path ends and the HUD first shows, and now and then a frame that rebuilds a chunk
+  (18 ms). The floor tier still fails on them (2-4 frames), the desktop tier on 2-3% of frames over 8.33 ms.
 
 ## Hardware tiers and captures on other machines (2026-11-06)
 

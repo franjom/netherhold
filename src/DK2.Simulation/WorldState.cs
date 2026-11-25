@@ -18,8 +18,47 @@ namespace DK2.Simulation;
 /// </summary>
 public struct TileState
 {
-    public byte TerrainId;
-    public byte OwnerPlayerId;
+    private byte _terrainId, _ownerPlayerId;
+    private bool _roomRuined, _secretDoor;
+
+    /// <summary>The tile's terrain. This and the owner, <see cref="RoomRuined"/> and <see cref="SecretDoor"/> are
+    /// what the room sweep, the structure mask and the navigation bytes read of a tile. A write that changes one
+    /// is counted in <see cref="KeyWriteCount"/>, so their caches can tell without reading every tile that none did.</summary>
+    public byte TerrainId
+    {
+        readonly get => _terrainId;
+        set
+        {
+            if (_terrainId == value) return;
+            _terrainId = value;
+            NoteKeyWrite();
+        }
+    }
+
+    /// <summary>The tile's owner; counted as <see cref="TerrainId"/> is.</summary>
+    public byte OwnerPlayerId
+    {
+        readonly get => _ownerPlayerId;
+        set
+        {
+            if (_ownerPlayerId == value) return;
+            _ownerPlayerId = value;
+            NoteKeyWrite();
+        }
+    }
+
+    /// <summary>How many changes to a tile's terrain, owner, ruin bit or Secret Door bit any tile has had, in any
+    /// world, since the process began. A cache of what those imply stands while this has not moved; it moves for a
+    /// change in another world as well, which only costs a recheck. A whole-array copy calls <see cref="NoteBulkKeyWrite"/>.</summary>
+    internal static long KeyWriteCount => Volatile.Read(ref s_keyWriteCount);
+
+    // Shared by every world and only ever incremented, so a racing or stale read costs a recheck and decides nothing.
+    private static long s_keyWriteCount;
+
+    private static void NoteKeyWrite() => Interlocked.Increment(ref s_keyWriteCount);
+
+    /// <summary>Counts a change that bypassed the setters (a tile array copied over another).</summary>
+    internal static void NoteBulkKeyWrite() => NoteKeyWrite();
 
     /// <summary>
     /// The MAP record's third byte per tile, preserved verbatim — and, for a
@@ -64,7 +103,16 @@ public struct TileState
     public PlayerMask TaggedBy;
 
     /// <summary>Native tile byte +0x0B bit 0: a concealed Secret Door, independent of dig tags.</summary>
-    public bool SecretDoor;
+    public bool SecretDoor
+    {
+        readonly get => _secretDoor;
+        set
+        {
+            if (_secretDoor == value) return;
+            _secretDoor = value;
+            NoteKeyWrite();
+        }
+    }
 
     /// <summary>Keepers with a kind-11 entry here. Rectangle untag removes only kinds 1 and 2.</summary>
     public PlayerMask SecretDoorTasks;
@@ -233,7 +281,16 @@ public struct TileState
     /// Hero Gate types 18, 20 and 23, and on a Dungeon Heart when its heart dies
     /// (<see cref="RoomRules.RuinHearts"/>); it makes a non-Attackable room convertible (<c>0x00454040</c>).
     /// It goes with the room to a new owner, so a captured ruined Heart stays one (ADR-0662).</summary>
-    public bool RoomRuined;
+    public bool RoomRuined
+    {
+        readonly get => _roomRuined;
+        set
+        {
+            if (_roomRuined == value) return;
+            _roomRuined = value;
+            NoteKeyWrite();
+        }
+    }
 
     /// <summary>This tile's part of its room's health deficit: the room's <c>Health</c>
     /// (<c>room+0x35</c>) is StartingHealth × Size less the sum over its tiles, kept by

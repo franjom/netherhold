@@ -14,7 +14,16 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <!-- Not DK2.Godot: inside namespace DK2.Godot, `Godot.GD` would bind to DK2.Godot.GD. -->
     <RootNamespace>DK2.GodotAdapter</RootNamespace>
+    <!-- The exported game's JIT policy (its runtimeconfig.json). A run is minutes and the simulation ticks four times a
+         second, so a method seldom reached the 30 calls that promote it before the 100 ms call-counting delay, which
+         every first-use method jitted anywhere restarts, had passed; and dynamic PGO adds an instrumented tier before the
+         optimised one. Level6a headless from a cold process: tick p50 3.5 ms, 0.8 with both set (2026-11-25). -->
+    <TieredPGO>false</TieredPGO>
   </PropertyGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.Runtime.TieredCompilation.CallCountingDelayMs" Value="0" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/DK2.Presentation/DK2.Presentation.csproj" />

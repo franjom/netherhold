@@ -68,8 +68,10 @@ public static class RoomIndex
         Cache cache = world.RoomSweepCache;
         if (cache.Matches(world, database)) return cache.Rooms!;
 
+        // Counted before the sweep reads a tile, so a write made while it runs makes the next call look again.
+        long writes = TileState.KeyWriteCount;
         List<RoomInstance> rooms = Sweep(world, database);
-        cache.Remember(world, database, rooms);
+        cache.Remember(world, database, rooms, writes);
         return rooms;
     }
 
@@ -145,6 +147,7 @@ public static class RoomIndex
         private ushort[] _tiles = [];
         private RoomInstance?[] _byTile = [];
         private int _count = -1;
+        private long _keyWrites;
 
         public IReadOnlyList<RoomInstance>? Rooms { get; private set; }
 
@@ -152,20 +155,25 @@ public static class RoomIndex
         public RoomInstance? RoomOf(int tileIndex) => _byTile[tileIndex];
 
         /// <summary>Whether <see cref="Rooms"/> is what a sweep of the world would give now: the
-        /// same database, and each tile's terrain and owner as the sweep saw them.</summary>
+        /// same database, and each tile's terrain and owner as the sweep saw them. No terrain or owner
+        /// write anywhere since the last look (<see cref="TileState.KeyWriteCount"/>) settles it without
+        /// reading the tiles; otherwise every tile is compared, and a match is remembered as the new look.</summary>
         public bool Matches(WorldState world, GameDatabase database)
         {
             if (Rooms is null || !ReferenceEquals(_database, database) || _count != world.TileCount) return false;
+            long writes = TileState.KeyWriteCount;
+            if (writes == _keyWrites) return true;
             ushort[] seen = _tiles;
             for (int i = 0; i < seen.Length; i++)
             {
                 ref TileState tile = ref world.TileAtIndex(i);
                 if (seen[i] != Key(tile)) return false;
             }
+            _keyWrites = writes;
             return true;
         }
 
-        public void Remember(WorldState world, GameDatabase database, List<RoomInstance> rooms)
+        public void Remember(WorldState world, GameDatabase database, List<RoomInstance> rooms, long keyWrites)
         {
             int count = world.TileCount;
             if (_tiles.Length != count)
@@ -179,6 +187,7 @@ public static class RoomIndex
                 foreach (int index in room.Tiles) _byTile[index] = room;
             _database = database;
             _count = count;
+            _keyWrites = keyWrites;
             Rooms = rooms;
         }
 

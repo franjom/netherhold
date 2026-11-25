@@ -29,4 +29,14 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 
+  <!--
+    The Godot export builds every referenced project as ExportRelease, a configuration the SDK does not know to
+    optimise: DK2.Simulation and DK2.Presentation came out with Optimize off, the compiler marked them
+    DebuggableAttribute(DisableOptimizations), and the JIT never optimised them. A Level6a tick took 9.3 ms
+    against 2.2 ms as Release (headless, 2026-11-25).
+  -->
+  <PropertyGroup Condition="'$(Configuration)' == 'ExportRelease'">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
 </Project>
