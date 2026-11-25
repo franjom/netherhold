@@ -577,6 +577,10 @@ python godot/perf_compare.py <dir>/classic <dir>/perpixel --phase moving
 `perf_compare.py` takes one label a side, groups the reports by level and render size, takes the median of repeats, and
 prints each metric's change with the other CPU load and the spread of frame p50 across repeats (differences inside that
 spread are noise); it warns when the sides differ in camera script, frame counts, Godot, builds, V-Sync, GPU or seed.
+`python godot/perf_targets.py <dir>/<label>` holds one label's reports to the harness ceilings in
+`tools/tester-package/performance-target.json` (Level1, Level7 and Level6a at 1080p on the floor machine, each with its
+source; exit 1 over one). Run perf.ps1 with `-Levels Level1,Level7,Level6a -Sizes 1920x1080` for it. The recipe passes
+its own launcher file with the other player files.
 
 Texture arrays remain deferred after measurement; see [modern-rendering audit item 4](../docs/plans/2026-11-18-godot-modern-rendering-audit.md#items).
 
@@ -585,7 +589,8 @@ Texture arrays remain deferred after measurement; see [modern-rendering audit it
 `--record-frames <dir>` on `InGameHud.tscn` is Unity's release-player recorder (`-recordFrames`) and the game probe's
 `frames.csv`: one row a frame in their columns (`FrameTelemetry` in `DK2.Presentation`, `FrameRecorder.cs`), written with
 `metadata.txt` when the scene leaves the tree, never over an existing capture; without it there is no node. Godot ticks on
-the frame's thread, so `wait_tick_ms` is 0; `hud_ms` also holds the hover and the blended items' order; `cam_*` is the
+the frame's thread at the frame's top, for the interval that just ended (Unity's inline order; `physics_jitter_fix` is 0
+outside Movie Maker, `docs/TRAPS.md`), so `wait_tick_ms` is 0 and a row's ticks are drawn in the same row; `hud_ms` also holds the hover and the blended items' order; `cam_*` is the
 drawn eye in the renderers' frame, as Unity's. Run it in real time (no `--fixed-fps`, which decouples the draw clock from
 the wall clock), e.g. `--headless --max-fps 60 --quit-after 1500 res://InGameHud.tscn -- --level Level1 --seed 1
 --record-frames <temp>/rec` with the temporary player files, then `python tools/game-unity-probe/draw_clock.py

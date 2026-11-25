@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # See LICENSE in the project root for the full license text.
 
+import json
 import unittest
 
-from summarise_capture import summarise, interval_metrics
+from summarise_capture import DRAW_CLOCK_LIMIT, TARGET_FILE, WARM_UP_SECONDS, interval_metrics, summarise
 
 TIER = dict(name="desktop", minimum_fps=120, resolution="1920x1080")
 METADATA = dict(Godot="4.8-beta3 (official)", Backend="Godot .NET", Development="False", Resolution="1920x1080",
@@ -63,6 +64,21 @@ class SummariseTests(unittest.TestCase):
         result = summarise(frames(1500), METADATA, {}, presents, TIER)
         self.assertEqual("fail", result["status"])
         self.assertEqual(1, result["presents"]["over_budget"])
+
+    def test_a_logged_error_such_as_a_surface_that_did_not_present_is_invalid(self):
+        log = "Godot Engine v4.8\nERROR: Couldn't get Vulkan surface capabilities (VkResult error -13).\n"
+        result = summarise(frames(1500), METADATA, {}, None, TIER, log)
+        self.assertEqual("invalid", result["status"])
+        self.assertIn("VkResult error -13", result["problems"][0])
+        self.assertEqual("pass", summarise(frames(1500), METADATA, {}, None, TIER, "WARNING: a warning\n")["status"])
+
+    def test_the_committed_targets_name_both_tiers_and_the_limits(self):
+        target = json.loads(TARGET_FILE.read_text(encoding="utf-8"))
+        tiers = {t["name"]: t for t in target["tiers"]}
+        self.assertEqual((60, 120), (tiers["floor"]["minimum_fps"], tiers["desktop"]["minimum_fps"]))
+        self.assertTrue(all(t["resolution"] == "1920x1080" for t in tiers.values()))
+        self.assertEqual(WARM_UP_SECONDS, target["warm_up_seconds"])
+        self.assertEqual(DRAW_CLOCK_LIMIT, target["draw_clock"]["max_share_over_limit"])
 
     def test_interval_metrics(self):
         metrics = interval_metrics([8, 8, 9, 9, 10], budget=8.5)

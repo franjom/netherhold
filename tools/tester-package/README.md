@@ -54,14 +54,17 @@ game's window (which is when the recorder writes `recorder/frames.csv` and
 PowerShell; without one the script warns and the capture has the recorder's
 frames only.
 
-`summarise_capture.py` judges the capture against a tier from
-`tools/classic-unity-probe/performance-target.json`: every frame after two seconds
-of play within the tier's budget, by the recorder's intervals and by PresentMon's
-presents when traced; the opening fly-by's draw clock by `tools/game-unity-probe/draw_clock.py`;
-and the ten worst frames with what each spent on the tick, Present, the
-animated frame and chunk rebuilds. A debug export, another backend than the
-Godot .NET export, a renderer other than Vulkan or Direct3D 12, another
-resolution, or metadata without a CPU and GPU (a headless run) makes the capture
+`summarise_capture.py` judges the capture against a tier of the Godot targets,
+`performance-target.json` beside it (tiers, warm-up, draw-clock limit, and the
+harness ceilings `godot/perf_targets.py` reads; each number names its source):
+every frame after two seconds of play within the tier's budget, by the
+recorder's intervals and by PresentMon's presents when traced; the opening
+fly-by's draw clock by `tools/game-unity-probe/draw_clock.py`; and the ten worst
+frames with what each spent on the tick, Present, the animated frame and chunk
+rebuilds. A debug export, another backend than the Godot .NET export, a renderer
+other than Vulkan or Direct3D 12, another resolution, metadata without a CPU and
+GPU (a headless run), or an error line in `godot.log` (a display that is off
+logs Vulkan error -13 every frame and presents nothing) makes the capture
 invalid rather than failed. Exit 0 pass, 1 fail, 2 invalid. Captures from the
 Unity player are no longer read.
 

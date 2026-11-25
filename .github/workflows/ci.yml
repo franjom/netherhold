@@ -156,6 +156,9 @@ jobs:
       - name: Tester package checks and rendered capture comparison tests (no GPU required)
         run: python -m unittest discover -s tools/tester-package -p "test_*.py" -v
 
+      - name: Godot performance target checks (no GPU required)
+        run: python -m unittest discover -s godot -p "test_*.py" -v
+
       - name: Supervised Qwen adapter regression tests (no inference required)
         run: python -m unittest discover -s tools/qwen -p "test_*.py" -v
 

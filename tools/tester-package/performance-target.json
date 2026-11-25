@@ -1,0 +1,68 @@
+{
+  "schema": "dk2-godot-performance-target/1",
+  "name": "godot-1080p",
+  "floor_machine": {
+    "CPU": "AMD Ryzen 7 7735HS with Radeon Graphics",
+    "GPU": "AMD Radeon(TM) Graphics",
+    "Resolution": "1920x1080",
+    "source": "the owner's laptop, as the release export's recorder names it (recorder/metadata.txt)"
+  },
+  "warm_up_seconds": 2.0,
+  "draw_clock": {
+    "max_share_over_limit": 0.015,
+    "source": "tools/game-unity-probe/draw_clock.py's default limit, the regression gate's (docs/PERFORMANCE.md)"
+  },
+  "tiers": [
+    {
+      "name": "floor",
+      "hardware": "the owner's laptop (floor_machine)",
+      "resolution": "1920x1080",
+      "minimum_fps": 60,
+      "optimization_goal_fps": 100,
+      "source": "owner requirement 2026-10-25: 60 FPS every frame, 100+ the goal (docs/PERFORMANCE.md)"
+    },
+    {
+      "name": "desktop",
+      "hardware": "RTX 3060 class or better; no machine here, captured by a tester",
+      "resolution": "1920x1080",
+      "minimum_fps": 120,
+      "source": "tier policy 2026-11-06 (docs/PERFORMANCE.md, Hardware tiers)"
+    }
+  ],
+  "harness": {
+    "source": "godot/perf.ps1 on the floor machine, 2026-11-25, the working tree after 159c2f31b with the ScenePresenter compare and frame-clock changes: medians of 3 runs (Level7, Level6a) and 1 run (Level1), Debug C# in the editor binary, V-Sync off, other CPU load 6-17%",
+    "renderSize": "1920x1080",
+    "phase": "all",
+    "allowance": {
+      "relative": 0.2,
+      "absolute": 0.25,
+      "source": "the regression gate's rule: 20% or 0.25 ms, whichever is larger (docs/PERFORMANCE.md)"
+    },
+    "levels": {
+      "Level1": {
+        "frameMs": { "p50": 3.924, "p99": 10.337 },
+        "processMs": { "p50": 2.011 },
+        "renderGpuMs": { "p50": 1.685 }
+      },
+      "Level7": {
+        "frameMs": { "p50": 6.008, "p99": 19.029 },
+        "processMs": { "p50": 3.160 },
+        "renderGpuMs": { "p50": 2.102 }
+      },
+      "Level6a": {
+        "frameMs": { "p50": 8.110, "p99": 27.368 },
+        "processMs": { "p50": 5.724 },
+        "renderGpuMs": { "p50": 2.916 }
+      }
+    }
+  },
+  "required_scenarios": [
+    "level1-goblin-introduction",
+    "level2-warlock-introduction",
+    "creature-arrival-effect-catalogue",
+    "dense-creatures",
+    "terrain-edit-burst",
+    "large-map-gameplay",
+    "combat-and-spell-effects"
+  ]
+}

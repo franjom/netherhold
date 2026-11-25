@@ -35,7 +35,8 @@ already right in Godot. Estimates are marked; the harness (item 0) replaces them
   objects, primitives, memory), CPU and GPU render time, frame time and allocation per frame, with `godot/perf.ps1` as
   the capture recipe and `godot/perf_compare.py` for comparisons (`godot/README.md`, *Measuring performance*; migration
   plan 3o). Baseline GPU p50 at 1080p on a heavily loaded iGPU: classic Level1 1.9 ms, Level7 2.4 ms; modern 6.2 and
-  9.3 ms; draw calls classic 143 and 320, modern about 490 and 995. A quiet re-run is pending. It makes items 3, 4 and 8
+  9.3 ms; draw calls classic 143 and 320, modern about 490 and 995. The quiet re-run (2026-11-25, classic) is the
+  harness ceilings' baseline in `tools/tester-package/performance-target.json`. It makes items 3, 4 and 8
   measurable.
 - **1. Gamma-space output** through the `srgb_to_linear` lookup (`WorldScene.cs:157`, `:415-451`;
   `color_conversion_disabled` `:404`; brightness `WorldScene.Lighting.cs:471-477`). Covered by the lighting prototype

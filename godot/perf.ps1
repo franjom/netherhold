@@ -61,7 +61,8 @@ if (-not $SkipBuild) {
 }
 $script:child = $null
 $common = @('--seed', "$Seed", '--profile', (Join-Path $State 'profile.dat'), '--settings', (Join-Path $State 'settings.ini'),
-    '--saves', (Join-Path $State 'saves'), '--hiscores', (Join-Path $State 'hiscores.dat'))
+    '--saves', (Join-Path $State 'saves'), '--hiscores', (Join-Path $State 'hiscores.dat'),
+    '--launcher-config', (Join-Path $State 'launcher.cfg'))
 
 function Format-Arguments([string[]] $arguments) {
     # Windows PowerShell does not quote -ArgumentList elements.

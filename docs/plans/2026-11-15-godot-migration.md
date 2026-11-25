@@ -1116,9 +1116,15 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       by `DK2.Presentation` tests, or was a Unity-only check or reference frame whose purpose ended. `tools/hud-probe` is
       deleted (it did not compile); its ignored `bin/` and `obj/` are left for the owner's cleanup. Step 5 may delete the
       Unity probe tools and the 15 editor scripts, after moving what the tester package reads by path
-      (`game-unity-probe/draw_clock.py` and its test, `classic-unity-probe`'s `performance-target.json`, `frame_budget.py`
+      (`game-unity-probe/draw_clock.py` and its test, `frame_budget.py`
       and `install-presentmon.ps1`) and `capture-native-render-inputs.py`, which reads DK2's process, not Unity.
-- [ ] Performance targets set again in Godot, from 3o's harness numbers (owner, 2026-11-15: Unity FPS work stopped).
+- [x] Performance targets set again in Godot, from 3o's harness numbers (owner, 2026-11-15: Unity FPS work stopped),
+      2026-11-25. `tools/tester-package/performance-target.json` holds the tiers (floor 60, desktop 120 FPS, every frame)
+      that `summarise_capture.py` reads, and per-level harness ceilings (quiet 1080p medians plus 20% or 0.25 ms) that
+      `godot/perf_targets.py` checks; a capture whose log has an error (Vulkan -13 from a sleeping display) is invalid.
+      Fixed on the way, frames byte-identical (Level1/Level7 Movie Maker, 200 frames) and turn-400 hash `F5C7BAE552173778`:
+      the frame ticks first, for a real delta (draw clock 19% to 0%), and the tile compare is vectorised (present p50 1.03
+      to 0.68 ms). Level6a still fails both tiers on inline ticks ([PERFORMANCE.md](../PERFORMANCE.md), *Godot adapter*).
 - [x] The Netherhold launcher (owner-approved 2026-11-24), the tester package's first screen: the install folder, an optional
       menu font and the screen mode, saved to `user://launcher.cfg` (`--launcher-config` for scripted runs); DK2_DIR, then
       `--dk2Install`, then the saved folder, then the development default find the install. Rules in `DK2.Presentation`

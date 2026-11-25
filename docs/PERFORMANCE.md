@@ -1,9 +1,10 @@
 # Performance acceptance
 
 Owner requirement, revised 2026-10-25: minimum 60 FPS during gameplay on the
-current laptop at 1920x1080 in a standalone build. Hardware, resolution and required
-scenario coverage are recorded in
-[`performance-target.json`](../tools/classic-unity-probe/performance-target.json).
+current laptop at 1920x1080 in a standalone build. Hardware, resolution, tiers, required
+scenario coverage and the Godot harness ceilings are recorded in
+[`performance-target.json`](../tools/tester-package/performance-target.json), each number with its
+source (the Unity probe's copy stays for `frame_budget.py` until migration step 5).
 The resulting frame budget is 1000/60 ms (about 16.67 ms). An average or percentile below it does
 not excuse a slower frame.
 The optimization goal remains 100+ FPS; meeting the 60 FPS floor does not end
@@ -106,9 +107,27 @@ Changes to the Godot adapter are measured by its own harness: `--perf-report` an
 `godot/perf.ps1`, compared with `godot/perf_compare.py` (`godot/README.md`, *Measuring performance*; migration plan
 step 3o). It runs the editor binary with Debug C#, so its numbers compare changes to Godot, not against the floor;
 the release export in the tester package (below) is what a capture against the floor or a tier runs.
-The first baseline came from a heavily loaded machine and is rough; the targets for Godot are set again from quiet
-re-runs, which are pending (migration plan, step 4). The draw-clock metric reads Godot's `--record-frames`
-(`godot/README.md`, *Probes*).
+The targets were set again on 2026-11-25 (migration plan, step 4): the tiers below for release captures, and per
+level harness ceilings, the quiet medians at 1080p on the floor machine plus the regression gate's allowance, which
+`godot/perf_targets.py` checks. The draw-clock metric reads Godot's `--record-frames` (`godot/README.md`, *Probes*).
+
+Level6a's first release capture (2026-11-24) failed both tiers, and so did a re-run with the display presenting
+(windowed 1920x1080, Vulkan, 40 s: floor 148 frames over budget, p99 24.0 ms, draw clock 19% of path frames). Two
+causes, both on the opening fly-by the owner saw stutter:
+
+- **Pacing.** Godot's `physics_jitter_fix` bent the process delta toward its physics clock, and the frame ran its
+  ticks after drawing, so each frame drew the last frame's time; the iGPU alternates short and long frames (3.3/6.5 ms).
+  Fixed in `InGameHud` (Unity's inline order: ticks for the interval just ended, then the draw; a real delta). Draw clock
+  19% to 0% of path frames; Movie Maker frames and the turn-400 hash unchanged.
+- **Every frame.** `ScenePresenter` compared the whole tile map byte by byte each frame; it now uses the runtime's
+  vectorised compare where there is one: present p50 1.03 to 0.68 ms, mean 1.40 to 0.97 ms.
+- **Long frames.** The simulation ticks inline at 4 a second and a Level6a tick takes 10-35 ms in the release
+  build, so every tick frame is over the floor budget (146 over, 106 of 106 on the path). Running the batch beside
+  Godot's render (joined after the draw) measured worse (tick p50 14.4 to 17.1 ms) and was dropped. Ticking first puts
+  the tick's present in its own frame, one taller spike instead of two (p99 24.0 to 30.4 ms; harness Level7 slow frames
+  13 to 40). What remains needs the ticks off the frame thread (Unity's presented-copy worker, ADR-0694) or a cheaper
+  tick in `DK2.Simulation`. The first second's first-use frames (up to 295 ms: lights, HUD, present) and a few render
+  stalls with a short update (up to 269 ms) are not yet explained.
 
 ## Hardware tiers and captures on other machines (2026-11-06)
 
@@ -147,9 +166,8 @@ and returns files for review (ADR-0691):
    times, draw calls, allocation). `godot.log` is in the capture.
 3. **The draw-clock evenness metric** (`tools/game-unity-probe/draw_clock.py`,
    the Level8 motion metric) is in the same summary, since a fly-by can stutter
-   at a flat 120 FPS. The first capture of the release export (2026-11-24, the
-   owner's laptop, windowed 1920x1080, Level6a, 32 s of play) failed it at 20% of
-   path frames, 19% of steady ones, so not by hitches; the frames failed both tiers.
+   at a flat 120 FPS. Level6a's release captures pass it since 2026-11-25 and fail
+   both tiers on their frames (*Godot adapter* above).
 4. **Scenario coverage**: the opening fly-by is covered; the dig burst
    (`terrain-edit-burst`) is not yet, since a release run has no scripted
    digging. The list in `performance-target.json` stands.

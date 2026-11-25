@@ -168,9 +168,11 @@ These are entry points, not a new priority order.
   scripted runs skip it.
   Step 4's probes item is done: `--record-frames` writes Unity's recorder's `frames.csv` for `draw_clock.py`; every other
   Unity probe is covered or obsolete ([Probes](../godot/README.md#probes)); `tools/hud-probe` is deleted.
-  The tester package is a release Godot export (`tools/tester-package`, [Exporting](../godot/README.md#exporting)); its first
-  capture here is valid and fails both tiers ([PERFORMANCE.md](PERFORMANCE.md)). CI builds `godot/DK2.Godot` and the
-  architecture gate holds it to its one `DK2.Presentation` reference. Step 4 leaves only the Godot performance targets.
+  The tester package is a release Godot export (`tools/tester-package`, [Exporting](../godot/README.md#exporting)). CI builds
+  `godot/DK2.Godot` and the architecture gate holds it to its one `DK2.Presentation` reference. Step 4 is complete: the Godot
+  targets are `tools/tester-package/performance-target.json` (tiers and harness ceilings, each with its source). Level6a's
+  release capture passes the draw clock since the frame ticks first on a real delta, and fails both tiers on its inline
+  4 Hz ticks (10-35 ms each); the next performance step is ticking off the frame thread ([PERFORMANCE.md](PERFORMANCE.md)).
   Open readings: whether secret-level and My Pet Dungeon briefing lines show in play ([Q854](research/open-questions.md)); whether `ClassicKeyNames`, equal to Unity's
   `KeyCode` names, matches DK2's own ([Q857](research/open-questions.md)); whether the front end's brightness, after `PngChunks.WithoutColourSpace` drops Godot's gAMA handling,
   is Unity's ([Q859](research/open-questions.md), [0x005B6030](research/functions/005B6030.md)).
@@ -179,7 +181,7 @@ These are entry points, not a new priority order.
   Play mode is unrun; the step entries in the plan list what each capture showed and left unchecked.
   Godot's lit frames are judged against Unity's in-game probe frames (`ClassicWorldLightingProbe`; the recipe is in the plan's step 3); in 3i every pair is within 0.002 luminance and 0.004 saturation.
   Policy (owner, 2026-11-18, [ADR-0813](DECISIONS.md)): Godot's rendering uses the modern engine's features, not Unity's 20-year-old techniques; DK2's rules, simulation and AI stay faithful and DK2's data drives the presentation; Unity stays frozen as the classic reference and gets no modern work; Godot's classic path stays a switch until the owner accepts the modern look; modern items are accepted by the owner's eye, the harness numbers and gameplay correctness, not byte-identity with Unity.
-  The performance harness (3o, ADR-0813): `--perf-report` with `godot/perf.ps1` and `godot/perf_compare.py` (`godot/README.md`, *Measuring performance*); the later items are measured by it. Its first baseline (GPU p50 at 1080p, classic Level1 1.9 ms and Level7 2.4 ms, modern 6.2 and 9.3 ms) came from a heavily loaded machine; a quiet re-run is pending.
+  The performance harness (3o, ADR-0813): `--perf-report` with `godot/perf.ps1` and `godot/perf_compare.py` (`godot/README.md`, *Measuring performance*); the later items are measured by it. Quiet 1080p medians (2026-11-25, classic): GPU p50 Level1 1.7 ms, Level7 2.1 ms, Level6a 2.9 ms; they are the harness ceilings' baselines (`godot/perf_targets.py`).
   The per-pixel torch rim and AO noise have adapter fixes; the classic reference stays unchanged. Scope, historical
   flag comparisons, focused GPU proof, scene validation and measured costs: [torch-light artifacts](research/godot-torch-light-artifacts.md).
   GPU vertex animation is built; scope, capture comparisons and measurements are in [modern-rendering audit item 8](plans/2026-11-18-godot-modern-rendering-audit.md).

@@ -6,7 +6,9 @@
 
 Frame intervals come from the game's own recorder (recorder/frames.csv) and, when the trace ran, from
 PresentMon's presents; the draw-clock evenness of the opening fly-by comes from draw_clock.py. The first
-two seconds of play are warm-up and are reported but not judged. Exit 1 on fail, 2 on an unusable capture.
+two seconds of play are warm-up and are reported but not judged. The tiers and limits are the Godot targets
+in performance-target.json beside this script. An error in godot.log (a Vulkan surface that could not
+present, for one) makes the capture unusable. Exit 1 on fail, 2 on an unusable capture.
 """
 import argparse
 import csv
@@ -19,7 +21,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "game-unity-probe"))
 from draw_clock import analyse as draw_clock  # noqa: E402
 
+TARGET_FILE = Path(__file__).resolve().with_name("performance-target.json")
 WARM_UP_SECONDS = 2.0
+DRAW_CLOCK_LIMIT = 0.015
 # What a release capture's metadata.txt must say (Godot's FrameRecorder writes it; godot/README.md, Probes).
 RELEASE_BACKEND = "Godot .NET"
 RENDERING_APIS = ("vulkan", "d3d12")
@@ -48,11 +52,11 @@ def interval_metrics(values, budget):
                 over_budget_share=sum(v > budget for v in values) / len(values), longest_over_budget_run=longest)
 
 
-def worst_frames(rows, count=10):
+def worst_frames(rows, count=10, warm_up_seconds=WARM_UP_SECONDS):
     """The slowest frames after warm-up, with where each went, so a slow frame has a cause beside it."""
     # frame_ms is the interval that ended when a row's frame began, so the work in that interval is
     # the previous row's parts: a slow interval is listed with the frame that did the work.
-    judged = [(rows[i - 1], rows[i]) for i in range(1, len(rows)) if float(rows[i]["play_seconds"]) >= WARM_UP_SECONDS]
+    judged = [(rows[i - 1], rows[i]) for i in range(1, len(rows)) if float(rows[i]["play_seconds"]) >= warm_up_seconds]
     judged.sort(key=lambda pair: -float(pair[1]["frame_ms"]))
     parts = ("sound_ms", "wait_tick_ms", "script_ms", "input_ms", "present_ms", "animated_frame_ms", "lights_ms", "hud_ms")
     worst = []
@@ -89,22 +93,32 @@ def release_problems(metadata, resolution):
     return problems
 
 
-def summarise(rows, metadata, machine, presents, tier):
-    """rows: the recorder's frames; presents: PresentMon rows or None; tier: name, minimum_fps, resolution."""
+def log_problems(log):
+    """An error the game logged (godot.log): a frame that failed to present, for one, measures no rendering."""
+    errors = [line for line in (log or "").splitlines() if line.startswith(("ERROR:", "SCRIPT ERROR:"))]
+    return [f"godot.log holds {len(errors)} error lines, the first {errors[0]!r}"] if errors else []
+
+
+def summarise(rows, metadata, machine, presents, tier, log=None, warm_up_seconds=WARM_UP_SECONDS,
+              draw_clock_limit=DRAW_CLOCK_LIMIT):
+    """rows: the recorder's frames; presents: PresentMon rows or None; tier: name, minimum_fps, resolution;
+    log: godot.log's text, or None when the capture has none."""
     budget = 1000.0 / tier["minimum_fps"]
     problems = []
     if not rows:
         problems.append("no frames recorded")
     problems += release_problems(metadata, tier["resolution"])
-    judged = [float(r["frame_ms"]) for r in rows if float(r["play_seconds"]) >= WARM_UP_SECONDS]
-    warm_up = [float(r["frame_ms"]) for r in rows if 0 < float(r["play_seconds"]) < WARM_UP_SECONDS]
+    problems += log_problems(log)
+    judged = [float(r["frame_ms"]) for r in rows if float(r["play_seconds"]) >= warm_up_seconds]
+    warm_up = [float(r["frame_ms"]) for r in rows if 0 < float(r["play_seconds"]) < warm_up_seconds]
     frames = interval_metrics(judged, budget)
     result = dict(tier=tier["name"], budget_ms=budget, play_seconds=float(rows[-1]["play_seconds"]) if rows else 0,
                   machine=dict(cpu=metadata.get("CPU"), gpu=metadata.get("GPU"), driver=metadata.get("GraphicsDriver"),
                                api=metadata.get("API"), resolution=metadata.get("Resolution"), vsync=metadata.get("VSync"),
                                frame_cap=metadata.get("FrameCap"), refresh_hz=metadata.get("RefreshHz"),
                                windows=machine.get("OS"), gpu_driver_windows=[v for k, v in machine.items() if k == "GPU"]),
-                  frames=frames, warm_up=interval_metrics(warm_up, budget), worst_frames=worst_frames(rows),
+                  frames=frames, warm_up=interval_metrics(warm_up, budget),
+                  worst_frames=worst_frames(rows, warm_up_seconds=warm_up_seconds),
                   draw_clock=draw_clock(rows) if rows else None)
     if presents is not None:
         intervals = []
@@ -117,7 +131,7 @@ def summarise(rows, metadata, machine, presents, tier):
                 intervals.append(value)
         # The trace spans the whole run; its first two seconds of presents are the warm-up too.
         skip, total = 0, 0.0
-        while skip < len(intervals) and total < WARM_UP_SECONDS * 1000:
+        while skip < len(intervals) and total < warm_up_seconds * 1000:
             total += intervals[skip]
             skip += 1
         result["presents"] = interval_metrics(intervals[skip:], budget)
@@ -127,7 +141,7 @@ def summarise(rows, metadata, machine, presents, tier):
         result["presents"] = None
     failed = frames.get("over_budget", 0) > 0 or (result["presents"] or {}).get("over_budget", 0) > 0
     clock = result["draw_clock"] or {}
-    if clock.get("analysed") and clock["over_limit_share"] > 0.015:
+    if clock.get("analysed") and clock["over_limit_share"] > draw_clock_limit:
         failed = True
     result["problems"] = problems
     result["status"] = "invalid" if problems else "fail" if failed else "pass"
@@ -139,7 +153,7 @@ def main():
     parser.add_argument("capture", type=Path, help="the unzipped capture folder")
     parser.add_argument("--tier", default="desktop")
     args = parser.parse_args()
-    target = json.loads((Path(__file__).resolve().parent.parent / "classic-unity-probe" / "performance-target.json").read_text(encoding="utf-8"))
+    target = json.loads(TARGET_FILE.read_text(encoding="utf-8"))
     tier = next((t for t in target["tiers"] if t["name"] == args.tier), None)
     if tier is None:
         raise SystemExit(f"unknown tier {args.tier!r}; performance-target.json lists {[t['name'] for t in target['tiers']]}")
@@ -148,7 +162,10 @@ def main():
     metadata = read_pairs(recorder / "metadata.txt") if (recorder / "metadata.txt").exists() else {}
     machine = read_pairs(args.capture / "machine.txt") if (args.capture / "machine.txt").exists() else {}
     presents = read_rows(args.capture / "presentmon.csv") if (args.capture / "presentmon.csv").exists() else None
-    result = summarise(rows, metadata, machine, presents, tier)
+    log_path = args.capture / "godot.log"
+    log = log_path.read_text(encoding="utf-8-sig", errors="replace") if log_path.exists() else None
+    result = summarise(rows, metadata, machine, presents, tier, log, target["warm_up_seconds"],
+                       target["draw_clock"]["max_share_over_limit"])
     print(json.dumps(result, indent=2))
     return {"pass": 0, "fail": 1, "invalid": 2}[result["status"]]
 

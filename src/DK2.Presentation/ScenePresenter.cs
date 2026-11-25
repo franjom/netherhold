@@ -505,12 +505,13 @@ public sealed class ScenePresenter
         return true;
     }
 
-    /// <summary>Byte-equal spans of one length, eight bytes a step: the byte-wise
-    /// <c>SequenceEqual</c> is not vectorised on every runtime this assembly runs on (Unity's Mono),
-    /// and this compare runs over the whole map every frame.</summary>
+    /// <summary>Byte-equal spans of one length. This compare runs over the whole map every frame: where
+    /// the runtime vectorises (CoreCLR, Godot's), its <c>SequenceEqual</c>, several times faster;
+    /// elsewhere (Unity's Mono, where the byte-wise one is not vectorised) eight bytes a step.</summary>
     private static bool SameBytes(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
     {
         if (a.Length != b.Length) return false;
+        if (System.Numerics.Vector.IsHardwareAccelerated) return a.SequenceEqual(b);
         ReadOnlySpan<ulong> wa = MemoryMarshal.Cast<byte, ulong>(a), wb = MemoryMarshal.Cast<byte, ulong>(b);
         int i = 0;
         for (; i + 4 <= wa.Length; i += 4)

@@ -234,6 +234,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>The <c>--record-frames</c> telemetry (Unity's runner's <c>_recorder</c>); null without the argument.</summary>
     private FrameRecorder? _recorder;
 
+    /// <summary>The time <see cref="RunFrameTicks"/> accrues next under Movie Maker: the last frame's step.</summary>
+    private double _lastDelta;
+    private bool _movie;
+
     public override void _Ready()
     {
         if (_simulation != null) return;   // re-entering the tree keeps the running level
@@ -474,6 +478,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         PerformanceReport.Attach(this, args, levelName, seed, _world, _simulation.World.Width, _simulation.World.Height);
         // --record-frames <dir>: Unity's recorder's frames.csv (FrameRecorder.cs); without it, no node.
         _recorder = FrameRecorder.Attach(this, args, levelName, seed);
+        // The process delta is the frame's real interval, as Unity's runner samples it: Godot otherwise bends it toward its
+        // 60 Hz physics clock (main_timer_sync.cpp), so the draw clock stepped evenly across uneven frames. No physics runs
+        // here. Movie Maker keeps the engine's setting, whose fixed steps its captures were made with.
+        _movie = Engine.GetWriteMoviePath().Length > 0;
+        if (!_movie) Engine.PhysicsJitterFix = 0;
         // DungeonRunner's heart health observer: each change queued for the next frame's beat.
         int maximumHeartHealth = level.Database[VariableTypeId.DungeonHeartObjectHealth];
         WorldScene world = _world;
@@ -559,6 +568,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _recorder?.BeginFrame();
         SamplePointer();
         JournalBeginFrame(delta);
+        // The ticks for the time since the last frame, at that frame's engine time.
+        int tickCount = RunFrameTicks(delta, (long)(_elapsed * 1000), out double tickMs);
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         long milliseconds = (long)(_elapsed * 1000);
@@ -769,39 +780,53 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _world.DrawBlendedItems();
         _recorder?.Spent(FrameTelemetryPart.Hud, started);
 
-        // DungeonRunner.Update's tick step (FrameDriver): ready drops after the input, then the tick gate (no turn runs, and
-        // none accrues, while it holds), the hand-off and the clear. The frame is clamped as Unity's runner clamps it
-        // (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back at the cap. The possession posts its pose once a turn.
-        if (_lightningStage?.QueueThunderboltWhenReady(_simulation, _pending) == true)
-            GD.Print("DK2.Godot: staged paid Thunderbolt at turn " + _simulation.World.CurrentTick.Value + ".");
-        FrameTicks ticks = _frameDriver.TakeTicks(_simulation.World, _viewer, Math.Min(delta, TickPacer.MaximumFrameSeconds), 1f,
-            _settings.GameSpeed, _hudControls.TicksPaused, TickPacer.DefaultMaxTicksPerFrame, poses: _possession);
-        _journal.Ticks(_simulation.World.CurrentTick, ticks.Count);
-        started = _recorder?.Stamp() ?? 0;
-        for (int i = 0; i < ticks.Count; i++)
-        {
-            InputFrame input = ticks.InputFor(i);
-            long tick = _simulation.World.CurrentTick.Value;
-            _journal.BeforeTick(tick, input, _simulation);
-            try
-            {
-                _simulation.Tick(input);
-            }
-            catch (Exception ex)
-            {
-                _journal.TickFailed(ex, _simulation);
-                throw;
-            }
-            _journal.AfterTick(tick + 1, _simulation);
-            if (_simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
-        }
-        double tickMs = _recorder?.Elapsed(started) ?? 0;
-        _frameDriver.AfterTicks(_simulation.World, milliseconds);
         // Unity's runner's EndFrame: the draw clock is the drawn turn and fraction, the camera the drawn view's eye.
-        _recorder?.EndFrame(ticks.Count, tickMs, renderTick, _world.View?.Position ?? default, _scriptedView.PathPlaying,
+        _recorder?.EndFrame(tickCount, tickMs, renderTick, _world.View?.Position ?? default, _scriptedView.PathPlaying,
             _world.ChunkFlushMilliseconds);
         // Unity's LateUpdate: the frame's journal record.
         _journal.EndFrame(_pending, _pacer.Debt);
+    }
+
+    /// <summary>DungeonRunner.Update's tick step (FrameDriver) for the time since the last frame's: ready drops, then the
+    /// tick gate (no turn runs, and none accrues, while it holds), the hand-off, the ticks and the clear. It runs at the top
+    /// of the frame, so the frame draws the time that has passed (Unity's inline order, which the draw clock measures); the
+    /// last frame's input, camera and HUD came before it as they did when it ran last in that frame, so the same ticks get
+    /// the same commands. Returns the ticks run.</summary>
+    private int RunFrameTicks(double delta, long lastMilliseconds, out double tickMs)
+    {
+        GameSimulation simulation = _simulation!;
+        // The interval that just ended (Godot's delta, unbent: _Ready). Under Movie Maker the last frame's step, the time
+        // these ticks took when they ran last in that frame, so its captures keep every frame (its steps are not all equal
+        // in the last bit). Clamped as Unity's runner clamps it (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back.
+        double elapsed = _movie ? _lastDelta : delta;
+        _lastDelta = delta;
+        if (_lightningStage?.QueueThunderboltWhenReady(simulation, _pending) == true)
+            GD.Print("DK2.Godot: staged paid Thunderbolt at turn " + simulation.World.CurrentTick.Value + ".");
+        // The possession posts its pose once a turn.
+        FrameTicks ticks = _frameDriver!.TakeTicks(simulation.World, _viewer, Math.Min(elapsed, TickPacer.MaximumFrameSeconds), 1f,
+            _settings.GameSpeed, _hudControls.TicksPaused, TickPacer.DefaultMaxTicksPerFrame, poses: _possession);
+        _journal.Ticks(simulation.World.CurrentTick, ticks.Count);
+        long started = _recorder?.Stamp() ?? 0;
+        for (int i = 0; i < ticks.Count; i++)
+        {
+            InputFrame input = ticks.InputFor(i);
+            long tick = simulation.World.CurrentTick.Value;
+            _journal.BeforeTick(tick, input, simulation);
+            try
+            {
+                simulation.Tick(input);
+            }
+            catch (Exception ex)
+            {
+                _journal.TickFailed(ex, simulation);
+                throw;
+            }
+            _journal.AfterTick(tick + 1, simulation);
+            if (simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
+        }
+        tickMs = _recorder?.Elapsed(started) ?? 0;
+        _frameDriver.AfterTicks(simulation.World, lastMilliseconds);
+        return ticks.Count;
     }
 
     /// <summary>Unity's runner's JournalBeginFrame: the journal opens on the first frame, and while it records, each frame's

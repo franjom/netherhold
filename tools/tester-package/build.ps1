@@ -38,6 +38,10 @@ function Run-Native([string]$Executable, [string[]]$Arguments, [int]$Minutes) {
 }
 
 # The export, headless. Godot exits 0 even when the .NET part fails, so its log and the output are checked too.
+# The export's .NET build would leave MSBuild nodes and the compiler server running with the console's output handles,
+# and the console waits for them before it exits (docs/TRAPS.md); these keep both inside the build.
+$env:MSBUILDDISABLENODEREUSE = '1'
+$env:UseSharedCompilation = 'false'
 $log = Join-Path ([IO.Path]::GetTempPath()) "dk2-tester-export-$stamp.log"
 $mode = if ($Development) { '--export-debug' } else { '--export-release' }
 Write-Host "Exporting the game ($mode; the C# is published as part of it)..."
