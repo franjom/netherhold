@@ -189,6 +189,25 @@ public class SimMatrixTests
     }
 
     [Fact]
+    public void TileStatesCountedPropertiesAreStillTilesAndRoomsFields()
+    {
+        // TerrainId, OwnerPlayerId, SecretDoor and RoomRuined are properties whose setters count the change, so a write
+        // reaches the private field behind them and the counter. The report keeps naming the property, puts the ruin bit
+        // (declared among the room fields) in Rooms and the others in Tiles, and leaves the counter out as bookkeeping.
+        var tiles = Array.IndexOf(StateModel.Columns, "Tiles");
+        var rooms = Array.IndexOf(StateModel.Columns, "Rooms");
+        var rows = Repository.Value.Rows;
+        Assert.DoesNotContain(rows, r => r.Core.Writes.Concat(r.Core.Reads).Any(w => w.StartsWith("TileState._", StringComparison.Ordinal)
+                                                                                  || w.StartsWith("TileState.s_", StringComparison.Ordinal)));
+        var ruin = rows.Where(r => r.Core.Writes.Contains("TileState.RoomRuined")).ToArray();
+        var terrain = rows.Where(r => r.Core.Writes.Contains("TileState.TerrainId")).ToArray();
+        Assert.NotEmpty(ruin);
+        Assert.NotEmpty(terrain);
+        Assert.All(ruin, r => Assert.Equal("W", r.Core.Cells[rooms]));
+        Assert.All(terrain, r => Assert.Equal("W", r.Core.Cells[tiles]));
+    }
+
+    [Fact]
     public void AWorldAccessorReturningAListCarriesItsWrites()
     {
         // TempleSacrificeRules removes through WorldState.RawTempleSacrifices => _templeSacrifices.

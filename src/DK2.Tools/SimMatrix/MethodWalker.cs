@@ -407,8 +407,18 @@ internal sealed class MethodWalker
 
     private void Read(ISymbol key) => _summary.Reads.Add(key);
 
-    /// <summary>A field's key: the property it backs, when it is an auto-property's or a <c>field</c> keyword's.</summary>
-    private static ISymbol Key(IFieldSymbol field) => (field.AssociatedSymbol ?? field).OriginalDefinition;
+    /// <summary>A field's key: the property it backs, when it is an auto-property's or a <c>field</c> keyword's, or
+    /// the hand-written property of a struct that counts its writes (<c>TileState._roomRuined</c> of <c>RoomRuined</c>):
+    /// the state is the property's, however its setter is written.</summary>
+    private static ISymbol Key(IFieldSymbol field) => (field.AssociatedSymbol ?? BackedProperty(field) ?? field).OriginalDefinition;
+
+    private static ISymbol? BackedProperty(IFieldSymbol field) =>
+        field.ContainingType is { TypeKind: TypeKind.Struct } owner && field.DeclaredAccessibility == Accessibility.Private
+        && field.Name.Length > 1 && field.Name[0] == '_'
+            ? owner.GetMembers().OfType<IPropertySymbol>().FirstOrDefault(p =>
+                !p.IsIndexer && !p.IsStatic && SymbolEqualityComparer.Default.Equals(p.Type, field.Type)
+                && string.Equals(p.Name, field.Name.Substring(1), StringComparison.OrdinalIgnoreCase))
+            : null;
 
     /// <summary>What <c>x?.</c> stands for: the receiver of the conditional access whose right-hand side holds it.</summary>
     private static IOperation? Receiver(IConditionalAccessInstanceOperation instance)

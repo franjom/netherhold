@@ -128,7 +128,7 @@ internal sealed class StateModel
     private readonly HashSet<INamedTypeSymbol> _systemOwnedTypes = new(SymbolEqualityComparer.Default);
     private readonly SourceIndex _index;
     private readonly INamedTypeSymbol _world, _context, _tile;
-    private readonly int _firstRoomField;
+    private readonly int _firstRoomPosition;
 
     internal StateModel(SourceIndex index)
     {
@@ -137,8 +137,7 @@ internal sealed class StateModel
         _world = SimRows.Type(compilation, WorldStateType);
         _context = SimRows.Type(compilation, ContextType);
         _tile = SimRows.Type(compilation, TileStateType);
-        _firstRoomField = _tile.GetMembers().OfType<IFieldSymbol>().Where(f => !f.IsStatic && !f.IsConst)
-            .Select((f, i) => (f, i)).Single(x => x.f.Name == FirstRoomFieldOfTile).i;
+        _firstRoomPosition = Position(_tile.GetMembers(FirstRoomFieldOfTile).Single());
         var system = SimRows.Type(compilation, SimRows.SystemInterface);
 
         // Roots: WorldState's members in declared order, then SimulationContext's. The walk is breadth first from
@@ -255,6 +254,8 @@ internal sealed class StateModel
             return ContextMembers.TryGetValue(member.Name, out int c) ? Columned(c) : (FieldPlace.Column, World);
         }
         if (IsSystemType(owner)) return (FieldPlace.SystemOwned, 0);
+        // TileState's change counter is bookkeeping shared by every world, not state of a tile.
+        if (member.IsStatic && SymbolEqualityComparer.Default.Equals(owner, _tile)) return (FieldPlace.NotState, 0);
         if (member.IsStatic)
         {
             if (!writtenStatics.Contains(member)) return (FieldPlace.NotState, 0);
@@ -263,15 +264,24 @@ internal sealed class StateModel
                 : IsExcludedType(owner) ? (FieldPlace.NotState, 0) : (FieldPlace.Column, Caches);
         }
         if (SymbolEqualityComparer.Default.Equals(owner, _tile))
-        {
-            int order = Array.IndexOf(_tile.GetMembers().OfType<IFieldSymbol>().Where(f => !f.IsStatic && !f.IsConst).ToArray(), member);
-            return (FieldPlace.Column, order >= _firstRoomField ? Rooms : Tiles);
-        }
+            return (FieldPlace.Column, Position(TileMember(member)) >= _firstRoomPosition ? Rooms : Tiles);
         if (_systemOwnedTypes.Contains(owner)) return (FieldPlace.SystemOwned, 0);
         if (!_typeColumn.TryGetValue(owner, out int column)) return (FieldPlace.NotState, 0);
         if (IsShared(owner)) return (FieldPlace.NotState, 0);
         return Columned(column);
     }
+
+    /// <summary>Where a member of a source type is declared, to compare two members of the same type: a field and a
+    /// property interleave, as <c>TileState</c>'s do, so a field's index among the fields says nothing about a property's.</summary>
+    private static int Position(ISymbol member) => member.DeclaringSyntaxReferences[0].Span.Start;
+
+    /// <summary>The member of <c>TileState</c> a write is a write of: a property's backing field (<c>_roomRuined</c> of
+    /// <c>RoomRuined</c>, whose setter counts the change) stands for the property, which is where it is declared in the column order.</summary>
+    private ISymbol TileMember(ISymbol member) =>
+        member is IFieldSymbol { IsImplicitlyDeclared: false } field && field.Name.StartsWith('_')
+        && _tile.GetMembers().OfType<IPropertySymbol>().FirstOrDefault(p => string.Equals(p.Name, field.Name[1..], StringComparison.OrdinalIgnoreCase)) is { } property
+            ? property
+            : member;
 
     private static (FieldPlace, int) Columned(int column) => column == Excluded ? (FieldPlace.NotState, 0) : (FieldPlace.Column, column);
 

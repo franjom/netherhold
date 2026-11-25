@@ -36,7 +36,9 @@ public sealed class MoviePlayback : IDisposable
     private byte[] _shownPixels = Array.Empty<byte>(), _aheadPixels = Array.Empty<byte>();
     private readonly Thread? _worker;
     private readonly AutoResetEvent _request = new(false);
-    private readonly ManualResetEventSlim _decoded = new(true);
+    // A kernel event, not ManualResetEventSlim: the slim one allocates its lock object the first time a Wait has to block,
+    // which would put a one-off allocation on the frame thread at whatever frame the worker is first late.
+    private readonly ManualResetEvent _decoded = new(true);
     private volatile bool _stopping;
     private int _requested = -1, _aheadIndex = -1;
     private long _decodeTicks;
@@ -246,13 +248,13 @@ public sealed class MoviePlayback : IDisposable
     {
         _shown = index;
         if (_aheadIndex < 0) return false;
-        _decoded.Wait(); // waits only while the worker is still decoding
+        _decoded.WaitOne(); // waits only while the worker is still decoding
         if (_aheadIndex != index)
         {
             // Frames were dropped past the one decoded ahead: decode the due one now.
             DecodeAhead(index);
             if (_aheadIndex < 0) return false;
-            _decoded.Wait();
+            _decoded.WaitOne();
         }
         if (_decodeError != null)
         {
