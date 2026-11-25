@@ -50,8 +50,19 @@ public sealed partial class DoorState
     public int LockPickTicks { get; set; }
 
     /// <summary>DK2's <c>+0x10D</c>, recomputed every tick by <see cref="Systems.DoorSystem"/>:
-    /// while open the tile's navigation byte is plain floor for everyone.</summary>
+    /// while open the tile's navigation byte is plain floor for everyone, unless the door was
+    /// <see cref="SeenWhileOpen"/>.</summary>
     public bool Open { get; set; }
+
+    /// <summary>An open Secret Door an enemy has seen since it last opened or shut. Seeing it makes
+    /// DK2 write the tile's navigation byte as a shut door's (<c>0x004A66F0(1)</c> at
+    /// <c>0x004A6625</c>) although the door stands open, and nothing writes it back to floor until
+    /// the door's open state next changes (<c>0x004A6081</c>). Not a field of DK2's door: it stands
+    /// for that byte, which ours derives instead of storing.</summary>
+    public bool SeenWhileOpen { get; set; }
+
+    /// <summary>Whether the navigation bytes show this door's tile as plain floor.</summary>
+    public bool ReadsAsFloor => Open && !SeenWhileOpen;
 
     /// <summary>0, 1 or 2, fixed when the door is made
     /// (<see cref="BlueprintPlacementRules.Orientation"/>): which pair of neighbours are its
@@ -102,6 +113,7 @@ public sealed partial class DoorState
         hash.Add(LockMode);
         hash.Add(LockPickTicks);
         hash.Add(Open);
+        hash.Add(SeenWhileOpen);
         hash.Add(Orientation);
         hash.Add(Health);
         hash.Add(RecoveryDeadline);

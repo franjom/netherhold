@@ -104,7 +104,7 @@ stands on the target's tile.
 Line walker `0x004512F0(a, b, f1, f2)` asks `0x004511A0(x, y, f1, f2)` per tile; every scan
 passes `f2 = 1`. A navigation byte with bit 3 (Solid) blocks. With `f1 = 0` a door blocks only
 while the tile's navigation byte carries a door owner (`0x004528E0` tests that nibble first), which
-a closed, completed door writes (so does a revealed secret door while open, `0x004A6625`; ours does not write it, §6.8); then a door
+a closed, completed door writes (so does a revealed secret door while open, `0x004A6625`; ours: `DoorState.SeenWhileOpen`, §6.8); then a door
 thing blocks unless it is a barricade (`def+0x8B` bit 6).
 An open door and a blueprint leave floor, so they let sight through (corrected 2026-11-05, ADR-0683;
 ADR-0318 had them block). With `f1 = 1` and `f2 = 1` no door blocks, only Solid.
@@ -156,7 +156,7 @@ Update `0x004A55F0`, in its order:
    Secret Door is the forced target (`0x0048F390`) of each enemy creature strictly within four
    tiles, outside the combat category, allowed to look for a fight unforced, with a line no solid
    tile crosses (§4, flags 1 and 1), and its tile marker is cleared. Built as `DoorSystem.SeenOpen`
-   (`SecretDoorSeenTests`). Not built: the navigation-byte rewrite `0x004A66F0(1)` and command `0x11`.
+   (`SecretDoorSeenTests`). The navigation-byte rewrite `0x004A66F0(1)` is `DoorState.SeenWhileOpen`. Not built: command `0x11`.
 
 **CONFIRMED (owner, 2026-10-02):** digging out a wall beside a door destroys the door.
 

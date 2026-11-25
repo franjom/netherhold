@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 536;
+    private const int FormatVersion = 537;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -825,6 +825,7 @@ public static class WorldSnapshot
             w.Write(door.LockMode);
             w.Write(door.LockPickTicks);
             w.Write(door.Open);
+            w.Write(door.SeenWhileOpen);
             w.Write(door.Orientation);
             w.Write(door.Health);
             w.Write(door.RecoveryDeadline);
@@ -1720,6 +1721,7 @@ public static class WorldSnapshot
                 LockMode = r.ReadByte(),
                 LockPickTicks = r.ReadInt32(),
                 Open = r.ReadBoolean(),
+                SeenWhileOpen = r.ReadBoolean(),
                 Orientation = r.ReadByte(),
                 Health = r.ReadInt32(),
                 RecoveryDeadline = r.ReadInt64(),

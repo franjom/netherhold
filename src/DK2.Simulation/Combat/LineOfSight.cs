@@ -109,8 +109,9 @@ public static class LineOfSight
 /// <summary>The per-tile rule as the running game has it (<c>0x004511A0</c> with its scans' flags 0
 /// and 1): a solid navigation byte stops sight, and so does a door, but only while the tile's
 /// navigation byte carries a door owner (<c>0x004528E0</c> tests that high nibble first), which is a
-/// closed, completed door. An open door and a blueprint leave floor there and let sight through. A
-/// barricade, which the scans look over, never stops it. With the first flag set, as the reach test
+/// closed, completed door, or an open Secret Door an enemy has seen
+/// (<see cref="DoorState.SeenWhileOpen"/>). Any other open door and a blueprint leave floor there
+/// and let sight through. A barricade, which the scans look over, never stops it. With the first flag set, as the reach test
 /// sets it when a door stands on the target's tile, no door stops sight: <see cref="SolidOnly"/>
 /// (door-blocking.md section 4).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/door-blocking.md")]
@@ -152,8 +153,8 @@ public sealed class WorldSight : ISightBlocker
         Sync();
         if (x < 0 || y < 0 || x >= _world.Width || y >= _world.Height) return false;
         int index = (y * _world.Width) + x;
-        // The open state is read live: it changes without a change of the door list.
-        return _doorTiles[index] == PlainDoor && _doorAt[index] is { UnderConstruction: false, Open: false };
+        // What the door's tile reads as is taken live: it changes without a change of the door list.
+        return _doorTiles[index] == PlainDoor && _doorAt[index] is { UnderConstruction: false, ReadsAsFloor: false };
     }
 
     private void Sync()

@@ -43,6 +43,8 @@ public sealed class DoorSystem : ISimulationSystem
             // 0x004A60B9: the open state changed. A door found dead skips the open decision in DK2, but its owner and support
             // kills run inside the same update, before that test, and ours are DoorHealthSystem's, after this one: a door
             // killed this tick may still sound this tick (a deviation with no practical effect, it goes the same turn).
+            // The change writes the navigation byte afresh (0x004A6081), floor for an open door.
+            if (door.Open != was) door.SeenWhileOpen = false;
             if (door.Open != was && !DoorRules.IsDead(door))
                 ThingSoundRules.Request(context, Name, door, door.Open ? ThingSoundEvent.DoorOpened : ThingSoundEvent.DoorClosed);
 
@@ -60,11 +62,11 @@ public sealed class DoorSystem : ISimulationSystem
     /// line no solid tile crosses (<c>0x004512F0</c> with both flags set, so no door stops it). Each
     /// gets the door as its forced target (<c>0x0048F390</c>) and the tile's marker is cleared
     /// (<c>0x00450FF0</c>), every tick, marker still set or not.
-    /// <para>Not built: the door's navigation byte rewritten as a shut door's (<c>0x004A66F0(1)</c>),
-    /// which stops sight and door-respecting routes through the open door until it next changes
-    /// state, and command <c>0x11</c>, whose consumer is unread. DK2 walks the players, then their
-    /// creatures; ours walks the world's list, which only changes which creature the event
-    /// names.</para></summary>
+    /// DK2 then writes the door's navigation byte as a shut door's (<c>0x004A66F0(1)</c>):
+    /// <see cref="DoorState.SeenWhileOpen"/>.
+    /// <para>Not built: command <c>0x11</c>, whose consumer is unread. DK2 walks the players and
+    /// then each player's creatures; ours walks the world's list, which only changes the creature
+    /// the event names.</para></summary>
     private void SeenOpen(SimulationContext context, DoorState door)
     {
         WorldState world = context.World;
@@ -84,6 +86,7 @@ public sealed class DoorSystem : ISimulationSystem
 
             CombatPitRules.ForceTarget(world, creature, door.Id, FightTargetKind.Door);
             Unhide(context, door, seenBy: creature);
+            door.SeenWhileOpen = true;
         }
     }
 

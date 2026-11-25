@@ -200,10 +200,10 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     }
 
     /// <summary>What of a door the navigation bytes read.</summary>
-    private readonly record struct DoorKey(int X, int Y, byte DoorId, byte PlayerId, byte LockMode, bool UnderConstruction, bool Open);
+    private readonly record struct DoorKey(int X, int Y, byte DoorId, byte PlayerId, byte LockMode, bool UnderConstruction, bool ReadsAsFloor);
 
     private static DoorKey KeyOf(DoorState door) =>
-        new(door.X, door.Y, door.DoorId, door.PlayerId, door.LockMode, door.UnderConstruction, door.Open);
+        new(door.X, door.Y, door.DoorId, door.PlayerId, door.LockMode, door.UnderConstruction, door.ReadsAsFloor);
 
     private bool Unchanged()
     {
@@ -353,13 +353,14 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         for (int i = 0; i < stamps.Count; i++)
             if (world.TileAtIndex(stamps[i].Tile).TerrainId == stamps[i].TerrainId) bytes[stamps[i].Tile] = stamps[i].Byte;
 
-        // A closed, completed door overwrites its tile (`0x004A66F0`); an open one leaves floor.
+        // A closed, completed door overwrites its tile (`0x004A66F0`); an open one leaves floor,
+        // until an enemy sees an open Secret Door (DoorState.SeenWhileOpen).
         // A barricade (definition flag bit 6) carries the lock bit whatever its lock mode.
         IReadOnlyList<DoorState> doorList = world.Doors;
         for (int d = 0; d < doorList.Count; d++)
         {
             DoorState door = doorList[d];
-            if (door.UnderConstruction || door.Open || !world.Contains(door.X, door.Y)) continue;
+            if (door.UnderConstruction || door.ReadsAsFloor || !world.Contains(door.X, door.Y)) continue;
             bool barricade = database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && ((def.Flags & DoorFlags.Barricade) == DoorFlags.Barricade);
             bytes[(door.Y * world.Width) + door.X] =
                 NavBytes.Door(door.PlayerId, door.LockMode != 0 || barricade, world.Tile(door.X, door.Y).SecretDoor);

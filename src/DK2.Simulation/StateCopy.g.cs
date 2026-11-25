@@ -462,6 +462,7 @@ namespace DK2.Simulation
             LockMode = other.LockMode;
             LockPickTicks = other.LockPickTicks;
             Open = other.Open;
+            SeenWhileOpen = other.SeenWhileOpen;
             Health = other.Health;
             RecoveryDeadline = other.RecoveryDeadline;
         }

@@ -16,7 +16,7 @@ namespace DK2.Behavior.Tests;
 /// The journal-equivalence harness of the frame order (Godot migration step 2h): a recorded command stream,
 /// queued frame by frame as an adapter queues its input, goes through the frame driver's tick hand-off and must
 /// come out as the same per-tick input. The recording is the campaign player's Level 1 journal (seed 1, 2,926
-/// ticks, 164 command frames, HashVersion 536); no Unity journal holds a command (see the Presentation fixture).
+/// ticks, 164 command frames, HashVersion 537); no Unity journal holds a command (see the Presentation fixture).
 /// Frames are cut so that some commands wait through a paused, a stopped or a short frame, some arrive before
 /// the frame (a callback between frames), and some frames run two ticks.
 /// </summary>

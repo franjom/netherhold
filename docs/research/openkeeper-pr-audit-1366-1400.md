@@ -86,8 +86,9 @@ nothing is CONFIRMED: a claim read from the instructions is STRONGLY INFERRED.
   marker (`0x450FF0(x, y, 0)`) and rewrites the nav byte, on every tick, already discovered or not.
   Our record had only the guards and the nav write. The simulation had no reveal;
   it is built as `DoorSystem.SeenOpen` (`SecretDoorSeenTests`), with the sight line that only solid
-  tiles stop (the arm passes flags 1 and 1). Not built: the nav-byte rewrite `0x4A66F0(1)`, which
-  in DK2 makes the open door read as shut until it next changes state, and command `0x11`.
+  tiles stop (the arm passes flags 1 and 1). The nav-byte rewrite `0x4A66F0(1)`, which
+  makes the open door read as shut until it next changes state, is `DoorState.SeenWhileOpen`
+  (HashVersion 537). Not built: command `0x11`.
 - **A hidden secret door is not drawn for a non-owner (#1372).** Ghidra, STRONGLY INFERRED for this
   branch. [0x004A6E10] returns 0 for a secret door whose owner is not the local viewer while the
   tile marker is set, with no alliance test (`0x4A6E95..0x4A6ED3`). `src/DK2.Presentation` does not
@@ -181,9 +182,9 @@ No DK2 claim: #1369, #1370, #1373, #1376, #1378, #1382, #1383, #1384, #1387, #13
 - **Payday state 188's turn target** (correction 2). No case for intent: a bearing that depends on
   map position cannot be meant. Effect: the heading and a wait of 0 to 3 ticks before taking pay.
 - **Casino alcove angle** ([0x00456690]): already filed as Q572.
-- **Snore counter**: period 49 where 48 was probably meant. Harmless.
-- **Secret-door reveal** re-posts its command and re-forces the target every tick after discovery.
-  Probably intentional; unproven.
+- **Snore counter** (period 49) and the **secret-door reveal** repeating every tick were both
+  reviewed as candidates and not filed: an ordinary countdown, and idempotent steps.
+- The payday turn target is filed as DK2-050.
 
 ## Owner questions
 
