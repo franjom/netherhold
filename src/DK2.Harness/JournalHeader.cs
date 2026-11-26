@@ -124,7 +124,7 @@ public static class JournalHeader
                 UseShellExecute = false,
             };
             foreach (string arg in args) start.ArgumentList.Add(arg);
-            using Process? git = Process.Start(start);
+            using var git = Process.Start(start);
             if (git is null) return null;
             string output = git.StandardOutput.ReadToEnd().Trim();
             git.StandardError.ReadToEnd();

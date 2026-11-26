@@ -133,18 +133,18 @@ internal sealed class StateModel
     internal StateModel(SourceIndex index)
     {
         _index = index;
-        var compilation = index.Compilation;
+        Compilation compilation = index.Compilation;
         _world = SimRows.Type(compilation, WorldStateType);
         _context = SimRows.Type(compilation, ContextType);
         _tile = SimRows.Type(compilation, TileStateType);
         _firstRoomPosition = Position(_tile.GetMembers(FirstRoomFieldOfTile).Single());
-        var system = SimRows.Type(compilation, SimRows.SystemInterface);
+        INamedTypeSymbol system = SimRows.Type(compilation, SimRows.SystemInterface);
 
         // Roots: WorldState's members in declared order, then SimulationContext's. The walk is breadth first from
         // every root at once, so a type takes the column of its nearest root; ties at that depth are all kept,
         // and the first in root order is its column.
         var roots = new List<(INamedTypeSymbol Type, int Column)>();
-        foreach (var (member, type) in InstanceMembers(_world))
+        foreach ((ISymbol? member, ITypeSymbol? type) in InstanceMembers(_world))
         {
             if (!WorldMembers.TryGetValue(member.Name, out int column))
             {
@@ -153,7 +153,7 @@ internal sealed class StateModel
             }
             roots.AddRange(Components(type).Select(t => (t, column)));
         }
-        foreach (var (member, type) in InstanceMembers(_context))
+        foreach ((ISymbol? member, ITypeSymbol? type) in InstanceMembers(_context))
         {
             if (!ContextMembers.TryGetValue(member.Name, out int column))
             {
@@ -164,11 +164,11 @@ internal sealed class StateModel
             roots.AddRange(Components(type).Select(t => (t, column)));
         }
         var depth = new Dictionary<INamedTypeSymbol, int>(SymbolEqualityComparer.Default);
-        var level = roots;
+        List<(INamedTypeSymbol Type, int Column)> level = roots;
         for (int d = 1; level.Count > 0; d++)
         {
             var next = new List<(INamedTypeSymbol Type, int Column)>();
-            foreach (var (type, reachedColumn) in level)
+            foreach ((INamedTypeSymbol? type, int reachedColumn) in level)
             {
                 if (SymbolEqualityComparer.Default.Equals(type, _world) || SymbolEqualityComparer.Default.Equals(type, _context)) continue;
                 int column = TypeColumns.TryGetValue(type.Name, out int fixedColumn) ? fixedColumn : reachedColumn;
@@ -184,32 +184,32 @@ internal sealed class StateModel
                     _reachedFrom[type] = [column];
                 }
                 if (column == Excluded) continue;
-                foreach (var (_, fieldType) in InstanceMembers(type))
+                foreach ((ISymbol _, ITypeSymbol? fieldType) in InstanceMembers(type))
                     next.AddRange(Components(fieldType).Select(t => (t, column)));
                 next.AddRange(_index.Implementations(type).Select(t => (t, column)));
             }
             level = next;
         }
-        foreach (var (type, from) in _reachedFrom)
+        foreach ((INamedTypeSymbol? type, List<int>? from) in _reachedFrom)
             _typeColumn[type] = from[0];
 
         // Systems, and the source types their instance fields reach that are not state.
-        foreach (var type in index.Types.Where(t => t.TypeKind == TypeKind.Class && t.AllInterfaces.Contains(system, SymbolEqualityComparer.Default)))
+        foreach (INamedTypeSymbol? type in index.Types.Where(t => t.TypeKind == TypeKind.Class && t.AllInterfaces.Contains(system, SymbolEqualityComparer.Default)))
             _systemTypes.Add(type);
         var owned = new Queue<(INamedTypeSymbol, int)>();
-        foreach (var type in _systemTypes)
-            foreach (var (_, fieldType) in InstanceMembers(type))
-                foreach (var reached in Components(fieldType))
+        foreach (INamedTypeSymbol type in _systemTypes)
+            foreach ((ISymbol _, ITypeSymbol? fieldType) in InstanceMembers(type))
+                foreach (INamedTypeSymbol reached in Components(fieldType))
                     owned.Enqueue((reached, 0));
-        while (owned.TryDequeue(out var item))
+        while (owned.TryDequeue(out (INamedTypeSymbol, int) item))
         {
-            var (type, _) = item;
+            (INamedTypeSymbol? type, int _) = item;
             if (_typeColumn.ContainsKey(type) || SymbolEqualityComparer.Default.Equals(type, _world)
                 || SymbolEqualityComparer.Default.Equals(type, _context) || !_systemOwnedTypes.Add(type)) continue;
-            foreach (var (_, fieldType) in InstanceMembers(type))
-                foreach (var reached in Components(fieldType))
+            foreach ((ISymbol _, ITypeSymbol? fieldType) in InstanceMembers(type))
+                foreach (INamedTypeSymbol reached in Components(fieldType))
                     owned.Enqueue((reached, 0));
-            foreach (var derived in _index.Implementations(type))
+            foreach (INamedTypeSymbol derived in _index.Implementations(type))
                 owned.Enqueue((derived, 0));
         }
     }
@@ -242,7 +242,7 @@ internal sealed class StateModel
     /// <param name="writtenStatics">Static fields some method writes: only those are state.</param>
     internal (FieldPlace Place, int Column) Place(ISymbol member, IReadOnlySet<ISymbol> writtenStatics)
     {
-        var owner = member.ContainingType;
+        INamedTypeSymbol owner = member.ContainingType;
         if (member.IsStatic && !writtenStatics.Contains(member)
             && (SymbolEqualityComparer.Default.Equals(owner, _world) || SymbolEqualityComparer.Default.Equals(owner, _context)))
             return (FieldPlace.NotState, 0);
@@ -288,9 +288,9 @@ internal sealed class StateModel
     /// <summary>A type's instance fields and the fields behind its auto-properties, its source base types' included.</summary>
     internal static IEnumerable<(ISymbol Member, ITypeSymbol Type)> InstanceMembers(INamedTypeSymbol type)
     {
-        for (var t = type; t is not null && t.DeclaringSyntaxReferences.Length > 0; t = t.BaseType)
+        for (INamedTypeSymbol? t = type; t is not null && t.DeclaringSyntaxReferences.Length > 0; t = t.BaseType)
         {
-            foreach (var member in t.GetMembers())
+            foreach (ISymbol member in t.GetMembers())
             {
                 if (member.IsStatic) continue;
                 switch (member)
@@ -313,11 +313,11 @@ internal sealed class StateModel
         switch (type)
         {
             case IArrayTypeSymbol array:
-                foreach (var t in Components(array.ElementType)) yield return t;
+                foreach (INamedTypeSymbol t in Components(array.ElementType)) yield return t;
                 break;
             case INamedTypeSymbol named:
-                foreach (var argument in named.TypeArguments)
-                    foreach (var t in Components(argument)) yield return t;
+                foreach (ITypeSymbol argument in named.TypeArguments)
+                    foreach (INamedTypeSymbol t in Components(argument)) yield return t;
                 if (named.TypeKind != TypeKind.Enum && named.TypeKind != TypeKind.Delegate && _index.IsStateSource(named.OriginalDefinition))
                     yield return named.OriginalDefinition;
                 break;

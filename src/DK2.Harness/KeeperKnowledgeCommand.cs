@@ -126,7 +126,7 @@ internal static class KeeperKnowledgeCommand
     /// <paramref name="rim"/>, which must be a wall (<see cref="WalledRim"/>) or open ground as stated.</summary>
     private static Measured MeasureSquare(GameDatabase database, LevelMap map, RoomDef def, int side, byte rim)
     {
-        WorldState world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Append(Keeper).Distinct());
+        var world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Append(Keeper).Distinct());
         // Away from the map's edge, so the square and its rim fit whatever the side.
         int x0 = (world.Width - side) / 2, y0 = (world.Height - side) / 2;
         TerrainFlags wall = TerrainFlags.Solid | TerrainFlags.AllowRoomWalls;

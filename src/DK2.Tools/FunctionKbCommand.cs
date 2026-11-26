@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Diagnostics;
+
 namespace DK2.Tools;
 
 /// <summary>dk2tools kb check|index|apply-names. The gate half of AGENTS.md's knowledge-base rule.</summary>
@@ -49,7 +51,7 @@ static class FunctionKbCommand
     static int ApplyNamesCore(string root, bool dryRun)
     {
         var errors = new List<string>();
-        var records = Load(new Source(root, staged: false), errors);
+        List<FunctionRecord> records = Load(new Source(root, staged: false), errors);
         if (errors.Count > 0) { foreach (string e in errors) Console.Error.WriteLine(e); return 1; }
         string tsv = Path.Combine(root, NamesTsv.Replace('/', Path.DirectorySeparatorChar));
         string output = Path.Combine(root, NamesOut.Replace('/', Path.DirectorySeparatorChar));
@@ -66,7 +68,7 @@ static class FunctionKbCommand
             return 0;
         }
         if (File.Exists(output)) File.Delete(output);
-        using var process = System.Diagnostics.Process.Start(psi) ?? throw new IOException("could not start python");
+        using Process process = System.Diagnostics.Process.Start(psi) ?? throw new IOException("could not start python");
         process.WaitForExit();
         string last = File.Exists(output) ? File.ReadLines(output).LastOrDefault() ?? "" : "";
         Console.WriteLine(last);
@@ -89,7 +91,7 @@ static class FunctionKbCommand
     static int IndexCore(string root)
     {
         var errors = new List<string>();
-        var records = Load(new Source(root, staged: false), errors);
+        List<FunctionRecord> records = Load(new Source(root, staged: false), errors);
         if (errors.Count > 0) { foreach (string e in errors) Console.Error.WriteLine(e); return 1; }
         string path = Path.Combine(root, FunctionKb.Folder.Replace('/', Path.DirectorySeparatorChar), "INDEX.md");
         File.WriteAllText(path, FunctionKb.Index(records), new System.Text.UTF8Encoding(false));
@@ -124,7 +126,7 @@ static class FunctionKbCommand
 
         public string[] Lines(string relative)
         {
-            if (cache.TryGetValue(relative, out var lines)) return lines;
+            if (cache.TryGetValue(relative, out string[]? lines)) return lines;
             return cache[relative] = dirty is not null && dirty.Contains(relative) ? Repo.GitLines(root, $":{relative}")
                 : File.Exists(Full(relative)) ? File.ReadAllLines(Full(relative))
                 : [];
@@ -168,7 +170,7 @@ static class FunctionKbCommand
         var findings = new List<string>();
         var source = new Source(root, staged);
 
-        var records = Load(source, findings);
+        List<FunctionRecord> records = Load(source, findings);
         if (staged && source.TrackedCount == 0)
         {
             string dir = source.Full(FunctionKb.Folder);
@@ -198,13 +200,13 @@ static class FunctionKbCommand
                 HashSet<int> added = Repo.AddedLineNumbers(root, baseRef, relative, staged);
                 changes.Add((relative, added.Where(n => n >= 1 && n <= lines.Length).Select(n => lines[n - 1]).ToArray()));
 
-                var now = records.FirstOrDefault(r => r.RelativePath == relative);
+                FunctionRecord? now = records.FirstOrDefault(r => r.RelativePath == relative);
                 if (now is null) continue;
                 // A record new in this change has no base blob; RunGit swallows git's error and GitLines yields [].
                 string[] baseLines = Repo.GitLines(root, $"{baseRef}:{relative}");
-                var before = baseLines.Length == 0 ? null : FunctionKb.Parse(relative, baseLines, []);
+                FunctionRecord? before = baseLines.Length == 0 ? null : FunctionKb.Parse(relative, baseLines, []);
                 string[] mergedLines = merging ? Repo.GitLines(root, $"MERGE_HEAD:{relative}") : [];
-                var merged = mergedLines.Length == 0 ? null : FunctionKb.Parse(relative, mergedLines, []);
+                FunctionRecord? merged = mergedLines.Length == 0 ? null : FunctionKb.Parse(relative, mergedLines, []);
                 IReadOnlyCollection<DateOnly> days = staged ? [today] : [today, .. Repo.CommitDays(root, baseRef, relative)];
                 findings.AddRange(FunctionKb.HistoryRequired(now, before, days, merged));
                 if (FunctionKb.StatusMismatch(now, before, merged) is { } mismatch) findings.Add(mismatch);
@@ -235,12 +237,12 @@ static class FunctionKbCommand
     static IEnumerable<string> CitersNote(string root, Source source, List<string> addresses, HashSet<string> changed)
     {
         if (addresses.Count == 0) yield break;
-        var files = Repo.AllTrackedFiles(root)
+        IEnumerable<(string f, string)> files = Repo.AllTrackedFiles(root)
             .Where(f => (f.StartsWith("src/", StringComparison.Ordinal) || f.StartsWith("docs/", StringComparison.Ordinal)
                 || f.StartsWith("tests/", StringComparison.Ordinal)) && (f.EndsWith(".cs", StringComparison.Ordinal) || f.EndsWith(".md", StringComparison.Ordinal)))
             .Select(f => (f, string.Join("\n", source.Lines(f))));
         bool first = true;
-        foreach (var (address, citers) in FunctionKb.UntouchedCiters(addresses, files, changed))
+        foreach ((string? address, IReadOnlyList<string>? citers) in FunctionKb.UntouchedCiters(addresses, files, changed))
         {
             if (first) yield return "note: these records gained a reading; files that cite them and are not in this change may still state the old one:";
             first = false;

@@ -234,7 +234,7 @@ public sealed class ScenarioRunner
         // A run that used a number the game's own files do not contain has to
         // say which, every time. There is exactly one (ADR-0023), and this
         // enumerates rather than naming it so a second would report itself.
-        List<string> corrected = Enum.GetValues<TileWorkKind>()
+        var corrected = Enum.GetValues<TileWorkKind>()
             .Select(TileWorkRules.Variable)
             .Where(v => ObservedCorrections.IsCorrected(_database, v))
             .Select(v => $"{v} (shipped {_database[v]}, " +
@@ -260,7 +260,7 @@ public sealed class ScenarioRunner
         if (campaignLevel is not null && _installDir is not null)
             playerIds = ActivationOrder(playerIds, GameDatabaseLoader.LoadCampaignPlayers(_installDir, campaignLevel));
 
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             _database, map, playerIds, fogOfWarEnabled: scenario.FogOfWar);
 
         // The level's own contents before the scenario's, so a scenario that
@@ -445,7 +445,7 @@ public sealed class ScenarioRunner
 
         // Draw the finished world through the presentation boundary. Runs with
         // no assets installed, which is every run: see the summary line.
-        AssetProviderChain assets = AssetProviderChain.Standard(
+        var assets = AssetProviderChain.Standard(
             replacementRoot: null, convertedRoot: ConvertedAssetRoot);
         var renderer = new TextRenderer(new WorldView(_database, scenario.ViewingPlayer), assets);
         string picture = renderer.Render(world);
@@ -545,7 +545,7 @@ public sealed class ScenarioRunner
     public static IReadOnlyList<byte> ActivationOrder(IEnumerable<byte> playerIds, IReadOnlyList<PlayerDef>? records)
     {
         if (records is null) return playerIds.ToList();
-        List<byte> recordOrder = records.Select(p => p.PlayerId).ToList();
+        var recordOrder = records.Select(p => p.PlayerId).ToList();
         return playerIds.OrderBy(id => recordOrder.IndexOf(id)).ToList();
     }
 

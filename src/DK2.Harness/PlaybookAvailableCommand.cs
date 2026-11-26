@@ -48,7 +48,7 @@ public static class PlaybookAvailableCommand
     {
         try
         {
-            Scenario scenario = Scenario.Load(scenarioPath);
+            var scenario = Scenario.Load(scenarioPath);
             Available available = Generate(new ScenarioRunner(GameDatabaseLoader.Load(install), install), GameDatabaseLoader.Load(install), install, scenario, player);
             string section = Yaml(available);
             if (output is null) { log.Write(section); return 0; }

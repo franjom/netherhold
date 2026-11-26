@@ -58,7 +58,7 @@ public static class KeeperKnowledgeFile
         if (map is null) return null;
         GameDatabase database = GameDatabaseLoader.Load(installDirectory)
             .ForLevel(GameDatabaseLoader.LoadCampaignVariables(installDirectory, level), GameDatabaseLoader.LoadCampaignLevel(installDirectory, level));
-        WorldState world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Append(player.Value).Distinct());
+        var world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Append(player.Value).Distinct());
         return database.Variables.Research
             .Where(e => ResearchTreeRules.AvailabilityKindOf(e.Kind) != AvailabilityKind.None && ResearchTreeRules.IsResearchable(world, player, e))
             .Select(e => (e.Kind, e.TypeId)).Distinct().Count();

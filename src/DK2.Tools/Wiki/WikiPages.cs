@@ -58,12 +58,12 @@ public static partial class WikiPages
         var rows = new List<QuestionRow>();
         foreach (string line in lines)
         {
-            var m = QuestionRx().Match(line);
+            Match m = QuestionRx().Match(line);
             if (!m.Success) continue;
             string[] cells = line.Split('|');
             string question = cells.Length > 2 ? cells[2].Trim() : "";
-            var state = StateRx().Match(cells.Length > 3 ? cells[3] : "");
-            var cited = NoteRx().Matches(line).Select(n => n.Groups[1].Value).Where(noteNames.Contains)
+            Match state = StateRx().Match(cells.Length > 3 ? cells[3] : "");
+            string[] cited = NoteRx().Matches(line).Select(n => n.Groups[1].Value).Where(noteNames.Contains)
                 .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
             rows.Add(new QuestionRow(m.Groups[1].Value, question,
                 state.Success ? state.Groups[1].Value : "", cited));
@@ -84,9 +84,9 @@ public static partial class WikiPages
             foreach (string s in systems(item))
             {
                 any = true;
-                (groups.TryGetValue(s, out var list) ? list : groups[s] = []).Add(item);
+                (groups.TryGetValue(s, out List<T>? list) ? list : groups[s] = []).Add(item);
             }
-            if (!any) (groups.TryGetValue(Unassigned, out var list) ? list : groups[Unassigned] = []).Add(item);
+            if (!any) (groups.TryGetValue(Unassigned, out List<T>? list) ? list : groups[Unassigned] = []).Add(item);
         }
         return groups;
     }
@@ -120,12 +120,12 @@ public static partial class WikiPages
 
     public static string DecisionsBySystem(WikiInputs inputs)
     {
-        var noteSystems = NoteSystems(inputs);
+        Dictionary<string, IReadOnlyList<string>> noteSystems = NoteSystems(inputs);
         var byNumber = inputs.Adrs.GroupBy(a => a.Number).ToDictionary(g => g.Key, g => g.First());
-        var groups = Group(inputs.Adrs, a => AdrIndex.Systems(a, noteSystems, inputs.Catalog));
-        var sb = Header("Decisions by System", $"[`{AdrIndex.RelativePath}`]({Blob}{AdrIndex.RelativePath})");
+        Dictionary<string, List<Adr>> groups = Group(inputs.Adrs, a => AdrIndex.Systems(a, noteSystems, inputs.Catalog));
+        StringBuilder sb = Header("Decisions by System", $"[`{AdrIndex.RelativePath}`]({Blob}{AdrIndex.RelativePath})");
         sb.Append(N(inputs.Adrs.Count)).Append(" ADRs. One that spans several systems is listed under each.\n\n");
-        Contents(sb, inputs, id => groups.TryGetValue(id, out var l) ? l.Count : 0, groups.ContainsKey(Unassigned));
+        Contents(sb, inputs, id => groups.TryGetValue(id, out List<Adr>? l) ? l.Count : 0, groups.ContainsKey(Unassigned));
 
         void Table(List<Adr> adrs)
         {
@@ -134,7 +134,7 @@ public static partial class WikiPages
             {
                 string status = a.Status.Length > 0 ? a.Status : "?";
                 if (a.SupersededBy is int by)
-                    status += byNumber.TryGetValue(by, out var next) ? $" by {AdrLink(next)}" : $" by {by:D4}";
+                    status += byNumber.TryGetValue(by, out Adr? next) ? $" by {AdrLink(next)}" : $" by {by:D4}";
                 sb.Append("| ").Append(AdrLink(a)).Append(" | ").Append(Cell(a.Title)).Append(" | ").Append(status).Append(" |\n");
             }
             sb.Append('\n');
@@ -143,16 +143,16 @@ public static partial class WikiPages
         foreach (SystemEntry s in inputs.Catalog.Systems)
         {
             SystemHeading(sb, s);
-            if (groups.TryGetValue(s.Id, out var adrs)) Table(adrs);
+            if (groups.TryGetValue(s.Id, out List<Adr>? adrs)) Table(adrs);
             else sb.Append("No ADR yet.\n\n");
         }
-        if (groups.TryGetValue(Unassigned, out var rest))
+        if (groups.TryGetValue(Unassigned, out List<Adr>? rest))
         {
             sb.Append("## ").Append(Unassigned).Append("\n\nNo system: they cite no tagged note and carry no **Systems:** field.\n\n");
             Table(rest);
         }
 
-        var gaps = AdrIndex.Gaps(inputs.Adrs).ToArray();
+        int[] gaps = AdrIndex.Gaps(inputs.Adrs).ToArray();
         sb.Append("## Numbers not used\n\n");
         sb.Append(gaps.Length == 0 ? "None." : string.Join(", ", gaps.Select(g => g.ToString("D4", CultureInfo.InvariantCulture))) + ".");
         sb.Append(" These numbers were never given to an ADR.\n");
@@ -161,10 +161,10 @@ public static partial class WikiPages
 
     public static string ResearchBySystem(WikiInputs inputs)
     {
-        var groups = Group(inputs.Notes, n => n.Systems);
-        var sb = Header("Research by System", $"the front matter of [`{ResearchNotes.Folder}/`]({Blob.Replace("/blob/", "/tree/")}{ResearchNotes.Folder})");
+        Dictionary<string, List<ResearchNote>> groups = Group(inputs.Notes, n => n.Systems);
+        StringBuilder sb = Header("Research by System", $"the front matter of [`{ResearchNotes.Folder}/`]({Blob.Replace("/blob/", "/tree/")}{ResearchNotes.Folder})");
         sb.Append(N(inputs.Notes.Count)).Append(" research notes. A note that spans several systems is listed under each.\n\n");
-        Contents(sb, inputs, id => groups.TryGetValue(id, out var l) ? l.Count : 0, groups.ContainsKey(Unassigned));
+        Contents(sb, inputs, id => groups.TryGetValue(id, out List<ResearchNote>? l) ? l.Count : 0, groups.ContainsKey(Unassigned));
 
         void Table(List<ResearchNote> notes)
         {
@@ -177,10 +177,10 @@ public static partial class WikiPages
         foreach (SystemEntry s in inputs.Catalog.Systems)
         {
             SystemHeading(sb, s);
-            if (groups.TryGetValue(s.Id, out var notes)) Table(notes);
+            if (groups.TryGetValue(s.Id, out List<ResearchNote>? notes)) Table(notes);
             else sb.Append("No research note yet.\n\n");
         }
-        if (groups.TryGetValue(Unassigned, out var rest))
+        if (groups.TryGetValue(Unassigned, out List<ResearchNote>? rest))
         {
             sb.Append("## ").Append(Unassigned).Append("\n\n");
             Table(rest);
@@ -190,16 +190,16 @@ public static partial class WikiPages
 
     public static string OpenQuestions(WikiInputs inputs)
     {
-        var noteSystems = NoteSystems(inputs);
-        var open = inputs.Questions.Where(q => q.IsOpen).ToArray();
-        var groups = Group(open, q => q.CitedNotes.SelectMany(n => noteSystems.TryGetValue(n, out var s) ? s : [])
+        Dictionary<string, IReadOnlyList<string>> noteSystems = NoteSystems(inputs);
+        QuestionRow[] open = inputs.Questions.Where(q => q.IsOpen).ToArray();
+        Dictionary<string, List<QuestionRow>> groups = Group(open, q => q.CitedNotes.SelectMany(n => noteSystems.TryGetValue(n, out IReadOnlyList<string>? s) ? s : [])
             .Distinct(StringComparer.Ordinal));
         string file = $"{ResearchNotes.Folder}/{ResearchNotes.OpenQuestions}.md";
-        var sb = Header("Open Questions", $"[`{file}`]({Blob}{file})");
+        StringBuilder sb = Header("Open Questions", $"[`{file}`]({Blob}{file})");
         sb.Append(N(open.Length)).Append(" of ").Append(N(inputs.Questions.Count))
           .Append(" questions are open: their state is not one that closes a question (ANSWERED, BUILT, CLOSED, STRONGLY INFERRED and the like). ")
           .Append("A question takes the systems of the notes its row cites; one citing none is unassigned.\n\n");
-        Contents(sb, inputs, id => groups.TryGetValue(id, out var l) ? l.Count : 0, groups.ContainsKey(Unassigned));
+        Contents(sb, inputs, id => groups.TryGetValue(id, out List<QuestionRow>? l) ? l.Count : 0, groups.ContainsKey(Unassigned));
 
         void Table(List<QuestionRow> rows)
         {
@@ -212,10 +212,10 @@ public static partial class WikiPages
         foreach (SystemEntry s in inputs.Catalog.Systems)
         {
             SystemHeading(sb, s);
-            if (groups.TryGetValue(s.Id, out var rows)) Table(rows);
+            if (groups.TryGetValue(s.Id, out List<QuestionRow>? rows)) Table(rows);
             else sb.Append("No open question.\n\n");
         }
-        if (groups.TryGetValue(Unassigned, out var rest))
+        if (groups.TryGetValue(Unassigned, out List<QuestionRow>? rest))
         {
             sb.Append("## ").Append(Unassigned).Append("\n\n");
             Table(rest);
@@ -230,22 +230,22 @@ public static partial class WikiPages
         => r.Evidence
             .Select(e => ResearchNotes.NoteName(e.Split('#')[0]))
             .Where(n => n is not null)
-            .SelectMany(n => noteSystems.TryGetValue(n!, out var s) ? s : [])
+            .SelectMany(n => noteSystems.TryGetValue(n!, out IReadOnlyList<string>? s) ? s : [])
             .Distinct(StringComparer.Ordinal);
 
     public static string StatusMatrix(WikiInputs inputs)
     {
-        var noteSystems = NoteSystems(inputs);
-        var notes = Group(inputs.Notes, n => n.Systems);
-        var adrs = Group(inputs.Adrs, a => AdrIndex.Systems(a, noteSystems, inputs.Catalog));
-        var questions = Group(inputs.Questions.Where(q => q.IsOpen),
-            q => q.CitedNotes.SelectMany(n => noteSystems.TryGetValue(n, out var s) ? s : []).Distinct(StringComparer.Ordinal));
-        var records = Group(inputs.Records.Where(r => r.Status != "SUPERSEDED"), r => RecordSystems(r, noteSystems));
+        Dictionary<string, IReadOnlyList<string>> noteSystems = NoteSystems(inputs);
+        Dictionary<string, List<ResearchNote>> notes = Group(inputs.Notes, n => n.Systems);
+        Dictionary<string, List<Adr>> adrs = Group(inputs.Adrs, a => AdrIndex.Systems(a, noteSystems, inputs.Catalog));
+        Dictionary<string, List<QuestionRow>> questions = Group(inputs.Questions.Where(q => q.IsOpen),
+            q => q.CitedNotes.SelectMany(n => noteSystems.TryGetValue(n, out IReadOnlyList<string>? s) ? s : []).Distinct(StringComparer.Ordinal));
+        Dictionary<string, List<FunctionRecord>> records = Group(inputs.Records.Where(r => r.Status != "SUPERSEDED"), r => RecordSystems(r, noteSystems));
 
         int Count<T>(Dictionary<string, List<T>> g, string id, Func<T, bool>? where = null)
-            => g.TryGetValue(id, out var l) ? (where is null ? l.Count : l.Count(where)) : 0;
+            => g.TryGetValue(id, out global::System.Collections.Generic.List<T>? l) ? (where is null ? l.Count : l.Count(where)) : 0;
 
-        var sb = Header("Status Matrix", "the research notes, `docs/DECISIONS.md`, `open-questions.md` and the function records");
+        StringBuilder sb = Header("Status Matrix", "the research notes, `docs/DECISIONS.md`, `open-questions.md` and the function records");
         sb.Append("Per system: research notes; ADRs in force (accepted or amended), how many of them our code cites, ")
           .Append("superseded or withdrawn, and proposed; open questions; and DKII.EXE function records whose evidence links into ")
           .Append("the system's notes, with how many our code mirrors whole (BUILT) and in part (PARTIAL).\n\n");
@@ -273,10 +273,10 @@ public static partial class WikiPages
 
     public static string KbCoverage(WikiInputs inputs)
     {
-        var noteSystems = NoteSystems(inputs);
+        Dictionary<string, IReadOnlyList<string>> noteSystems = NoteSystems(inputs);
         string[] confidences = FunctionKb.Confidences;
         string[] statuses = FunctionKb.Statuses;
-        var sb = Header("KB Coverage", $"the function records in [`{FunctionKb.Folder}/`]({Blob.Replace("/blob/", "/tree/")}{FunctionKb.Folder})");
+        StringBuilder sb = Header("KB Coverage", $"the function records in [`{FunctionKb.Folder}/`]({Blob.Replace("/blob/", "/tree/")}{FunctionKb.Folder})");
         sb.Append(N(inputs.Records.Count)).Append(" records. Confidence is the one scale of ADR-0642: CONFIRMED needs the running game, ")
           .Append("a binary read alone is STRONGLY INFERRED. READ means read in DKII.EXE, PARTIAL that our code mirrors part of it, BUILT all of it (ADR-0660).\n\n");
 
@@ -293,15 +293,15 @@ public static partial class WikiPages
         foreach (string st in statuses) sb.Append(" | ").Append(N(inputs.Records.Count(r => r.Status == st)));
         sb.Append(" | ").Append(N(inputs.Records.Count)).Append(" |\n\n");
 
-        var groups = Group(inputs.Records, r => RecordSystems(r, noteSystems));
+        Dictionary<string, List<FunctionRecord>> groups = Group(inputs.Records, r => RecordSystems(r, noteSystems));
         sb.Append("## By system\n\nA record counts under each system its evidence links into.\n\n| System | ")
           .Append(string.Join(" | ", confidences)).Append(" | Total |\n|---|")
           .Append(string.Concat(Enumerable.Repeat("---:|", confidences.Length + 1))).Append('\n');
         var rows = inputs.Catalog.Systems.Select(s => (s.Id, s.Title)).ToList();
         if (groups.ContainsKey(Unassigned)) rows.Add((Unassigned, Unassigned));
-        foreach (var (id, title) in rows)
+        foreach ((string? id, string? title) in rows)
         {
-            var list = groups.TryGetValue(id, out var l) ? l : [];
+            List<FunctionRecord> list = groups.TryGetValue(id, out List<FunctionRecord>? l) ? l : [];
             sb.Append("| ").Append(title);
             foreach (string c in confidences) sb.Append(" | ").Append(N(list.Count(r => r.Confidence == c)));
             sb.Append(" | ").Append(N(list.Count)).Append(" |\n");

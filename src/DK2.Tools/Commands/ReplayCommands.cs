@@ -45,7 +45,7 @@ internal static class ReplayCommands
         }
 
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, levelName);
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, map, players.Select(p => p.PlayerId).ToArray());
         // The parties come from THINGS, not TRIGGERS, and without them twenty-four of the
         // world's twenty-five roots are empty and most of a level's script never runs.
@@ -76,7 +76,7 @@ internal static class ReplayCommands
         // A replay's tags are worth nothing if they never land, and a wrong reading of the
         // task pool looks exactly like a level nobody dug: counting what TileTagSystem
         // accepted turns that silent failure into a number.
-        using var eventWriter = eventPath is null ? null : new StreamWriter(eventPath);
+        using StreamWriter? eventWriter = eventPath is null ? null : new StreamWriter(eventPath);
         eventWriter?.WriteLine("turn\tsystem\tkind\tdetail");
         var tally = new TagTally(eventWriter);
         if (log is not null || rooms is not null || packet is not null) simulation.ObserveWith(tally);
@@ -92,19 +92,19 @@ internal static class ReplayCommands
                 ? [.. log.Watched.OrderBy(t => t.Y).ThenBy(t => t.X)]
                 : [.. Enumerable.Range(0, world.Height)
                     .SelectMany(y => Enumerable.Range(0, world.Width).Select(x => new TilePos(x, y)))];
-        using var tileWriter = tilePath is null ? null : new StreamWriter(tilePath);
+        using StreamWriter? tileWriter = tilePath is null ? null : new StreamWriter(tilePath);
         // --seeds: DK2's generator state after each tick, to count our draws against a capture's.
-        using var seedWriter = seedPath is null ? null : new StreamWriter(seedPath);
+        using StreamWriter? seedWriter = seedPath is null ? null : new StreamWriter(seedPath);
         seedWriter?.WriteLine("tick,seed");
         tileWriter?.WriteLine("tick,x,y,terrain,health,owner,tagged");
         var seen = new Dictionary<TilePos, (byte Terrain, int Health, byte Owner, ushort Tagged)>();
-        using var creatureWriter = creaturePath is null ? null : new StreamWriter(creaturePath);
+        using StreamWriter? creatureWriter = creaturePath is null ? null : new StreamWriter(creaturePath);
         creatureWriter?.WriteLine("tick,id,type,owner,x,y,health,state,target");
         var seenCreatures = new Dictionary<int,
             (byte Type, byte Owner, TilePos Tile, int Health, int State, int Target)>();
         // --jobs: each creature's state, resume state and task as a worker's choice leaves them,
         // a row on change, for comparing Imp choices after a resync with the capture's.
-        using var jobWriter = jobPath is null ? null : new StreamWriter(jobPath);
+        using StreamWriter? jobWriter = jobPath is null ? null : new StreamWriter(jobPath);
         jobWriter?.WriteLine("tick,id,state,resume,task,work,lastkind,lasttask,gold");
         var seenJobs = new Dictionary<int, (int State, int Resume, int Task, TileWorkKind Work, ImpTaskKind Last, int LastTile, int Gold)>();
 
@@ -130,7 +130,7 @@ internal static class ReplayCommands
                 foreach (TilePos at in watched)
                 {
                     ref TileState tile = ref world.Tile(at);
-                    var now = (tile.TerrainId, tile.Health, tile.OwnerPlayerId, tile.TaggedBy.Bits);
+                    (byte TerrainId, int Health, byte OwnerPlayerId, ushort Bits) now = (tile.TerrainId, tile.Health, tile.OwnerPlayerId, tile.TaggedBy.Bits);
                     if (seen.TryGetValue(at, out (byte, int, byte, ushort) was) && was == now) continue;
                     seen[at] = now;
                     tileWriter?.WriteLine(
@@ -140,10 +140,10 @@ internal static class ReplayCommands
                 if (creatureWriter is not null)
                     foreach (CreatureState creature in world.Creatures)
                     {
-                        var now = (creature.CreatureTypeId, creature.OwnerPlayerId,
+                        (byte CreatureTypeId, byte OwnerPlayerId, TilePos Tile, int Health, int Dk2StateId, int FightTargetId) now = (creature.CreatureTypeId, creature.OwnerPlayerId,
                             creature.Tile, creature.Health, creature.Dk2StateId,
                             creature.FightTargetId);
-                        if (seenCreatures.TryGetValue(creature.Id, out var was) && was == now)
+                        if (seenCreatures.TryGetValue(creature.Id, out (byte Type, byte Owner, TilePos Tile, int Health, int State, int Target) was) && was == now)
                             continue;
                         seenCreatures[creature.Id] = now;
                         creatureWriter.WriteLine($"{turn},{creature.Id},{now.CreatureTypeId},"
@@ -154,9 +154,9 @@ internal static class ReplayCommands
                 if (jobWriter is not null)
                     foreach (CreatureState creature in world.Creatures)
                     {
-                        var now = (creature.Dk2StateId, creature.UtilityNewState, creature.TargetTileIndex,
+                        (int Dk2StateId, int UtilityNewState, int TargetTileIndex, TileWorkKind TargetWork, ImpTaskKind LastTaskKind, int LastTaskTileIndex, int GoldHeld) now = (creature.Dk2StateId, creature.UtilityNewState, creature.TargetTileIndex,
                             creature.TargetWork, creature.LastTaskKind, creature.LastTaskTileIndex, creature.GoldHeld);
-                        if (seenJobs.TryGetValue(creature.Id, out var was) && was == now) continue;
+                        if (seenJobs.TryGetValue(creature.Id, out (int State, int Resume, int Task, TileWorkKind Work, ImpTaskKind Last, int LastTile, int Gold) was) && was == now) continue;
                         seenJobs[creature.Id] = now;
                         jobWriter.WriteLine($"{turn},{creature.Id},{now.Dk2StateId},{now.UtilityNewState},"
                             + $"{now.TargetTileIndex},{now.TargetWork},{now.LastTaskKind},{now.LastTaskTileIndex},{now.GoldHeld}");
@@ -602,7 +602,7 @@ internal static class ReplayCommands
             return 2;
         }
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, levelName);
-        WorldState world = WorldState.FromMap(database, map, players.Select(p => p.PlayerId).ToArray());
+        var world = WorldState.FromMap(database, map, players.Select(p => p.PlayerId).ToArray());
         try
         {
             return DecisionCheck.Run(database, world, inPath, outPath);

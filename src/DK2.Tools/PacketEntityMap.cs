@@ -80,7 +80,7 @@ public sealed class PacketEntityMap
     {
         var map = new PacketEntityMap();
         if (path is null) return map;
-        using var reader = File.OpenText(path);
+        using StreamReader reader = File.OpenText(path);
         if (reader.ReadLine() != "original,from_turn,ours,kind")
             throw new InvalidDataException($"{path}: expected original,from_turn,ours,kind header.");
         string? line;

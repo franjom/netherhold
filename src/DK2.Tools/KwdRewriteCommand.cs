@@ -13,8 +13,8 @@ public static class KwdRewriteCommand
         if(args.Length!=2) { stderr.WriteLine("usage: dk2tools kwd rewrite <file|dir> <outdir>"); return 2; }
         try
         {
-            var result=KwdRewriteAudit.Run(args[0],args[1]);
-            foreach(var file in result.Files) stdout.WriteLine(Format(file));
+            KwdRewriteAudit.Result result =KwdRewriteAudit.Run(args[0],args[1]);
+            foreach(KwdRewriteAudit.FileResult file in result.Files) stdout.WriteLine(Format(file));
             int different=result.Files.Count(f=>f.Difference is not null);
             stdout.WriteLine($"{result.Files.Count} files; {result.Files.Sum(f=>f.Chunks)} chunks; " +
                 $"{result.Files.Sum(f=>f.Records)} records; {different} different");

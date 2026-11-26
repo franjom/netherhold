@@ -208,7 +208,7 @@ internal static class StatusCommand
         string output;
         try
         {
-            using Process? process = Process.Start(psi);
+            using var process = Process.Start(psi);
             if (process is null)
             {
                 problems.Add("could not start dotnet for test discovery");

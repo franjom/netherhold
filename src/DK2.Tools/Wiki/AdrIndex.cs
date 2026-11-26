@@ -41,7 +41,7 @@ public static partial class AdrIndex
         var starts = new List<(int Index, int Number, string Heading, string Tail)>();
         for (int i = 0; i < lines.Count; i++)
         {
-            var m = HeadingRx().Match(lines[i]);
+            Match m = HeadingRx().Match(lines[i]);
             if (!m.Success || AmendmentRx().IsMatch(m.Groups[2].Value)) continue;
             starts.Add((i, int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture),
                 lines[i].TrimStart('#').Trim(), m.Groups[2].Value));
@@ -50,7 +50,7 @@ public static partial class AdrIndex
         var adrs = new List<Adr>(starts.Count);
         for (int k = 0; k < starts.Count; k++)
         {
-            var (from, number, heading, rest) = starts[k];
+            (int from, int number, string? heading, string? rest) = starts[k];
             int to = k + 1 < starts.Count ? starts[k + 1].Index : lines.Count;
             // A trailing non-ADR section (the file's own closing headings) is not the last ADR's.
             for (int j = from + 1; j < to; j++)
@@ -64,9 +64,9 @@ public static partial class AdrIndex
             }
             string headerText = string.Join("\n", header);
 
-            var status = StatusRx().Match(headerText);
-            var superseded = SupersededRx().Match(headerText);
-            var systems = SystemsRx().Match(headerText);
+            Match status = StatusRx().Match(headerText);
+            Match superseded = SupersededRx().Match(headerText);
+            Match systems = SystemsRx().Match(headerText);
             var cited = new SortedSet<string>(StringComparer.Ordinal);
             for (int j = from; j < to; j++)
                 foreach (Match note in NoteRx().Matches(lines[j]))
@@ -107,7 +107,7 @@ public static partial class AdrIndex
         SystemCatalog catalog)
     {
         IEnumerable<string> ids = adr.ExplicitSystems
-            ?? adr.CitedNotes.SelectMany(n => noteSystems.TryGetValue(n, out var s) ? s : []);
+            ?? adr.CitedNotes.SelectMany(n => noteSystems.TryGetValue(n, out IReadOnlyList<string>? s) ? s : []);
         return ids.Distinct(StringComparer.Ordinal)
             .OrderBy(catalog.OrderOf).ThenBy(s => s, StringComparer.Ordinal)
             .ToArray();

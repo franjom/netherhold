@@ -163,9 +163,9 @@ internal sealed class RunMonitor(
     private void Sample(WorldState world, int done)
     {
         // One pass over tiles and creatures for all players, indexed by player id.
-        var owned = new int[256];
-        var roomTiles = new int[256];
-        var creatures = new int[256];
+        int[] owned = new int[256];
+        int[] roomTiles = new int[256];
+        int[] creatures = new int[256];
         for (int i = 0; i < world.TileCount; i++)
         {
             TileState tile = world.TileAtIndex(i);
@@ -189,7 +189,7 @@ internal sealed class RunMonitor(
     private void JudgeStall(ProgressSample sample)
     {
         if (!options.Controllers.Any(c => c.PlayerId.Value == sample.Player) || _flagged.Contains(sample.Player)) return;
-        if (!_still.TryGetValue(sample.Player, out var still) || Moved(still.Sample, sample))
+        if (!_still.TryGetValue(sample.Player, out (int Since, ProgressSample Sample) still) || Moved(still.Sample, sample))
         {
             _still[sample.Player] = (sample.Tick, sample);
             return;

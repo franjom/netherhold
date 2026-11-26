@@ -48,7 +48,7 @@ internal sealed class SimCompilation
     internal static SimCompilation Load(string root)
     {
         var options = new CSharpParseOptions(LanguageVersion.Preview, DocumentationMode.None);
-        var files = Projects
+        (string project, string path)[] files = Projects
             .SelectMany(project => Directory.EnumerateFiles(Path.Combine(root, project), "*.cs", SearchOption.AllDirectories)
                 .Where(path => !IsBuildOutput(Path.GetRelativePath(root, path)))
                 .Select(path => (project, path)))
@@ -71,14 +71,14 @@ internal sealed class SimCompilation
     internal static SimCompilation FromText(params string[] sources)
     {
         var options = new CSharpParseOptions(LanguageVersion.Preview, DocumentationMode.None);
-        var trees = sources.Select((text, i) => CSharpSyntaxTree.ParseText(text, options, $"Source{i}.cs")).ToArray();
+        SyntaxTree[] trees = sources.Select((text, i) => CSharpSyntaxTree.ParseText(text, options, $"Source{i}.cs")).ToArray();
         return Create(trees, new HashSet<SyntaxTree>(), trees.Length);
     }
 
     private static SimCompilation Create(SyntaxTree[] trees, IReadOnlySet<SyntaxTree> definitions, int files)
     {
         var options = (CSharpParseOptions)trees[0].Options;
-        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
+        IEnumerable<PortableExecutableReference> references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Where(path => Path.GetFileName(path) is var name && (name.StartsWith("System.", StringComparison.Ordinal)
                 || name is "mscorlib.dll" or "netstandard.dll"))
@@ -93,7 +93,7 @@ internal sealed class SimCompilation
                 allowUnsafe: true,
                 concurrentBuild: true));
 
-        var errors = compilation.GetDiagnostics()
+        Diagnostic[] errors = compilation.GetDiagnostics()
             .Where(d => d.Severity == DiagnosticSeverity.Error)
             .ToArray();
         if (errors.Length > 0)
@@ -105,7 +105,7 @@ internal sealed class SimCompilation
 
     private static bool IsBuildOutput(string relative)
     {
-        var parts = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string[] parts = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         return parts.Contains("obj") || parts.Contains("bin");
     }
 }

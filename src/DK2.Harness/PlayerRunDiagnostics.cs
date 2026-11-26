@@ -4,6 +4,7 @@
 
 using System.Globalization;
 using System.Text;
+using DK2.AI.Players;
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Presentation;
@@ -206,7 +207,7 @@ public sealed class PlayerRunDiagnostics
     /// <paramref name="directory"/>. Thoughts are written when a routine's verdict changes; beliefs when a value does.</summary>
     public void Write(string directory, IReadOnlyList<PlayerDecisionRecord> decisions)
     {
-        var inv = CultureInfo.InvariantCulture;
+        CultureInfo inv = CultureInfo.InvariantCulture;
         var metrics = new StringBuilder("tick\tgold\tmana\tfighters\timps\thungry\tunhappy\tangry\tlair_beds\tlair_used\thatchery_tiles\tchickens\t" +
             "treasury_tiles\twage_bill\tticks_to_payday\tenemy_creatures\tenemy_traps\town_traps\tlosses\tkills\n");
         foreach (PlayerMetricSample s in _samples)
@@ -230,14 +231,14 @@ public sealed class PlayerRunDiagnostics
         var lastValue = new Dictionary<string, long>(StringComparer.Ordinal);
         foreach (PlayerDecisionRecord d in decisions)
         {
-            foreach (var t in d.Thoughts)
+            foreach (PlayerThought t in d.Thoughts)
             {
                 // An action is always written; a verdict of doing nothing only when it changes.
-                if (!t.Acted && lastNote.TryGetValue(t.Routine, out var was) && !was.Acted && was.Note == t.Note) continue;
+                if (!t.Acted && lastNote.TryGetValue(t.Routine, out (bool Acted, string Note) was) && !was.Acted && was.Note == t.Note) continue;
                 lastNote[t.Routine] = (t.Acted, t.Note);
                 thinking.Append(inv, $"{d.Tick.Value}\t{t.Routine}\t{(t.Acted ? 1 : 0)}\t{Tsv(t.Note)}\n");
             }
-            foreach (var b in d.Beliefs)
+            foreach (PlayerBelief b in d.Beliefs)
             {
                 if (lastValue.TryGetValue(b.Name, out long before) && before == b.Value) continue;
                 lastValue[b.Name] = b.Value;
@@ -271,7 +272,7 @@ public sealed class PlayerRunDiagnostics
             legend.Append(CultureInfo.InvariantCulture, $"{c} {(_database.Rooms.TryGetValue(room, out RoomDef? def) ? def.Name : $"room-{(int)room}")}\n");
             return c;
         }
-        var rows = new char[grid.Height][];
+        char[][] rows = new char[grid.Height][];
         for (int y = 0; y < grid.Height; y++)
         {
             rows[y] = new char[grid.Width];
@@ -323,7 +324,7 @@ public sealed class PlayerRunDiagnostics
         }
         var routines = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (PlayerDecisionRecord d in decisions)
-            foreach (var t in d.Thoughts)
+            foreach (PlayerThought t in d.Thoughts)
                 if (t.Acted) routines[t.Routine] = routines.GetValueOrDefault(t.Routine) + 1;
         return new
         {

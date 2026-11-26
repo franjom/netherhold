@@ -25,12 +25,12 @@ public static class VerificationLedger
         }
 
         string output = Path.Combine(root, "docs", "verification-ledger.csv");
-        var previous = File.Exists(output)
+        Dictionary<string, List<string>> previous = File.Exists(output)
             ? File.ReadAllLines(output).Skip(1).Select(ParseCsv)
                 .Where(fields => fields.Count == 13)
                 .ToDictionary(fields => fields[0], fields => fields, StringComparer.Ordinal)
             : new Dictionary<string, List<string>>(StringComparer.Ordinal);
-        var tests = Directory.GetFiles(Path.Combine(root, "tests"), "*.cs", SearchOption.AllDirectories)
+        Dictionary<string, string> tests = Directory.GetFiles(Path.Combine(root, "tests"), "*.cs", SearchOption.AllDirectories)
             .ToDictionary(path => path, File.ReadAllText);
         var lines = new List<string> { Header };
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -61,7 +61,7 @@ public static class VerificationLedger
                     .Select(pair => Path.GetRelativePath(root, pair.Key).Replace('\\', '/'))
                     .OrderBy(path => path, StringComparer.Ordinal).ToArray();
 
-                var row = new[]
+                string[] row = new[]
                 {
                     id, relative, symbol, confidence, research,
                     string.Join(";", adrs), string.Join(";", testFiles), string.Join(";", addresses),
@@ -73,7 +73,7 @@ public static class VerificationLedger
             }
         }
 
-        var removed = previous.Keys.Except(seen).ToArray();
+        string[] removed = previous.Keys.Except(seen).ToArray();
         if (removed.Any(id => previous[id].Skip(8).Any(value => value.Length != 0)))
         {
             Console.Error.WriteLine("Checked ledger rows no longer match source attributes:");

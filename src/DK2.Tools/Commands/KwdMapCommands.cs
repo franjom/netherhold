@@ -47,7 +47,7 @@ internal static partial class KwdCommands
 
             // Flood fill each portal terrain into 4-connected regions; one
             // region is one portal, whatever its shape.
-            var seen = new bool[grid.Width * grid.Height];
+            bool[] seen = new bool[grid.Width * grid.Height];
             var regions = new List<(string Room, byte Owner, int Tiles, int X, int Y)>();
             var stack = new Stack<int>();
 
@@ -358,18 +358,18 @@ internal static partial class KwdCommands
                 }
             }
 
-            foreach (var kv in tally.OrderBy(k => k.Key))
+            foreach (KeyValuePair<string, int> kv in tally.OrderBy(k => k.Key))
                 Console.WriteLine($"  {kv.Key,-28} {kv.Value,5}");
             return 0;
         }
 
         Console.WriteLine($"{"terr",4} {"flags",5} {"unk",4} {"count",6}");
-        var groups = bytesGrid.Tiles
+        IOrderedEnumerable<IGrouping<(byte TerrainId, byte Flags, byte Unknown), MapTile>> groups = bytesGrid.Tiles
             .Where(t => only is null || t.TerrainId == only)
             .GroupBy(t => (t.TerrainId, t.Flags, t.Unknown))
             .OrderBy(g => g.Key.TerrainId).ThenBy(g => g.Key.Flags).ThenBy(g => g.Key.Unknown);
 
-        foreach (var g in groups)
+        foreach (IGrouping<(byte TerrainId, byte Flags, byte Unknown), MapTile>? g in groups)
         {
             Console.WriteLine(
                 $"{g.Key.TerrainId,4} {g.Key.Flags,5} {g.Key.Unknown,4} {g.Count(),6}");
@@ -391,9 +391,9 @@ internal static partial class KwdCommands
         var byTerrain = grid.Tiles.GroupBy(t => t.TerrainId)
             .OrderByDescending(g => g.Count()).ToList();
         Console.WriteLine("terrain histogram:");
-        foreach (var g in byTerrain.Take(12))
+        foreach (IGrouping<byte, MapTile>? g in byTerrain.Take(12))
             Console.WriteLine($"  terrain {g.Key,3}: {g.Count(),6} tiles");
-        var owners = grid.Tiles.GroupBy(t => t.PlayerId).OrderBy(g => g.Key);
+        IOrderedEnumerable<IGrouping<byte, MapTile>> owners = grid.Tiles.GroupBy(t => t.PlayerId).OrderBy(g => g.Key);
         Console.WriteLine("owners: " + string.Join(", ", owners.Select(g => $"p{g.Key}={g.Count()}")));
 
         // Optional: where a given terrain type actually is, so scenarios can

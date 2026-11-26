@@ -356,7 +356,7 @@ internal sealed class ScenarioWorldBuilder
         // The players too: a heart's record pays its keeper's starting gold in. A scenario's
         // positive gold replaces the record's amount; zero leaves the level's own.
         List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(_installDir, level);
-        Dictionary<byte, int>? startingGold = players?.ToDictionary(p => p.PlayerId, p => p.StartingGold);
+        var startingGold = players?.ToDictionary(p => p.PlayerId, p => p.StartingGold);
         if (startingGold is not null)
             foreach (ScenarioPlayer p in scenario.Setup.Players)
                 if (p.Gold > 0 && startingGold.ContainsKey(p.Id))

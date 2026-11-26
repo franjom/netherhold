@@ -41,7 +41,7 @@ internal static class AssetCommands
         GameDatabase database = GameDatabaseLoader.Load(install);
         IReadOnlyList<AssetConversionResult> results =
             AssetConverter.ConvertAll(install, database, output);
-        FileAssetProvider provider = FileAssetProvider.Converted(output);
+        var provider = FileAssetProvider.Converted(output);
         foreach (AssetConversionResult result in results)
         {
             if (result.Produced && !provider.TryResolve(result.Reference, out _))
@@ -81,7 +81,7 @@ internal static class AssetCommands
 
     internal static int RunSdtList(string[] args)
     {
-        SdtArchive sdt = SdtArchive.Open(ResolveData(args[2]));
+        var sdt = SdtArchive.Open(ResolveData(args[2]));
         foreach (SdtEntry entry in sdt.Entries)
         {
             string channels = entry.ChannelCount is int count ? $"{count}ch" : "?ch";
@@ -107,7 +107,7 @@ internal static class AssetCommands
         string output = RequireConvertedOutput(args.Length == 5
             ? args[4] : Path.Combine("converted-assets", "audio"));
         Directory.CreateDirectory(output);
-        SdtArchive sdt = SdtArchive.Open(ResolveData(args[2]));
+        var sdt = SdtArchive.Open(ResolveData(args[2]));
         int produced = 0;
         foreach (SdtEntry entry in sdt.Entries)
         {
@@ -137,7 +137,7 @@ internal static class AssetCommands
 
     internal static int RunStrList(string[] args)
     {
-        Dk2StringTable table = Dk2StringTable.Open(ResolveText(args[2]));
+        var table = Dk2StringTable.Open(ResolveText(args[2]));
         foreach (Dk2StringEntry entry in table.Entries)
             Console.WriteLine($"{entry.Id,6} {EscapeForOneLine(entry.Value)}");
         Console.WriteLine($"-- {table.Entries.Count} entries, file id {table.FileId}");
@@ -151,7 +151,7 @@ internal static class AssetCommands
             Console.Error.WriteLine($"invalid string id: '{args[3]}'");
             return 2;
         }
-        Dk2StringTable table = Dk2StringTable.Open(ResolveText(args[2]));
+        var table = Dk2StringTable.Open(ResolveText(args[2]));
         if (!table.TryResolve(id, out string value))
         {
             Console.Error.WriteLine($"string id {id} is not in this table");

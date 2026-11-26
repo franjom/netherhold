@@ -19,7 +19,7 @@ internal static class JournalReportCommand
         {
             byte[] journalBytes = File.ReadAllBytes(args[1]);
             byte[] hashBytes = File.ReadAllBytes(args[2]);
-            InputJournal journal = InputJournal.Read(new MemoryStream(journalBytes));
+            var journal = InputJournal.Read(new MemoryStream(journalBytes));
             JournalEvidenceValidation.Check(journalBytes, journal);
             SortedDictionary<long, ulong> replay = ReadHashes(hashBytes);
             ValidateJournal(journal);

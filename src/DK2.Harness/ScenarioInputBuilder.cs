@@ -203,7 +203,7 @@ internal sealed class ScenarioInputBuilder
             int last = w.UntilTick < w.AtTick ? w.AtTick : w.UntilTick;
             if (tick < w.AtTick || tick > last) continue;
 
-            var kind = Enum.Parse<TileWorkKind>(w.Kind, ignoreCase: true);
+            TileWorkKind kind = Enum.Parse<TileWorkKind>(w.Kind, ignoreCase: true);
             for (int i = 0; i < w.Repeat; i++)
                 world.QueueWork(w.At[0], w.At[1], kind, w.Player);
         }

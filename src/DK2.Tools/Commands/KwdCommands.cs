@@ -96,8 +96,8 @@ internal static partial class KwdCommands
             foreach ((int tag, (int count, SortedSet<int> sizes)) in byTag)
             {
                 string name = c.Type == KwdRecordType.Things
-                    ? KwdTaggedRecords.ThingPayloadSizes.TryGetValue(tag, out var t) ? t.Name : "?"
-                    : KwdTaggedRecords.TriggerPayloadSizes.TryGetValue(tag, out var g) ? g.Name : "?";
+                    ? KwdTaggedRecords.ThingPayloadSizes.TryGetValue(tag, out (string Name, int PayloadSize, bool InShippedData) t) ? t.Name : "?"
+                    : KwdTaggedRecords.TriggerPayloadSizes.TryGetValue(tag, out (string Name, int PayloadSize) g) ? g.Name : "?";
                 Console.WriteLine($"  tag {tag,-4} {name,-16} {count,5} records   payload={string.Join(",", sizes)}");
             }
         }

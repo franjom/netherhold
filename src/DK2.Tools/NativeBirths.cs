@@ -45,7 +45,7 @@ public sealed class NativeBirths
     /// slot order.</summary>
     public static NativeBirths Read(string path, long afterTurn)
     {
-        using var reader = File.OpenText(path);
+        using StreamReader reader = File.OpenText(path);
         if (reader.ReadLine() != "tick,id,type,owner,x,y,health,state,target")
             throw new InvalidDataException($"{path}: expected a capture creature-map.csv header.");
         var last = new Dictionary<uint, (string Type, string Owner)>();

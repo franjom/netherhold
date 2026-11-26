@@ -66,7 +66,7 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
         int written = 0;
         string? stopped = null;
         var outcomes = new Outcome?[jobs.Count];
-        var outputGate = new object();
+        object outputGate = new object();
         using var slots = new SemaphoreSlim(limits.Jobs, limits.Jobs);
         var workers = new List<Task>();
         try

@@ -55,16 +55,16 @@ internal static class SimMatrixAnalysis
     internal static SimMatrixResult Run(SimCompilation source)
     {
         var index = new SourceIndex(source);
-        var compilation = index.Compilation;
-        var rows = SimRows.Read(source);
+        Compilation compilation = index.Compilation;
+        IReadOnlyList<SimRow> rows = SimRows.Read(source);
         var model = new StateModel(index);
 
-        var entryFaces = new[] { SimRows.SystemInterface, SimRows.CreatureStepInterface, SimRows.RoomStepInterface }
+        INamedTypeSymbol[] entryFaces = new[] { SimRows.SystemInterface, SimRows.CreatureStepInterface, SimRows.RoomStepInterface }
             .Select(n => SimRows.Type(compilation, n)).ToArray();
-        var sink = SimRows.Type(compilation, EventSinkType);
-        var sinkKey = sink.GetMembers().OfType<IMethodSymbol>().First();
-        var triggers = SimRows.Type(compilation, TriggerExecutorType);
-        var steering = SimRows.Type(compilation, WorldSteeringType);
+        INamedTypeSymbol sink = SimRows.Type(compilation, EventSinkType);
+        IMethodSymbol sinkKey = sink.GetMembers().OfType<IMethodSymbol>().First();
+        INamedTypeSymbol triggers = SimRows.Type(compilation, TriggerExecutorType);
+        INamedTypeSymbol steering = SimRows.Type(compilation, WorldSteeringType);
         Hub[] hubs =
         [
             new("TriggerExecutor", m => Within(m.ContainingType, triggers)),
@@ -85,12 +85,12 @@ internal static class SimMatrixAnalysis
         {
             var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
             var queue = new Queue<IMethodSymbol>();
-            foreach (var e in entries)
+            foreach (IMethodSymbol e in entries)
                 if (seen.Add(e)) queue.Enqueue(e);
-            while (queue.TryDequeue(out var m))
+            while (queue.TryDequeue(out IMethodSymbol? m))
             {
-                foreach (var call in Summary(m).Calls)
-                    foreach (var target in index.Targets(call))
+                foreach (IMethodSymbol call in Summary(m).Calls)
+                    foreach (IMethodSymbol target in index.Targets(call))
                         if (!stopAt(target) && seen.Add(target)) queue.Enqueue(target);
             }
             return seen;
@@ -113,7 +113,7 @@ internal static class SimMatrixAnalysis
         var places = new Dictionary<ISymbol, (FieldPlace Place, int Column)>(SymbolEqualityComparer.Default);
         (FieldPlace Place, int Column) Place(ISymbol key)
         {
-            if (!places.TryGetValue(key, out var place))
+            if (!places.TryGetValue(key, out (FieldPlace Place, int Column) place))
                 places[key] = place = SymbolEqualityComparer.Default.Equals(key, sinkKey)
                     ? (FieldPlace.Column, StateModel.EventsOut)
                     : model.Place(key, writtenStatics);
@@ -125,9 +125,9 @@ internal static class SimMatrixAnalysis
             var reads = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
             var writes = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
             int delegates = 0;
-            foreach (var m in reach)
+            foreach (IMethodSymbol m in reach)
             {
-                var s = Summary(m);
+                MethodSummary s = Summary(m);
                 reads.UnionWith(s.Reads);
                 writes.UnionWith(s.Writes);
                 // An event or callback raised is an emit: it counts as a write only of an output.
@@ -135,14 +135,14 @@ internal static class SimMatrixAnalysis
                 delegates += s.DelegateCalls;
             }
             // Commands are input: what a system "writes" there is the command index's per-tick memo.
-            var memo = writes.Where(k => Place(k) == (FieldPlace.Column, StateModel.CommandsIn)).ToArray();
+            ISymbol[] memo = writes.Where(k => Place(k) == (FieldPlace.Column, StateModel.CommandsIn)).ToArray();
             writes.ExceptWith(memo);
             reads.UnionWith(memo);
-            var cells = new string[StateModel.Columns.Length];
+            string[] cells = new string[StateModel.Columns.Length];
             Array.Fill(cells, "");
-            foreach (var key in reads)
+            foreach (ISymbol key in reads)
                 if (Place(key) is (FieldPlace.Column, var c)) cells[StateModel.ReadColumn(key, c)] = "R";
-            foreach (var key in writes)
+            foreach (ISymbol key in writes)
                 if (Place(key) is (FieldPlace.Column, var c)) cells[c] = "W";
             return new RowView(
                 reach.Count,
@@ -159,11 +159,11 @@ internal static class SimMatrixAnalysis
             : $"{SimRows.Display(key.ContainingType)}.{key.Name}";
         IReadOnlyList<string> Names(IEnumerable<ISymbol> keys) => keys.Select(Name).Distinct().Order(StringComparer.Ordinal).ToArray();
 
-        var results = rows.Select((row, i) => new RowResult(row, View(core[i]), View(full[i]))).ToArray();
+        RowResult[] results = rows.Select((row, i) => new RowResult(row, View(core[i]), View(full[i]))).ToArray();
 
-        var hubResults = hubs.Select(h =>
+        HubResult[] hubResults = hubs.Select(h =>
         {
-            var reached = allMethods.Where(h.Contains).ToArray();
+            IMethodSymbol[] reached = allMethods.Where(h.Contains).ToArray();
             int methods = Reach(reached, _ => false).Count;
             return new HubResult(h.Name, results.Where(r => r.Full.Hubs.Contains(h.Name)).Select(r => r.Row.Number).ToArray(), methods);
         }).ToArray();
@@ -172,14 +172,14 @@ internal static class SimMatrixAnalysis
         var columnOf = new Dictionary<string, string>(StringComparer.Ordinal);
         for (int i = 0; i < rows.Count; i++)
         {
-            foreach (var m in full[i])
-            foreach (var key in Summary(m).Writes)
+            foreach (IMethodSymbol m in full[i])
+            foreach (ISymbol key in Summary(m).Writes)
             {
-                var (place, column) = Place(key);
+                (FieldPlace place, int column) = Place(key);
                 bool listed = place == FieldPlace.SystemOwned || (place == FieldPlace.Column && key.IsStatic && key is not IMethodSymbol);
                 if (!listed) continue;
                 string name = Name(key);
-                if (!writers.TryGetValue(name, out var set)) writers[name] = set = [];
+                if (!writers.TryGetValue(name, out SortedSet<int>? set)) writers[name] = set = [];
                 set.Add(rows[i].Number);
                 columnOf[name] = place == FieldPlace.SystemOwned ? "" : StateModel.Columns[column];
             }
@@ -220,7 +220,7 @@ internal static class SimMatrixAnalysis
     {
         (HashSet<string> Writes, HashSet<string> Touched) Data(RowResult row, bool core)
         {
-            var members = rows.Where(r => r.Row.Number == row.Row.Number || r.Row.Parent == row.Row.Number)
+            RowView[] members = rows.Where(r => r.Row.Number == row.Row.Number || r.Row.Parent == row.Row.Number)
                 .Select(r => core ? r.Core : r.Full).ToArray();
             var writes = members.SelectMany(v => v.Writes).Where(n => n != "events").ToHashSet(StringComparer.Ordinal);
             var touched = members.SelectMany(v => v.Writes.Concat(v.Reads)).Where(n => n != "events").ToHashSet(StringComparer.Ordinal);
@@ -228,15 +228,15 @@ internal static class SimMatrixAnalysis
         }
         bool Free(RowResult a, RowResult b, bool core)
         {
-            var (aw, at) = Data(a, core);
-            var (bw, bt) = Data(b, core);
+            (HashSet<string>? aw, HashSet<string>? at) = Data(a, core);
+            (HashSet<string>? bw, HashSet<string>? bt) = Data(b, core);
             return !aw.Overlaps(bt) && !bw.Overlaps(at);
         }
 
         var pairs = new List<FreePair>();
-        foreach (var group in rows.GroupBy(r => r.Row.Parent))
+        foreach (IGrouping<int, RowResult> group in rows.GroupBy(r => r.Row.Parent))
         {
-            var siblings = group.ToArray();
+            RowResult[] siblings = group.ToArray();
             for (int i = 1; i < siblings.Length; i++)
             {
                 bool core = Free(siblings[i - 1], siblings[i], core: true);

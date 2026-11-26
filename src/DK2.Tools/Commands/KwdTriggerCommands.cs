@@ -286,7 +286,7 @@ internal static partial class KwdCommands
                 continue;
 
             GameDatabase rdatabase = GameDatabaseLoader.LoadForCampaignLevel(reachInstall, level);
-            WorldState rworld = WorldState.FromMap(
+            var rworld = WorldState.FromMap(
                 rdatabase, rmap, rplayers.Select(p => p.PlayerId).ToArray());
             ThingProjection.Place(rworld, rdatabase, rthings, rplayers.ToDictionary(p => p.PlayerId, p => p.StartingGold));
             var rtree = new TriggerTree(
@@ -312,7 +312,7 @@ internal static partial class KwdCommands
                 if (run.Reached is not null) walked.UnionWith(run.Reached);
                 foreach (BlockedTrigger item in run.Partial)
                 {
-                    var key = (item.Tag, item.Type, item.Context);
+                    (int Tag, byte Type, TriggerContext Context) key = (item.Tag, item.Type, item.Context);
                     if (!partialByArm.TryGetValue(key, out HashSet<(string, ushort)>? records))
                         partialByArm[key] = records = [];
                     records.Add((level, item.TriggerId));
@@ -671,7 +671,7 @@ internal static partial class KwdCommands
         if (map is null) return (0, 0, 0, 0);
 
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, level);
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, map, players.Select(p => p.PlayerId).ToArray());
         ThingProjection.Place(world, database, things, players.ToDictionary(p => p.PlayerId, p => p.StartingGold));
 

@@ -113,7 +113,7 @@ public static class PlayerRunManifest
         string data = Path.Combine(install, "Data");
         string editor = Path.Combine(data, "editor");
         if (!Directory.Exists(editor)) throw new DirectoryNotFoundException($"'{editor}' does not exist; '{install}' is not a DK2 installation.");
-        List<string> files = Files(editor, ".kwd", ".kld").Select(f => "editor/" + f).ToList();
+        var files = Files(editor, ".kwd", ".kld").Select(f => "editor/" + f).ToList();
         if (File.Exists(Path.Combine(data, "Paths.WAD"))) files.Add("Paths.WAD");
         return TreeHash(data, files);
     }

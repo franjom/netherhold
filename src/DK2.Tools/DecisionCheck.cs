@@ -44,7 +44,7 @@ public static class DecisionCheck
                 continue;
             }
 
-            using JsonDocument doc = JsonDocument.Parse(line);
+            using var doc = JsonDocument.Parse(line);
             JsonElement root = doc.RootElement;
             byte player = PlayerIds.FirstKeeper;
             // Marks from the choice's own frame when the line has them: the keeper's input lands at
@@ -389,7 +389,7 @@ public static class DecisionCheck
 
     private static int[] Ints(JsonElement array)
     {
-        var values = new int[array.GetArrayLength()];
+        int[] values = new int[array.GetArrayLength()];
         int i = 0;
         foreach (JsonElement v in array.EnumerateArray())
         {

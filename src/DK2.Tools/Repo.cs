@@ -51,7 +51,7 @@ static class Repo
 
         try
         {
-            using Process? process = Process.Start(psi);
+            using var process = Process.Start(psi);
             if (process is null) return string.Empty;
             // Drain stderr concurrently: forty changed files' line-ending warnings fill the pipe
             // and deadlock a reader that waits for stdout first.

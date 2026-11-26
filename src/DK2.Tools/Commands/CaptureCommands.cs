@@ -140,9 +140,9 @@ internal static class CaptureCommands
                 return 1;
             }
 
-            var compared = new int[columns.Length];
-            var unknown = new int[columns.Length];
-            var different = new int[columns.Length];
+            int[] compared = new int[columns.Length];
+            int[] unknown = new int[columns.Length];
+            int[] different = new int[columns.Length];
             (string Turn, string Column, string Left, string Right)? first = null;
 
             Console.WriteLine($"turns {turns[0]}..{turns[^1]} ({turns.Length} shared; "

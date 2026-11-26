@@ -125,7 +125,7 @@ internal static partial class KwdCommands
             }
 
             Console.WriteLine();
-            foreach (var g in creatures.GroupBy(c => c.PerceptionRange.Raw).OrderBy(g => g.Key))
+            foreach (IGrouping<int, CreatureDef>? g in creatures.GroupBy(c => c.PerceptionRange.Raw).OrderBy(g => g.Key))
             {
                 Console.WriteLine(
                     $"perception 0x{g.Key:X} = {g.Key / 4096.0} tiles: {g.Count()} creatures");
@@ -531,7 +531,7 @@ internal static partial class KwdCommands
         {
             for (int bit = 0; bit < 8; bit++)
             {
-                List<string> set = recs
+                var set = recs
                     .Where(r => (r.Bytes[off] & (1 << bit)) != 0)
                     .Select(r => r.Name)
                     .ToList();
@@ -668,7 +668,7 @@ internal static partial class KwdCommands
                     perId[id] = list;
                 }
                 list.Add((level, m.Value, m.Unk1, m.Unk2));
-                var key = (m.Unk1, m.Unk2);
+                (int Unk1, int Unk2) key = (m.Unk1, m.Unk2);
                 pairs[key] = pairs.GetValueOrDefault(key) + 1;
             }
         }
@@ -732,7 +732,7 @@ internal static partial class KwdCommands
             if (list.Count == files) continue;
             string name = Enum.IsDefined(typeof(VariableTypeId), id)
                 ? ((VariableTypeId)id).ToString() : $"Unknown_{id}";
-            var shown = list.Take(6).Select(e => $"{e.Level}={e.Value}");
+            IEnumerable<string> shown = list.Take(6).Select(e => $"{e.Level}={e.Value}");
             Console.WriteLine($"   {id,4} {name,-46} in {list.Count,2}/{files}: "
                               + string.Join(" ", shown) + (list.Count > 6 ? " ..." : ""));
             Console.WriteLine($"        unk1/unk2: " + string.Join(" ",

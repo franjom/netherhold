@@ -79,9 +79,9 @@ internal sealed class MethodWalker
         }
 
         var walker = new MethodWalker(method, index, stop, sink);
-        foreach (var reference in method.DeclaringSyntaxReferences)
+        foreach (SyntaxReference reference in method.DeclaringSyntaxReferences)
         {
-            var node = reference.GetSyntax();
+            SyntaxNode node = reference.GetSyntax();
             if (node is not (BaseMethodDeclarationSyntax or AccessorDeclarationSyntax or ArrowExpressionClauseSyntax)) continue;
             if (index.Model(node.SyntaxTree).GetOperation(node) is not { } body) continue;
             walker.FindFresh(body);
@@ -94,7 +94,7 @@ internal sealed class MethodWalker
     internal static bool IsAutoProperty(IPropertySymbol property)
     {
         if (property.IsAbstract || property.DeclaringSyntaxReferences.Length == 0) return false;
-        foreach (var reference in property.DeclaringSyntaxReferences)
+        foreach (SyntaxReference reference in property.DeclaringSyntaxReferences)
         {
             if (reference.GetSyntax() is not PropertyDeclarationSyntax { ExpressionBody: null, AccessorList: { } accessors }) return false;
             if (accessors.Accessors.Any(a => a.Body is not null || a.ExpressionBody is not null)) return false;
@@ -105,10 +105,10 @@ internal sealed class MethodWalker
     /// <summary>Locals declared with an object the method creates and never assigned anything else.</summary>
     private void FindFresh(IOperation body)
     {
-        foreach (var declarator in body.Descendants().OfType<IVariableDeclaratorOperation>())
+        foreach (IVariableDeclaratorOperation declarator in body.Descendants().OfType<IVariableDeclaratorOperation>())
             if (IsCreation(declarator.Initializer?.Value))
                 _fresh.Add(declarator.Symbol);
-        foreach (var assignment in body.Descendants().OfType<ISimpleAssignmentOperation>())
+        foreach (ISimpleAssignmentOperation assignment in body.Descendants().OfType<ISimpleAssignmentOperation>())
             if (Unwrap(assignment.Target) is ILocalReferenceOperation local && !IsCreation(assignment.Value))
                 _fresh.Remove(local.Local);
     }
@@ -173,7 +173,7 @@ internal sealed class MethodWalker
                 return;
             case IObjectCreationOperation creation:
                 Call(creation.Constructor);
-                foreach (var argument in creation.Arguments) Visit(argument);
+                foreach (IArgumentOperation argument in creation.Arguments) Visit(argument);
                 Visit(creation.Initializer);
                 return;
             case IMethodReferenceOperation reference:
@@ -194,24 +194,24 @@ internal sealed class MethodWalker
                 Visit(c.Operand);
                 return;
             default:
-                foreach (var child in operation.ChildOperations) Visit(child);
+                foreach (IOperation child in operation.ChildOperations) Visit(child);
                 return;
         }
     }
 
     private void ReadProperty(IPropertyReferenceOperation reference)
     {
-        var property = reference.Property.OriginalDefinition;
+        IPropertySymbol property = reference.Property.OriginalDefinition;
         if (IsAutoProperty(property)) Read(property);
         else if (property.GetMethod is { } getter) Call(getter);
         Visit(reference.Instance);
-        foreach (var argument in reference.Arguments) Visit(argument);
+        foreach (IArgumentOperation argument in reference.Arguments) Visit(argument);
     }
 
     private void Invocation(IInvocationOperation invocation)
     {
-        var target = invocation.TargetMethod;
-        var definition = SourceIndex.Definition(target);
+        IMethodSymbol target = invocation.TargetMethod;
+        IMethodSymbol definition = SourceIndex.Definition(target);
         if (target.MethodKind == MethodKind.DelegateInvoke)
         {
             _summary.DelegateCalls++;
@@ -237,7 +237,7 @@ internal sealed class MethodWalker
                 Write(invocation.Arguments[0].Value, read: false);
         }
         Visit(invocation.Instance);
-        foreach (var argument in invocation.Arguments) Visit(argument);
+        foreach (IArgumentOperation argument in invocation.Arguments) Visit(argument);
     }
 
     /// <summary>A non-readonly method of a struct, called on a struct: not one an enum inherits from
@@ -257,7 +257,7 @@ internal sealed class MethodWalker
     private void Call(IMethodSymbol? method)
     {
         if (method is null) return;
-        var definition = SourceIndex.Definition(method);
+        IMethodSymbol definition = SourceIndex.Definition(method);
         if (SourceIndex.IsSource(definition) && !_stop(definition)) _summary.Calls.Add(definition);
     }
 
@@ -272,7 +272,7 @@ internal sealed class MethodWalker
                 WriteHolder(field.Instance);
                 return;
             case IPropertyReferenceOperation property:
-                var definition = property.Property.OriginalDefinition;
+                IPropertySymbol definition = property.Property.OriginalDefinition;
                 if (IsAutoProperty(definition))
                     Record(definition, property.Instance, read);
                 else if (SourceIndex.IsSource(definition) && !property.Property.IsIndexer)
@@ -292,18 +292,18 @@ internal sealed class MethodWalker
                     Write(holder, read: true);
                 if (IsAutoProperty(definition) || !property.Property.IsIndexer) WriteHolder(property.Instance);
                 else Visit(property.Instance);
-                foreach (var argument in property.Arguments) Visit(argument);
+                foreach (IArgumentOperation argument in property.Arguments) Visit(argument);
                 return;
             case IArrayElementReferenceOperation element:
                 Write(element.ArrayReference, read: true);
-                foreach (var index in element.Indices) Visit(index);
+                foreach (IOperation index in element.Indices) Visit(index);
                 return;
             case IEventReferenceOperation e:
                 Record(e.Event.OriginalDefinition, e.Instance, read);
                 Visit(e.Instance);
                 return;
             case ITupleOperation tuple:
-                foreach (var element in tuple.Elements) Write(element, read);
+                foreach (IOperation element in tuple.Elements) Write(element, read);
                 return;
             case IInvocationOperation invocation when invocation.TargetMethod.ReturnsByRef:
                 Visit(invocation);
@@ -328,9 +328,9 @@ internal sealed class MethodWalker
     /// <summary>The field or auto-property a get-only property's expression body returns from its own instance.</summary>
     private ISymbol? Returned(IPropertySymbol property)
     {
-        foreach (var reference in property.DeclaringSyntaxReferences)
+        foreach (SyntaxReference reference in property.DeclaringSyntaxReferences)
         {
-            var body = reference.GetSyntax() switch
+            ExpressionSyntax? body = reference.GetSyntax() switch
             {
                 PropertyDeclarationSyntax { ExpressionBody: { } arrow } => arrow.Expression,
                 PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.ValueText: "get", ExpressionBody: { } getter }] } => getter.Expression,
@@ -359,12 +359,12 @@ internal sealed class MethodWalker
     /// through a local that holds an object this method created.</summary>
     private bool Counts(ISymbol key, IOperation? instance)
     {
-        var holder = Unwrap(instance);
+        IOperation? holder = Unwrap(instance);
         if (holder is IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ImplicitReceiver }) return false;
         if (_method.MethodKind == MethodKind.Constructor
             && OwnRoot(holder) is IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ContainingTypeInstance })
             return false;
-        var root = Root(holder);
+        IOperation? root = Root(holder);
         if (_method.MethodKind == MethodKind.StaticConstructor && holder is null
             && SymbolEqualityComparer.Default.Equals(key.ContainingType, _method.ContainingType))
             return false;
@@ -424,7 +424,7 @@ internal sealed class MethodWalker
     private static IOperation? Receiver(IConditionalAccessInstanceOperation instance)
     {
         IOperation child = instance;
-        for (var parent = instance.Parent; parent is not null; child = parent, parent = parent.Parent)
+        for (IOperation? parent = instance.Parent; parent is not null; child = parent, parent = parent.Parent)
             if (parent is IConditionalAccessOperation conditional && ReferenceEquals(conditional.WhenNotNull, child))
                 return conditional.Operation;
         return null;

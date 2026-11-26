@@ -42,8 +42,8 @@ internal static partial class WikiCommand
 
         Directory.CreateDirectory(output);
         var utf8 = new UTF8Encoding(false);
-        var pages = WikiPages.All(inputs);
-        foreach (var (file, content) in pages)
+        IReadOnlyList<(string File, string Content)> pages = WikiPages.All(inputs);
+        foreach ((string? file, string? content) in pages)
             File.WriteAllText(Path.Combine(output, file), content, utf8);
         SimMatrixCommand.Write(output, matrix);
         Console.WriteLine($"wiki: {pages.Count + 1} pages -> {output}");
@@ -54,14 +54,14 @@ internal static partial class WikiCommand
     internal static WikiInputs Load(string root)
     {
         var catalog = SystemCatalog.Load(root);
-        var notes = ResearchNotes.Load(root);
+        IReadOnlyList<ResearchNote> notes = ResearchNotes.Load(root);
         var names = notes.Select(n => n.Name).ToHashSet(StringComparer.Ordinal);
         string decisions = Path.Combine(root, AdrIndex.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-        var adrs = AdrIndex.Parse(File.ReadAllLines(decisions), names);
+        IReadOnlyList<Adr> adrs = AdrIndex.Parse(File.ReadAllLines(decisions), names);
         string questions = Path.Combine(root, ResearchNotes.Folder, ResearchNotes.OpenQuestions + ".md");
-        var rows = WikiPages.ParseQuestions(File.ReadAllLines(questions), names);
+        IReadOnlyList<QuestionRow> rows = WikiPages.ParseQuestions(File.ReadAllLines(questions), names);
         var errors = new List<string>();
-        var records = FunctionKbCommand.Load(new FunctionKbCommand.Source(root, staged: false), errors);
+        List<FunctionRecord> records = FunctionKbCommand.Load(new FunctionKbCommand.Source(root, staged: false), errors);
         if (errors.Count > 0) throw new InvalidDataException($"function records: {errors[0]} (and {errors.Count - 1} more)");
         return new WikiInputs(catalog, notes, adrs, rows, records, AdrsCitedInCode(root));
     }
@@ -80,7 +80,7 @@ internal static partial class WikiCommand
             if (!Directory.Exists(dir)) continue;
             foreach (string file in Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories))
             {
-                var parts = Path.GetRelativePath(root, file).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                string[] parts = Path.GetRelativePath(root, file).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 if (parts.Contains("obj") || parts.Contains("bin") || parts.Contains(".godot") || parts.Contains("addons")) continue;
                 foreach (System.Text.RegularExpressions.Match m in AdrCitation().Matches(File.ReadAllText(file)))
                     foreach (System.Text.RegularExpressions.Capture number in m.Groups[1].Captures.Concat(m.Groups[2].Captures))

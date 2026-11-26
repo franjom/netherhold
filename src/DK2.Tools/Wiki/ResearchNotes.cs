@@ -24,7 +24,7 @@ public static partial class ResearchNotes
     /// <summary>The note name for a repository-relative path, or null when the path is not a note.</summary>
     public static string? NoteName(string relative)
     {
-        var m = PathRx().Match(relative);
+        Match m = PathRx().Match(relative);
         return m.Success && m.Groups[1].Value != OpenQuestions ? m.Groups[1].Value : null;
     }
 
@@ -49,7 +49,7 @@ public static partial class ResearchNotes
         int length = FrontMatterLength(lines);
         for (int i = 1; i < length - 1; i++)
         {
-            var m = SystemsRx().Match(lines[i].Trim());
+            Match m = SystemsRx().Match(lines[i].Trim());
             if (!m.Success) continue;
             return m.Groups[1].Value.Split(',')
                 .Select(s => s.Trim().Trim('"', '\''))

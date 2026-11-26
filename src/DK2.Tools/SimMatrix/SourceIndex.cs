@@ -24,17 +24,17 @@ internal sealed class SourceIndex
         Collect(Compilation.Assembly.GlobalNamespace, types);
         Types = types;
 
-        foreach (var type in types)
+        foreach (INamedTypeSymbol type in types)
         {
-            for (var b = type.BaseType; b is not null; b = b.BaseType)
+            for (INamedTypeSymbol? b = type.BaseType; b is not null; b = b.BaseType)
                 if (IsSource(b)) Add(_derived, b.OriginalDefinition, type);
-            foreach (var face in type.AllInterfaces)
+            foreach (INamedTypeSymbol face in type.AllInterfaces)
                 if (IsSource(face)) Add(_derived, face.OriginalDefinition, type);
             if (type.TypeKind == TypeKind.Interface) continue;
 
-            foreach (var face in type.AllInterfaces)
+            foreach (INamedTypeSymbol face in type.AllInterfaces)
             {
-                foreach (var member in face.GetMembers())
+                foreach (ISymbol member in face.GetMembers())
                 {
                     switch (type.FindImplementationForInterfaceMember(member))
                     {
@@ -48,8 +48,8 @@ internal sealed class SourceIndex
                     }
                 }
             }
-            foreach (var method in type.GetMembers().OfType<IMethodSymbol>())
-                for (var overridden = method.OverriddenMethod; overridden is not null; overridden = overridden.OverriddenMethod)
+            foreach (IMethodSymbol method in type.GetMembers().OfType<IMethodSymbol>())
+                for (IMethodSymbol? overridden = method.OverriddenMethod; overridden is not null; overridden = overridden.OverriddenMethod)
                     AddDispatch(overridden, method);
         }
     }
@@ -67,14 +67,14 @@ internal sealed class SourceIndex
 
     /// <summary>Source classes and structs that derive from or implement <paramref name="type"/>.</summary>
     internal IEnumerable<INamedTypeSymbol> Implementations(INamedTypeSymbol type) =>
-        _derived.TryGetValue(type.OriginalDefinition, out var list) ? list : [];
+        _derived.TryGetValue(type.OriginalDefinition, out List<INamedTypeSymbol>? list) ? list : [];
 
     /// <summary>The source methods a call to <paramref name="method"/> can run: its overrides and implementations,
     /// and itself when it has a body.</summary>
     internal IEnumerable<IMethodSymbol> Targets(IMethodSymbol method)
     {
-        if (_dispatch.TryGetValue(method, out var list))
-            foreach (var target in list) yield return target;
+        if (_dispatch.TryGetValue(method, out List<IMethodSymbol>? list))
+            foreach (IMethodSymbol target in list) yield return target;
         if (!method.IsAbstract && IsSource(method)) yield return method;
     }
 
@@ -90,19 +90,19 @@ internal sealed class SourceIndex
         if (!IsSource(to)) return;
         from = Definition(from);
         if (SymbolEqualityComparer.Default.Equals(from, to)) return;
-        if (!_dispatch.TryGetValue(from, out var list)) _dispatch[from] = list = [];
+        if (!_dispatch.TryGetValue(from, out List<IMethodSymbol>? list)) _dispatch[from] = list = [];
         if (!list.Contains(to, SymbolEqualityComparer.Default)) list.Add(to);
     }
 
     private static void Add(Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>> map, INamedTypeSymbol key, INamedTypeSymbol value)
     {
-        if (!map.TryGetValue(key, out var list)) map[key] = list = [];
+        if (!map.TryGetValue(key, out List<INamedTypeSymbol>? list)) map[key] = list = [];
         if (!list.Contains(value, SymbolEqualityComparer.Default)) list.Add(value);
     }
 
     private static void Collect(INamespaceOrTypeSymbol container, List<INamedTypeSymbol> types)
     {
-        foreach (var member in container.GetMembers())
+        foreach (ISymbol member in container.GetMembers())
         {
             if (member is INamespaceSymbol ns) Collect(ns, types);
             else if (member is INamedTypeSymbol type && IsSource(type))

@@ -327,7 +327,7 @@ public sealed class Scenario
             ?? throw new InvalidDataException($"'{path}' is empty or not a scenario.");
 
         // Second pass purely to find keys we silently dropped above.
-        var raw = deserializer.Deserialize<Dictionary<string, object>>(text) ?? [];
+        Dictionary<string, object> raw = deserializer.Deserialize<Dictionary<string, object>>(text) ?? [];
         scenario.UnknownKeys = raw.Keys
             .Where(k => !KnownKeys.Contains(k, StringComparer.OrdinalIgnoreCase))
             .OrderBy(k => k, StringComparer.Ordinal)

@@ -37,7 +37,7 @@ public static class SgmapCommand
         SgmapDatabase database;
         try
         {
-            using var reader = File.OpenText(path);
+            using StreamReader reader = File.OpenText(path);
             database = SgmapDatabase.Parse(reader);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException)
@@ -369,7 +369,7 @@ public sealed class SgmapDatabase
         if (!ancestors.Add(nestedStruct.Id)) yield break;
         foreach (SgmapFieldLocation nested in AllFields(nestedStruct))
         {
-            var concrete = nested with
+            SgmapFieldLocation concrete = nested with
             {
                 Name = nested.Name,
                 Path = $"{path}.{nested.Path}",
@@ -401,7 +401,7 @@ public sealed class SgmapDatabase
         foreach (SgmapFieldLocation child in AllFields(nested))
         {
             if (relative < child.Offset || relative >= checked(child.Offset + child.Size)) continue;
-            var concrete = child with
+            SgmapFieldLocation concrete = child with
             {
                 Path = $"{field.Path}.{child.Path}",
                 Offset = checked(field.Offset + child.Offset),

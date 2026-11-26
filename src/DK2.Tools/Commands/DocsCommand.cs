@@ -35,7 +35,7 @@ internal static class DocsCommand
             || (messagePath is not null && !all && Repo.OptionValue(args, "--since") is null);
 
         var findings = new List<string>();
-        DocsContext? context = DocsContext.TryLoad(docsRoot, findings);
+        var context = DocsContext.TryLoad(docsRoot, findings);
 
         void Report(string file, string what, int actual, int budget)
             => findings.Add($"{file}: {what} is {actual}, budget {budget}");
@@ -151,7 +151,7 @@ internal static class DocsCommand
         // ADR-0643: a note names the systems it belongs to, from the closed list.
         if (context is not null && ResearchNotes.NoteName(relative) is not null)
         {
-            var systems = ResearchNotes.Systems(lines);
+            IReadOnlyList<string>? systems = ResearchNotes.Systems(lines);
             if (systems is not { Count: > 0 })
                 findings.Add($"{relative}: names no systems; start it with front matter '---', 'systems: [id, ...]', '---' (docs/systems.yaml)");
             else
@@ -260,7 +260,7 @@ internal static class DocsCommand
     static void CheckAdrs(string relative, string[] lines, Func<int, int, bool> touched, List<string> findings,
         DocsContext context)
     {
-        var adrs = AdrIndex.Parse(lines, context.NoteNames);
+        IReadOnlyList<Adr> adrs = AdrIndex.Parse(lines, context.NoteNames);
         foreach (int n in AdrIndex.Duplicates(adrs))
             findings.Add($"{relative}: ADR-{n:D4} is used by more than one ADR");
         foreach (Adr adr in adrs)
@@ -287,7 +287,7 @@ internal sealed record DocsContext(
         try
         {
             var catalog = SystemCatalog.Load(root);
-            var notes = ResearchNotes.Load(root);
+            IReadOnlyList<ResearchNote> notes = ResearchNotes.Load(root);
             return new DocsContext(catalog,
                 notes.ToDictionary(n => n.Name, n => n.Systems, StringComparer.Ordinal),
                 notes.Select(n => n.Name).ToHashSet(StringComparer.Ordinal));

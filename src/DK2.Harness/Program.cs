@@ -146,7 +146,7 @@ switch (args[0])
         {
             try
             {
-                Scenario s = Scenario.Load(file);
+                var s = Scenario.Load(file);
                 Console.WriteLine($"{s.Id,-36} {s.Map,-22} {s.DurationTicks,6} ticks  {file}");
             }
             catch (Exception ex) when (ex is InvalidDataException or IOException)
@@ -204,7 +204,7 @@ switch (args[0])
         {
             try
             {
-                Scenario scenario = Scenario.Load(file);
+                var scenario = Scenario.Load(file);
                 if (seedOverride is ulong runSeed) scenario.OverrideSeed(runSeed);
                 if (template.Player is not null)
                 {
@@ -266,7 +266,7 @@ switch (args[0])
             return 3;
         }
 
-        Scenario scenario = Scenario.Load(args[1]);
+        var scenario = Scenario.Load(args[1]);
         if (!HarnessCommandLine.SeedOverride(args, out ulong? replaySeed))
         {
             Console.Error.WriteLine("--seed takes a whole number of at least 0.");
