@@ -719,6 +719,8 @@ public sealed partial class WorldView
 
         // Copied by value on purpose: a renderer gets no route back into state.
         TileState tile = world.Tile(x, y);
+        bool hiddenDoor = IsHiddenSecretDoor(world, x, y);
+        if (hiddenDoor) tile.TerrainId = ReinforcedWallTerrainId;
         TerrainDef terrain = _database.TerrainById(tile.TerrainId);
 
         bool scanned = tile.IsDiscoveredBy(_viewingPlayerId);
@@ -770,7 +772,7 @@ public sealed partial class WorldView
             PiecesOf(world, x, y, tile, terrain, drawnAsFog: !admitted),
             _pieceKeys[tile.TerrainId],
             explored,
-            admitted && world.DoorAt(x, y) is not null,
+            admitted && !hiddenDoor && world.DoorAt(x, y) is not null,
             admitted ? RoomFloorOf(world, x, y, tile) : default,
             admitted ? RoomKeysOf(world, tile) : null,
             BedOf(world, x, y, tile, terrain, out TerrainPieceKeys? bedKeys),
@@ -1315,6 +1317,27 @@ public sealed partial class WorldView
     // every owner (floor-and-terrain-pieces.md section 5).
     private const byte ManaVaultTerrainId = 0x1F, HeroLairTerrainId = AssetCatalogue.HeroLairTerrainId;
 
+    /// <summary>The terrain DK2 draws a hidden Secret Door's tile as: the builder asks for terrain 9
+    /// by number (<c>0x0043E9F2</c>).</summary>
+    private const byte ReinforcedWallTerrainId = 9;
+
+    /// <summary>A Secret Door this viewer must not see: one of another player's that nobody has
+    /// uncovered yet (<see cref="TileState.SecretDoor"/>). DK2 does not draw the door or its lock for
+    /// such a viewer and draws the tile as its owner's Reinforced Wall; the door's owner always sees
+    /// the door.
+    /// <para>DK2 keeps this per viewer as bit 15 of the tile's presentation cell
+    /// (<c>0x004434F0</c>), written by the handler of bridge command <c>0x11</c>
+    /// (<c>0x004488A0</c>) from the marker's value, forced to zero for the door's owner; the terrain
+    /// builder's prelude (<c>0x0043E8FC</c>) and the room wall chooser read the bit. Ours derives it
+    /// from the marker.</para></summary>
+    private bool IsHiddenSecretDoor(WorldState world, int x, int y) =>
+        world.Tile(x, y).SecretDoor && world.DoorAt(x, y) is { } door && door.PlayerId != _viewingPlayerId;
+
+    /// <summary>The terrain a tile is drawn as, which is its own except for
+    /// <see cref="IsHiddenSecretDoor"/>.</summary>
+    private byte ShownTerrainId(WorldState world, int x, int y) =>
+        IsHiddenSecretDoor(world, x, y) ? ReinforcedWallTerrainId : world.Tile(x, y).TerrainId;
+
     /// <summary>
     /// The plain terrain builder <c>0x0043E860</c> (floor-and-terrain-pieces.md §5): a solid tile
     /// draws a face on each side whose neighbour is off the map, or explored and open, except
@@ -1398,8 +1421,8 @@ public sealed partial class WorldView
     /// halves, quadrant s (A ? 6 : 5) and s+1 (B ? 6 : 4), all turned to s: the room scheme of
     /// wall-pieces.md section 2 with 4 and 5 swapped. The pieces are Herowall_LevelDefaultPart4..8
     /// (by name; the table behind world vtable +0x2A0 is unread).
-    /// <para>Deviates: terrain solidity stands in for nav-solidity, secret doors are not tested,
-    /// and an off-map tile counts as solid (vtable +0x208's off-map answer is unread).</para>
+    /// <para>Deviates: terrain solidity stands in for nav-solidity (a Secret Door hidden from the
+    /// viewer counts as solid, <see cref="IsHiddenSecretDoor"/>), and an off-map tile counts as solid (vtable +0x208's off-map answer is unread).</para>
     /// </summary>
     private RoomWalls HeroWallFacesOf(WorldState world, int x, int y, in TileState tile, TerrainFlags flags)
     {
@@ -1461,7 +1484,7 @@ public sealed partial class WorldView
         return packed;
     }
 
-    private bool IsSolid(WorldState world, int x, int y) => _solidById[world.Tile(x, y).TerrainId];
+    private bool IsSolid(WorldState world, int x, int y) => _solidById[ShownTerrainId(world, x, y)];
 
     // DK2's eight directions N, NE, E, SE, S, SW, W, NW (0x006BC370).
     private static readonly int[] Dx8 = [0, 1, 1, 1, 0, -1, -1, -1];
@@ -1471,8 +1494,8 @@ public sealed partial class WorldView
     /// The room wall chooser <c>0x00444F10</c> for a room that draws its own walls (Normal and
     /// DoubleQuad construction): a side with a visible AllowRoomWalls tile outside it gets a wall,
     /// whole where the room runs on both ways along a wall, else two halves.
-    /// <para>Deviates as ADR-0392 lists: the same room is the same room terrain and secret doors are
-    /// not walls. A whole side is the decorated piece 8 on the room's wall phase
+    /// <para>Deviates as ADR-0392 lists: the same room is the same room terrain. A Secret Door hidden
+    /// from the viewer is a wall here (<see cref="IsHiddenSecretDoor"/>). A whole side is the decorated piece 8 on the room's wall phase
     /// (<see cref="Decorated"/>).</para>
     /// </summary>
     private RoomWalls WallsOf(WorldState world, int x, int y, byte terrainId)
@@ -1525,12 +1548,12 @@ public sealed partial class WorldView
         int dx = x + Dx8[diagonal], dy = y + Dy8[diagonal];
         if (!world.Contains(sx, sy) || !world.Contains(dx, dy)) return false;
         if (world.Tile(sx, sy).TerrainId != terrainId) return false;
-        TerrainDef behind = _database.TerrainById(world.Tile(dx, dy).TerrainId);
+        TerrainDef behind = _database.TerrainById(ShownTerrainId(world, dx, dy));
         return behind.IsSolid && ((behind.Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls);
     }
 
     private bool TakesRoomWalls(WorldState world, int x, int y) =>
-        ((_database.TerrainById(world.Tile(x, y).TerrainId).Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls);
+        ((_database.TerrainById(ShownTerrainId(world, x, y)).Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls);
 
     /// <summary>Every creature, in the simulation's own order (which is spawn order).</summary>
     public IEnumerable<CreatureView> Creatures(WorldState world)

@@ -225,9 +225,10 @@ The four half-piece cases, with their addresses:
   is read by 0x004434F0 and written only by 0x00443590, whose one caller is
   0x004488A0. That function finds a door thing (type 4) whose definition has
   +0x8B bit 0x20 (`Secret`, `DoorDef.cs`), toggles its open bit and writes bit
-  15. So bit 15 = **a closed secret door, drawn as wall**. HYPOTHESIS: the value
-  written comes from a register the decompiler mis-tracks, so open versus closed
-  was not pinned.
+  15. So bit 15 = **a secret door hidden from this viewer, drawn as wall**. The value
+  written is the record's flag, forced to zero for the door's owner (read from the
+  instructions 2026-11-26, record 004434F0); it is not the open state. Built as
+  `WorldView.IsHiddenSecretDoor`.
 - **The decorated piece's parity.** For N and S faces it uses the room tile's x
   plus `+0x92`, with piece 8 on the even sum. For E and W faces it uses y plus
   `+0x96`, with piece 8 on the odd sum. A negative phase (−1 until the room has a
@@ -294,8 +295,8 @@ for s in 0..3:
 1. **How 0x0043C310 consumes the two arrays.** Which array goes to vt+0xF0 and
    which to vt+0xF4, how +0x16 places a quarter, and what +0xC = 0x90 and +0x11
    mean, were not re-read. The quadrant numbering (0 NW … 3 SW) is inferred.
-2. **Grid bit 15.** That it means a closed (rather than an open) secret door was
-   not pinned (0x004488A0 mis-tracks the value it writes). The secret-door
+2. **Grid bit 15.** It marks a secret door hidden from the viewer (record 004434F0);
+   the senders of the flag other than the reveal arm are unread. The secret-door
    prelude of 0x0043E860 was read from the decompile only; the hero-wall scheme's run-on tests
    were read from the instructions (0x0043F3A0..0x0043F50F, floor-and-terrain-pieces.md section 5).
 3. **Unread builders.** The player tables

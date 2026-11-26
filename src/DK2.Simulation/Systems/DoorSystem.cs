@@ -64,9 +64,9 @@ public sealed class DoorSystem : ISimulationSystem
     /// (<c>0x00450FF0</c>), every tick, marker still set or not.
     /// DK2 then writes the door's navigation byte as a shut door's (<c>0x004A66F0(1)</c>):
     /// <see cref="DoorState.SeenWhileOpen"/>.
-    /// <para>Not built: command <c>0x11</c>, whose consumer is unread. DK2 walks the players and
-    /// then each player's creatures; ours walks the world's list, which only changes the creature
-    /// the event names.</para></summary>
+    /// <para>DK2's command <c>0x11</c> here is presentation (<c>WorldView.IsHiddenSecretDoor</c>).
+    /// DK2 walks the players and then each player's creatures; ours walks the world's list, which
+    /// only changes the creature the event names.</para></summary>
     private void SeenOpen(SimulationContext context, DoorState door)
     {
         WorldState world = context.World;

@@ -61,6 +61,7 @@ public sealed partial class WorldView
             var tile = new TilePos(door.X, door.Y);
             if (!world.Contains(tile.X, tile.Y) || !IsVisible(world, tile)
                 || (door.UnderConstruction && door.PlayerId != _viewingPlayerId)
+                || IsHiddenSecretDoor(world, tile.X, tile.Y)
                 || !_database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)) continue;
             yield return new StructureView(new StructureId(StructureKind.Door, door.Id), tile,
                 new PlayerId(door.PlayerId), AssetRef.ForDoor(definition.Name, door.Open),

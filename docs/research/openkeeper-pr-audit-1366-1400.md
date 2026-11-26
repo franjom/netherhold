@@ -91,8 +91,10 @@ nothing is CONFIRMED: a claim read from the instructions is STRONGLY INFERRED.
   (HashVersion 537). Not built: command `0x11`.
 - **A hidden secret door is not drawn for a non-owner (#1372).** Ghidra, STRONGLY INFERRED for this
   branch. [0x004A6E10] returns 0 for a secret door whose owner is not the local viewer while the
-  tile marker is set, with no alliance test (`0x4A6E95..0x4A6ED3`). `src/DK2.Presentation` does not
-  read the marker when drawing doors (only `WorldHoverText.cs:91` does).
+  tile marker is set, with no alliance test (`0x4A6E95..0x4A6ED3`). Built 2026-11-26 as
+  `WorldView.IsHiddenSecretDoor`: the door and its lock are left out and the tile is drawn as the
+  owner's Reinforced Wall, as the handler `0x004488A0` and the terrain builder's prelude
+  (`0x0043E8FC`) do (`HiddenSecretDoorViewTests`).
 - **Snore effect ([#1394](https://github.com/tonihele/OpenKeeper/pull/1394)).** Ghidra, STRONGLY
   INFERRED. State 83 ([0x0046FA60], `0x46FDF3..0x46FE4B`) loads byte `+0xA7` with `0x30` on entry,
   decrements it each call, and when the old value was 0 requests the room definition's `+0x425`
