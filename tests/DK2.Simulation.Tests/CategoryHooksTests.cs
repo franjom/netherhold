@@ -5,10 +5,9 @@
 using System.Reflection;
 using DK2.Data.Model;
 
+using Cat = DK2.Data.Model.CreatureStateCategory;
+
 namespace DK2.Simulation.Tests;
-
-using Cat = CreatureStateCategory;
-
 /// <summary><see cref="CategoryHooks"/> against DK2's own table (<c>state-categories.md</c> §7.1,
 /// bodies in <c>state-category-hooks.md</c> §2–§3), and the dispatch <c>SetState</c> runs
 /// (ADR-0308).</summary>

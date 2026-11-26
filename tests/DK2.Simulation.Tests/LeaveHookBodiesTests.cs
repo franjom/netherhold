@@ -5,10 +5,9 @@
 using DK2.Core;
 using DK2.Data.Model;
 
+using Cat = DK2.Data.Model.CreatureStateCategory;
+
 namespace DK2.Simulation.Tests;
-
-using Cat = CreatureStateCategory;
-
 /// <summary>The Casino, Torture and Manufacture leave hooks and the Workshop's maker count
 /// (ADR-0322, <c>leave-hook-bodies.md</c>), each through <c>SetState</c>'s dispatch.</summary>
 public class LeaveHookBodiesTests

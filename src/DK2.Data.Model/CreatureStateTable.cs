@@ -5,11 +5,10 @@
 using System;
 using DK2.Core;
 
+using Cat = DK2.Data.Model.CreatureStateCategory;
+using Flag = DK2.Data.Model.CreatureStateFlags;
+
 namespace DK2.Data.Model;
-
-using Cat = CreatureStateCategory;
-using Flag = CreatureStateFlags;
-
 /// <summary>DK2's 281 creature states, as data. Nothing here decides behaviour: it is the
 /// map a mechanic is read against, and the input to the transition rule.
 /// <para><b>Generated</b> by <c>tools/gen-creature-state-tables.py</c> from

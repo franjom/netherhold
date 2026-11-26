@@ -5,10 +5,9 @@
 using System;
 using DK2.Core;
 
+using Cat = DK2.Data.Model.CreatureStateCategory;
+
 namespace DK2.Data.Model;
-
-using Cat = CreatureStateCategory;
-
 /// <summary>DK2's 32 state-category records: the half of the transition rule the state
 /// table cannot answer, plus which of the three per-category hooks exist.
 /// <para><b>Generated</b> by <c>tools/gen-creature-state-tables.py</c> from

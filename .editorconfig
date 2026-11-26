@@ -40,3 +40,6 @@ insert_final_newline = true
 # runs `dotnet test DK2.slnx` on Linux and Windows, so it is gated with no new
 # workflow step. See ADR-0041.
 # ---------------------------------------------------------------------------
+
+csharp_using_directive_placement = outside_namespace
+dotnet_diagnostic.IDE0065.severity = warning

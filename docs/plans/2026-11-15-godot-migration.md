@@ -1209,10 +1209,9 @@ and resource upload with the scene's loading path, so the retired helper was rem
 A pass over every C# file in `src/`, `tests/` and `godot/` once Unity is gone and every assembly targets net10.0.
 Behaviour stays the same: the turn-400 hash, the replays and the frame captures are the checks.
 
-- [ ] Coding style, defined first and enforced by the build. Survey the styles in use, propose one per question
-      (`var`, braces, expression bodies, file-scoped namespaces, `using` placement, naming of private fields, constants
-      and async methods, pattern matching, collection expressions, primary constructors) for the owner to choose, then
-      write them into `.editorconfig` with severities. `EnforceCodeStyleInBuild` and `TreatWarningsAsErrors` make each
+- [ ] Coding style, defined first and enforced by the build. Read the
+      [survey and owner decisions](2026-11-26-csharp-style-questions.md). The build enforces file-scope `using` placement.
+      Apply the remaining approved rules. `EnforceCodeStyleInBuild` and `TreatWarningsAsErrors` make each
       rule a build error, so each rule lands with `dotnet format` fixing every file it flags (`.editorconfig`'s header).
       Rules the analysers cannot express (a number cast to an enum instead of a named member, magic numbers for DK2
       ids) go in a small Roslyn analyzer or an `ArchitectureTests` check.
