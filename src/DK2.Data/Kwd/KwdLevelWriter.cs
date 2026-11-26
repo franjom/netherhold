@@ -18,7 +18,7 @@ public static partial class KwdLevel
         }
 
         LevelDef original = Parse([template])!;
-        byte[] image = template.Content.ToArray();
+        byte[] image = [.. template.Content];
         int metadata = original.Unknown_6403.Length + BaseMetadataSize;
         WriteUtf16(image, 0, 64, row.Name, original.Name);
         WriteUtf16(image, 128, 1024, row.Description, original.Description);

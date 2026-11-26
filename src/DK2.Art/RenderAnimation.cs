@@ -28,8 +28,8 @@ public sealed class RenderAnimation
         _frames = new Vector3[animation.Frames.Count][];
         for (int frame = 0; frame < _frames.Length; frame++)
         {
-            _frames[frame] = animation.Frames[frame].Primitives
-                .SelectMany(p => p.Vertices).Select(v => RenderMesh.ToRenderFrame(v.Position)).ToArray();
+            _frames[frame] = [.. animation.Frames[frame].Primitives
+                .SelectMany(p => p.Vertices).Select(v => RenderMesh.ToRenderFrame(v.Position))];
             if (_frames[frame].Length != Mesh.Positions.Count)
             {
                 throw new ArgumentException("Animation frame vertex counts differ.", nameof(model));

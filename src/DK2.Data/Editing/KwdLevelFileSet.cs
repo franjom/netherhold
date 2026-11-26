@@ -23,7 +23,7 @@ public sealed partial class KwdLevelFileSet
         foreach(KeyValuePair<string, IReadOnlyList<KwdChunk>> file in files)
         {
             string path=Normalize(file.Key);
-            KwdChunk[] chunks=file.Value.Select(Clone).ToArray();
+            KwdChunk[] chunks= [.. file.Value.Select(Clone)];
             foreach(KwdChunk chunk in chunks)
             {
                 if(chunk.ContainerHeader is null)
@@ -124,7 +124,7 @@ public sealed partial class KwdLevelFileSet
 
     public void Save(string outputRoot)
     {
-        (string Path, byte[] Bytes)[] output =_files.Select(file=>(Path:Path.Combine(outputRoot,file.Key),Bytes:KwdWriter.ToBytes(file.Value))).ToArray();
+        (string Path, byte[] Bytes)[] output = [.. _files.Select(file=>(Path:Path.Combine(outputRoot,file.Key),Bytes:KwdWriter.ToBytes(file.Value)))];
         foreach((string Path, byte[] Bytes) file in output)
         {
             string? parent=Path.GetDirectoryName(file.Path);
@@ -164,7 +164,7 @@ public sealed partial class KwdLevelFileSet
             throw new InvalidOperationException("Nested mutations during a typed edit callback are not supported.");
         }
     }
-    private static KwdChunk Clone(KwdChunk chunk) => chunk with { Content=chunk.Content.ToArray(),HeaderBlock=chunk.HeaderBlock.ToArray() };
+    private static KwdChunk Clone(KwdChunk chunk) => chunk with { Content= [.. chunk.Content], HeaderBlock = [.. chunk.HeaderBlock] };
 
     private static string Normalize(string path)
     {
@@ -189,8 +189,7 @@ public sealed partial class KwdLevelFileSet
         {
             string exact=Path.Combine(current,part);
             if(File.Exists(exact) || Directory.Exists(exact)) { current=exact; continue; }
-            string[] matches=Directory.EnumerateFileSystemEntries(current)
-                .Where(p=>Path.GetFileName(p).Equals(part,StringComparison.OrdinalIgnoreCase)).ToArray();
+            string[] matches= [.. Directory.EnumerateFileSystemEntries(current).Where(p=>Path.GetFileName(p).Equals(part,StringComparison.OrdinalIgnoreCase))];
             if(matches.Length!=1)
             {
                 throw new FileNotFoundException("A LEVEL reference cannot be resolved uniquely.",exact);

@@ -184,9 +184,9 @@ public static class AssetConverter
 
         private string TexturePath(string storedName)
         {
-            string readable = new(storedName.Select(character =>
+            string readable = new((char[])[.. storedName.Select(character =>
                 Path.GetInvalidFileNameChars().Contains(character) || character is '/' or '\\'
-                    ? '_' : character).ToArray());
+                    ? '_' : character)]);
             byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(storedName.ToUpperInvariant()));
             return Path.Combine(_root, "_textures", $"{readable}-{System.Convert.ToHexString(hash, 0, 4)}.png");
         }

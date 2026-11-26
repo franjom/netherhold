@@ -17,7 +17,7 @@ public abstract record KwdRoundTripRecord
         _sourceBytes = sourceBytes?.ToArray() ?? throw new ArgumentNullException(nameof(sourceBytes));
 
     public int ConsumedLength => _sourceBytes.Length;
-    public byte[] ToBytes() => _sourceBytes.ToArray();
+    public byte[] ToBytes() => [.. _sourceBytes];
 }
 
 /// <summary>An 84-byte art-resource descriptor embedded in definition records.</summary>

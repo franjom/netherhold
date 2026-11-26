@@ -102,7 +102,7 @@ public static class KwdCorpusAudit
             throw new InvalidDataException($"{chunk.Type}: item count mismatch.");
         }
 
-        byte[] joined = records.SelectMany(r => r.ToBytes()).ToArray();
+        byte[] joined = [.. records.SelectMany(r => r.ToBytes())];
         if (!joined.SequenceEqual(chunk.Content))
         {
             throw new InvalidDataException($"{chunk.Type}: records did not round-trip.");

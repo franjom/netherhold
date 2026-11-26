@@ -179,8 +179,8 @@ public sealed class SdtArchive
         }
 
         char[] invalid = Path.GetInvalidFileNameChars();
-        stem = new string(stem.Select(character => invalid.Contains(character)
-            || character is '/' or '\\' ? '_' : character).ToArray()).Trim(' ', '.');
+        stem = new string((char[])[.. stem.Select(character => invalid.Contains(character)
+            || character is '/' or '\\' ? '_' : character)]).Trim(' ', '.');
         if (stem.Length == 0)
         {
             stem = "entry";

@@ -7,10 +7,10 @@ namespace DK2.Data.Model;
 /// <summary>One-based campaign map identity; slot25 is the native unused placeholder.</summary>
 public readonly record struct CampaignSlot
 {
-    private static readonly string?[] Names = { null, "level1", "level2", "level3", "level4", "level5", "level6a", "level6b",
+    private static readonly string?[] Names = [ null, "level1", "level2", "level3", "level4", "level5", "level6a", "level6b",
         "level7", "level8", "level9", "level10", "level11a", "level11b", "level11c", "level12", "level13", "level14",
         "level15a", "level15b", "level16", "level17", "level18", "level19", "level20", null,
-        "secret1", "secret2", "secret3", "secret4", "secret5" };
+        "secret1", "secret2", "secret3", "secret4", "secret5" ];
     public CampaignSlot(int value)
     {
         if (value is < 1 or > 30)

@@ -133,9 +133,7 @@ public static class KwdRecordRoundTrip
             throw new InvalidDataException($"{chunk.Type}: {chunk.Content.Length} bytes do not divide into {count} records of {stride}.");
         }
 
-        return Enumerable.Range(0, count)
-            .Select(i => new KwdRecordImage(chunk.Type, chunk.Content.AsSpan(i * stride, stride).ToArray()))
-            .ToList();
+        return [.. Enumerable.Range(0, count).Select(i => new KwdRecordImage(chunk.Type, chunk.Content.AsSpan(i * stride, stride).ToArray()))];
     }
 
     private static int FixedStride(KwdChunk chunk)

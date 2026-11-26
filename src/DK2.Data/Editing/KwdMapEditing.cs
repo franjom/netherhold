@@ -45,7 +45,7 @@ public sealed partial class KwdLevelFileSet
         var record=new KwdRecordLocation(location.RelativePath,location.ChunkIndex,0);
         KwdChunk chunk=Chunk(record);
         int at=(position.Y*map.Width+position.X)*4;
-        byte[] content=chunk.Content.ToArray();
+        byte[] content= [.. chunk.Content];
         MapGrid.WriteTile(tile,new KwdRecordImage(KwdRecordType.Map,content.AsSpan(at,4).ToArray())).CopyTo(content,at);
         Replace(record,chunk with { Content=content });
     }
@@ -74,7 +74,7 @@ public sealed partial class KwdLevelFileSet
             chunk.Content.AsSpan(y*map.Width*4,rowBytes).CopyTo(content.AsSpan(y*dimensions.Width*4,rowBytes));
         }
 
-        byte[] header=chunk.HeaderBlock.ToArray();
+        byte[] header= [.. chunk.HeaderBlock];
         BinaryPrimitives.WriteInt32LittleEndian(header,dimensions.Width);
         BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(4),dimensions.Height);
         Replace(record,chunk with { HeaderBlock=header,Content=content });

@@ -181,7 +181,7 @@ public sealed partial class KwdLevelFileSet
 
     private static KwdChunk TaggedChunk(KwdChunk source,IReadOnlyList<KwdRecordImage> images)
     {
-        byte[] header=source.HeaderBlock.ToArray();
+        byte[] header= [.. source.HeaderBlock];
         if(source.Type==KwdRecordType.Things)
         {
             BinaryPrimitives.WriteInt32LittleEndian(header,images.Count);
@@ -196,7 +196,7 @@ public sealed partial class KwdLevelFileSet
             throw new InvalidDataException("The chunk has no established tagged editing layout.");
         }
 
-        KwdChunk result=source with { HeaderBlock=header,ItemCount=images.Count,Content=images.SelectMany(i=>i.ToBytes()).ToArray() };
+        KwdChunk result=source with { HeaderBlock=header,ItemCount=images.Count,Content= [.. images.SelectMany(i=>i.ToBytes())] };
         _=KwdTaggedRecords.Split(result);
         return result;
     }
@@ -222,7 +222,7 @@ public sealed partial class KwdLevelFileSet
 
     private void RequireCompleteManifest()
     {
-        KwdChunk[] levels=_files.Values.SelectMany(c=>c).Where(c=>c.Type==KwdRecordType.Level).ToArray();
+        KwdChunk[] levels= [.. _files.Values.SelectMany(c=>c).Where(c=>c.Type==KwdRecordType.Level)];
         if(levels.Length!=1)
         {
             throw new InvalidDataException("Trigger-reference operations require one complete LEVEL file set.");

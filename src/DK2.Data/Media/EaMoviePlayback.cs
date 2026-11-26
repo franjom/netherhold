@@ -55,8 +55,8 @@ public sealed class EaMovieTimeline
         }
         VideoFrames = video.ToArray();
         AudioBlocks = audio.ToArray();
-        _blockStart = start.ToArray();
-        _videosBefore = before.ToArray();
+        _blockStart = [.. start];
+        _videosBefore = [.. before];
         TotalAudioFrames = frames;
     }
 

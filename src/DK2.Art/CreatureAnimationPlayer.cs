@@ -213,7 +213,7 @@ public sealed class CreatureAnimationPlayer<TResources>
     /// <summary>The last drawn pose, sampled only on request and cached until the next draw.</summary>
     public bool TryGetSample(out Vector3[] vertices)
     {
-        vertices = Array.Empty<Vector3>();
+        vertices = [];
         if (_clock == null || !_drawnSegment.HasValue || _clips == null)
         {
             return false;

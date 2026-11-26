@@ -28,7 +28,7 @@ public static class CreatureStateTable
 
     //                             id  label  grp  category             flags
     private static readonly CreatureStateDef[] Rows =
-    {
+    [
         new CreatureStateDef(  0,  2599, 100, Cat.Refused,         Flag.None),
         new CreatureStateDef(  1,  2599,   0, Cat.Idle,            Flag.None),
         new CreatureStateDef(  2,  2675,   2, Cat.Refused,         Flag.Unread0),
@@ -310,7 +310,7 @@ public static class CreatureStateTable
         new CreatureStateDef(278,  2788,   1, Cat.Unnamed7,        Flag.SuppressNeedAnger | Flag.NotAttackable | Flag.NoFightLookup),
         new CreatureStateDef(279,  2788,   1, Cat.Unnamed7,        Flag.SuppressNeedAnger | Flag.NotAttackable | Flag.NoFightLookup),
         new CreatureStateDef(280,  2788,   1, Cat.Unnamed7,        Flag.SuppressNeedAnger | Flag.NotAttackable | Flag.NoFightLookup),
-    };
+    ];
 
     /// <summary>Every state, in id order.</summary>
     public static ReadOnlySpan<CreatureStateDef> All => Rows;
@@ -342,6 +342,6 @@ public static class CreatureStateTable
             }
         }
 
-        return found.ToArray();
+        return [.. found];
     }
 }

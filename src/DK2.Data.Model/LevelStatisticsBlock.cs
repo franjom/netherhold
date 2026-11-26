@@ -12,7 +12,7 @@ namespace DK2.Data.Model;
 public sealed record LevelStatisticsBlock
 {
     public const int Dwords = 17;
-    private static readonly uint[] EvilRatingWeights = { 1000, 40, 50, 5, 0, 5, 1, 2, 5, 20, 40, 50 };
+    private static readonly uint[] EvilRatingWeights = [1000, 40, 50, 5, 0, 5, 1, 2, 5, 20, 40, 50];
 
     public uint DungeonHeartsDestroyed { get; init; }
     public uint EnemyCreaturesKilled { get; init; }
@@ -47,8 +47,8 @@ public sealed record LevelStatisticsBlock
     {
         get
         {
-            uint[] fields = { DungeonHeartsDestroyed, EnemyCreaturesKilled, HeroesDestroyed, RoomsTakenOver, 0,
-                LandOwned, GoldMined, (uint)ManaStored, ItemsManufactured, CreaturesCommanded, CreaturesConverted };
+            uint[] fields = [ DungeonHeartsDestroyed, EnemyCreaturesKilled, HeroesDestroyed, RoomsTakenOver, 0,
+                LandOwned, GoldMined, (uint)ManaStored, ItemsManufactured, CreaturesCommanded, CreaturesConverted ];
             uint sum = RoomExtraPoints;
             for (int i = 0; i < fields.Length; i++)
             {
@@ -64,8 +64,8 @@ public sealed record LevelStatisticsBlock
     {
         byte[] bytes = new byte[Dwords * 4];
         Span<byte> span = bytes;
-        uint[] head = { DungeonHeartsDestroyed, EnemyCreaturesKilled, HeroesDestroyed, RoomsTakenOver, RoomExtraPoints,
-            LandOwned, GoldMined, (uint)ManaStored, ItemsManufactured, CreaturesCommanded, CreaturesConverted, CreatureTraining };
+        uint[] head = [ DungeonHeartsDestroyed, EnemyCreaturesKilled, HeroesDestroyed, RoomsTakenOver, RoomExtraPoints,
+            LandOwned, GoldMined, (uint)ManaStored, ItemsManufactured, CreaturesCommanded, CreaturesConverted, CreatureTraining ];
         for (int i = 0; i < head.Length; i++)
         {
             BinaryPrimitives.WriteUInt32LittleEndian(span[(i * 4)..], head[i]);

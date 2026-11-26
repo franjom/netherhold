@@ -122,7 +122,7 @@ public sealed class RenderMesh
         }
 
         return new RenderMesh([.. positions], [.. normals], [.. uvs],
-            triangles.Select(list => list.ToArray()).ToArray(), blends, controlPoints, taggedPoints);
+            [.. triangles.Select(list => list.ToArray())], blends, controlPoints, taggedPoints);
     }
 }
 

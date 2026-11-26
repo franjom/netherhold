@@ -32,8 +32,8 @@ public static class KwdRewriteAudit
         }
 
         string root=directory ? source : Path.GetDirectoryName(source)!;
-        string[] files=directory ? EnumeratePlainFiles(source)
-            .Where(IsKwd).OrderBy(p=>p,StringComparer.OrdinalIgnoreCase).ToArray() : [source];
+        string[] files=directory ? [.. EnumeratePlainFiles(source)
+            .Where(IsKwd).OrderBy(p=>p,StringComparer.OrdinalIgnoreCase)] : [source];
         if(files.Any(f=>!IsKwd(f)))
         {
             throw new InvalidDataException("Rewrite accepts KWD/KLD files.");

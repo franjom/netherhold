@@ -9,7 +9,7 @@ public static class FrontEndLabelGlow
 {
     // Radius3 selects the ten-wide table at0x006BB770. Exclusive sample bounds consume at most64 coefficients.
     private static readonly double[] Kernel =
-    {
+    [
         0.003679, 0.005428, 0.007165, 0.008465, 0.008949, 0.008465, 0.007165, 0.005428,
         0.003679, 0.002231, 0.005428, 0.008008, 0.010571, 0.012489, 0.013202, 0.012489,
         0.010571, 0.008008, 0.005428, 0.003292, 0.007165, 0.010571, 0.013956, 0.016488,
@@ -18,7 +18,7 @@ public static class FrontEndLabelGlow
         0.008949, 0.013202, 0.017429, 0.020590, 0.021767, 0.020590, 0.017429, 0.013202,
         0.008949, 0.005428, 0.008465, 0.012489, 0.016488, 0.019478, 0.020590, 0.019478,
         0.016488, 0.012489, 0.008465, 0.005134, 0.007165, 0.010571, 0.013956, 0.016488,
-    };
+    ];
 
     public static RgbaImage Create(RgbaImage source)
     {

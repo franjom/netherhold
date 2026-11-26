@@ -15,12 +15,12 @@ public static class InstalledCampaignRegistry
 {
     public const string PlayerKeyPath = @"Software\Bullfrog Productions Ltd\Dungeon Keeper II\Configuration\Player";
     private static readonly (string Name, bool Binary)[] Values =
-    {
+    [
         ("Version Number", false), ("Level Number", false), ("MPD Level Number", false),
         ("Transfer Creature ID", false), ("Transfer Creature Level", false), ("Secret Level Number", false),
         ("Player Level Status", true), ("Total Evil Rating", true), ("Level Attempts", true), ("Secret Levels", true),
         ("Secret Levels Completed", true), ("Special Levels Completed", true), ("Pet Dungeon Levels Completed", true),
-    };
+    ];
 
     public static CampaignProfile? ReadCurrentUser()
     {

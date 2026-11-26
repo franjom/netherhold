@@ -157,9 +157,9 @@ public static partial class KwdAdditionalRecords
     internal static int I32(byte[] r, int at) =>
         BinaryPrimitives.ReadInt32LittleEndian(r.AsSpan(at));
     internal static ushort[] U16s(byte[] r, int at, int count) =>
-        Enumerable.Range(0, count).Select(i => U16(r, at + i * 2)).ToArray();
+        [.. Enumerable.Range(0, count).Select(i => U16(r, at + i * 2))];
     internal static int[] I32s(byte[] r, int at, int count) =>
-        Enumerable.Range(0, count).Select(i => I32(r, at + i * 4)).ToArray();
+        [.. Enumerable.Range(0, count).Select(i => I32(r, at + i * 4))];
 }
 
 /// <summary>Field reader for all twelve THINGS payload tags.</summary>
@@ -431,7 +431,7 @@ public static partial class KwdLevel
             paths.Add(new KwdLevelFilePath((KwdRecordType)KwdAdditionalRecords.I32(r, at), KwdAdditionalRecords.I32(r, at + 4), KwdAdditionalRecords.Ascii(r, at + 8, 64)));
         }
 
-        uint[] tail = Enumerable.Range(0, height).Select(i => KwdAdditionalRecords.U32(r, at + i * 4)).ToArray();
+        uint[] tail = [.. Enumerable.Range(0, height).Select(i => KwdAdditionalRecords.U32(r, at + i * 4))];
 
         return new LevelDef(r)
         {

@@ -12,22 +12,22 @@ public static class KwdTypedRecords
     public static IReadOnlyList<object> Read(KwdChunk chunk) => chunk.Type switch
     {
         KwdRecordType.Terrain => KwdTerrainRooms.ParseTerrain([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.Rooms => KwdTerrainRooms.ParseRooms([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.Creatures => KwdCreatures.Parse([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.KeeperSpells => KwdKeeperSpells.Parse([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.Objects => KwdObjects.Parse([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.Doors => KwdDoors.Parse([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.Traps => KwdTraps.Parse([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.Players => KwdPlayers.Parse([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.CreatureSpells => KwdAdditionalRecords.ParseCreatureSpells([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.Shots => KwdAdditionalRecords.ParseShots([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.Effects => KwdAdditionalRecords.ParseEffects([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.EffectElements => KwdAdditionalRecords.ParseEffectElements([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.Things => KwdThings.Parse([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.Triggers => KwdTriggers.Parse([chunk]).Cast<object>().ToArray(),
+        KwdRecordType.Rooms => [.. KwdTerrainRooms.ParseRooms([chunk]).Cast<object>()],
+        KwdRecordType.Creatures => [.. KwdCreatures.Parse([chunk]).Cast<object>()],
+        KwdRecordType.KeeperSpells => [.. KwdKeeperSpells.Parse([chunk]).Cast<object>()],
+        KwdRecordType.Objects => [.. KwdObjects.Parse([chunk]).Cast<object>()],
+        KwdRecordType.Doors => [.. KwdDoors.Parse([chunk]).Cast<object>()],
+        KwdRecordType.Traps => [.. KwdTraps.Parse([chunk]).Cast<object>()],
+        KwdRecordType.Players => [.. KwdPlayers.Parse([chunk]).Cast<object>()],
+        KwdRecordType.CreatureSpells => [.. KwdAdditionalRecords.ParseCreatureSpells([chunk]).Cast<object>()],
+        KwdRecordType.Shots => [.. KwdAdditionalRecords.ParseShots([chunk]).Cast<object>()],
+        KwdRecordType.Effects => [.. KwdAdditionalRecords.ParseEffects([chunk]).Cast<object>()],
+        KwdRecordType.EffectElements => [.. KwdAdditionalRecords.ParseEffectElements([chunk]).Cast<object>()],
+        KwdRecordType.Things => [.. KwdThings.Parse([chunk]).Cast<object>()],
+        KwdRecordType.Triggers => [.. KwdTriggers.Parse([chunk]).Cast<object>()],
         KwdRecordType.Level => [KwdLevel.Parse([chunk])!],
-        KwdRecordType.Variables => KwdRecordRoundTrip.Split(chunk).Select(i=>(object)KwdVariables.ParseRecord(i.ToBytes())).ToArray(),
-        KwdRecordType.Map => MapGrid.Parse([chunk])!.Tiles.Cast<object>().ToArray(),
+        KwdRecordType.Variables => [.. KwdRecordRoundTrip.Split(chunk).Select(i=>(object)KwdVariables.ParseRecord(i.ToBytes()))],
+        KwdRecordType.Map => [.. MapGrid.Parse([chunk])!.Tiles.Cast<object>()],
         _ => throw new InvalidDataException($"No established typed record layout for {chunk.Type}."),
     };
 
@@ -62,8 +62,8 @@ public static class KwdTypedRecords
             throw new InvalidDataException($"{chunk.Type}: typed projection and image counts differ.");
         }
 
-        KwdRecordImage[] rewritten=rows.Select((row,i)=>
-            new KwdRecordImage(chunk.Type,Write(row,images[i],chunk),images[i].Tag)).ToArray();
+        KwdRecordImage[] rewritten= [.. rows.Select((row,i)=>
+            new KwdRecordImage(chunk.Type,Write(row,images[i],chunk),images[i].Tag))];
         return chunk with { Content=KwdRecordRoundTrip.Join(chunk,rewritten) };
     }
 }

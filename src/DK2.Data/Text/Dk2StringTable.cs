@@ -104,7 +104,7 @@ public sealed class Dk2StringTable
             storedOffsets[i] = storedOffset;
         }
 
-        uint[] physicalStarts = storedOffsets.Distinct().OrderBy(offset => offset).ToArray();
+        uint[] physicalStarts = [.. storedOffsets.Distinct().OrderBy(offset => offset)];
         var nextStart = new Dictionary<uint, int>(physicalStarts.Length);
         for (int i = 0; i < physicalStarts.Length; i++)
         {

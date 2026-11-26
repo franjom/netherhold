@@ -21,7 +21,7 @@ public static class CreatureStateCategoryTable
 
     //                              category        bit          entry mask   enter   update  leave  +3c
     private static readonly CreatureStateCategoryDef[] Rows =
-    {
+    [
         new CreatureStateCategoryDef(Cat.Refused,       0x00000001u, 0x00000000u, false, false, true,    2),
         new CreatureStateCategoryDef(Cat.Idle,          0x00000002u, 0xFFFFFFFFu, false, false, false,   5),
         new CreatureStateCategoryDef(Cat.Movement,      0x00000004u, 0x00000000u, false, false, false,   5),
@@ -54,7 +54,7 @@ public static class CreatureStateCategoryTable
         new CreatureStateCategoryDef(Cat.Unnamed29,     0x20000000u, 0xFFFFFFFFu, false, false, false,   5),
         new CreatureStateCategoryDef(Cat.Incapacitated, 0x40000000u, 0xFFFFFFFFu, false, false, false,   5),
         new CreatureStateCategoryDef(Cat.Spectating,    0x80000000u, 0x8002383Bu, true,  true,  true,   21),
-    };
+    ];
 
     /// <summary>Every category record, in index order.</summary>
     public static ReadOnlySpan<CreatureStateCategoryDef> All => Rows;
