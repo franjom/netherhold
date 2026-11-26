@@ -49,7 +49,10 @@ public sealed class LegalActionFuzzer
     {
         // Player 1 is the heroes and 2 the neutrals; only a keeper has a human's inputs.
         if (!PlayerIds.IsKeeper(player.Value))
+        {
             throw new ArgumentException($"Player {player.Value} is not a keeper (keepers are {PlayerIds.FirstKeeper} and up).", nameof(player));
+        }
+
         var fuzzer = new LegalActionFuzzer(seed, player);
         return new ScenarioController(
             $"fuzz-v{Version}.{HumanCommandPolicy.Version}-s{seed}", player, fuzzer.Decide)
@@ -58,13 +61,23 @@ public sealed class LegalActionFuzzer
 
     private IReadOnlyList<PlayerCommand> Decide(KeeperView view)
     {
-        if (view.Status is PlayerStatus.Conquered or PlayerStatus.Lost) return [];
+        if (view.Status is PlayerStatus.Conquered or PlayerStatus.Lost)
+        {
+            return [];
+        }
         // Three tries: a category with nothing to act on gives way to another draw.
         for (int attempt = 0; attempt < 3; attempt++)
         {
-            if (Build(view, Draw()) is not PlayerCommand command) continue;
+            if (Build(view, Draw()) is not PlayerCommand command)
+            {
+                continue;
+            }
+
             if (!HumanCommandPolicy.AllowsInPlay(command))
+            {
                 throw new InvalidOperationException($"The fuzzer built {command.GetType().Name}, which no human issues in play.");
+            }
+
             return [command];
         }
         return [];
@@ -75,7 +88,11 @@ public sealed class LegalActionFuzzer
         int roll = _rng.NextInt(TotalWeight);
         foreach ((Action action, int weight) in Menu)
         {
-            if (roll < weight) return action;
+            if (roll < weight)
+            {
+                return action;
+            }
+
             roll -= weight;
         }
         return Menu[^1].Action;
@@ -97,7 +114,11 @@ public sealed class LegalActionFuzzer
                 return BuildRoom(view);
             case Action.Sell:
                 KeeperRoomView[] rooms = view.OwnRooms.Where(r => r.Definition.IsBuildable).ToArray();
-                if (rooms.Length == 0) return null;
+                if (rooms.Length == 0)
+                {
+                    return null;
+                }
+
                 KeeperRoomView room = rooms[_rng.NextInt(rooms.Length)];
                 TilePos s = view.FromIndex(room.TileIndices[_rng.NextInt(room.TileIndices.Count)]);
                 return SellRoomCommand.Rect(me, s.X, s.Y, s.X, s.Y);
@@ -113,21 +134,33 @@ public sealed class LegalActionFuzzer
                     : null;
             case Action.Slap:
                 // The right button slaps only with an empty hand; holding something, it drops.
-                if (view.HandCount > 0) return null;
+                if (view.HandCount > 0)
+                {
+                    return null;
+                }
+
                 return Pick(view.Creatures.Where(c => c.OwnerPlayerId == me.Value && c.CanSlap && !c.InHand).ToArray())
                     is KeeperCreatureView slap ? new SlapCreatureCommand(me, slap.Id) : null;
             case Action.Cast:
                 return Cast(view);
             case Action.Door:
                 // The HUD places neither a door nor a trap until the keeper owns a Workshop.
-                if (!OwnsWorkshop(view)) return null;
+                if (!OwnsWorkshop(view))
+                {
+                    return null;
+                }
+
                 return Pick(view.Database.Doors.Values.Where(d => Selectable(view, AvailabilityKind.Door, d.DoorId))
                         .OrderBy(d => d.DoorId).ToArray()) is DoorDef door
                     && Pick(Tiles(view, p => view.IsMine(p) && view.IsPassable(p))) is TilePos dt
                     ? new PlaceDoorCommand(me, dt, door.DoorId)
                     : null;
             case Action.Trap:
-                if (!OwnsWorkshop(view)) return null;
+                if (!OwnsWorkshop(view))
+                {
+                    return null;
+                }
+
                 return Pick(view.Database.Traps.Values.Where(t => BottomPanelView.IsOnPanel(t) && Selectable(view, AvailabilityKind.Trap, t.TrapId))
                         .OrderBy(t => t.TrapId).ToArray()) is TrapDef trap
                     && Pick(Tiles(view, p => view.IsMine(p) && view.IsPassable(p))) is TilePos tt
@@ -147,17 +180,33 @@ public sealed class LegalActionFuzzer
         RoomDef[] rooms = view.Database.Rooms.Values
             .Where(r => r.IsBuildable && Selectable(view, AvailabilityKind.Room, r.RoomId))
             .OrderBy(r => r.RoomId).ToArray();
-        if (Pick(rooms) is not RoomDef room) return null;
+        if (Pick(rooms) is not RoomDef room)
+        {
+            return null;
+        }
+
         int w = 1 + _rng.NextInt(3), h = 1 + _rng.NextInt(3);
-        if (Pick(Tiles(view, p => Fits(view, room, p, w, h))) is not TilePos at) return null;
+        if (Pick(Tiles(view, p => Fits(view, room, p, w, h))) is not TilePos at)
+        {
+            return null;
+        }
+
         return BuildRoomCommand.Rect(view.PlayerId, (RoomTypeId)room.RoomId, at.X, at.Y, at.X + w - 1, at.Y + h - 1);
     }
 
     private static bool Fits(KeeperView view, RoomDef room, TilePos at, int w, int h)
     {
         for (int y = at.Y; y < at.Y + h; y++)
+        {
             for (int x = at.X; x < at.X + w; x++)
-                if (view.CanBuild(new TilePos(x, y), room) != RoomPlacement.Allowed) return false;
+            {
+                if (view.CanBuild(new TilePos(x, y), room) != RoomPlacement.Allowed)
+                {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 
@@ -169,12 +218,19 @@ public sealed class LegalActionFuzzer
             .Where(s => s.KeeperSpellId is not (CreateImpSpell or HornedReaperSpell or OneShotReaperSpell)
                 && Selectable(view, AvailabilityKind.Spell, s.KeeperSpellId) && s.ManaCost <= view.Mana)
             .OrderBy(s => s.KeeperSpellId).ToArray();
-        if (Pick(spells) is not KeeperSpellDef spell) return null;
+        if (Pick(spells) is not KeeperSpellDef spell)
+        {
+            return null;
+        }
+
         if (KeeperSpellRules.TargetsAThing(spell.TargetSelector))
+        {
             // A creature under the pointer: not one in a hand, not a corpse.
             return Pick(view.Creatures.Where(c => !c.InHand && c.Activity != CreatureActivity.Dead).ToArray()) is KeeperCreatureView c
                 ? new CastSpellOnCreatureCommand(view.PlayerId, spell.KeeperSpellId, c.Id)
                 : null;
+        }
+
         TilePos at = view.FromIndex(_rng.NextInt(view.TileCount));
         return new CastSpellAtPlaceCommand(view.PlayerId, spell.KeeperSpellId, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y));
     }
@@ -191,7 +247,10 @@ public sealed class LegalActionFuzzer
         for (int i = 0; i < view.TileCount; i++)
         {
             TilePos p = view.FromIndex(i);
-            if (where(p)) tiles.Add(p);
+            if (where(p))
+            {
+                tiles.Add(p);
+            }
         }
         return tiles.ToArray();
     }

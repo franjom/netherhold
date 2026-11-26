@@ -39,7 +39,11 @@ public static class PlaybookFile
         Playbook playbook = Read(document, problems);
         PlaybookReview review = playbook.Review(hashVersion);
         problems.AddRange(review.Problems);
-        if (problems.Count > 0) throw new InvalidDataException($"playbook '{path}' is refused: " + string.Join("; ", problems));
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException($"playbook '{path}' is refused: " + string.Join("; ", problems));
+        }
+
         return new Loaded(playbook, review.Warnings, Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path))));
     }
 
@@ -59,22 +63,48 @@ public static class PlaybookFile
         {
             var items = new List<PlaybookItem>();
             foreach (string name in names ?? [])
-                if (PlaybookItem.TryParse(name, out PlaybookItem item)) items.Add(item);
-                else problems.Add($"{what}: '{name}' is not kind:Name (room, spell, door, trap, creature)");
+            {
+                if (PlaybookItem.TryParse(name, out PlaybookItem item))
+                {
+                    items.Add(item);
+                }
+                else
+                {
+                    problems.Add($"{what}: '{name}' is not kind:Name (room, spell, door, trap, creature)");
+                }
+            }
+
             return items;
         }
 
         List<RoomTypeId>? Rooms(string what, List<string>? names)
         {
-            if (names is null) return null;
+            if (names is null)
+            {
+                return null;
+            }
+
             var rooms = new List<RoomTypeId>();
             foreach (string name in names)
-                if (Enum.GetNames<RoomTypeId>().Contains(name, StringComparer.Ordinal)) rooms.Add(Enum.Parse<RoomTypeId>(name));
-                else problems.Add($"plan {what}: '{name}' is not a room type name");
+            {
+                if (Enum.GetNames<RoomTypeId>().Contains(name, StringComparer.Ordinal))
+                {
+                    rooms.Add(Enum.Parse<RoomTypeId>(name));
+                }
+                else
+                {
+                    problems.Add($"plan {what}: '{name}' is not a room type name");
+                }
+            }
+
             return rooms;
         }
 
-        if (d.Available is null) problems.Add("no available section (generate it with playbook-available)");
+        if (d.Available is null)
+        {
+            problems.Add("no available section (generate it with playbook-available)");
+        }
+
         var changes = new List<PlaybookChange>();
         foreach (ChangeEntry change in d.Available?.MayChange ?? [])
         {
@@ -114,11 +144,19 @@ public static class PlaybookFile
     /// <summary>The plan's rooms to take, each <c>[x, y]</c> (R66); null when the plan names none.</summary>
     private static IReadOnlyList<TilePos>? Take(List<List<int>>? at)
     {
-        if (at is null) return null;
+        if (at is null)
+        {
+            return null;
+        }
+
         var tiles = new List<TilePos>(at.Count);
         foreach (List<int> xy in at)
         {
-            if (xy is not { Count: 2 } || xy[0] < 0 || xy[1] < 0) throw new FormatException("plan take: each entry is [x, y] with x and y not negative");
+            if (xy is not { Count: 2 } || xy[0] < 0 || xy[1] < 0)
+            {
+                throw new FormatException("plan take: each entry is [x, y] with x and y not negative");
+            }
+
             tiles.Add(new TilePos(xy[0], xy[1]));
         }
         return tiles;
@@ -126,7 +164,11 @@ public static class PlaybookFile
 
     private static PlaybookNote Note(NoteEntry n, int index)
     {
-        if (n.At is { Count: not 2 }) throw new InvalidDataException($"note {index + 1}: at is [x, y]");
+        if (n.At is { Count: not 2 })
+        {
+            throw new InvalidDataException($"note {index + 1}: at is [x, y]");
+        }
+
         string at = n.At is null ? "" : $" at ({n.At[0]}, {n.At[1]})";
         return new PlaybookNote(n.Kind ?? "", (n.Text ?? "") + at + (n.Provenance is null ? "" : $" ({n.Provenance})"), n.Source ?? "");
     }
@@ -134,7 +176,10 @@ public static class PlaybookFile
     private static PlaybookNote Event(EventEntry e, int index)
     {
         if (string.IsNullOrWhiteSpace(e.Id) || string.IsNullOrWhiteSpace(e.When) || string.IsNullOrWhiteSpace(e.Expect))
+        {
             throw new InvalidDataException($"event {index + 1}: id, when and expect are all required");
+        }
+
         return new PlaybookNote(e.Id, $"{e.When}: {e.Expect}", e.Source ?? "");
     }
 

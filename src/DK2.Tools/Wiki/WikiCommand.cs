@@ -44,7 +44,10 @@ internal static partial class WikiCommand
         var utf8 = new UTF8Encoding(false);
         IReadOnlyList<(string File, string Content)> pages = WikiPages.All(inputs);
         foreach ((string? file, string? content) in pages)
+        {
             File.WriteAllText(Path.Combine(output, file), content, utf8);
+        }
+
         SimMatrixCommand.Write(output, matrix);
         Console.WriteLine($"wiki: {pages.Count + 1} pages -> {output}");
         return 0;
@@ -62,7 +65,11 @@ internal static partial class WikiCommand
         IReadOnlyList<QuestionRow> rows = WikiPages.ParseQuestions(File.ReadAllLines(questions), names);
         var errors = new List<string>();
         List<FunctionRecord> records = FunctionKbCommand.Load(new FunctionKbCommand.Source(root, staged: false), errors);
-        if (errors.Count > 0) throw new InvalidDataException($"function records: {errors[0]} (and {errors.Count - 1} more)");
+        if (errors.Count > 0)
+        {
+            throw new InvalidDataException($"function records: {errors[0]} (and {errors.Count - 1} more)");
+        }
+
         return new WikiInputs(catalog, notes, adrs, rows, records, AdrsCitedInCode(root));
     }
 
@@ -77,14 +84,26 @@ internal static partial class WikiCommand
         foreach (string folder in CodeFolders)
         {
             string dir = Path.Combine(root, folder.Replace('/', Path.DirectorySeparatorChar));
-            if (!Directory.Exists(dir)) continue;
+            if (!Directory.Exists(dir))
+            {
+                continue;
+            }
+
             foreach (string file in Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories))
             {
                 string[] parts = Path.GetRelativePath(root, file).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                if (parts.Contains("obj") || parts.Contains("bin") || parts.Contains(".godot") || parts.Contains("addons")) continue;
+                if (parts.Contains("obj") || parts.Contains("bin") || parts.Contains(".godot") || parts.Contains("addons"))
+                {
+                    continue;
+                }
+
                 foreach (System.Text.RegularExpressions.Match m in AdrCitation().Matches(File.ReadAllText(file)))
+                {
                     foreach (System.Text.RegularExpressions.Capture number in m.Groups[1].Captures.Concat(m.Groups[2].Captures))
+                    {
                         cited.Add(int.Parse(number.ValueSpan, System.Globalization.CultureInfo.InvariantCulture));
+                    }
+                }
             }
         }
         return cited;

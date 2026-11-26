@@ -37,6 +37,7 @@ public sealed class PacketLog
     {
         uint first = action.Kind switch { 55 => action.Second & 0xffff, 93 or 137 => action.First & 0xffff, _ => action.First };
         if (first != 0 || action.Kind != 137)
+        {
             yield return (turn, first, action.Kind switch
         {
             88 => PacketEntityKind.Object,
@@ -44,11 +45,17 @@ public sealed class PacketLog
             93 => PacketEntityKind.DoorTile,
             _ => PacketEntityKind.Creature,
         });
+        }
         // Action 88's target word: a creature for Kill Creatures and Transfer Creature, else zero.
         if (action.Kind == 88 && (action.Second & 0xffff) != 0)
+        {
             yield return (turn, action.Second & 0xffff, PacketEntityKind.Creature);
+        }
+
         if (action.Kind == 137 && (action.Second & 0xffff) != 0)
+        {
             yield return (turn, action.Second & 0xffff, PacketEntityKind.Creature);
+        }
     }
 
     /// <summary>Reads playback turns from the explicitly selected first stamped header.
@@ -57,8 +64,16 @@ public sealed class PacketLog
     public static PacketLog Read(string path, int throughTurn, int firstRecord)
     {
         byte[] data = File.ReadAllBytes(path);
-        if (firstRecord < 1) throw new ArgumentOutOfRangeException(nameof(firstRecord));
-        if (throughTurn < 1) throw new ArgumentOutOfRangeException(nameof(throughTurn));
+        if (firstRecord < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(firstRecord));
+        }
+
+        if (throughTurn < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(throughTurn));
+        }
+
         const int headerSize = 17;
         const int actionSize = 18;
         const int trailerSize = 12;
@@ -70,11 +85,17 @@ public sealed class PacketLog
         for (long turn = 1; turn <= throughTurn; turn++)
         {
             if (offset > data.Length - headerSize - trailerSize)
+            {
                 throw new InvalidDataException($"Packet ends before complete playback turn {turn}.");
+            }
+
             int count = data[offset];
             int size = headerSize + count * actionSize + trailerSize;
             if (size > data.Length - offset)
+            {
                 throw new InvalidDataException($"Truncated packet payload/trailer at playback turn {turn}.");
+            }
+
             records.Add(new PacketRecordStamp(new GameTick(turn), U32(data, offset + 1), offset + 1));
             var actions = new List<PacketAction>();
             for (int n = 0; n < count; n++)
@@ -84,7 +105,11 @@ public sealed class PacketLog
                     U32(data, at), U32(data, at + 4), U32(data, at + 8),
                     U32(data, at + 12), U16(data, at + 16)));
             }
-            if (actions.Count > 0) turns.Add(turn, actions);
+            if (actions.Count > 0)
+            {
+                turns.Add(turn, actions);
+            }
+
             offset += size;
         }
         return new PacketLog(turns, [.. records]);
@@ -97,7 +122,11 @@ public sealed class PacketLog
     public InputFrame At(long turn, PacketEntityMap entityIds, Func<int, int>? goldOnTile = null,
         Func<byte, TilePos, TilePos>? dropAt = null)
     {
-        if (!_turns.TryGetValue(turn, out List<PacketAction>? raw)) return InputFrame.Empty;
+        if (!_turns.TryGetValue(turn, out List<PacketAction>? raw))
+        {
+            return InputFrame.Empty;
+        }
+
         var commands = new List<PlayerCommand>();
         foreach (PacketAction a in raw)
         {
@@ -133,8 +162,11 @@ public sealed class PacketLog
                     // Cast at a place: spell id (flags above it), then x and y in 1/4096 tile.
                     // Only Create Imp is decoded; its position check is not built (ImpCommands).
                     if ((a.First & 0xff) != 4 || a.First >> 16 != 0)
+                    {
                         throw new InvalidDataException(
                             $"Packet action 54 casting spell {a.First & 0xff} at turn {turn} is not decoded.");
+                    }
+
                     commands.Add(new CreateImpCommand(player,
                         new FpPosition2(new Fp32(unchecked((int)a.Second)), new Fp32(unchecked((int)a.Third)))));
                     break;
@@ -230,8 +262,11 @@ public sealed class PacketLog
                     // GUI button pressed (0x00513EB0): the category in the dword at +0x0, the id at +0x4.
                     // 0x004C7A50 compares each whole with a record's body byte, so above 255 none matches.
                     if (a.First <= byte.MaxValue && a.Second <= byte.MaxValue)
+                    {
                         commands.Add(new GuiButtonCommand(player,
                             new GuiButtonTarget((GuiButtonCategory)a.First, (byte)a.Second)));
+                    }
+
                     break;
                 case 93:
                     // Lock or unlock a door (0x00513800): the door's slot in the word at +0x0, the

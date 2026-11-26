@@ -59,7 +59,11 @@ public static partial class WikiPages
         foreach (string line in lines)
         {
             Match m = QuestionRx().Match(line);
-            if (!m.Success) continue;
+            if (!m.Success)
+            {
+                continue;
+            }
+
             string[] cells = line.Split('|');
             string question = cells.Length > 2 ? cells[2].Trim() : "";
             Match state = StateRx().Match(cells.Length > 3 ? cells[3] : "");
@@ -86,7 +90,10 @@ public static partial class WikiPages
                 any = true;
                 (groups.TryGetValue(s, out List<T>? list) ? list : groups[s] = []).Add(item);
             }
-            if (!any) (groups.TryGetValue(Unassigned, out List<T>? list) ? list : groups[Unassigned] = []).Add(item);
+            if (!any)
+            {
+                (groups.TryGetValue(Unassigned, out List<T>? list) ? list : groups[Unassigned] = []).Add(item);
+            }
         }
         return groups;
     }
@@ -101,8 +108,15 @@ public static partial class WikiPages
     static void Contents(StringBuilder sb, WikiInputs inputs, Func<string, int> count, bool unassigned)
     {
         foreach (SystemEntry s in inputs.Catalog.Systems)
+        {
             sb.Append("- [").Append(s.Title).Append("](#").Append(FunctionKb.Slug(s.Title)).Append(") (").Append(N(count(s.Id))).Append(")\n");
-        if (unassigned) sb.Append("- [").Append(Unassigned).Append("](#unassigned) (").Append(N(count(Unassigned))).Append(")\n");
+        }
+
+        if (unassigned)
+        {
+            sb.Append("- [").Append(Unassigned).Append("](#unassigned) (").Append(N(count(Unassigned))).Append(")\n");
+        }
+
         sb.Append('\n');
     }
 
@@ -134,7 +148,10 @@ public static partial class WikiPages
             {
                 string status = a.Status.Length > 0 ? a.Status : "?";
                 if (a.SupersededBy is int by)
+                {
                     status += byNumber.TryGetValue(by, out Adr? next) ? $" by {AdrLink(next)}" : $" by {by:D4}";
+                }
+
                 sb.Append("| ").Append(AdrLink(a)).Append(" | ").Append(Cell(a.Title)).Append(" | ").Append(status).Append(" |\n");
             }
             sb.Append('\n');
@@ -143,8 +160,14 @@ public static partial class WikiPages
         foreach (SystemEntry s in inputs.Catalog.Systems)
         {
             SystemHeading(sb, s);
-            if (groups.TryGetValue(s.Id, out List<Adr>? adrs)) Table(adrs);
-            else sb.Append("No ADR yet.\n\n");
+            if (groups.TryGetValue(s.Id, out List<Adr>? adrs))
+            {
+                Table(adrs);
+            }
+            else
+            {
+                sb.Append("No ADR yet.\n\n");
+            }
         }
         if (groups.TryGetValue(Unassigned, out List<Adr>? rest))
         {
@@ -170,15 +193,24 @@ public static partial class WikiPages
         {
             sb.Append("| Note | File |\n|---|---|\n");
             foreach (ResearchNote n in notes.OrderBy(n => n.Title, StringComparer.Ordinal).ThenBy(n => n.Name, StringComparer.Ordinal))
+            {
                 sb.Append("| ").Append(Cell(n.Title)).Append(" | ").Append(NoteLink(n.Name)).Append(" |\n");
+            }
+
             sb.Append('\n');
         }
 
         foreach (SystemEntry s in inputs.Catalog.Systems)
         {
             SystemHeading(sb, s);
-            if (groups.TryGetValue(s.Id, out List<ResearchNote>? notes)) Table(notes);
-            else sb.Append("No research note yet.\n\n");
+            if (groups.TryGetValue(s.Id, out List<ResearchNote>? notes))
+            {
+                Table(notes);
+            }
+            else
+            {
+                sb.Append("No research note yet.\n\n");
+            }
         }
         if (groups.TryGetValue(Unassigned, out List<ResearchNote>? rest))
         {
@@ -205,15 +237,24 @@ public static partial class WikiPages
         {
             sb.Append("| Q | Question | State |\n|---|---|---|\n");
             foreach (QuestionRow q in rows.OrderBy(q => QuestionNumber(q.Id)).ThenBy(q => q.Id, StringComparer.Ordinal))
+            {
                 sb.Append("| ").Append(q.Id).Append(" | ").Append(Cell(q.Question)).Append(" | ").Append(q.State).Append(" |\n");
+            }
+
             sb.Append('\n');
         }
 
         foreach (SystemEntry s in inputs.Catalog.Systems)
         {
             SystemHeading(sb, s);
-            if (groups.TryGetValue(s.Id, out List<QuestionRow>? rows)) Table(rows);
-            else sb.Append("No open question.\n\n");
+            if (groups.TryGetValue(s.Id, out List<QuestionRow>? rows))
+            {
+                Table(rows);
+            }
+            else
+            {
+                sb.Append("No open question.\n\n");
+            }
         }
         if (groups.TryGetValue(Unassigned, out List<QuestionRow>? rest))
         {
@@ -286,11 +327,18 @@ public static partial class WikiPages
         {
             sb.Append("| ").Append(c);
             foreach (string st in statuses)
+            {
                 sb.Append(" | ").Append(N(inputs.Records.Count(r => r.Confidence == c && r.Status == st)));
+            }
+
             sb.Append(" | ").Append(N(inputs.Records.Count(r => r.Confidence == c))).Append(" |\n");
         }
         sb.Append("| Total");
-        foreach (string st in statuses) sb.Append(" | ").Append(N(inputs.Records.Count(r => r.Status == st)));
+        foreach (string st in statuses)
+        {
+            sb.Append(" | ").Append(N(inputs.Records.Count(r => r.Status == st)));
+        }
+
         sb.Append(" | ").Append(N(inputs.Records.Count)).Append(" |\n\n");
 
         Dictionary<string, List<FunctionRecord>> groups = Group(inputs.Records, r => RecordSystems(r, noteSystems));
@@ -298,12 +346,20 @@ public static partial class WikiPages
           .Append(string.Join(" | ", confidences)).Append(" | Total |\n|---|")
           .Append(string.Concat(Enumerable.Repeat("---:|", confidences.Length + 1))).Append('\n');
         var rows = inputs.Catalog.Systems.Select(s => (s.Id, s.Title)).ToList();
-        if (groups.ContainsKey(Unassigned)) rows.Add((Unassigned, Unassigned));
+        if (groups.ContainsKey(Unassigned))
+        {
+            rows.Add((Unassigned, Unassigned));
+        }
+
         foreach ((string? id, string? title) in rows)
         {
             List<FunctionRecord> list = groups.TryGetValue(id, out List<FunctionRecord>? l) ? l : [];
             sb.Append("| ").Append(title);
-            foreach (string c in confidences) sb.Append(" | ").Append(N(list.Count(r => r.Confidence == c)));
+            foreach (string c in confidences)
+            {
+                sb.Append(" | ").Append(N(list.Count(r => r.Confidence == c)));
+            }
+
             sb.Append(" | ").Append(N(list.Count)).Append(" |\n");
         }
         return sb.ToString();

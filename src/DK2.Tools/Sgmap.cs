@@ -19,18 +19,30 @@ public static class SgmapCommand
 
         var remaining = new List<string>(arguments);
         string? explicitPath = TakePathOption(remaining, error);
-        if (explicitPath == string.Empty) return 2;
-        if (remaining.Count == 0) return Usage(error);
+        if (explicitPath == string.Empty)
+        {
+            return 2;
+        }
+
+        if (remaining.Count == 0)
+        {
+            return Usage(error);
+        }
 
         string? path = ResolvePath(explicitPath, repositoryRoot);
         if (path is null)
         {
             string? configured = explicitPath ?? Environment.GetEnvironmentVariable(EnvironmentVariable);
             if (!string.IsNullOrWhiteSpace(configured))
+            {
                 error.WriteLine($"Symbol map not found at '{Path.GetFullPath(configured)}'.");
+            }
             else
+            {
                 error.WriteLine($"Symbol map not found. Pass --sgmap <path>, set "
                     + $"{EnvironmentVariable}, or place the Flame checkout beside the repository.");
+            }
+
             return 2;
         }
 
@@ -79,7 +91,9 @@ public static class SgmapCommand
     {
         string? selected = explicitPath;
         if (string.IsNullOrWhiteSpace(selected))
+        {
             selected = Environment.GetEnvironmentVariable(EnvironmentVariable);
+        }
 
         if (!string.IsNullOrWhiteSpace(selected))
         {
@@ -87,9 +101,17 @@ public static class SgmapCommand
             return File.Exists(full) ? full : null;
         }
 
-        if (repositoryRoot is null) return null;
+        if (repositoryRoot is null)
+        {
+            return null;
+        }
+
         DirectoryInfo? parent = Directory.GetParent(Path.GetFullPath(repositoryRoot));
-        if (parent is null) return null;
+        if (parent is null)
+        {
+            return null;
+        }
+
         string candidate = Path.Combine(parent.FullName, "Flame", "mapping", FileName);
         return File.Exists(candidate) ? candidate : null;
     }
@@ -97,7 +119,11 @@ public static class SgmapCommand
     private static string? TakePathOption(List<string> arguments, TextWriter error)
     {
         int index = arguments.IndexOf("--sgmap");
-        if (index < 0) return null;
+        if (index < 0)
+        {
+            return null;
+        }
+
         if (index + 1 >= arguments.Count || arguments.Count(a => a == "--sgmap") != 1)
         {
             error.WriteLine("--sgmap requires exactly one path.");
@@ -113,12 +139,18 @@ public static class SgmapCommand
         TextWriter output, TextWriter error)
     {
         SgmapStruct? structure = database.FindStruct(name, error);
-        if (structure is null) return 1;
+        if (structure is null)
+        {
+            return 1;
+        }
 
         output.WriteLine($"struct {structure.Name} size=0x{structure.Size:X}");
         foreach (SgmapFieldLocation field in database.Expand(structure))
+        {
             output.WriteLine($"  0x{field.Offset:X4}  0x{field.Size:X4}  "
                 + $"{field.Path} : {database.Format(field.Type)}");
+        }
+
         return 0;
     }
 
@@ -136,7 +168,11 @@ public static class SgmapCommand
 
             foreach (SgmapFieldLocation field in database.DirectFields(structure))
             {
-                if (!field.Name.Contains(text, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!field.Name.Contains(text, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 output.WriteLine($"field   {structure.Name}+0x{field.Offset:X}  "
                     + $"{field.Name} : {database.Format(field.Type)}");
                 count++;
@@ -145,7 +181,11 @@ public static class SgmapCommand
 
         foreach (SgmapGlobal global in database.Globals)
         {
-            if (!global.Name.Contains(text, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!global.Name.Contains(text, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             string owner = global.MemberOfId is null ? string.Empty
                 : $"  in {database.StructName(global.MemberOfId)}";
             output.WriteLine($"global  0x{global.Address:X8}  {global.Name} : "
@@ -180,7 +220,11 @@ public static class SgmapCommand
         TextWriter output, TextWriter error)
     {
         SgmapStruct? structure = database.FindStruct(name, error);
-        if (structure is null) return 1;
+        if (structure is null)
+        {
+            return 1;
+        }
+
         if (offset >= structure.Size)
         {
             error.WriteLine($"Offset 0x{offset:X} is outside {structure.Name} "
@@ -211,7 +255,11 @@ public static class SgmapCommand
         string digits = value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
             ? value[2..] : value;
         if (uint.TryParse(digits, NumberStyles.AllowHexSpecifier,
-            CultureInfo.InvariantCulture, out uint parsed)) return parsed;
+            CultureInfo.InvariantCulture, out uint parsed))
+        {
+            return parsed;
+        }
+
         throw new ArgumentException($"Invalid hexadecimal value '{value}'.");
     }
 
@@ -248,9 +296,18 @@ public sealed class SgmapDatabase
 
         foreach (SgmapNode node in roots)
         {
-            if (node.Key == "struct") structs.Add(ParseStruct(node));
-            else if (node.Key == "global") globals.Add(ParseGlobal(node));
-            else throw node.Error($"Unknown top-level entry '{node.Key}'");
+            if (node.Key == "struct")
+            {
+                structs.Add(ParseStruct(node));
+            }
+            else if (node.Key == "global")
+            {
+                globals.Add(ParseGlobal(node));
+            }
+            else
+            {
+                throw node.Error($"Unknown top-level entry '{node.Key}'");
+            }
         }
         return new SgmapDatabase(structs, globals);
     }
@@ -260,10 +317,21 @@ public sealed class SgmapDatabase
         SgmapStruct[] matches = Structs.Where(s =>
             string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase)
             || string.Equals(s.Id, name, StringComparison.Ordinal)).ToArray();
-        if (matches.Length == 1) return matches[0];
-        if (matches.Length == 0) error.WriteLine($"Structure '{name}' was not found.");
-        else error.WriteLine($"Structure name '{name}' is ambiguous ({matches.Length} matches); "
+        if (matches.Length == 1)
+        {
+            return matches[0];
+        }
+
+        if (matches.Length == 0)
+        {
+            error.WriteLine($"Structure '{name}' was not found.");
+        }
+        else
+        {
+            error.WriteLine($"Structure name '{name}' is ambiguous ({matches.Length} matches); "
             + "query by its map id.");
+        }
+
         return null;
     }
 
@@ -274,7 +342,10 @@ public sealed class SgmapDatabase
         {
             uint size = SizeOf(field.Type);
             yield return new SgmapFieldLocation(field.Name, field.Name, offset, size, field.Type);
-            if (!structure.IsUnion) offset = checked(offset + size);
+            if (!structure.IsUnion)
+            {
+                offset = checked(offset + size);
+            }
         }
     }
 
@@ -285,7 +356,9 @@ public sealed class SgmapDatabase
             yield return field;
             foreach (SgmapFieldLocation nested in ExpandType(
                 field.Type, field.Offset, field.Path, new HashSet<string>(StringComparer.Ordinal)))
+            {
                 yield return nested;
+            }
         }
     }
 
@@ -294,7 +367,11 @@ public sealed class SgmapDatabase
         var found = new List<SgmapFieldLocation>();
         foreach (SgmapFieldLocation field in AllFields(structure))
         {
-            if (offset < field.Offset || offset >= checked(field.Offset + field.Size)) continue;
+            if (offset < field.Offset || offset >= checked(field.Offset + field.Size))
+            {
+                continue;
+            }
+
             SgmapFieldLocation leaf = DeepestAt(field, offset);
             found.Add(leaf);
         }
@@ -312,7 +389,10 @@ public sealed class SgmapDatabase
                 answer = middle;
                 low = middle + 1;
             }
-            else high = middle - 1;
+            else
+            {
+                high = middle - 1;
+            }
         }
         return answer < 0 ? null : Globals[answer];
     }
@@ -340,9 +420,17 @@ public sealed class SgmapDatabase
     private IEnumerable<SgmapFieldLocation> AllFields(SgmapStruct structure)
     {
         if (structure.SuperId is not null)
+        {
             foreach (SgmapFieldLocation field in AllFields(StructById(structure.SuperId)))
+            {
                 yield return field;
-        foreach (SgmapFieldLocation field in DirectFields(structure)) yield return field;
+            }
+        }
+
+        foreach (SgmapFieldLocation field in DirectFields(structure))
+        {
+            yield return field;
+        }
     }
 
     private IEnumerable<SgmapFieldLocation> ExpandType(SgmapType type, uint offset,
@@ -359,14 +447,24 @@ public sealed class SgmapDatabase
                 yield return new SgmapFieldLocation(elementPath, elementPath,
                     elementOffset, elementSize, element);
                 foreach (SgmapFieldLocation nested in ExpandType(
-                    element, elementOffset, elementPath, ancestors)) yield return nested;
+                    element, elementOffset, elementPath, ancestors))
+                {
+                    yield return nested;
+                }
             }
             yield break;
         }
-        if (type.Kind != "struct") yield break;
+        if (type.Kind != "struct")
+        {
+            yield break;
+        }
 
         SgmapStruct nestedStruct = StructById(type.Required("id"));
-        if (!ancestors.Add(nestedStruct.Id)) yield break;
+        if (!ancestors.Add(nestedStruct.Id))
+        {
+            yield break;
+        }
+
         foreach (SgmapFieldLocation nested in AllFields(nestedStruct))
         {
             SgmapFieldLocation concrete = nested with
@@ -377,7 +475,10 @@ public sealed class SgmapDatabase
             };
             yield return concrete;
             foreach (SgmapFieldLocation child in ExpandType(
-                nested.Type, concrete.Offset, concrete.Path, ancestors)) yield return child;
+                nested.Type, concrete.Offset, concrete.Path, ancestors))
+            {
+                yield return child;
+            }
         }
         ancestors.Remove(nestedStruct.Id);
     }
@@ -394,13 +495,20 @@ public sealed class SgmapDatabase
                 checked(field.Offset + index * elementSize), elementSize, element);
             return DeepestAt(indexed, target);
         }
-        if (type.Kind != "struct") return field;
+        if (type.Kind != "struct")
+        {
+            return field;
+        }
 
         SgmapStruct nested = StructById(type.Required("id"));
         uint relative = target - field.Offset;
         foreach (SgmapFieldLocation child in AllFields(nested))
         {
-            if (relative < child.Offset || relative >= checked(child.Offset + child.Size)) continue;
+            if (relative < child.Offset || relative >= checked(child.Offset + child.Size))
+            {
+                continue;
+            }
+
             SgmapFieldLocation concrete = child with
             {
                 Path = $"{field.Path}.{child.Path}",
@@ -414,7 +522,11 @@ public sealed class SgmapDatabase
     private uint OwnFieldOffset(SgmapStruct structure)
     {
         uint offset = structure.VtableId is null ? 0u : 4u;
-        if (structure.SuperId is null) return offset;
+        if (structure.SuperId is null)
+        {
+            return offset;
+        }
+
         SgmapStruct parent = StructById(structure.SuperId);
         return checked(offset + parent.Size - (parent.VtableId is null ? 0u : 4u));
     }
@@ -445,19 +557,46 @@ public sealed class SgmapDatabase
     {
         foreach (SgmapStruct structure in Structs)
         {
-            if (structure.SuperId is not null) StructById(structure.SuperId);
-            if (structure.VtableId is not null) StructById(structure.VtableId);
-            foreach (SgmapField field in structure.Fields) ValidateType(field.Type);
+            if (structure.SuperId is not null)
+            {
+                StructById(structure.SuperId);
+            }
+
+            if (structure.VtableId is not null)
+            {
+                StructById(structure.VtableId);
+            }
+
+            foreach (SgmapField field in structure.Fields)
+            {
+                ValidateType(field.Type);
+            }
         }
-        foreach (SgmapGlobal global in Globals) ValidateType(global.Type);
         foreach (SgmapGlobal global in Globals)
-            if (global.MemberOfId is not null) StructById(global.MemberOfId);
+        {
+            ValidateType(global.Type);
+        }
+
+        foreach (SgmapGlobal global in Globals)
+        {
+            if (global.MemberOfId is not null)
+            {
+                StructById(global.MemberOfId);
+            }
+        }
     }
 
     private void ValidateType(SgmapType type)
     {
-        if (type.Kind == "struct") StructById(type.Required("id"));
-        foreach (SgmapTypeChild child in type.Children) ValidateType(child.Type);
+        if (type.Kind == "struct")
+        {
+            StructById(type.Required("id"));
+        }
+
+        foreach (SgmapTypeChild child in type.Children)
+        {
+            ValidateType(child.Type);
+        }
     }
 
     private static SgmapStruct ParseStruct(SgmapNode node)
@@ -465,7 +604,11 @@ public sealed class SgmapDatabase
         var fields = new List<SgmapField>();
         foreach (SgmapNode child in node.Children)
         {
-            if (child.Key != "field") continue;
+            if (child.Key != "field")
+            {
+                continue;
+            }
+
             SgmapNode type = child.Children.SingleOrDefault(c => c.Key == "type")
                 ?? throw child.Error("Field has no type");
             fields.Add(new SgmapField(child.Required("name"), ParseType(type)));
@@ -489,7 +632,9 @@ public sealed class SgmapDatabase
         foreach (SgmapNode child in node.Children)
         {
             if (child.Key is "type" or "ret" or "arg")
+            {
                 children.Add(new SgmapTypeChild(child.Key, ParseType(child)));
+            }
         }
         return new SgmapType(node.Required("kind"), node.Properties, children);
     }
@@ -549,20 +694,39 @@ internal static class SgmapSyntax
         for (string? line = reader.ReadLine(); line is not null; line = reader.ReadLine())
         {
             lineNumber++;
-            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith('#')) continue;
+            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith('#'))
+            {
+                continue;
+            }
+
             int spaces = line.TakeWhile(c => c == ' ').Count();
-            if (spaces % 2 != 0) throw new FormatException(
+            if (spaces % 2 != 0)
+            {
+                throw new FormatException(
                 $"Line {lineNumber}: indentation must use pairs of spaces.");
+            }
+
             int level = spaces / 2;
             SgmapNode node = ParseLine(line[spaces..], lineNumber);
-            if (level == 0) roots.Add(node);
+            if (level == 0)
+            {
+                roots.Add(node);
+            }
             else
             {
-                if (level > parents.Count) throw new FormatException(
+                if (level > parents.Count)
+                {
+                    throw new FormatException(
                     $"Line {lineNumber}: indentation skipped a level.");
+                }
+
                 parents[level - 1].Children.Add(node);
             }
-            if (parents.Count > level) parents.RemoveRange(level, parents.Count - level);
+            if (parents.Count > level)
+            {
+                parents.RemoveRange(level, parents.Count - level);
+            }
+
             parents.Add(node);
         }
         return roots;
@@ -571,7 +735,11 @@ internal static class SgmapSyntax
     private static SgmapNode ParseLine(string line, int lineNumber)
     {
         int separator = line.IndexOf(':');
-        if (separator <= 0) throw new FormatException($"Line {lineNumber}: missing entry key.");
+        if (separator <= 0)
+        {
+            throw new FormatException($"Line {lineNumber}: missing entry key.");
+        }
+
         string key = line[..separator].Trim();
         var properties = new Dictionary<string, string>(StringComparer.Ordinal);
         string rest = line[(separator + 1)..].Trim();
@@ -580,12 +748,19 @@ internal static class SgmapSyntax
             foreach (string part in rest.Split(','))
             {
                 int equals = part.IndexOf('=');
-                if (equals <= 0) throw new FormatException(
+                if (equals <= 0)
+                {
+                    throw new FormatException(
                     $"Line {lineNumber}: malformed property '{part}'.");
+                }
+
                 string name = part[..equals].Trim();
                 string value = part[(equals + 1)..].Trim();
-                if (!properties.TryAdd(name, value)) throw new FormatException(
+                if (!properties.TryAdd(name, value))
+                {
+                    throw new FormatException(
                     $"Line {lineNumber}: duplicate property '{name}'.");
+                }
             }
         }
         return new SgmapNode(key, properties, lineNumber);

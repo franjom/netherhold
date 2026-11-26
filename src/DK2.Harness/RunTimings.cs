@@ -154,7 +154,11 @@ internal sealed class RunClock : ISimulationProfiler
 
     public void BeginTick(int tick)
     {
-        if (_inTick) throw new InvalidOperationException($"tick {_tick} is still open");
+        if (_inTick)
+        {
+            throw new InvalidOperationException($"tick {_tick} is still open");
+        }
+
         _inTick = true;
         _tick = tick;
         _tickAllocStart = GC.GetAllocatedBytesForCurrentThread();
@@ -165,8 +169,16 @@ internal sealed class RunClock : ISimulationProfiler
     {
         long elapsed = Stopwatch.GetTimestamp() - _tickStart;
         long allocated = GC.GetAllocatedBytesForCurrentThread() - _tickAllocStart;
-        if (!_inTick) throw new InvalidOperationException("no tick is open");
-        if (_depth != 0) throw new InvalidOperationException($"{_stack[_depth - 1].Marker} is still open at the end of tick {_tick}");
+        if (!_inTick)
+        {
+            throw new InvalidOperationException("no tick is open");
+        }
+
+        if (_depth != 0)
+        {
+            throw new InvalidOperationException($"{_stack[_depth - 1].Marker} is still open at the end of tick {_tick}");
+        }
+
         _inTick = false;
 
         var spans = new MarkerSpan[_touched.Count];
@@ -181,13 +193,24 @@ internal sealed class RunClock : ISimulationProfiler
         _ticks.Add(new TickRecord(_tick, elapsed, allocated, spans));
         _ticking += elapsed;
         _tickAllocated += allocated;
-        if (_worst < 0 || elapsed > _ticks[_worst].Time) _worst = _ticks.Count - 1;
+        if (_worst < 0 || elapsed > _ticks[_worst].Time)
+        {
+            _worst = _ticks.Count - 1;
+        }
     }
 
     public void Begin(SimulationMarker marker)
     {
-        if (!_inTick) throw new InvalidOperationException($"{marker} began outside a tick");
-        if (_depth == _stack.Length) Array.Resize(ref _stack, _stack.Length * 2);
+        if (!_inTick)
+        {
+            throw new InvalidOperationException($"{marker} began outside a tick");
+        }
+
+        if (_depth == _stack.Length)
+        {
+            Array.Resize(ref _stack, _stack.Length * 2);
+        }
+
         _stack[_depth++] = new Frame(marker, GC.GetAllocatedBytesForCurrentThread(), Stopwatch.GetTimestamp());
     }
 
@@ -196,16 +219,26 @@ internal sealed class RunClock : ISimulationProfiler
         long now = Stopwatch.GetTimestamp();
         long allocNow = GC.GetAllocatedBytesForCurrentThread();
         if (_depth == 0 || !ReferenceEquals(_stack[_depth - 1].Marker, marker))
+        {
             throw new InvalidOperationException(
                 $"{marker} ended, but the innermost open span is {(_depth == 0 ? "none" : _stack[_depth - 1].Marker.Name)}");
+        }
 
         Frame frame = _stack[--_depth];
         long elapsed = now - frame.Start;
         long allocated = allocNow - frame.AllocStart;
 
         int id = marker.Id;
-        if (id >= _total.Length) Grow(id);
-        if (_calls[id] == 0) _touched.Add(id);
+        if (id >= _total.Length)
+        {
+            Grow(id);
+        }
+
+        if (_calls[id] == 0)
+        {
+            _touched.Add(id);
+        }
+
         _calls[id]++;
         _total[id] += elapsed;
         _self[id] += elapsed - frame.ChildTime;
@@ -230,7 +263,11 @@ internal sealed class RunClock : ISimulationProfiler
         {
             foreach (MarkerSpan span in _ticks[t].Spans)
             {
-                if (!perTick.TryGetValue(span.Id, out long[]? series)) perTick[span.Id] = series = new long[ticks];
+                if (!perTick.TryGetValue(span.Id, out long[]? series))
+                {
+                    perTick[span.Id] = series = new long[ticks];
+                }
+
                 series[t] = span.Total;
                 sums[span.Id] = sums.TryGetValue(span.Id, out MarkerSpan sum) ? sum.Plus(span) : span;
             }

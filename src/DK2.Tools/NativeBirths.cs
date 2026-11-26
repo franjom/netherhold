@@ -47,25 +47,45 @@ public sealed class NativeBirths
     {
         using StreamReader reader = File.OpenText(path);
         if (reader.ReadLine() != "tick,id,type,owner,x,y,health,state,target")
+        {
             throw new InvalidDataException($"{path}: expected a capture creature-map.csv header.");
+        }
+
         var last = new Dictionary<uint, (string Type, string Owner)>();
         var births = new List<Birth>();
         string? line;
         for (int number = 2; (line = reader.ReadLine()) is not null; number++)
         {
-            if (line.Length == 0) continue;
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
             string[] f = line.Split(',');
             if (f.Length != 9
                 || !long.TryParse(f[0], NumberStyles.None, CultureInfo.InvariantCulture, out long tick)
                 || !uint.TryParse(f[1], NumberStyles.None, CultureInfo.InvariantCulture, out uint slot))
+            {
                 throw new InvalidDataException($"{path}:{number}: invalid creature-map row.");
+            }
+
             bool had = last.TryGetValue(slot, out (string Type, string Owner) was);
             last[slot] = (f[2], f[3]);
             if (!byte.TryParse(f[2], NumberStyles.None, CultureInfo.InvariantCulture, out byte type)
                 || !byte.TryParse(f[3], NumberStyles.None, CultureInfo.InvariantCulture, out byte owner))
+            {
                 continue;
-            if (had && was.Type == f[2]) continue;
-            if (tick > afterTurn) births.Add(new Birth(slot, tick - 1, type, owner));
+            }
+
+            if (had && was.Type == f[2])
+            {
+                continue;
+            }
+
+            if (tick > afterTurn)
+            {
+                births.Add(new Birth(slot, tick - 1, type, owner));
+            }
         }
         births.Sort((a, b) => a.Turn != b.Turn ? a.Turn.CompareTo(b.Turn) : a.Slot.CompareTo(b.Slot));
         return new NativeBirths(births, afterTurn);
@@ -74,7 +94,10 @@ public sealed class NativeBirths
     /// <summary>Every birth's slot names nobody from its turn until one of ours pairs with it.</summary>
     public void Reserve(PacketEntityMap map)
     {
-        foreach (Birth birth in _births) map.Set(birth.Slot, From(birth), PacketEntityMap.NoCreature, PacketEntityKind.Creature);
+        foreach (Birth birth in _births)
+        {
+            map.Set(birth.Slot, From(birth), PacketEntityMap.NoCreature, PacketEntityKind.Creature);
+        }
     }
 
     /// <summary>At the resync: <see cref="Reserve"/>, and the creatures ours has then are not births.</summary>
@@ -89,10 +112,18 @@ public sealed class NativeBirths
     /// <paramref name="events"/> is given.</summary>
     public void PairNew(PacketEntityMap map, long turn, IEnumerable<CreatureState> creatures, TextWriter? events)
     {
-        if (_known is null) return;
+        if (_known is null)
+        {
+            return;
+        }
+
         foreach (CreatureState creature in creatures)
         {
-            if (!_known.Add(creature.Id)) continue;
+            if (!_known.Add(creature.Id))
+            {
+                continue;
+            }
+
             bool paired = TryPair(map, turn, creature.Id, creature.CreatureTypeId, creature.OwnerPlayerId, out Birth native);
             events?.WriteLine(paired
                 ? $"{turn}	replay	birth_paired	creature={creature.Id} type={creature.CreatureTypeId} slot={native.Slot} native_turn={native.Turn}"
@@ -111,13 +142,25 @@ public sealed class NativeBirths
         for (int i = 0; i < _births.Count; i++)
         {
             Birth b = _births[i];
-            if (_paired[i] || b.Type != type || b.Owner != owner) continue;
+            if (_paired[i] || b.Type != type || b.Owner != owner)
+            {
+                continue;
+            }
+
             long gap = Math.Abs(b.Turn - turn);
-            if (gap > Window || gap >= bestGap) continue;
+            if (gap > Window || gap >= bestGap)
+            {
+                continue;
+            }
+
             best = i;
             bestGap = gap;
         }
-        if (best < 0) return false;
+        if (best < 0)
+        {
+            return false;
+        }
+
         native = _births[best];
         _paired[best] = true;
         PairedCount++;

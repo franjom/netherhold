@@ -245,9 +245,21 @@ public sealed class ScenarioExpectation
     public override string ToString()
     {
         string what = Absent ? "no " + Event : Event;
-        if (Detail.Length > 0) what += $" containing \"{Detail}\"";
-        if (AtTick is int tick) what += $" at tick {tick}";
-        if (Count is int n) what += $" exactly {n} time(s)";
+        if (Detail.Length > 0)
+        {
+            what += $" containing \"{Detail}\"";
+        }
+
+        if (AtTick is int tick)
+        {
+            what += $" at tick {tick}";
+        }
+
+        if (Count is int n)
+        {
+            what += $" exactly {n} time(s)";
+        }
+
         return what;
     }
 }
@@ -341,15 +353,29 @@ public sealed class Scenario
     private void Validate()
     {
         if (string.IsNullOrWhiteSpace(Id))
+        {
             throw new InvalidDataException($"'{SourcePath}': scenario needs an id.");
+        }
+
         if (string.IsNullOrWhiteSpace(Map))
+        {
             throw new InvalidDataException($"'{SourcePath}': scenario '{Id}' needs a map.");
+        }
+
         if (DurationTicks <= 0)
+        {
             throw new InvalidDataException($"'{SourcePath}': scenario '{Id}' needs a positive duration_ticks.");
+        }
+
         if (Random is not ("modern" or "dk2"))
+        {
             throw new InvalidDataException($"'{SourcePath}': scenario '{Id}' has random '{Random}'; expected modern or dk2.");
+        }
+
         if (Random == "dk2" && Seed > uint.MaxValue)
+        {
             throw new InvalidDataException($"'{SourcePath}': scenario '{Id}' needs a 32-bit seed under random: dk2.");
+        }
     }
 
     /// <summary>Runs this scenario on <paramref name="seed"/> instead of its file's (<c>--seed</c>),
@@ -357,14 +383,21 @@ public sealed class Scenario
     public void OverrideSeed(ulong seed)
     {
         if (Random == "dk2" && seed > uint.MaxValue)
+        {
             throw new InvalidDataException($"'{SourcePath}': scenario '{Id}' needs a 32-bit seed under random: dk2; --seed {seed} is not one.");
+        }
+
         Seed = seed;
     }
 
     /// <summary>The simulation's generator, as <see cref="Random"/> selects it.</summary>
     public SimRandom CreateRandom()
     {
-        if (Random != "dk2") return new SimRandom(Seed);
+        if (Random != "dk2")
+        {
+            return new SimRandom(Seed);
+        }
+
         return new SimRandom(new Dk2Lcg(Seed == 0 ? Dk2Lcg.LevelStartSeed : (uint)Seed));
     }
 }

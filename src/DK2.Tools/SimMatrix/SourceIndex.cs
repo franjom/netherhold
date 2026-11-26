@@ -27,10 +27,25 @@ internal sealed class SourceIndex
         foreach (INamedTypeSymbol type in types)
         {
             for (INamedTypeSymbol? b = type.BaseType; b is not null; b = b.BaseType)
-                if (IsSource(b)) Add(_derived, b.OriginalDefinition, type);
+            {
+                if (IsSource(b))
+                {
+                    Add(_derived, b.OriginalDefinition, type);
+                }
+            }
+
             foreach (INamedTypeSymbol face in type.AllInterfaces)
-                if (IsSource(face)) Add(_derived, face.OriginalDefinition, type);
-            if (type.TypeKind == TypeKind.Interface) continue;
+            {
+                if (IsSource(face))
+                {
+                    Add(_derived, face.OriginalDefinition, type);
+                }
+            }
+
+            if (type.TypeKind == TypeKind.Interface)
+            {
+                continue;
+            }
 
             foreach (INamedTypeSymbol face in type.AllInterfaces)
             {
@@ -49,8 +64,12 @@ internal sealed class SourceIndex
                 }
             }
             foreach (IMethodSymbol method in type.GetMembers().OfType<IMethodSymbol>())
+            {
                 for (IMethodSymbol? overridden = method.OverriddenMethod; overridden is not null; overridden = overridden.OverriddenMethod)
+                {
                     AddDispatch(overridden, method);
+                }
+            }
         }
     }
 
@@ -74,8 +93,17 @@ internal sealed class SourceIndex
     internal IEnumerable<IMethodSymbol> Targets(IMethodSymbol method)
     {
         if (_dispatch.TryGetValue(method, out List<IMethodSymbol>? list))
-            foreach (IMethodSymbol target in list) yield return target;
-        if (!method.IsAbstract && IsSource(method)) yield return method;
+        {
+            foreach (IMethodSymbol target in list)
+            {
+                yield return target;
+            }
+        }
+
+        if (!method.IsAbstract && IsSource(method))
+        {
+            yield return method;
+        }
     }
 
     internal static bool IsSource(ISymbol symbol) => symbol.DeclaringSyntaxReferences.Length > 0;
@@ -85,26 +113,55 @@ internal sealed class SourceIndex
 
     private void AddDispatch(IMethodSymbol? from, IMethodSymbol? to)
     {
-        if (from is null || to is null) return;
+        if (from is null || to is null)
+        {
+            return;
+        }
+
         to = Definition(to);
-        if (!IsSource(to)) return;
+        if (!IsSource(to))
+        {
+            return;
+        }
+
         from = Definition(from);
-        if (SymbolEqualityComparer.Default.Equals(from, to)) return;
-        if (!_dispatch.TryGetValue(from, out List<IMethodSymbol>? list)) _dispatch[from] = list = [];
-        if (!list.Contains(to, SymbolEqualityComparer.Default)) list.Add(to);
+        if (SymbolEqualityComparer.Default.Equals(from, to))
+        {
+            return;
+        }
+
+        if (!_dispatch.TryGetValue(from, out List<IMethodSymbol>? list))
+        {
+            _dispatch[from] = list = [];
+        }
+
+        if (!list.Contains(to, SymbolEqualityComparer.Default))
+        {
+            list.Add(to);
+        }
     }
 
     private static void Add(Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>> map, INamedTypeSymbol key, INamedTypeSymbol value)
     {
-        if (!map.TryGetValue(key, out List<INamedTypeSymbol>? list)) map[key] = list = [];
-        if (!list.Contains(value, SymbolEqualityComparer.Default)) list.Add(value);
+        if (!map.TryGetValue(key, out List<INamedTypeSymbol>? list))
+        {
+            map[key] = list = [];
+        }
+
+        if (!list.Contains(value, SymbolEqualityComparer.Default))
+        {
+            list.Add(value);
+        }
     }
 
     private static void Collect(INamespaceOrTypeSymbol container, List<INamedTypeSymbol> types)
     {
         foreach (ISymbol member in container.GetMembers())
         {
-            if (member is INamespaceSymbol ns) Collect(ns, types);
+            if (member is INamespaceSymbol ns)
+            {
+                Collect(ns, types);
+            }
             else if (member is INamedTypeSymbol type && IsSource(type))
             {
                 types.Add(type);

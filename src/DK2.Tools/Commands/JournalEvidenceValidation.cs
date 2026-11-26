@@ -19,13 +19,20 @@ internal static class JournalEvidenceValidation
         reader.ReadInt32();
         reader.ReadUInt64();
         int headerCount = reader.ReadInt32();
-        if (headerCount < 0) throw new InvalidDataException("Negative journal header count.");
+        if (headerCount < 0)
+        {
+            throw new InvalidDataException("Negative journal header count.");
+        }
+
         var keys = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < headerCount; i++)
         {
             string key = reader.ReadString();
             reader.ReadString();
-            if (!keys.Add(key)) throw new InvalidDataException("Duplicate journal header key.");
+            if (!keys.Add(key))
+            {
+                throw new InvalidDataException("Duplicate journal header key.");
+            }
         }
         var frames = new HashSet<long>();
         var hashes = new HashSet<long>();
@@ -39,18 +46,37 @@ internal static class JournalEvidenceValidation
                 {
                     case 1:
                         int count = reader.ReadInt32();
-                        if (count < 0) throw new InvalidDataException("Negative journal command count.");
-                        for (int i = 0; i < count; i++) CommandCodec.Read(reader);
-                        if (!frames.Add(tick)) throw new InvalidDataException($"Duplicate journal frame at tick {tick}.");
+                        if (count < 0)
+                        {
+                            throw new InvalidDataException("Negative journal command count.");
+                        }
+
+                        for (int i = 0; i < count; i++)
+                        {
+                            CommandCodec.Read(reader);
+                        }
+
+                        if (!frames.Add(tick))
+                        {
+                            throw new InvalidDataException($"Duplicate journal frame at tick {tick}.");
+                        }
+
                         break;
                     case 2:
                         reader.ReadUInt64();
-                        if (!hashes.Add(tick)) throw new InvalidDataException($"Duplicate journal hash at tick {tick}.");
+                        if (!hashes.Add(tick))
+                        {
+                            throw new InvalidDataException($"Duplicate journal hash at tick {tick}.");
+                        }
+
                         break;
                     case 3:
                         reader.ReadString();
                         if (reader.BaseStream.Position != reader.BaseStream.Length)
+                        {
                             throw new InvalidDataException("Journal contains trailing bytes after its end record.");
+                        }
+
                         return;
                     default:
                         throw new InvalidDataException($"Unknown journal record kind {kind}.");

@@ -82,8 +82,16 @@ internal sealed class MethodWalker
         foreach (SyntaxReference reference in method.DeclaringSyntaxReferences)
         {
             SyntaxNode node = reference.GetSyntax();
-            if (node is not (BaseMethodDeclarationSyntax or AccessorDeclarationSyntax or ArrowExpressionClauseSyntax)) continue;
-            if (index.Model(node.SyntaxTree).GetOperation(node) is not { } body) continue;
+            if (node is not (BaseMethodDeclarationSyntax or AccessorDeclarationSyntax or ArrowExpressionClauseSyntax))
+            {
+                continue;
+            }
+
+            if (index.Model(node.SyntaxTree).GetOperation(node) is not { } body)
+            {
+                continue;
+            }
+
             walker.FindFresh(body);
             walker.Visit(body);
         }
@@ -93,11 +101,22 @@ internal sealed class MethodWalker
     /// <summary>A source property with no accessor body: it reads and writes a hidden field.</summary>
     internal static bool IsAutoProperty(IPropertySymbol property)
     {
-        if (property.IsAbstract || property.DeclaringSyntaxReferences.Length == 0) return false;
+        if (property.IsAbstract || property.DeclaringSyntaxReferences.Length == 0)
+        {
+            return false;
+        }
+
         foreach (SyntaxReference reference in property.DeclaringSyntaxReferences)
         {
-            if (reference.GetSyntax() is not PropertyDeclarationSyntax { ExpressionBody: null, AccessorList: { } accessors }) return false;
-            if (accessors.Accessors.Any(a => a.Body is not null || a.ExpressionBody is not null)) return false;
+            if (reference.GetSyntax() is not PropertyDeclarationSyntax { ExpressionBody: null, AccessorList: { } accessors })
+            {
+                return false;
+            }
+
+            if (accessors.Accessors.Any(a => a.Body is not null || a.ExpressionBody is not null))
+            {
+                return false;
+            }
         }
         return true;
     }
@@ -106,11 +125,20 @@ internal sealed class MethodWalker
     private void FindFresh(IOperation body)
     {
         foreach (IVariableDeclaratorOperation declarator in body.Descendants().OfType<IVariableDeclaratorOperation>())
+        {
             if (IsCreation(declarator.Initializer?.Value))
+            {
                 _fresh.Add(declarator.Symbol);
+            }
+        }
+
         foreach (ISimpleAssignmentOperation assignment in body.Descendants().OfType<ISimpleAssignmentOperation>())
+        {
             if (Unwrap(assignment.Target) is ILocalReferenceOperation local && !IsCreation(assignment.Value))
+            {
                 _fresh.Remove(local.Local);
+            }
+        }
     }
 
     private bool IsCreation(IOperation? value) =>
@@ -173,7 +201,11 @@ internal sealed class MethodWalker
                 return;
             case IObjectCreationOperation creation:
                 Call(creation.Constructor);
-                foreach (IArgumentOperation argument in creation.Arguments) Visit(argument);
+                foreach (IArgumentOperation argument in creation.Arguments)
+                {
+                    Visit(argument);
+                }
+
                 Visit(creation.Initializer);
                 return;
             case IMethodReferenceOperation reference:
@@ -194,7 +226,11 @@ internal sealed class MethodWalker
                 Visit(c.Operand);
                 return;
             default:
-                foreach (IOperation child in operation.ChildOperations) Visit(child);
+                foreach (IOperation child in operation.ChildOperations)
+                {
+                    Visit(child);
+                }
+
                 return;
         }
     }
@@ -202,10 +238,20 @@ internal sealed class MethodWalker
     private void ReadProperty(IPropertyReferenceOperation reference)
     {
         IPropertySymbol property = reference.Property.OriginalDefinition;
-        if (IsAutoProperty(property)) Read(property);
-        else if (property.GetMethod is { } getter) Call(getter);
+        if (IsAutoProperty(property))
+        {
+            Read(property);
+        }
+        else if (property.GetMethod is { } getter)
+        {
+            Call(getter);
+        }
+
         Visit(reference.Instance);
-        foreach (IArgumentOperation argument in reference.Arguments) Visit(argument);
+        foreach (IArgumentOperation argument in reference.Arguments)
+        {
+            Visit(argument);
+        }
     }
 
     private void Invocation(IInvocationOperation invocation)
@@ -216,28 +262,49 @@ internal sealed class MethodWalker
         {
             _summary.DelegateCalls++;
             // Raising an event, or calling a delegate field: an emit through it, not a write of it.
-            if (Unwrap(invocation.Instance) is IEventReferenceOperation raised) _summary.Raises.Add(raised.Event.OriginalDefinition);
-            else if (Unwrap(invocation.Instance) is IFieldReferenceOperation callback) _summary.Raises.Add(Key(callback.Field));
+            if (Unwrap(invocation.Instance) is IEventReferenceOperation raised)
+            {
+                _summary.Raises.Add(raised.Event.OriginalDefinition);
+            }
+            else if (Unwrap(invocation.Instance) is IFieldReferenceOperation callback)
+            {
+                _summary.Raises.Add(Key(callback.Field));
+            }
         }
-        else if (_sink(definition) is { } key) _summary.Writes.Add(key);
+        else if (_sink(definition) is { } key)
+        {
+            _summary.Writes.Add(key);
+        }
         else if (target.MethodKind != MethodKind.LocalFunction && !_stop(definition))
         {
             if (SourceIndex.IsSource(definition))
             {
                 _summary.Calls.Add(definition);
-                if (MutatesStruct(invocation)) Write(invocation.Instance!, read: true);
+                if (MutatesStruct(invocation))
+                {
+                    Write(invocation.Instance!, read: true);
+                }
             }
             else if (invocation.Instance is { } receiver
                      && ((MutatingCalls.Contains(target.Name) && IsCollection(receiver.Type)) || MutatesStruct(invocation)))
+            {
                 Write(receiver, read: true);
+            }
             else if (target.IsStatic && WritingStatics.TryGetValue($"{target.ContainingType.ToDisplayString()}.{target.Name}", out string? parameter)
                      && invocation.Arguments.FirstOrDefault(a => a.Parameter?.Name == parameter) is { } written)
+            {
                 Write(written.Value, read: true);
+            }
             else if (target.Name == "CopyTo" && invocation.Arguments.Length > 0 && IsCollection(invocation.Instance?.Type))
+            {
                 Write(invocation.Arguments[0].Value, read: false);
+            }
         }
         Visit(invocation.Instance);
-        foreach (IArgumentOperation argument in invocation.Arguments) Visit(argument);
+        foreach (IArgumentOperation argument in invocation.Arguments)
+        {
+            Visit(argument);
+        }
     }
 
     /// <summary>A non-readonly method of a struct, called on a struct: not one an enum inherits from
@@ -256,9 +323,16 @@ internal sealed class MethodWalker
 
     private void Call(IMethodSymbol? method)
     {
-        if (method is null) return;
+        if (method is null)
+        {
+            return;
+        }
+
         IMethodSymbol definition = SourceIndex.Definition(method);
-        if (SourceIndex.IsSource(definition) && !_stop(definition)) _summary.Calls.Add(definition);
+        if (SourceIndex.IsSource(definition) && !_stop(definition))
+        {
+            _summary.Calls.Add(definition);
+        }
     }
 
     /// <summary>Records <paramref name="target"/> as written, and whatever holds it when it is a struct's field,
@@ -274,43 +348,85 @@ internal sealed class MethodWalker
             case IPropertyReferenceOperation property:
                 IPropertySymbol definition = property.Property.OriginalDefinition;
                 if (IsAutoProperty(definition))
+                {
                     Record(definition, property.Instance, read);
+                }
                 else if (SourceIndex.IsSource(definition) && !property.Property.IsIndexer)
                 {
                     // `List<T> Raw => _list;`: a mutation through the accessor writes the field it returns.
-                    if (definition.SetMethod is null && Returned(definition) is { } returned) Record(returned, property.Instance, read);
+                    if (definition.SetMethod is null && Returned(definition) is { } returned)
+                    {
+                        Record(returned, property.Instance, read);
+                    }
+
                     Call(definition.SetMethod);
                     Call(definition.GetMethod);
                 }
                 else if (SourceIndex.IsSource(definition))
                 {
                     Call(definition.SetMethod);
-                    if (read) Call(definition.GetMethod);
-                    if (property.Instance is { } indexed) Write(indexed, read: true);
+                    if (read)
+                    {
+                        Call(definition.GetMethod);
+                    }
+
+                    if (property.Instance is { } indexed)
+                    {
+                        Write(indexed, read: true);
+                    }
                 }
                 else if (property.Instance is { } holder)
+                {
                     Write(holder, read: true);
-                if (IsAutoProperty(definition) || !property.Property.IsIndexer) WriteHolder(property.Instance);
-                else Visit(property.Instance);
-                foreach (IArgumentOperation argument in property.Arguments) Visit(argument);
+                }
+
+                if (IsAutoProperty(definition) || !property.Property.IsIndexer)
+                {
+                    WriteHolder(property.Instance);
+                }
+                else
+                {
+                    Visit(property.Instance);
+                }
+
+                foreach (IArgumentOperation argument in property.Arguments)
+                {
+                    Visit(argument);
+                }
+
                 return;
             case IArrayElementReferenceOperation element:
                 Write(element.ArrayReference, read: true);
-                foreach (IOperation index in element.Indices) Visit(index);
+                foreach (IOperation index in element.Indices)
+                {
+                    Visit(index);
+                }
+
                 return;
             case IEventReferenceOperation e:
                 Record(e.Event.OriginalDefinition, e.Instance, read);
                 Visit(e.Instance);
                 return;
             case ITupleOperation tuple:
-                foreach (IOperation element in tuple.Elements) Write(element, read);
+                foreach (IOperation element in tuple.Elements)
+                {
+                    Write(element, read);
+                }
+
                 return;
             case IInvocationOperation invocation when invocation.TargetMethod.ReturnsByRef:
                 Visit(invocation);
                 return;
             case IInvocationOperation { TargetMethod.Name: "AsSpan" or "AsMemory" } span:
-                if (span.Instance is { } spanned) Write(spanned, read: true);
-                else if (span.Arguments.Length > 0) Write(span.Arguments[0].Value, read: true);
+                if (span.Instance is { } spanned)
+                {
+                    Write(spanned, read: true);
+                }
+                else if (span.Arguments.Length > 0)
+                {
+                    Write(span.Arguments[0].Value, read: true);
+                }
+
                 return;
             case var other:
                 Visit(other);
@@ -321,8 +437,14 @@ internal sealed class MethodWalker
     /// <summary>A write into a struct writes the field or element that holds it; one into a class does not.</summary>
     private void WriteHolder(IOperation? instance)
     {
-        if (instance is { Type.IsValueType: true } and not IInstanceReferenceOperation) Write(instance, read: true);
-        else Visit(instance);
+        if (instance is { Type.IsValueType: true } and not IInstanceReferenceOperation)
+        {
+            Write(instance, read: true);
+        }
+        else
+        {
+            Visit(instance);
+        }
     }
 
     /// <summary>The field or auto-property a get-only property's expression body returns from its own instance.</summary>
@@ -336,7 +458,11 @@ internal sealed class MethodWalker
                 PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.ValueText: "get", ExpressionBody: { } getter }] } => getter.Expression,
                 _ => null,
             };
-            if (body is null) continue;
+            if (body is null)
+            {
+                continue;
+            }
+
             switch (Unwrap(_index.Model(body.SyntaxTree).GetOperation(body)))
             {
                 case IFieldReferenceOperation { Instance: null or IInstanceReferenceOperation } field:
@@ -350,8 +476,16 @@ internal sealed class MethodWalker
 
     private void Record(ISymbol key, IOperation? instance, bool read)
     {
-        if (read) Read(key);
-        if (!Counts(key, instance)) return;
+        if (read)
+        {
+            Read(key);
+        }
+
+        if (!Counts(key, instance))
+        {
+            return;
+        }
+
         _summary.Writes.Add(key);
     }
 
@@ -360,14 +494,24 @@ internal sealed class MethodWalker
     private bool Counts(ISymbol key, IOperation? instance)
     {
         IOperation? holder = Unwrap(instance);
-        if (holder is IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ImplicitReceiver }) return false;
+        if (holder is IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ImplicitReceiver })
+        {
+            return false;
+        }
+
         if (_method.MethodKind == MethodKind.Constructor
             && OwnRoot(holder) is IInstanceReferenceOperation { ReferenceKind: InstanceReferenceKind.ContainingTypeInstance })
+        {
             return false;
+        }
+
         IOperation? root = Root(holder);
         if (_method.MethodKind == MethodKind.StaticConstructor && holder is null
             && SymbolEqualityComparer.Default.Equals(key.ContainingType, _method.ContainingType))
+        {
             return false;
+        }
+
         return root is not ILocalReferenceOperation local || !_fresh.Contains(local.Local);
     }
 
@@ -394,7 +538,11 @@ internal sealed class MethodWalker
     {
         for (int depth = 0; ; depth++)
         {
-            if (depth == 64) return null;
+            if (depth == 64)
+            {
+                return null;
+            }
+
             switch (Unwrap(operation))
             {
                 case IFieldReferenceOperation { Instance: { } inner }: operation = inner; break;
@@ -425,8 +573,13 @@ internal sealed class MethodWalker
     {
         IOperation child = instance;
         for (IOperation? parent = instance.Parent; parent is not null; child = parent, parent = parent.Parent)
+        {
             if (parent is IConditionalAccessOperation conditional && ReferenceEquals(conditional.WhenNotNull, child))
+            {
                 return conditional.Operation;
+            }
+        }
+
         return null;
     }
 

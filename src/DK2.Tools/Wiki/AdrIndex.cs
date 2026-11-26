@@ -42,7 +42,11 @@ public static partial class AdrIndex
         for (int i = 0; i < lines.Count; i++)
         {
             Match m = HeadingRx().Match(lines[i]);
-            if (!m.Success || AmendmentRx().IsMatch(m.Groups[2].Value)) continue;
+            if (!m.Success || AmendmentRx().IsMatch(m.Groups[2].Value))
+            {
+                continue;
+            }
+
             starts.Add((i, int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture),
                 lines[i].TrimStart('#').Trim(), m.Groups[2].Value));
         }
@@ -54,12 +58,18 @@ public static partial class AdrIndex
             int to = k + 1 < starts.Count ? starts[k + 1].Index : lines.Count;
             // A trailing non-ADR section (the file's own closing headings) is not the last ADR's.
             for (int j = from + 1; j < to; j++)
+            {
                 if (lines[j].StartsWith("## ", StringComparison.Ordinal) && !HeadingRx().IsMatch(lines[j])) { to = j; break; }
+            }
 
             var header = new List<string>();
             for (int j = from + 1; j < Math.Min(to, from + 1 + HeaderLines); j++)
             {
-                if (BodyRx().IsMatch(lines[j].TrimStart())) break;
+                if (BodyRx().IsMatch(lines[j].TrimStart()))
+                {
+                    break;
+                }
+
                 header.Add(lines[j]);
             }
             string headerText = string.Join("\n", header);
@@ -69,8 +79,15 @@ public static partial class AdrIndex
             Match systems = SystemsRx().Match(headerText);
             var cited = new SortedSet<string>(StringComparer.Ordinal);
             for (int j = from; j < to; j++)
+            {
                 foreach (Match note in NoteRx().Matches(lines[j]))
-                    if (noteNames.Contains(note.Groups[1].Value)) cited.Add(note.Groups[1].Value);
+                {
+                    if (noteNames.Contains(note.Groups[1].Value))
+                    {
+                        cited.Add(note.Groups[1].Value);
+                    }
+                }
+            }
 
             adrs.Add(new Adr(
                 number,
@@ -128,7 +145,13 @@ public static partial class AdrIndex
     {
         string t = rest.Trim();
         foreach (string sep in new[] { "—", "–", "-", ":" })
-            if (t.StartsWith(sep, StringComparison.Ordinal)) return t[sep.Length..].Trim();
+        {
+            if (t.StartsWith(sep, StringComparison.Ordinal))
+            {
+                return t[sep.Length..].Trim();
+            }
+        }
+
         return t;
     }
 }

@@ -63,7 +63,11 @@ public sealed class PlayerRunDiagnostics
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _player = player;
-        if (sampleEveryTicks <= 0) throw new ArgumentOutOfRangeException(nameof(sampleEveryTicks));
+        if (sampleEveryTicks <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(sampleEveryTicks));
+        }
+
         SampleEveryTicks = sampleEveryTicks;
     }
 
@@ -75,18 +79,35 @@ public sealed class PlayerRunDiagnostics
     /// <summary>Called after every completed tick.</summary>
     public void AfterTick(WorldState world, GameTick tick)
     {
-        if (tick.Value % ScanEveryTicks == 0) Scan(world, tick);
-        if (tick.Value % SampleEveryTicks == 0) Sample(world, tick);
+        if (tick.Value % ScanEveryTicks == 0)
+        {
+            Scan(world, tick);
+        }
+
+        if (tick.Value % SampleEveryTicks == 0)
+        {
+            Sample(world, tick);
+        }
     }
 
     private void Scan(WorldState world, GameTick tick)
     {
-        foreach (EnemyTrap known in _enemyTraps.Values) known.Gone = true;
+        foreach (EnemyTrap known in _enemyTraps.Values)
+        {
+            known.Gone = true;
+        }
+
         foreach (TrapState trap in world.Traps)
         {
-            if (trap.PlayerId == _player.Value || trap.UnderConstruction) continue;
+            if (trap.PlayerId == _player.Value || trap.UnderConstruction)
+            {
+                continue;
+            }
+
             if (!_enemyTraps.TryGetValue(trap.Id, out EnemyTrap? known))
+            {
                 _enemyTraps[trap.Id] = known = new EnemyTrap(TrapName(trap.TrapId), trap.PlayerId, new TilePos(trap.X, trap.Y)) { RechargeAt = trap.RechargeAt };
+            }
             else if (trap.RechargeAt > known.RechargeAt) { known.Fires++; known.RechargeAt = trap.RechargeAt; }
             known.Health = trap.Health;
             known.Hidden = trap.Hidden;
@@ -99,21 +120,41 @@ public sealed class PlayerRunDiagnostics
             bool dead = creature.Activity == CreatureActivity.Dead;
             if (creature.OwnerPlayerId == _player.Value)
             {
-                if (dead) continue;
+                if (dead)
+                {
+                    continue;
+                }
+
                 seen.Add(creature.Id);
                 _alive[creature.Id] = (creature, creature.Tile);
             }
             else if (Hostile(world, creature.OwnerPlayerId))
             {
                 // An enemy counts as killed once, when it dies with the controlled player last to hurt it.
-                if (dead && creature.HealthSourcePlayerId == _player.Value && _enemiesSeen.Remove(creature.Id)) _kills++;
-                else if (!dead) _enemiesSeen.Add(creature.Id);
+                if (dead && creature.HealthSourcePlayerId == _player.Value && _enemiesSeen.Remove(creature.Id))
+                {
+                    _kills++;
+                }
+                else if (!dead)
+                {
+                    _enemiesSeen.Add(creature.Id);
+                }
             }
         }
         List<int>? gone = null;
         foreach ((int id, (CreatureState creature, TilePos tile)) in _alive)
-            if (!seen.Contains(id)) (gone ??= []).Add(id);
-        if (gone is null) return;
+        {
+            if (!seen.Contains(id))
+            {
+                (gone ??= []).Add(id);
+            }
+        }
+
+        if (gone is null)
+        {
+            return;
+        }
+
         foreach (int id in gone)
         {
             (CreatureState creature, TilePos tile) = _alive[id];
@@ -137,7 +178,11 @@ public sealed class PlayerRunDiagnostics
         string? type = null;
         foreach (TrapState trap in world.Traps)
         {
-            if (trap.PlayerId == _player.Value || trap.UnderConstruction) continue;
+            if (trap.PlayerId == _player.Value || trap.UnderConstruction)
+            {
+                continue;
+            }
+
             int d = Math.Max(Math.Abs(trap.X - at.X), Math.Abs(trap.Y - at.Y));
             if (best < 0 || d < best) { best = d; type = TrapName(trap.TrapId); }
         }
@@ -149,10 +194,17 @@ public sealed class PlayerRunDiagnostics
         int best = -1;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (!Hostile(world, creature.OwnerPlayerId) || creature.Activity == CreatureActivity.Dead) continue;
+            if (!Hostile(world, creature.OwnerPlayerId) || creature.Activity == CreatureActivity.Dead)
+            {
+                continue;
+            }
+
             TilePos tile = creature.Tile;
             int d = Math.Max(Math.Abs(tile.X - at.X), Math.Abs(tile.Y - at.Y));
-            if (best < 0 || d < best) best = d;
+            if (best < 0 || d < best)
+            {
+                best = d;
+            }
         }
         return best;
     }
@@ -169,31 +221,78 @@ public sealed class PlayerRunDiagnostics
         int fighters = 0, imps = 0, hungry = 0, unhappy = 0, angry = 0;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.OwnerPlayerId != _player.Value || creature.Activity == CreatureActivity.Dead) continue;
-            if ((_database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) imps++;
-            else fighters++;
-            if (creature.Anger.Hunger > 0) hungry++;
-            if (creature.Mood == CreatureMood.Unhappy) unhappy++;
-            else if (creature.Mood == CreatureMood.Angry) angry++;
+            if (creature.OwnerPlayerId != _player.Value || creature.Activity == CreatureActivity.Dead)
+            {
+                continue;
+            }
+
+            if ((_database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
+            {
+                imps++;
+            }
+            else
+            {
+                fighters++;
+            }
+
+            if (creature.Anger.Hunger > 0)
+            {
+                hungry++;
+            }
+
+            if (creature.Mood == CreatureMood.Unhappy)
+            {
+                unhappy++;
+            }
+            else if (creature.Mood == CreatureMood.Angry)
+            {
+                angry++;
+            }
         }
         int beds = 0, used = 0, hatchery = 0, treasury = 0;
         foreach (RoomInstance room in RoomIndex.Build(world, _database))
         {
-            if (room.OwnerPlayerId != _player.Value) continue;
+            if (room.OwnerPlayerId != _player.Value)
+            {
+                continue;
+            }
+
             if (LairRules.IsLairRoom(_database, room)) { beds += LairRules.Capacity(room); used += LairRules.Occupied(world, _database, room); }
-            else if (room.Definition.TypeId == RoomTypeId.Hatchery) hatchery += room.TileCount;
-            else if (room.Definition.TypeId == RoomTypeId.Treasury) treasury += room.TileCount;
+            else if (room.Definition.TypeId == RoomTypeId.Hatchery)
+            {
+                hatchery += room.TileCount;
+            }
+            else if (room.Definition.TypeId == RoomTypeId.Treasury)
+            {
+                treasury += room.TileCount;
+            }
         }
         int chickens = 0;
         foreach (ObjectState thing in world.Objects)
-            if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId && thing.OwnerPlayerId == _player.Value) chickens++;
+        {
+            if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId && thing.OwnerPlayerId == _player.Value)
+            {
+                chickens++;
+            }
+        }
+
         int enemyCreatures = 0;
         foreach (CreatureState creature in world.Creatures)
-            if (Hostile(world, creature.OwnerPlayerId) && creature.Activity != CreatureActivity.Dead) enemyCreatures++;
+        {
+            if (Hostile(world, creature.OwnerPlayerId) && creature.Activity != CreatureActivity.Dead)
+            {
+                enemyCreatures++;
+            }
+        }
+
         int enemyTraps = 0, ownTraps = 0;
         foreach (TrapState trap in world.Traps)
         {
-            if (trap.UnderConstruction) continue;
+            if (trap.UnderConstruction)
+            {
+                continue;
+            }
+
             if (trap.PlayerId == _player.Value) { ownTraps++; continue; }
             enemyTraps++;
         }
@@ -211,18 +310,27 @@ public sealed class PlayerRunDiagnostics
         var metrics = new StringBuilder("tick\tgold\tmana\tfighters\timps\thungry\tunhappy\tangry\tlair_beds\tlair_used\thatchery_tiles\tchickens\t" +
             "treasury_tiles\twage_bill\tticks_to_payday\tenemy_creatures\tenemy_traps\town_traps\tlosses\tkills\n");
         foreach (PlayerMetricSample s in _samples)
+        {
             metrics.Append(inv, $"{s.Tick}\t{s.Gold}\t{s.Mana}\t{s.Fighters}\t{s.Imps}\t{s.Hungry}\t{s.Unhappy}\t{s.Angry}\t{s.LairBeds}\t{s.LairUsed}\t" +
                 $"{s.HatcheryTiles}\t{s.Chickens}\t{s.TreasuryTiles}\t{s.WageBill}\t{s.TicksToPayday}\t{s.EnemyCreatures}\t{s.EnemyTraps}\t{s.OwnTraps}\t{s.Losses}\t{s.Kills}\n");
+        }
+
         PlayerRunReport.WriteNew(Path.Combine(directory, MetricsFile), Encoding.UTF8.GetBytes(metrics.ToString()));
 
         var losses = new StringBuilder("tick\tid\ttype\tlevel\tx\ty\tcause\tsource_player\tenemy_trap_tiles\tenemy_trap\tenemy_tiles\tgrievance\n");
         foreach (PlayerCreatureLoss l in _losses)
+        {
             losses.Append(inv, $"{l.Tick}\t{l.Id}\t{l.Type}\t{l.Level}\t{l.Tile.X}\t{l.Tile.Y}\t{l.Cause}\t{l.Source}\t{l.TrapTiles}\t{l.TrapType}\t{l.EnemyTiles}\t{l.Grievance}\n");
+        }
+
         PlayerRunReport.WriteNew(Path.Combine(directory, LossesFile), Encoding.UTF8.GetBytes(losses.ToString()));
 
         var traps = new StringBuilder("id\ttype\towner\tx\ty\tfires\thealth\thidden\tdestroyed\n");
         foreach ((int id, EnemyTrap t) in _enemyTraps.OrderBy(t => t.Key))
+        {
             traps.Append(inv, $"{id}\t{t.Type}\t{t.Owner}\t{t.Tile.X}\t{t.Tile.Y}\t{t.Fires}\t{t.Health}\t{(t.Hidden ? 1 : 0)}\t{(t.Gone ? 1 : 0)}\n");
+        }
+
         PlayerRunReport.WriteNew(Path.Combine(directory, TrapsFile), Encoding.UTF8.GetBytes(traps.ToString()));
 
         var thinking = new StringBuilder("tick\troutine\tacted\tnote\n");
@@ -234,13 +342,21 @@ public sealed class PlayerRunDiagnostics
             foreach (PlayerThought t in d.Thoughts)
             {
                 // An action is always written; a verdict of doing nothing only when it changes.
-                if (!t.Acted && lastNote.TryGetValue(t.Routine, out (bool Acted, string Note) was) && !was.Acted && was.Note == t.Note) continue;
+                if (!t.Acted && lastNote.TryGetValue(t.Routine, out (bool Acted, string Note) was) && !was.Acted && was.Note == t.Note)
+                {
+                    continue;
+                }
+
                 lastNote[t.Routine] = (t.Acted, t.Note);
                 thinking.Append(inv, $"{d.Tick.Value}\t{t.Routine}\t{(t.Acted ? 1 : 0)}\t{Tsv(t.Note)}\n");
             }
             foreach (PlayerBelief b in d.Beliefs)
             {
-                if (lastValue.TryGetValue(b.Name, out long before) && before == b.Value) continue;
+                if (lastValue.TryGetValue(b.Name, out long before) && before == b.Value)
+                {
+                    continue;
+                }
+
                 lastValue[b.Name] = b.Value;
                 beliefs.Append(inv, $"{d.Tick.Value}\t{b.Name}\t{b.Value}\n");
             }
@@ -258,15 +374,27 @@ public sealed class PlayerRunDiagnostics
 
     public void WriteMap(string directory, PlayerObservation? seen)
     {
-        if (seen is null) return;
+        if (seen is null)
+        {
+            return;
+        }
+
         PlayerTileGrid grid = seen.Tiles;
         var letters = new Dictionary<RoomTypeId, char>();
         var legend = new StringBuilder();
         char next = 'A';
         char Letter(RoomTypeId room)
         {
-            if (letters.TryGetValue(room, out char c)) return c;
-            if (next == 'R') next++;
+            if (letters.TryGetValue(room, out char c))
+            {
+                return c;
+            }
+
+            if (next == 'R')
+            {
+                next++;
+            }
+
             c = next <= 'Z' ? next++ : '?';
             letters[room] = c;
             legend.Append(CultureInfo.InvariantCulture, $"{c} {(_database.Rooms.TryGetValue(room, out RoomDef? def) ? def.Name : $"room-{(int)room}")}\n");
@@ -291,21 +419,43 @@ public sealed class PlayerRunDiagnostics
             }
         }
         foreach (PlayerVisibleThing thing in seen.Things)
+        {
             if (thing.Kind == PlayerThingKind.Creature && grid.Contains(thing.Tile))
+            {
                 rows[thing.Tile.Y][thing.Tile.X] = thing.Owner == _player ? '@' : '*';
+            }
+        }
+
         foreach (PlayerVisibleTrap trap in seen.EnemyTraps)
-            if (grid.Contains(trap.Tile)) rows[trap.Tile.Y][trap.Tile.X] = '!';
+        {
+            if (grid.Contains(trap.Tile))
+            {
+                rows[trap.Tile.Y][trap.Tile.X] = '!';
+            }
+        }
+
         var text = new StringBuilder();
         text.Append(CultureInfo.InvariantCulture, $"tick {seen.Stamp.Tick.Value}, player {_player}, {grid.Width}x{grid.Height}; rows are y, columns x\n");
         text.Append(MapKey).Append('\n');
         text.Append(legend);
         text.Append("     ");
-        for (int x = 0; x < grid.Width; x++) text.Append(x % 10 == 0 ? (char)('0' + x / 10 % 10) : ' ');
+        for (int x = 0; x < grid.Width; x++)
+        {
+            text.Append(x % 10 == 0 ? (char)('0' + x / 10 % 10) : ' ');
+        }
+
         text.Append("\n     ");
-        for (int x = 0; x < grid.Width; x++) text.Append((char)('0' + x % 10));
+        for (int x = 0; x < grid.Width; x++)
+        {
+            text.Append((char)('0' + x % 10));
+        }
+
         text.Append('\n');
         for (int y = 0; y < grid.Height; y++)
+        {
             text.Append(CultureInfo.InvariantCulture, $"{y,4} ").Append(rows[y]).Append('\n');
+        }
+
         PlayerRunReport.WriteNew(Path.Combine(directory, MapFile), Encoding.UTF8.GetBytes(text.ToString()));
     }
 
@@ -317,15 +467,38 @@ public sealed class PlayerRunDiagnostics
         foreach (PlayerMetricSample s in _samples)
         {
             peakFighters = Math.Max(peakFighters, s.Fighters);
-            if (s.Hungry > 0) hungrySamples++;
-            if (s.Gold < s.WageBill) shortSamples++;
-            if (s.Gold >= 20000) idleGoldSamples++;
-            if (s.LairUsed >= s.LairBeds && s.Fighters > 0) bedsShortSamples++;
+            if (s.Hungry > 0)
+            {
+                hungrySamples++;
+            }
+
+            if (s.Gold < s.WageBill)
+            {
+                shortSamples++;
+            }
+
+            if (s.Gold >= 20000)
+            {
+                idleGoldSamples++;
+            }
+
+            if (s.LairUsed >= s.LairBeds && s.Fighters > 0)
+            {
+                bedsShortSamples++;
+            }
         }
         var routines = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (PlayerDecisionRecord d in decisions)
+        {
             foreach (PlayerThought t in d.Thoughts)
-                if (t.Acted) routines[t.Routine] = routines.GetValueOrDefault(t.Routine) + 1;
+            {
+                if (t.Acted)
+                {
+                    routines[t.Routine] = routines.GetValueOrDefault(t.Routine) + 1;
+                }
+            }
+        }
+
         return new
         {
             samples = _samples.Count,

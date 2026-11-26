@@ -117,7 +117,10 @@ internal sealed class ScenarioWorldBuilder
                 "a portal claimed mid-game behaves like one held from the start");
         }
 
-        if (placed == 0) return;
+        if (placed == 0)
+        {
+            return;
+        }
 
         unsupported.Add(
             "setup.rooms lays room terrain down directly: nothing is charged for it and no imp " +
@@ -174,15 +177,25 @@ internal sealed class ScenarioWorldBuilder
             foreach (int spell in p.Spells)
             {
                 if (world.Player(p.Id).Availabilities.Exists(a => a.Kind == AvailabilityKind.Spell && a.TypeId == spell))
+                {
                     world.SetAvailability(p.Id, AvailabilityKind.Spell, spell, 3);
+                }
                 else
+                {
                     world.Player(p.Id).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, spell, 3));
+                }
             }
 
-            if (p.Gold <= 0 || goldPaidByLevel.Contains(p.Id)) continue;
+            if (p.Gold <= 0 || goldPaidByLevel.Contains(p.Id))
+            {
+                continue;
+            }
 
             int stored = GoldStore.Deposit(world, _database, p.Id, p.Gold);
-            if (stored == p.Gold) continue;
+            if (stored == p.Gold)
+            {
+                continue;
+            }
 
             unsupported.Add(
                 $"setup.players[{p.Id}].gold: {p.Gold - stored} of {p.Gold} had nowhere to go. A " +
@@ -223,7 +236,10 @@ internal sealed class ScenarioWorldBuilder
             placed.GoldHeld = o.Gold;
         }
 
-        if (scenario.Setup.Objects.Count == 0) return;
+        if (scenario.Setup.Objects.Count == 0)
+        {
+            return;
+        }
 
         unsupported.Add(
             "setup.objects lays an object on the floor directly, which nothing in the game does. " +
@@ -265,8 +281,10 @@ internal sealed class ScenarioWorldBuilder
             // A starting level, as the shipped THINGS records give one, through the same
             // level-up the portal and the hero lair use.
             if (c.Level is int level)
+            {
                 while (placed.Level < Math.Min(level, CreatureLevelRules.MaxLevel)
                     && CreatureLevelRules.LevelUp(setupHooks, definition, placed)) { }
+            }
 
             // Wounded on purpose, because nothing in a scenario can wound one.
             // Clamped at both ends: a typo cannot make a creature stronger than
@@ -280,14 +298,23 @@ internal sealed class ScenarioWorldBuilder
             // Hungry on purpose, and for the prison it is the only way: see
             // ScenarioCreature.Hunger. Clamped at zero so a typo cannot make a
             // creature owe negative food.
-            if (c.Hunger is int hunger) placed.HungerNeed = Math.Max(0, hunger);
+            if (c.Hunger is int hunger)
+            {
+                placed.HungerNeed = Math.Max(0, hunger);
+            }
 
-            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) workers++;
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+            {
+                workers++;
+            }
         }
 
         SpawnObjects(scenario, world, unsupported);
 
-        if (scenario.Setup.Creatures.Count == 0) return;
+        if (scenario.Setup.Creatures.Count == 0)
+        {
+            return;
+        }
 
         unsupported.Add(
             "setup.creatures places creatures directly, which is no longer the only way one can " +
@@ -335,7 +362,10 @@ internal sealed class ScenarioWorldBuilder
     public HashSet<byte> PlaceShippedThings(Scenario scenario, WorldState world, List<string> unsupported)
     {
         var paid = new HashSet<byte>();
-        if (!scenario.Setup.PlacedThings) return paid;
+        if (!scenario.Setup.PlacedThings)
+        {
+            return paid;
+        }
 
         if (!scenario.Map.StartsWith(CampaignPrefix, StringComparison.OrdinalIgnoreCase))
         {
@@ -346,8 +376,10 @@ internal sealed class ScenarioWorldBuilder
 
         string level = scenario.Map[CampaignPrefix.Length..].Trim();
         if (_installDir is null)
+        {
             throw new InvalidOperationException(
                 $"Scenario needs the placed things of '{level}' but no DK2 installation was found. Set DK2_DIR.");
+        }
 
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(_installDir, level)
             ?? throw new InvalidOperationException(
@@ -358,12 +390,17 @@ internal sealed class ScenarioWorldBuilder
         List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(_installDir, level);
         var startingGold = players?.ToDictionary(p => p.PlayerId, p => p.StartingGold);
         if (startingGold is not null)
+        {
             foreach (ScenarioPlayer p in scenario.Setup.Players)
+            {
                 if (p.Gold > 0 && startingGold.ContainsKey(p.Id))
                 {
                     startingGold[p.Id] = p.Gold;
                     paid.Add(p.Id);
                 }
+            }
+        }
+
         ThingProjectionResult result = ThingProjection.Place(world, _database, things, startingGold);
         // The record pays only through a placed, unruined heart (ADR-0360); otherwise the
         // scenario's deposit stands.
@@ -375,16 +412,21 @@ internal sealed class ScenarioWorldBuilder
         // generators have nowhere to go yet, so a scenario built on a level
         // with any of them says so in its own output.
         if (result.NotYetProjected > 0)
+        {
             unsupported.Add(
                 $"{level}: {result.NotYetProjected} placed things this build cannot project yet "
                 + "(doors, traps, hero parties, effect generators)");
+        }
+
         return paid;
     }
 
     public TriggerTree? ResolveShippedTriggers(Scenario scenario, string? campaignLevel)
     {
         if (!scenario.Setup.PlacedThings || campaignLevel is null || _installDir is null)
+        {
             return null;
+        }
 
         LevelDef level = GameDatabaseLoader.LoadCampaignLevel(_installDir, campaignLevel)
             ?? throw new InvalidOperationException($"No LEVEL file for '{campaignLevel}'.");
@@ -420,8 +462,10 @@ internal sealed class ScenarioWorldBuilder
         {
             string level = spec[campaign.Length..].Trim();
             if (_installDir is null)
+            {
                 throw new InvalidOperationException(
                     $"Scenario needs campaign map '{level}' but no DK2 installation was found. Set DK2_DIR.");
+            }
 
             return GameDatabaseLoader.LoadCampaignMap(_installDir, level)
                 ?? throw new InvalidOperationException(
@@ -430,19 +474,26 @@ internal sealed class ScenarioWorldBuilder
 
         foreach (string prefix in new[] { flat, rock, chamber })
         {
-            if (!spec.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!spec.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
 
             string[] parts = spec[prefix.Length..].Split('x', 'X');
             if (parts.Length != 2
                 || !int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int w)
                 || !int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int h)
                 || w < 3 || h < 3)
+            {
                 throw new InvalidDataException(
                     $"Map spec '{spec}' is not of the form {prefix}WxH (min 3x3).");
+            }
 
             if (prefix == chamber && (w < 7 || h < 7))
+            {
                 throw new InvalidDataException(
                     $"Map spec '{spec}' needs at least 7x7 to hold a chamber and a wall around it.");
+            }
 
             return SyntheticMap(w, h, solid: prefix != flat, chamber: prefix == chamber);
         }
@@ -467,6 +518,7 @@ internal sealed class ScenarioWorldBuilder
 
         var tiles = new MapTile[width * height];
         for (int y = 0; y < height; y++)
+        {
             for (int x = 0; x < width; x++)
             {
                 bool edge = x == 0 || y == 0 || x == width - 1 || y == height - 1;
@@ -477,6 +529,8 @@ internal sealed class ScenarioWorldBuilder
                 byte terrain = edge ? border : open ? floor : fill;
                 tiles[(y * width) + x] = new MapTile(terrain, 0, 0, 0);
             }
+        }
+
         return new LevelMap(width, height, tiles);
     }
 

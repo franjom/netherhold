@@ -44,7 +44,13 @@ public static class JournalHeader
             ["started_utc"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
         };
         if (extra is not null)
-            foreach (KeyValuePair<string, string> pair in extra) header.Add(pair.Key, pair.Value);
+        {
+            foreach (KeyValuePair<string, string> pair in extra)
+            {
+                header.Add(pair.Key, pair.Value);
+            }
+        }
+
         return header;
     }
 
@@ -53,13 +59,26 @@ public static class JournalHeader
     /// exception replays one tick more, the one that threw, so the failure recurs.</summary>
     public static int ReplayTicks(Scenario scenario, InputJournal journal)
     {
-        if (!IsPlayerRun(journal)) return scenario.DurationTicks;
+        if (!IsPlayerRun(journal))
+        {
+            return scenario.DurationTicks;
+        }
+
         if (Value(journal, PlayerRunSchema) != "1")
+        {
             throw new InvalidOperationException($"Player-run schema {Value(journal, PlayerRunSchema)} is not one this build reads.");
+        }
+
         if (journal.TicksRun is not long ticks)
+        {
             throw new InvalidOperationException("The player-run journal has no end record: incomplete evidence, not replayable.");
+        }
+
         if (ticks < 0 || ticks > scenario.DurationTicks)
+        {
             throw new InvalidOperationException($"The journal ran {ticks} ticks; the scenario allows 0 to {scenario.DurationTicks}.");
+        }
+
         bool threw = journal.EndReason?.StartsWith("exception", StringComparison.Ordinal) == true;
         return (int)(threw && ticks < scenario.DurationTicks ? ticks + 1 : ticks);
     }
@@ -68,21 +87,33 @@ public static class JournalHeader
     public static void CheckReplayable(Scenario scenario, InputJournal journal, bool acceptOtherHashVersion = false)
     {
         if (!acceptOtherHashVersion && journal.HashVersion != GameSimulation.CurrentHashVersion)
+        {
             throw new InvalidOperationException(
                 $"The journal was written at HashVersion {journal.HashVersion}; this build is " +
                 $"{GameSimulation.CurrentHashVersion}. Replay it at its own commit ({Value(journal, "commit")}).");
+        }
+
         string recorded = Value(journal, ScenarioSha256);
         string current = Sha256(scenario.SourcePath);
         if (recorded is "none" or "unknown")
+        {
             throw new InvalidOperationException("The journal names no scenario file, so nothing ties it to this one.");
+        }
+
         if (recorded != current)
+        {
             throw new InvalidOperationException(
                 $"'{scenario.SourcePath}' is not the scenario file the journal recorded " +
                 $"(SHA-256 {recorded}, this file {current}).");
+        }
+
         string seed = Value(journal, "seed"), runs = scenario.Seed.ToString(CultureInfo.InvariantCulture);
         if (seed != "unknown" && seed != runs)
+        {
             throw new InvalidOperationException(
                 $"The journal ran seed {seed}; this replay would run seed {runs}. Replay it with --seed {seed}.");
+        }
+
         ReplayTicks(scenario, journal);
     }
 
@@ -102,7 +133,11 @@ public static class JournalHeader
         string dir = Path.GetDirectoryName(Path.GetFullPath(scenarioPath.Length > 0 ? scenarioPath : ".")) ?? ".";
         lock (GitStates)
         {
-            if (GitStates.TryGetValue(dir, out (string, string) known)) return known;
+            if (GitStates.TryGetValue(dir, out (string, string) known))
+            {
+                return known;
+            }
+
             string? commit = Git(dir, "rev-parse", "HEAD");
             string? top = Git(dir, "rev-parse", "--show-toplevel");
             string? status = top is null ? null : Git(top, "status", "--porcelain", "--", "src");
@@ -123,9 +158,17 @@ public static class JournalHeader
                 RedirectStandardError = true,
                 UseShellExecute = false,
             };
-            foreach (string arg in args) start.ArgumentList.Add(arg);
+            foreach (string arg in args)
+            {
+                start.ArgumentList.Add(arg);
+            }
+
             using var git = Process.Start(start);
-            if (git is null) return null;
+            if (git is null)
+            {
+                return null;
+            }
+
             string output = git.StandardOutput.ReadToEnd().Trim();
             git.StandardError.ReadToEnd();
             git.WaitForExit();
@@ -154,9 +197,17 @@ internal sealed class ReplayComparison(InputJournal? journal)
 
     public void Compare(long tick, ulong hash)
     {
-        if (journal is null || !journal.Hashes.TryGetValue(tick, out ulong recorded)) return;
+        if (journal is null || !journal.Hashes.TryGetValue(tick, out ulong recorded))
+        {
+            return;
+        }
+
         _compared++;
-        if (_first is not null || recorded == hash) return;
+        if (_first is not null || recorded == hash)
+        {
+            return;
+        }
+
         _first = tick;
         _recorded = recorded;
         _replayed = hash;

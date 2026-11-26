@@ -67,10 +67,7 @@ internal static class KeeperKnowledgeCommand
             foreach (CreatureAttraction a in c.Attractions)
             {
                 int packed = (a.RoomId & 0xFF) | ((a.RoomSize & 0xFF) << 8);
-                if (a.Present == 1 && a.RoomId != 0) rooms.Add(((RoomTypeId)a.RoomId, a.RoomSize));
-                else if (a.Present == 2) gold = Math.Max(gold, packed);
-                else if (a.Present == 3) mana = Math.Max(mana, packed);
-            }
+                if (a.Present == 1 && a.RoomId != 0) { rooms.Add(((RoomTypeId)a.RoomId, a.RoomSize)); } else if (a.Present == 2) { gold = Math.Max(gold, packed); } else if (a.Present == 3) { mana = Math.Max(mana, packed); } }
             CreatureAttraction first = c.Attractions[0];
             bool roomFirst = first.Present == 1 && first.RoomId != 0;
             bool lair = roomFirst && first.RoomId == (byte)RoomTypeId.Lair;
@@ -85,7 +82,10 @@ internal static class KeeperKnowledgeCommand
             ?? throw new InvalidOperationException($"campaign map {MapLevel} not found under {install}");
         IReadOnlyList<RoomFacts> facts = Measure(database, map);
         string yaml = Yaml(facts, database);
-        if (output is null) log.Write(yaml);
+        if (output is null)
+        {
+            log.Write(yaml);
+        }
         else
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
@@ -132,14 +132,26 @@ internal static class KeeperKnowledgeCommand
         TerrainFlags wall = TerrainFlags.Solid | TerrainFlags.AllowRoomWalls;
         bool walled = (database.TerrainById(rim).Flags & wall) == wall;
         if (walled != (rim == WalledRim))
+        {
             throw new InvalidOperationException($"terrain {rim} ({database.TerrainById(rim).Name}) is not the {(rim == WalledRim ? "wall" : "open ground")} it stands for");
+        }
+
         for (int y = y0 - 1; y <= y0 + side; y++)
+        {
             for (int x = x0 - 1; x <= x0 + side; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
-                if (x >= x0 && x < x0 + side && y >= y0 && y < y0 + side) RoomRules.Place(database, ref tile, def, Keeper);
-                else tile.TerrainId = rim;
+                if (x >= x0 && x < x0 + side && y >= y0 && y < y0 + side)
+                {
+                    RoomRules.Place(database, ref tile, def, Keeper);
+                }
+                else
+                {
+                    tile.TerrainId = rim;
+                }
             }
+        }
+
         new GameSimulation(database, world, seed: 1, [new AutoFurnitureSystem()]).Tick();
 
         int index = (y0 * world.Width) + x0;
@@ -173,20 +185,34 @@ internal static class KeeperKnowledgeCommand
             s.Append(Invariant($"  - room: {room.Room}\n"));
             s.Append(Invariant($"    name: \"{room.Name.Trim()}\"\n"));
             if (room.Room == RoomTypeId.Lair)
+            {
                 s.Append("    note: \"a Lair-attracted type is never capped and needs no Lair (AttractionBudget.Admits); attraction here is unused\"\n");
+            }
+
             if (room.Room == RoomTypeId.Graveyard)
+            {
                 s.Append("    note: \"our AttractionBudget reads no Graveyard arm (capacity -1); the research records its floor slots (auto-placed-furniture.md section 5, Q60). No portal creature is capped by it\"\n");
+            }
+
             s.Append(Invariant($"    cost_per_tile: {room.CostPerTile}\n"));
             s.Append(Invariant($"    recommended_size: [{room.RecommendedX}, {room.RecommendedY}]\n"));
             s.Append("    sizes:\n");
             foreach (SizeFacts z in room.Sizes)
+            {
                 s.Append(Invariant($"      - {{ side: {z.Side}, tiles: {z.Tiles}, floor_slots: {z.FloorSlots}, capacity: {z.Capacity}, attraction: {z.Attraction}, gold: {z.Gold}, furniture: {z.Furniture}, open_capacity: {z.OpenCapacity}, open_attraction: {z.OpenAttraction}, open_furniture: {z.OpenFurniture} }}\n"));
-            if (room.Attracts.Count == 0) s.Append("    attracts: []\n");
+            }
+
+            if (room.Attracts.Count == 0)
+            {
+                s.Append("    attracts: []\n");
+            }
             else
             {
                 s.Append("    attracts:\n");
                 foreach (Attracted a in room.Attracts)
+                {
                     s.Append(Invariant($"      - {{ creature: {a.CreatureId}, name: \"{a.Name}\", min_tiles: {a.MinTiles}, capped_by_this_room: {Bool(a.Budget)}, portal: {Bool(a.Portal)} }}\n"));
+                }
             }
         }
         s.Append("# Portal requirements per creature: every room type's total tiles, gold and mana must be met;\n");

@@ -35,9 +35,17 @@ internal static class SimMatrixReport
 
         sb.Append("## Matrix\n\n");
         sb.Append("| # | System |");
-        foreach (string column in StateModel.Columns) sb.Append(' ').Append(column).Append(" |");
+        foreach (string column in StateModel.Columns)
+        {
+            sb.Append(' ').Append(column).Append(" |");
+        }
+
         sb.Append("\n|---:|---|");
-        foreach (string _ in StateModel.Columns) sb.Append(":-:|");
+        foreach (string _ in StateModel.Columns)
+        {
+            sb.Append(":-:|");
+        }
+
         sb.Append('\n');
         string? phase = null;
         foreach (RowResult row in result.Rows)
@@ -46,12 +54,19 @@ internal static class SimMatrixReport
             {
                 phase = row.Row.Phase;
                 sb.Append("| | **").Append(phase).Append("** |");
-                foreach (string _ in StateModel.Columns) sb.Append(" |");
+                foreach (string _ in StateModel.Columns)
+                {
+                    sb.Append(" |");
+                }
+
                 sb.Append('\n');
             }
             sb.Append(c, $"| {row.Row.Number} | ").Append(Label(row.Row)).Append(" |");
             for (int i = 0; i < StateModel.Columns.Length; i++)
+            {
                 sb.Append(' ').Append(Cell(row.Core.Cells[i], row.Full.Cells[i])).Append(" |");
+            }
+
             sb.Append('\n');
         }
 
@@ -62,16 +77,26 @@ internal static class SimMatrixReport
             SimRow[] core = result.Rows.Where(r => r.Core.Cells[i] == "W").Select(r => r.Row).ToArray();
             SimRow[] hub = result.Rows.Where(r => r.Core.Cells[i] != "W" && r.Full.Cells[i] == "W").Select(r => r.Row).ToArray();
             sb.Append("- **").Append(StateModel.Columns[i]).Append(c, $"** ({core.Length}");
-            if (hub.Length > 0) sb.Append(c, $" + {hub.Length}");
+            if (hub.Length > 0)
+            {
+                sb.Append(c, $" + {hub.Length}");
+            }
+
             sb.Append("): ").Append(core.Length == 0 ? "none" : string.Join(", ", core.Select(Short)));
-            if (hub.Length > 0) sb.Append("; through a hub: ").Append(string.Join(", ", hub.Select(Short)));
+            if (hub.Length > 0)
+            {
+                sb.Append("; through a hub: ").Append(string.Join(", ", hub.Select(Short)));
+            }
+
             sb.Append('\n');
         }
 
         sb.Append("\n## Hubs\n\n");
         sb.Append("| Hub | Rows that reach it | Methods it reaches | Rows |\n|---|---:|---:|---|\n");
         foreach (HubResult hub in result.Hubs)
+        {
             sb.Append(c, $"| `{hub.Name}` | {hub.Rows.Count} | {hub.Methods} | {string.Join(", ", hub.Rows)} |\n");
+        }
 
         sb.Append("\n## Neighbours that share no state\n\n");
         sb.Append("Consecutive systems, or consecutive steps of one container, where neither writes a field the other reads ")
@@ -83,7 +108,9 @@ internal static class SimMatrixReport
         {
             sb.Append("| Rows | Core | Through hubs |\n|---|:-:|:-:|\n");
             foreach (FreePair pair in result.FreePairs)
+            {
                 sb.Append(c, $"| {Short(result.Rows[pair.First - 1].Row)} → {Short(result.Rows[pair.Second - 1].Row)} | {(pair.Core ? "free" : "")} | {(pair.Full ? "free" : "")} |\n");
+            }
         }
 
         sb.Append("\n## Static state\n\n");
@@ -100,7 +127,10 @@ internal static class SimMatrixReport
         {
             sb.Append("\n## Unmapped members\n\n");
             sb.Append("Members of `WorldState` or `SimulationContext` the column table does not name; counted as World.\n\n");
-            foreach (string name in result.Unmapped) sb.Append("- `").Append(name).Append("`\n");
+            foreach (string name in result.Unmapped)
+            {
+                sb.Append("- `").Append(name).Append("`\n");
+            }
         }
 
         sb.Append("\n## What it does not see\n\n");
@@ -134,7 +164,11 @@ internal static class SimMatrixReport
                 w.WriteString("phase", row.Row.Phase);
                 w.WriteString("name", row.Row.Name);
                 w.WriteString("kind", row.Row.Kind switch { RowKind.System => "system", RowKind.CreatureStep => "creature-step", _ => "room-step" });
-                if (row.Row.Parent > 0) w.WriteNumber("parent", row.Row.Parent);
+                if (row.Row.Parent > 0)
+                {
+                    w.WriteNumber("parent", row.Row.Parent);
+                }
+
                 Strings(w, "entries", row.Row.Entries.Select(e => $"{SimRows.Display(e.ContainingType)}.{e.Name}"));
                 View(w, "core", row.Core, null);
                 View(w, "throughHubs", row.Full, row.Core);
@@ -148,13 +182,21 @@ internal static class SimMatrixReport
                 w.WriteString("name", hub.Name);
                 w.WriteNumber("methods", hub.Methods);
                 w.WriteStartArray("rows");
-                foreach (int n in hub.Rows) w.WriteNumberValue(n);
+                foreach (int n in hub.Rows)
+                {
+                    w.WriteNumberValue(n);
+                }
+
                 w.WriteEndArray();
                 w.WriteEndObject();
             }
             w.WriteEndArray();
             w.WriteStartObject("stateTypes");
-            foreach ((string? type, string? column) in result.StateTypes.OrderBy(p => p.Key, StringComparer.Ordinal)) w.WriteString(type, column);
+            foreach ((string? type, string? column) in result.StateTypes.OrderBy(p => p.Key, StringComparer.Ordinal))
+            {
+                w.WriteString(type, column);
+            }
+
             w.WriteEndObject();
             Strings(w, "multiColumnTypes", result.SharedTypes);
             Strings(w, "unmapped", result.Unmapped);
@@ -188,9 +230,17 @@ internal static class SimMatrixReport
         {
             w.WriteStartObject();
             w.WriteString("field", field.Name);
-            if (field.Column.Length > 0) w.WriteString("column", field.Column);
+            if (field.Column.Length > 0)
+            {
+                w.WriteString("column", field.Column);
+            }
+
             w.WriteStartArray("writers");
-            foreach (int n in field.Rows) w.WriteNumberValue(n);
+            foreach (int n in field.Rows)
+            {
+                w.WriteNumberValue(n);
+            }
+
             w.WriteEndArray();
             w.WriteEndObject();
         }
@@ -200,7 +250,11 @@ internal static class SimMatrixReport
     private static void Strings(Utf8JsonWriter w, string name, IEnumerable<string> values)
     {
         w.WriteStartArray(name);
-        foreach (string value in values) w.WriteStringValue(value);
+        foreach (string value in values)
+        {
+            w.WriteStringValue(value);
+        }
+
         w.WriteEndArray();
     }
 
@@ -215,7 +269,11 @@ internal static class SimMatrixReport
         foreach (WrittenField field in fields)
         {
             sb.Append("| `").Append(field.Name).Append("` |");
-            if (withColumn) sb.Append(' ').Append(field.Column).Append(" |");
+            if (withColumn)
+            {
+                sb.Append(' ').Append(field.Column).Append(" |");
+            }
+
             sb.Append(' ').Append(string.Join(", ", field.Rows)).Append(" |\n");
         }
     }

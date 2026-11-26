@@ -19,7 +19,11 @@ public sealed record PlayerRunOptions
     public PlayerRunOptions(IPlayerController controller, PlayerId player, PlayerRunId runId)
     {
         Controller = controller ?? throw new ArgumentNullException(nameof(controller));
-        if (!runId.IsValid) throw new ArgumentException("A player run needs a run id.", nameof(runId));
+        if (!runId.IsValid)
+        {
+            throw new ArgumentException("A player run needs a run id.", nameof(runId));
+        }
+
         Player = player;
         RunId = runId;
     }
@@ -53,9 +57,20 @@ public sealed record PlayerRunOptions
 
     internal void Validate()
     {
-        if (MaxTicks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTicks));
-        if (MaxAdvanceTicks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxAdvanceTicks));
-        if (FinaleTicks < 0) throw new ArgumentOutOfRangeException(nameof(FinaleTicks));
+        if (MaxTicks <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MaxTicks));
+        }
+
+        if (MaxAdvanceTicks <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MaxAdvanceTicks));
+        }
+
+        if (FinaleTicks < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(FinaleTicks));
+        }
     }
 }
 
@@ -120,7 +135,11 @@ public sealed class PlayerRunCoordinator
 
     public PlayerRunCoordinator(GameDatabase database, PlayerRunOptions options)
     {
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
         _options = options ?? throw new ArgumentNullException(nameof(options));
         options.Validate();
         _builder = new PlayerObservationBuilder(database, options.Player);
@@ -152,8 +171,16 @@ public sealed class PlayerRunCoordinator
     /// result, since no frame follows to carry a decision.</summary>
     public IReadOnlyList<PlayerCommand> AfterTick(WorldState world, GameTick completedTick, bool anotherTick = true)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (Stopped) return [];
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (Stopped)
+        {
+            return [];
+        }
+
         _diagnostics.AfterTick(world, completedTick);
         ref readonly PlayerState player = ref world.Player(_options.Player);
         // A result already in the world comes first: a budget stop on the winning tick keeps the win.
@@ -178,13 +205,25 @@ public sealed class PlayerRunCoordinator
         {
             ResultTick = completedTick;
             _session.Cancel();
-            if (player.Status != PlayerStatus.Won) return Halt(PlayerRunStop.Defeated);
-            if (_options.FinaleTicks == 0) return Halt(PlayerRunStop.Won);
+            if (player.Status != PlayerStatus.Won)
+            {
+                return Halt(PlayerRunStop.Defeated);
+            }
+
+            if (_options.FinaleTicks == 0)
+            {
+                return Halt(PlayerRunStop.Won);
+            }
+
             _finaleEndTick = completedTick.Value + _options.FinaleTicks;
             return FinaleTick(player, completedTick);
         }
 
-        if (!anotherTick || completedTick.Value < _nextDecisionTick) return [];
+        if (!anotherTick || completedTick.Value < _nextDecisionTick)
+        {
+            return [];
+        }
+
         return Decide(world, completedTick);
     }
 
@@ -193,7 +232,11 @@ public sealed class PlayerRunCoordinator
     /// result keeps <see cref="PlayerRunStop.None"/>. Anything queued is withdrawn.</summary>
     public IReadOnlyList<PlayerReceipt> Finish()
     {
-        if (!Stopped && _finaleEndTick >= 0) CutFinaleShort();
+        if (!Stopped && _finaleEndTick >= 0)
+        {
+            CutFinaleShort();
+        }
+
         return _session.Cancel();
     }
 
@@ -203,8 +246,14 @@ public sealed class PlayerRunCoordinator
     {
         if (!Stopped)
         {
-            if (_finaleEndTick >= 0) CutFinaleShort();
-            else Stop = PlayerRunStop.Cancelled;
+            if (_finaleEndTick >= 0)
+            {
+                CutFinaleShort();
+            }
+            else
+            {
+                Stop = PlayerRunStop.Cancelled;
+            }
         }
         return _session.Cancel();
     }
@@ -229,12 +278,25 @@ public sealed class PlayerRunCoordinator
         {
             return Limit($"the controller threw {ex.GetType().Name}: {ex.Message}");
         }
-        if (decision is null) return Limit("the controller returned no decision");
-        if (decision.IsLimitation) return Limit(decision.Reason);
+        if (decision is null)
+        {
+            return Limit("the controller returned no decision");
+        }
+
+        if (decision.IsLimitation)
+        {
+            return Limit(decision.Reason);
+        }
+
         if (decision.AdvanceTicks > _options.MaxAdvanceTicks)
+        {
             return Limit($"advance of {decision.AdvanceTicks} ticks exceeds {_options.MaxAdvanceTicks}");
+        }
+
         if (decision.Actions.Count > _options.Limits.MaxRequestsPerObservation)
+        {
             return Limit($"{decision.Actions.Count} actions in one decision exceed {_options.Limits.MaxRequestsPerObservation}");
+        }
 
         var requests = new PlayerRequest[decision.Actions.Count];
         var receipts = new PlayerReceipt[requests.Length];
@@ -247,7 +309,13 @@ public sealed class PlayerRunCoordinator
         IReadOnlyList<PlayerCommand> commands = _session.Drain(world.CurrentTick);
         // The log keeps each request's receipt as the session now holds it (Submitted, with its frame).
         for (int i = 0; i < receipts.Length; i++)
-            if (_session.TryGetReceipt(requests[i].Id, out PlayerReceipt held)) receipts[i] = held;
+        {
+            if (_session.TryGetReceipt(requests[i].Id, out PlayerReceipt held))
+            {
+                receipts[i] = held;
+            }
+        }
+
         _decisions.Add(new PlayerDecisionRecord(stamp.Tick, stamp.Revision, decision.AdvanceTicks, decision.Reason,
             requests, receipts, commands.Count) { Thoughts = decision.Thoughts, Beliefs = decision.Beliefs });
         _nextDecisionTick = completedTick.Value + decision.AdvanceTicks;

@@ -49,25 +49,37 @@ public static class BuildReceipt
         if (output is not null)
         {
             foreach ((string name, string hash) in output)
+            {
                 Compare(Path.Combine(harnessDirectory, name), hash, $"output {name}", problems);
+            }
+
             foreach (string file in Directory.EnumerateFiles(harnessDirectory))
             {
                 string name = Path.GetFileName(file);
                 if (!name.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase) && !output.ContainsKey(name))
+                {
                     problems.Add($"output {name} is beside the harness but not in the receipt");
+                }
             }
         }
 
         Dictionary<string, string>? source = Read(Path.Combine(receiptDirectory, SourceFile), problems);
         if (source is not null)
         {
-            if (repositoryRoot is null) problems.Add("no repository (DK2.slnx) above the harness to check the source against");
+            if (repositoryRoot is null)
+            {
+                problems.Add("no repository (DK2.slnx) above the harness to check the source against");
+            }
             else
             {
                 foreach ((string name, string hash) in source)
+                {
                     Compare(Path.Combine(repositoryRoot, name), hash, $"source {name}", problems);
+                }
+
                 string src = Path.Combine(repositoryRoot, "src");
                 if (Directory.Exists(src))
+                {
                     foreach (string file in Directory.EnumerateFiles(src, "*", SearchOption.AllDirectories))
                     {
                         string relative = Path.GetRelativePath(repositoryRoot, file).Replace('\\', '/');
@@ -77,8 +89,11 @@ public static class BuildReceipt
                         bool buildOutput = parts.Length > 3 && (parts[2] == "bin" || parts[2] == "obj");
                         if (!buildOutput &&Array.IndexOf(BuildInputs, Path.GetExtension(file).ToLowerInvariant()) >= 0
                             && !source.ContainsKey(relative))
+                        {
                             problems.Add($"source {relative} is a build input the receipt does not list");
+                        }
                     }
+                }
             }
         }
         return new Verification(receiptDirectory, head, problems, Dirty: !string.IsNullOrWhiteSpace(status), PatchSha256: patch);
@@ -93,10 +108,16 @@ public static class BuildReceipt
         foreach (System.Reflection.Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
             string? name = assembly.GetName().Name;
-            if (name is null || !name.StartsWith("DK2.", StringComparison.Ordinal) || assembly.IsDynamic) continue;
+            if (name is null || !name.StartsWith("DK2.", StringComparison.Ordinal) || assembly.IsDynamic)
+            {
+                continue;
+            }
+
             string? folder = string.IsNullOrEmpty(assembly.Location) ? null : Path.GetDirectoryName(Path.GetFullPath(assembly.Location));
             if (!string.Equals(folder, root, StringComparison.OrdinalIgnoreCase))
+            {
                 problems.Add($"loaded {name} comes from {(folder ?? "no file")}, not the receipt's harness folder");
+            }
         }
         return problems;
     }
@@ -107,7 +128,13 @@ public static class BuildReceipt
     public static string? RepositoryRootAbove(string start)
     {
         for (DirectoryInfo? dir = new(start); dir is not null; dir = dir.Parent)
-            if (File.Exists(Path.Combine(dir.FullName, "DK2.slnx"))) return dir.FullName;
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
+            {
+                return dir.FullName;
+            }
+        }
+
         return null;
     }
 
@@ -123,7 +150,10 @@ public static class BuildReceipt
         foreach (string line in File.ReadLines(path))
         {
             number++;
-            if (line.Length == 0) continue;
+            if (line.Length == 0)
+            {
+                continue;
+            }
             // sha256sum: 64 hex digits, a space, then a space (text) or '*' (binary), then the path.
             if (line.Length < 67 || line[64] != ' ' || (line[65] != ' ' && line[65] != '*')
                 || !line[..64].All(char.IsAsciiHexDigit))
@@ -138,9 +168,15 @@ public static class BuildReceipt
                 continue;
             }
             if (!entries.TryAdd(name, line[..64].ToLowerInvariant()))
+            {
                 problems.Add($"{Path.GetFileName(path)}:{number} lists {name} twice");
+            }
         }
-        if (entries.Count == 0) problems.Add($"{Path.GetFileName(path)} lists nothing");
+        if (entries.Count == 0)
+        {
+            problems.Add($"{Path.GetFileName(path)} lists nothing");
+        }
+
         return entries;
     }
 
@@ -154,6 +190,8 @@ public static class BuildReceipt
         using FileStream file = File.OpenRead(path);
         string actual = Convert.ToHexStringLower(SHA256.HashData(file));
         if (!string.Equals(actual, expected, StringComparison.Ordinal))
+        {
             problems.Add(string.Create(CultureInfo.InvariantCulture, $"{what} differs from the receipt"));
+        }
     }
 }

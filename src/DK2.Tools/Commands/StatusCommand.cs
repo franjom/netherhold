@@ -31,7 +31,11 @@ internal static class StatusCommand
         string Read(string relative)
         {
             string path = Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar));
-            if (File.Exists(path)) return File.ReadAllText(path);
+            if (File.Exists(path))
+            {
+                return File.ReadAllText(path);
+            }
+
             problems.Add($"missing file: {relative}");
             return string.Empty;
         }
@@ -72,12 +76,18 @@ internal static class StatusCommand
         // --- the determinism pair, from the two files that own them.
         string sim = Read("src/DK2.Simulation/GameSimulation.cs");
         Match hashVersion = Regex.Match(sim, @"HashVersion\s*=\s*(\d+)");
-        if (!hashVersion.Success) problems.Add("could not find HashVersion in GameSimulation.cs");
+        if (!hashVersion.Success)
+        {
+            problems.Add("could not find HashVersion in GameSimulation.cs");
+        }
 
         // The LIVE assertion, not the commented history of previous values.
         string determinism = Read("tests/DK2.Simulation.Tests/DeterminismTests.cs");
         Match pin = Regex.Match(determinism, @"Assert\.Equal\((0x[0-9A-Fa-f]{16})UL,\s*sim\.StateHash\(\)\)");
-        if (!pin.Success) problems.Add("could not find the pinned hash assertion in DeterminismTests.cs");
+        if (!pin.Success)
+        {
+            problems.Add("could not find the pinned hash assertion in DeterminismTests.cs");
+        }
 
         // --- tests. Discovery agrees with the runner exactly, and takes about
         // four seconds, so there is no reason to approximate it by counting
@@ -129,10 +139,14 @@ internal static class StatusCommand
         Console.WriteLine();
 
         foreach (string problem in problems)
+        {
             Console.Error.WriteLine($"warning: {problem}");
+        }
 
         if (!check)
+        {
             return problems.Count == 0 ? 0 : 1;
+        }
 
         // --check: compare against what the plan currently claims. Only the
         // numbers are compared, because the prose around them is edited by
@@ -152,19 +166,36 @@ internal static class StatusCommand
         var stale = new List<string>();
         void Expect(string label, string? actual)
         {
-            if (actual is null) return;
+            if (actual is null)
+            {
+                return;
+            }
+
             if (!Regex.IsMatch(body, @"(?<![0-9A-Za-zx])" + Regex.Escape(actual) + @"(?![0-9A-Za-z])"))
+            {
                 stale.Add($"{label}: the plan does not mention {actual}");
+            }
         }
 
-        if (!fast) Expect("tests", tests.ToString());
+        if (!fast)
+        {
+            Expect("tests", tests.ToString());
+        }
+
         Expect("scenarios", scenarios.ToString());
         Expect("ADRs", adrIds.Length.ToString());
         Expect("research docs", researchDocs.ToString());
         Expect("question rows", questionRows.ToString());
         Expect("highest question", $"Q{highestQuestion}");
-        if (hashVersion.Success) Expect("HashVersion", hashVersion.Groups[1].Value);
-        if (pin.Success) Expect("pin", pin.Groups[1].Value);
+        if (hashVersion.Success)
+        {
+            Expect("HashVersion", hashVersion.Groups[1].Value);
+        }
+
+        if (pin.Success)
+        {
+            Expect("pin", pin.Groups[1].Value);
+        }
 
         if (stale.Count == 0)
         {
@@ -173,7 +204,11 @@ internal static class StatusCommand
         }
 
         Console.Error.WriteLine("--check: the plan's status line is STALE:");
-        foreach (string s in stale) Console.Error.WriteLine($"  {s}");
+        foreach (string s in stale)
+        {
+            Console.Error.WriteLine($"  {s}");
+        }
+
         Console.Error.WriteLine();
         Console.Error.WriteLine("Regenerate it with `dk2tools status` rather than editing the numbers.");
         return 1;
@@ -203,7 +238,9 @@ internal static class StatusCommand
             RedirectStandardError = true,
         };
         foreach (string a in new[] { "test", "DK2.slnx", "-c", "Release", "--no-build", "--list-tests", "-m:1" })
+        {
             psi.ArgumentList.Add(a);
+        }
 
         string output;
         try
@@ -230,7 +267,9 @@ internal static class StatusCommand
         {
             string trimmed = line.Trim();
             if (Regex.IsMatch(trimmed, @"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+(\(.*\))?$"))
+            {
                 discovered.Add(trimmed);
+            }
         }
 
         if (discovered.Count == 0)
@@ -271,7 +310,10 @@ internal static class StatusCommand
                         continue;
                     }
 
-                    if (!armed) continue;
+                    if (!armed)
+                    {
+                        continue;
+                    }
 
                     Match method = Regex.Match(line, @"(?:void|Task) ([A-Za-z_][A-Za-z0-9_]*)\s*\(");
                     if (method.Success)
@@ -292,11 +334,21 @@ internal static class StatusCommand
         {
             string name = id;
             int paren = name.IndexOf('(', StringComparison.Ordinal);
-            if (paren >= 0) name = name[..paren];
+            if (paren >= 0)
+            {
+                name = name[..paren];
+            }
 
             string[] parts = name.Split('.');
-            if (parts.Length < 2) continue;
-            if (gatedMethods.Contains($"{parts[^2]}.{parts[^1]}")) gated++;
+            if (parts.Length < 2)
+            {
+                continue;
+            }
+
+            if (gatedMethods.Contains($"{parts[^2]}.{parts[^1]}"))
+            {
+                gated++;
+            }
         }
 
         return (discovered.Count, gated);
@@ -309,7 +361,10 @@ internal static class StatusCommand
     /// </summary>
     internal static string DescribeRuns(int[] ids)
     {
-        if (ids.Length == 0) return "none";
+        if (ids.Length == 0)
+        {
+            return "none";
+        }
 
         var parts = new List<string>();
         int start = ids[0], prev = ids[0];
@@ -333,7 +388,11 @@ internal static class StatusCommand
         for (int i = 1; i < ids.Length; i++)
         {
             int lo = ids[i - 1] + 1, hi = ids[i] - 1;
-            if (hi < lo) continue;
+            if (hi < lo)
+            {
+                continue;
+            }
+
             parts.Add(lo == hi ? $"{lo:D4}" : $"{lo:D4}\u2013{hi:D4}");
         }
         return parts.Count == 0 ? "none" : string.Join(", ", parts);

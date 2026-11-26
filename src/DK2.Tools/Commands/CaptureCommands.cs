@@ -33,11 +33,16 @@ internal static class CaptureCommands
             Console.WriteLine($"  capture only ({result.CaptureOnly.Count}): {Ids(result.CaptureOnly)}");
             Console.WriteLine($"  ours only ({result.OursOnly.Count}): {Ids(result.OursOnly)}");
             if (result.OursBeyondCapture.Count > 0)
+            {
                 Console.WriteLine("  ours, due after the capture stopped -- untested, not a "
                     + $"divergence ({result.OursBeyondCapture.Count}): {Ids(result.OursBeyondCapture)}");
+            }
+
             if (result.CaptureBeyondOurs.Count > 0)
+            {
                 Console.WriteLine("  capture, due after our run ended -- untested, not a "
                     + $"divergence ({result.CaptureBeyondOurs.Count}): {Ids(result.CaptureBeyondOurs)}");
+            }
 
             if (result.AnchorId is null)
             {
@@ -60,10 +65,12 @@ internal static class CaptureCommands
                 }
 
                 if (result.AlignedEvents.Any(e => e.Residual is not null and not 0))
+                {
                     Console.WriteLine("  note: a capture turn is when the probe SAW the change, "
                         + "measured as one tick after\n        the game acted (run 8: timer 1 "
                         + "stored 1724, first seen at 1725). On a flag,\n        a +1 residual is "
                         + "agreement; the stamps below are the unsampled check.");
+                }
             }
 
             if (result.StampSeries.Count > 0)
@@ -73,7 +80,11 @@ internal static class CaptureCommands
                 foreach (TriggerStampSeries s in result.StampSeries)
                 {
                     string verdict = s.Agrees ? "same" : "DIFFER";
-                    if (s.Truncated) verdict += ", to the shorter run's window";
+                    if (s.Truncated)
+                    {
+                        verdict += ", to the shorter run's window";
+                    }
+
                     Console.WriteLine($"  {s.Id,-6} {string.Join(", ", s.Ours),-20} "
                         + $"{string.Join(", ", s.Capture),-20} {verdict}");
                 }
@@ -104,7 +115,10 @@ internal static class CaptureCommands
         {
             string[] lines = File.ReadAllLines(path);
             if (lines.Length == 0 || lines[0] != TriggerTurnCsvEmitter.Header)
+            {
                 throw new InvalidDataException($"'{path}' does not have the live trigger-probe header.");
+            }
+
             return lines.Skip(1).Where(l => l.Length != 0).Select(l => l.Split(',')).ToArray();
         }
 
@@ -122,11 +136,16 @@ internal static class CaptureCommands
                 foreach (string[] row in rows)
                 {
                     if (row.Length != columns.Length)
+                    {
                         throw new InvalidDataException(
                             $"'{path}' has a row of {row.Length} columns; expected {columns.Length}.");
+                    }
+
                     if (int.TryParse(row[1], System.Globalization.NumberStyles.Integer,
                             System.Globalization.CultureInfo.InvariantCulture, out int t))
+                    {
                         byTurn[t] = row;
+                    }
                 }
                 return byTurn;
             }
@@ -161,7 +180,11 @@ internal static class CaptureCommands
                     }
 
                     compared[col]++;
-                    if (a[col] == b[col]) continue;
+                    if (a[col] == b[col])
+                    {
+                        continue;
+                    }
+
                     different[col]++;
                     first ??= (turn.ToString(System.Globalization.CultureInfo.InvariantCulture),
                         columns[col], a[col], b[col]);
@@ -169,13 +192,20 @@ internal static class CaptureCommands
             }
 
             if (first is { } f)
+            {
                 Console.WriteLine($"first divergence: turn {f.Turn}, column {f.Column}: left='{f.Left}' right='{f.Right}'");
+            }
             else
+            {
                 Console.WriteLine("no comparable values diverged");
+            }
 
             Console.WriteLine("per-column summary (different/compared, unknown):");
             for (int col = 0; col < columns.Length; col++)
+            {
                 Console.WriteLine($"  {columns[col],-16} {different[col]}/{compared[col]}, {unknown[col]} unknown");
+            }
+
             return first is null ? 0 : 1;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)

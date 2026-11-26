@@ -14,7 +14,11 @@ internal static class JournalReportCommand
 {
     internal static int Run(string[] args)
     {
-        if (args.Length != 4) return Program.Usage();
+        if (args.Length != 4)
+        {
+            return Program.Usage();
+        }
+
         try
         {
             byte[] journalBytes = File.ReadAllBytes(args[1]);
@@ -27,7 +31,10 @@ internal static class JournalReportCommand
             string html = Render(journal, replay, comparison, args[1], args[2], journalBytes, hashBytes);
             using (var output = new FileStream(args[3], FileMode.CreateNew, FileAccess.Write, FileShare.None))
             using (var writer = new StreamWriter(output, new UTF8Encoding(false)))
+            {
                 writer.Write(html);
+            }
+
             Console.WriteLine($"{comparison.Verdict}; report: {args[3]}");
             return comparison.ExitCode;
         }
@@ -52,7 +59,10 @@ internal static class JournalReportCommand
                 || !long.TryParse(fields[0], NumberStyles.None, CultureInfo.InvariantCulture, out long tick)
                 || tick <= previous || fields[1].Length is < 1 or > 16
                 || !ulong.TryParse(fields[1], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out ulong hash))
+            {
                 throw new InvalidDataException($"Invalid hashes.tsv row {lineNumber}: expected increasing nonnegative tick, tab, hexadecimal hash.");
+            }
+
             result.Add(tick, hash);
             previous = tick;
         }
@@ -65,7 +75,9 @@ internal static class JournalReportCommand
             || journal.Hashes.Keys.Any(t => t < 0 || t == long.MaxValue || journal.TicksRun is { } end && t > end)
             || journal.FrameTicks.Any(t => t < 0 || t == long.MaxValue
                 || journal.TicksRun is { } end && (t > end || t == end && journal.EndReason == "completed")))
+        {
             throw new InvalidDataException("Journal contains an invalid tick or a hash beyond its end record.");
+        }
     }
 
     private sealed class Comparison
@@ -91,7 +103,10 @@ internal static class JournalReportCommand
                     continue;
                 }
                 Compared++;
-                if (hash != actual) FirstDivergence ??= tick;
+                if (hash != actual)
+                {
+                    FirstDivergence ??= tick;
+                }
             }
             ReplayOnly = replay.Keys.Count(t => !journal.Hashes.ContainsKey(t));
             long last = journal.TicksRun ?? journal.LastHashedTick;
@@ -125,8 +140,16 @@ internal static class JournalReportCommand
         html.AppendLine($"<h2>{Encode(comparison.Verdict)}</h2>");
         html.AppendLine($"<p>Compared hashes: {comparison.Compared}<br>Missing replay hashes: {comparison.MissingReplay}<br>"
             + $"Replay hashes without a recorded hash: {comparison.ReplayOnly}<br>Missing recorded hashes: {comparison.MissingRecorded}</p>");
-        if (journal.Truncated) html.AppendLine("<p class=\"missing\">Journal is truncated: no end record. Only surviving records are compared.</p>");
-        if (journal.Hashes.Count == 0) html.AppendLine("<p class=\"missing\">No recorded hashes: there is no state evidence to compare.</p>");
+        if (journal.Truncated)
+        {
+            html.AppendLine("<p class=\"missing\">Journal is truncated: no end record. Only surviving records are compared.</p>");
+        }
+
+        if (journal.Hashes.Count == 0)
+        {
+            html.AppendLine("<p class=\"missing\">No recorded hashes: there is no state evidence to compare.</p>");
+        }
+
         html.AppendLine("<p>Provenance is not verified: the supplied hashes.tsv has no build or scenario metadata. "
             + "Matching hashes describe these supplied records only; they do not establish DK2 parity or successful gameplay.</p>");
         html.AppendLine("<h2>Inputs and recorded context</h2><table><tr><th>Field</th><th>Value</th></tr>");
@@ -137,7 +160,11 @@ internal static class JournalReportCommand
         Row("Hash version (journal)", journal.HashVersion.ToString(CultureInfo.InvariantCulture));
         Row("Recorded end tick", journal.TicksRun?.ToString(CultureInfo.InvariantCulture) ?? "unknown");
         Row("Recorded end reason", journal.EndReason ?? "unknown");
-        foreach ((string key, string value) in journal.Header.OrderBy(kv => kv.Key, StringComparer.Ordinal)) Row(key, value);
+        foreach ((string key, string value) in journal.Header.OrderBy(kv => kv.Key, StringComparer.Ordinal))
+        {
+            Row(key, value);
+        }
+
         html.AppendLine("</table>");
 
         long start = Math.Max(0, comparison.Focus - 3);
@@ -164,10 +191,17 @@ internal static class JournalReportCommand
                 : $"can affect hash tick {tick + 1}";
             html.AppendLine($"<h3>Input tick {tick} ({effect})</h3><ol>");
             foreach (PlayerCommand command in journal.FrameAt(tick).All)
+            {
                 html.AppendLine($"<li><code>{Encode(command.ToString())}</code></li>");
+            }
+
             html.AppendLine("</ol>");
         }
-        if (!commands) html.AppendLine("<p>No recorded commands in this window.</p>");
+        if (!commands)
+        {
+            html.AppendLine("<p>No recorded commands in this window.</p>");
+        }
+
         html.AppendLine("<p><small>This report compares existing evidence offline. It neither runs a replay nor reconstructs world state or subsystem causes.</small></p></body></html>");
         return html.ToString();
 

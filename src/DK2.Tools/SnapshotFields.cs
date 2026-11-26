@@ -22,12 +22,19 @@ internal static class SnapshotFields
 
         void Put(string name, string? text)
         {
-            if (!result.TryAdd(name, text)) throw new InvalidDataException($"Duplicate projected field: {name}");
+            if (!result.TryAdd(name, text))
+            {
+                throw new InvalidDataException($"Duplicate projected field: {name}");
+            }
         }
 
         void Walk(object? item, string name, int depth)
         {
-            if (depth > 32) throw new InvalidDataException($"Snapshot field nesting exceeds 32 at {name}.");
+            if (depth > 32)
+            {
+                throw new InvalidDataException($"Snapshot field nesting exceeds 32 at {name}.");
+            }
+
             if (item is null) { Put(name, null); return; }
             if (item is ReadOnlyMemory<byte> bytes) { Walk(bytes.ToArray(), name, depth + 1); return; }
             Type type = item.GetType();
@@ -39,16 +46,26 @@ internal static class SnapshotFields
                 return;
             }
             if (item is WorldState or Delegate)
+            {
                 throw new InvalidDataException($"A non-data reference was reached at {name}.");
+            }
+
             bool tracked = !type.IsValueType;
-            if (tracked && !active.Add(item)) throw new InvalidDataException($"Cyclic snapshot field at {name}.");
+            if (tracked && !active.Add(item))
+            {
+                throw new InvalidDataException($"Cyclic snapshot field at {name}.");
+            }
+
             try
             {
                 if (item is IDictionary dictionary)
                 {
                     Put(name + ".$count", dictionary.Count.ToString(CultureInfo.InvariantCulture));
                     foreach (DictionaryEntry entry in dictionary)
+                    {
                         Walk(entry.Value, DictionaryPath(name, entry.Key), depth + 1);
+                    }
+
                     return;
                 }
                 if (item is IEnumerable sequence)
@@ -67,21 +84,32 @@ internal static class SnapshotFields
                 Put(name + ".$type", type.FullName ?? type.Name);
                 foreach (FieldInfo field in fields)
                 {
-                    if (typeof(WorldState).IsAssignableFrom(field.FieldType) || typeof(Delegate).IsAssignableFrom(field.FieldType)) continue;
+                    if (typeof(WorldState).IsAssignableFrom(field.FieldType) || typeof(Delegate).IsAssignableFrom(field.FieldType))
+                    {
+                        continue;
+                    }
+
                     string member = FieldName(field.Name);
                     Walk(field.GetValue(item), name + "." + member, depth + 1);
                 }
             }
             finally
             {
-                if (tracked) active.Remove(item);
+                if (tracked)
+                {
+                    active.Remove(item);
+                }
             }
         }
     }
 
     private static string FieldName(string name)
     {
-        if (name.StartsWith('<') && name.IndexOf('>') is int end && end > 1) return name[1..end];
+        if (name.StartsWith('<') && name.IndexOf('>') is int end && end > 1)
+        {
+            return name[1..end];
+        }
+
         return name.Length > 1 && name[0] == '_' ? char.ToUpperInvariant(name[1]) + name[2..] : name;
     }
 

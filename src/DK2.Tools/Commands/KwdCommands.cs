@@ -81,13 +81,19 @@ internal static partial class KwdCommands
         // what tags the file carries. See docs/research/kwd-container.md.
         foreach (KwdChunk c in KwdReader.ReadFile(ResolveEditor(args[2])))
         {
-            if (!KwdTaggedRecords.IsTagged(c.Type)) continue;
+            if (!KwdTaggedRecords.IsTagged(c.Type))
+            {
+                continue;
+            }
 
             var byTag = new SortedDictionary<int, (int Count, SortedSet<int> Sizes)>();
             foreach (KwdTaggedRecords.TaggedRecord r in KwdTaggedRecords.Split(c))
             {
                 if (!byTag.TryGetValue(r.Tag, out (int Count, SortedSet<int> Sizes) e))
+                {
                     byTag[r.Tag] = e = (0, []);
+                }
+
                 e.Sizes.Add(r.Payload.Length);
                 byTag[r.Tag] = (e.Count + 1, e.Sizes);
             }
@@ -117,34 +123,55 @@ internal static partial class KwdCommands
             {
                 case KwdRecordType.CreatureSpells:
                     foreach (CreatureSpellDef record in KwdAdditionalRecords.ParseCreatureSpells([chunk]))
+                    {
                         Console.WriteLine($"CREATURE_SPELL id={record.CreatureSpellId,3} name={record.Name,-28} bytes={record.ConsumedLength}");
+                    }
+
                     break;
                 case KwdRecordType.Shots:
                     foreach (ShotDef record in KwdAdditionalRecords.ParseShots([chunk]))
+                    {
                         Console.WriteLine($"SHOT id={record.ShotId,3} name={record.Name,-28} bytes={record.ConsumedLength}");
+                    }
+
                     break;
                 case KwdRecordType.Effects:
                     foreach (EffectDef record in KwdAdditionalRecords.ParseEffects([chunk]))
+                    {
                         Console.WriteLine($"EFFECT id={record.EffectId,3} name={record.Name,-28} bytes={record.ConsumedLength}");
+                    }
+
                     break;
                 case KwdRecordType.EffectElements:
                     foreach (EffectElementDef record in KwdAdditionalRecords.ParseEffectElements([chunk]))
+                    {
                         Console.WriteLine($"EFFECT_ELEMENT id={record.EffectElementId,3} name={record.Name,-28} bytes={record.ConsumedLength}");
+                    }
+
                     break;
                 case KwdRecordType.Things:
                     foreach (ThingRecord record in KwdThings.Parse([chunk]))
+                    {
                         Console.WriteLine($"THING tag={record.Tag} type={record.GetType().Name,-28} bytes={record.ConsumedLength}");
+                    }
+
                     break;
                 case KwdRecordType.Triggers:
                     foreach (TriggerRecord record in KwdTriggers.Parse([chunk]))
+                    {
                         Console.WriteLine($"TRIGGER tag={record.Tag} id={record.TriggerId,4} type={record.Type,2} repeat={record.RepeatCount,3} bytes={record.ConsumedLength}");
+                    }
+
                     break;
                 case KwdRecordType.Level:
                     LevelDef level = KwdLevel.Parse([chunk])
                         ?? throw new InvalidDataException("LEVEL chunk did not produce a level.");
                     Console.WriteLine($"LEVEL name={level.Name} ticksPerSecond={level.TicksPerSecond} paths={level.Paths.Count} bytes={level.ConsumedLength}");
                     foreach (KwdLevelFilePath path in level.Paths)
+                    {
                         Console.WriteLine($"  {path.RecordType,-16} {path.Path}");
+                    }
+
                     break;
                 default:
                     Console.WriteLine($"{chunk.Type}: use its existing typed dump; {chunk.ItemCount} records");

@@ -52,7 +52,7 @@ static class FunctionKbCommand
     {
         var errors = new List<string>();
         List<FunctionRecord> records = Load(new Source(root, staged: false), errors);
-        if (errors.Count > 0) { foreach (string e in errors) Console.Error.WriteLine(e); return 1; }
+        if (errors.Count > 0) { foreach (string e in errors) { Console.Error.WriteLine(e); } return 1; }
         string tsv = Path.Combine(root, NamesTsv.Replace('/', Path.DirectorySeparatorChar));
         string output = Path.Combine(root, NamesOut.Replace('/', Path.DirectorySeparatorChar));
         Directory.CreateDirectory(Path.GetDirectoryName(tsv)!);
@@ -61,18 +61,30 @@ static class FunctionKbCommand
         Console.WriteLine($"kb apply-names: {table.Count(c => c == '\n')} named of {records.Count} records -> {NamesTsv}");
 
         var psi = new System.Diagnostics.ProcessStartInfo("python") { WorkingDirectory = root, UseShellExecute = false };
-        foreach (string a in (string[])["tools/ghidra/ghidra.py", "--write", "ApplyNames.py", output, tsv]) psi.ArgumentList.Add(a);
+        foreach (string a in (string[])["tools/ghidra/ghidra.py", "--write", "ApplyNames.py", output, tsv])
+        {
+            psi.ArgumentList.Add(a);
+        }
+
         if (dryRun)
         {
             Console.WriteLine("would run: python " + string.Join(" ", psi.ArgumentList.Select(a => a.Contains(' ') ? $"\"{a}\"" : a)));
             return 0;
         }
-        if (File.Exists(output)) File.Delete(output);
+        if (File.Exists(output))
+        {
+            File.Delete(output);
+        }
+
         using Process process = System.Diagnostics.Process.Start(psi) ?? throw new IOException("could not start python");
         process.WaitForExit();
         string last = File.Exists(output) ? File.ReadLines(output).LastOrDefault() ?? "" : "";
         Console.WriteLine(last);
-        if (process.ExitCode != 0) return process.ExitCode;
+        if (process.ExitCode != 0)
+        {
+            return process.ExitCode;
+        }
+
         if (last.Length == 0) { Console.Error.WriteLine($"kb apply-names: {NamesOut} was not written"); return 1; }
         // A row Ghidra refused (duplicate or invalid name, bad address) is a failure even though the run succeeded.
         return System.Text.RegularExpressions.Regex.IsMatch(last, @"\bfailed=[1-9]") ? 1 : 0;
@@ -92,7 +104,7 @@ static class FunctionKbCommand
     {
         var errors = new List<string>();
         List<FunctionRecord> records = Load(new Source(root, staged: false), errors);
-        if (errors.Count > 0) { foreach (string e in errors) Console.Error.WriteLine(e); return 1; }
+        if (errors.Count > 0) { foreach (string e in errors) { Console.Error.WriteLine(e); } return 1; }
         string path = Path.Combine(root, FunctionKb.Folder.Replace('/', Path.DirectorySeparatorChar), "INDEX.md");
         File.WriteAllText(path, FunctionKb.Index(records), new System.Text.UTF8Encoding(false));
         Console.WriteLine($"kb index: {records.Count} records -> {FunctionKb.Folder}/INDEX.md");
@@ -114,7 +126,11 @@ static class FunctionKbCommand
         public Source(string root, bool staged)
         {
             this.root = root;
-            if (!staged) return;
+            if (!staged)
+            {
+                return;
+            }
+
             tracked = Paths(Repo.RunGit(root, "ls-files", "--cached"));
             dirty = Paths(Repo.RunGit(root, "diff", "--name-only"));
         }
@@ -126,7 +142,11 @@ static class FunctionKbCommand
 
         public string[] Lines(string relative)
         {
-            if (cache.TryGetValue(relative, out string[]? lines)) return lines;
+            if (cache.TryGetValue(relative, out string[]? lines))
+            {
+                return lines;
+            }
+
             return cache[relative] = dirty is not null && dirty.Contains(relative) ? Repo.GitLines(root, $":{relative}")
                 : File.Exists(Full(relative)) ? File.ReadAllLines(Full(relative))
                 : [];
@@ -195,13 +215,20 @@ static class FunctionKbCommand
             foreach (string relative in files)
             {
                 changedFiles.Add(relative);
-                if (!(relative.StartsWith("docs/", StringComparison.Ordinal) || relative.StartsWith("src/", StringComparison.Ordinal))) continue;
+                if (!(relative.StartsWith("docs/", StringComparison.Ordinal) || relative.StartsWith("src/", StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
                 string[] lines = source.Lines(relative);
                 HashSet<int> added = Repo.AddedLineNumbers(root, baseRef, relative, staged);
                 changes.Add((relative, added.Where(n => n >= 1 && n <= lines.Length).Select(n => lines[n - 1]).ToArray()));
 
                 FunctionRecord? now = records.FirstOrDefault(r => r.RelativePath == relative);
-                if (now is null) continue;
+                if (now is null)
+                {
+                    continue;
+                }
                 // A record new in this change has no base blob; RunGit swallows git's error and GitLines yields [].
                 string[] baseLines = Repo.GitLines(root, $"{baseRef}:{relative}");
                 FunctionRecord? before = baseLines.Length == 0 ? null : FunctionKb.Parse(relative, baseLines, []);
@@ -209,8 +236,15 @@ static class FunctionKbCommand
                 FunctionRecord? merged = mergedLines.Length == 0 ? null : FunctionKb.Parse(relative, mergedLines, []);
                 IReadOnlyCollection<DateOnly> days = staged ? [today] : [today, .. Repo.CommitDays(root, baseRef, relative)];
                 findings.AddRange(FunctionKb.HistoryRequired(now, before, days, merged));
-                if (FunctionKb.StatusMismatch(now, before, merged) is { } mismatch) findings.Add(mismatch);
-                if (FunctionKb.GainedReading(now, before)) reread.Add(now.Address);
+                if (FunctionKb.StatusMismatch(now, before, merged) is { } mismatch)
+                {
+                    findings.Add(mismatch);
+                }
+
+                if (FunctionKb.GainedReading(now, before))
+                {
+                    reread.Add(now.Address);
+                }
             }
             findings.AddRange(FunctionKb.MissingRecords(changes, recorded));
             notes.AddRange(CitersNote(root, source, reread, changedFiles));
@@ -219,14 +253,26 @@ static class FunctionKbCommand
         if (findings.Count == 0)
         {
             Console.WriteLine($"kb check: {records.Count} records, no findings.");
-            foreach (string n in notes) Console.WriteLine(n);
+            foreach (string n in notes)
+            {
+                Console.WriteLine(n);
+            }
+
             return 0;
         }
         Console.Error.WriteLine($"{findings.Count} KB finding(s):");
-        foreach (string f in findings) Console.Error.WriteLine("  " + f);
+        foreach (string f in findings)
+        {
+            Console.Error.WriteLine("  " + f);
+        }
+
         Console.Error.WriteLine();
         Console.Error.WriteLine(Pointer);
-        foreach (string n in notes) Console.Error.WriteLine(n);
+        foreach (string n in notes)
+        {
+            Console.Error.WriteLine(n);
+        }
+
         return 1;
     }
 
@@ -236,7 +282,11 @@ static class FunctionKbCommand
     /// they were written against the old reading (<see cref="FunctionKb.UntouchedCiters"/>).</summary>
     static IEnumerable<string> CitersNote(string root, Source source, List<string> addresses, HashSet<string> changed)
     {
-        if (addresses.Count == 0) yield break;
+        if (addresses.Count == 0)
+        {
+            yield break;
+        }
+
         IEnumerable<(string f, string)> files = Repo.AllTrackedFiles(root)
             .Where(f => (f.StartsWith("src/", StringComparison.Ordinal) || f.StartsWith("docs/", StringComparison.Ordinal)
                 || f.StartsWith("tests/", StringComparison.Ordinal)) && (f.EndsWith(".cs", StringComparison.Ordinal) || f.EndsWith(".md", StringComparison.Ordinal)))
@@ -244,7 +294,11 @@ static class FunctionKbCommand
         bool first = true;
         foreach ((string? address, IReadOnlyList<string>? citers) in FunctionKb.UntouchedCiters(addresses, files, changed))
         {
-            if (first) yield return "note: these records gained a reading; files that cite them and are not in this change may still state the old one:";
+            if (first)
+            {
+                yield return "note: these records gained a reading; files that cite them and are not in this change may still state the old one:";
+            }
+
             first = false;
             string more = citers.Count > CitersShown ? $" (and {citers.Count - CitersShown} more)" : "";
             yield return $"  0x{address}: {string.Join(", ", citers.Take(CitersShown))}{more}";

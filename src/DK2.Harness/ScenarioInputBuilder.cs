@@ -27,7 +27,11 @@ internal sealed class ScenarioInputBuilder
         Scenario scenario, string? campaignLevel, WorldState world, List<string> unsupported)
     {
         var result = new List<KeeperAI>();
-        if (scenario.ComputerKeepers.Count == 0) return result;
+        if (scenario.ComputerKeepers.Count == 0)
+        {
+            return result;
+        }
+
         if (campaignLevel is null || _installDir is null)
         {
             unsupported.Add("computer_keepers needs a campaign map and the DK2 installation");
@@ -36,7 +40,10 @@ internal sealed class ScenarioInputBuilder
 
         List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(_installDir, campaignLevel);
         foreach (byte id in scenario.KeeperPersonalities.Keys.Where(id => !scenario.ComputerKeepers.Contains(id)))
+        {
             unsupported.Add($"keeper_personalities: player {id} is not in computer_keepers");
+        }
+
         foreach (byte id in scenario.ComputerKeepers.Distinct())
         {
             PlayerDef? player = players?.FirstOrDefault(p => p.PlayerId == id);
@@ -83,19 +90,45 @@ internal sealed class ScenarioInputBuilder
             }
 
             if (!byTick.TryGetValue(c.AtTick, out List<PlayerCommand>? list))
+            {
                 byTick[c.AtTick] = list = [];
+            }
 
-            if (c.Tag.Count > 0) list.Add(new TagTilesCommand(c.Player, ToTiles(c.Tag), true));
-            if (c.Untag.Count > 0) list.Add(new TagTilesCommand(c.Player, ToTiles(c.Untag), false));
+            if (c.Tag.Count > 0)
+            {
+                list.Add(new TagTilesCommand(c.Player, ToTiles(c.Tag), true));
+            }
+
+            if (c.Untag.Count > 0)
+            {
+                list.Add(new TagTilesCommand(c.Player, ToTiles(c.Untag), false));
+            }
 
             bool built = c.Build is not null && TryBuild(c, list, unsupported);
-            if (c.Sell.Count > 0) list.Add(new SellRoomCommand(c.Player, ToTiles(c.Sell)));
-            if (c.CreateImp) list.Add(new CreateImpCommand(c.Player));
+            if (c.Sell.Count > 0)
+            {
+                list.Add(new SellRoomCommand(c.Player, ToTiles(c.Sell)));
+            }
 
-            if (c.PickUp > 0) list.Add(new PickUpCreatureCommand(c.Player, c.PickUp));
+            if (c.CreateImp)
+            {
+                list.Add(new CreateImpCommand(c.Player));
+            }
+
+            if (c.PickUp > 0)
+            {
+                list.Add(new PickUpCreatureCommand(c.Player, c.PickUp));
+            }
+
             if (c.PickUpObject > 0)
+            {
                 list.Add(new PickUpObjectCommand(c.Player, c.PickUpObject));
-            if (c.Slap > 0) list.Add(new SlapCreatureCommand(c.Player, c.Slap));
+            }
+
+            if (c.Slap > 0)
+            {
+                list.Add(new SlapCreatureCommand(c.Player, c.Slap));
+            }
 
             bool dropped = c.Drop.Count > 0;
             if (dropped)
@@ -127,12 +160,17 @@ internal sealed class ScenarioInputBuilder
                         CreatureState.CentreOf(c.CallToArms[0]), CreatureState.CentreOf(c.CallToArms[1])));
                 }
             }
-            if (c.RemoveCallToArms) list.Add(new RemoveCallToArmsCommand(c.Player));
+            if (c.RemoveCallToArms)
+            {
+                list.Add(new RemoveCallToArmsCommand(c.Player));
+            }
 
             if (c.Tag.Count == 0 && c.Untag.Count == 0 && !built
                 && c.Sell.Count == 0 && !c.CreateImp && !called && !c.RemoveCallToArms
                 && c.PickUp == 0 && c.PickUpObject == 0 && c.Slap == 0 && !dropped)
+            {
                 unsupported.Add($"commands entry at_tick={c.AtTick} names nothing this build can do");
+            }
         }
 
         return byTick.ToDictionary(kv => kv.Key, kv => new InputFrame(kv.Value));
@@ -201,11 +239,16 @@ internal sealed class ScenarioInputBuilder
         foreach (ScenarioWork w in work)
         {
             int last = w.UntilTick < w.AtTick ? w.AtTick : w.UntilTick;
-            if (tick < w.AtTick || tick > last) continue;
+            if (tick < w.AtTick || tick > last)
+            {
+                continue;
+            }
 
             TileWorkKind kind = Enum.Parse<TileWorkKind>(w.Kind, ignoreCase: true);
             for (int i = 0; i < w.Repeat; i++)
+            {
                 world.QueueWork(w.At[0], w.At[1], kind, w.Player);
+            }
         }
     }
 }

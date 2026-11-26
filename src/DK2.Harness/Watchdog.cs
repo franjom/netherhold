@@ -46,8 +46,15 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
     {
         _cancelled = true;
         Process[] children;
-        lock (_childrenGate) children = [.. _children];
-        foreach (Process child in children) Kill(child);
+        lock (_childrenGate)
+        {
+            children = [.. _children];
+        }
+
+        foreach (Process child in children)
+        {
+            Kill(child);
+        }
     }
 
     public WatchSummary Watch(IReadOnlyList<string> scenarioFiles, TextWriter log) =>
@@ -101,11 +108,19 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
                     }));
                     launched = true;
                 }
-                finally { if (!launched) slots.Release(); }
+                finally { if (!launched)
+                    {
+                        slots.Release();
+                    }
+                }
             }
         }
         finally { Task.WhenAll(workers).GetAwaiter().GetResult(); }
-        if (stopped is not null) log.WriteLine(stopped);
+        if (stopped is not null)
+        {
+            log.WriteLine(stopped);
+        }
+
         return new WatchSummary(root, run, notPassed, jobs.Count - run);
 
         void Flush()
@@ -114,7 +129,11 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
             while (written < outcomes.Length && outcomes[written] is Outcome outcome)
             {
                 WatchJob job = jobs[written++];
-                if (outcome.Verdict != "passed") notPassed++;
+                if (outcome.Verdict != "passed")
+                {
+                    notPassed++;
+                }
+
                 File.AppendAllText(summaryPath, string.Join('\t',
                     outcome.Id, job.Label, outcome.Verdict, outcome.ExitCode.ToString(CultureInfo.InvariantCulture),
                     outcome.Seconds.ToString("F1", CultureInfo.InvariantCulture),
@@ -151,18 +170,29 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
         start.UseShellExecute = false;
         start.CreateNoWindow = true;
         using var child = new Process { StartInfo = start };
-        child.OutputDataReceived += (_, e) => { if (e.Data is not null) lock (stdout) stdout.AppendLine(e.Data); };
-        child.ErrorDataReceived += (_, e) => { if (e.Data is not null) lock (stderr) stderr.AppendLine(e.Data); };
+        child.OutputDataReceived += (_, e) => { if (e.Data is not null) { lock (stdout) { stdout.AppendLine(e.Data); } } };
+        child.ErrorDataReceived += (_, e) => { if (e.Data is not null) { lock (stderr) { stderr.AppendLine(e.Data); } } };
         child.Start();
-        lock (_childrenGate) _children.Add(child);
+        lock (_childrenGate)
+        {
+            _children.Add(child);
+        }
+
         bool exited;
         try
         {
-            if (_cancelled) Kill(child);
+            if (_cancelled)
+            {
+                Kill(child);
+            }
+
             child.BeginOutputReadLine();
             child.BeginErrorReadLine();
             exited = child.WaitForExit(limit);
-            if (!exited) Kill(child);
+            if (!exited)
+            {
+                Kill(child);
+            }
             // A descendant that survives the kill may hold the output pipes; bound the wait.
             child.WaitForExit(30_000);
         }
@@ -172,20 +202,30 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
             child.WaitForExit(30_000);
             throw;
         }
-        finally { lock (_childrenGate) _children.Remove(child); }
+        finally { lock (_childrenGate)
+            {
+                _children.Remove(child);
+            }
+        }
 
         int exit = exited ? child.ExitCode : -1;
         string verdict = Classify(exited, exit, _cancelled);
         // A player run writes <id>/<run id>/input.journal; take the one run folder's journal then.
         if (!File.Exists(journalPath) && Directory.Exists(dir)
             && Directory.GetFiles(dir, "input.journal", SearchOption.AllDirectories) is [string nested])
+        {
             journalPath = nested;
+        }
+
         InputJournal? journal = ReadJournal(journalPath);
         File.WriteAllText(Path.Combine(dir, "stdout.log"), stdout.ToString());
         File.WriteAllText(Path.Combine(dir, "stderr.log"), stderr.ToString());
         if (verdict != "passed")
+        {
             File.WriteAllText(Path.Combine(dir, "failure.md"),
                 FailureReport(file, id, verdict, exit, limit, journalPath, journal, stderr.ToString()));
+        }
+
         return new Outcome(id, verdict, exit, clock.Elapsed.TotalSeconds, journal);
     }
 
@@ -205,7 +245,11 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
 
     private static InputJournal? ReadJournal(string path)
     {
-        if (!File.Exists(path)) return null;
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
         try
         {
             using FileStream stream = File.OpenRead(path);
@@ -227,7 +271,9 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
         text.AppendLine($"- scenario: {file}");
         text.AppendLine(verdict == "timeout" ? $"- killed after {limit.TotalSeconds:F0} s" : $"- exit code: {exit}");
         if (journal is null)
+        {
             text.AppendLine("- journal: none readable (the run failed before tick 0)");
+        }
         else
         {
             text.AppendLine($"- journal: {journalPath}");
@@ -271,8 +317,15 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
             UseShellExecute = false,
         };
         if (Path.GetFileNameWithoutExtension(host).Equals("dotnet", StringComparison.OrdinalIgnoreCase))
+        {
             start.ArgumentList.Add(typeof(Watchdog).Assembly.Location);
-        foreach (string arg in args) start.ArgumentList.Add(arg);
+        }
+
+        foreach (string arg in args)
+        {
+            start.ArgumentList.Add(arg);
+        }
+
         return start;
     }
 }

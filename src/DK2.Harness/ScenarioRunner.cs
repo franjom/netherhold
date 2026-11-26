@@ -208,11 +208,17 @@ public sealed class ScenarioRunner
         static string Count(int n, string one, string many) => $"{n} {(n == 1 ? one : many)}";
 
         foreach (string key in scenario.UnknownKeys)
+        {
             unsupported.Add($"unknown key '{key}' in the scenario file");
+        }
 
         foreach (string observation in scenario.Observe)
+        {
             if (observation is not ("state_hash" or "events"))
+            {
                 unsupported.Add($"observe.{observation} - nothing produces this yet");
+            }
+        }
 
         if (scenario.Work.Count > 0)
         {
@@ -242,6 +248,7 @@ public sealed class ScenarioRunner
             .ToList();
 
         if (corrected.Count > 0)
+        {
             unsupported.Add(
                 $"this run used {corrected.Count} corrected balance value(s) rather than what the " +
                 $"game ships: {string.Join(", ", corrected)}. Each is a case where the shipped " +
@@ -249,6 +256,7 @@ public sealed class ScenarioRunner
                 "balance table was searched for an alternative and came back empty, and the " +
                 "correction is guarded on the exact shipped value. See ObservedCorrections and " +
                 "ADR-0023");
+        }
 
         var builder = new ScenarioWorldBuilder(_database, _installDir);
         var inputs = new ScenarioInputBuilder(_database, _installDir);
@@ -258,7 +266,9 @@ public sealed class ScenarioRunner
             ? scenario.Setup.Players.Select(p => p.Id)
             : map.Tiles.Select(t => t.PlayerId).Distinct();
         if (campaignLevel is not null && _installDir is not null)
+        {
             playerIds = ActivationOrder(playerIds, GameDatabaseLoader.LoadCampaignPlayers(_installDir, campaignLevel));
+        }
 
         var world = WorldState.FromMap(
             _database, map, playerIds, fogOfWarEnabled: scenario.FogOfWar);
@@ -291,12 +301,21 @@ public sealed class ScenarioRunner
         InputJournal? replay = mode.Replay;
         Dictionary<int, InputFrame> input = replay is null ? inputs.BuildInput(scenario, unsupported) : [];
         if (replay is null && mode.Options.PlayerRun is { } controlled)
+        {
             foreach (InputFrame scriptedFrame in input.Values)
+            {
                 foreach (PlayerCommand command in scriptedFrame.All)
+                {
                     if (command.PlayerId == controlled.Player)
+                    {
                         throw new PlayerRunRefusedException(
                             $"Player run: the scenario scripts commands for player {controlled.Player.Value}; a controlled player has one command source.",
                             nameof(scenario));
+                    }
+                }
+            }
+        }
+
         List<ScenarioWork> work = ScenarioInputBuilder.ResolveWork(scenario, world, unsupported);
         List<KeeperAI> keepers = replay is null
             ? inputs.CreateComputerKeepers(scenario, campaignLevel, world, unsupported)
@@ -332,7 +351,10 @@ public sealed class ScenarioRunner
             try
             {
                 foreach (KeeperAI keeper in keepers)
+                {
                     next.AddRange(keeper.Think(_database, world, staging));
+                }
+
                 return next;
             }
             finally { clock.End(RunClock.KeeperAi); }
@@ -386,21 +408,30 @@ public sealed class ScenarioRunner
                 int keeperLogged = commandLog.Count, emittedBefore = emitted.Count, controllerLogged = controllerLog.Count;
                 emitted.AddRange(next);
                 foreach (PlayerCommand command in next)
+                {
                     commandLog.Add(new KeeperCommandEmission(t + 1, command));
+                }
                 // Test controllers after the computer keepers, in the order given; their commands
                 // ride the same next-tick frame (KEEPER_AI.md §12.1).
                 clock.Begin(RunClock.Controllers);
                 foreach (ScenarioController controller in controllers)
                 {
-                    if (t % controller.IntervalTicks != 0) continue;
+                    if (t % controller.IntervalTicks != 0)
+                    {
+                        continue;
+                    }
+
                     IReadOnlyList<PlayerCommand> decided = controller.Decide(new KeeperView(_database, world, controller.PlayerId, staging: staging))
                         ?? throw new InvalidOperationException($"Controller '{controller.Name}' returned null; return an empty list.");
                     foreach (PlayerCommand command in decided)
                     {
                         if (command.PlayerId != controller.PlayerId)
+                        {
                             throw new InvalidOperationException(
                                 $"Controller '{controller.Name}' commands player {controller.PlayerId.Value} " +
                                 $"but emitted {command.GetType().Name} for player {command.PlayerId.Value}.");
+                        }
+
                         next.Add(command);
                         controllerLog.Add(new ControllerCommandEmission(t + 1, controller.Name, command));
                         monitor.ControllerIssued(controller.PlayerId, t + 1);
@@ -439,7 +470,9 @@ public sealed class ScenarioRunner
         journal?.WriteEnd(completed, player?.EndReason(completed) ?? "completed");
 
         if (simulation.Systems.Count == 0)
+        {
             unsupported.Add("no simulation systems are registered - the world cannot change");
+        }
 
         AddManaCaveats(world, unsupported);
 
@@ -490,21 +523,34 @@ public sealed class ScenarioRunner
         if (playerRun is not null)
         {
             if (!world.PlayerIds.Contains(playerRun.Player))
+            {
                 throw new PlayerRunRefusedException($"Player run: player {playerRun.Player.Value} is not in this world.", nameof(playerRun));
+            }
+
             if (!taken.Add(playerRun.Player))
+            {
                 throw new PlayerRunRefusedException($"Player run: player {playerRun.Player.Value} already has a computer keeper.", nameof(playerRun));
+            }
         }
         foreach (ScenarioController controller in controllers)
         {
             if (controller.IntervalTicks < 1)
+            {
                 throw new ArgumentException(
                     $"Controller '{controller.Name}': IntervalTicks must be at least 1.", nameof(controllers));
+            }
+
             if (!world.PlayerIds.Contains(controller.PlayerId))
+            {
                 throw new ArgumentException(
                     $"Controller '{controller.Name}': player {controller.PlayerId.Value} is not in this world.", nameof(controllers));
+            }
+
             if (!taken.Add(controller.PlayerId))
+            {
                 throw new ArgumentException(
                     $"Controller '{controller.Name}': player {controller.PlayerId.Value} already has a computer keeper or controller.", nameof(controllers));
+            }
         }
     }
 
@@ -520,11 +566,22 @@ public sealed class ScenarioRunner
             int seen = 0;
             foreach (SimEvent observed in events)
             {
-                if (observed.Kind != expectation.Event) continue;
+                if (observed.Kind != expectation.Event)
+                {
+                    continue;
+                }
+
                 if (expectation.Detail.Length > 0
                     && !observed.Detail.Contains(expectation.Detail, StringComparison.Ordinal))
+                {
                     continue;
-                if (expectation.AtTick is int tick && observed.Tick.Value != tick) continue;
+                }
+
+                if (expectation.AtTick is int tick && observed.Tick.Value != tick)
+                {
+                    continue;
+                }
+
                 seen++;
             }
 
@@ -532,7 +589,10 @@ public sealed class ScenarioRunner
                 ? seen == 0
                 : expectation.Count is int want ? seen == want : seen > 0;
 
-            if (!met) failures.Add($"expected {expectation}, saw {seen}");
+            if (!met)
+            {
+                failures.Add($"expected {expectation}, saw {seen}");
+            }
         }
 
         return failures;
@@ -544,7 +604,11 @@ public sealed class ScenarioRunner
     /// harness convention (DK2 never activates a player without a record), so they end the list.</summary>
     public static IReadOnlyList<byte> ActivationOrder(IEnumerable<byte> playerIds, IReadOnlyList<PlayerDef>? records)
     {
-        if (records is null) return playerIds.ToList();
+        if (records is null)
+        {
+            return playerIds.ToList();
+        }
+
         var recordOrder = records.Select(p => p.PlayerId).ToList();
         return playerIds.OrderBy(id => recordOrder.IndexOf(id)).ToList();
     }
@@ -557,7 +621,10 @@ public sealed class ScenarioRunner
     private void AddManaCaveats(WorldState world, List<string> unsupported)
     {
         int[] gain = ManaRules.GainPerSecondByPlayerIndex(world, _database);
-        if (gain.All(g => g == 0)) return;
+        if (gain.All(g => g == 0))
+        {
+            return;
+        }
 
         unsupported.Add(
             "mana here has both halves of the economy. Income is land and " +

@@ -42,7 +42,11 @@ public static class PlayerRunManifest
 
     public static Identity Compute(Scenario scenario, string? installDirectory, PlayerRunId runId, string? playbookSha256 = null)
     {
-        if (scenario is null) throw new ArgumentNullException(nameof(scenario));
+        if (scenario is null)
+        {
+            throw new ArgumentNullException(nameof(scenario));
+        }
+
         (string data, int dataFiles) = DataHash(installDirectory);
         (string source, int sourceFiles) = SourceHash(scenario.SourcePath);
         return new Identity(Schema, runId.Value, JournalHeader.Sha256(scenario.SourcePath), data, dataFiles,
@@ -75,26 +79,57 @@ public static class PlayerRunManifest
         {
             return Blocked($"incomplete evidence: {FileName} could not be read ({ex.GetType().Name}: {ex.Message})");
         }
-        if (recorded?.Assemblies is null || recorded.RunId is null) return Blocked($"incomplete evidence: {FileName} is empty or malformed");
-        if (recorded.Schema is not (1 or 2 or Schema)) return Blocked($"incomplete evidence: manifest schema {recorded.Schema}, this build reads 1 to {Schema}");
+        if (recorded?.Assemblies is null || recorded.RunId is null)
+        {
+            return Blocked($"incomplete evidence: {FileName} is empty or malformed");
+        }
+
+        if (recorded.Schema is not (1 or 2 or Schema))
+        {
+            return Blocked($"incomplete evidence: manifest schema {recorded.Schema}, this build reads 1 to {Schema}");
+        }
 
         Identity current;
         try { current = Compute(scenario, installDirectory, runId); }
         catch (DirectoryNotFoundException ex) { return Blocked($"incomplete evidence: {ex.Message}"); }
         var blocking = new List<string>();
-        if (recorded.RunId != current.RunId) blocking.Add($"the manifest is run '{recorded.RunId}', not '{current.RunId}'");
+        if (recorded.RunId != current.RunId)
+        {
+            blocking.Add($"the manifest is run '{recorded.RunId}', not '{current.RunId}'");
+        }
+
         if (recorded.ScenarioSha256 != current.ScenarioSha256)
+        {
             blocking.Add($"scenario differs: recorded {recorded.ScenarioSha256}, now {current.ScenarioSha256}");
+        }
         // Schema 1 has no seed: it ran the file's own, which the scenario hash above ties down.
         ulong? recordedSeed = recorded.Schema == 1 ? FileSeed(scenario) : recorded.Seed;
-        if (recordedSeed != current.Seed) blocking.Add($"seed differs: recorded {recordedSeed?.ToString(CultureInfo.InvariantCulture) ?? "none"}, now {current.Seed?.ToString(CultureInfo.InvariantCulture)}");
+        if (recordedSeed != current.Seed)
+        {
+            blocking.Add($"seed differs: recorded {recordedSeed?.ToString(CultureInfo.InvariantCulture) ?? "none"}, now {current.Seed?.ToString(CultureInfo.InvariantCulture)}");
+        }
+
         if (recorded.DataSha256 != current.DataSha256)
+        {
             blocking.Add($"installed data differs: recorded {recorded.DataSha256} over {recorded.DataFiles} files, now {current.DataSha256} over {current.DataFiles}");
+        }
+
         foreach (string name in Required)
-            if (!recorded.Assemblies.ContainsKey(name)) blocking.Add($"incomplete evidence: the manifest names no {name}");
+        {
+            if (!recorded.Assemblies.ContainsKey(name))
+            {
+                blocking.Add($"incomplete evidence: the manifest names no {name}");
+            }
+        }
+
         foreach (string name in recorded.Assemblies.Keys.Union(current.Assemblies.Keys).Order(StringComparer.Ordinal))
+        {
             if (!recorded.Assemblies.TryGetValue(name, out string? was) || !current.Assemblies.TryGetValue(name, out string? now) || was != now)
+            {
                 blocking.Add($"assembly {name} differs from the recorded run");
+            }
+        }
+
         List<string> diagnostic = recorded.SourceSha256 == current.SourceSha256 ? []
             : [$"the source tree differs from the recorded run's ({recorded.SourceFiles} files then, {current.SourceFiles} now)"];
         return new Verification(blocking, diagnostic);
@@ -109,12 +144,24 @@ public static class PlayerRunManifest
     /// <c>Data/editor</c> is an error, not an empty identity.</summary>
     private static (string Sha256, int Files) DataHash(string? install)
     {
-        if (install is null) return ("none", 0);
+        if (install is null)
+        {
+            return ("none", 0);
+        }
+
         string data = Path.Combine(install, "Data");
         string editor = Path.Combine(data, "editor");
-        if (!Directory.Exists(editor)) throw new DirectoryNotFoundException($"'{editor}' does not exist; '{install}' is not a DK2 installation.");
+        if (!Directory.Exists(editor))
+        {
+            throw new DirectoryNotFoundException($"'{editor}' does not exist; '{install}' is not a DK2 installation.");
+        }
+
         var files = Files(editor, ".kwd", ".kld").Select(f => "editor/" + f).ToList();
-        if (File.Exists(Path.Combine(data, "Paths.WAD"))) files.Add("Paths.WAD");
+        if (File.Exists(Path.Combine(data, "Paths.WAD")))
+        {
+            files.Add("Paths.WAD");
+        }
+
         return TreeHash(data, files);
     }
 
@@ -125,11 +172,21 @@ public static class PlayerRunManifest
         var dir = new DirectoryInfo(Path.GetDirectoryName(Path.GetFullPath(scenarioPath.Length > 0 ? scenarioPath : ".")) ?? ".");
         for (; dir is not null; dir = dir.Parent)
         {
-            if (!File.Exists(Path.Combine(dir.FullName, "DK2.slnx"))) continue;
+            if (!File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
+            {
+                continue;
+            }
+
             string src = Path.Combine(dir.FullName, "src");
             List<string> files = Directory.Exists(src) ? Files(src, ".cs", ".csproj", ".props").Select(f => "src/" + f).ToList() : [];
             foreach (string root in new[] { "DK2.slnx", "Directory.Build.props", "global.json" })
-                if (File.Exists(Path.Combine(dir.FullName, root))) files.Add(root);
+            {
+                if (File.Exists(Path.Combine(dir.FullName, root)))
+                {
+                    files.Add(root);
+                }
+            }
+
             return TreeHash(dir.FullName, files);
         }
         return ("none", 0);
@@ -149,7 +206,10 @@ public static class PlayerRunManifest
         relativePaths.Sort(StringComparer.Ordinal);
         var lines = new StringBuilder();
         foreach (string relative in relativePaths)
+        {
             lines.Append(relative).Append('\t').Append(StreamHash(Path.Combine(root, relative))).Append('\n');
+        }
+
         return (Hex(SHA256.HashData(Encoding.UTF8.GetBytes(lines.ToString()))), relativePaths.Count);
     }
 
@@ -159,11 +219,18 @@ public static class PlayerRunManifest
     {
         var hashes = new SortedDictionary<string, string>(StringComparer.Ordinal);
         string? directory = Path.GetDirectoryName(typeof(PlayerRunManifest).Assembly.Location);
-        if (string.IsNullOrEmpty(directory)) return hashes;
+        if (string.IsNullOrEmpty(directory))
+        {
+            return hashes;
+        }
+
         foreach (string path in Directory.EnumerateFiles(directory, "DK2.*.dll"))
         {
             string name = Path.GetFileNameWithoutExtension(path);
-            if (!name.EndsWith(".Tests", StringComparison.Ordinal) && name != "DK2.TestSupport") hashes[name] = StreamHash(path);
+            if (!name.EndsWith(".Tests", StringComparison.Ordinal) && name != "DK2.TestSupport")
+            {
+                hashes[name] = StreamHash(path);
+            }
         }
         return hashes;
     }

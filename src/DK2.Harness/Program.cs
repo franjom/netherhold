@@ -167,9 +167,12 @@ switch (args[0])
 
         string outRoot = "build/scenario-runs";
         int outIndex = Array.IndexOf(args, "--out");
-        if (outIndex >= 0 && outIndex + 1 < args.Length) outRoot = args[outIndex + 1];
+        if (outIndex >= 0 && outIndex + 1 < args.Length)
+            {
+                outRoot = args[outIndex + 1];
+            }
 
-        string? install = Dk2Install.Find();
+            string? install = Dk2Install.Find();
         if (install is null)
         {
             Console.Error.WriteLine(
@@ -205,14 +208,25 @@ switch (args[0])
             try
             {
                 var scenario = Scenario.Load(file);
-                if (seedOverride is ulong runSeed) scenario.OverrideSeed(runSeed);
-                if (template.Player is not null)
+                if (seedOverride is ulong runSeed)
+                    {
+                        scenario.OverrideSeed(runSeed);
+                    }
+
+                    if (template.Player is not null)
                 {
                     int exit = PlayerRunCommand.Run(runner, database, install, scenario, template, outRoot,
                         HarnessCommandLine.Value(args, "--player-run-id"), Console.Out, Console.Error);
-                    if (exit == 2) incomplete++;
-                    else if (exit != 0) failures++;
-                    continue;
+                    if (exit == 2)
+                        {
+                            incomplete++;
+                        }
+                        else if (exit != 0)
+                        {
+                            failures++;
+                        }
+
+                        continue;
                 }
                 // Same folder with or without --seed: watch reads <out>/<id>/input.journal, and the
                 // journal header records the seed run.
@@ -220,26 +234,42 @@ switch (args[0])
                 Directory.CreateDirectory(outDir);
                 ScenarioResult result;
                 using (FileStream journal = File.Create(Path.Combine(outDir, "input.journal")))
-                    result = runner.Run(scenario, template.For(scenario, journal));
-                ScenarioRunner.WriteReport(result, outDir);
+                    {
+                        result = runner.Run(scenario, template.For(scenario, journal));
+                    }
+
+                    ScenarioRunner.WriteReport(result, outDir);
 
                 Console.WriteLine(
                     $"{scenario.Id,-36} {result.TicksRun,6} ticks  hash {result.FinalStateHash:x16}  -> {outDir}");
                 foreach (string item in result.Unsupported)
-                    Console.WriteLine($"    not applied: {item}");
+                    {
+                        Console.WriteLine($"    not applied: {item}");
+                    }
 
-                // A scenario that carries claims and does not meet them is a
-                // failure of the run, not a note on it: the corpus exists to
-                // catch exactly this, so it must reach the exit code.
-                foreach (string failure in result.ExpectationFailures)
-                    Console.Error.WriteLine($"    EXPECTATION FAILED: {failure}");
-                foreach (string failure in result.InvariantFailures)
-                    Console.Error.WriteLine($"    INVARIANT FAILED: {failure}");
-                foreach (string stall in result.StallCandidates)
-                    Console.WriteLine($"    stall candidate: {stall}");
+                    // A scenario that carries claims and does not meet them is a
+                    // failure of the run, not a note on it: the corpus exists to
+                    // catch exactly this, so it must reach the exit code.
+                    foreach (string failure in result.ExpectationFailures)
+                    {
+                        Console.Error.WriteLine($"    EXPECTATION FAILED: {failure}");
+                    }
 
-                if (result.ExpectationFailures.Count > 0 || result.InvariantFailures.Count > 0) failures++;
-            }
+                    foreach (string failure in result.InvariantFailures)
+                    {
+                        Console.Error.WriteLine($"    INVARIANT FAILED: {failure}");
+                    }
+
+                    foreach (string stall in result.StallCandidates)
+                    {
+                        Console.WriteLine($"    stall candidate: {stall}");
+                    }
+
+                    if (result.ExpectationFailures.Count > 0 || result.InvariantFailures.Count > 0)
+                    {
+                        failures++;
+                    }
+                }
             catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or IOException or ArgumentException)
             {
                 // ArgumentException: a --fuzz player that is no keeper, or not in this world.
@@ -274,8 +304,11 @@ switch (args[0])
         }
         try
         {
-            if (replaySeed is ulong seed) scenario.OverrideSeed(seed);
-        }
+            if (replaySeed is ulong seed)
+                {
+                    scenario.OverrideSeed(seed);
+                }
+            }
         catch (InvalidDataException ex)
         {
             Console.Error.WriteLine($"not replayed: {ex.Message}");
@@ -304,9 +337,11 @@ switch (args[0])
             return 2;
         }
         if (PlayerRunCommand.VerifyBeforeReplay(args[2], scenario, install, journal, Console.Out, Console.Error) is int refused)
-            return refused;
+            {
+                return refused;
+            }
 
-        var runner = new ScenarioRunner(GameDatabaseLoader.Load(install), install);
+            var runner = new ScenarioRunner(GameDatabaseLoader.Load(install), install);
         string? recordedFailure = journal.EndReason is "completed" ? null : journal.EndReason;
         ScenarioResult result;
         try
@@ -321,11 +356,18 @@ switch (args[0])
         }
 
         string? replayOut = HarnessCommandLine.Value(args, "--out");
-        if (replayOut is not null) ScenarioRunner.WriteReport(result, Path.Combine(replayOut, scenario.Id));
-        ReplayReport report = result.Replay!;
+        if (replayOut is not null)
+            {
+                ScenarioRunner.WriteReport(result, Path.Combine(replayOut, scenario.Id));
+            }
+
+            ReplayReport report = result.Replay!;
         if (report.JournalTruncated)
-            Console.WriteLine($"the journal was cut short after tick {journal.LastHashedTick}; later ticks were run but not compared");
-        if (report.Matches && recordedFailure is not null)
+            {
+                Console.WriteLine($"the journal was cut short after tick {journal.LastHashedTick}; later ticks were run but not compared");
+            }
+
+            if (report.Matches && recordedFailure is not null)
         {
             // A controller's or keeper's failure is not in the frames, so it cannot recur here.
             Console.Error.WriteLine(

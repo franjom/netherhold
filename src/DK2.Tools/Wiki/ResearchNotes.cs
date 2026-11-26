@@ -34,9 +34,19 @@ public static partial class ResearchNotes
     /// </summary>
     public static int FrontMatterLength(IReadOnlyList<string> lines)
     {
-        if (lines.Count == 0 || lines[0].TrimStart('﻿').TrimEnd() != "---") return 0;
+        if (lines.Count == 0 || lines[0].TrimStart('﻿').TrimEnd() != "---")
+        {
+            return 0;
+        }
+
         for (int i = 1; i < lines.Count; i++)
-            if (lines[i].TrimEnd() == "---") return i + 1;
+        {
+            if (lines[i].TrimEnd() == "---")
+            {
+                return i + 1;
+            }
+        }
+
         return 0;
     }
 
@@ -50,7 +60,11 @@ public static partial class ResearchNotes
         for (int i = 1; i < length - 1; i++)
         {
             Match m = SystemsRx().Match(lines[i].Trim());
-            if (!m.Success) continue;
+            if (!m.Success)
+            {
+                continue;
+            }
+
             return m.Groups[1].Value.Split(',')
                 .Select(s => s.Trim().Trim('"', '\''))
                 .Where(s => s.Length > 0)
@@ -65,7 +79,10 @@ public static partial class ResearchNotes
         for (int i = FrontMatterLength(lines); i < lines.Count; i++)
         {
             string line = lines[i].TrimStart('﻿');
-            if (line.StartsWith("# ", StringComparison.Ordinal)) return line[2..].Trim();
+            if (line.StartsWith("# ", StringComparison.Ordinal))
+            {
+                return line[2..].Trim();
+            }
         }
         return fallback;
     }

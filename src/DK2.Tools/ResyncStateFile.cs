@@ -17,7 +17,10 @@ public static class ResyncStateFile
         try { state = JsonSerializer.Deserialize<ResyncState>(File.ReadAllText(path), Json); }
         catch (JsonException ex) { throw new InvalidDataException($"{path} is not a complete capture_export.py state tick: {ex.Message}", ex); }
         if (state is null || state.Tiles.Length != 3 * state.Width * state.Height)
+        {
             throw new InvalidDataException($"{path} is not a capture_export.py state tick.");
+        }
+
         return state;
     }
 
@@ -30,9 +33,7 @@ public static class ResyncStateFile
             {
                 info =>
                 {
-                    if (info.Type != typeof(ResyncTerminal) && info.Type != typeof(ResyncHeart)) return;
-                    foreach (JsonPropertyInfo property in info.Properties) property.IsRequired = true;
-                },
+                    if (info.Type != typeof(ResyncTerminal) && info.Type != typeof(ResyncHeart)) { return; } foreach (JsonPropertyInfo property in info.Properties) { property.IsRequired = true; } },
             },
         },
     };

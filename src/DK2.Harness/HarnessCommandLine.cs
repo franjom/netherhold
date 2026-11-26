@@ -17,23 +17,47 @@ public static class HarnessCommandLine
         if (Value(args, "--fuzz") is string spec)
         {
             string[] parts = spec.Split(':');
-            if (parts.Length > 3 || !byte.TryParse(parts[0], out byte player)) return null;
+            if (parts.Length > 3 || !byte.TryParse(parts[0], out byte player))
+            {
+                return null;
+            }
+
             ulong? seed = null;
             int interval = 4;
             if (parts.Length > 1)
             {
-                if (!ulong.TryParse(parts[1], out ulong s)) return null;
+                if (!ulong.TryParse(parts[1], out ulong s))
+                {
+                    return null;
+                }
+
                 seed = s;
             }
-            if (parts.Length > 2 && (!int.TryParse(parts[2], out interval) || interval < 1)) return null;
+            if (parts.Length > 2 && (!int.TryParse(parts[2], out interval) || interval < 1))
+            {
+                return null;
+            }
+
             fuzz = new FuzzSpec(new PlayerId(player), seed, interval);
         }
-        if (Int(args, "--progress", fuzz is null ? 0 : 40) is not int progress) return null;
-        if (Int(args, "--snapshot-check", 0) is not int snapshot) return null;
+        if (Int(args, "--progress", fuzz is null ? 0 : 40) is not int progress)
+        {
+            return null;
+        }
+
+        if (Int(args, "--snapshot-check", 0) is not int snapshot)
+        {
+            return null;
+        }
+
         CampaignPlayerSpec? campaign = null;
         if (Value(args, "--campaign-player") is string who)
         {
-            if (!byte.TryParse(who, out byte id) || !PlayerIds.IsKeeper(id) || fuzz?.Player.Value == id) return null;
+            if (!byte.TryParse(who, out byte id) || !PlayerIds.IsKeeper(id) || fuzz?.Player.Value == id)
+            {
+                return null;
+            }
+
             if (Int(args, "--player-max-ticks", 14400) is not int maxTicks
                 || Int(args, "--player-wall-seconds", 600) is not int wall
                 || Int(args, "--player-interval-ticks", 4) is not int interval || interval > 40
@@ -41,16 +65,32 @@ public static class HarnessCommandLine
                 || Int(args, "--player-stall-ticks", 1200) is not int stall
                 || Int(args, "--player-retries", 3) is not int retries
                 || NonNegative(args, "--player-finale-ticks", 400) is not int finale
-                || Int(args, "--player-output-mib", 64) is not int output || output < 2 || output > 1024 * 1024) return null;
+                || Int(args, "--player-output-mib", 64) is not int output || output < 2 || output > 1024 * 1024)
+            {
+                return null;
+            }
+
             string? receipt = Value(args, "--player-receipt");
             if (Array.IndexOf(args, "--player-receipt") >= 0
-                && (receipt is null || receipt.Length == 0 || receipt.StartsWith("--", StringComparison.Ordinal))) return null;
+                && (receipt is null || receipt.Length == 0 || receipt.StartsWith("--", StringComparison.Ordinal)))
+            {
+                return null;
+            }
+
             string? knowledge = Value(args, "--player-knowledge");
             if (Array.IndexOf(args, "--player-knowledge") >= 0
-                && (knowledge is null || knowledge.Length == 0 || knowledge.StartsWith("--", StringComparison.Ordinal))) return null;
+                && (knowledge is null || knowledge.Length == 0 || knowledge.StartsWith("--", StringComparison.Ordinal)))
+            {
+                return null;
+            }
+
             string? playbook = Value(args, "--playbook");
             if (Array.IndexOf(args, "--playbook") >= 0
-                && (playbook is null || playbook.Length == 0 || playbook.StartsWith("--", StringComparison.Ordinal))) return null;
+                && (playbook is null || playbook.Length == 0 || playbook.StartsWith("--", StringComparison.Ordinal)))
+            {
+                return null;
+            }
+
             campaign = new CampaignPlayerSpec(new PlayerId(id), maxTicks, wall, interval, actions, stall, retries, finale, output,
                 receipt is null ? null : Path.GetFullPath(receipt),
                 knowledge is null || knowledge == KeeperKnowledgeFile.None ? knowledge : Path.GetFullPath(knowledge))
@@ -60,10 +100,17 @@ public static class HarnessCommandLine
                     .Aggregate(PlayerLimitFlags.None, (given, f) => given | f.Limit),
             };
         }
-        else if (Array.Exists(args, a => a.StartsWith("--player-", StringComparison.Ordinal) || a == "--playbook")) return null;
+        else if (Array.Exists(args, a => a.StartsWith("--player-", StringComparison.Ordinal) || a == "--playbook"))
+        {
+            return null;
+        }
         // A misspelt limit must not silently fall back to its default.
         if (Array.Exists(args, a => a.StartsWith("--player-", StringComparison.Ordinal)
-                                    && a != "--player-run-id" && Array.IndexOf(PlayerFlags, a) < 0)) return null;
+                                    && a != "--player-run-id" && Array.IndexOf(PlayerFlags, a) < 0))
+        {
+            return null;
+        }
+
         return new RunTemplate(fuzz, Array.IndexOf(args, "--coverage") >= 0, progress, snapshot) { Player = campaign };
     }
 
@@ -83,59 +130,109 @@ public static class HarnessCommandLine
     /// </summary>
     public static List<WatchJob>? WatchJobs(IReadOnlyList<string> files, string[] args, int timeoutSeconds = 600)
     {
-        if (RunOptions(args) is not { } template) return null;
+        if (RunOptions(args) is not { } template)
+        {
+            return null;
+        }
         // Each watched run names its own folder; one run id for many runs would collide.
-        if (Value(args, "--player-run-id") is not null) return null;
+        if (Value(args, "--player-run-id") is not null)
+        {
+            return null;
+        }
+
         string[] wall = [];
         if (template.Player is { } player)
         {
             // The run must stop itself, writing its verdict, before the watchdog kills it.
-            if (Value(args, "--player-wall-seconds") is not null && player.WallSeconds >= timeoutSeconds) return null;
+            if (Value(args, "--player-wall-seconds") is not null && player.WallSeconds >= timeoutSeconds)
+            {
+                return null;
+            }
             // A playbook's wall cap (Task 3b) stands in for the default, and must stay below the watchdog too.
             int? capped = null;
             if (Value(args, "--player-wall-seconds") is null && player.Playbook is string playbook)
             {
                 try { capped = PlaybookFile.Caps(playbook).WallSeconds; }
                 catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException) { return null; }
-                if (capped >= timeoutSeconds) return null;
+                if (capped >= timeoutSeconds)
+                {
+                    return null;
+                }
             }
             if (Value(args, "--player-wall-seconds") is null)
+            {
                 wall = ["--player-wall-seconds", (capped ?? Math.Max(1, timeoutSeconds - 30)).ToString(System.Globalization.CultureInfo.InvariantCulture)];
+            }
         }
-        if (!SeedOverride(args, out ulong? runSeed) || SeedRange(args) is not { } seedRange) return null;
+        if (!SeedOverride(args, out ulong? runSeed) || SeedRange(args) is not { } seedRange)
+        {
+            return null;
+        }
         // One seed or a range, not both; a range under --fuzz-seeds would multiply two seed axes.
-        if (runSeed is not null && seedRange.Count > 0) return null;
-        if (seedRange.Count > 0 && Value(args, "--fuzz-seeds") is not null) return null;
+        if (runSeed is not null && seedRange.Count > 0)
+        {
+            return null;
+        }
+
+        if (seedRange.Count > 0 && Value(args, "--fuzz-seeds") is not null)
+        {
+            return null;
+        }
+
         string? fuzz = Value(args, "--fuzz");
         int? seeds = null;
         if (Value(args, "--fuzz-seeds") is not null)
         {
-            if (fuzz is null || Int(args, "--fuzz-seeds", 1) is not int n) return null;
+            if (fuzz is null || Int(args, "--fuzz-seeds", 1) is not int n)
+            {
+                return null;
+            }
+
             seeds = n;
         }
 
         var common = new List<string>();
-        if (Array.IndexOf(args, "--coverage") >= 0) common.Add("--coverage");
+        if (Array.IndexOf(args, "--coverage") >= 0)
+        {
+            common.Add("--coverage");
+        }
+
         foreach (string flag in (string[])["--progress", "--snapshot-check", .. PlayerFlags])
+        {
             if (Value(args, flag) is string v)
+            {
                 // A child may run from another folder: it gets the receipt's absolute path.
                 common.AddRange([flag, flag == "--player-receipt" ? template.Player!.Receipt!
                     : flag == "--player-knowledge" ? template.Player!.Knowledge!
                     : flag == "--playbook" ? template.Player!.Playbook! : v]);
+            }
+        }
+
         common.AddRange(wall);
-        if (runSeed is ulong one) common.AddRange(["--seed", one.ToString(CultureInfo.InvariantCulture)]);
+        if (runSeed is ulong one)
+        {
+            common.AddRange(["--seed", one.ToString(CultureInfo.InvariantCulture)]);
+        }
 
         var jobs = new List<WatchJob>();
         foreach (string file in files)
         {
             if (seedRange.Count > 0)
+            {
                 foreach (ulong each in seedRange)
                 {
                     string text = each.ToString(CultureInfo.InvariantCulture);
                     jobs.Add(new WatchJob(file, fuzz is null ? [.. common, "--seed", text] : [.. common, "--fuzz", fuzz, "--seed", text], $"seed {text}"));
                 }
-            else if (fuzz is null) jobs.Add(new WatchJob(file, common, runSeed is ulong labelled ? $"seed {labelled.ToString(CultureInfo.InvariantCulture)}" : ""));
-            else if (seeds is null) jobs.Add(new WatchJob(file, [.. common, "--fuzz", fuzz], $"fuzz {fuzz}"));
+            }
+            else if (fuzz is null)
+            {
+                jobs.Add(new WatchJob(file, common, runSeed is ulong labelled ? $"seed {labelled.ToString(CultureInfo.InvariantCulture)}" : ""));
+            }
+            else if (seeds is null)
+            {
+                jobs.Add(new WatchJob(file, [.. common, "--fuzz", fuzz], $"fuzz {fuzz}"));
+            }
             else
             {
                 string[] parts = fuzz.Split(':');
@@ -160,9 +257,16 @@ public static class HarnessCommandLine
     public static bool SeedOverride(string[] args, out ulong? seed)
     {
         seed = null;
-        if (Array.IndexOf(args, "--seed") < 0) return true;
+        if (Array.IndexOf(args, "--seed") < 0)
+        {
+            return true;
+        }
+
         if (Value(args, "--seed") is not string value || !ulong.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out ulong parsed))
+        {
             return false;
+        }
+
         seed = parsed;
         return true;
     }
@@ -171,29 +275,49 @@ public static class HarnessCommandLine
     /// empty when the flag is absent.</summary>
     private static List<ulong>? SeedRange(string[] args)
     {
-        if (Array.IndexOf(args, "--seeds") < 0) return [];
+        if (Array.IndexOf(args, "--seeds") < 0)
+        {
+            return [];
+        }
+
         string[] parts = Value(args, "--seeds")?.Split('-') ?? [];
         if (parts.Length != 2
             || !ulong.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out ulong first)
             || !ulong.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out ulong last)
             // From 1: under random: dk2, seed 0 is the level-start seed, the same game as seed 1.
-            || first == 0 || last < first || last - first >= 10_000) return null;
+            || first == 0 || last < first || last - first >= 10_000)
+        {
+            return null;
+        }
+
         var seeds = new List<ulong>();
-        for (ulong s = first; s <= last; s++) seeds.Add(s);
+        for (ulong s = first; s <= last; s++)
+        {
+            seeds.Add(s);
+        }
+
         return seeds;
     }
 
     /// <summary>The fallback when the option is absent; null when present but not a whole number of at least 0.</summary>
     public static int? NonNegative(string[] args, string name, int fallback)
     {
-        if (Array.IndexOf(args, name) < 0) return fallback;
+        if (Array.IndexOf(args, name) < 0)
+        {
+            return fallback;
+        }
+
         return Value(args, name) is string value && int.TryParse(value, out int parsed) && parsed >= 0 ? parsed : null;
     }
 
     /// <summary>The fallback when the option is absent; null when present but not a positive whole number.</summary>
     public static int? Int(string[] args, string name, int fallback)
     {
-        if (Array.IndexOf(args, name) < 0) return fallback;
+        if (Array.IndexOf(args, name) < 0)
+        {
+            return fallback;
+        }
+
         return Value(args, name) is string value && int.TryParse(value, out int parsed) && parsed > 0 ? parsed : null;
     }
 }

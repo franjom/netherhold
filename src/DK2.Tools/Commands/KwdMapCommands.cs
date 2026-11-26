@@ -25,7 +25,9 @@ internal static partial class KwdCommands
         foreach (RoomDef room in db.Rooms.Values)
         {
             if (room.Name.Contains("Portal", StringComparison.OrdinalIgnoreCase))
+            {
                 portalTerrain[room.TerrainId] = room.Name;
+            }
         }
         if (portalTerrain.Count == 0)
         {
@@ -43,7 +45,10 @@ internal static partial class KwdCommands
         {
             string level = Path.GetFileName(file)[..^"Map.kld".Length];
             LevelMap? grid = MapGrid.Parse(KwdReader.ReadFile(file));
-            if (grid is null) continue;
+            if (grid is null)
+            {
+                continue;
+            }
 
             // Flood fill each portal terrain into 4-connected regions; one
             // region is one portal, whatever its shape.
@@ -53,9 +58,16 @@ internal static partial class KwdCommands
 
             for (int start = 0; start < seen.Length; start++)
             {
-                if (seen[start]) continue;
+                if (seen[start])
+                {
+                    continue;
+                }
+
                 MapTile t0 = grid.Tiles[start];
-                if (!portalTerrain.TryGetValue(t0.TerrainId, out string? name)) continue;
+                if (!portalTerrain.TryGetValue(t0.TerrainId, out string? name))
+                {
+                    continue;
+                }
 
                 seen[start] = true;
                 stack.Push(start);
@@ -70,15 +82,30 @@ internal static partial class KwdCommands
                     sx += x; sy += y;
                     // A region takes the highest player id it touches, so a
                     // portal half-owned in the file still reports an owner.
-                    if (grid.Tiles[i].PlayerId > owner) owner = grid.Tiles[i].PlayerId;
+                    if (grid.Tiles[i].PlayerId > owner)
+                    {
+                        owner = grid.Tiles[i].PlayerId;
+                    }
 
                     foreach ((int dx, int dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
                     {
                         int nx = x + dx, ny = y + dy;
-                        if (!grid.Contains(nx, ny)) continue;
+                        if (!grid.Contains(nx, ny))
+                        {
+                            continue;
+                        }
+
                         int n = ny * grid.Width + nx;
-                        if (seen[n]) continue;
-                        if (grid.Tiles[n].TerrainId != t0.TerrainId) continue;
+                        if (seen[n])
+                        {
+                            continue;
+                        }
+
+                        if (grid.Tiles[n].TerrainId != t0.TerrainId)
+                        {
+                            continue;
+                        }
+
                         seen[n] = true;
                         stack.Push(n);
                     }
@@ -86,7 +113,10 @@ internal static partial class KwdCommands
                 regions.Add((name, owner, tiles, sx / tiles, sy / tiles));
             }
 
-            if (regions.Count == 0) continue;
+            if (regions.Count == 0)
+            {
+                continue;
+            }
 
             // The level's own base, because level 1 is not the only one allowed
             // to override it even if it is the only one that does.
@@ -119,13 +149,24 @@ internal static partial class KwdCommands
                 Console.WriteLine(
                     $"    {room,-12} owner={owner} tiles={tiles,2} at ({x},{y})");
             }
-            if (claimable >= 2) interesting.Add($"{level} (base {levelBase}s, {claimable} claimable)");
+            if (claimable >= 2)
+            {
+                interesting.Add($"{level} (base {levelBase}s, {claimable} claimable)");
+            }
         }
 
         Console.WriteLine();
         Console.WriteLine("levels with two or more unowned Portals — candidates for the Q86 timing:");
-        if (interesting.Count == 0) Console.WriteLine("    none");
-        foreach (string s in interesting) Console.WriteLine("    " + s);
+        if (interesting.Count == 0)
+        {
+            Console.WriteLine("    none");
+        }
+
+        foreach (string s in interesting)
+        {
+            Console.WriteLine("    " + s);
+        }
+
         return 0;
     }
 
@@ -163,7 +204,9 @@ internal static partial class KwdCommands
                         maxX = Math.Max(maxX, x);
                         maxY = Math.Max(maxY, y);
                         if (grid is not null && (x < 0 || y < 0 || x >= grid.Width || y >= grid.Height))
+                        {
                             outOfRange++;
+                        }
                     }
 
                     // Whether a ROOM record places a room or annotates one the
@@ -174,14 +217,24 @@ internal static partial class KwdCommands
                     {
                         rooms++;
                         MapTile tile = grid[room.X, room.Y];
-                        if (tile.TerrainId != room.RoomType) roomsWrongTerrain++;
-                        if (tile.PlayerId != room.PlayerId) roomsWrongOwner++;
+                        if (tile.TerrainId != room.RoomType)
+                        {
+                            roomsWrongTerrain++;
+                        }
+
+                        if (tile.PlayerId != room.PlayerId)
+                        {
+                            roomsWrongOwner++;
+                        }
                     }
                 }
             }
             Console.WriteLine($"{files} THINGS files, {totals.Values.Sum()} top-level records");
             foreach ((string key, int count) in totals.OrderByDescending(kv => kv.Value))
+            {
                 Console.WriteLine($"  {key,-32} {count,6}");
+            }
+
             Console.WriteLine(
                 $"coordinate range x 0..{maxX}, y 0..{maxY}; largest map {maxW}x{maxH}; "
                 + $"{outOfRange} placed things outside their own level's grid");
@@ -193,7 +246,10 @@ internal static partial class KwdCommands
 
         string thingsPath = ResolveEditor(args[2]);
         if (!File.Exists(thingsPath) && !Path.HasExtension(args[2]))
+        {
             thingsPath = ResolveEditor(args[2] + "Things.kld");
+        }
+
         if (!File.Exists(thingsPath))
         {
             Console.Error.WriteLine($"THINGS file not found: {thingsPath}");
@@ -207,14 +263,19 @@ internal static partial class KwdCommands
         LevelMap? under = null;
         string stem = Path.GetFileNameWithoutExtension(thingsPath);
         if (stem.EndsWith("Things", StringComparison.OrdinalIgnoreCase))
+        {
             under = GameDatabaseLoader.LoadCampaignMap(Dk2Install.Require(), stem[..^"Things".Length]);
+        }
 
         foreach (ThingRecord record in KwdThings.Parse(KwdReader.ReadFile(thingsPath)))
         {
             string line = DescribeThing(record);
             if (under is not null && ThingTiles(record).FirstOrDefault() is var (tx, ty)
                 && under.Contains(tx, ty))
+            {
                 line += $"  [map terrain {under[tx, ty].TerrainId}, owner {under[tx, ty].PlayerId}]";
+            }
+
             Console.WriteLine(line);
         }
         return 0;
@@ -254,7 +315,9 @@ internal static partial class KwdCommands
 
         Console.WriteLine($"{"id",3} {"name",-32} {"manaGain",8} {"maxManaGain",11}");
         foreach (TerrainDef t in terrains.OrderBy(t => t.TerrainId))
+        {
             Console.WriteLine($"{t.TerrainId,3} {t.Name,-32} {t.ManaGain,8} {t.MaxManaGain,11}");
+        }
 
         Console.WriteLine($"-- {terrains.Count} terrain types");
         return 0;
@@ -266,7 +329,9 @@ internal static partial class KwdCommands
             Path.Combine(Dk2Install.Require(), "Data", "editor", "Terrain.kwd")));
 
         foreach (TerrainDef t in terrains.OrderBy(t => t.TerrainId))
+        {
             Console.WriteLine($"{t.TerrainId,3} {t.Name,-32} 0x{(uint)t.Flags:X8}  {t.Flags}");
+        }
 
         Console.WriteLine($"-- {terrains.Count} terrain types");
         return 0;
@@ -278,7 +343,9 @@ internal static partial class KwdCommands
             Path.Combine(Dk2Install.Require(), "Data", "editor", "Rooms.kwd")));
 
         foreach (RoomDef r in flagged.OrderBy(r => r.RoomId))
+        {
             Console.WriteLine($"{r.RoomId,3} {r.Name,-32} 0x{(uint)r.Flags:X8}  {r.Flags}");
+        }
 
         Console.WriteLine($"-- {flagged.Count} room types");
         return 0;
@@ -309,7 +376,10 @@ internal static partial class KwdCommands
         foreach (RoomDef r in rooms.OrderBy(r => r.RoomId))
         {
             string objs = string.Join(",", r.ObjectIds.Where(o => o != 0));
-            if (objs.Length > 0) Console.WriteLine($"  {r.RoomId,3} {r.Name,-24} {objs}");
+            if (objs.Length > 0)
+            {
+                Console.WriteLine($"  {r.RoomId,3} {r.Name,-24} {objs}");
+            }
         }
         Console.WriteLine($"-- {rooms.Count} room types");
         return 0;
@@ -344,14 +414,21 @@ internal static partial class KwdCommands
                 for (int x = 0; x < bytesGrid.Width; x++)
                 {
                     MapTile t = bytesGrid[x, y];
-                    if (t.TerrainId != wantN) continue;
+                    if (t.TerrainId != wantN)
+                    {
+                        continue;
+                    }
 
                     int[] dx = [0, -1, 1, 0];
                     int[] dy = [-1, 0, 0, 1];
                     for (int i = 0; i < 4; i++)
                     {
                         int nx = x + dx[i], ny = y + dy[i];
-                        if (nx < 0 || ny < 0 || nx >= bytesGrid.Width || ny >= bytesGrid.Height) continue;
+                        if (nx < 0 || ny < 0 || nx >= bytesGrid.Width || ny >= bytesGrid.Height)
+                        {
+                            continue;
+                        }
+
                         string key = $"flags={t.Flags} neighbour={bytesGrid[nx, ny].TerrainId}";
                         tally[key] = tally.TryGetValue(key, out int c) ? c + 1 : 1;
                     }
@@ -359,7 +436,10 @@ internal static partial class KwdCommands
             }
 
             foreach (KeyValuePair<string, int> kv in tally.OrderBy(k => k.Key))
+            {
                 Console.WriteLine($"  {kv.Key,-28} {kv.Value,5}");
+            }
+
             return 0;
         }
 
@@ -392,7 +472,10 @@ internal static partial class KwdCommands
             .OrderByDescending(g => g.Count()).ToList();
         Console.WriteLine("terrain histogram:");
         foreach (IGrouping<byte, MapTile>? g in byTerrain.Take(12))
+        {
             Console.WriteLine($"  terrain {g.Key,3}: {g.Count(),6} tiles");
+        }
+
         IOrderedEnumerable<IGrouping<byte, MapTile>> owners = grid.Tiles.GroupBy(t => t.PlayerId).OrderBy(g => g.Key);
         Console.WriteLine("owners: " + string.Join(", ", owners.Select(g => $"p{g.Key}={g.Count()}")));
 
@@ -402,9 +485,15 @@ internal static partial class KwdCommands
         {
             var found = new List<string>();
             for (int y = 0; y < grid.Height && found.Count < 24; y++)
+            {
                 for (int x = 0; x < grid.Width && found.Count < 24; x++)
+                {
                     if (grid[x, y].TerrainId == wanted)
+                    {
                         found.Add($"({x},{y})p{grid[x, y].PlayerId}");
+                    }
+                }
+            }
 
             Console.WriteLine($"terrain {wanted} at: {string.Join(" ", found)}"
                               + (found.Count == 24 ? " ..." : ""));

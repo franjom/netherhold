@@ -79,7 +79,10 @@ internal sealed class RunMonitor(
 
     public void Start(GameSimulation simulation)
     {
-        if (options.Coverage) simulation.TrackTriggerReach = true;
+        if (options.Coverage)
+        {
+            simulation.TrackTriggerReach = true;
+        }
     }
 
     public void ControllerIssued(PlayerId player, int inputTick) => _lastCommandTick[player.Value] = inputTick;
@@ -89,19 +92,34 @@ internal sealed class RunMonitor(
     public void AfterTick(GameSimulation live, int tick, in InputFrame given, ulong liveHash)
     {
         int done = tick + 1;
-        if (_shadow is not null) StepShadow(tick, given, liveHash);
+        if (_shadow is not null)
+        {
+            StepShadow(tick, given, liveHash);
+        }
         // A check started on the last tick could never step, so none is.
         if (options.SnapshotCheckEvery > 0 && _shadow is null && done % options.SnapshotCheckEvery == 0 && done < durationTicks)
+        {
             StartShadow(live, done);
+        }
 
         if (options.Coverage)
         {
-            if (live.LastTriggerRun?.Reached is HashSet<ushort> reached) _reached.UnionWith(reached);
+            if (live.LastTriggerRun?.Reached is HashSet<ushort> reached)
+            {
+                _reached.UnionWith(reached);
+            }
+
             foreach (CreatureState creature in live.World.Creatures)
+            {
                 _states[creature.Dk2StateId] = _states.GetValueOrDefault(creature.Dk2StateId) + 1;
+            }
         }
 
-        if (options.ProgressEvery > 0 && done % options.ProgressEvery == 0) Sample(live.World, done);
+        if (options.ProgressEvery > 0 && done % options.ProgressEvery == 0)
+        {
+            Sample(live.World, done);
+        }
+
         options.AfterTick?.Invoke(tick, live);
     }
 
@@ -157,7 +175,10 @@ internal sealed class RunMonitor(
                 $"diverged from the live run after tick {tick + 1}");
             _shadow = null;
         }
-        else if (tick + 1 >= _shadowUntil) _shadow = null;
+        else if (tick + 1 >= _shadowUntil)
+        {
+            _shadow = null;
+        }
     }
 
     private void Sample(WorldState world, int done)
@@ -170,10 +191,19 @@ internal sealed class RunMonitor(
         {
             TileState tile = world.TileAtIndex(i);
             owned[tile.OwnerPlayerId]++;
-            if (database.TerrainById(tile.TerrainId).IsRoom) roomTiles[tile.OwnerPlayerId]++;
+            if (database.TerrainById(tile.TerrainId).IsRoom)
+            {
+                roomTiles[tile.OwnerPlayerId]++;
+            }
         }
         foreach (CreatureState c in world.Creatures)
-            if (c.Activity != CreatureActivity.Dead) creatures[c.OwnerPlayerId]++;
+        {
+            if (c.Activity != CreatureActivity.Dead)
+            {
+                creatures[c.OwnerPlayerId]++;
+            }
+        }
+
         foreach (PlayerId id in world.PlayerIds)
         {
             var sample = new ProgressSample(done, id.Value, world.Player(id).Status, owned[id.Value], roomTiles[id.Value],
@@ -188,13 +218,21 @@ internal sealed class RunMonitor(
     /// is a stall candidate. Only controlled players are judged, once each.</summary>
     private void JudgeStall(ProgressSample sample)
     {
-        if (!options.Controllers.Any(c => c.PlayerId.Value == sample.Player) || _flagged.Contains(sample.Player)) return;
+        if (!options.Controllers.Any(c => c.PlayerId.Value == sample.Player) || _flagged.Contains(sample.Player))
+        {
+            return;
+        }
+
         if (!_still.TryGetValue(sample.Player, out (int Since, ProgressSample Sample) still) || Moved(still.Sample, sample))
         {
             _still[sample.Player] = (sample.Tick, sample);
             return;
         }
-        if (sample.Tick - still.Since < options.StallWindowTicks) return;
+        if (sample.Tick - still.Since < options.StallWindowTicks)
+        {
+            return;
+        }
+
         _flagged.Add(sample.Player);
         bool issued = _lastCommandTick.TryGetValue(sample.Player, out int last) && last > still.Since;
         StallCandidates.Add(issued

@@ -34,16 +34,26 @@ internal static class CoverageCommand
         foreach (string area in new[] { "src", "godot", "tests" })
         {
             string dir = Path.Combine(covRoot, area);
-            if (!Directory.Exists(dir)) continue;
+            if (!Directory.Exists(dir))
+            {
+                continue;
+            }
+
             foreach (string cs in Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories))
             {
                 if (cs.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
                     || cs.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
                     || cs.Contains($"{Path.DirectorySeparatorChar}.godot{Path.DirectorySeparatorChar}")
                     || cs.Contains($"{Path.DirectorySeparatorChar}addons{Path.DirectorySeparatorChar}"))
+                {
                     continue;
+                }
+
                 foreach (Match m in Regex.Matches(File.ReadAllText(cs), @"[A-Za-z_][A-Za-z0-9_]*"))
+                {
                     declared.Add(m.Value);
+                }
+
                 declared.Add(Path.GetFileNameWithoutExtension(cs));
             }
         }
@@ -68,7 +78,10 @@ internal static class CoverageCommand
             string name = Path.GetFileName(doc);
 
             // The question log is a backlog, not a claim of work done.
-            if (name == "open-questions.md") continue;
+            if (name == "open-questions.md")
+            {
+                continue;
+            }
 
             string[] lines = File.ReadAllLines(doc);
 
@@ -80,9 +93,13 @@ internal static class CoverageCommand
             for (int i = 0; i < lines.Length; i++)
             {
                 if (Regex.IsMatch(lines[i], @"^#{1,6}\s+.*\bImplementation\b", RegexOptions.IgnoreCase))
+                {
                     claimLines.AddRange(lines.Skip(i + 1).Take(6));
+                }
                 else if (claimLine.IsMatch(lines[i]))
+                {
                     claimLines.Add(lines[i]);
+                }
             }
 
             var named = new List<string>();
@@ -94,15 +111,25 @@ internal static class CoverageCommand
                     // A claim cites `Type`, `Namespace.Type`, `Folder/Type` or
                     // `Type.Member`. Any segment resolving is enough: the doc is
                     // pointing at real code either way.
-                    if (!Regex.IsMatch(cited, @"^[A-Za-z_][A-Za-z0-9_./\\]*$")) continue;
+                    if (!Regex.IsMatch(cited, @"^[A-Za-z_][A-Za-z0-9_./\\]*$"))
+                    {
+                        continue;
+                    }
                     // Ghidra's own names for the original's code are evidence,
                     // never our types: a doc citing FUN_004dbf90 is pointing at
                     // DKII.EXE, so it must not read as an unbuilt claim.
-                    if (Regex.IsMatch(cited, @"^(FUN|DAT|LAB|SUB|UNK|PTR|thunk)_")) continue;
+                    if (Regex.IsMatch(cited, @"^(FUN|DAT|LAB|SUB|UNK|PTR|thunk)_"))
+                    {
+                        continue;
+                    }
+
                     string[] parts = cited.Split('/', '\\', '.');
                     if (!parts.Any(p => p.Length >= 4 && char.IsUpper(p[0])
                                         && !p.All(c => char.IsUpper(c) || c == '_')))
+                    {
                         continue;
+                    }
+
                     named.Add(cited);
                 }
             }
@@ -118,9 +145,13 @@ internal static class CoverageCommand
                 researchOnly.Add($"{name}{(honest ? " (says so)" : "")}");
             }
             else if (missing.Length > 0)
+            {
                 stale.Add($"{name}: names {string.Join(", ", missing)}, absent from src/");
+            }
             else
+            {
                 builtDocs++;
+            }
         }
 
         // One fewer than `status` counts: the question log is a backlog, not a
@@ -133,7 +164,10 @@ internal static class CoverageCommand
         {
             Console.WriteLine();
             Console.WriteLine("Research with no implementation named:");
-            foreach (string r in researchOnly) Console.WriteLine($"  {r}");
+            foreach (string r in researchOnly)
+            {
+                Console.WriteLine($"  {r}");
+            }
         }
 
         if (stale.Count == 0)
@@ -145,7 +179,11 @@ internal static class CoverageCommand
 
         Console.Error.WriteLine();
         Console.Error.WriteLine($"{stale.Count} stale implementation claim(s):");
-        foreach (string s in stale) Console.Error.WriteLine($"  {s}");
+        foreach (string s in stale)
+        {
+            Console.Error.WriteLine($"  {s}");
+        }
+
         Console.Error.WriteLine();
         Console.Error.WriteLine("A doc naming a type src/ does not declare is claiming work that");
         Console.Error.WriteLine("is not there. Fix the claim or build the type.");

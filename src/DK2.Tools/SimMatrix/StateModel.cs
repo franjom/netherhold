@@ -160,7 +160,11 @@ internal sealed class StateModel
                 Unmapped.Add($"SimulationContext.{member.Name}");
                 column = World;
             }
-            if (column == Excluded || member.Name == "World") continue;
+            if (column == Excluded || member.Name == "World")
+            {
+                continue;
+            }
+
             roots.AddRange(Components(type).Select(t => (t, column)));
         }
         var depth = new Dictionary<INamedTypeSymbol, int>(SymbolEqualityComparer.Default);
@@ -170,12 +174,20 @@ internal sealed class StateModel
             var next = new List<(INamedTypeSymbol Type, int Column)>();
             foreach ((INamedTypeSymbol? type, int reachedColumn) in level)
             {
-                if (SymbolEqualityComparer.Default.Equals(type, _world) || SymbolEqualityComparer.Default.Equals(type, _context)) continue;
+                if (SymbolEqualityComparer.Default.Equals(type, _world) || SymbolEqualityComparer.Default.Equals(type, _context))
+                {
+                    continue;
+                }
+
                 int column = TypeColumns.TryGetValue(type.Name, out int fixedColumn) ? fixedColumn : reachedColumn;
                 if (depth.TryGetValue(type, out int seen))
                 {
                     // A tie is recorded, not followed: what the type holds goes with its first column.
-                    if (seen == d && !_reachedFrom[type].Contains(column)) _reachedFrom[type].Add(column);
+                    if (seen == d && !_reachedFrom[type].Contains(column))
+                    {
+                        _reachedFrom[type].Add(column);
+                    }
+
                     continue;
                 }
                 else
@@ -183,34 +195,64 @@ internal sealed class StateModel
                     depth[type] = d;
                     _reachedFrom[type] = [column];
                 }
-                if (column == Excluded) continue;
+                if (column == Excluded)
+                {
+                    continue;
+                }
+
                 foreach ((ISymbol _, ITypeSymbol? fieldType) in InstanceMembers(type))
+                {
                     next.AddRange(Components(fieldType).Select(t => (t, column)));
+                }
+
                 next.AddRange(_index.Implementations(type).Select(t => (t, column)));
             }
             level = next;
         }
         foreach ((INamedTypeSymbol? type, List<int>? from) in _reachedFrom)
+        {
             _typeColumn[type] = from[0];
+        }
 
         // Systems, and the source types their instance fields reach that are not state.
         foreach (INamedTypeSymbol? type in index.Types.Where(t => t.TypeKind == TypeKind.Class && t.AllInterfaces.Contains(system, SymbolEqualityComparer.Default)))
+        {
             _systemTypes.Add(type);
+        }
+
         var owned = new Queue<(INamedTypeSymbol, int)>();
         foreach (INamedTypeSymbol type in _systemTypes)
+        {
             foreach ((ISymbol _, ITypeSymbol? fieldType) in InstanceMembers(type))
+            {
                 foreach (INamedTypeSymbol reached in Components(fieldType))
+                {
                     owned.Enqueue((reached, 0));
+                }
+            }
+        }
+
         while (owned.TryDequeue(out (INamedTypeSymbol, int) item))
         {
             (INamedTypeSymbol? type, int _) = item;
             if (_typeColumn.ContainsKey(type) || SymbolEqualityComparer.Default.Equals(type, _world)
-                || SymbolEqualityComparer.Default.Equals(type, _context) || !_systemOwnedTypes.Add(type)) continue;
+                || SymbolEqualityComparer.Default.Equals(type, _context) || !_systemOwnedTypes.Add(type))
+            {
+                continue;
+            }
+
             foreach ((ISymbol _, ITypeSymbol? fieldType) in InstanceMembers(type))
+            {
                 foreach (INamedTypeSymbol reached in Components(fieldType))
+                {
                     owned.Enqueue((reached, 0));
+                }
+            }
+
             foreach (INamedTypeSymbol derived in _index.Implementations(type))
+            {
                 owned.Enqueue((derived, 0));
+            }
         }
     }
 
@@ -245,29 +287,69 @@ internal sealed class StateModel
         INamedTypeSymbol owner = member.ContainingType;
         if (member.IsStatic && !writtenStatics.Contains(member)
             && (SymbolEqualityComparer.Default.Equals(owner, _world) || SymbolEqualityComparer.Default.Equals(owner, _context)))
+        {
             return (FieldPlace.NotState, 0);
+        }
+
         if (SymbolEqualityComparer.Default.Equals(owner, _world))
+        {
             return WorldMembers.TryGetValue(member.Name, out int c) ? Columned(c) : (FieldPlace.Column, World);
+        }
+
         if (SymbolEqualityComparer.Default.Equals(owner, _context))
         {
-            if (PlumbingMembers.Contains(member.Name)) return (FieldPlace.NotState, 0);
+            if (PlumbingMembers.Contains(member.Name))
+            {
+                return (FieldPlace.NotState, 0);
+            }
+
             return ContextMembers.TryGetValue(member.Name, out int c) ? Columned(c) : (FieldPlace.Column, World);
         }
-        if (IsSystemType(owner)) return (FieldPlace.SystemOwned, 0);
+        if (IsSystemType(owner))
+        {
+            return (FieldPlace.SystemOwned, 0);
+        }
         // TileState's change counter is bookkeeping shared by every world, not state of a tile.
-        if (member.IsStatic && SymbolEqualityComparer.Default.Equals(owner, _tile)) return (FieldPlace.NotState, 0);
+        if (member.IsStatic && SymbolEqualityComparer.Default.Equals(owner, _tile))
+        {
+            return (FieldPlace.NotState, 0);
+        }
+
         if (member.IsStatic)
         {
-            if (!writtenStatics.Contains(member)) return (FieldPlace.NotState, 0);
-            if (_systemOwnedTypes.Contains(owner)) return (FieldPlace.SystemOwned, 0);
+            if (!writtenStatics.Contains(member))
+            {
+                return (FieldPlace.NotState, 0);
+            }
+
+            if (_systemOwnedTypes.Contains(owner))
+            {
+                return (FieldPlace.SystemOwned, 0);
+            }
+
             return _typeColumn.TryGetValue(owner, out int c) && c != Excluded ? (FieldPlace.Column, c)
                 : IsExcludedType(owner) ? (FieldPlace.NotState, 0) : (FieldPlace.Column, Caches);
         }
         if (SymbolEqualityComparer.Default.Equals(owner, _tile))
+        {
             return (FieldPlace.Column, Position(TileMember(member)) >= _firstRoomPosition ? Rooms : Tiles);
-        if (_systemOwnedTypes.Contains(owner)) return (FieldPlace.SystemOwned, 0);
-        if (!_typeColumn.TryGetValue(owner, out int column)) return (FieldPlace.NotState, 0);
-        if (IsShared(owner)) return (FieldPlace.NotState, 0);
+        }
+
+        if (_systemOwnedTypes.Contains(owner))
+        {
+            return (FieldPlace.SystemOwned, 0);
+        }
+
+        if (!_typeColumn.TryGetValue(owner, out int column))
+        {
+            return (FieldPlace.NotState, 0);
+        }
+
+        if (IsShared(owner))
+        {
+            return (FieldPlace.NotState, 0);
+        }
+
         return Columned(column);
     }
 
@@ -292,7 +374,11 @@ internal sealed class StateModel
         {
             foreach (ISymbol member in t.GetMembers())
             {
-                if (member.IsStatic) continue;
+                if (member.IsStatic)
+                {
+                    continue;
+                }
+
                 switch (member)
                 {
                     case IFieldSymbol { IsConst: false } field:
@@ -313,13 +399,26 @@ internal sealed class StateModel
         switch (type)
         {
             case IArrayTypeSymbol array:
-                foreach (INamedTypeSymbol t in Components(array.ElementType)) yield return t;
+                foreach (INamedTypeSymbol t in Components(array.ElementType))
+                {
+                    yield return t;
+                }
+
                 break;
             case INamedTypeSymbol named:
                 foreach (ITypeSymbol argument in named.TypeArguments)
-                    foreach (INamedTypeSymbol t in Components(argument)) yield return t;
+                {
+                    foreach (INamedTypeSymbol t in Components(argument))
+                    {
+                        yield return t;
+                    }
+                }
+
                 if (named.TypeKind != TypeKind.Enum && named.TypeKind != TypeKind.Delegate && _index.IsStateSource(named.OriginalDefinition))
+                {
                     yield return named.OriginalDefinition;
+                }
+
                 break;
         }
     }

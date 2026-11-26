@@ -21,10 +21,18 @@ internal static class CommandHelpers
 
     internal static string ResolveEditor(string arg)
     {
-        if (File.Exists(arg)) return arg;
+        if (File.Exists(arg))
+        {
+            return arg;
+        }
+
         string root = Dk2Install.Require();
         string editor = Path.Combine(root, "Data", "editor", arg);
-        if (File.Exists(editor)) return editor;
+        if (File.Exists(editor))
+        {
+            return editor;
+        }
+
         return Path.Combine(root, "Data", "editor", "maps", arg);
     }
 
@@ -35,7 +43,10 @@ internal static class CommandHelpers
         string allowedPrefix = allowed.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
         if (path.Equals(allowed, StringComparison.OrdinalIgnoreCase)
             || path.StartsWith(allowedPrefix, StringComparison.OrdinalIgnoreCase))
+        {
             return path;
+        }
+
         throw new ArgumentException(
             $"Conversion output must be converted-assets/ or one of its children, not '{argument}'.");
     }

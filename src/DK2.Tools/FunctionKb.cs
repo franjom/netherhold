@@ -49,7 +49,9 @@ public static partial class FunctionKb
     public static FunctionRecord Parse(string relativePath, string[] lines, List<string> errors)
     {
         if (lines.Length > 0 && lines[0].StartsWith('\uFEFF'))
+        {
             lines = [lines[0][1..], .. lines.Skip(1)];
+        }
 
         var header = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         int i = 0;
@@ -62,16 +64,32 @@ public static partial class FunctionKb
             string key = lines[i][..colon].Trim();
             string value = lines[i][(colon + 1)..].Trim();
             int hash = value.IndexOf(" #", StringComparison.Ordinal);
-            if (hash >= 0 && TokenKeys.Contains(key)) value = value[..hash].Trim();
-            if (!header.TryGetValue(key, out List<string>? list)) header[key] = list = [];
+            if (hash >= 0 && TokenKeys.Contains(key))
+            {
+                value = value[..hash].Trim();
+            }
+
+            if (!header.TryGetValue(key, out List<string>? list))
+            {
+                header[key] = list = [];
+            }
+
             list.Add(value);
         }
 
         string One(string key)
         {
             if (!header.TryGetValue(key, out List<string>? v)) { errors.Add($"{relativePath}: header lacks '{key}'"); return ""; }
-            if (v.Count > 1) errors.Add($"{relativePath}: '{key}' given {v.Count} times");
-            if (v[0].Length == 0) errors.Add($"{relativePath}: '{key}' is empty");
+            if (v.Count > 1)
+            {
+                errors.Add($"{relativePath}: '{key}' given {v.Count} times");
+            }
+
+            if (v[0].Length == 0)
+            {
+                errors.Add($"{relativePath}: '{key}' is empty");
+            }
+
             return v[0];
         }
         IReadOnlyList<string> Many(string key) => header.TryGetValue(key, out List<string>? v) ? v : [];
@@ -79,14 +97,31 @@ public static partial class FunctionKb
         string addressText = One("address");
         Match m = AddressRx().Match(addressText.ToUpperInvariant());
         string address = m.Success ? m.Groups[1].Value : "";
-        if (!m.Success && addressText.Length > 0) errors.Add($"{relativePath}: address '{addressText}' is not 0x00xxxxxx inside code");
+        if (!m.Success && addressText.Length > 0)
+        {
+            errors.Add($"{relativePath}: address '{addressText}' is not 0x00xxxxxx inside code");
+        }
+
         if (address.Length > 0 && !Path.GetFileNameWithoutExtension(relativePath).Equals(address, StringComparison.Ordinal))
+        {
             errors.Add($"{relativePath}: file name must be the address {address}");
+        }
 
         string name = One("name"), role = One("role"), confidence = One("confidence"), status = One("status");
-        if (confidence.Length > 0 && !Confidences.Contains(confidence)) errors.Add($"{relativePath}: confidence '{confidence}' is not one of {string.Join("|", Confidences)}");
-        if (status.Length > 0 && !Statuses.Contains(status)) errors.Add($"{relativePath}: status '{status}' is not one of {string.Join("|", Statuses)}");
-        if (Many("evidence").Count == 0) errors.Add($"{relativePath}: header lacks 'evidence'");
+        if (confidence.Length > 0 && !Confidences.Contains(confidence))
+        {
+            errors.Add($"{relativePath}: confidence '{confidence}' is not one of {string.Join("|", Confidences)}");
+        }
+
+        if (status.Length > 0 && !Statuses.Contains(status))
+        {
+            errors.Add($"{relativePath}: status '{status}' is not one of {string.Join("|", Statuses)}");
+        }
+
+        if (Many("evidence").Count == 0)
+        {
+            errors.Add($"{relativePath}: header lacks 'evidence'");
+        }
 
         int historyAt = Array.FindIndex(lines, l => l.Trim().Equals(HistoryHeading, StringComparison.Ordinal));
         if (historyAt < 0) { errors.Add($"{relativePath}: no '{HistoryHeading}' section"); historyAt = lines.Length; }
@@ -95,21 +130,30 @@ public static partial class FunctionKb
         {
             int colon = lines[j].IndexOf(':');
             if (colon > 0 && HeaderKeys.Contains(lines[j][..colon]))
+            {
                 errors.Add($"{relativePath}:{j + 1}: header key '{lines[j][..colon]}' comes after the blank line that ends the header");
+            }
         }
         string body = string.Join("\n", lines.Skip(bodyStart).Take(historyAt - bodyStart)).Trim();
 
         var history = new List<HistoryEntry>();
         for (int j = historyAt + 1; j < lines.Length; j++)
         {
-            if (lines[j].Trim().Length == 0) continue;
+            if (lines[j].Trim().Length == 0)
+            {
+                continue;
+            }
+
             if (lines[j].StartsWith("  ", StringComparison.Ordinal) && history.Count > 0)
             { history[^1] = history[^1] with { Text = history[^1].Text + " " + lines[j].Trim() }; continue; }
             Match h = HistoryRx().Match(lines[j]);
             if (!h.Success) { errors.Add($"{relativePath}:{j + 1}: {HistoryRule}: {lines[j]}"); continue; }
             history.Add(new HistoryEntry(h.Groups[1].Value, h.Groups[2].Value, h.Groups[3].Value));
         }
-        if (history.Count == 0 && historyAt < lines.Length) errors.Add($"{relativePath}: History is empty");
+        if (history.Count == 0 && historyAt < lines.Length)
+        {
+            errors.Add($"{relativePath}: History is empty");
+        }
 
         return new FunctionRecord(relativePath, address, name, role, confidence, status, Many("evidence"), Many("implements"), body, history);
     }
@@ -132,8 +176,16 @@ public static partial class FunctionKb
     /// that wrote it.</summary>
     public static string? StatusMismatch(FunctionRecord now, FunctionRecord? before, FunctionRecord? merged = null)
     {
-        if (before is not null && before.HeaderKey == now.HeaderKey) return null;
-        if (merged is not null && merged.HeaderKey == now.HeaderKey) return null;
+        if (before is not null && before.HeaderKey == now.HeaderKey)
+        {
+            return null;
+        }
+
+        if (merged is not null && merged.HeaderKey == now.HeaderKey)
+        {
+            return null;
+        }
+
         return now.Status switch
         {
             "BUILT" or "PARTIAL" when now.Implements.Count == 0 =>
@@ -160,12 +212,26 @@ public static partial class FunctionKb
         foreach ((string? file, string? text) in files)
         {
             if (changed.Contains(file) || file.StartsWith("docs/plans/", StringComparison.Ordinal)
-                || file.EndsWith("/INDEX.md", StringComparison.Ordinal)) continue;
+                || file.EndsWith("/INDEX.md", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
             foreach (string address in addresses)
-                if (file != $"{Folder}/{address}.md" && patterns[address].IsMatch(text)) hits[address].Add(file);
+            {
+                if (file != $"{Folder}/{address}.md" && patterns[address].IsMatch(text))
+                {
+                    hits[address].Add(file);
+                }
+            }
         }
         foreach ((string? address, List<string>? list) in hits.OrderBy(h => h.Key, StringComparer.Ordinal))
-            if (list.Count > 0) yield return (address, list);
+        {
+            if (list.Count > 0)
+            {
+                yield return (address, list);
+            }
+        }
     }
 
     /// <summary>A Markdown heading's anchor as GitHub makes it: lower-case, punctuation dropped, spaces to hyphens.</summary>
@@ -189,24 +255,40 @@ public static partial class FunctionKb
         var seen = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (FunctionRecord r in records)
         {
-            if (r.Address.Length == 0) continue;
+            if (r.Address.Length == 0)
+            {
+                continue;
+            }
+
             if (seen.TryGetValue(r.Address, out string? other))
+            {
                 yield return $"{r.RelativePath}: address {r.Address} appears twice (also {other})";
+            }
+
             seen[r.Address] = r.RelativePath;
 
             uint value = uint.Parse(r.Address, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             if (value < LowestCode || value >= HighestCode)
+            {
                 yield return $"{r.RelativePath}: {r.Address} is outside DKII.EXE code";
+            }
 
             foreach (string link in r.Evidence)
             {
                 int hash = link.IndexOf('#');
                 string file = hash < 0 ? link : link[..hash];
                 if (!fileExists(file)) { yield return $"{r.RelativePath}: evidence '{file}' does not exist"; continue; }
-                if (hash < 0) continue;
+                if (hash < 0)
+                {
+                    continue;
+                }
+
                 string anchor = link[(hash + 1)..];
                 bool found = readLines(file).Any(l => l.StartsWith('#') && Slug(l).Equals(anchor, StringComparison.Ordinal));
-                if (!found) yield return $"{r.RelativePath}: no heading in {file} slugs to '#{anchor}'";
+                if (!found)
+                {
+                    yield return $"{r.RelativePath}: no heading in {file} slugs to '#{anchor}'";
+                }
             }
         }
     }
@@ -220,7 +302,10 @@ public static partial class FunctionKb
         sb.Append("The record holds the reasoning and history; its evidence links hold the proof (ADR-0046).\n\n");
         sb.Append("| Address | Name | Role | Confidence | Status |\n|---|---|---|---|---|\n");
         foreach (FunctionRecord? r in records.OrderBy(r => r.Address, StringComparer.Ordinal))
+        {
             sb.Append($"| `0x{r.Address}` | [{r.Name}]({r.Address}.md) | {Cell(r.Role)} | {r.Confidence} | {r.Status} |\n");
+        }
+
         return sb.ToString();
     }
 
@@ -235,10 +320,22 @@ public static partial class FunctionKb
     /// accepts the days the range's commits touched the record, since it runs after they were written.</summary>
     public static IEnumerable<string> HistoryRequired(FunctionRecord now, FunctionRecord? before, IReadOnlyCollection<DateOnly> days, FunctionRecord? merged = null)
     {
-        if (before is not null && before.HeaderKey == now.HeaderKey) yield break;
-        if (merged is not null && merged.HeaderKey == now.HeaderKey) yield break;
+        if (before is not null && before.HeaderKey == now.HeaderKey)
+        {
+            yield break;
+        }
+
+        if (merged is not null && merged.HeaderKey == now.HeaderKey)
+        {
+            yield break;
+        }
+
         string[] dates = days.Distinct().Order().Select(d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).ToArray();
-        if (now.History.Any(h => dates.Contains(h.Date))) yield break;
+        if (now.History.Any(h => dates.Contains(h.Date)))
+        {
+            yield break;
+        }
+
         string date = string.Join(" or ", dates);
         yield return before is null
             ? $"{now.RelativePath}: is new and has no History line dated {date}"
@@ -255,14 +352,32 @@ public static partial class FunctionKb
     {
         foreach ((string? file, string[]? lines) in changes)
         {
-            if (ExemptPrefixes.Any(p => file.StartsWith(p, StringComparison.Ordinal))) continue;
-            if (!(file.StartsWith("docs/", StringComparison.Ordinal) || file.StartsWith("src/", StringComparison.Ordinal))) continue;
+            if (ExemptPrefixes.Any(p => file.StartsWith(p, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            if (!(file.StartsWith("docs/", StringComparison.Ordinal) || file.StartsWith("src/", StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
             var missing = new SortedSet<string>(StringComparer.Ordinal);
             foreach (string line in lines)
+            {
                 foreach (string address in Mentions(line))
-                    if (!recorded.Contains(address)) missing.Add(address);
+                {
+                    if (!recorded.Contains(address))
+                    {
+                        missing.Add(address);
+                    }
+                }
+            }
+
             foreach (string address in missing)
+            {
                 yield return $"{file}: mentions FUN_{address} and {Folder}/{address}.md does not exist";
+            }
         }
     }
 }

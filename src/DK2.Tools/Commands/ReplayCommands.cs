@@ -79,7 +79,10 @@ internal static class ReplayCommands
         using StreamWriter? eventWriter = eventPath is null ? null : new StreamWriter(eventPath);
         eventWriter?.WriteLine("turn\tsystem\tkind\tdetail");
         var tally = new TagTally(eventWriter);
-        if (log is not null || rooms is not null || packet is not null) simulation.ObserveWith(tally);
+        if (log is not null || rooms is not null || packet is not null)
+        {
+            simulation.ObserveWith(tally);
+        }
 
         // The same tiles the probe was sampling, so the two traces line up tile for
         // tile. Watching only those costs a handful of reads a tick instead of a sweep,
@@ -122,45 +125,65 @@ internal static class ReplayCommands
                     ? Merge(log?.At(turn), rooms?.At(turn))
                     : Blueprints(turn, packet.At(turn, entityIds ?? new PacketEntityMap(), GoldOnTile, DropAt)));
 
-                if (births is not null && entityIds is not null) births.PairNew(entityIds, turn, world.Creatures, eventWriter);
+                if (births is not null && entityIds is not null)
+                {
+                    births.PairNew(entityIds, turn, world.Creatures, eventWriter);
+                }
 
                 if (seedWriter is not null && simulation.Rng.Algorithm is Dk2Lcg lcg)
+                {
                     seedWriter.WriteLine($"{turn},{lcg.Seed}");
+                }
 
                 foreach (TilePos at in watched)
                 {
                     ref TileState tile = ref world.Tile(at);
                     (byte TerrainId, int Health, byte OwnerPlayerId, ushort Bits) now = (tile.TerrainId, tile.Health, tile.OwnerPlayerId, tile.TaggedBy.Bits);
-                    if (seen.TryGetValue(at, out (byte, int, byte, ushort) was) && was == now) continue;
+                    if (seen.TryGetValue(at, out (byte, int, byte, ushort) was) && was == now)
+                    {
+                        continue;
+                    }
+
                     seen[at] = now;
                     tileWriter?.WriteLine(
                         $"{turn},{at.X},{at.Y},{tile.TerrainId},{tile.Health},{tile.OwnerPlayerId},{tile.TaggedBy.Bits}");
                 }
 
                 if (creatureWriter is not null)
+                {
                     foreach (CreatureState creature in world.Creatures)
                     {
                         (byte CreatureTypeId, byte OwnerPlayerId, TilePos Tile, int Health, int Dk2StateId, int FightTargetId) now = (creature.CreatureTypeId, creature.OwnerPlayerId,
                             creature.Tile, creature.Health, creature.Dk2StateId,
                             creature.FightTargetId);
                         if (seenCreatures.TryGetValue(creature.Id, out (byte Type, byte Owner, TilePos Tile, int Health, int State, int Target) was) && was == now)
+                        {
                             continue;
+                        }
+
                         seenCreatures[creature.Id] = now;
                         creatureWriter.WriteLine($"{turn},{creature.Id},{now.CreatureTypeId},"
                             + $"{now.OwnerPlayerId},{now.Tile.X},{now.Tile.Y},"
                             + $"{now.Health},{now.Dk2StateId},{now.FightTargetId}");
                     }
+                }
 
                 if (jobWriter is not null)
+                {
                     foreach (CreatureState creature in world.Creatures)
                     {
                         (int Dk2StateId, int UtilityNewState, int TargetTileIndex, TileWorkKind TargetWork, ImpTaskKind LastTaskKind, int LastTaskTileIndex, int GoldHeld) now = (creature.Dk2StateId, creature.UtilityNewState, creature.TargetTileIndex,
                             creature.TargetWork, creature.LastTaskKind, creature.LastTaskTileIndex, creature.GoldHeld);
-                        if (seenJobs.TryGetValue(creature.Id, out (int State, int Resume, int Task, TileWorkKind Work, ImpTaskKind Last, int LastTile, int Gold) was) && was == now) continue;
+                        if (seenJobs.TryGetValue(creature.Id, out (int State, int Resume, int Task, TileWorkKind Work, ImpTaskKind Last, int LastTile, int Gold) was) && was == now)
+                        {
+                            continue;
+                        }
+
                         seenJobs[creature.Id] = now;
                         jobWriter.WriteLine($"{turn},{creature.Id},{now.Dk2StateId},{now.UtilityNewState},"
                             + $"{now.TargetTileIndex},{now.TargetWork},{now.LastTaskKind},{now.LastTaskTileIndex},{now.GoldHeld}");
                     }
+                }
 
                 // --resync: this turn's state is DK2's, and the rest of the run continues from it.
                 if (resync is not null && turn == resyncAt)
@@ -173,31 +196,58 @@ internal static class ReplayCommands
                         slot => resyncMap is not null && resyncMap.TryGetValue(slot, out int named) ? named
                             : ids.TryResolve((uint)slot, turn, PacketEntityKind.Creature, out int id) ? id : null,
                         resyncParts);
-                    if (resyncParts != ResyncParts.All) Console.WriteLine($"  resync skips: {ResyncParts.All & ~resyncParts}");
-                    if (births is not null) ids.DropCreatureRowsAfter(turn);
+                    if (resyncParts != ResyncParts.All)
+                    {
+                        Console.WriteLine($"  resync skips: {ResyncParts.All & ~resyncParts}");
+                    }
+
+                    if (births is not null)
+                    {
+                        ids.DropCreatureRowsAfter(turn);
+                    }
+
                     foreach ((int slot, int ours) in report.Pairs ?? [])
+                    {
                         ids.Set((uint)slot, turn + 1, ours, PacketEntityKind.Creature);
+                    }
+
                     births?.Begin(ids, world.Creatures);
                     Console.WriteLine($"  resync at turn {turn} from DK2's tick {resync.Tick}: {report}");
-                    foreach (string note in report.Notes) Console.WriteLine($"    {note}");
+                    foreach (string note in report.Notes)
+                    {
+                        Console.WriteLine($"    {note}");
+                    }
                 }
             }
         }
 
         if (tilePath is not null)
+        {
             Console.WriteLine($"  tiles: {watched.Length} watched -> {tilePath}");
+        }
         // A pickup of nothing is dropped silently by the hand, so the miss is counted here.
         if (goldAsked > 0)
+        {
             Console.WriteLine($"  gold: {goldAsked} pickups, {goldMissed} found no pile of ours on DK2's tile or next to it, "
                 + $"{goldMoved} took ours from the next tile");
+        }
+
         if (births is not null)
+        {
             Console.WriteLine($"  births: {births.Births.Count} native after the resync, {births.PairedCount} paired with ours, "
                 + $"{births.Births.Count - births.PairedCount} name nobody");
+        }
+
         if (dropsMoved > 0)
+        {
             Console.WriteLine($"  drops: {dropsMoved} moved to the nearest tile they land on, as the player would");
+        }
+
         if (blueprints is { Held: > 0 })
+        {
             Console.WriteLine($"  blueprints: {blueprints.Held} held for a tile ours did not own yet, {blueprints.SentLater} "
                 + $"sent once it did, {blueprints.Pending} never");
+        }
 
         // How many workers were available to answer the marks. A capture's approach
         // times cannot be compared against ours without it: two imps and five imps
@@ -205,7 +255,11 @@ internal static class ReplayCommands
         foreach (PlayerDef p in players)
         {
             int imps = ImpSupplyRules.ImpCount(world, database, p.PlayerId);
-            if (imps > 0) Console.WriteLine($"  imps: player {p.PlayerId} has {imps}");
+            if (imps > 0)
+            {
+                Console.WriteLine($"  imps: player {p.PlayerId} has {imps}");
+            }
+
             if (log is not null || rooms is not null || packet is not null)
             {
                 PlayerState player = world.Player(p.PlayerId);
@@ -214,7 +268,10 @@ internal static class ReplayCommands
             }
         }
 
-        if (log is not null || rooms is not null || packet is not null) tally.Report();
+        if (log is not null || rooms is not null || packet is not null)
+        {
+            tally.Report();
+        }
 
         int occupied = tree.Parties.Count(s => s.TriggerId != 0);
         Console.WriteLine($"{levelName}: {turns} turns, root trigger {tree.RootTriggerId} "
@@ -251,20 +308,27 @@ internal static class ReplayCommands
         // tile changing hands -- cannot happen in this run, and a divergence there is ours.
         foreach (TriggerCensusRow r in
                  (simulation.LastTriggerRun?.PartialSummary ?? []).OrderByDescending(s => s.Count))
+        {
             Console.WriteLine($"  PARTIAL tag {r.Tag} type {r.Type} in {r.Context}: {r.Count} "
                 + "-- descended, effect missing");
+        }
 
         // And what DK2 itself refuses: dead script, not a gap of ours.
         foreach (TriggerCensusRow r in
                  (simulation.LastTriggerRun?.UnhandledSummary ?? []).OrderByDescending(s => s.Count))
+        {
             Console.WriteLine($"  UNHANDLED tag {r.Tag} type {r.Type} in {r.Context}: {r.Count} "
                 + "-- DK2's own dispatcher returns zero here");
+        }
 
         // And what was answered from an assumption rather than from state.
         foreach (TriggerCensusRow r in
                  (simulation.LastTriggerRun?.AssumedSummary ?? []).OrderByDescending(s => s.Count))
+        {
             Console.WriteLine($"  ASSUMED tag {r.Tag} type {r.Type} in {r.Context}: {r.Count} "
                 + "-- taken as true: no modal interface state in a headless run");
+        }
+
         return 0;
 
         // A recorded door or trap placement on a tile ours has not claimed yet waits for it
@@ -285,28 +349,52 @@ internal static class ReplayCommands
         TilePos DropAt(byte player, TilePos tile)
         {
             List<HandItem> hand = world.Player(player).Hand;
-            if (hand.Count == 0 || hand[^1].IsObject) return tile;
+            if (hand.Count == 0 || hand[^1].IsObject)
+            {
+                return tile;
+            }
+
             HandItem held = hand[^1];
-            if (world.CreatureById(held.Id) is null) return tile;
-            if (HandRules.DropLands(world, database, player, held, tile)) return tile;
+            if (world.CreatureById(held.Id) is null)
+            {
+                return tile;
+            }
+
+            if (HandRules.DropLands(world, database, player, held, tile))
+            {
+                return tile;
+            }
 
             TilePos best = tile;
             long bestDistance = long.MaxValue;
             for (int r = 1; r <= Math.Max(world.Width, world.Height) && bestDistance == long.MaxValue; r++)
             {
                 for (int dy = -r; dy <= r; dy++)
-                for (int dx = -r; dx <= r; dx++)
                 {
-                    if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != r) continue;
-                    var at = new TilePos(tile.X + dx, tile.Y + dy);
+                    for (int dx = -r; dx <= r; dx++)
+                {
+                    if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != r)
+                        {
+                            continue;
+                        }
+
+                        var at = new TilePos(tile.X + dx, tile.Y + dy);
                     long d = ((long)dx * dx) + ((long)dy * dy);
                     if (d >= bestDistance || !HandRules.DropLands(world, database, player, held, at))
-                        continue;
-                    best = at;
+                        {
+                            continue;
+                        }
+
+                        best = at;
                     bestDistance = d;
                 }
+                }
             }
-            if (bestDistance != long.MaxValue) dropsMoved++;
+            if (bestDistance != long.MaxValue)
+            {
+                dropsMoved++;
+            }
+
             return best;
         }
 
@@ -322,14 +410,28 @@ internal static class ReplayCommands
             {
                 if (thing.InHand || thing.CarriedByCreatureId >= 0
                     || database.ObjectById(thing.ObjectTypeId) is not { IsGold: true })
+                {
                     continue;
+                }
+
                 int dx = Math.Abs(thing.TileIndex % world.Width - x), dy = Math.Abs(thing.TileIndex / world.Width - y);
-                if (Math.Max(dx, dy) > 1 || dx + dy >= bestDistance) continue;
+                if (Math.Max(dx, dy) > 1 || dx + dy >= bestDistance)
+                {
+                    continue;
+                }
+
                 best = thing.Id;
                 bestDistance = dx + dy;
             }
-            if (best == 0) goldMissed++;
-            else if (bestDistance > 0) goldMoved++;
+            if (best == 0)
+            {
+                goldMissed++;
+            }
+            else if (bestDistance > 0)
+            {
+                goldMoved++;
+            }
+
             return best;
         }
     }
@@ -363,7 +465,11 @@ internal static class ReplayCommands
         bool storedPickups = false;
         for (int i = 4; i < arguments.Length; i += 2)
         {
-            if (i + 1 >= arguments.Length) return ReplayUsage();
+            if (i + 1 >= arguments.Length)
+            {
+                return ReplayUsage();
+            }
+
             string value = arguments[i + 1];
             System.Globalization.CultureInfo ic = System.Globalization.CultureInfo.InvariantCulture;
             switch (arguments[i])
@@ -449,7 +555,10 @@ internal static class ReplayCommands
                         // By name only: a number would parse too, and a combination would skip silently.
                         if (!Enum.GetNames<ResyncParts>().Contains(part, StringComparer.OrdinalIgnoreCase)
                             || !Enum.TryParse(part, ignoreCase: true, out ResyncParts skip) || skip is ResyncParts.None or ResyncParts.All)
+                        {
                             return ReplayUsage();
+                        }
+
                         resyncParts &= ~skip;
                     }
                     break;
@@ -468,19 +577,30 @@ internal static class ReplayCommands
         try
         {
             if (resyncPath is null && resyncParts != ResyncParts.All)
+            {
                 throw new InvalidDataException("--resync-skip needs --resync.");
+            }
+
             if (resyncPath is not null)
             {
                 if (packetPath is null || resyncAt <= 0)
+                {
                     throw new InvalidDataException("--resync needs a packet replay and --resync-at <turn>.");
+                }
+
                 resync = ResyncStateFile.Load(resyncPath);
                 if (resync.Tick != resyncAt)
+                {
                     Console.WriteLine($"  note: {resyncPath} is DK2's tick {resync.Tick}, applied after our turn {resyncAt}");
+                }
             }
             if (birthsPath is not null)
             {
                 if (resync is null)
+                {
                     throw new InvalidDataException("--births needs --resync.");
+                }
+
                 births = NativeBirths.Read(birthsPath, resyncAt);
             }
             if (resyncMapPath is not null)
@@ -488,24 +608,40 @@ internal static class ReplayCommands
                 resyncMap = [];
                 foreach (string line in File.ReadLines(resyncMapPath))
                 {
-                    if (line.Length == 0 || line.StartsWith("slot", StringComparison.Ordinal)) continue;
+                    if (line.Length == 0 || line.StartsWith("slot", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
                     string[] fields = line.Split(',');
                     if (fields.Length != 2 || !int.TryParse(fields[0], out int slot) || !int.TryParse(fields[1], out int ours))
+                    {
                         throw new InvalidDataException($"{resyncMapPath}: expected slot,ours rows, got '{line}'.");
+                    }
+
                     resyncMap[slot] = ours;
                 }
             }
             if (packetPath is null)
             {
                 log = InputLog.Read(arguments[2], lag, origin);
-                if (roomPath is not null) rooms = RoomLog.Read(roomPath, lag, origin);
+                if (roomPath is not null)
+                {
+                    rooms = RoomLog.Read(roomPath, lag, origin);
+                }
             }
             else
             {
                 if (arguments[2] != "-" || roomPath is not null)
+                {
                     throw new InvalidDataException("Packet replay requires tags path - and no --rooms input.");
+                }
+
                 if (packetOffset is not int start)
+                {
                     throw new InvalidDataException("Packet replay requires --packet-offset for the first stamped header (normally 69); that record executes on playback turn 1.");
+                }
+
                 packet = PacketLog.Read(packetPath, turns, start);
                 entityIds = PacketEntityMap.Read(entityMapPath);
                 string[] unmapped = [.. packet.EntityReferences
@@ -513,9 +649,11 @@ internal static class ReplayCommands
                         reference.Original, reference.Turn, reference.Kind, out _))
                     .Select(reference => $"{reference.Original}@{reference.Turn}")];
                 if (unmapped.Length > 0)
+                {
                     throw new InvalidDataException(
                         $"Packet entities need observed ID mappings: {string.Join(", ", unmapped)}. "
                         + "Pass --entity-map original,from_turn,ours,kind.csv.");
+                }
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
@@ -535,18 +673,29 @@ internal static class ReplayCommands
         Console.WriteLine($"{arguments[2]}: {t2.Rows} rows -> {t2.Commands} commands over "
             + $"{log.Turns.Count} turns, probe turns {t2.FirstStamp}..{t2.LastStamp}");
         if (t2.Migrations > 0)
-            Console.WriteLine($"  {t2.Migrations} rows moved a tile between kind lists without "
+            {
+                Console.WriteLine($"  {t2.Migrations} rows moved a tile between kind lists without "
                 + "adding or removing it -- the pool is a pipeline, not a set of marks");
-        if (t2.Worked > 0)
-            Console.WriteLine($"  {t2.Worked} pool changes were DK2's own imps taking or "
+            }
+
+            if (t2.Worked > 0)
+            {
+                Console.WriteLine($"  {t2.Worked} pool changes were DK2's own imps taking or "
                 + $"finishing work, not the player (mark kinds are "
                 + $"{string.Join(", ", InputLog.TagKinds.Order())})");
-        if (t2.Before > 0)
-            Console.WriteLine($"  {t2.Before} commands dated before turn 1 and dropped -- the "
+            }
+
+            if (t2.Before > 0)
+            {
+                Console.WriteLine($"  {t2.Before} commands dated before turn 1 and dropped -- the "
                 + $"probe attached after the level began, or --origin {origin} is wrong");
-        if (log.Turns.Count > 0 && log.Turns[^1] > turns)
-            Console.WriteLine($"  the log runs to turn {log.Turns[^1]} but the run stops at "
+            }
+
+            if (log.Turns.Count > 0 && log.Turns[^1] > turns)
+            {
+                Console.WriteLine($"  the log runs to turn {log.Turns[^1]} but the run stops at "
                 + $"{turns}; raise --turns to replay all of it");
+            }
         }
 
         if (rooms is not null)
@@ -555,13 +704,21 @@ internal static class ReplayCommands
             Console.WriteLine($"{roomPath}: {r.Rows} rows -> {r.Commands} commands over "
                 + $"{rooms.Turns.Count} turns");
             if (r.Unsettled > 0)
+            {
                 Console.WriteLine($"  {r.Unsettled} rows skipped -- bounds did not enclose exactly "
                     + "the slab count, so the room was still being built");
+            }
+
             if (r.Before > 0)
+            {
                 Console.WriteLine($"  {r.Before} commands dated before turn 1 and dropped");
+            }
+
             if (r.Disowned > 0)
+            {
                 Console.WriteLine($"  {r.Disowned} rows whose room names a different owner than "
                     + "the list it was found in -- THE ROOM WALK IS WRONG, not the room");
+            }
         }
 
         return RunTriggerCsv(arguments[1], turns, arguments[3],
@@ -579,8 +736,16 @@ internal static class ReplayCommands
     {
         IReadOnlyList<PlayerCommand> a = tags?.All ?? [];
         IReadOnlyList<PlayerCommand> b = rooms?.All ?? [];
-        if (b.Count == 0) return tags ?? InputFrame.Empty;
-        if (a.Count == 0) return rooms ?? InputFrame.Empty;
+        if (b.Count == 0)
+        {
+            return tags ?? InputFrame.Empty;
+        }
+
+        if (a.Count == 0)
+        {
+            return rooms ?? InputFrame.Empty;
+        }
+
         return new InputFrame([.. a, .. b]);
     }
 
@@ -660,13 +825,21 @@ sealed class TagTally : ISimulationEventSink
             }
             return;
         }
-        if (simEvent.System != "TileTag") return;
+        if (simEvent.System != "TileTag")
+        {
+            return;
+        }
+
         foreach (string part in simEvent.Detail.Split(' '))
         {
             if (part.StartsWith("applied=", StringComparison.Ordinal))
+            {
                 _applied += int.Parse(part[8..], System.Globalization.CultureInfo.InvariantCulture);
+            }
             else if (part.StartsWith("rejected=", StringComparison.Ordinal))
+            {
                 _rejected += int.Parse(part[9..], System.Globalization.CultureInfo.InvariantCulture);
+            }
         }
     }
 
@@ -680,12 +853,17 @@ sealed class TagTally : ISimulationEventSink
     {
         Console.WriteLine($"  tags: {_applied} applied, {_rejected} rejected");
         if (_picked + _dropped + _pickupRefused + _dropRefused + _slapped > 0)
+        {
             Console.WriteLine($"  hand: {_picked} picked, {_dropped} dropped "
                 + $"({_dropStunned} stunned), "
                 + $"{_pickupRefused} pickups refused, {_dropRefused} drops refused, "
                 + $"{_slapped} slapped");
+        }
+
         if (_applied == 0 && _rejected > 0)
+        {
             Console.WriteLine("  NOTHING landed -- suspect the pool's coordinates rather "
                 + "than the level");
+        }
     }
 }

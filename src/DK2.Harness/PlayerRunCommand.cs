@@ -34,12 +34,20 @@ public static class PlayerRunCommand
         RunTemplate template, string outRoot, string? runId, TextWriter output, TextWriter error,
         Func<PlayerRunOptions, PlayerRunOptions>? tune, string? harnessDirectory = null)
     {
-        if (template.Player is not CampaignPlayerSpec spec) throw new ArgumentException("No campaign player.", nameof(template));
+        if (template.Player is not CampaignPlayerSpec spec)
+        {
+            throw new ArgumentException("No campaign player.", nameof(template));
+        }
         // The repository's knowledge unless the command named a directory or none (Task 3a).
-        if (spec.Knowledge is null) spec = spec with { Knowledge = KeeperKnowledgeFile.DefaultDirectory(scenario.SourcePath) ?? KeeperKnowledgeFile.None };
+        if (spec.Knowledge is null)
+        {
+            spec = spec with { Knowledge = KeeperKnowledgeFile.DefaultDirectory(scenario.SourcePath) ?? KeeperKnowledgeFile.None };
+        }
         // What the level lets the player research, read from its files as a player knows it (Task 3a).
         if (spec.Researchable is null && installDirectory is not null)
+        {
             spec = spec with { Researchable = KeeperKnowledgeFile.ResearchableItems(installDirectory, scenario.Map, spec.Player) };
+        }
         // The level's playbook (Task 3b): reviewed, for this scenario's level, its caps standing in for limits not given.
         if (spec.Playbook is string playbookPath)
         {
@@ -60,7 +68,11 @@ public static class PlayerRunCommand
                 error.WriteLine($"{scenario.Id}: refused: the playbook asks for rules {string.Join(", ", playbook.Playbook.Rules)}, but the player reads no knowledge");
                 return 2;
             }
-            foreach (string warning in playbook.Warnings) error.WriteLine($"{scenario.Id}: playbook: {warning}");
+            foreach (string warning in playbook.Warnings)
+            {
+                error.WriteLine($"{scenario.Id}: playbook: {warning}");
+            }
+
             spec = WithCaps(spec, playbook.Playbook.Caps) with { LoadedPlaybook = playbook };
             if (playbook.Playbook.Caps.MaxTicks is int capped && (spec.GivenLimits & PlayerLimitFlags.MaxTicks) == 0 && capped > scenario.DurationTicks)
             {
@@ -86,7 +98,11 @@ public static class PlayerRunCommand
             if (!receipt.Matches)
             {
                 error.WriteLine($"{scenario.Id}: refused: this harness and tree are not the build in receipt '{receiptDirectory}':");
-                foreach (string problem in receipt.Problems) error.WriteLine($"    {problem}");
+                foreach (string problem in receipt.Problems)
+                {
+                    error.WriteLine($"    {problem}");
+                }
+
                 return 2;
             }
         }
@@ -180,8 +196,13 @@ public static class PlayerRunCommand
             if (gaps.Count == 0)
             {
                 if (ReplayGap(runner, scenario, result, Path.Combine(directory, "input.journal"), out int compared) is string replayGap)
+                {
                     gaps.Add(replayGap);
-                else replayed = compared;
+                }
+                else
+                {
+                    replayed = compared;
+                }
             }
             byte[] verdict = PlayerRunReport.Verdict(result, outcome, spec, note, Acceptance(scenario, player, receipt, gaps, replayed));
             long total = FolderBytes(directory) + verdict.Length;
@@ -197,7 +218,10 @@ public static class PlayerRunCommand
             output.WriteLine($"{scenario.Id,-36} {result.TicksRun,6} ticks  {outcome} ({player.Stop}{(player.Limitation is null ? "" : $": {player.Limitation}")}), " +
                              $"finale {player.Finale}  -> {directory}");
             if (player.Stop == PlayerRunStop.Won && player.Finale == PlayerFinaleCoverage.NotReached)
+            {
                 error.WriteLine($"{scenario.Id}: suspected anomaly: the Horned Reaper did not pick up the Portal Gem within {spec.FinaleTicks} ticks");
+            }
+
             return PlayerRunReport.ExitCode(outcome);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -214,21 +238,39 @@ public static class PlayerRunCommand
         BuildReceipt.Verification? receipt, bool fuzzed, IReadOnlyCollection<byte>? levelComputerKeepers)
     {
         var gaps = new List<string>();
-        if (receipt is null) gaps.Add("no build receipt was given (--player-receipt)");
+        if (receipt is null)
+        {
+            gaps.Add("no build receipt was given (--player-receipt)");
+        }
+
         gaps.AddRange(PlayerRunReport.ModifiedStart(scenario));
-        if (fuzzed) gaps.Add("another player is driven by the fuzzer (--fuzz)");
+        if (fuzzed)
+        {
+            gaps.Add("another player is driven by the fuzzer (--fuzz)");
+        }
+
         if (levelComputerKeepers is null)
+        {
             gaps.Add("the level's own computer keepers (its PLAYERS records) could not be read");
+        }
         else
         {
             byte[] level = [.. levelComputerKeepers.Where(id => id != player.Options.Player.Value).Order()];
             byte[] driven = [.. scenario.ComputerKeepers.Distinct().Order()];
             if (!level.SequenceEqual(driven))
+            {
                 gaps.Add($"the scenario drives computer keepers [{string.Join(", ", driven)}], the level's records name [{string.Join(", ", level)}]");
+            }
         }
-        if (outcome != PlayerRunOutcome.Completed) gaps.Add($"the run is {outcome}, not Completed");
+        if (outcome != PlayerRunOutcome.Completed)
+        {
+            gaps.Add($"the run is {outcome}, not Completed");
+        }
         else if (player.Finale is not (PlayerFinaleCoverage.ReachedPickup or PlayerFinaleCoverage.NotApplicable))
+        {
             gaps.Add($"the finale is {player.Finale}: the Horned Reaper did not take the Portal Gem");
+        }
+
         return gaps;
     }
 
@@ -242,12 +284,18 @@ public static class PlayerRunCommand
         {
             InputJournal journal;
             using (FileStream stream = File.OpenRead(journalPath))
+            {
                 journal = InputJournal.Read(stream);
+            }
+
             ScenarioResult replay = runner.Replay(scenario, journal);
             if (replay.Replay is not { FirstDivergentTick: null } report || report.ComparedTicks != journal.Hashes.Count
                 || replay.TicksRun != result.TicksRun)
+            {
                 return $"the journal's replay without the controller does not match (first divergent tick {replay.Replay?.FirstDivergentTick?.ToString(CultureInfo.InvariantCulture) ?? "none"}, " +
                        $"{replay.TicksRun} ticks against {result.TicksRun})";
+            }
+
             compared = report.ComparedTicks;
             return null;
         }
@@ -261,7 +309,11 @@ public static class PlayerRunCommand
     /// when the records cannot be read.</summary>
     private static IReadOnlyCollection<byte>? LevelComputerKeepers(string? installDirectory, Scenario scenario)
     {
-        if (installDirectory is null || !scenario.Map.StartsWith(ScenarioRunner.CampaignPrefix, StringComparison.OrdinalIgnoreCase)) return null;
+        if (installDirectory is null || !scenario.Map.StartsWith(ScenarioRunner.CampaignPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
         try
         {
             return GameDatabaseLoader.LoadCampaignPlayers(installDirectory, scenario.Map[ScenarioRunner.CampaignPrefix.Length..].Trim())
@@ -278,8 +330,16 @@ public static class PlayerRunCommand
     internal static string Acceptance(Scenario scenario, PlayerRunCoordinator player, BuildReceipt.Verification? receipt,
         IReadOnlyList<string> gaps, int? replayedHashes)
     {
-        if (gaps.Count > 0) return PlayerRunReport.NotClaimed + string.Join("; ", gaps);
-        if (replayedHashes is not int hashes || hashes <= 0) return PlayerRunReport.NotClaimed + "the journal was not replayed";
+        if (gaps.Count > 0)
+        {
+            return PlayerRunReport.NotClaimed + string.Join("; ", gaps);
+        }
+
+        if (replayedHashes is not int hashes || hashes <= 0)
+        {
+            return PlayerRunReport.NotClaimed + "the journal was not replayed";
+        }
+
         string build = receipt!.Dirty
             ? $"head {receipt.Head ?? "not recorded"} plus uncommitted changes (tracked patch sha256 {receipt.PatchSha256 ?? "not recorded"}, untracked files in the receipt's source list)"
             : $"head {receipt.Head ?? "not recorded"}, a clean tree";
@@ -362,7 +422,11 @@ public static class PlayerRunCommand
     public static int? VerifyBeforeReplay(string journalPath, Scenario scenario, string? installDirectory, InputJournal journal,
         TextWriter output, TextWriter error)
     {
-        if (!JournalHeader.IsPlayerRun(journal)) return null;
+        if (!JournalHeader.IsPlayerRun(journal))
+        {
+            return null;
+        }
+
         PlayerRunId runId;
         try
         {
@@ -376,9 +440,21 @@ public static class PlayerRunCommand
         }
         string directory = Path.GetDirectoryName(Path.GetFullPath(journalPath)) ?? ".";
         PlayerRunManifest.Verification verification = PlayerRunManifest.Verify(directory, scenario, installDirectory, runId);
-        foreach (string note in verification.Diagnostic) output.WriteLine($"note: {note}");
-        if (verification.MayReplay) return null;
-        foreach (string problem in verification.Blocking) error.WriteLine($"not replayed: {problem}");
+        foreach (string note in verification.Diagnostic)
+        {
+            output.WriteLine($"note: {note}");
+        }
+
+        if (verification.MayReplay)
+        {
+            return null;
+        }
+
+        foreach (string problem in verification.Blocking)
+        {
+            error.WriteLine($"not replayed: {problem}");
+        }
+
         return 2;
     }
 }

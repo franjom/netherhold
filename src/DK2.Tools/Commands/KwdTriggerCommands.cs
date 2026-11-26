@@ -44,20 +44,33 @@ internal static partial class KwdCommands
                 ? MapGrid.Parse(KwdReader.ReadFile(mapFile)) : null;
             foreach (KwdChunk c in KwdReader.ReadFile(file))
             {
-                if (!KwdTaggedRecords.IsTagged(c.Type)) continue;
+                if (!KwdTaggedRecords.IsTagged(c.Type))
+                {
+                    continue;
+                }
 
                 foreach (KwdTaggedRecords.TaggedRecord r in KwdTaggedRecords.Split(c))
                 {
-                    if (r.Tag != TriggerActionTag) continue;
+                    if (r.Tag != TriggerActionTag)
+                    {
+                        continue;
+                    }
+
                     ReadOnlySpan<byte> p = r.Payload.Span;
-                    if (p.Length < 8) continue;
+                    if (p.Length < 8)
+                    {
+                        continue;
+                    }
 
                     actionRecords++;
                     int actionType = p[p.Length - 2];
                     actionTypeHistogram.TryGetValue(actionType, out int seen);
                     actionTypeHistogram[actionType] = seen + 1;
 
-                    if (actionType != ActionTypeAlterTerrain) continue;
+                    if (actionType != ActionTypeAlterTerrain)
+                    {
+                        continue;
+                    }
 
                     alterActions++;
                     byte terrainId = p[0];
@@ -118,7 +131,10 @@ internal static partial class KwdCommands
         {
             Console.WriteLine();
             Console.WriteLine("every occurrence:");
-            foreach (string o in offenders) Console.WriteLine(o);
+            foreach (string o in offenders)
+            {
+                Console.WriteLine(o);
+            }
         }
 
         return 0;
@@ -161,7 +177,10 @@ internal static partial class KwdCommands
             LevelDef? def = GameDatabaseLoader.LoadCampaignLevel(oracleInstall, level);
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(oracleInstall, level);
             List<PlayerDef>? plyrs = GameDatabaseLoader.LoadCampaignPlayers(oracleInstall, level);
-            if (recs is null || def is null || things is null || plyrs is null) continue;
+            if (recs is null || def is null || things is null || plyrs is null)
+            {
+                continue;
+            }
 
             oracleRows.Add(MeasureOracleReach(
                 oracleInstall, level, oracleTurns, recs, def, things, plyrs));
@@ -186,9 +205,11 @@ internal static partial class KwdCommands
         foreach (OracleReach r in oracleRows
                      .OrderByDescending(r => r.MovedAfterFirstTurn).ThenByDescending(r => r.Moved)
                      .ThenBy(r => r.Level, StringComparer.OrdinalIgnoreCase))
+        {
             Console.WriteLine($"{r.Level,-18} {r.Moved,5} {r.MovedAfterFirstTurn,6} "
                 + $"{r.Flags + r.Timers,5} {r.AllFlags + r.AllTimers,6}  "
                 + $"{r.Stalls,6} {r.Gates,5}  {r.Reached,5} {r.Records,5}  {r.CreatureRoots,8}");
+        }
 
         int usable = oracleRows.Count(r => r.MovedAfterFirstTurn > 0);
         Console.WriteLine();
@@ -218,9 +239,21 @@ internal static partial class KwdCommands
                          .Parse(KwdReader.ReadFile(file)).OfType<HeroPartyThing>())
             {
                 parties++;
-                if (party.PartyId != index) orderDiffers++;
-                if (!seen.Add(party.PartyId)) duplicates++;
-                if (party.PartyId >= 24) overSlots++;
+                if (party.PartyId != index)
+                {
+                    orderDiffers++;
+                }
+
+                if (!seen.Add(party.PartyId))
+                {
+                    duplicates++;
+                }
+
+                if (party.PartyId >= 24)
+                {
+                    overSlots++;
+                }
+
                 maxPartyId = Math.Max(maxPartyId, party.PartyId);
                 index++;
                 foreach (GoodCreatureThing member in party.Members)
@@ -228,7 +261,10 @@ internal static partial class KwdCommands
                     if (member.CreatureId != 0)
                     {
                         withCreature++;
-                        if (member.TriggerId == 0) creatureNoTrigger++;
+                        if (member.TriggerId == 0)
+                        {
+                            creatureNoTrigger++;
+                        }
                     }
                     else if (member.TriggerId != 0)
                     {
@@ -283,7 +319,9 @@ internal static partial class KwdCommands
             List<PlayerDef>? rplayers = GameDatabaseLoader.LoadCampaignPlayers(reachInstall, level);
             List<ThingRecord>? rthings = GameDatabaseLoader.LoadCampaignThings(reachInstall, level);
             if (rmap is null || rdef is null || rrecords is null || rplayers is null || rthings is null)
+            {
                 continue;
+            }
 
             GameDatabase rdatabase = GameDatabaseLoader.LoadForCampaignLevel(reachInstall, level);
             var rworld = WorldState.FromMap(
@@ -308,22 +346,39 @@ internal static partial class KwdCommands
             for (int turn = 1; turn <= unreachedTurns; turn++)
             {
                 rsim.Tick();
-                if (rsim.LastTriggerRun is not { } run) continue;
-                if (run.Reached is not null) walked.UnionWith(run.Reached);
+                if (rsim.LastTriggerRun is not { } run)
+                {
+                    continue;
+                }
+
+                if (run.Reached is not null)
+                {
+                    walked.UnionWith(run.Reached);
+                }
+
                 foreach (BlockedTrigger item in run.Partial)
                 {
                     (int Tag, byte Type, TriggerContext Context) key = (item.Tag, item.Type, item.Context);
                     if (!partialByArm.TryGetValue(key, out HashSet<(string, ushort)>? records))
+                    {
                         partialByArm[key] = records = [];
+                    }
+
                     records.Add((level, item.TriggerId));
                 }
                 foreach (TriggerGate gate in TriggerReach.Gated(rtree, run))
+                {
                     foreclosed.UnionWith(gate.Foreclosed);
+                }
+
                 foreach (TriggerClosure c in TriggerReach.Closed(rtree, run))
                 {
                     closedBy[c.TriggerId] = c.Type;
                     if (!closedSets.TryGetValue(c.TriggerId, out HashSet<ushort>? set))
+                    {
                         closedSets[c.TriggerId] = set = [];
+                    }
+
                     set.UnionWith(c.Foreclosed);
                 }
             }
@@ -352,12 +407,31 @@ internal static partial class KwdCommands
             foreach (TriggerRecord record in rrecords)
             {
                 ushort id = record.TriggerId;
-                if (walked.Contains(id)) continue;
-                if (foreclosed.Contains(id)) lDeclined++;
-                else if (fromCreatures.Contains(id)) lCreature++;
-                else if (fromParties.Contains(id)) lParty++;
-                else if (!fromAnyRoot.Contains(id)) lOrphan++;
-                else lClosed++;
+                if (walked.Contains(id))
+                {
+                    continue;
+                }
+
+                if (foreclosed.Contains(id))
+                {
+                    lDeclined++;
+                }
+                else if (fromCreatures.Contains(id))
+                {
+                    lCreature++;
+                }
+                else if (fromParties.Contains(id))
+                {
+                    lParty++;
+                }
+                else if (!fromAnyRoot.Contains(id))
+                {
+                    lOrphan++;
+                }
+                else
+                {
+                    lClosed++;
+                }
             }
 
             // Attribute each still-unreached record to the false condition nearest it,
@@ -365,17 +439,28 @@ internal static partial class KwdCommands
             // several false conditions belongs to the one that stopped the walk last.
             foreach (ushort id in rrecords.Select(r => r.TriggerId))
             {
-                if (walked.Contains(id) || foreclosed.Contains(id)) continue;
+                if (walked.Contains(id) || foreclosed.Contains(id))
+                {
+                    continue;
+                }
+
                 ushort best = 0;
                 int bestSize = int.MaxValue;
                 foreach ((ushort gateId, HashSet<ushort> set) in closedSets)
                 {
-                    if (!set.Contains(id) || set.Count >= bestSize) continue;
+                    if (!set.Contains(id) || set.Count >= bestSize)
+                    {
+                        continue;
+                    }
+
                     best = gateId;
                     bestSize = set.Count;
                 }
-                if (bestSize != int.MaxValue) closedByType[closedBy[best]] =
+                if (bestSize != int.MaxValue)
+                {
+                    closedByType[closedBy[best]] =
                     closedByType.GetValueOrDefault(closedBy[best]) + 1;
+                }
             }
 
             total += rrecords.Count;
@@ -396,14 +481,19 @@ internal static partial class KwdCommands
         Console.WriteLine();
         Console.WriteLine("closed by condition type (the nearest false condition above each record):");
         foreach ((byte type, int count) in closedByType.OrderByDescending(e => e.Value).Take(20))
+        {
             Console.WriteLine($"  type {type,3}: {count,5}");
+        }
 
         Console.WriteLine();
         Console.WriteLine("partial action records reached at least once, ranked by unique record:");
         foreach (((int tag, byte type, TriggerContext context), HashSet<(string, ushort)> records)
                  in partialByArm.OrderByDescending(e => e.Value.Count)
                      .ThenBy(e => e.Key.Type).ThenBy(e => e.Key.Context))
+        {
             Console.WriteLine($"  tag {tag} type {type,3} in {context,-8}: {records.Count,5}");
+        }
+
         return 0;
     }
 
@@ -423,7 +513,11 @@ internal static partial class KwdCommands
             LevelDef? def = GameDatabaseLoader.LoadCampaignLevel(Dk2Install.Require(), level);
             List<ThingRecord>? rootThings = GameDatabaseLoader.LoadCampaignThings(Dk2Install.Require(), level);
             List<PlayerDef>? rootPlayers = GameDatabaseLoader.LoadCampaignPlayers(Dk2Install.Require(), level);
-            if (def is null || rootThings is null || rootPlayers is null) continue;
+            if (def is null || rootThings is null || rootPlayers is null)
+            {
+                continue;
+            }
+
             levels++;
 
             int players = rootPlayers.Count(p => p.TriggerId != 0);
@@ -432,7 +526,11 @@ internal static partial class KwdCommands
             int creatures = rootThings.OfType<GoodCreatureThing>().Count(c => c.TriggerId != 0)
                 + rootThings.OfType<KeeperCreatureThing>().Count(c => c.TriggerId != 0);
 
-            if (def.TriggerId != 0) worldRoots++;
+            if (def.TriggerId != 0)
+            {
+                worldRoots++;
+            }
+
             partyRoots += parties;
             playerRoots += players;
             creatureRoots += creatures;
@@ -441,7 +539,10 @@ internal static partial class KwdCommands
             // Order within a turn is the world's runtime player list, not this
             // file's order, and the two are only distinguishable where a level
             // has more than one player root.
-            if (players > 1) multiPlayer++;
+            if (players > 1)
+            {
+                multiPlayer++;
+            }
         }
         Console.WriteLine($"{levels} levels: {worldRoots} with a world root, "
             + $"{partyRoots} party, {playerRoots} player, {creatureRoots} creature, "
@@ -473,8 +574,15 @@ internal static partial class KwdCommands
 
         foreach (TriggerRecord record in order)
         {
-            if (wantTag is not null && record.Tag != wantTag) continue;
-            if (wantType is not null && record.Type != wantType) continue;
+            if (wantTag is not null && record.Tag != wantTag)
+            {
+                continue;
+            }
+
+            if (wantType is not null && record.Type != wantType)
+            {
+                continue;
+            }
 
             Console.WriteLine(
                 $"tag={record.Tag} id={record.TriggerId,4} type={record.Type,3} "
@@ -520,13 +628,24 @@ internal static partial class KwdCommands
         {
             foreach (TriggerRecord record in KwdTriggers.Parse(KwdReader.ReadFile(file)))
             {
-                if (record.Tag != wantTag) continue;
-                if (!anyType && record.Type != wantType) continue;
+                if (record.Tag != wantTag)
+                {
+                    continue;
+                }
+
+                if (!anyType && record.Type != wantType)
+                {
+                    continue;
+                }
 
                 records++;
                 foreach ((string name, long value) in record.Parameters)
                 {
-                    if (wantParam is not null && name != wantParam) continue;
+                    if (wantParam is not null && name != wantParam)
+                    {
+                        continue;
+                    }
+
                     string key = $"{name}={value}";
                     tally[key] = tally.TryGetValue(key, out int n) ? n + 1 : 1;
                 }
@@ -534,7 +653,10 @@ internal static partial class KwdCommands
         }
 
         foreach ((string key, int count) in tally.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key, StringComparer.Ordinal))
+        {
             Console.WriteLine($"  {key,-28} {count,5}");
+        }
+
         Console.WriteLine($"-- {records} records of tag {wantTag} type {(anyType ? "*" : $"{wantType}")}");
         return 0;
     }
@@ -562,8 +684,14 @@ internal static partial class KwdCommands
         var actions = new Dictionary<ushort, TriggerRecord>();
         foreach (TriggerRecord record in records)
         {
-            if (record.Tag == 213) conditions[record.TriggerId] = record;
-            else if (record.Tag == 214) actions[record.TriggerId] = record;
+            if (record.Tag == 213)
+            {
+                conditions[record.TriggerId] = record;
+            }
+            else if (record.Tag == 214)
+            {
+                actions[record.TriggerId] = record;
+            }
         }
 
         var seen = new HashSet<(int Tag, ushort Id)>();
@@ -582,7 +710,10 @@ internal static partial class KwdCommands
                     : actions.GetValueOrDefault(raw);
 
                 // A record already seen has had its whole next chain followed.
-                if (record is null || !seen.Add((record.Tag, raw))) return;
+                if (record is null || !seen.Add((record.Tag, raw)))
+                {
+                    return;
+                }
 
                 bool descend;
                 if (isCondition)
@@ -593,23 +724,50 @@ internal static partial class KwdCommands
                 {
                     descend = record.Type is 7 or 8 or 14;
                     if (record.Type == 7 && record.Parameters.TryGetValue("FlagId", out long flag))
+                    {
                         flags.Add(unchecked((byte)flag));
+                    }
+
                     if (record.Type == 8 && record.Parameters.TryGetValue("TimerId", out long timer))
+                    {
                         timers.Add(unchecked((byte)timer));
+                    }
+
                     if (record.Type == 14 && record.Parameters.TryGetValue("PartyId", out long party))
+                    {
                         armed.Add(unchecked((byte)party));
+                    }
                 }
 
-                if (descend) Walk(unchecked((short)record.ChildTriggerId));
+                if (descend)
+                {
+                    Walk(unchecked((short)record.ChildTriggerId));
+                }
+
                 id = unchecked((short)record.NextTriggerId);
             }
         }
 
-        if (def.TriggerId != 0) Walk(unchecked((short)def.TriggerId));
+        if (def.TriggerId != 0)
+        {
+            Walk(unchecked((short)def.TriggerId));
+        }
+
         foreach (PlayerDef player in players)
-            if (player.TriggerId != 0) Walk(unchecked((short)player.TriggerId));
+        {
+            if (player.TriggerId != 0)
+            {
+                Walk(unchecked((short)player.TriggerId));
+            }
+        }
+
         foreach (ActionPointThing point in things.OfType<ActionPointThing>())
-            if (point.TriggerId != 0) Walk(unchecked((short)point.TriggerId));
+        {
+            if (point.TriggerId != 0)
+            {
+                Walk(unchecked((short)point.TriggerId));
+            }
+        }
 
         // A party subtree starts disabled and only a type 14 that actually ran arms it,
         // so those roots join the walk as they are reached rather than at the start.
@@ -620,11 +778,23 @@ internal static partial class KwdCommands
             before = seen.Count;
             foreach (HeroPartyThing party in parties)
             {
-                if (!armed.Contains(party.PartyId)) continue;
-                if (party.TriggerId != 0) Walk(unchecked((short)party.TriggerId));
+                if (!armed.Contains(party.PartyId))
+                {
+                    continue;
+                }
+
+                if (party.TriggerId != 0)
+                {
+                    Walk(unchecked((short)party.TriggerId));
+                }
+
                 foreach (GoodCreatureThing member in party.Members)
+                {
                     if (member.CreatureId != 0 && member.TriggerId != 0)
+                    {
                         Walk(unchecked((short)member.TriggerId));
+                    }
+                }
             }
         }
         while (seen.Count != before);
@@ -633,11 +803,20 @@ internal static partial class KwdCommands
         var allTimers = new HashSet<byte>();
         foreach (TriggerRecord record in records)
         {
-            if (record.Tag != 214) continue;
+            if (record.Tag != 214)
+            {
+                continue;
+            }
+
             if (record.Type == 7 && record.Parameters.TryGetValue("FlagId", out long flag))
+            {
                 allFlags.Add(unchecked((byte)flag));
+            }
+
             if (record.Type == 8 && record.Parameters.TryGetValue("TimerId", out long timer))
+            {
                 allTimers.Add(unchecked((byte)timer));
+            }
         }
 
         int creatureRoots = things.OfType<GoodCreatureThing>().Count(c => c.TriggerId != 0)
@@ -668,7 +847,10 @@ internal static partial class KwdCommands
         List<PlayerDef> players)
     {
         LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-        if (map is null) return (0, 0, 0, 0);
+        if (map is null)
+        {
+            return (0, 0, 0, 0);
+        }
 
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, level);
         var world = WorldState.FromMap(
@@ -691,17 +873,38 @@ internal static partial class KwdCommands
         {
             simulation.Tick();
             foreach (BlockedTrigger b in simulation.LastTriggerRun?.Blocked ?? [])
-                if (b.Tag == 213) stalls.Add(b.TriggerId);
+            {
+                if (b.Tag == 213)
+                {
+                    stalls.Add(b.TriggerId);
+                }
+            }
             // Union across turns, like `stalls`: a decline on turn 300 forecloses records the
             // turn-1 walk had no reason to want.
             if (simulation.LastTriggerRun is { } run)
+            {
                 foreach (TriggerGate gate in TriggerReach.Gated(tree, run))
+                {
                     gated.UnionWith(gate.Foreclosed);
+                }
+            }
+
             TriggerState state = world.Triggers;
             for (byte id = 0; id < TriggerState.FlagCount; id++)
-                if (state.Read(id) != 0) firstTurn.TryAdd($"f{id}", turn);
+            {
+                if (state.Read(id) != 0)
+                {
+                    firstTurn.TryAdd($"f{id}", turn);
+                }
+            }
+
             for (byte id = 0; id < TriggerState.TimerCount; id++)
-                if (state.IsStarted(id)) firstTurn.TryAdd($"t{id}", turn);
+            {
+                if (state.IsStarted(id))
+                {
+                    firstTurn.TryAdd($"t{id}", turn);
+                }
+            }
         }
 
         return (firstTurn.Count, firstTurn.Values.Count(t => t > 1), stalls.Count, gated.Count);

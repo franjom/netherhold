@@ -80,7 +80,11 @@ internal static partial class KwdCommands
         int researchers = 0;
         foreach (CreatureDef c in db.Creatures.Values.OrderBy(c => c.CreatureId))
         {
-            if (c.ResearchPerSecond == 0) continue;
+            if (c.ResearchPerSecond == 0)
+            {
+                continue;
+            }
+
             researchers++;
             int perTick = PerTick(c.ResearchPerSecond);
             int perSecond = perTick * TicksPerGameSecond;
@@ -191,9 +195,17 @@ internal static partial class KwdCommands
 
         foreach (KwdChunk chunk in KwdReader.ReadFile(rpath))
         {
-            if (chunk.ItemCount == 0 || chunk.Content.Length % chunk.ItemCount != 0) continue;
+            if (chunk.ItemCount == 0 || chunk.Content.Length % chunk.ItemCount != 0)
+            {
+                continue;
+            }
+
             int size = chunk.Content.Length / chunk.ItemCount;
-            if (size < 8) continue;
+            if (size < 8)
+            {
+                continue;
+            }
+
             Console.WriteLine($"chunk {chunk.Type}: {chunk.ItemCount} records of {size} bytes");
 
             byte[] c = chunk.Content;
@@ -208,7 +220,11 @@ internal static partial class KwdCommands
             {
                 foreach ((string w, int n) in new[] { ("u8", 1), ("u16", 2), ("s16", 2), ("s32", 4) })
                 {
-                    if (off + n > size) continue;
+                    if (off + n > size)
+                    {
+                        continue;
+                    }
+
                     int Read(int rec)
                     {
                         int b = rec * size + off;
@@ -224,7 +240,10 @@ internal static partial class KwdCommands
                     bool match = anchor >= 0
                         ? Read(anchor) == target
                         : Enumerable.Range(0, chunk.ItemCount).Any(r => Read(r) == target);
-                    if (!match) continue;
+                    if (!match)
+                    {
+                        continue;
+                    }
 
                     hits++;
                     Console.WriteLine($"0x{off:X4} {w,-3} : " + string.Join(" ",
@@ -249,10 +268,18 @@ internal static partial class KwdCommands
 
         foreach (KwdChunk chunk in KwdReader.ReadFile(hpath))
         {
-            if (chunk.Type != KwdRecordType.Creatures) continue;
+            if (chunk.Type != KwdRecordType.Creatures)
+            {
+                continue;
+            }
+
             int size = chunk.Content.Length / chunk.ItemCount;
             Console.Write($"{"creature",-20}");
-            for (int o = start; o < start + count; o++) Console.Write($" {o:X4}");
+            for (int o = start; o < start + count; o++)
+            {
+                Console.Write($" {o:X4}");
+            }
+
             Console.WriteLine();
             for (int i = 0; i < chunk.ItemCount; i++)
             {
@@ -260,7 +287,11 @@ internal static partial class KwdCommands
                 int end = Array.IndexOf(rec, (byte)0, 0, 32);
                 string name = System.Text.Encoding.ASCII.GetString(rec, 0, end < 0 ? 32 : end);
                 Console.Write($"{name,-20}");
-                for (int o = start; o < start + count; o++) Console.Write($" {rec[o],4}");
+                for (int o = start; o < start + count; o++)
+                {
+                    Console.Write($" {rec[o],4}");
+                }
+
                 Console.WriteLine();
             }
             break;
@@ -282,10 +313,18 @@ internal static partial class KwdCommands
 
         foreach (KwdChunk chunk in KwdReader.ReadFile(opath))
         {
-            if (chunk.Type != KwdRecordType.Objects) continue;
+            if (chunk.Type != KwdRecordType.Objects)
+            {
+                continue;
+            }
+
             int size = chunk.Content.Length / chunk.ItemCount;
             Console.Write($"{"object",-28}");
-            for (int o = start; o < start + count; o += width) Console.Write($" {o:X4}");
+            for (int o = start; o < start + count; o += width)
+            {
+                Console.Write($" {o:X4}");
+            }
+
             Console.WriteLine();
             for (int i = 0; i < chunk.ItemCount; i++)
             {
@@ -328,7 +367,11 @@ internal static partial class KwdCommands
         var records = new List<(string Name, byte[] Bytes)>();
         foreach (KwdChunk chunk in KwdReader.ReadFile(spath))
         {
-            if (chunk.Type != KwdRecordType.Creatures) continue;
+            if (chunk.Type != KwdRecordType.Creatures)
+            {
+                continue;
+            }
+
             int size = chunk.Content.Length / chunk.ItemCount;
             for (int i = 0; i < chunk.ItemCount; i++)
             {
@@ -358,7 +401,11 @@ internal static partial class KwdCommands
         {
             foreach (string width in new[] { "u8", "u16", "s16" })
             {
-                if (width != "u8" && off + 1 >= len) continue;
+                if (width != "u8" && off + 1 >= len)
+                {
+                    continue;
+                }
+
                 int Read(byte[] r) => width switch
                 {
                     "u8" => r[off],
@@ -366,7 +413,11 @@ internal static partial class KwdCommands
                     _ => (short)(r[off] | (r[off + 1] << 8)),
                 };
 
-                if (Read(records[anchor].Bytes) != target) continue;
+                if (Read(records[anchor].Bytes) != target)
+                {
+                    continue;
+                }
+
                 hits++;
                 Console.WriteLine($"0x{off:X4} {width,-3} : " + string.Join(" ",
                     records.Select(r => $"{r.Name}={Read(r.Bytes)}")));
@@ -445,15 +496,24 @@ internal static partial class KwdCommands
             foreach ((string _, object rec) in records)
             {
                 string v = p.GetValue(rec)?.ToString() ?? "<null>";
-                if (!seen.Contains(v)) seen.Add(v);
+                if (!seen.Contains(v))
+                {
+                    seen.Add(v);
+                }
             }
 
             if (seen.Count == 1)
             {
                 string only = seen[0];
                 bool zeroish = only is "0" or "0.00" or "False" or "None" or "";
-                if (zeroish) alwaysZero.Add(p.Name);
-                else constant.Add((p.Name, only));
+                if (zeroish)
+                {
+                    alwaysZero.Add(p.Name);
+                }
+                else
+                {
+                    constant.Add((p.Name, only));
+                }
             }
             else
             {
@@ -463,12 +523,20 @@ internal static partial class KwdCommands
 
         Console.WriteLine($"ZERO FOR EVERY RECORD ({alwaysZero.Count}) "
                           + "- carries no information in v1.70:");
-        foreach (string f in alwaysZero) Console.WriteLine($"   {f}");
+        foreach (string f in alwaysZero)
+        {
+            Console.WriteLine($"   {f}");
+        }
+
         Console.WriteLine();
 
         Console.WriteLine($"THE SAME NON-ZERO VALUE FOR EVERY RECORD ({constant.Count}) "
                           + "- cannot discriminate:");
-        foreach ((string f, string v) in constant) Console.WriteLine($"   {f,-38} = {v}");
+        foreach ((string f, string v) in constant)
+        {
+            Console.WriteLine($"   {f,-38} = {v}");
+        }
+
         Console.WriteLine();
 
         Console.WriteLine($"VARIES ({varying.Count}):");
@@ -498,7 +566,11 @@ internal static partial class KwdCommands
         var recs = new List<(string Name, byte[] Bytes)>();
         foreach (KwdChunk chunk in KwdReader.ReadFile(bpath))
         {
-            if (chunk.Type != KwdRecordType.Creatures) continue;
+            if (chunk.Type != KwdRecordType.Creatures)
+            {
+                continue;
+            }
+
             int size = chunk.Content.Length / chunk.ItemCount;
             for (int i = 0; i < chunk.ItemCount; i++)
             {
@@ -536,7 +608,10 @@ internal static partial class KwdCommands
                     .Select(r => r.Name)
                     .ToList();
 
-                if (set.Count == 0) continue;
+                if (set.Count == 0)
+                {
+                    continue;
+                }
 
                 int inTarget = set.Count(target.Contains);
                 int wrong = (target.Count - inTarget) + (set.Count - inTarget);
@@ -544,7 +619,10 @@ internal static partial class KwdCommands
                 // Within two of the target, so a near miss is visible rather
                 // than silently filtered — a flag that is the right idea with
                 // one creature added or dropped is the interesting case.
-                if (wrong > 2) continue;
+                if (wrong > 2)
+                {
+                    continue;
+                }
 
                 pairs++;
                 Console.WriteLine(
@@ -677,7 +755,10 @@ internal static partial class KwdCommands
         Console.WriteLine();
         Console.WriteLine("(unk1, unk2) pairs, by how many records carry them:");
         foreach (((int u1, int u2), int n) in pairs.OrderByDescending(kv => kv.Value))
+        {
             Console.WriteLine($"   unk1={u1,-6} unk2={u2,-6} {n} records");
+        }
+
         Console.WriteLine();
 
         Console.WriteLine("ids whose VALUE differs between levels (the key/value trap):");
@@ -685,7 +766,11 @@ internal static partial class KwdCommands
                  in perId.OrderBy(kv => kv.Key))
         {
             var vals = list.Select(e => e.Value).Distinct().OrderBy(x => x).ToList();
-            if (vals.Count <= 1) continue;
+            if (vals.Count <= 1)
+            {
+                continue;
+            }
+
             string name = Enum.IsDefined(typeof(VariableTypeId), id)
                 ? ((VariableTypeId)id).ToString() : $"Unknown_{id}";
             Console.WriteLine($"   {id,4} {name,-52} {vals.Count} values: "
@@ -701,7 +786,9 @@ internal static partial class KwdCommands
                  in perId.OrderBy(kv => kv.Key))
         {
             if (list.Count == files && list.Select(e => e.Value).Distinct().Count() == 1)
+            {
                 constants++;
+            }
         }
         Console.WriteLine($"   {constants}");
         Console.WriteLine();
@@ -716,20 +803,35 @@ internal static partial class KwdCommands
             GlobalVariables v;
             try { v = KwdVariables.Parse(KwdReader.ReadFile(file)); }
             catch { continue; }
-            if (v.Alliances.Count == 0) continue;
+            if (v.Alliances.Count == 0)
+            {
+                continue;
+            }
+
             string key = string.Join(" ", v.Alliances.Select(a => $"({a.PlayerId},{a.OtherPlayerId})"));
-            if (!byPairs.TryGetValue(key, out List<string>? levels)) byPairs[key] = levels = [];
+            if (!byPairs.TryGetValue(key, out List<string>? levels))
+            {
+                byPairs[key] = levels = [];
+            }
+
             levels.Add(level);
         }
         foreach ((string pairList, List<string> levels) in byPairs)
+        {
             Console.WriteLine($"   {levels.Count,2} levels: {pairList}   e.g. {string.Join(" ", levels.Take(4))}");
+        }
+
         Console.WriteLine();
 
         Console.WriteLine("ids present in only SOME level files:");
         foreach ((int id, List<(string Level, int Value, int U1, int U2)> list)
                  in perId.OrderBy(kv => kv.Key))
         {
-            if (list.Count == files) continue;
+            if (list.Count == files)
+            {
+                continue;
+            }
+
             string name = Enum.IsDefined(typeof(VariableTypeId), id)
                 ? ((VariableTypeId)id).ToString() : $"Unknown_{id}";
             IEnumerable<string> shown = list.Take(6).Select(e => $"{e.Level}={e.Value}");

@@ -74,8 +74,16 @@ public static class PlayerRunReport
 
     public static PlayerRunOutcome Outcome(PlayerRunCoordinator player, bool evidenceComplete)
     {
-        if (player is null) throw new ArgumentNullException(nameof(player));
-        if (!evidenceComplete || player.Stop == PlayerRunStop.Cancelled) return PlayerRunOutcome.IncompleteEvidence;
+        if (player is null)
+        {
+            throw new ArgumentNullException(nameof(player));
+        }
+
+        if (!evidenceComplete || player.Stop == PlayerRunStop.Cancelled)
+        {
+            return PlayerRunOutcome.IncompleteEvidence;
+        }
+
         return player.Stop switch
         {
             PlayerRunStop.Won => PlayerRunOutcome.Completed,
@@ -100,20 +108,72 @@ public static class PlayerRunReport
     /// list with the level's own PLAYERS records.</summary>
     public static IReadOnlyList<string> ModifiedStart(Scenario scenario)
     {
-        if (scenario is null) throw new ArgumentNullException(nameof(scenario));
+        if (scenario is null)
+        {
+            throw new ArgumentNullException(nameof(scenario));
+        }
+
         var why = new List<string>();
-        if (!scenario.Map.StartsWith(ScenarioRunner.CampaignPrefix, StringComparison.OrdinalIgnoreCase)) why.Add($"map {scenario.Map} is not a shipped campaign level");
-        if (scenario.Random != "dk2") why.Add("the random generator is not DK2's (random: dk2)");
-        if (!scenario.FogOfWar) why.Add("fog of war is off, so the map is revealed");
-        if (!scenario.Setup.PlacedThings) why.Add("the level's placed things are not loaded");
-        if (scenario.Setup.Players.Count > 0) why.Add("the setup grants players gold, mana or spells");
-        if (scenario.Setup.Rooms.Count > 0) why.Add("the setup adds rooms");
-        if (scenario.Setup.Creatures.Count > 0) why.Add("the setup adds creatures");
-        if (scenario.Setup.Objects.Count > 0) why.Add("the setup adds objects");
-        if (scenario.Commands.Count > 0) why.Add("the scenario scripts commands");
-        if (scenario.Work.Count > 0) why.Add("the scenario injects tile work");
-        if (scenario.KeeperPersonalities.Count > 0) why.Add("the scenario replaces computer keepers' personalities");
-        if (scenario.UnknownKeys.Count > 0) why.Add($"the scenario has keys this build does not read: {string.Join(", ", scenario.UnknownKeys)}");
+        if (!scenario.Map.StartsWith(ScenarioRunner.CampaignPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            why.Add($"map {scenario.Map} is not a shipped campaign level");
+        }
+
+        if (scenario.Random != "dk2")
+        {
+            why.Add("the random generator is not DK2's (random: dk2)");
+        }
+
+        if (!scenario.FogOfWar)
+        {
+            why.Add("fog of war is off, so the map is revealed");
+        }
+
+        if (!scenario.Setup.PlacedThings)
+        {
+            why.Add("the level's placed things are not loaded");
+        }
+
+        if (scenario.Setup.Players.Count > 0)
+        {
+            why.Add("the setup grants players gold, mana or spells");
+        }
+
+        if (scenario.Setup.Rooms.Count > 0)
+        {
+            why.Add("the setup adds rooms");
+        }
+
+        if (scenario.Setup.Creatures.Count > 0)
+        {
+            why.Add("the setup adds creatures");
+        }
+
+        if (scenario.Setup.Objects.Count > 0)
+        {
+            why.Add("the setup adds objects");
+        }
+
+        if (scenario.Commands.Count > 0)
+        {
+            why.Add("the scenario scripts commands");
+        }
+
+        if (scenario.Work.Count > 0)
+        {
+            why.Add("the scenario injects tile work");
+        }
+
+        if (scenario.KeeperPersonalities.Count > 0)
+        {
+            why.Add("the scenario replaces computer keepers' personalities");
+        }
+
+        if (scenario.UnknownKeys.Count > 0)
+        {
+            why.Add($"the scenario has keys this build does not read: {string.Join(", ", scenario.UnknownKeys)}");
+        }
+
         return why;
     }
 
@@ -121,7 +181,11 @@ public static class PlayerRunReport
     /// <paramref name="acceptance"/> is the claim line, from the run command's acceptance check.</summary>
     public static byte[] Verdict(ScenarioResult result, PlayerRunOutcome outcome, CampaignPlayerSpec spec, string? note, string acceptance)
     {
-        if (result.PlayerRun is not PlayerRunCoordinator player) throw new ArgumentException("Not a player run.", nameof(result));
+        if (result.PlayerRun is not PlayerRunCoordinator player)
+        {
+            throw new ArgumentException("Not a player run.", nameof(result));
+        }
+
         return JsonSerializer.SerializeToUtf8Bytes(new
         {
             outcome = outcome.ToString(),
@@ -193,15 +257,23 @@ public static class PlayerRunReport
     /// <summary>The decision and action tables: what the controller saw and sent.</summary>
     public static void WriteTables(string directory, ScenarioResult result)
     {
-        if (result.PlayerRun is not PlayerRunCoordinator player) throw new ArgumentException("Not a player run.", nameof(result));
+        if (result.PlayerRun is not PlayerRunCoordinator player)
+        {
+            throw new ArgumentException("Not a player run.", nameof(result));
+        }
+
         Directory.CreateDirectory(directory);
         var decisions = new StringBuilder("tick\trevision\tadvance_ticks\trequests\tcommands\treason\n");
         foreach (PlayerDecisionRecord d in player.Decisions)
+        {
             decisions.Append(CultureInfo.InvariantCulture, $"{d.Tick.Value}\t{d.Revision.Value}\t{d.AdvanceTicks}\t{d.Requests.Count}\t{d.Commands}\t{Tsv(d.Reason)}\n");
+        }
+
         WriteNew(Path.Combine(directory, DecisionsFile), Encoding.UTF8.GetBytes(decisions.ToString()));
 
         var actions = new StringBuilder("action_id\tdecided_tick\tkind\taction\tstatus\treason\tscheduled_tick\n");
         foreach (PlayerDecisionRecord d in player.Decisions)
+        {
             for (int i = 0; i < d.Requests.Count; i++)
             {
                 PlayerRequest q = d.Requests[i];
@@ -209,6 +281,8 @@ public static class PlayerRunReport
                 actions.Append(CultureInfo.InvariantCulture,
                     $"{q.Id.Value}\t{d.Tick.Value}\t{q.Action.Kind}\t{Tsv(q.Action.ToString())}\t{r.Status}\t{r.Reason}\t{r.ScheduledTick?.Value}\n");
             }
+        }
+
         WriteNew(Path.Combine(directory, ActionsFile), Encoding.UTF8.GetBytes(actions.ToString()));
     }
 
@@ -256,7 +330,11 @@ public sealed class BudgetedStream(Stream inner, long budgetBytes, long reserveB
 
     public override void Write(ReadOnlySpan<byte> buffer)
     {
-        if (Written + buffer.Length > budgetBytes) throw new EvidenceWriteException($"The output budget of {budgetBytes} bytes is exhausted.");
+        if (Written + buffer.Length > budgetBytes)
+        {
+            throw new EvidenceWriteException($"The output budget of {budgetBytes} bytes is exhausted.");
+        }
+
         try { inner.Write(buffer); }
         catch (IOException ex) { throw new EvidenceWriteException($"The journal could not be written: {ex.Message}", ex); }
         Written += buffer.Length;
@@ -282,7 +360,10 @@ public sealed class BudgetedStream(Stream inner, long budgetBytes, long reserveB
     {
         try
         {
-            if (disposing) inner.Dispose();
+            if (disposing)
+            {
+                inner.Dispose();
+            }
         }
         catch (IOException ex) when (ex is not EvidenceWriteException)
         {

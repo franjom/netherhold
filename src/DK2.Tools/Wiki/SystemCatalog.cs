@@ -50,17 +50,29 @@ public sealed partial class SystemCatalog
         }
 
         if (file?.Systems is not { Count: > 0 } raw)
+        {
             throw new InvalidDataException($"{RelativePath}: no systems");
+        }
+
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var systems = new List<SystemEntry>(raw.Count);
         foreach (Entry e in raw)
         {
             if (string.IsNullOrWhiteSpace(e.Id) || !IdRx().IsMatch(e.Id))
+            {
                 throw new InvalidDataException($"{RelativePath}: id '{e.Id}' is not lower-case words joined by hyphens");
+            }
+
             if (!seen.Add(e.Id))
+            {
                 throw new InvalidDataException($"{RelativePath}: id '{e.Id}' is listed twice");
+            }
+
             if (string.IsNullOrWhiteSpace(e.Title) || string.IsNullOrWhiteSpace(e.Scope))
+            {
                 throw new InvalidDataException($"{RelativePath}: '{e.Id}' needs a title and a scope");
+            }
+
             systems.Add(new SystemEntry(e.Id, e.Title.Trim(), e.Scope.Trim()));
         }
         return new SystemCatalog(systems);

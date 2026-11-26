@@ -17,8 +17,16 @@ public sealed record PlayerSessionLimits
 {
     public PlayerSessionLimits(int maxRequestsPerObservation = 4, int maxAdmittedActions = 4096)
     {
-        if (maxRequestsPerObservation <= 0) throw new ArgumentOutOfRangeException(nameof(maxRequestsPerObservation));
-        if (maxAdmittedActions <= 0) throw new ArgumentOutOfRangeException(nameof(maxAdmittedActions));
+        if (maxRequestsPerObservation <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxRequestsPerObservation));
+        }
+
+        if (maxAdmittedActions <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxAdmittedActions));
+        }
+
         MaxRequestsPerObservation = maxRequestsPerObservation;
         MaxAdmittedActions = maxAdmittedActions;
     }
@@ -61,9 +69,17 @@ public sealed class PlayerSession
 
     public PlayerSession(PlayerRunId runId, PlayerId player, PlayerActionAdapter adapter, PlayerSessionLimits? limits = null)
     {
-        if (!runId.IsValid) throw new ArgumentException("A session needs a run id.", nameof(runId));
+        if (!runId.IsValid)
+        {
+            throw new ArgumentException("A session needs a run id.", nameof(runId));
+        }
+
         _adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
-        if (adapter.Player != player) throw new ArgumentException("The adapter serves another player.", nameof(adapter));
+        if (adapter.Player != player)
+        {
+            throw new ArgumentException("The adapter serves another player.", nameof(adapter));
+        }
+
         _run = runId;
         _player = player;
         _limits = limits ?? new PlayerSessionLimits();
@@ -80,12 +96,22 @@ public sealed class PlayerSession
     /// those receipts are returned (they also reach the following observation).</summary>
     public IReadOnlyList<PlayerReceipt> Observe(PlayerObservationCapture capture)
     {
-        if (capture is null) throw new ArgumentNullException(nameof(capture));
+        if (capture is null)
+        {
+            throw new ArgumentNullException(nameof(capture));
+        }
+
         PlayerStamp stamp = capture.Observation.Stamp;
         if (stamp.RunId != _run || stamp.Player != _player)
+        {
             throw new ArgumentException("The capture belongs to another run or player.", nameof(capture));
+        }
+
         if (_current?.Observation.Stamp.Revision is PlayerRevision last && stamp.Revision <= last)
+        {
             throw new ArgumentException($"Revision {stamp.Revision} does not follow {last}.", nameof(capture));
+        }
+
         IReadOnlyList<PlayerReceipt> withdrawn = Withdraw(PlayerRefusalReason.StaleObservation);
         _current = capture;
         _requestsOnCurrent = 0;
@@ -105,7 +131,11 @@ public sealed class PlayerSession
     /// bounds this list.</summary>
     public IReadOnlyList<PlayerReceipt> TakeReceipts()
     {
-        if (_changed.Count == 0) return [];
+        if (_changed.Count == 0)
+        {
+            return [];
+        }
+
         PlayerReceipt[] taken = [.. _changed];
         _changed.Clear();
         return taken;
@@ -113,25 +143,63 @@ public sealed class PlayerSession
 
     public PlayerReceipt Submit(PlayerRequest request)
     {
-        if (request is null) throw new ArgumentNullException(nameof(request));
-        if (!request.BasedOn.IsValid || request.BasedOn.RunId != _run) return Answer(request.Id, PlayerRefusalReason.WrongRun);
-        if (request.BasedOn.Player != _player) return Answer(request.Id, PlayerRefusalReason.WrongPlayer);
-        if (!request.Id.IsValid) return Answer(request.Id, PlayerRefusalReason.OutOfBounds);
+        if (request is null)
+        {
+            throw new ArgumentNullException(nameof(request));
+        }
+
+        if (!request.BasedOn.IsValid || request.BasedOn.RunId != _run)
+        {
+            return Answer(request.Id, PlayerRefusalReason.WrongRun);
+        }
+
+        if (request.BasedOn.Player != _player)
+        {
+            return Answer(request.Id, PlayerRefusalReason.WrongPlayer);
+        }
+
+        if (!request.Id.IsValid)
+        {
+            return Answer(request.Id, PlayerRefusalReason.OutOfBounds);
+        }
 
         if (_ledger.TryGetValue(request.Id, out Entry? known))
+        {
             return known.Request == request ? known.Receipt : Answer(request.Id, PlayerRefusalReason.ConflictingId);
+        }
 
-        if (IsCancelled) return Answer(request.Id, PlayerRefusalReason.RunCancelled);
+        if (IsCancelled)
+        {
+            return Answer(request.Id, PlayerRefusalReason.RunCancelled);
+        }
+
         if (_current is null || request.BasedOn.Revision > _current.Observation.Stamp.Revision)
+        {
             return Answer(request.Id, PlayerRefusalReason.FutureObservation);
-        if (request.BasedOn != _current.Observation.Stamp) return Answer(request.Id, PlayerRefusalReason.StaleObservation);
-        if (_requestsOnCurrent >= _limits.MaxRequestsPerObservation) return Answer(request.Id, PlayerRefusalReason.TooManyRequests);
+        }
+
+        if (request.BasedOn != _current.Observation.Stamp)
+        {
+            return Answer(request.Id, PlayerRefusalReason.StaleObservation);
+        }
+
+        if (_requestsOnCurrent >= _limits.MaxRequestsPerObservation)
+        {
+            return Answer(request.Id, PlayerRefusalReason.TooManyRequests);
+        }
+
         _requestsOnCurrent++;
 
         PlayerRefusalReason refusal;
         IReadOnlyList<PlayerCommand> commands = [];
-        if (_current.Observation.Phase == PlayerPhase.Ended) refusal = PlayerRefusalReason.Terminal;
-        else if (_admitted >= _limits.MaxAdmittedActions) refusal = PlayerRefusalReason.ActionBudgetExhausted;
+        if (_current.Observation.Phase == PlayerPhase.Ended)
+        {
+            refusal = PlayerRefusalReason.Terminal;
+        }
+        else if (_admitted >= _limits.MaxAdmittedActions)
+        {
+            refusal = PlayerRefusalReason.ActionBudgetExhausted;
+        }
         else
         {
             PlayerActionResolution resolution = _adapter.Resolve(_current, request.Action);
@@ -139,8 +207,12 @@ public sealed class PlayerSession
             commands = resolution.Commands;
             // Checked before anything is recorded, so a broken adapter cannot leave a Queued receipt behind.
             foreach (PlayerCommand command in commands)
+            {
                 if (!IsHumanCommand(command))
+                {
                     throw new InvalidOperationException($"{command.GetType().Name} is not a command a human issues in play.");
+                }
+            }
         }
 
         PlayerReceipt receipt = refusal == PlayerRefusalReason.None
@@ -163,9 +235,16 @@ public sealed class PlayerSession
     public IReadOnlyList<PlayerCommand> Drain(GameTick appliesAt)
     {
         if (_lastDrain is GameTick last && appliesAt < last)
+        {
             throw new ArgumentOutOfRangeException(nameof(appliesAt), appliesAt, $"Drained at {last} already.");
+        }
+
         _lastDrain = appliesAt;
-        if (_queued.Count == 0) return [];
+        if (_queued.Count == 0)
+        {
+            return [];
+        }
+
         var commands = new List<PlayerCommand>(_queued.Count);
         foreach (Entry entry in _queued)
         {
@@ -188,7 +267,11 @@ public sealed class PlayerSession
 
     private IReadOnlyList<PlayerReceipt> Withdraw(PlayerRefusalReason reason)
     {
-        if (_queued.Count == 0) return [];
+        if (_queued.Count == 0)
+        {
+            return [];
+        }
+
         var withdrawn = new PlayerReceipt[_queued.Count];
         for (int i = 0; i < _queued.Count; i++)
         {

@@ -67,7 +67,10 @@ public static class PlaybookAvailableCommand
     public static Available Generate(ScenarioRunner runner, GameDatabase database, string installDirectory, Scenario scenario, PlayerId player)
     {
         if (!scenario.Map.StartsWith(ScenarioRunner.CampaignPrefix, StringComparison.OrdinalIgnoreCase))
+        {
             throw new InvalidDataException($"{scenario.Id}: '{scenario.Map}' is not a campaign level");
+        }
+
         string level = scenario.Map[ScenarioRunner.CampaignPrefix.Length..].Trim();
         Available? found = null;
         var options = new PlayerRunOptions(new Probe(), player, new PlayerRunId("playbook-available"))
@@ -77,7 +80,9 @@ public static class PlaybookAvailableCommand
             Observed = (world, observation) =>
             {
                 if (found is null && observation.Phase == PlayerPhase.Playing)
+                {
                     found = Read(database, installDirectory, level, world, player);
+                }
             },
             StopRequested = () => found is null ? null : "the level's offers are read",
         };
@@ -91,8 +96,12 @@ public static class PlaybookAvailableCommand
         panel.Capture(world);
         var start = new List<PlaybookItem>();
         foreach (BottomPanelChoice choice in panel.Choices)
+        {
             if (choice.Visible && choice.Selectable && ItemOf(database, choice.Kind, choice.Key.Value) is PlaybookItem item && !start.Contains(item))
+            {
                 start.Add(item);
+            }
+        }
 
         // The pool is the level's: the base database merged with the level's own variables.
         GameDatabase merged = database.ForLevel(GameDatabaseLoader.LoadCampaignVariables(installDirectory, level),
@@ -108,17 +117,35 @@ public static class PlaybookAvailableCommand
         foreach (ActionTriggerRecord make in triggers.OfType<ActionTriggerRecord>().Where(r => r.Type == 6).OrderBy(r => r.TriggerId))
         {
             IReadOnlyDictionary<string, long> p = make.Parameters;
-            if (p["PlayerId"] != player.Value || p["AvailabilityKind"] is < 1 or > 5) continue;
-            if ((AvailabilityKind)p["AvailabilityKind"] == AvailabilityKind.Creature) continue;   // the portal reads the pool
-            if (ItemOf(database, (AvailabilityKind)p["AvailabilityKind"], (int)p["TypeId"]) is not PlaybookItem item) continue;
+            if (p["PlayerId"] != player.Value || p["AvailabilityKind"] is < 1 or > 5)
+            {
+                continue;
+            }
+
+            if ((AvailabilityKind)p["AvailabilityKind"] == AvailabilityKind.Creature)
+            {
+                continue;   // the portal reads the pool
+            }
+
+            if (ItemOf(database, (AvailabilityKind)p["AvailabilityKind"], (int)p["TypeId"]) is not PlaybookItem item)
+            {
+                continue;
+            }
+
             changes.Add(new PlaybookChange(item, p["Available"] != 0, string.Create(CultureInfo.InvariantCulture, $"trigger {make.TriggerId} MAKE")));
         }
         foreach (ResearchEntry entry in database.Variables.Research)
         {
             AvailabilityKind kind = ResearchTreeRules.AvailabilityKindOf(entry.Kind);
-            if (kind == AvailabilityKind.None || !ResearchTreeRules.IsResearchable(world, player, entry)) continue;
+            if (kind == AvailabilityKind.None || !ResearchTreeRules.IsResearchable(world, player, entry))
+            {
+                continue;
+            }
+
             if (ItemOf(database, kind, entry.TypeId) is PlaybookItem item && !changes.Any(c => c.Item == item && c.By == "research"))
+            {
                 changes.Add(new PlaybookChange(item, true, "research"));
+            }
         }
         return new Available(ScenarioRunner.CampaignPrefix + level, start, creatures, changes, world.CurrentTick.Value);
     }
@@ -152,13 +179,18 @@ public static class PlaybookAvailableCommand
         text.Append(CultureInfo.InvariantCulture, $"  read-at-tick: {available.Tick}\n");
         text.Append("  start: [").Append(string.Join(", ", available.Start.Select(Quote))).Append("]\n");
         text.Append("  creatures: [").Append(string.Join(", ", available.Creatures.Select(Quote))).Append("]\n");
-        if (available.MayChange.Count == 0) text.Append("  may-change: []\n");
+        if (available.MayChange.Count == 0)
+        {
+            text.Append("  may-change: []\n");
+        }
         else
         {
             text.Append("  may-change:\n");
             foreach (PlaybookChange change in available.MayChange)
+            {
                 text.Append("    - { item: ").Append(Quote(change.Item)).Append(", to: ")
                     .Append(change.ToAvailable ? "available" : "unavailable").Append(", by: \"").Append(change.By).Append("\" }\n");
+            }
         }
         return text.ToString();
     }
@@ -170,16 +202,31 @@ public static class PlaybookAvailableCommand
     /// playbook holding the level and the section when it is empty. Refused for another level's playbook.</summary>
     public static string Replace(string? playbook, string level, string section)
     {
-        if (string.IsNullOrWhiteSpace(playbook)) return $"level: {level}\n" + section;
+        if (string.IsNullOrWhiteSpace(playbook))
+        {
+            return $"level: {level}\n" + section;
+        }
+
         string newline = playbook.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
         string[] lines = playbook.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
         string? written = lines.FirstOrDefault(l => l.StartsWith("level:", StringComparison.Ordinal))?["level:".Length..].Split('#')[0].Trim();
         if (!string.Equals(written, level, StringComparison.OrdinalIgnoreCase))
+        {
             throw new InvalidDataException($"the playbook is for {written ?? "no level"}, the section is {level}'s");
+        }
+
         int from = Array.FindIndex(lines, l => l.StartsWith("available:", StringComparison.Ordinal));
-        if (from < 0) throw new InvalidDataException("the playbook has no top-level available: section to replace");
+        if (from < 0)
+        {
+            throw new InvalidDataException("the playbook has no top-level available: section to replace");
+        }
+
         int to = from + 1;
-        while (to < lines.Length && lines[to].StartsWith(' ')) to++;
+        while (to < lines.Length && lines[to].StartsWith(' '))
+        {
+            to++;
+        }
+
         string text = string.Join("\n", lines[..from]) + (from > 0 ? "\n" : "") + section + string.Join("\n", lines[to..]);
         return newline == "\n" ? text : text.Replace("\n", newline, StringComparison.Ordinal);
     }

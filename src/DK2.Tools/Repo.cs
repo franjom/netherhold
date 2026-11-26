@@ -21,7 +21,11 @@ static class Repo
         DirectoryInfo? dir = new(Directory.GetCurrentDirectory());
         while (dir is not null)
         {
-            if (File.Exists(Path.Combine(dir.FullName, "DK2.slnx"))) return dir.FullName;
+            if (File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
+            {
+                return dir.FullName;
+            }
+
             dir = dir.Parent;
         }
         return null;
@@ -47,12 +51,18 @@ static class Repo
             StandardOutputEncoding = System.Text.Encoding.UTF8,
             StandardErrorEncoding = System.Text.Encoding.UTF8,
         };
-        foreach (string a in arguments) psi.ArgumentList.Add(a);
+        foreach (string a in arguments)
+        {
+            psi.ArgumentList.Add(a);
+        }
 
         try
         {
             using var process = Process.Start(psi);
-            if (process is null) return string.Empty;
+            if (process is null)
+            {
+                return string.Empty;
+            }
             // Drain stderr concurrently: forty changed files' line-ending warnings fill the pipe
             // and deadlock a reader that waits for stdout first.
             Task<string> errors = process.StandardError.ReadToEndAsync();
@@ -76,7 +86,10 @@ static class Repo
             foreach (string line in text.Split('\n'))
             {
                 string t = line.Trim();
-                if (t.Length > 0) set.Add(t);
+                if (t.Length > 0)
+                {
+                    set.Add(t);
+                }
             }
         }
 
@@ -106,8 +119,16 @@ static class Repo
     internal static string[] GitLines(string root, string spec)
     {
         string text = RunGit(root, "show", spec);
-        if (text.Length == 0) return [];
-        if (text.EndsWith('\n')) text = text[..^1];
+        if (text.Length == 0)
+        {
+            return [];
+        }
+
+        if (text.EndsWith('\n'))
+        {
+            text = text[..^1];
+        }
+
         return text.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
     }
 
@@ -143,7 +164,9 @@ static class Repo
             ? RunGit(root, "diff", "--cached", "-U0", baseRef, "--", relative)
             : RunGit(root, "diff", "-U0", baseRef, "--", relative);
         if (!staged && diff.Trim().Length == 0)
+        {
             diff = RunGit(root, "diff", "--cached", "-U0", baseRef, "--", relative);
+        }
 
         if (diff.Trim().Length == 0)
         {
@@ -151,18 +174,28 @@ static class Repo
             int count = staged ? GitLines(root, $":{relative}").Length
                 : File.Exists(full) ? File.ReadAllLines(full).Length
                 : 0;
-            for (int i = 1; i <= count; i++) added.Add(i);
+            for (int i = 1; i <= count; i++)
+            {
+                added.Add(i);
+            }
+
             return added;
         }
 
         foreach (string line in diff.Split('\n'))
         {
             Match hunk = Regex.Match(line, @"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@");
-            if (!hunk.Success) continue;
+            if (!hunk.Success)
+            {
+                continue;
+            }
 
             int start = int.Parse(hunk.Groups[1].Value);
             int count = hunk.Groups[2].Success ? int.Parse(hunk.Groups[2].Value) : 1;
-            for (int i = 0; i < count; i++) added.Add(start + i);
+            for (int i = 0; i < count; i++)
+            {
+                added.Add(start + i);
+            }
         }
 
         return added;

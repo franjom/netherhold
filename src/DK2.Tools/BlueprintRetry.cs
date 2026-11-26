@@ -53,7 +53,11 @@ internal sealed class BlueprintRetry(Func<PlayerCommand, bool> ownsTile, TextWri
         for (int i = 0; i < pending.Count; i++)
         {
             (long heldAt, PlayerCommand command) = pending[i];
-            if (!ownsTile(command)) continue;
+            if (!ownsTile(command))
+            {
+                continue;
+            }
+
             (kept ??= [.. all]).Add(command);
             pending.RemoveAt(i--);
             SentLater++;

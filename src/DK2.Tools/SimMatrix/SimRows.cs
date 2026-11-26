@@ -49,18 +49,30 @@ internal static class SimRows
         IMethodSymbol main = systems.GetMembers("Default").OfType<IMethodSymbol>().Single();
         var rows = new List<SimRow>();
         if (reader.Returned(main) is not CollectionExpressionSyntax phases)
+        {
             throw new InvalidDataException("SimulationSystems.Default() is no longer one collection expression of phases.");
+        }
+
         foreach (CollectionElementSyntax element in phases.Elements)
         {
             if (element is not SpreadElementSyntax { Expression: InvocationExpressionSyntax call }
                 || reader.Model(call).GetSymbolInfo(call).Symbol is not IMethodSymbol phase)
+            {
                 throw new InvalidDataException($"SimulationSystems.Default(): '{element}' is not a spread of a phase method.");
+            }
+
             if (reader.Returned(phase) is not CollectionExpressionSyntax members)
+            {
                 throw new InvalidDataException($"SimulationSystems.{phase.Name}() is not one collection expression.");
+            }
+
             foreach (CollectionElementSyntax member in members.Elements)
             {
                 if (member is not ExpressionElementSyntax { Expression: var expression })
+                {
                     throw new InvalidDataException($"SimulationSystems.{phase.Name}(): '{member}' is not one system.");
+                }
+
                 reader.Add(rows, phase.Name, expression, RowKind.System, 0);
             }
         }
@@ -86,7 +98,10 @@ internal static class SimRows
         internal SemanticModel Model(SyntaxNode node)
         {
             if (!_models.TryGetValue(node.SyntaxTree, out SemanticModel? model))
+            {
                 _models[node.SyntaxTree] = model = compilation.GetSemanticModel(node.SyntaxTree);
+            }
+
             return model;
         }
 
@@ -114,13 +129,19 @@ internal static class SimRows
             RowKind? stepKind = arguments.Count > 0 ? StepKind(type) : null;
             string name = Display(type);
             if (stepKind is null && arguments.Count > 0)
+            {
                 name += "(" + string.Join(", ", arguments.Select(a => a.ToString())) + ")";
+            }
 
             int number = rows.Count + 1;
             rows.Add(new SimRow(number, phase, name, kind, parent, type, Entries(type, kind)));
             if (stepKind is { } steps)
+            {
                 foreach (ArgumentSyntax argument in arguments)
+                {
                     Add(rows, phase, argument.Expression, steps, number);
+                }
+            }
         }
 
         /// <summary>The kind of step a container takes as its constructor's <c>params</c> array, if any.</summary>
@@ -130,8 +151,15 @@ internal static class SimRows
             {
                 if (constructor.Parameters is [{ IsParams: true, Type: IArrayTypeSymbol { ElementType: var element } }])
                 {
-                    if (SymbolEqualityComparer.Default.Equals(element, creatureStep)) return RowKind.CreatureStep;
-                    if (SymbolEqualityComparer.Default.Equals(element, roomStep)) return RowKind.RoomStep;
+                    if (SymbolEqualityComparer.Default.Equals(element, creatureStep))
+                    {
+                        return RowKind.CreatureStep;
+                    }
+
+                    if (SymbolEqualityComparer.Default.Equals(element, roomStep))
+                    {
+                        return RowKind.RoomStep;
+                    }
                 }
             }
             return null;
@@ -168,7 +196,11 @@ internal static class SimRows
                     VariableDeclaratorSyntax declarator = local.DeclaringSyntaxReferences.Select(r => r.GetSyntax()).OfType<VariableDeclaratorSyntax>().Single();
                     return Concrete(declarator.Initializer?.Value ?? throw new InvalidDataException($"local '{local.Name}' has no initialiser."));
                 case MemberAccessExpressionSyntax when model.GetSymbolInfo(expression).Symbol is IPropertySymbol property:
-                    if (property.Type is INamedTypeSymbol { TypeKind: TypeKind.Class, IsAbstract: false } concrete) return concrete;
+                    if (property.Type is INamedTypeSymbol { TypeKind: TypeKind.Class, IsAbstract: false } concrete)
+                    {
+                        return concrete;
+                    }
+
                     return Assigned(property);
                 default:
                     return model.GetTypeInfo(expression).Type as INamedTypeSymbol
@@ -187,15 +219,25 @@ internal static class SimRows
                     .Where(t => compilation.HasImplicitConversion(t, property.Type))
                     .Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default)
                     .ToArray();
-                if (created.Length == 1) return created[0];
+                if (created.Length == 1)
+                {
+                    return created[0];
+                }
             }
             foreach (IMethodSymbol constructor in property.ContainingType.InstanceConstructors)
-            foreach (SyntaxNode? syntax in constructor.DeclaringSyntaxReferences.Select(r => r.GetSyntax()))
-            foreach (AssignmentExpressionSyntax assignment in syntax.DescendantNodes().OfType<AssignmentExpressionSyntax>())
+            {
+                foreach (SyntaxNode? syntax in constructor.DeclaringSyntaxReferences.Select(r => r.GetSyntax()))
+                {
+                    foreach (AssignmentExpressionSyntax assignment in syntax.DescendantNodes().OfType<AssignmentExpressionSyntax>())
             {
                 if (SymbolEqualityComparer.Default.Equals(Model(assignment).GetSymbolInfo(assignment.Left).Symbol, property))
-                    return Concrete(assignment.Right);
+                        {
+                            return Concrete(assignment.Right);
+                        }
+                    }
+                }
             }
+
             throw new InvalidDataException(
                 $"{Display(property.ContainingType)}.{property.Name} is an interface no constructor assigns a new object to.");
         }

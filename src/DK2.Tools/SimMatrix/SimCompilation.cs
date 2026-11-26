@@ -97,9 +97,12 @@ internal sealed class SimCompilation
             .Where(d => d.Severity == DiagnosticSeverity.Error)
             .ToArray();
         if (errors.Length > 0)
+        {
             throw new InvalidDataException(
                 $"the simulation source does not compile as one assembly ({errors.Length} errors): "
                 + string.Join("; ", errors.Take(5).Select(e => e.ToString())));
+        }
+
         return new SimCompilation(compilation, definitions, files);
     }
 

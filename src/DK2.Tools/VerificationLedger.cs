@@ -48,7 +48,9 @@ public static class VerificationLedger
                 string symbol = SymbolAt(source, declarationStart);
                 string id = relative + "#" + symbol + "#" + research;
                 if (!seen.Add(id))
+                {
                     throw new InvalidOperationException($"Duplicate ledger id: {id}");
+                }
 
                 string commentScope = CommentScope(source, match.Index, declarationStart);
                 string researchPath = Path.Combine(root, research.Replace('/', Path.DirectorySeparatorChar));
@@ -68,7 +70,13 @@ public static class VerificationLedger
                     "", "", "", "", ""
                 };
                 if (previous.TryGetValue(id, out List<string>? old))
-                    for (int i = 8; i < row.Length; i++) row[i] = old[i];
+                {
+                    for (int i = 8; i < row.Length; i++)
+                    {
+                        row[i] = old[i];
+                    }
+                }
+
                 lines.Add(string.Join(",", row.Select(EscapeCsv)));
             }
         }
@@ -77,7 +85,11 @@ public static class VerificationLedger
         if (removed.Any(id => previous[id].Skip(8).Any(value => value.Length != 0)))
         {
             Console.Error.WriteLine("Checked ledger rows no longer match source attributes:");
-            foreach (string id in removed) Console.Error.WriteLine("  " + id);
+            foreach (string id in removed)
+            {
+                Console.Error.WriteLine("  " + id);
+            }
+
             return 1;
         }
 
@@ -104,13 +116,19 @@ public static class VerificationLedger
         while (tail.StartsWith("[", StringComparison.Ordinal))
         {
             int close = tail.IndexOf(']');
-            if (close < 0) break;
+            if (close < 0)
+            {
+                break;
+            }
+
             tail = tail[(close + 1)..].TrimStart();
         }
         int end = tail.IndexOfAny(['(', '{', ';', '=']);
         Match type = Regex.Match(tail, @"\b(?:class|struct|interface|enum|record)\s+(?<name>\w+)");
         if (type.Success && (end < 0 || type.Index < end))
+        {
             return type.Groups["name"].Value;
+        }
 
         string head = end < 0 ? "" : tail[..end].TrimEnd();
         if (head.EndsWith('>'))
@@ -118,7 +136,10 @@ public static class VerificationLedger
             int depth = 0;
             for (int i = head.Length - 1; i >= 0; i--)
             {
-                if (head[i] == '>') depth++;
+                if (head[i] == '>')
+                {
+                    depth++;
+                }
                 else if (head[i] == '<' && --depth == 0)
                 {
                     head = head[..i].TrimEnd();
@@ -138,7 +159,11 @@ public static class VerificationLedger
             int prior = source.LastIndexOf('\n', before - 1);
             string line = source[(prior + 1)..before].Trim();
             if (!line.StartsWith("//", StringComparison.Ordinal) && !line.StartsWith("*", StringComparison.Ordinal)
-                && line != "/*" && line != "") break;
+                && line != "/*" && line != "")
+            {
+                break;
+            }
+
             before = prior;
         }
 
@@ -154,8 +179,15 @@ public static class VerificationLedger
         int depth = 0;
         for (int i = open; i < source.Length; i++)
         {
-            if (source[i] == '{') depth++;
-            if (source[i] == '}' && --depth == 0) return i;
+            if (source[i] == '{')
+            {
+                depth++;
+            }
+
+            if (source[i] == '}' && --depth == 0)
+            {
+                return i;
+            }
         }
         return source.Length - 1;
     }
@@ -179,13 +211,19 @@ public static class VerificationLedger
                 field.Append('"');
                 i++;
             }
-            else if (c == '"') quoted = !quoted;
+            else if (c == '"')
+            {
+                quoted = !quoted;
+            }
             else if (c == ',' && !quoted)
             {
                 fields.Add(field.ToString());
                 field.Clear();
             }
-            else field.Append(c);
+            else
+            {
+                field.Append(c);
+            }
         }
         fields.Add(field.ToString());
         return fields;

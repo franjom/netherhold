@@ -25,6 +25,7 @@ internal static class ScenarioReportWriter
             result.Events.Select(e => e.ToString()));
 
         if (result.Scenario.ComputerKeepers.Count > 0)
+        {
             File.WriteAllLines(Path.Combine(outputDir, "keeper-commands.tsv"),
                 result.KeeperCommandLog.Select(e =>
                 {
@@ -32,9 +33,11 @@ internal static class ScenarioReportWriter
                     e.Command.HashInto(ref hash);
                     return $"{e.InputTick}\t{e.Command.PlayerId}\t{e.Command.GetType().Name}\t{hash.Value:x16}";
                 }));
+        }
 
         // Type and hash only, like keeper-commands.tsv: a readable summary; input.journal replays.
         if (result.ControllerCommandLog.Count > 0)
+        {
             File.WriteAllLines(Path.Combine(outputDir, "controller-commands.tsv"),
                 result.ControllerCommandLog.Select(e =>
                 {
@@ -42,17 +45,22 @@ internal static class ScenarioReportWriter
                     e.Command.HashInto(ref hash);
                     return $"{e.InputTick}\t{e.Controller}\t{e.Command.PlayerId}\t{e.Command.GetType().Name}\t{hash.Value:x16}";
                 }));
+        }
 
         if (result.Coverage is RunCoverage coverage)
+        {
             File.WriteAllLines(Path.Combine(outputDir, "coverage.tsv"),
                 [$"triggers\treached\t{coverage.TriggerRecordsReached}",
                  .. coverage.CreatureTicksByState.OrderBy(kv => kv.Key).Select(kv => $"state\t{kv.Key}\t{kv.Value}"),
                  .. coverage.EventsByKind.OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => $"event\t{kv.Key}\t{kv.Value}")]);
+        }
 
         if (result.Progress.Count > 0)
+        {
             File.WriteAllLines(Path.Combine(outputDir, "progress.tsv"),
                 ["tick\tplayer\tstatus\towned_tiles\troom_tiles\tgold\tmana\tcreatures",
                  .. result.Progress.Select(p => $"{p.Tick}\t{p.Player}\t{p.Status}\t{p.OwnedTiles}\t{p.RoomTiles}\t{p.Gold}\t{p.Mana}\t{p.Creatures}")]);
+        }
 
         var report = new StringBuilder();
         report.AppendLine($"# Scenario run: {result.Scenario.Id}");
@@ -61,25 +69,40 @@ internal static class ScenarioReportWriter
         report.AppendLine($"- map: {result.Scenario.Map}");
         report.AppendLine($"- seed: {result.Scenario.Seed}");
         if (result.Scenario.Random != "modern")
+        {
             report.AppendLine($"- random: {result.Scenario.Random}");
+        }
+
         report.AppendLine($"- balance table: {result.BalanceTable}");
         report.AppendLine($"- ticks run: {result.TicksRun}");
         report.AppendLine($"- final state hash: {result.FinalStateHash:x16}");
         report.AppendLine($"- events recorded: {result.Events.Count}");
         if (result.Scenario.ComputerKeepers.Count > 0)
+        {
             report.AppendLine($"- keeper commands emitted: {result.KeeperCommandLog.Count} (keeper-commands.tsv)");
+        }
+
         if (result.ControllerCommandLog.Count > 0)
+        {
             report.AppendLine($"- test controller commands emitted: {result.ControllerCommandLog.Count} (controller-commands.tsv)");
+        }
+
         report.AppendLine();
 
         if (result.SnapshotChecks > 0)
+        {
             report.AppendLine($"Snapshot continuation checks: {result.SnapshotChecks}, failed: {result.InvariantFailures.Count}.{Environment.NewLine}");
+        }
 
         if (result.InvariantFailures.Count > 0)
         {
             report.AppendLine("## Invariant failures");
             report.AppendLine();
-            foreach (string failure in result.InvariantFailures) report.AppendLine($"- **FAILED**: {failure}");
+            foreach (string failure in result.InvariantFailures)
+            {
+                report.AppendLine($"- **FAILED**: {failure}");
+            }
+
             report.AppendLine();
         }
 
@@ -87,7 +110,11 @@ internal static class ScenarioReportWriter
         {
             report.AppendLine("## Stall candidates (diagnostic, not verdicts)");
             report.AppendLine();
-            foreach (string stall in result.StallCandidates) report.AppendLine($"- {stall}");
+            foreach (string stall in result.StallCandidates)
+            {
+                report.AppendLine($"- {stall}");
+            }
+
             report.AppendLine();
         }
 
@@ -108,10 +135,14 @@ internal static class ScenarioReportWriter
                 : $"{result.ExpectationFailures.Count} of {result.Scenario.Expect.Count} expectation(s) FAILED.");
             report.AppendLine();
             foreach (ScenarioExpectation expectation in result.Scenario.Expect)
+            {
                 report.AppendLine($"- {expectation}{Environment.NewLine}  because {expectation.Because.Trim()}");
+            }
 
             foreach (string failure in result.ExpectationFailures)
+            {
                 report.AppendLine($"- **FAILED**: {failure}");
+            }
 
             report.AppendLine();
         }
@@ -128,7 +159,9 @@ internal static class ScenarioReportWriter
             report.AppendLine("from this run covers the remainder only.");
             report.AppendLine();
             foreach (string item in result.Unsupported)
+            {
                 report.AppendLine($"- {item}");
+            }
         }
 
         if (!string.IsNullOrEmpty(result.Picture))

@@ -47,7 +47,9 @@ internal static class DocsCommand
             string[] msg = File.ReadAllLines(messagePath);
             int body = CommitBodyLines(msg);
             if (body > DocBudgets.CommitBody)
+            {
                 Report(Path.GetFileName(messagePath), "commit body", body, DocBudgets.CommitBody);
+            }
         }
 
         IEnumerable<string> files = all ? Repo.AllTrackedFiles(docsRoot)
@@ -57,7 +59,10 @@ internal static class DocsCommand
         foreach (string relative in files)
         {
             string full = Path.Combine(docsRoot, relative.Replace('/', Path.DirectorySeparatorChar));
-            if (!staged && !File.Exists(full)) continue;
+            if (!staged && !File.Exists(full))
+            {
+                continue;
+            }
 
             string[] lines = staged
                 ? Repo.GitLines(docsRoot, $":{relative}")
@@ -87,7 +92,10 @@ internal static class DocsCommand
             ? $"{findings.Count} budget violation(s) in the tree:"
             : $"{findings.Count} budget violation(s) in what changed since {baseRef}:");
         foreach (string f in findings.OrderBy(x => x, StringComparer.Ordinal))
+        {
             Console.Error.WriteLine($"  {f}");
+        }
+
         Console.Error.WriteLine();
         Console.Error.WriteLine("See AGENTS.md, \"what to record, and how much\". Over budget means");
         Console.Error.WriteLine("the material belongs somewhere else -- not that it should be squeezed.");
@@ -114,7 +122,9 @@ internal static class DocsCommand
         if (relative.Equals("docs/HANDOFF.md", StringComparison.OrdinalIgnoreCase)
             && lines.Length > DocBudgets.Handoff
             && Worse(lines.Length, baseLines.Length))
+        {
             Report(relative, "length", lines.Length, DocBudgets.Handoff);
+        }
 
         // A claim that something has NOT happened rots the moment it does.
         // HANDOFF said the input channel awaited its first capture five days
@@ -128,14 +138,28 @@ internal static class DocsCommand
                 if (!Regex.IsMatch(lines[i],
                         @"\b(never\s+(been|sampled|run|measured|tried|captured|solved)|not yet|awaits|still no |still carry no)",
                         RegexOptions.IgnoreCase))
+                {
                     continue;
-                if (Regex.IsMatch(lines[i], @"\b20\d\d-\d\d-\d\d\b")) continue;
+                }
+
+                if (Regex.IsMatch(lines[i], @"\b20\d\d-\d\d-\d\d\b"))
+                {
+                    continue;
+                }
 
                 // The paragraph that documents this rule quotes the words
                 // it matches on, and a checker that fails its own
                 // description is one somebody deletes.
-                if (lines[i].Contains("docs --check", StringComparison.Ordinal)) continue;
-                if (!Touched(i + 1, i + 1)) continue;
+                if (lines[i].Contains("docs --check", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (!Touched(i + 1, i + 1))
+                {
+                    continue;
+                }
+
                 findings.Add($"{relative}:{i + 1}: a 'not done yet' claim with no date on it");
             }
         }
@@ -146,17 +170,25 @@ internal static class DocsCommand
             && !relative.EndsWith("functions/INDEX.md", StringComparison.OrdinalIgnoreCase)
             && Prose(lines) > DocBudgets.ResearchDoc
             && Worse(Prose(lines), Prose(baseLines)))
+        {
             Report(relative, "length", Prose(lines), DocBudgets.ResearchDoc);
+        }
 
         // ADR-0643: a note names the systems it belongs to, from the closed list.
         if (context is not null && ResearchNotes.NoteName(relative) is not null)
         {
             IReadOnlyList<string>? systems = ResearchNotes.Systems(lines);
             if (systems is not { Count: > 0 })
+            {
                 findings.Add($"{relative}: names no systems; start it with front matter '---', 'systems: [id, ...]', '---' (docs/systems.yaml)");
+            }
             else
+            {
                 foreach (string s in systems.Where(s => !context.Catalog.Contains(s)))
+                {
                     findings.Add($"{relative}: system '{s}' is not in docs/systems.yaml");
+                }
+            }
         }
 
         // One row per question. Long rows are this repo's worst offender and
@@ -165,10 +197,20 @@ internal static class DocsCommand
         {
             for (int i = 0; i < lines.Length; i++)
             {
-                if (!Regex.IsMatch(lines[i], @"^\| Q\d+[a-z]? \|")) continue;
-                if (!Touched(i + 1, i + 1)) continue;
+                if (!Regex.IsMatch(lines[i], @"^\| Q\d+[a-z]? \|"))
+                {
+                    continue;
+                }
+
+                if (!Touched(i + 1, i + 1))
+                {
+                    continue;
+                }
+
                 if (lines[i].Length > DocBudgets.QuestionRow)
+                {
                     Report($"{relative}:{i + 1}", "question row", lines[i].Length, DocBudgets.QuestionRow);
+                }
             }
         }
 
@@ -178,24 +220,44 @@ internal static class DocsCommand
         {
             var starts = new List<int>();
             for (int i = 0; i < lines.Length; i++)
-                if (Regex.IsMatch(lines[i], @"^#{2,3} ADR-\d{4}")) starts.Add(i);
+            {
+                if (Regex.IsMatch(lines[i], @"^#{2,3} ADR-\d{4}"))
+                {
+                    starts.Add(i);
+                }
+            }
 
             for (int k = 0; k < starts.Count; k++)
             {
                 int from = starts[k];
                 int to = (k + 1 < starts.Count ? starts[k + 1] : lines.Length) - 1;
-                if (!Touched(from + 1, to + 1)) continue;
+                if (!Touched(from + 1, to + 1))
+                {
+                    continue;
+                }
+
                 int length = to - from + 1;
                 if (length > DocBudgets.Adr)
+                {
                     Report($"{relative}:{from + 1}", Trim(lines[from]), length, DocBudgets.Adr);
+                }
             }
 
             if (context is not null && relative.Equals(AdrIndex.RelativePath, StringComparison.Ordinal))
+            {
                 CheckAdrs(relative, lines, Touched, findings, context);
+            }
         }
 
-        if (!relative.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)) return;
-        if (relative.Contains("/obj/") || relative.Contains("/bin/")) return;
+        if (!relative.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (relative.Contains("/obj/") || relative.Contains("/bin/"))
+        {
+            return;
+        }
 
         // Comment runs. A doc comment past its budget is a research note in
         // the wrong file; an inline comment past its budget is narration.
@@ -207,15 +269,20 @@ internal static class DocsCommand
             bool doc = t.StartsWith("///", StringComparison.Ordinal);
             bool inline = !doc && t.StartsWith("//", StringComparison.Ordinal);
 
-            if ((doc || inline) && runStart >= 0 && doc == runIsDoc) continue;
+            if ((doc || inline) && runStart >= 0 && doc == runIsDoc)
+            {
+                continue;
+            }
 
             if (runStart >= 0)
             {
                 int length = i - runStart;
                 int budget = runIsDoc ? DocBudgets.DocComment : DocBudgets.InlineComment;
                 if (length > budget && Touched(runStart + 1, i))
+                {
                     Report($"{relative}:{runStart + 1}",
                            runIsDoc ? "doc comment" : "inline comment", length, budget);
+                }
             }
 
             runStart = doc || inline ? i : -1;
@@ -245,7 +312,9 @@ internal static class DocsCommand
                 ? baseComments * 100 / baseLines.Length
                 : 0;
             if (percent > DocBudgets.CommentPercent && Worse(percent, basePercent))
+            {
                 Report(relative, "comment lines", percent, DocBudgets.CommentPercent);
+            }
         }
 
         static string Trim(string heading)
@@ -262,17 +331,32 @@ internal static class DocsCommand
     {
         IReadOnlyList<Adr> adrs = AdrIndex.Parse(lines, context.NoteNames);
         foreach (int n in AdrIndex.Duplicates(adrs))
+        {
             findings.Add($"{relative}: ADR-{n:D4} is used by more than one ADR");
+        }
+
         foreach (Adr adr in adrs)
         {
-            if (!touched(adr.Line, adr.EndLine)) continue;
+            if (!touched(adr.Line, adr.EndLine))
+            {
+                continue;
+            }
+
             string at = $"{relative}:{adr.Line}: ADR-{adr.Number:D4}";
             if (adr.Status.Length == 0)
+            {
                 findings.Add($"{at} has no status ('**Status:** accepted' and so on) under its heading");
+            }
+
             foreach (string s in (adr.ExplicitSystems ?? []).Where(s => !context.Catalog.Contains(s)))
+            {
                 findings.Add($"{at}: system '{s}' is not in docs/systems.yaml");
+            }
+
             if (AdrIndex.Systems(adr, context.NoteSystems, context.Catalog).Count == 0)
+            {
                 findings.Add($"{at} has no system: cite a tagged research note or add '**Systems:** id, ...' under its heading");
+            }
         }
     }
 }

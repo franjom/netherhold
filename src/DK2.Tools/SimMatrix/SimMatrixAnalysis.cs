@@ -86,12 +86,25 @@ internal static class SimMatrixAnalysis
             var seen = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
             var queue = new Queue<IMethodSymbol>();
             foreach (IMethodSymbol e in entries)
-                if (seen.Add(e)) queue.Enqueue(e);
+            {
+                if (seen.Add(e))
+                {
+                    queue.Enqueue(e);
+                }
+            }
+
             while (queue.TryDequeue(out IMethodSymbol? m))
             {
                 foreach (IMethodSymbol call in Summary(m).Calls)
+                {
                     foreach (IMethodSymbol target in index.Targets(call))
-                        if (!stopAt(target) && seen.Add(target)) queue.Enqueue(target);
+                    {
+                        if (!stopAt(target) && seen.Add(target))
+                        {
+                            queue.Enqueue(target);
+                        }
+                    }
+                }
             }
             return seen;
         }
@@ -114,9 +127,12 @@ internal static class SimMatrixAnalysis
         (FieldPlace Place, int Column) Place(ISymbol key)
         {
             if (!places.TryGetValue(key, out (FieldPlace Place, int Column) place))
+            {
                 places[key] = place = SymbolEqualityComparer.Default.Equals(key, sinkKey)
                     ? (FieldPlace.Column, StateModel.EventsOut)
                     : model.Place(key, writtenStatics);
+            }
+
             return place;
         }
 
@@ -141,9 +157,21 @@ internal static class SimMatrixAnalysis
             string[] cells = new string[StateModel.Columns.Length];
             Array.Fill(cells, "");
             foreach (ISymbol key in reads)
-                if (Place(key) is (FieldPlace.Column, var c)) cells[StateModel.ReadColumn(key, c)] = "R";
+            {
+                if (Place(key) is (FieldPlace.Column, var c))
+                {
+                    cells[StateModel.ReadColumn(key, c)] = "R";
+                }
+            }
+
             foreach (ISymbol key in writes)
-                if (Place(key) is (FieldPlace.Column, var c)) cells[c] = "W";
+            {
+                if (Place(key) is (FieldPlace.Column, var c))
+                {
+                    cells[c] = "W";
+                }
+            }
+
             return new RowView(
                 reach.Count,
                 cells,
@@ -173,15 +201,25 @@ internal static class SimMatrixAnalysis
         for (int i = 0; i < rows.Count; i++)
         {
             foreach (IMethodSymbol m in full[i])
-            foreach (ISymbol key in Summary(m).Writes)
+            {
+                foreach (ISymbol key in Summary(m).Writes)
             {
                 (FieldPlace place, int column) = Place(key);
                 bool listed = place == FieldPlace.SystemOwned || (place == FieldPlace.Column && key.IsStatic && key is not IMethodSymbol);
-                if (!listed) continue;
-                string name = Name(key);
-                if (!writers.TryGetValue(name, out SortedSet<int>? set)) writers[name] = set = [];
-                set.Add(rows[i].Number);
+                if (!listed)
+                    {
+                        continue;
+                    }
+
+                    string name = Name(key);
+                if (!writers.TryGetValue(name, out SortedSet<int>? set))
+                    {
+                        writers[name] = set = [];
+                    }
+
+                    set.Add(rows[i].Number);
                 columnOf[name] = place == FieldPlace.SystemOwned ? "" : StateModel.Columns[column];
+            }
             }
         }
         WrittenField[] Listed(bool systemOwned) => writers
@@ -210,7 +248,13 @@ internal static class SimMatrixAnalysis
     private static bool Within(INamedTypeSymbol? type, INamedTypeSymbol outer)
     {
         for (; type is not null; type = type.ContainingType)
-            if (SymbolEqualityComparer.Default.Equals(type.OriginalDefinition, outer)) return true;
+        {
+            if (SymbolEqualityComparer.Default.Equals(type.OriginalDefinition, outer))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -241,7 +285,10 @@ internal static class SimMatrixAnalysis
             {
                 bool core = Free(siblings[i - 1], siblings[i], core: true);
                 bool full = Free(siblings[i - 1], siblings[i], core: false);
-                if (core || full) pairs.Add(new FreePair(siblings[i - 1].Row.Number, siblings[i].Row.Number, core, full));
+                if (core || full)
+                {
+                    pairs.Add(new FreePair(siblings[i - 1].Row.Number, siblings[i].Row.Number, core, full));
+                }
             }
         }
         return [.. pairs.OrderBy(p => p.First)];

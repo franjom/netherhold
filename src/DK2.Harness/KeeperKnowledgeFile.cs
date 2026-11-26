@@ -52,10 +52,18 @@ public static class KeeperKnowledgeFile
     public static int? ResearchableItems(string installDirectory, string mapSpec, PlayerId player)
     {
         const string prefix = "campaign:";
-        if (!mapSpec.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return null;
+        if (!mapSpec.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
         string level = mapSpec[prefix.Length..].Trim();
         LevelMap? map = GameDatabaseLoader.LoadCampaignMap(installDirectory, level);
-        if (map is null) return null;
+        if (map is null)
+        {
+            return null;
+        }
+
         GameDatabase database = GameDatabaseLoader.Load(installDirectory)
             .ForLevel(GameDatabaseLoader.LoadCampaignVariables(installDirectory, level), GameDatabaseLoader.LoadCampaignLevel(installDirectory, level));
         var world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Append(player.Value).Distinct());
@@ -69,11 +77,14 @@ public static class KeeperKnowledgeFile
     {
         var dir = new DirectoryInfo(Path.GetDirectoryName(Path.GetFullPath(scenarioPath.Length > 0 ? scenarioPath : ".")) ?? ".");
         for (; dir is not null; dir = dir.Parent)
+        {
             if (File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
             {
                 string knowledge = Path.Combine(dir.FullName, DirectoryName);
                 return Directory.Exists(knowledge) ? knowledge : null;
             }
+        }
+
         return null;
     }
 
@@ -90,7 +101,10 @@ public static class KeeperKnowledgeFile
 
         RoomsDocument rooms = yaml.Deserialize<RoomsDocument>(File.ReadAllText(roomsPath)) ?? new RoomsDocument();
         if (rooms.HashVersion != GameSimulation.CurrentHashVersion)
+        {
             problems.Add($"{RoomsFile} was generated at hash {rooms.HashVersion}, this build is {GameSimulation.CurrentHashVersion}: regenerate it with `keeper-knowledge --out {DirectoryName}/{RoomsFile}`");
+        }
+
         var facts = new List<RoomFacts>();
         foreach (RoomEntry room in rooms.Rooms ?? [])
         {
@@ -104,8 +118,15 @@ public static class KeeperKnowledgeFile
                 room.Sizes.Select(s => new RoomSizeFacts(s.Side, s.FloorSlots, s.Attraction, s.Gold)),
                 capsCreatures: room.Attracts.Any(a => a.CappedByThisRoom && a.Portal)));
         }
-        if (facts.Select(f => f.Room).Distinct().Count() != facts.Count) problems.Add($"{RoomsFile} describes a room twice");
-        if (facts.Count == 0) problems.Add($"{RoomsFile} describes no room");
+        if (facts.Select(f => f.Room).Distinct().Count() != facts.Count)
+        {
+            problems.Add($"{RoomsFile} describes a room twice");
+        }
+
+        if (facts.Count == 0)
+        {
+            problems.Add($"{RoomsFile} describes no room");
+        }
 
         RulesDocument rules = yaml.Deserialize<RulesDocument>(File.ReadAllText(rulesPath)) ?? new RulesDocument();
         var attraction = new Dictionary<RoomTypeId, int>();
@@ -117,26 +138,57 @@ public static class KeeperKnowledgeFile
         foreach (RuleEntry rule in rules.Rules ?? [])
         {
             string id = rule.Id ?? "(no id)";
-            if (rule.Id is null || !ids.Add(rule.Id)) problems.Add($"{RulesFile}: rule id '{id}' is missing or repeated");
-            if (string.IsNullOrWhiteSpace(rule.Rule)) problems.Add($"{RulesFile}: {id} has no sentence");
-            if (string.IsNullOrWhiteSpace(rule.Source)) problems.Add($"{RulesFile}: {id} names no source");
-            if (!Statuses.Contains(rule.Status)) problems.Add($"{RulesFile}: {id} status '{rule.Status}' is not one of {string.Join(", ", Statuses)}");
-            if (!Applies.Contains(rule.Applies)) problems.Add($"{RulesFile}: {id} applies '{rule.Applies}' is not one of {string.Join(", ", Applies)}");
+            if (rule.Id is null || !ids.Add(rule.Id))
+            {
+                problems.Add($"{RulesFile}: rule id '{id}' is missing or repeated");
+            }
+
+            if (string.IsNullOrWhiteSpace(rule.Rule))
+            {
+                problems.Add($"{RulesFile}: {id} has no sentence");
+            }
+
+            if (string.IsNullOrWhiteSpace(rule.Source))
+            {
+                problems.Add($"{RulesFile}: {id} names no source");
+            }
+
+            if (!Statuses.Contains(rule.Status))
+            {
+                problems.Add($"{RulesFile}: {id} status '{rule.Status}' is not one of {string.Join(", ", Statuses)}");
+            }
+
+            if (!Applies.Contains(rule.Applies))
+            {
+                problems.Add($"{RulesFile}: {id} applies '{rule.Applies}' is not one of {string.Join(", ", Applies)}");
+            }
+
             string? kind = rule.Form?.GetValueOrDefault("kind");
             if (!Kinds.Contains(kind)) { problems.Add($"{RulesFile}: {id} form kind '{kind}' is not one of {string.Join(", ", Kinds)}"); continue; }
             if (kind == "research-shelves")
             {
                 if (!KnownRoom(rule.Form!.GetValueOrDefault("room"), out RoomTypeId shelves)) { problems.Add($"{RulesFile}: {id} names no known room"); continue; }
                 if (!facts.Exists(f => f.Room == shelves)) { problems.Add($"{RulesFile}: {id} targets {shelves}, which {RoomsFile} does not describe"); continue; }
-                if (!Acts(rule)) continue;
+                if (!Acts(rule))
+                {
+                    continue;
+                }
                 // A second rule for one room is refused whatever the level, not only when a research count is given.
                 if (!shelfRooms.Add(shelves)) { problems.Add($"{RulesFile}: {id} sets {shelves} a second time"); continue; }
-                if (researchable is not int count || count <= 0) continue;
+                if (researchable is not int count || count <= 0)
+                {
+                    continue;
+                }
+
                 slots.Add(shelves, ResearchSlots(count));
                 acting.Add(id);
                 continue;
             }
-            if (kind is not ("attraction-target" or "tile-target")) continue;
+            if (kind is not ("attraction-target" or "tile-target"))
+            {
+                continue;
+            }
+
             string valueKey = kind == "attraction-target" ? "value" : "tiles";
             if (!KnownRoom(rule.Form!.GetValueOrDefault("room"), out RoomTypeId target))
             { problems.Add($"{RulesFile}: {id} names no known room"); continue; }
@@ -144,16 +196,28 @@ public static class KeeperKnowledgeFile
             { problems.Add($"{RulesFile}: {id} targets {target}, which {RoomsFile} does not describe"); continue; }
             if (!int.TryParse(rule.Form!.GetValueOrDefault(valueKey), out int value) || value <= 0)
             { problems.Add($"{RulesFile}: {id} {valueKey} is not a positive whole number"); continue; }
-            if (!Acts(rule)) continue;
+            if (!Acts(rule))
+            {
+                continue;
+            }
+
             Dictionary<RoomTypeId, int> into = kind == "attraction-target" ? attraction : tiles;
             if (!into.TryAdd(target, value)) { problems.Add($"{RulesFile}: {id} sets {target} a second time"); continue; }
             acting.Add(id);
         }
         // A playbook may only switch on a rule that waits for one (Task 3b).
         foreach (string asked in playbookRules ?? [])
+        {
             if (!(rules.Rules ?? []).Exists(r => r.Id == asked && r.Applies == "playbook" && r.Status != "refuted"))
+            {
                 problems.Add($"the playbook asks for rule {asked}, which {RulesFile} does not hold as applies: playbook and in force");
-        if (problems.Count > 0) throw new InvalidDataException($"knowledge in '{directory}' is refused: " + string.Join("; ", problems));
+            }
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException($"knowledge in '{directory}' is refused: " + string.Join("; ", problems));
+        }
 
         // A rule in force acts always, or on a level whose playbook asks for it.
         bool Acts(RuleEntry rule) => rule.Status != "refuted"

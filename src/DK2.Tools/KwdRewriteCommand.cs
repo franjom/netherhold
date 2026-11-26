@@ -14,7 +14,11 @@ public static class KwdRewriteCommand
         try
         {
             KwdRewriteAudit.Result result =KwdRewriteAudit.Run(args[0],args[1]);
-            foreach(KwdRewriteAudit.FileResult file in result.Files) stdout.WriteLine(Format(file));
+            foreach(KwdRewriteAudit.FileResult file in result.Files)
+            {
+                stdout.WriteLine(Format(file));
+            }
+
             int different=result.Files.Count(f=>f.Difference is not null);
             stdout.WriteLine($"{result.Files.Count} files; {result.Files.Sum(f=>f.Chunks)} chunks; " +
                 $"{result.Files.Sum(f=>f.Records)} records; {different} different");
@@ -26,7 +30,11 @@ public static class KwdRewriteCommand
 
     public static string Format(KwdRewriteAudit.FileResult file)
     {
-        if(file.Difference is not { } d) return $"{file.RelativePath}: identical";
+        if(file.Difference is not { } d)
+        {
+            return $"{file.RelativePath}: identical";
+        }
+
         return $"{file.RelativePath}: first difference at byte {d.Offset} (0x{d.Offset:X}), " +
             $"chunk {d.ChunkIndex?.ToString() ?? "-"} ({d.ChunkType?.ToString() ?? "-"}), " +
             $"record {d.RecordIndex?.ToString() ?? "-"}, field {d.Field}: " +

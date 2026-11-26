@@ -20,32 +20,60 @@ internal static class SnapshotComparison
         var leftCreatures = left.Creatures.ToDictionary(c => c.Id);
         var rightCreatures = right.Creatures.ToDictionary(c => c.Id);
         foreach (int id in leftCreatures.Keys.Concat(rightCreatures.Keys).Distinct().Order())
+        {
             Entity($"creatures[{id}]", leftCreatures.GetValueOrDefault(id), rightCreatures.GetValueOrDefault(id));
+        }
+
         var leftObjects = left.Objects.ToDictionary(o => o.Id);
         var rightObjects = right.Objects.ToDictionary(o => o.Id);
         foreach (int id in leftObjects.Keys.Concat(rightObjects.Keys).Distinct().Order())
+        {
             Entity($"objects[{id}]", leftObjects.GetValueOrDefault(id), rightObjects.GetValueOrDefault(id));
+        }
+
         for (int slot = 0; slot < Math.Max(left.EffectGenerators.Count, right.EffectGenerators.Count); slot++)
+        {
             Entity($"effectGenerators[{slot}]", slot < left.EffectGenerators.Count ? left.EffectGenerators[slot] : null,
                 slot < right.EffectGenerators.Count ? right.EffectGenerators[slot] : null);
+        }
+
         var leftPlayers = Enumerable.Range(0, left.PlayerCount).Select(i => left.PlayerAtIndex(i)).ToDictionary(p => p.PlayerId.Value);
         var rightPlayers = Enumerable.Range(0, right.PlayerCount).Select(i => right.PlayerAtIndex(i)).ToDictionary(p => p.PlayerId.Value);
         foreach (byte id in leftPlayers.Keys.Concat(rightPlayers.Keys).Distinct().Order())
+        {
             Entity($"players[{id}]", leftPlayers.TryGetValue(id, out PlayerState lp) ? lp : null,
                 rightPlayers.TryGetValue(id, out PlayerState rp) ? rp : null);
+        }
+
         foreach (TilePos tile in Positions(left))
+        {
             Entity($"tiles[{tile.X},{tile.Y}]", left.Tile(tile), right.Contains(tile) ? right.Tile(tile) : null);
+        }
+
         foreach (TilePos tile in Positions(right))
-            if (!left.Contains(tile)) Entity($"tiles[{tile.X},{tile.Y}]", null, right.Tile(tile));
+        {
+            if (!left.Contains(tile))
+            {
+                Entity($"tiles[{tile.X},{tile.Y}]", null, right.Tile(tile));
+            }
+        }
+
         changes.Sort((a, b) => StringComparer.Ordinal.Compare(a.Path, b.Path));
         return changes;
 
         void Entity(string path, object? oldValue, object? newValue)
         {
-            if (oldValue is null && newValue is null) return;
+            if (oldValue is null && newValue is null)
+            {
+                return;
+            }
+
             if (oldValue is null || newValue is null)
+            {
                 changes.Add(new(path + ".$exists", oldValue is null ? "added" : "removed",
                     oldValue is null ? null : "present", newValue is null ? null : "present"));
+            }
+
             Fields(path, oldValue, newValue);
         }
 
@@ -57,7 +85,11 @@ internal static class SnapshotComparison
             {
                 bool had = oldFields.TryGetValue(name, out string? oldText);
                 bool has = newFields.TryGetValue(name, out string? newText);
-                if (had && has && oldText == newText) continue;
+                if (had && has && oldText == newText)
+                {
+                    continue;
+                }
+
                 changes.Add(new(name, !had ? "added" : !has ? "removed" : "changed", oldText, newText));
             }
         }
@@ -65,7 +97,10 @@ internal static class SnapshotComparison
 
     private static IEnumerable<TilePos> Positions(WorldState world)
     {
-        for (int index = 0; index < world.TileCount; index++) yield return world.TilePosition(index);
+        for (int index = 0; index < world.TileCount; index++)
+        {
+            yield return world.TilePosition(index);
+        }
     }
 
     private static object Metadata(GameSimulation simulation) => new
@@ -85,7 +120,9 @@ internal static class SnapshotComparison
             ["Algorithm"] = random.Algorithm.GetType().Name,
         };
         if (random.Algorithm is Dk2Lcg lcg)
+        {
             values["Seed"] = lcg.Seed.ToString(CultureInfo.InvariantCulture);
+        }
         else if (random.Algorithm is Xoshiro256StarStar)
         {
             (ulong a, ulong b, ulong c, ulong d) = random.SaveState();
@@ -94,7 +131,11 @@ internal static class SnapshotComparison
             values["S2"] = c.ToString(CultureInfo.InvariantCulture);
             values["S3"] = d.ToString(CultureInfo.InvariantCulture);
         }
-        else throw new InvalidDataException("Unsupported snapshot random generator.");
+        else
+        {
+            throw new InvalidDataException("Unsupported snapshot random generator.");
+        }
+
         return values;
     }
 }

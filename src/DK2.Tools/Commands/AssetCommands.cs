@@ -45,8 +45,11 @@ internal static class AssetCommands
         foreach (AssetConversionResult result in results)
         {
             if (result.Produced && !provider.TryResolve(result.Reference, out _))
+            {
                 throw new InvalidOperationException(
                     $"Converter reported '{result.Reference.Key}' but FileAssetProvider cannot resolve it.");
+            }
+
             string status = result.Produced ? "PRODUCED" : "MISSING ";
             string destination = result.OutputPath is null
                 ? result.Detail
@@ -63,7 +66,10 @@ internal static class AssetCommands
     {
         using var wad = WadArchive.Open(ResolveData(args[2]));
         foreach (WadEntry e in wad.Entries)
+        {
             Console.WriteLine($"{e.UncompressedSize,10} {(e.IsCompressed ? "C" : " ")} {e.Name}");
+        }
+
         Console.WriteLine($"-- {wad.Entries.Count} entries");
         return 0;
     }
@@ -139,7 +145,10 @@ internal static class AssetCommands
     {
         var table = Dk2StringTable.Open(ResolveText(args[2]));
         foreach (Dk2StringEntry entry in table.Entries)
+        {
             Console.WriteLine($"{entry.Id,6} {EscapeForOneLine(entry.Value)}");
+        }
+
         Console.WriteLine($"-- {table.Entries.Count} entries, file id {table.FileId}");
         return 0;
     }
