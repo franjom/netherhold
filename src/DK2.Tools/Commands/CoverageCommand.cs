@@ -28,17 +28,19 @@ internal static class CoverageCommand
         // Every identifier the source uses, not only the types it declares:
         // docs cite members and folders as freely as types, and a
         // declarations-only set reported thirty false positives. A checker that
-        // cries wolf is one nobody runs. All three areas, because the Unity
+        // cries wolf is one nobody runs. All three areas, because the Godot
         // adapter and the tests are implementation the docs legitimately cite.
         var declared = new HashSet<string>(StringComparer.Ordinal);
-        foreach (string area in new[] { "src", "unity", "tests" })
+        foreach (string area in new[] { "src", "godot", "tests" })
         {
             string dir = Path.Combine(covRoot, area);
             if (!Directory.Exists(dir)) continue;
             foreach (string cs in Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories))
             {
                 if (cs.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
-                    || cs.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
+                    || cs.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
+                    || cs.Contains($"{Path.DirectorySeparatorChar}.godot{Path.DirectorySeparatorChar}")
+                    || cs.Contains($"{Path.DirectorySeparatorChar}addons{Path.DirectorySeparatorChar}"))
                     continue;
                 foreach (Match m in Regex.Matches(File.ReadAllText(cs), @"[A-Za-z_][A-Za-z0-9_]*"))
                     declared.Add(m.Value);

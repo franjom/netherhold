@@ -20,7 +20,7 @@ from pathlib import Path
 
 from summarise_capture import read_pairs, read_rows, interval_metrics, draw_clock, release_problems
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "classic-unity-probe"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "perf"))
 from frame_budget import verify_render_proof  # noqa: E402
 
 SETTINGS = ("CPU", "GPU", "GraphicsDriver", "API", "OS", "Godot", "Resolution", "Fullscreen",

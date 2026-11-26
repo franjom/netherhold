@@ -4,7 +4,7 @@ Owner requirement, revised 2026-10-25: minimum 60 FPS during gameplay on the
 current laptop at 1920x1080 in a standalone build. Hardware, resolution, tiers, required
 scenario coverage and the Godot harness ceilings are recorded in
 [`performance-target.json`](../tools/tester-package/performance-target.json), each number with its
-source (the Unity probe's copy stays for `frame_budget.py` until migration step 5).
+source. `tools/perf/frame_budget.py` reads the same tier definitions.
 The resulting frame budget is 1000/60 ms (about 16.67 ms). An average or percentile below it does
 not excuse a slower frame.
 The optimization goal remains 100+ FPS; meeting the 60 FPS floor does not end
@@ -178,7 +178,7 @@ and returns files for review (ADR-0691):
    plays, in the game probe's columns, from stopwatches of its own. Written at
    exit, with `perf-report.json` from the harness (`--perf-report`: GPU and render
    times, draw calls, allocation). `godot.log` is in the capture.
-3. **The draw-clock evenness metric** (`tools/game-unity-probe/draw_clock.py`,
+3. **The draw-clock evenness metric** (`tools/perf/draw_clock.py`,
    the Level8 motion metric) is in the same summary, since a fly-by can stutter
    at a flat 120 FPS. Level6a's release captures pass it since 2026-11-25 and fail
    both tiers on their frames (*Godot adapter* above).

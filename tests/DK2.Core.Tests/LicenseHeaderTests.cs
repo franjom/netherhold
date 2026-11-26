@@ -14,19 +14,13 @@ namespace DK2.Core.Tests;
 /// <c>LICENSE</c>). The notice carries the whole grant in one token, so a wrong
 /// or drifted SPDX identifier leaves no prose to fall back on. These tests are
 /// also the only enforcement of the notice on source files: IDE0073 with
-/// <c>file_header_template</c> is deliberately unused — it is blind to the
-/// Unity adapter and truncates a template at the first <c>;</c> in silence
+/// <c>file_header_template</c> is deliberately unused — it truncates a template at the first <c>;</c> in silence
 /// (<c>.editorconfig</c> records why).
 /// </summary>
 public class LicenseHeaderTests
 {
     /// <summary>
-    /// Every source file starts with the notice — what makes <c>LICENSE</c>
-    /// apply to the code rather than merely sit beside it. Covers the three
-    /// files under <c>unity/DK2.Unity/Assets</c>, which no project in
-    /// <c>DK2.slnx</c> compiles — only <c>unity/DK2.Unity.Compile</c> does, and
-    /// that needs an installed Unity editor — so a build-time analyser is
-    /// structurally blind to them.
+    /// Ensures every first-party C# file starts with the notice.
     /// </summary>
     [Fact]
     public void EverySourceFile_StartsWithTheNotice()
@@ -42,7 +36,7 @@ public class LicenseHeaderTests
         // decoration rather than a check. The floor sits deliberately far below
         // the real file count: it catches a broken search, and is not a count.
         Assert.True(files.Count > 100,
-            $"Only {files.Count} source files found under src, tests and the Unity " +
+            $"Only {files.Count} source files found under src, tests and the Godot " +
             "adapter. The sweep is not looking where the code is.");
 
         List<string> offenders = files
@@ -146,11 +140,7 @@ public class LicenseHeaderTests
     }
 
     /// <summary>
-    /// Every first-party C# file in the repository. <c>obj</c> and <c>bin</c>
-    /// are excluded because the SDK writes generated sources there
-    /// (<c>*.GlobalUsings.g.cs</c> and friends), which are not ours to licence;
-    /// Unity's <c>Library/PackageCache</c> is outside these roots for the same
-    /// reason, and is gitignored besides.
+    /// Finds first-party C# files, excluding generated output and third-party addons.
     /// </summary>
     private static IEnumerable<string> SourceFiles(string root)
     {
@@ -158,17 +148,23 @@ public class LicenseHeaderTests
         [
             Path.Combine(root, "src"),
             Path.Combine(root, "tests"),
-            Path.Combine(root, "unity", "DK2.Unity", "Assets"),
+            Path.Combine(root, "godot", "DK2.Godot"),
         ];
 
         string obj = $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}";
         string bin = $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}";
 
+        string cache = $"{Path.DirectorySeparatorChar}.godot{Path.DirectorySeparatorChar}";
+        string addons = $"{Path.DirectorySeparatorChar}addons{Path.DirectorySeparatorChar}";
+        foreach (string directory in roots)
+            Assert.True(Directory.Exists(directory), $"Missing source root {directory}");
+
         return roots
-            .Where(Directory.Exists)
             .SelectMany(d => Directory.EnumerateFiles(d, "*.cs", SearchOption.AllDirectories))
             .Where(f => !f.Contains(obj, StringComparison.Ordinal) &&
-                        !f.Contains(bin, StringComparison.Ordinal));
+                        !f.Contains(bin, StringComparison.Ordinal) &&
+                        !f.Contains(cache, StringComparison.Ordinal) &&
+                        !f.Contains(addons, StringComparison.Ordinal));
     }
 
     private static string RepositoryRoot()

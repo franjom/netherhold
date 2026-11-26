@@ -75,7 +75,8 @@ godot/**/mono_crash.*.json
 # A local project-settings override for fixed-size captures (godot/README.md).
 godot/**/override.cfg
 # Bullfrog's DungeonKeeperII.ttf for the front end's replacement font: not ours to ship (godot/README.md).
-godot/**/Fonts/
+godot/**/Fonts/*
+!godot/DK2.Godot/Fonts/.gdignore
 
 # ---------------------------------------------------------------
 # NEVER COMMIT: decompiler output. Derived from EA's executable and

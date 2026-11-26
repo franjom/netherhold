@@ -40,7 +40,7 @@ public class FlameIdentifierTests
         // Same floor as LicenseHeaderTests, for the same reason: a sweep that
         // finds nothing must fail rather than pass.
         Assert.True(files.Count > 100,
-            $"Only {files.Count} source files found under src, tests and the Unity " +
+            $"Only {files.Count} source files found under src, tests and the Godot " +
             "adapter. The sweep is not looking where the code is.");
 
         var offenders = new List<string>();
@@ -90,7 +90,6 @@ public class FlameIdentifierTests
         [
             Path.Combine(root, "src"),
             Path.Combine(root, "tests"),
-            Path.Combine(root, "unity", "DK2.Unity", "Assets"),
             Path.Combine(root, "godot", "DK2.Godot"),
         ];
 

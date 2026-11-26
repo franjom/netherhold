@@ -258,7 +258,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - After merging master the rig baseline moves: measure a detached worktree at the new master and
   the branch side by side before writing numbers into an ADR.
 - Never `git add -A`: another session may be editing; stage named paths.
-- `DungeonKeeperII.ttf` is gitignored, so a fresh worktree's Unity project lacks it and all its text falls back to DK2's bitmap font or Unity's default: copy `Assets/Resources/Fonts/DungeonKeeperII.ttf` from the main checkout (`unity/README.md`).
+- `DungeonKeeperII.ttf` is gitignored. Copy it into `godot/DK2.Godot/Fonts/` in a fresh checkout to use the replacement face. See [the font setup](../godot/README.md#setting-up-a-machine).
 - `git stash push -- <path>` on a path with no changes saves nothing and says so only without `-q`; a `git stash pop` after it applies whatever older stash is on top (2026-10-14: someone's INDEX.md stash landed in the main tree). Check `git diff --quiet -- <path>` first, or pop by the entry's own message, never a bare pop.
 - `kb_upsert` (the dk2kb MCP) writes the main tree, not your worktree, and regenerates the main tree's `INDEX.md` too: copy both files across and `git checkout --` them in the main tree.
 - `kb_upsert` replaces a record's whole body and can drop its UTF-8 BOM: an agent that thinks a record is new
@@ -434,6 +434,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Redirecting the Ghidra runner log/CACHE does not redirect InsGrep's insdb cache; instruction scans still write under the checkout's reverse-engineering/.cache/.
 
+- Godot `--build-solutions` writes MSBuild logs under the editor data directory. In a Windows sandbox, place `._sc_` beside a scratch copy of the pinned editor to keep those logs away from the owner's AppData.
 - Pinned Godot Movie Maker can log Vulkan surface-capability error -13 on every frame; `--rendering-driver d3d12` produced clean captures here without changing the project renderer.
 - Painted capture fixtures must refresh navigation before saving: stale solid NAV can permanently reject first-frame gated effects despite visible non-solid terrain.
 - Godot Movie Maker can leave empty or truncated PNGs when the output disk fills without failing the process; reserve output space and validate the PNGs before comparing captures.

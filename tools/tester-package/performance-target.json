@@ -10,7 +10,7 @@
   "warm_up_seconds": 2.0,
   "draw_clock": {
     "max_share_over_limit": 0.015,
-    "source": "tools/game-unity-probe/draw_clock.py's default limit, the regression gate's (docs/PERFORMANCE.md)"
+    "source": "tools/perf/draw_clock.py's default limit, the regression gate's (docs/PERFORMANCE.md)"
   },
   "tiers": [
     {

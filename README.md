@@ -134,11 +134,9 @@ Open `unity/DK2.Unity`, open `Assets/DK2/Scenes/Dungeon.unity`, and press Play w
 Rerun the sync script after changing the shared C# projects. See the
 [Unity guide](unity/README.md) for controls, adapter checks and rendering limits.
 
-Subtitles and title cards use Bullfrog's DungeonKeeperII TrueType font when it is present.
-It is not ours to ship, so it is gitignored: download it from
-[wfonts.com](https://www.wfonts.com/font/dungeonkeeperii) and put it at
-`unity/DK2.Unity/Assets/Resources/Fonts/DungeonKeeperII.ttf`. Without it the game
-uses DK2's own bitmap font from the install.
+The optional DungeonKeeperII TrueType font stays local. See the font setup in the
+[Godot guide](godot/README.md#setting-up-a-machine) or the [Unity guide](unity/README.md).
+The game uses the bitmap font from the install when the TrueType face is absent.
 
 ## Project structure and contributing
 

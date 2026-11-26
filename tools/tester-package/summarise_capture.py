@@ -18,7 +18,7 @@ import statistics
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "game-unity-probe"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "perf"))
 from draw_clock import analyse as draw_clock  # noqa: E402
 
 TARGET_FILE = Path(__file__).resolve().with_name("performance-target.json")

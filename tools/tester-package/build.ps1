@@ -59,7 +59,7 @@ if ($LASTEXITCODE -ne 0) { throw "The exported pack holds files it must not (pck
 
 # The pinned PresentMon (hash and publisher signature checked by the installer).
 $presentMon = "$repo/build/profiling-tools/PresentMon-2.6.0-x64.exe"
-& "$repo/tools/classic-unity-probe/install-presentmon.ps1" | Out-Null
+& "$PSScriptRoot/install-presentmon.ps1" | Out-Null
 Copy-Item -LiteralPath $presentMon -Destination "$package/tools/PresentMon-2.6.0-x64.exe" -Force
 
 Copy-Item -LiteralPath "$PSScriptRoot/capture.ps1" -Destination "$package/capture.ps1" -Force

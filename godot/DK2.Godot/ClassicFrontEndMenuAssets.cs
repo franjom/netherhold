@@ -9,8 +9,8 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>What the front-end menu reads from the install: the shared <see cref="InstallFrontEndSources"/> (as Unity's
-/// <c>InstallClassicFrontEndMenuAssets</c> uses it) with Godot's PNG decoder, plus the replacement TrueType face.</summary>
+/// <summary>What the front-end menu reads from the install: the shared <see cref="InstallFrontEndSources"/> with Godot's
+/// PNG decoder, plus the replacement TrueType face.</summary>
 public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposable
 {
     private readonly InstallFrontEndSources _sources;
@@ -22,7 +22,7 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
     /// <summary>Bullfrog's DungeonKeeperII TrueType face, or null when this machine has none. It is not ours to ship, so
     /// it is never committed or imported: it is read from an absolute path, in order DK2_REPLACEMENT_FONT, <c>--menu-font</c>,
     /// the launcher's menu font (<see cref="MenuFontSearch"/>), then <c>Fonts/DungeonKeeperII.ttf</c> in this project
-    /// (gitignored), then the Unity project's (gitignored) copy. The subtitles use it too (<see cref="LoadReplacementFont"/>).</summary>
+    /// (gitignored). The subtitles use it too (<see cref="LoadReplacementFont"/>).</summary>
     public FontFile? ReplacementFont
     {
         get
@@ -58,10 +58,7 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
         string project = ProjectSettings.GlobalizePath("res://");
         if (string.IsNullOrEmpty(project)) return null;
         string local = System.IO.Path.Combine(project, "Fonts", "DungeonKeeperII.ttf");
-        if (File.Exists(local)) return local;
-        string unity = System.IO.Path.GetFullPath(System.IO.Path.Combine(project, "..", "..",
-            "unity", "DK2.Unity", "Assets", "Resources", "Fonts", "DungeonKeeperII.ttf"));
-        return File.Exists(unity) ? unity : null;
+        return File.Exists(local) ? local : null;
     }
 
     public string Text(uint id) => _sources.Text(id);

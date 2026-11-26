@@ -21,7 +21,7 @@ public sealed class FrameTelemetryTests
     [Fact]
     public void TheHeaderIsUnityRecordersColumns()
     {
-        // tools/game-unity-probe/draw_clock.py and tools/tester-package read these names.
+        // tools/perf/draw_clock.py and tools/tester-package read these names.
         Assert.Equal("frame,play_seconds,frame_ms,update_ms,ticks,tick_ms,sound_ms,wait_tick_ms,script_ms,input_ms,present_ms,"
             + "animated_frame_ms,chunk_rebuild_ms,lights_ms,hud_ms,gc_collections,render_tick,cam_x,cam_y,cam_z,path",
             FrameTelemetry.Header);

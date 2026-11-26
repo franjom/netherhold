@@ -250,7 +250,7 @@ public static partial class WikiPages
           .Append("superseded or withdrawn, and proposed; open questions; and DKII.EXE function records whose evidence links into ")
           .Append("the system's notes, with how many our code mirrors whole (BUILT) and in part (PARTIAL).\n\n");
         sb.Append("An ADR's status says it was decided, not that it was built: `accepted` stays when the code lands (ADR-0660). ")
-          .Append("\"Cited in code\" counts ADRs whose number appears in `src/` or the Unity scripts. It is a floor, not a census: ")
+          .Append("\"Cited in code\" counts ADRs whose number appears in `src/` or the Godot adapter. It is a floor, not a census: ")
           .Append("built decisions are not always cited, process and research decisions have no code to cite them, and a ")
           .Append("citation can mark a partial build.\n\n");
         sb.Append("| System | Notes | ADRs in force | Cited in code | Superseded | Proposed | Open questions | Function records | Built | Partial |\n");

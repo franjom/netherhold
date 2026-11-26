@@ -66,11 +66,11 @@ internal static partial class WikiCommand
         return new WikiInputs(catalog, notes, adrs, rows, records, AdrsCitedInCode(root));
     }
 
-    /// <summary>Code folders whose <c>ADR-NNNN</c> citations count as an ADR being built: the source and the Unity
+    /// <summary>Code folders whose <c>ADR-NNNN</c> citations count as an ADR being built: the source and the Godot
     /// scripts, not tests.</summary>
-    internal static readonly string[] CodeFolders = ["src", "unity/DK2.Unity/Assets"];
+    internal static readonly string[] CodeFolders = ["src", "godot/DK2.Godot"];
 
-    /// <summary>Every ADR number a <c>.cs</c> file under <see cref="CodeFolders"/> cites, build output skipped.</summary>
+    /// <summary>Every ADR number a <c>.cs</c> file under <see cref="CodeFolders"/> cites, excluding build output and addons.</summary>
     internal static IReadOnlySet<int> AdrsCitedInCode(string root)
     {
         var cited = new HashSet<int>();
@@ -81,7 +81,7 @@ internal static partial class WikiCommand
             foreach (string file in Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories))
             {
                 var parts = Path.GetRelativePath(root, file).Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                if (parts.Contains("obj") || parts.Contains("bin")) continue;
+                if (parts.Contains("obj") || parts.Contains("bin") || parts.Contains(".godot") || parts.Contains("addons")) continue;
                 foreach (System.Text.RegularExpressions.Match m in AdrCitation().Matches(File.ReadAllText(file)))
                     foreach (System.Text.RegularExpressions.Capture number in m.Groups[1].Captures.Concat(m.Groups[2].Captures))
                         cited.Add(int.Parse(number.ValueSpan, System.Globalization.CultureInfo.InvariantCulture));

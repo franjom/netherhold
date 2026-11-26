@@ -42,7 +42,9 @@ public class WikiTests
             Write("src/A/Rules.cs", "// ADR-0001; see ADR-0058/0063/0065");
             Write("src/A/obj/Gen.cs", "// ADR-0002");
             Write("tests/A.Tests/T.cs", "// ADR-0003");
-            Write("unity/DK2.Unity/Assets/DK2/Scripts/View.cs", "// ADR-0004");
+            Write("godot/DK2.Godot/View.cs", "// ADR-0004");
+            Write("godot/DK2.Godot/.godot/Gen.cs", "// ADR-0006");
+            Write("godot/DK2.Godot/addons/Plugin.cs", "// ADR-0007");
             Write("src/A/Notes.md", "ADR-0005");
 
             Assert.Equal([1, 4, 58, 63, 65], WikiCommand.AdrsCitedInCode(root).Order());

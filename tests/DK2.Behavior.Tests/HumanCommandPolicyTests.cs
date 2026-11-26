@@ -13,7 +13,7 @@ namespace DK2.Behavior.Tests;
 
 /// <summary>
 /// The fuzzer's allowlist (ADR-0552 §4) is explicit and kept true: every command type is classified,
-/// and every command the human input files build is one a human may issue. The Unity files are read
+/// and every command the human input files build is one a human may issue. The Godot files are read
 /// as text because nothing in <c>src/</c> can reference them.
 /// </summary>
 public class HumanCommandPolicyTests
@@ -41,6 +41,10 @@ public class HumanCommandPolicyTests
             Assert.True(Directory.Exists(dir), $"{root} is listed as a human input root but does not exist");
             foreach (string path in Directory.EnumerateFiles(dir, "*.cs", SearchOption.AllDirectories))
             {
+                string relative = Path.GetRelativePath(dir, path);
+                if (relative.StartsWith(".godot" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
+                    relative.StartsWith("addons" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                    continue;
                 // Any mention outside a comment line: commands are built as `new X(`, `X.Rect(`, and
                 // target-typed `new(` behind a method that returns X.
                 string code = string.Join('\n', File.ReadLines(path).Where(l => !l.TrimStart().StartsWith("//", StringComparison.Ordinal)));

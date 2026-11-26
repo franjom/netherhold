@@ -263,14 +263,14 @@ if __name__ == "__main__":
 
 
 class TierTests(unittest.TestCase):
-    target = dict(name="owner", minimum_fps=60, metadata=dict(CPU="owner cpu", GPU="owner gpu", Resolution="1920x1080"),
+    target = dict(name="owner", floor_machine=dict(CPU="owner cpu", GPU="owner gpu", Resolution="1920x1080"),
                   tiers=[dict(name="floor", minimum_fps=60, resolution="1920x1080"),
                          dict(name="desktop", minimum_fps=120, resolution="1920x1080")])
 
     def test_no_tier_is_the_owner_floor(self):
         tier = select_tier(self.target, None)
         self.assertEqual(60, tier["minimum_fps"])
-        self.assertEqual([], tier_reasons(self.target, tier, dict(self.target["metadata"]), 60))
+        self.assertEqual([], tier_reasons(self.target, tier, dict(self.target["floor_machine"]), 60))
         self.assertEqual(["Target GPU must be 'owner gpu'"],
                          tier_reasons(self.target, tier, dict(CPU="owner cpu", GPU="RTX 3060", Resolution="1920x1080"), 60))
 

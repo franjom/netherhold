@@ -1,4 +1,4 @@
-﻿# Unity crowd performance probe
+# Unity crowd performance probe
 
 ## Front-end session
 
@@ -119,7 +119,7 @@ logs, source fingerprints and built managed-DLL hashes accompany each capture.
 For the strict release FPS gate, install the pinned portable PresentMon once:
 
 ```powershell
-./tools/classic-unity-probe/install-presentmon.ps1
+./tools/tester-package/install-presentmon.ps1
 ./tools/classic-unity-probe/run-window-frames.ps1 `
   -Project 'D:/DungeonKeeperRemake/build/tag-overlay-probe/project' `
   -PortalIntroduction -VisiblePlayer -ReleasePlayer -CheckFrameBudget `
@@ -128,7 +128,7 @@ For the strict release FPS gate, install the pinned portable PresentMon once:
 
 `-CheckFrameBudget` selects lightweight FPS tracing and disables Unity Frame
 Timing Stats at build time. It requires every measured CPU loop and native
-presentation interval to meet the target in `performance-target.json`.
+presentation interval to meet the target in `tools/tester-package/performance-target.json`.
 The current minimum is 60 FPS; a fast average cannot excuse a hitch.
 The helper verifies the official PresentMon download's SHA256 and Intel signature.
 The launcher starts tracing before the player and releases only its own ETW session.
@@ -142,11 +142,11 @@ API list affects only the isolated project, not production settings.
 
 Without the gate, `-TraceMode diagnostic-gpu -PresentMon <exe>` captures GPU
 diagnostics. This instrumentation cannot certify FPS acceptance. Recheck captures
-with `python tools/classic-unity-probe/frame_budget.py <run-directory>`;
+with `python tools/perf/frame_budget.py <run-directory>`;
 use `--mode diagnostic-gpu` for diagnostic captures. Exit codes are 0 pass,
 1 budget failure, 2 invalid evidence, and 3 diagnostic only. Screenshots are
 outside the acceptance interval. Tests run with `python -m unittest discover
--s tools/classic-unity-probe -p test_frame_budget.py`.
+-s tools/perf -p test_frame_budget.py`.
 
 Acceptance scope and remaining coverage: [performance policy](../../docs/PERFORMANCE.md).
 
@@ -174,7 +174,7 @@ For native GPU scheduling diagnostics, reuse a current Release FPS player with
 `-TraceMode native-gpu -NoArrivalScreenshot -PresentMon <exe>`. This keeps Unity
 per-frame GPU measurement off and enables GPU tracking in ETW. Run lightweight
 FPS/native GPU/lightweight FPS serially on the same executable. Validate the
-middle capture with `frame_budget.py <run> --mode diagnostic-gpu`; it remains
+middle capture with `tools/perf/frame_budget.py <run> --mode diagnostic-gpu`; it remains
 diagnostic regardless of its timings. Rebuild old players before using new modes.
 
 Setup, measured results and limits: [portal arrival performance](../../docs/research/portal-arrival-performance.md).
@@ -185,7 +185,7 @@ Setup, measured results and limits: [portal arrival performance](../../docs/rese
 with the authored default/minimum/maximum zooms. PNGs go to `camera-captures/`
 beside the isolated project. The probe checks the rendered optical axis and
 nonblank pixels and uses the production terrain lattice. `wall-markers.csv`
-contains deformed marker positions and projections. Run `compare-camera.py`
+contains deformed marker positions and projections. Run `tools/perf/compare-camera.py`
 with the external native frame directory and remake capture directory to print
 the two stationary-view marker measurements. The probe does not assert motion parity. Reference
 recording and comparison limits: [classic camera](../../docs/research/classic-camera.md#6-camera-recording-2026-10-23).
@@ -259,7 +259,7 @@ Original references need matching viewport and sequence phase; a screenshot
 reported as untouched defaults does not establish its exact tick or ambient RGB.
 
 For the unresolved original-input gap, leave retail DK2 running on Level1 and use
-`capture-native-render-inputs.py --pid <pid> --exe <path> --expected-sha256 <digest> --output <ignored-json>`.
+`tools/perf/capture-native-render-inputs.py --pid <pid> --exe <path> --expected-sha256 <digest> --output <ignored-json>`.
 Use the digest of the executable imported into Ghidra, not an arbitrary live
 executable. The script validates that digest and process path before fixed-address
 reads. It requests read/query access only and changes no game memory or settings.

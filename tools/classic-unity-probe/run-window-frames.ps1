@@ -90,7 +90,7 @@ if ($ArrivalAllocationStacks -and $captureMode -ne 'cpu') { throw 'Arrival alloc
 if ($CheckFrameBudget -and $captureMode -ne 'fps') { throw 'FPS qualification requires lightweight fps trace mode.' }
 if ($CheckFrameBudget -and !$PresentMon) {
     $PresentMon = Join-Path $repo 'build/profiling-tools/PresentMon-2.6.0-x64.exe'
-    if (!(Test-Path -LiteralPath $PresentMon)) { throw 'Run tools/classic-unity-probe/install-presentmon.ps1 first.' }
+    if (!(Test-Path -LiteralPath $PresentMon)) { throw 'Run tools/tester-package/install-presentmon.ps1 first.' }
 }
 if ($CheckFrameBudget -and (!$PortalIntroduction -or !$ReleasePlayer -or $OmitArrivalEffect)) {
     throw '-CheckFrameBudget requires -PortalIntroduction -ReleasePlayer and the full effect.'
@@ -235,7 +235,7 @@ if ($AllocationTrace) {
 }
 Write-Output "Windowed capture artifacts (check RenderingVerified): $run"
 if ($CheckFrameBudget) {
-    $report = python "$PSScriptRoot/frame_budget.py" $run
+    $report = python "$PSScriptRoot/../perf/frame_budget.py" $run
     $budgetExit = $LASTEXITCODE
     [IO.File]::WriteAllText("$run/frame-budget.json", ([string]::Join("`n", $report) + "`n"), [Text.UTF8Encoding]::new($false))
     $report | Write-Output

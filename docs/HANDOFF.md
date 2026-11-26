@@ -173,8 +173,8 @@ These are entry points, not a new priority order.
   F3 or `--dev-overlay` shows the [developer overlay](../godot/README.md#developer-overlay) (`DevOverlayModel`), and
   [Debugging and profiling](../godot/README.md#debugging-and-profiling) covers the editor's own tools. Unity's diagnostics
   overlay is not ported.
-  Step 4's probes item is done: `--record-frames` writes Unity's recorder's `frames.csv` for `draw_clock.py`; every other
-  Unity probe is covered or obsolete ([Probes](../godot/README.md#probes)); `tools/hud-probe` is deleted.
+  `--record-frames` writes `frames.csv` for `tools/perf/draw_clock.py`. The
+  [Godot probes](../godot/README.md#probes) document coverage for the remaining Unity probes.
   The tester package is a release Godot export (`tools/tester-package`, [Exporting](../godot/README.md#exporting)). CI builds
   `godot/DK2.Godot` and the architecture gate holds it to its one `DK2.Presentation` reference. Step 4 is complete: the Godot
   targets are `tools/tester-package/performance-target.json` (tiers and harness ceilings, each with its source). Level6a's

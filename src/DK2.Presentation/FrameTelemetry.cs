@@ -28,9 +28,8 @@ public enum FrameTelemetryPart
 public readonly record struct FrameTelemetryEnd(int Ticks, double TickMs, double RenderTick, Vector3 Camera, bool PathPlaying,
     double ChunkRebuildMs, int Gen0Collections);
 
-/// <summary>Per-frame telemetry in the columns of Unity's release-player recorder (<c>FrameRecorder</c>) and
-/// <c>tools/game-unity-probe</c>'s <c>frames.csv</c>, so <c>draw_clock.py</c> and the tester package's summarisers read a
-/// Godot capture unchanged (migration plan step 4, probes). Times are stopwatch timestamps at the constructor's
+/// <summary>Per-frame telemetry in the CSV columns read by <c>tools/perf/draw_clock.py</c> and the tester
+/// package's summarisers. Times are stopwatch timestamps at the constructor's
 /// frequency. One preallocated buffer, so recording allocates nothing; frames past the capacity are counted in
 /// <see cref="Dropped"/>.</summary>
 public sealed class FrameTelemetry

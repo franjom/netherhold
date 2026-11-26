@@ -384,7 +384,7 @@ frame; first the largest 16:9 within 90%), the start rule and the words are `DK2
 `LauncherWindowSizes`, `LauncherStartRule`, `LauncherCopy`, `LauncherTests`); the install rule is `Dk2Install.Check`.
 The install is DK2_DIR, then `--dk2Install <dir>`, then the launcher's folder while it still holds an install, then the
 development default (`Dk2Install.Resolve`). The menu font is DK2_REPLACEMENT_FONT, then `--menu-font <file>`, then the
-launcher's file (`MenuFontSearch`), then the gitignored copies below; empty, the menu draws DK2's BF4 bitmap font.
+launcher's file (`MenuFontSearch`), then the [gitignored project copy](#setting-up-a-machine). The menu draws DK2's BF4 bitmap font when no replacement is present.
 
 The launcher uses no DK2 art or lettering: its fonts are UnifrakturMaguntia (the title) and Alegreya Sans, SIL OFL, in
 `Launcher/` with their licences (`THIRD-PARTY-NOTICES.md`), and its stone and seam are canvas shaders
@@ -558,9 +558,9 @@ powershell -File godot/editor.ps1    # open the editor
 
 The game reads the original install in place: `DK2_DIR`, else the launcher's choice, else the usual install locations
 (`DK2.Data.Dk2Install`, *The launcher*); the in-game scene needs it for its models and textures as well as the HUD art. The front end's replacement TrueType face is Bullfrog's DungeonKeeperII.ttf, which is not
-ours to ship (download: see `unity/README.md`). It is read from an absolute path, never imported:
-`DK2_REPLACEMENT_FONT`, else `--menu-font`, else the launcher's choice, else `DK2.Godot/Fonts/DungeonKeeperII.ttf` (gitignored), else the Unity project's
-gitignored copy. Without it the menu draws DK2's BF4 bitmap font.
+ours to ship. Download it from [wfonts.com](https://www.wfonts.com/font/dungeonkeeperii).
+The loader reads it directly from an absolute path without importing it:
+`DK2_REPLACEMENT_FONT`, else `--menu-font`, else the launcher's choice, else `DK2.Godot/Fonts/DungeonKeeperII.ttf` (gitignored). Without it the menu draws DK2's BF4 bitmap font.
 
 `-InstallRoot` or `DK2_GODOT_ROOT` puts editors elsewhere. Each version gets its own folder, so
 an upgrade never touches the version you are leaving.
@@ -742,7 +742,7 @@ the frame's thread at the frame's top, for the interval that just ended (Unity's
 outside Movie Maker, `docs/TRAPS.md`), so `wait_tick_ms` is 0 and a row's ticks are drawn in the same row; `hud_ms` also holds the hover and the blended items' order; `cam_*` is the
 drawn eye in the renderers' frame, as Unity's. Run it in real time (no `--fixed-fps`, which decouples the draw clock from
 the wall clock), e.g. `--headless --max-fps 60 --quit-after 1500 res://InGameHud.tscn -- --level Level1 --seed 1
---record-frames <temp>/rec` with the temporary player files, then `python tools/game-unity-probe/draw_clock.py
+--record-frames <temp>/rec` with the temporary player files, then `python tools/perf/draw_clock.py
 <temp>/rec/frames.csv`. `tools/tester-package/summarise_capture.py` reads it under `recorder/` and rates a capture valid
 only from the release export (its development, backend, API and resolution checks; *Exporting*). Headless, the metadata has
 no GPU and a 64x64 resolution, which it rates invalid.
@@ -752,21 +752,21 @@ or reference whose purpose ended; step 5 deletes them.
 
 | Unity probe | Produced | Verdict |
 |---|---|---|
-| `FrameRecorder`, `tools/game-unity-probe` (`frames.csv`, `draw_clock.py`) | per-frame timing, the fly-by's draw clock | ported: `--record-frames` |
+| `FrameRecorder` (`frames.csv`, `tools/perf/draw_clock.py`) | per-frame timing, the fly-by's draw clock | ported: `--record-frames` |
 | game probe's summary, `-Benchmark`, `-CaptureFrom` | frame percentiles, GPU ms per settings variant, a Unity Profiler capture | covered: `--perf-report`, `perf.ps1 -Extra`, `perf_compare.py` |
 | `Level8MotionProbe` | the opening fly-by's poses | covered: `--record-frames` and `draw_clock.py`, its metric |
 | `ClassicWindowFrameProbe`, `ClassicRotationProbe`, `Portal*Performance`/`Profile`/`CpuProfileReport`, their summarisers | windowed frame, rotation and arrival timings | covered: `perf.ps1` (`--perf-camera`); the PresentMon FPS gate is the tester package's item |
 | `ClassicCrowdProbe` (+ `summarize.py`), `tools/classic-animation-probe` | CPU vs VAT crowd costs | obsolete: Godot animates on the GPU (audit item 8); the animation probe needs no Unity |
 | `ClassicCameraReferenceProbe` (+ `compare-camera.py`) | frames and wall markers against the native recording | covered: Godot draws `ClassicCamera`'s pose (`ClassicCameraTests`, `RightHandedFrameTests`; 3a's focus at y 453.37 of DK2's 453.375); the measurement is in [classic camera](../docs/research/classic-camera.md) |
 | `ClassicWorldLightingProbe`, `ClassicStartupCaptureProbe`, `ClassicLiveCameraAudit` | Unity reference frames, timed startup views | obsolete: 3f, 3g and 3i are accepted; Movie Maker with `--light-probe*` and `--glide-to` captures any turn |
-| editor `ClassicLighting*`, `ClassicTileLight`, `ClassicTagMaterial`, `ClassicSightFog`, `ClassicShadow`, `ClassicLightning` probes, `ClassicAllocationCalibration`, `ClassicLookSetup` | GPU checks of Unity's shaders, URP setup, Unity's allocation meter | obsolete; Godot's: `TorchLightProbe.tscn`, `WorldOcclusionProbe.tscn`, `ClassicVertexLightShaderTextTests`, `--stage-lightning`, the harness's `harness.selfBytes` |
+| editor `ClassicLighting*`, `ClassicTileLight`, `ClassicTagMaterial`, `ClassicSightFog`, `ClassicShadow`, `ClassicLightning` probes, `ClassicAllocationCalibration`, `ClassicLookSetup` | GPU checks of Unity's shaders, URP setup, Unity's allocation meter | obsolete; Godot's: `TorchLightProbe.tscn`, `WorldOcclusionProbe.tscn`, `--stage-lightning`, the harness's `harness.selfBytes` |
 | `TagOverlayOrderProbe`, `TransparentTerrainReuseProbe`, `HoverOutlineFiniteProbe` | blended order, run reuse, finite cage output | covered: `BlendedItemOrderTests`, `BlendedRunSlotsTests`, `BlendedTerrainStreamTests`, `Cage.gdshader`'s clamp |
 | `ShotEffectsProbe`, `HeartDestructionProbe`, `PortalEntranceProbe`, `PortalCrystalMovementProbe`, `CreatureLevelEffectProbe`, `TutorialHighlightProbe`, `RoomLifeProbe` | effect and room captures | covered: the shared effect and draw-list tests, Movie Maker captures of `InGameHud.tscn` |
 | `SpellSlotStateProbe`, `HudComparisonProbe`, `ScaledIntegrationProbe` (still failing in Unity) | panel state, HUD captures at two sizes, HUD scale | covered: `BottomPanelHudTests`, `HudScaleLayoutTests`, `HudPointerMapTests`; step 1 compared Godot's HUD with those captures |
 | `FrontEndSessionProbe`, `FrontEndMenuProbe`, `CompletionFlowProbe`, `SessionSaveLoadProbe`, `Options*Probe`, `InGameOptionsProbe`, `DungeonSetup.SmokeTest`/`SaveSmokeTest`, `ClassicMovieMenu`, `FrontEndPreview` | front end, flow, save/load, options, smoke runs, movie, editor jumps | covered: the `Main.tscn` and `InGameHud.tscn` runs (*Verifying*), `--from-map`, `--stage-win`, `--save-as`/`--load`/`--hash-at`, `--open-options`, `--play-movie` and their `DK2.Presentation` tests |
 | `tools/hud-probe` | UI Toolkit pilot | obsolete; deleted |
 
-`capture-native-render-inputs.py` reads DK2's process, not Unity, and stays a tool.
+`tools/perf/capture-native-render-inputs.py` reads native render inputs from the DK2 process.
 
 ## Upgrading Godot
 

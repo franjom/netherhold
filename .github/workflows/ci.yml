@@ -173,9 +173,13 @@ jobs:
           python -m unittest discover -s tools/oracle -p test_capture_decoder.py -v
           python -m unittest discover -s tools/oracle -p test_play_record.py -v
 
-      - name: Performance capture regression tests (no GPU required)
+      - name: Unity arrival profile regression tests (no GPU required)
         if: runner.os == 'Windows'
         run: python -m unittest discover -s tools/classic-unity-probe -p "test_*.py" -v
+
+      - name: Performance capture regression tests (no GPU required)
+        if: runner.os == 'Windows'
+        run: python -m unittest discover -s tools/perf -p "test_*.py" -v
 
       - name: Build
         # Directory.Build.props sets TreatWarningsAsErrors, so this is also the

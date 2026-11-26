@@ -171,7 +171,7 @@ a comparison assumption, not a native camera-state measurement.
 Measured remake-minus-original red wall-marker centres, expressed in native
 1600x1200 pixels: eight markers at5s/default zoom40960 have RMS per axis1.34px,
 mean offset(-1.68,-0.15)px; seven at10s/maximum zoom53247 have RMS1.18px and
-mean(-1.53,-0.17)px. `tools/classic-unity-probe/compare-camera.py` reproduces the
+mean(-1.53,-0.17)px. `tools/perf/compare-camera.py` reproduces the
 colour-weighted connected-component measurements from the extracted frames.
 At15s, six known wall markers fitted with fixed lens/pitch/focus and maximum
 zoom give yaw-61.758degrees and RMS1.47px per axis. This rotation fit does not

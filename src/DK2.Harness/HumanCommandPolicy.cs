@@ -29,7 +29,7 @@ public enum HumanCommandClass
 /// derived from the input paths that build them. <c>HumanCommandPolicyTests</c> fails when a
 /// command type is unclassified, or when any file under <see cref="SourceRoots"/> names a command
 /// that is not <see cref="HumanCommandClass.Play"/> or <see cref="HumanCommandClass.OutsidePlay"/>.
-/// The Unity files cannot be referenced from <c>src/</c>, so they are read as source text.
+/// The Godot files cannot be referenced from <c>src/</c>, so they are read as source text.
 /// </summary>
 public static class HumanCommandPolicy
 {
@@ -40,7 +40,7 @@ public static class HumanCommandPolicy
     /// <c>.cs</c> file below them is scanned, so a new input file cannot escape the check. Today the
     /// builders are PlayerInput, PlacementCursor, KeeperResourceInteraction, PossessionControls and DungeonRunner
     /// (.Hud, .Finale, .Possession).</summary>
-    public static readonly IReadOnlyList<string> SourceRoots = ["src/DK2.Presentation", "unity/DK2.Unity/Assets/DK2"];
+    public static readonly IReadOnlyList<string> SourceRoots = ["src/DK2.Presentation", "godot/DK2.Godot"];
 
     public static readonly IReadOnlyDictionary<Type, HumanCommandClass> Classes = new Dictionary<Type, HumanCommandClass>
     {

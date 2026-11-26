@@ -215,8 +215,7 @@ def qualify_fps(rows, metadata, presents, fps=60):
 def select_tier(target, name):
     """The owner's machine is the floor tier; another name must be listed in the target file."""
     tiers = target.get("tiers", [])
-    if name is None:
-        return dict(name="floor", minimum_fps=target["minimum_fps"], resolution="1920x1080", floor=True)
+    name = name or "floor"
     for tier in tiers:
         if tier["name"] == name:
             return dict(tier, floor=name == "floor")
@@ -228,7 +227,8 @@ def tier_reasons(target, tier, metadata, fps):
     tier accepts any hardware that names itself, so the report can say what it ran on."""
     reasons = []
     if tier["floor"]:
-        for key, expected in target["metadata"].items():
+        for key in ("CPU", "GPU", "Resolution"):
+            expected = target["floor_machine"][key]
             if metadata.get(key, "").strip() != expected:
                 reasons.append(f"Target {key} must be {expected!r}")
     else:
@@ -245,7 +245,7 @@ def tier_reasons(target, tier, metadata, fps):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("capture", type=Path)
-    target = json.loads(Path(__file__).with_name("performance-target.json").read_text(encoding="utf-8"))
+    target = json.loads((Path(__file__).resolve().parent.parent / "tester-package" / "performance-target.json").read_text(encoding="utf-8"))
     parser.add_argument("--fps", type=float, default=None)
     parser.add_argument("--mode", choices=("fps", "diagnostic-gpu"), default="fps")
     parser.add_argument("--tier", default=None,

@@ -27,7 +27,7 @@ or movie, a font other than the launcher's, a `Fonts/` path); the preset leaves
 out `addons/` (agent tooling), `Fonts/` (the gitignored DungeonKeeperII.ttf) and
 the probe scenes, and the game reads every DK2 file from the player's install.
 PresentMon 2.6.0 is verified and copied by
-`tools/classic-unity-probe/install-presentmon.ps1` (hash and Intel's
+`tools/tester-package/install-presentmon.ps1` (hash and Intel's
 signature). `manifest.txt` names the commit, whether the worktree was clean,
 the Godot version and the SHA256 of `DK2.exe`, `DK2.pck`, our assemblies and
 GodotSharp, and one hash over every file of the .NET folder.
@@ -59,7 +59,7 @@ frames only.
 harness ceilings `godot/perf_targets.py` reads; each number names its source):
 every frame after two seconds of play within the tier's budget, by the
 recorder's intervals and by PresentMon's presents when traced; the opening
-fly-by's draw clock by `tools/game-unity-probe/draw_clock.py`; and the ten worst
+fly-by's draw clock by `tools/perf/draw_clock.py`; and the ten worst
 frames with what each spent on the tick, Present, the animated frame and chunk
 rebuilds. A debug export, another backend than the Godot .NET export, a renderer
 other than Vulkan or Direct3D 12, another resolution, metadata without a CPU and

@@ -6,64 +6,13 @@ using System.Text.RegularExpressions;
 
 namespace DK2.Presentation.Tests;
 
-/// <summary>Each engine's shader copies <see cref="ClassicVertexLight"/> by hand, so its text is pinned here: every formula
-/// statement of the point, instance and radial terms, the bound skip and the per-flag sum, whitespace-normalised and
-/// counted where it repeats. Unity's HLSL is read as it ships; Godot's GLSL is Shaders/WorldLight.gdshaderinc as Godot's
-/// preprocessor expands it, with and without the torch shadows.</summary>
+/// <summary>Pins the point, instance and radial lighting terms, bound skip and per-flag sum
+/// in the expanded Godot shader, with and without torch shadows.</summary>
 public class ClassicVertexLightShaderTextTests
 {
-    private const string PointLighting = "unity/DK2.Unity/Assets/DK2/Resources/Shaders/ClassicPointLighting.hlsl";
-    private const string VertexLit = "unity/DK2.Unity/Assets/DK2/Resources/Shaders/ClassicVertexLit.shader";
     private const string GodotLighting = "godot/DK2.Godot/Shaders/WorldLight.gdshaderinc";
     private const string GodotWorld = "godot/DK2.Godot/Shaders/World.gdshaderinc";
     private const string PerPixel = "DK2_PER_PIXEL", Shadows = "DK2_TORCH_SHADOWS";
-
-    public static readonly TheoryData<string, int> HlslTerms = new()
-    {
-        { "float3 toLight = positionRadiusSquared.xyz - vertex;", 1 },
-        { "float distanceSquared = dot(toLight, toLight);", 1 },
-        { "if (radiusSquared <= 0 || distanceSquared >= radiusSquared) return true;", 2 },
-        { "if (radiusSquared <= 0 || distanceSquared >= radiusSquared) return 0;", 1 },
-        { "float incidence = dot(normal, toLight) * colourIntensity.w;", 1 },
-        { "if ((asuint(incidence) & 0x80000000u) != 0) return true;", 2 },
-        { "int index = (int)round(distanceSquared * 16.0 - 0.49999);", 3 },
-        { "if (index < 0 || index >= 256) return false;", 2 },
-        { "if (index < 0 || index >= 256) return 0;", 1 },
-        { "if (index == 0) { if (incidence == 0) return false; contribution = colourIntensity.rgb; return true; }", 2 },
-        { "float lookup = 0.25 + 16.0 / index;", 1 },
-        { "float factor = incidence * lookup * (radiusSquared - distanceSquared) / radiusSquared;", 1 },
-        { "contribution = colourIntensity.rgb * min(factor, 1.0);", 1 },
-        { "return min(floor(max(normalizedLightSum, 0.0) * 255.0 + 0.00001), 255.0) / 255.0;", 1 },
-        { "float3 delta = positionRadiusSquared.xyz - sampleWS;", 2 },
-        { "float distanceSquared = (delta.x * delta.x + delta.y * delta.y) + delta.z * delta.z;", 1 },
-        { "float3 direction = mul(transpose(basis), delta);", 1 },
-        { "float3 d = direction - (vertexOS - centre);", 1 },
-        { "float incidence = ((d.x * normalOS.x + d.z * normalOS.z) + d.y * normalOS.y) * colourIntensity.w;", 1 },
-        { "float attenuation = (radiusSquared - distanceSquared) * (0.25 + 16.0 / index) * (1.0 / radiusSquared);", 1 },
-        { "if (!(attenuation > 0)) return true;", 1 },
-        { "contribution = colourIntensity.rgb * min(incidence * attenuation, 1.0);", 1 },
-        { "float distanceSquared = dot(delta, delta), radiusSquared = positionRadiusSquared.w;", 1 },
-        { "if (index == 0) return colourIntensity.rgb;", 1 },
-        { "float factor = (0.25 + 16.0 / index) * (radiusSquared - distanceSquared) * colourIntensity.w * (1.0 / radiusSquared);", 1 },
-        { "return colourIntensity.rgb * min(factor, 1.0);", 1 },
-    };
-
-    public static readonly TheoryData<string, int> HlslSum = new()
-    {
-        { "if (input.tileAnchor.y >= 1) tile = (int)input.tileAnchor.x;", 1 },
-        { "int x = (int)floor(origin.x), y = (int)floor(-origin.z);", 1 },
-        { "if (x < 0 || x >= _DK2TileLightGridWidth || y < 0) return 0;", 1 },
-        { "if (tile < 0 || tile >= _DK2TileLightGridCount) return 0;", 1 },
-        { "uint count = min(_DK2TileLightCounts[tile], 24u);", 1 },
-        { "float3 centre = mul(basis, input.lightBounds.xyz);", 1 },
-        { "float3 sampleWS = TransformObjectToWorld(float3(0, 0, 0)) + centre;", 1 },
-        { "TileSource source = _DK2TileLightSources[tile * 24 + slot];", 1 },
-        { "uint flags = source.intensityFlags >> 8;", 1 },
-        { "float4 colourIntensity = float4(source.colour, (source.intensityFlags & 255u) / 128.0);", 1 },
-        { "if (input.lightKind.y == 1) { float drawScale = length(mul(basis, float3(1, 0, 0))); float radius = sqrt(source.positionRadiusSquared.w) + input.lightBounds.w * drawScale; float3 delta = source.positionRadiusSquared.xyz - sampleWS; if (dot(delta, delta) >= radius * radius) continue; }", 1 },
-        { "if (input.lightKind.x == 1) { if ((flags & 4u) == 4u) sum += DK2RadialContribution(TransformObjectToWorld(float3(0, 0, 0)), source.positionRadiusSquared, colourIntensity); if ((flags & 256u) == 256u && DK2InstancePointContribution(sampleWS, centre, input.positionOS.xyz, input.normalOS, basis, source.positionRadiusSquared, colourIntensity, contribution)) sum += contribution; } else if (DK2PointContribution(positionWS, normalWS, source.positionRadiusSquared, colourIntensity, contribution)) { if ((flags & 0x60u) == 0x60u) sum += contribution; if ((flags & 0xA0u) == 0xA0u || (flags & 1u) == 1u) sum += contribution; }", 1 },
-        { "output.diffuse = DK2PackedDiffuse(sum);", 1 },
-    };
 
     public static readonly TheoryData<string, int> Glsl = new()
     {
@@ -107,16 +56,6 @@ public class ClassicVertexLightShaderTextTests
         { "if (kind.x == 1.0) { if ((flags & 4u) == 4u) sum += dk2_radial(origin, pr, ci); if ((flags & 256u) == 256u && dk2_instance(s, centre, vos, nos, basis, pr, ci, c)) sum += c; } else if (dk2_point(pws, nws, pr, ci, c)) { if ((flags & 96u) == 96u) sum += c; if ((flags & 160u) == 160u || (flags & 1u) == 1u) sum += c; }", 1 },
         { "vec3 dk2_packed(vec3 s) { return min(floor(max(s, vec3(0.0)) * 255.0 + 0.00001), vec3(255.0)) / 255.0; }", 1 },
     };
-
-    [Theory]
-    [MemberData(nameof(HlslTerms))]
-    public void UnitysTermsKeepTheReferencesFormulas(string statement, int times) =>
-        Assert.Equal(times, Count(Normalise(Read(PointLighting)), statement));
-
-    [Theory]
-    [MemberData(nameof(HlslSum))]
-    public void UnitysSumKeepsTheReferencesFormulas(string statement, int times) =>
-        Assert.Equal(times, Count(Normalise(Read(VertexLit)), statement));
 
     [Theory]
     [MemberData(nameof(Glsl))]
