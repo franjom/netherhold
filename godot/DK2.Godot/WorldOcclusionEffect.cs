@@ -127,7 +127,7 @@ public partial class WorldOcclusionEffect : CompositorEffect
         }
 
         long draw = _rd.DrawListBegin(_applyFramebuffer, RenderingDevice.DrawFlags.DefaultAll,
-            ReadOnlySpan<Color>.Empty, 0f, 0u, null, 0u);
+            [], 0f, 0u, null, 0u);
         _rd.DrawListBindRenderPipeline(draw, _applyPipeline);
         _rd.DrawListBindUniformSet(draw, _applySet, 0);
         _rd.DrawListDraw(draw, false, 1, 3);

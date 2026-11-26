@@ -61,8 +61,8 @@ internal sealed class ClassicTabletCanvas : IDisposable
                 _triangles.Uvs[i] = new Vector2(vertex.U, vertex.V);
             }
             RenderingServer.CanvasItemAddTriangleArray(_item, _triangles.Indices.AsSpan(0, batch.Count),
-                _triangles.Points.AsSpan(0, batch.Count), ReadOnlySpan<Color>.Empty,
-                _triangles.Uvs.AsSpan(0, batch.Count), ReadOnlySpan<int>.Empty, ReadOnlySpan<float>.Empty, texture, -1);
+                _triangles.Points.AsSpan(0, batch.Count), [],
+                _triangles.Uvs.AsSpan(0, batch.Count), [], [], texture, -1);
         }
 
         if (!_sparkle.IsValid)
