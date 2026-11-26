@@ -194,8 +194,8 @@ No DK2 claim: #1369, #1370, #1373, #1376, #1378, #1382, #1383, #1384, #1387, #13
   The binary says no; ours does both.
 - At pay time, which way does a creature face just before it takes the gold, and does that change
   with where on the map the Treasury is?
-- Does an enemy walking past an open secret door reveal it, and does a possessed creature? The
-  binary says yes and no.
+- Answered (owner, 2026-11-26, Q888): an enemy near an open secret door uncovers it and a possessed
+  creature does not.
 - Does a knocked-out creature on Hero Lair terrain recover health? The binary says no.
 - Do sleepers in the Lair show the snore effect about every 12 seconds?
 - Does a second Shift-click on another HUD tab do nothing while one is pinned?
