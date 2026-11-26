@@ -1,7 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="../Shared/UnityBound.props" />
-
   <PropertyGroup>
     <RootNamespace>DK2.AI</RootNamespace>
   </PropertyGroup>

@@ -23,7 +23,7 @@ public class ArchitectureTests
     // DK2.Assets, DK2.Data, DK2.Presentation and DK2.AI are guarded the same way
     // in their own test projects — the guard lives beside the assembly it guards
     // rather than dragging references into the simulation's own tests. Between
-    // them the five files cover every assembly Unity loads, on both rules.
+    // them the five files cover the engine-neutral assemblies on both rules.
     public void SimulationAssemblies_DoNotReferenceAnEngine(string assemblyName)
     {
         var assembly = Assembly.Load(assemblyName);
@@ -37,22 +37,13 @@ public class ArchitectureTests
         Assert.Empty(offenders);
     }
 
-    /// <summary>Every assembly Unity has to load targets netstandard2.1
-    /// (ADR-0002); Unity cannot load a net10.0 assembly.</summary>
-    /// <remarks>Read from the built artefact, not from the csproj: the constraint
-    /// was expressed only in build configuration for four months and never held —
-    /// <c>Directory.Build.props</c> selected netstandard2.1 behind a condition on
-    /// a marker property the project body set after the props file was evaluated,
-    /// so every assembly built as net10.0 and <c>Polyfills.cs</c>, behind
-    /// <c>#if NETSTANDARD2_1</c>, was never compiled. A test that parsed the
-    /// project files would check the same intent that was already
-    /// wrong.</remarks>
+    /// <summary>Checks the target framework on the compiled simulation assemblies.</summary>
     [Theory]
     [InlineData("DK2.Core")]
     [InlineData("DK2.Data.Model")]
     [InlineData("DK2.Simulation")]
     [InlineData("DK2.Pathfinding")]
-    public void UnityLoadableAssemblies_TargetNetStandard21(string assemblyName)
+    public void SimulationAssemblies_TargetNet10(string assemblyName)
     {
         var assembly = Assembly.Load(assemblyName);
 
@@ -60,11 +51,11 @@ public class ArchitectureTests
             .GetCustomAttribute<System.Runtime.Versioning.TargetFrameworkAttribute>()
             ?.FrameworkName;
 
-        Assert.Equal(".NETStandard,Version=v2.1", target);
+        Assert.Equal(".NETCoreApp,Version=v10.0", target);
     }
 
     /// <summary>No assembly under <c>src/</c> references Godot (ADR-0805): no Godot SDK or package in a project file and
-    /// no <c>using Godot</c> in its source, so every one stays engine-neutral and loadable by either adapter.</summary>
+    /// no <c>using Godot</c> in its source, so every one stays engine-neutral in every build.</summary>
     [Fact]
     public void NothingUnderSrcReferencesGodot()
     {
@@ -201,7 +192,7 @@ public class ArchitectureTests
     [Fact]
     public void NoStaticFieldSharesMutableStateBetweenSimulations()
     {
-        // Two worlds tick on different threads (the Unity worker, parallel tests), and a static
+        // Two worlds tick on different threads (worker execution and parallel tests), and a static
         // they both write races: FightRules.RouteScratch did (cbee8a3d). A mutable static, or a
         // static readonly mutable collection, must be [ThreadStatic] or on the allow-list.
         var offenders = typeof(WorldState).Assembly.GetTypes()

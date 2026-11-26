@@ -11,7 +11,7 @@ Hosts can pass one `KeeperStaging` to successive `Think` calls and controller vi
 to share staging-route builds while preserving independent-view answers (ADR-0577).
 Build views serially because their derived world caches and staging are mutable.
 
-Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model` and `DK2.Simulation`.
+Targets `net10.0`. Depends on `DK2.Core`, `DK2.Data.Model` and `DK2.Simulation`.
 It sends the simulation commands only, never touching state.
 
 Test: `dotnet test tests/DK2.AI.Tests`. `DK2.Harness` runs it on shipped levels

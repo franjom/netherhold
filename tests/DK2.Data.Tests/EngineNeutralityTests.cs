@@ -7,8 +7,7 @@ using System.Runtime.Versioning;
 
 namespace DK2.Data.Tests;
 
-/// <summary>Holds <c>DK2.Data</c> to the engine boundary: it is loaded by Unity, so
-/// it must reference no engine assembly and must target netstandard2.1
+/// <summary><c>DK2.Data</c> targets .NET 10 and stays independent of engine assemblies
 /// (ADR-0002). The guard lives beside the assembly it guards, as
 /// <c>DK2.Simulation.Tests.ArchitectureTests</c> does for the simulation.
 /// <para>The KWD/WAD readers run inside the engine, so a convenience type from one would ship into every level load.</para></summary>
@@ -30,11 +29,11 @@ public class EngineNeutralityTests
     /// <remarks>Read from the built artefact, never the csproj — the constraint
     /// was expressed only in build configuration for four months and never held.</remarks>
     [Fact]
-    public void TheDataLayer_TargetsNetStandard21()
+    public void TheDataLayer_TargetsNet10()
     {
         string? target = Assembly.Load("DK2.Data")
             .GetCustomAttribute<TargetFrameworkAttribute>()?.FrameworkName;
 
-        Assert.Equal(".NETStandard,Version=v2.1", target);
+        Assert.Equal(".NETCoreApp,Version=v10.0", target);
     }
 }

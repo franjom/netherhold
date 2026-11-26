@@ -178,9 +178,7 @@ public static class Dk2SaveReader
         int sampled = 0;
         for (int i = 0; i < tiles; i += stride) sampled++;
 
-        // The finalists, kept sorted best-first. A plain array rather than a
-        // heap: this target is netstandard2.1, the list is 32 long, and an
-        // insertion only happens when an offset beats the worst of them.
+        // Keep the finalists sorted best-first. Insert an offset only when it beats the last finalist.
         var offsets = new int[FinalistOffsets];
         var scores = new int[FinalistOffsets];
         int held = 0;

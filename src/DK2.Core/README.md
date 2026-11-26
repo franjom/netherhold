@@ -7,8 +7,7 @@ and test fingerprints), the random generators
 `IRandomAlgorithm`), integer math helpers, and the `Confidence` enum with the
 `Dk2BehaviorAttribute` that tags code with a research note.
 
-Targets `netstandard2.1` through `src/Shared/UnityBound.props` until retargeting
-(ADR-0824). It has no project or package dependencies, engine references or file-system access. Shared bounded
+Targets `net10.0` (ADR-0824). It has no project or package dependencies, engine references or file-system access. Shared bounded
 save-reading, refusal and payload-checksum utilities also live here (ADR-0588).
 
 Test: `dotnet test tests/DK2.Core.Tests`.

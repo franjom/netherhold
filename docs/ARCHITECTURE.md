@@ -19,7 +19,7 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
         │         └──► DK2.Pathfinding             │
         └──────► DK2.Data.Model ◄── DK2.Data (parsers)
                        │
-                   DK2.Core                netstandard2.1
+                   DK2.Core                net10.0
 ```
 
 `DK2.Pathfinding` references only `DK2.Core`; `DK2.Data` never references
@@ -45,9 +45,7 @@ from `DK2.Data`; `DK2.Assets` has no Data dependency. The `.csproj` references a
 
 `docs/HANDOFF.md` §"Where to work" says which project a change belongs in.
 
-- The shared game assemblies still target **netstandard2.1** through
-  `src/Shared/UnityBound.props` until the migration's retargeting commit. The Godot
-  adapter, executables, tools, harness and tests target **net10.0**.
+- Shared assemblies, the Godot adapter, executables and tests target **net10.0**.
 - Architecture tests check the built assemblies' target frameworks and protect
   engine independence. The adapter's only direct project reference is
   `DK2.Presentation`. See ADR-0002 and ADR-0824.

@@ -60,7 +60,7 @@ public sealed class LightningDrawList
         for (int shotIndex = 0; shotIndex < world.Shots.Count; shotIndex++)
         {
             ShotState shot = world.Shots[shotIndex];
-            if (!database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef definition)
+            if (!database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition)
                 || definition.MeshResource.Type != 7) continue;
             var id = new ShotId(shot.Id); _liveShots.Add(id);
             if (!view.CanShowTile(world, new TilePos(shot.PosX >> 12, shot.PosY >> 12))) continue;

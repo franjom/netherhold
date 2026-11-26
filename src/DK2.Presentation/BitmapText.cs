@@ -22,8 +22,7 @@ public static class InterfaceFonts
     /// included, keeps the base size: a DK2 capture at 1600 x 1200 draws Level 1's subtitle
     /// in <c>FONT_INGAME10</c>, unscaled (owner, 2026-10-17). The size then picks
     /// <c>FONT_INGAME&lt;n&gt;</c>: 6 picks 7, and any size without its own case picks 12.
-    /// This is DK2's rule. Our Unity view does not use it: the owner found the result
-    /// unreadable at high resolutions (see <see cref="LegibleFileName"/>).
+    /// For captions at high resolutions, the presentation uses <see cref="LegibleFileName"/>.
     /// </summary>
     public static int IngamePointSize(int baseSize, int screenWidth)
     {

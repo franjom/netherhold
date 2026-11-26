@@ -9,7 +9,7 @@ system list (under `Systems/`). Rule logic lives in `*Rules.cs` and `*Step.cs`;
 what happened. State is hashed (`Hash64`) every tick. `CommandCodec` and `InputJournal`
 (writer and reader) are the binary input journal of every `PlayerCommand` (ADR-0552).
 
-Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model` and
+Targets `net10.0`. Depends on `DK2.Core`, `DK2.Data.Model` and
 `DK2.Pathfinding`. It reads no files; the data it needs arrives as a `GameDatabase`.
 
 Test: `dotnet test tests/DK2.Simulation.Tests`. Behaviour against the original

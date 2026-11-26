@@ -19,10 +19,7 @@ public sealed record GameSettings
     public int GameSpeed { get; init; } = 4;
     public int ScrollSpeed { get; init; } = 10;
     public int UiScale { get; init; } = 100;
-    /// <summary>Ours, not DK2's: multisample anti-aliasing samples per pixel (1 = off, 2, 4 or 8).</summary>
-    public int Msaa { get; init; } = 4;
-    /// <summary>Ours, the Godot adapter's 3D view (audit item 17), all off by default; Unity reads <see cref="Msaa"/>
-    /// instead. Multisample anti-aliasing samples per pixel (1 = off, 2, 4 or 8).</summary>
+    /// <summary>Multisample anti-aliasing samples per pixel in the 3D view (1 = off, 2, 4 or 8).</summary>
     public int RenderMsaa { get; init; } = 1;
     /// <summary>Ours: SMAA, a post-process edge anti-aliasing of the 3D view.</summary>
     public bool RenderSmaa { get; init; } = false;
@@ -61,7 +58,6 @@ public sealed record GameSettings
         GameSpeed = Math.Clamp(GameSpeed, 1, 16),
         ScrollSpeed = Math.Clamp(ScrollSpeed, 5, 20),
         UiScale = Math.Clamp(UiScale, 50, 200),
-        Msaa = Msaa >= 8 ? 8 : Msaa >= 4 ? 4 : Msaa >= 2 ? 2 : 1,
         RenderMsaa = RenderMsaa >= 8 ? 8 : RenderMsaa >= 4 ? 4 : RenderMsaa >= 2 ? 2 : 1,
         RenderScale = Math.Clamp(RenderScale, 50, 100),
         Bindings = Array.AsReadOnly((Bindings ?? Array.Empty<GameKeyBinding>())

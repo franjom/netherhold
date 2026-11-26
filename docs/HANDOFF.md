@@ -32,7 +32,7 @@ questions live in their canonical documents; this file links to them.
   [classic lighting verification](research/classic-lighting-verification.md).
 - Godot is the presentation adapter (ADR-0824). The
   [migration plan](plans/2026-11-15-godot-migration.md#step-5-remove-unity-at-parity)
-  tracks the remaining framework retarget. The [Godot guide](../godot/README.md)
+  records the completed move to Godot and .NET 10. The [Godot guide](../godot/README.md)
   covers the pinned toolchain, gameplay, capture and export.
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's

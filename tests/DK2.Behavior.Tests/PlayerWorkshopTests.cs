@@ -15,7 +15,7 @@ namespace DK2.Behavior.Tests;
 
 /// <summary>Door and trap offers and their placement (campaign bot stage 3 plan, Task 4) on the shipped
 /// definitions: the Workshop panel's slots with price and the Workshop greying, and a placement resolved
-/// to the command the click sends (DungeonRunner.Hud).</summary>
+/// to the command the click sends.</summary>
 public class PlayerWorkshopTests
 {
     private static readonly PlayerId Keeper = new(3);

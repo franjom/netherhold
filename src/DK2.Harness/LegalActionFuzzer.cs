@@ -162,7 +162,7 @@ public sealed class LegalActionFuzzer
     }
 
     /// <summary>The HUD's dispatch: a spell that targets a thing is cast on a creature, any other at
-    /// the centre of a tile (<c>DungeonRunner.Hud.cs</c>). Create Imp and the Reaper have their own tools.</summary>
+    /// the centre of a tile. Create Imp and the Reaper have their own tools.</summary>
     private PlayerCommand? Cast(KeeperView view)
     {
         KeeperSpellDef[] spells = view.Database.KeeperSpells.Values

@@ -10,8 +10,8 @@ using DK2.Simulation;
 namespace DK2.Presentation;
 
 /// <summary>
-/// The input journal of one adapter session (ADR-0553 Phase 1, moved out of Unity's runner in migration step 2h), off
-/// unless the host's own setting or <see cref="Variable"/> names a folder. Each session (the front end, each level)
+/// The input journal of one adapter session (ADR-0553 Phase 1), enabled by an explicit output folder.
+/// Each session (the front end, each level)
 /// gets a new folder (<see cref="FolderName"/>) with <see cref="FramesFile"/>, one <see cref="FrameInputRecord"/> per
 /// rendered frame, and, once its simulation ticks, <see cref="TicksFile"/> (ADR-0552: frame per tick, hash after it).
 /// The host calls, per frame: <see cref="BeginFrame"/>, any <see cref="Intent"/>, at most one <see cref="HandOff"/>
@@ -21,13 +21,11 @@ namespace DK2.Presentation;
 /// </summary>
 public sealed class FrameJournalSession
 {
-    /// <summary>The environment variable naming the journal root when the host's own setting is empty.</summary>
-    public const string Variable = "DK2_INPUT_JOURNAL";
     public const string FramesFile = "frames.journal";
     public const string TicksFile = "input.journal";
-    /// <summary>The header key naming the table a <see cref="HostKey"/> is numbered by (Unity's
-    /// <see cref="UnityKeyTable"/>, Godot's <see cref="GodotKeyTable"/>).</summary>
+    /// <summary>The header key naming the table that defines the <see cref="HostKey"/> values.</summary>
     public const string KeyTableKey = "keys";
+    /// <summary>The key table used in older recording fixtures.</summary>
     public const string UnityKeyTable = "UnityEngine.KeyCode";
     public const string GodotKeyTable = "Godot.Key";
 
@@ -59,18 +57,11 @@ public sealed class FrameJournalSession
     /// <summary>The session's folder, once opened.</summary>
     public string? Folder => _folder;
 
-    /// <summary>The host's own setting, else <see cref="Variable"/>; null or blank leaves the journal off.</summary>
-    public static string? Root(string? configured, Func<string, string?> environment)
-    {
-        if (environment is null) throw new ArgumentNullException(nameof(environment));
-        return string.IsNullOrWhiteSpace(configured) ? environment(Variable) : configured;
-    }
-
     /// <summary><c>session-yyyyMMdd-HHmmss-fff-front-end</c>, or the level's name in place of <c>front-end</c>.</summary>
     public static string FolderName(DateTime utcNow, GameSessionMode mode, string levelName) =>
         $"session-{utcNow.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture)}-{(mode == GameSessionMode.FrontEnd ? "front-end" : levelName)}";
 
-    /// <summary>The header keys both adapters write; the host adds its engine's version, and its commit if it knows it.</summary>
+    /// <summary>The shared journal header. The host adds its engine version and any known commit.</summary>
     public static Dictionary<string, string> Header(string source, string keyTable, GameSessionMode mode, string level,
         ulong seed, PlayerId viewer, bool fogOfWar, bool tickOnWorker, int screenWidth, int screenHeight) => new()
     {

@@ -12,19 +12,7 @@
     <Deterministic>true</Deterministic>
   </PropertyGroup>
 
-  <!--
-    Default target framework. An assembly Unity has to load overrides this to
-    netstandard2.1 by importing src/Shared/UnityBound.props from inside its own
-    project body (ADR-0002).
-
-    DO NOT move that back here behind a Condition on a marker property. It was
-    written that way originally and it never worked: this file is imported
-    BEFORE the project body, so the marker was always empty, every project
-    silently built as net10.0, and Polyfills.cs was never compiled. Four months
-    later the first attempt to compile against Unity's own assemblies found it.
-    UnityBound.props explains the evaluation order in full, and
-    ArchitectureTests asserts the outcome so it cannot go quiet again.
-  -->
+  <!-- Shared .NET target for the solution and Godot adapter. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>

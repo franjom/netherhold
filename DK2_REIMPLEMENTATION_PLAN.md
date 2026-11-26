@@ -552,8 +552,7 @@ difference is noted here.
 │   ├── DK2.Presentation/         world → drawable, renderer-independent
 │   ├── DK2.Convert/              original art → glTF/GLB and PNG
 │   ├── DK2.Harness/              headless scenario runner
-│   ├── DK2.Tools/                the dk2tools CLI
-│   └── Shared/                   UnityBound.props, netstandard2.1 polyfills
+│   └── DK2.Tools/                the dk2tools CLI
 ├── godot/DK2.Godot/              Godot presentation and integration
 ├── tests/                        Core, Data, Simulation, Behavior, Assets,
 │                                 Presentation, Convert, AI, Tools, TestSupport
@@ -1219,7 +1218,7 @@ it; the ADR carries the reason.
 | Flame identifiers in the repository | **May be cited in a document, never in `src/`, `tests/` or the Godot adapter**, comments included (ADR-0080, `FlameIdentifierTests`). |
 | Vendoring Flame's `mapping/*.map` as research data | **Not vendored, and better than vendored**: the whole repository is cloned outside the tree at a pinned commit (R15, §2.2.1). |
 | Decompiler output | **Never enters the repository, anywhere** (ADR-0046). `reverse-engineering/` is gitignored except its README. |
-| .NET version | net10.0 for tools, harness and tests; **netstandard2.1** for the shared game assemblies until retargeting through migration step 5 (ADR-0824). |
+| .NET version | net10.0 for all shared assemblies, the Godot adapter, tools and tests (ADR-0824). |
 | Godot version | The .NET build pinned in [`godot/godot-version.json`](godot/godot-version.json) (ADR-0810). |
 | Fixed-point format | **Q32.32, `long`-backed** (`Fp32`, ADR-0001). |
 | Test framework | **xUnit**, with scenario tests generated from YAML (`ScenarioTests`). |

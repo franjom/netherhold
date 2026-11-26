@@ -28,8 +28,7 @@ public interface IHudPointerPanels
 }
 
 /// <summary>Whether the pointer is over the in-game HUD rather than the world: any panel under it, the open full map (which
-/// holds the whole screen), or the creature query details while a creature is queried and no menu is modal. Unity asks it
-/// for world hover, world clicks and the camera's wheel; Godot, with no 3D world yet, only for the HUD's hover text.</summary>
+/// holds the whole screen), or the creature query details while a creature is queried and no menu is modal.</summary>
 public static class HudPointerMap
 {
     public static bool Over<TPanels>(TPanels panels, bool fullMapVisible, bool queryHasTarget, bool modal)

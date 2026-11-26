@@ -42,7 +42,7 @@ public struct Hash64
     public void Add(ulong v)
     {
         ulong x = _h ^ (v * Prime2);
-        // netstandard2.1 has no BitOperations; the JIT turns this pattern into one rotate.
+        // The JIT turns this pattern into one rotate.
         _h = (((x << 31) | (x >> 33)) * Prime1) + Prime4;
     }
 

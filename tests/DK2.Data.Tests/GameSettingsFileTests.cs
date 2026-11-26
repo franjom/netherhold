@@ -16,7 +16,7 @@ public class GameSettingsFileTests
             SpeechSwitch = false, MusicSwitch = false, SfxSwitch = false, QSound = true,
             EnvironmentalEffects = false, WaterTranslucency = false, EnvironmentMapping = false,
             Headphones = true, InvertMouse = true, GameSpeed = 11, ScrollSpeed = 17,
-            MouseSensitivity = 19, UiScale = 150, Msaa = 2,
+            MouseSensitivity = 19, UiScale = 150,
             RenderMsaa = 8, RenderSmaa = true, RenderScale = 67, RenderScaleFsr = true,
             Bindings = new[] { new GameKeyBinding(GameAction.Heart, 0x20, KeyModifiers.Control) } };
         GameSettings restored = GameSettingsFile.Read(GameSettingsFile.Write(original) + "FutureOption=91\n");
@@ -36,18 +36,15 @@ public class GameSettingsFileTests
     }
 
     [Fact]
-    public void MsaaDefaultsToFourSamples() =>
-        Assert.Equal(4, GameSettingsFile.Read("").Msaa);
+    public void LegacyMsaaDoesNotChangeModernSettingsOrPersist()
+    {
+        GameSettings restored = GameSettingsFile.Read("Gamma=44\nRenderMsaa=2\nMsaa=8\n");
 
-    [Theory]
-    [InlineData(0, 1)]
-    [InlineData(1, 1)]
-    [InlineData(3, 2)]
-    [InlineData(4, 4)]
-    [InlineData(7, 4)]
-    [InlineData(64, 8)]
-    public void MsaaRoundsDownToASupportedSampleCount(int stored, int expected) =>
-        Assert.Equal(expected, GameSettingsFile.Read($"Msaa={stored}\n").Msaa);
+        Assert.Equal(44, restored.Gamma);
+        Assert.Equal(2, restored.RenderMsaa);
+        Assert.DoesNotContain(GameSettingsFile.Write(restored).Split('\n'),
+            line => line.StartsWith("Msaa=", StringComparison.Ordinal));
+    }
 
     [Fact]
     public void TheModernViewSettingsDefaultOff()
@@ -55,8 +52,6 @@ public class GameSettingsFileTests
         GameSettings s = GameSettingsFile.Read("");
         Assert.Equal(1, s.RenderMsaa); Assert.False(s.RenderSmaa);
         Assert.Equal(100, s.RenderScale); Assert.False(s.RenderScaleFsr);
-        // Unity's own setting is a separate key: setting it does not turn on the Godot view's MSAA.
-        Assert.Equal(1, GameSettingsFile.Read("Msaa=8\n").RenderMsaa);
     }
 
     [Theory]

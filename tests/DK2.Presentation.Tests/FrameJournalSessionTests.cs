@@ -25,16 +25,6 @@ public sealed class FrameJournalSessionTests : IDisposable
     private FrameJournalSession Session() => new(_logs.Add, _warnings.Add);
 
     [Fact]
-    public void TheHostsSettingWins_ElseTheVariable_ElseOff()
-    {
-        Func<string, string?> env = name => name == FrameJournalSession.Variable ? "from-env" : null;
-        Assert.Equal("D:/own", FrameJournalSession.Root("D:/own", env));
-        Assert.Equal("from-env", FrameJournalSession.Root("", env));
-        Assert.Equal("from-env", FrameJournalSession.Root("  ", env));
-        Assert.Null(FrameJournalSession.Root(null, _ => null));
-    }
-
-    [Fact]
     public void TheFolderIsNamedByTheUtcClockAndTheLevelOrTheFrontEnd()
     {
         var at = new DateTime(2026, 11, 16, 9, 8, 7, 654, DateTimeKind.Utc);

@@ -1,7 +1,7 @@
 # DK2.Data
 
 Runtime readers for original Dungeon Keeper 2 data. The assembly targets
-`netstandard2.1` and is independent of the presentation engine. Nothing decoded from a user's
+`net10.0` and is independent of the presentation engine. Nothing decoded from a user's
 installation is ever stored in this repository.
 
 Entry points: `Dk2Install.Find`/`Require` resolves the install (`DK2_DIR` first);

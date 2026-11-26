@@ -33,7 +33,6 @@ public class FrontEndSceneryTests
         Assert.Equal(FrontEndAssets.EntranceCap(database.Room(RoomTypeId.HeroGateFrontEnd).Name),
             view.TileAt(world, 3, 12).ExtraRoomPiece);
         Assert.True(view.TileAt(world, 2, 11).ExtraRoomPiece.IsEmpty);
-        Assert.Contains(view.TileAt(world, 3, 12).ExtraRoomPiece, FirstFrameArt.Keys(database, world, new PlayerId(1)));
         Assert.Equal(16, AssetCatalogue.RoomPieceCount(database.Room(RoomTypeId.HeroGateFrontEnd)));
     }
 
@@ -85,7 +84,6 @@ public class FrontEndSceneryTests
         Assert.Equal(0x55a, won.View.TexturePhase!.Value.Raw);
         Assert.False(projected.Single(s => s.MarkerSlot == new CampaignSlot(7)).Visible);
         Assert.True(projected.Single(s => s.MarkerSlot == new CampaignSlot(8)).Visible);
-        Assert.Contains(markers[0].View.Mesh, FirstFrameArt.Keys(database, world, new PlayerId(1), original));
     }
 
     private static (GameDatabase, WorldState) Load()

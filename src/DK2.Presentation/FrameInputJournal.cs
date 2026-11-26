@@ -37,8 +37,7 @@ public enum FrameMouseButtons : byte
     Middle = 4,
 }
 
-/// <summary>A key as the host engine numbers it (Unity's <c>KeyCode</c> today; the journal header
-/// names the numbering). Phase 2 of ADR-0553 replaces it with an engine-neutral key.</summary>
+/// <summary>A key numbered using the host table named in the journal header (ADR-0553).</summary>
 public readonly record struct HostKey(int Code);
 
 /// <summary>When a command entered the queue: before this frame's update (a UI Toolkit callback
@@ -54,7 +53,7 @@ public enum CommandQueuedWhen : byte
 public readonly record struct QueuedCommand(CommandQueuedWhen When, PlayerCommand Command);
 
 /// <summary>
-/// One rendered frame of the Unity input journal (ADR-0553 Phase 1): the raw device state the
+/// One rendered frame of the input journal (ADR-0553 Phase 1): the raw device state the
 /// adapter polled, the HUD state it read, the intents it built, the commands it queued in order,
 /// and the ticks the frame ran. <see cref="TickAtStart"/> is null for a frame that returned before
 /// the tick loop. <see cref="CommandsHandedToTick"/> counts the whole queue given to the frame's
@@ -89,7 +88,7 @@ public sealed record FrameInputRecord
 }
 
 /// <summary>
-/// Writes the per-frame Unity input journal. Each record is encoded whole and length-prefixed, so
+/// Writes the per-frame input journal. Each record is encoded whole and length-prefixed, so
 /// <see cref="FrameInputJournal.Read"/> keeps every whole record of a killed session. A frame
 /// with an intent or a command is flushed at once, others at least every
 /// <see cref="FlushEveryFrames"/> frames.

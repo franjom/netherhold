@@ -1187,8 +1187,22 @@ preparation and removal commits keep the framework retarget separately verifiabl
 - [x] Remove the tracked Unity adapter, its remaining probes, editor tooling and CI step.
 - [x] Supersede ADR-0690 (IL2CPP players) and close ADR-0041's runtime licensing question.
 - [x] Update the repository guides, agent configuration and ignore rules for Godot.
-- [ ] Retarget the shared assemblies to net10.0 and remove the old target props and shims.
-- [ ] Resolve the remaining retired-adapter helpers while preserving settings and replay compatibility.
+- [x] Retarget the shared assemblies to net10.0 and remove the old target props and shims.
+- [x] Remove the retired prefetch, warm-up, settings key and journal environment hook.
+  Keep the legacy journal key table for the recorded fixture. Old settings still load.
+
+The retarget removes four compiler shims and one stream shim. `IsExternalInit`
+marks init setters. `RequiredMemberAttribute` marks required members.
+`CompilerFeatureRequiredAttribute` carries the feature used for compiler checks,
+and `SetsRequiredMembersAttribute` marks constructors that satisfy those checks.
+The .NET 10 types supply that metadata without changing simulation data or arithmetic.
+`Stream.ReadExactly` still fills the buffer across short reads and throws
+`EndOfStreamException` on truncation. Its array route uses span reads and its
+exception text and argument validation differ. Only the data and art readers
+use it, with valid buffers. No shim replaced hashing, math, sorting or collections.
+
+`FirstFrameArt` had no Godot callers. Prefetch would need to coordinate decoding
+and resource upload with the scene's loading path, so the retired helper was removed.
 
 ## Step 6: tidy the C# codebase (owner, 2026-11-20; after step 5, on net10.0)
 
@@ -1209,6 +1223,6 @@ Behaviour stays the same: the turn-400 hash, the replays and the frame captures 
       microbenchmarking, csharp-refactoring.
 - [ ] Sloppy and generated-looking code refactored: casts of numbers to enums (add the member), primitives where a
       meaningful type belongs (AGENTS.md), duplicated helpers, dead code, over-long methods, comments that narrate
-      instead of explain, defensive clutter, polyfills and `UnityBound` leftovers.
+      instead of explain, and defensive clutter.
 - [ ] One area per commit (simulation, presentation, data, tools, Godot adapter), each with the hash, tests and
       captures unchanged; any change to DK2 behaviour is a bug, not a tidy-up.

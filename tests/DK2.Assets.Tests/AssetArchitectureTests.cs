@@ -12,45 +12,34 @@ namespace DK2.Assets.Tests;
 /// </summary>
 public class AssetArchitectureTests
 {
-    /// <summary>
-    /// <c>DK2.Assets</c> is the <i>abstraction</i>, so it is Unity-loadable and
-    /// must stay Unity-free — same rule as the simulation (ADR-0002), same
-    /// reason: the engine-specific half of the asset layer belongs in the Unity
-    /// project. Without this, the abstraction could quietly become a Unity
-    /// dependency and take goal 4's replaceability with it.
-    /// </summary>
+    /// <summary>The asset abstraction is independent of rendering engines (ADR-0002).</summary>
     [Fact]
-    public void TheAssetAbstractionDoesNotReferenceUnity()
+    public void TheAssetAbstractionReferencesNoEngineAssembly()
     {
         Assembly assembly = typeof(AssetRef).Assembly;
 
         var offenders = assembly.GetReferencedAssemblies()
             .Where(r => r.Name is not null &&
-                        r.Name.StartsWith("Unity", StringComparison.OrdinalIgnoreCase))
+                        (r.Name.StartsWith("Unity", StringComparison.OrdinalIgnoreCase) ||
+                         r.Name.StartsWith("Godot", StringComparison.OrdinalIgnoreCase)))
             .Select(r => r.Name)
             .ToList();
 
         Assert.Empty(offenders);
     }
 
-    /// <summary>
-    /// <c>DK2.Assets</c> and <c>DK2.Presentation</c> target netstandard2.1, so
-    /// Unity can load them. Same guard as
-    /// <c>ArchitectureTests.UnityLoadableAssemblies_TargetNetStandard21</c> and
-    /// for the same reason: that constraint was configuration-only for four
-    /// months and never actually applied. See ADR-0036.
-    /// </summary>
+    /// <summary>Checks the target framework on the compiled asset and presentation assemblies.</summary>
     [Theory]
     [InlineData(typeof(DK2.Data.Dk2Install))]
     [InlineData(typeof(AssetRef))]
     [InlineData(typeof(DK2.Presentation.WorldView))]
-    public void TheRenderingAssembliesTargetNetStandard21(Type witness)
+    public void TheRenderingAssembliesTargetNet10(Type witness)
     {
         string? target = witness.Assembly
             .GetCustomAttribute<System.Runtime.Versioning.TargetFrameworkAttribute>()
             ?.FrameworkName;
 
-        Assert.Equal(".NETStandard,Version=v2.1", target);
+        Assert.Equal(".NETCoreApp,Version=v10.0", target);
     }
 
     /// <summary>

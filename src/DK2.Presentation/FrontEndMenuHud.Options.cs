@@ -132,7 +132,7 @@ public sealed partial class FrontEndMenuHud
             var note = template with { Id = new FrontEndWidgetId(990), TextId = 0,
                 DrawRect = new FrontEndRect(80, 1540, 1900, 100), Draw = FrontEndDrawKind.PlainText };
             _resultWidgets.Add(note);
-            AddLabel(note, "Unity controls display mode and hardware acceleration.",
+            AddLabel(note, "Set the display mode in the launcher.",
                 new FrontEndFont(FrontEndFontFamily.FrontEnd, 14), FrontEndTextAlignment.Left, FrontEndVerticalAlignment.Centre, true);
         }
     }

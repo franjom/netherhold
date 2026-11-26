@@ -37,9 +37,7 @@ public static class HumanCommandPolicy
     public const int Version = 4;
 
     /// <summary>Where human input becomes commands, relative to the repository root; every
-    /// <c>.cs</c> file below them is scanned, so a new input file cannot escape the check. Today the
-    /// builders are PlayerInput, PlacementCursor, KeeperResourceInteraction, PossessionControls and DungeonRunner
-    /// (.Hud, .Finale, .Possession).</summary>
+    /// <c>.cs</c> file below them is scanned, including the shared input rules and adapter input handlers.</summary>
     public static readonly IReadOnlyList<string> SourceRoots = ["src/DK2.Presentation", "godot/DK2.Godot"];
 
     public static readonly IReadOnlyDictionary<Type, HumanCommandClass> Classes = new Dictionary<Type, HumanCommandClass>

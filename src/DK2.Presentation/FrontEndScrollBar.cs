@@ -108,7 +108,7 @@ public sealed class FrontEndScrollBar
     }
 
     /// <summary>One drawn frame of 0x00551BA0's glow: the hovered part's counter (the thumb and the track
-    /// share one) restarts at 8, then every counter counts down. Ours ticks once per Unity frame.</summary>
+    /// share one) restarts at 8, then every counter counts down. The presentation updates it once per frame.</summary>
     public void Frame(ScrollBarPart hovered)
     {
         int restart = hovered switch

@@ -10,7 +10,7 @@
 - Sub-step fractions are carried as integer remainders (`CreatureState.MoveRemainder`, `TileState.WorkRemainder`), never as floats.
 
 ## ADR-0002 — Simulation independent of Unity, enforced at compile time
-**Date:** 2026-08-29 · **Status:** accepted · amended by ADR-0824: the engine boundary remains and the framework retarget is scheduled · amended 2026-09-04: the netstandard2.1 half was unenforced until then · **Systems:** simulation-core, presentation-unity
+**Date:** 2026-08-29 · **Status:** accepted · amended by ADR-0824: shared assemblies target net10.0 and remain engine-neutral · amended 2026-09-04: the netstandard2.1 half was unenforced until then · **Systems:** simulation-core, presentation-unity
 
 **Context.** Assemblies Unity loads must target netstandard2.1 and must not reference Unity.
 **Decision.** Simulation-side assemblies target netstandard2.1 and may not reference any assembly named `Unity*`. `ArchitectureTests` fails the run on a Unity reference.
@@ -5882,8 +5882,8 @@ the CLIs write to `Console`.
 similar). The simulation says what happened only through typed `SimEvent`s: they
 are deterministic and assertable, and cost nothing under `NullEventSink`. Text
 log lines carry timestamps and formatting, allocate every tick, and would add a
-dependency to the Unity-bound netstandard2.1 assemblies. The Unity adapter may
-forward events to `Debug.Log`; the CLIs keep `Console`.
+logging dependency. Godot consumes typed events for presentation feedback and
+the harness collects them in `ListEventSink`. CLIs write their reports to `Console`.
 
 **Throwaway diagnostics.** The simulation never writes to `Console` or `Debug`.
 If ad-hoc tracing is needed often, add a `[Conditional("DK2_TRACE")]` helper
@@ -12414,8 +12414,8 @@ initial creation refuses to overwrite an existing file. The runtime `HiScores.da
 codec writes ten 132-byte rows and clears unused string padding; its output belongs
 in our own data directory. No original assets are converted to disk.
 
-**Consequences.** CI can test storage with synthetic data, Unity can load the same
-netstandard2.1 code, and options remain outside this campaign snapshot. Progression,
+**Consequences.** CI can test storage with synthetic data and Godot uses the same
+shared implementation. Options remain outside this campaign snapshot. Progression,
 new-campaign reset, score qualification and level-loop integration remain F4/F5.
 There is no simulation or hash-format change. F1's `.444` decoder supports all shipped
 unmasked images and explicitly refuses the optional masked format.
@@ -13486,8 +13486,8 @@ the constant prevents zero being an absorbing state for zero inputs. Strings ret
 length and character sequence with a separate null sentinel. Equal numeric values of different
 primitive widths share a word; the stream layout is fixed within a hash version.
 `Fnv1a64` preserves asset placeholder colours and pinned navigation fingerprints.
-Do not add `System.IO.Hashing.XxHash3`: the Unity-bound netstandard2.1 assembly would need
-another package. The rotate uses shifts supported by that target.
+At the time, the Unity-bound netstandard2.1 target would have required an extra
+package for `System.IO.Hashing.XxHash3`. The rotate uses shifts supported by that target.
 
 **Consequences.** No hashed field, simulation behavior or snapshot layout changes.
 Every pre-329 journal and save is refused, including evidence under `F:\DK2Evidence`, which
@@ -19618,8 +19618,7 @@ probes and build configuration. Export the tester package with the pinned Godot
 .NET build (ADR-0810). The open runtime licensing question in ADR-0041 is closed.
 This supersedes ADR-0036 and ADR-0690. Use ADR-0813 for rendering decisions.
 
-**Consequences.** Keep engine dependencies out of shared code (ADR-0002). The
-retargeting commit moves the shared assemblies to net10.0 after the removal commit.
+**Consequences.** Shared code targets net10.0 and stays engine-neutral (ADR-0002).
 Godot already warms its own level (ADR-0689). Keep the option to move turns onto a
 worker with a presented-world handoff (ADR-0694). Keep `DeferredEventSink`,
 `WorkerDrawLag` and their CI coverage for that work.

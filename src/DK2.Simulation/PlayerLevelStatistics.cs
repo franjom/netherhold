@@ -94,7 +94,7 @@ public struct PlayerLevelStatistics
 }
 
 /// <summary><c>player+0x19E</c>'s sixteen unsigned words, a value type so a copied player keeps its own
-/// (four to a <see cref="ulong"/>; the simulation targets netstandard2.1, which has no inline arrays).</summary>
+/// (four to a <see cref="ulong"/>).</summary>
 public struct KillTally
 {
     public const int Length = 16;

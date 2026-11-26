@@ -29,7 +29,7 @@ The frame order and the command stream, shared by both adapters: `FrameDriver` (
 `TakeScriptedInput` with the camera-path skip, `TakeTicks` and `AfterTicks`; `ITurnPoseSource`, which `PossessionSession`
 implements, puts the possession pose first, and `FrameScriptInput` and `FrameTicks` carry the results), `WorldPointerInput` (the world
 pointer's gates from the HUD press to the translated commands, over an `IWorldPointerHost` and a `WorldPointerFrame`) and
-`FrameJournalSession` (the input journal's policy: the opt-in variable, folder name, header with the key table's name, and
+`FrameJournalSession` (the input journal's policy: the output folder, header with the key table's name, and
 the failure and close handling; the format is `FrameInputJournal` and `InputJournalWriter`).
 The ordinary camera's rules, shared by both adapters: `CameraGlide` and `CameraFocus` (the action-26 glide, `TileCentre`
 clamped to the bounds, `Over`, `Bounds`), `ClassicCameraInput` (the 5 px edge scroll, frame time, pointer delta and `Apply`, over a
@@ -63,7 +63,7 @@ table a vertex reads; `TableSum`, the per-flag sum with the bound skip; `PackedD
 constant substitution). `ClassicWorldLightCache` pools its `ClassicLightTable`s (`Reuse`), so a scrolling view allocates
 nothing once warm.
 
-Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
+Targets `net10.0`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
 and `DK2.Assets`. The [Godot adapter](../../godot/README.md) consumes its scene and HUD output.
 
 Test: `dotnet test tests/DK2.Presentation.Tests`.

@@ -57,7 +57,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - In DK2.Tools, qualify `System.Convert`: the sibling `DK2.Convert` namespace shadows an unqualified `Convert`.
 - On Windows, pass an absolute executable path to Python `subprocess.run`; `cwd=` alone can still launch the main checkout's relative executable.
 
-- DK2.Simulation targets netstandard2.1 without System.Text.Json; scratch steering observers use plain CSV, while JSON belongs in Tools.
+- Scratch steering observers use plain CSV. JSON output belongs in Tools.
 
 - After backing up your own edited path for a fast-forward, use git restore; manually writing HEAD's blob can still make merge report local changes.
 
@@ -208,7 +208,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Source notices require a blank line after the three license comments; the exact LicenseHeaderTests prefix includes two trailing newlines.
 
-- `DK2.Data` still targets netstandard2.1 until the retargeting commit. Newer `Path` helpers such as `TrimEndingDirectorySeparator` are unavailable there.
 - InvalidDataException is not an IOException; command error handling must catch both to report format refusals.
 
 - Typed KWD properties can be wider than their file fields: derive overlay test values and range checks from the reader's width, not the model's CLR type.

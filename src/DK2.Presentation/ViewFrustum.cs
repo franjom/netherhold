@@ -8,8 +8,7 @@ namespace DK2.Presentation;
 
 /// <summary>A camera's six frustum planes in the renderers' frame (left, right, bottom, top, near, far; normals point
 /// inward, a plane's value at a point is <c>N·p + D</c>), with the view-projection they came from. Matrices here are
-/// Unity's layout: <c>M11</c> is Unity's <c>m00</c>, <c>M14</c> its <c>m03</c>, and a point is a column vector, so
-/// <c>p' = M p</c>. Unity hands in its own <c>GeometryUtility</c> planes; Godot builds them from the classic pose.</summary>
+/// column-vector transforms (<c>p' = M p</c>). Godot builds the planes from the classic pose.</summary>
 public readonly struct ViewFrustum
 {
     /// <summary>How far outside a plane all three corners of a triangle must lie before it is culled (Unity's

@@ -21,11 +21,10 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
         │         └──► DK2.Pathfinding             │
         └──────► DK2.Data.Model ◄── DK2.Data (parsers)
                        │
-                   DK2.Core                netstandard2.1
+                   DK2.Core                net10.0
 ```
 
-The shared game assemblies still target **netstandard2.1** until the retargeting
-commit. Godot, the executables, tools and tests target **net10.0**.
+Shared assemblies and the Godot adapter target **net10.0**.
 
 ## Projects in `src/`
 
@@ -43,7 +42,6 @@ commit. Godot, the executables, tools and tests target **net10.0**.
 | **DK2.Convert** | Converts original art to glTF/GLB and PNG | Art, Assets, Data |
 | **DK2.Harness** | Headless scenario runner: runs YAML scenarios and writes reports, events and per-tick hashes | Core, Data, Data.Model, Simulation, AI, Assets, Presentation |
 | **DK2.Tools** | The `dk2tools` command line: `status`, `docs`, `kb`, `coverage`, `convert`, `replay`, `simmatrix` and the data inspectors ([README](https://github.com/franjom/netherhold/blob/master/src/DK2.Tools/README.md)) | Assets, Convert, Core, Data, Data.Model, Simulation |
-| **Shared** | The shared game projects’ netstandard2.1 target and compiler shims | — |
 
 ## Godot
 

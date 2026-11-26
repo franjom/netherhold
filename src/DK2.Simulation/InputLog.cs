@@ -158,7 +158,7 @@ public sealed class InputLog
         long turn = row.Stamp - lag - origin + 1;
         if (!pending.TryGetValue(turn, out SortedDictionary<byte, TurnMarks>? byPlayer))
             pending[turn] = byPlayer = [];
-        if (!byPlayer.TryGetValue(row.Player, out TurnMarks marks))
+        if (!byPlayer.TryGetValue(row.Player, out TurnMarks? marks))
             byPlayer[row.Player] = marks = new TurnMarks();
         (now ? marks.Tagged : marks.Untagged).Add(row.Tile);
         if (!now) pool.Remove(key);

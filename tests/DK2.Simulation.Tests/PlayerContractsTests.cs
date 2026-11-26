@@ -306,8 +306,7 @@ public class PlayerContractsTests
             if (property.GetIndexParameters().Length > 0 || property.Name == "EqualityContract") continue;
             MethodInfo? setter = property.SetMethod;
             if (setter is { IsPublic: true }
-                // By name: a netstandard2.1 assembly marks init with its own polyfilled IsExternalInit.
-                && !setter.ReturnParameter.GetRequiredCustomModifiers().Any(m => m.FullName == typeof(IsExternalInit).FullName))
+                && !setter.ReturnParameter.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
                 offenders.Add($"{path}.{property.Name}: settable");
             else
                 AuditType(property.PropertyType, seen, offenders, $"{path}.{property.Name}");

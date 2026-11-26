@@ -44,7 +44,7 @@ public static class StateEntryLog
         public void Dispose() => _suspended--;
     }
 
-    // netstandard2.1 has no Interlocked.Or; a set bit is never cleared, so the loop ends.
+    // A set bit is never cleared, so the loop ends.
     internal static void Record(int stateId)
     {
         if (_suspended > 0) return;

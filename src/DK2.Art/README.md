@@ -10,7 +10,7 @@ none does; the converter writes those entries out and `InstallArtProvider` reads
 `InstallArtProvider` is the converted tier over the install: it resolves a key to
 `AssetSource.InstallEntry` and loads the model and its textures, decoding each once.
 
-Targets `netstandard2.1` and depends on `DK2.Data`. It writes
+Targets `net10.0` and depends on `DK2.Data`. It writes
 nothing: the GLB and PNG writers are `DK2.Convert`'s. Original files and anything decoded from
 them stay out of the repository.
 
