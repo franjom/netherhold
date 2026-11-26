@@ -61,9 +61,21 @@ public static class MoveOptionsExtensions
     {
         int word = (int)options;
         int flags = 0;
-        if ((word & 0x08) != 0) flags |= 1;
-        if ((word & 0x10) != 0) flags |= 2;
-        if ((word & 0x60) != 0) flags |= 0xC;
+        if ((word & 0x08) != 0)
+        {
+            flags |= 1;
+        }
+
+        if ((word & 0x10) != 0)
+        {
+            flags |= 2;
+        }
+
+        if ((word & 0x60) != 0)
+        {
+            flags |= 0xC;
+        }
+
         return (byte)flags;
     }
 }

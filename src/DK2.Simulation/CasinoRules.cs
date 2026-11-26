@@ -57,9 +57,20 @@ public static class CasinoRules
     {
         foreach (ObjectState thing in world.Objects)
         {
-            if (thing.ObjectTypeId != AutoFurnitureRules.CasinoLeverObjectId || thing.InHand) continue;
-            if (thing.OwnerPlayerId != room.OwnerPlayerId) continue;
-            if (EatingRules.Contains(room, thing.TileIndex)) return thing;
+            if (thing.ObjectTypeId != AutoFurnitureRules.CasinoLeverObjectId || thing.InHand)
+            {
+                continue;
+            }
+
+            if (thing.OwnerPlayerId != room.OwnerPlayerId)
+            {
+                continue;
+            }
+
+            if (EatingRules.Contains(room, thing.TileIndex))
+            {
+                return thing;
+            }
         }
         return null;
     }
@@ -75,7 +86,9 @@ public static class CasinoRules
             && RoomIndex.RoomAt(world, database, (creature.Tile.Y * world.Width) + creature.Tile.X) is { } room
             && room.Definition.TypeId == RoomTypeId.Casino && room.OwnerPlayerId == creature.OwnerPlayerId
             && Lever(world, room) is null)
+        {
             return "no_lever";
+        }
 
         return world.Player(creature.OwnerPlayerId).CasinoParties != 0
             || creature.GoldHeld > Stake(database) ? null : "cannot_afford_to_gamble";
@@ -87,8 +100,15 @@ public static class CasinoRules
     /// variable 203. Returns whether it set the flag.</summary>
     public static bool StepFearlessCountdown(GameDatabase database, CreatureState creature)
     {
-        if (creature.CasinoGamblingDuration == 0) return false;
-        if (--creature.CasinoGamblingDuration != 0) return false;
+        if (creature.CasinoGamblingDuration == 0)
+        {
+            return false;
+        }
+
+        if (--creature.CasinoGamblingDuration != 0)
+        {
+            return false;
+        }
 
         creature.CasinoGamblingFearless = true;
         creature.CasinoGamblingDuration = (ushort)database[VariableTypeId.GamblingDelayBeforeBecomingFearlessSeconds];
@@ -120,7 +140,11 @@ public static class CasinoRules
     public static byte SettingUnder(WorldState world, GameDatabase database, CreatureState creature)
     {
         TilePos at = creature.Tile;
-        if (!world.Contains(at)) return Generous;
+        if (!world.Contains(at))
+        {
+            return Generous;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(world, database, (at.Y * world.Width) + at.X);
         return room is not null && Lever(world, room) is { } lever ? lever.Setting : Generous;
     }

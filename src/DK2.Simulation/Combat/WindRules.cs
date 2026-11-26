@@ -27,7 +27,10 @@ public static class WindRules
         // The tile window [tile - R, tile + R), floored at 0 and capped at the map's size.
         int lowX = Math.Max(0, tileX - radius), lowY = Math.Max(0, tileY - radius);
         int highX = Math.Min(world.Width, tileX + radius), highY = Math.Min(world.Height, tileY + radius);
-        if (lowX >= highX || lowY >= highY) return;
+        if (lowX >= highX || lowY >= highY)
+        {
+            return;
+        }
 
         uint reach, turn, damageDivisor;
         unchecked
@@ -44,10 +47,21 @@ public static class WindRules
             CreatureState creature = creatures[i];
             // Class 0 things on the map's tiles: a body (class 6) and a creature in the hand are not.
             // Ours, stated: a creature already down is passed over, so the kick cannot stand it up.
-            if (CreatureDeathRules.IsCorpse(creature) || HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) continue;
-            if (creature.Id == shot.CasterId) continue; // +0x145, the caster's tag
+            if (CreatureDeathRules.IsCorpse(creature) || HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature))
+            {
+                continue;
+            }
+
+            if (creature.Id == shot.CasterId)
+            {
+                continue; // +0x145, the caster's tag
+            }
+
             TilePos at = creature.Tile;
-            if (at.X < lowX || at.X >= highX || at.Y < lowY || at.Y >= highY) continue;
+            if (at.X < lowX || at.X >= highX || at.Y < lowY || at.Y >= highY)
+            {
+                continue;
+            }
 
             uint distanceSquared;
             unchecked
@@ -55,7 +69,10 @@ public static class WindRules
                 long dx = Math.Abs(shot.PosX - creature.PosX), dy = Math.Abs(shot.PosY - creature.PosY);
                 distanceSquared = (uint)((dy * dy) >> 12) + (uint)((dx * dx) >> 12);
             }
-            if (distanceSquared >= reach) continue;
+            if (distanceSquared >= reach)
+            {
+                continue;
+            }
 
             uint spread = unchecked((uint)IntegerMath.SquareRoot(unchecked((int)(distanceSquared * 0x1000))) + (uint)(radius * 0x1000));
             creature.Heading = (creature.Heading + (int)(turn / spread)) & 0x7FF;

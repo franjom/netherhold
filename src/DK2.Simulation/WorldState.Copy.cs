@@ -42,7 +42,9 @@ public sealed partial class WorldState
     {
         if (source.Width != Width || source.Height != Height || source._players.Length != _players.Length
             || source.FogOfWarEnabled != FogOfWarEnabled)
+        {
             throw new ArgumentException("A world copies only from a world of the same map and players.", nameof(source));
+        }
 
         CurrentTick = source.CurrentTick;
         GameMode = source.GameMode;
@@ -61,7 +63,11 @@ public sealed partial class WorldState
         LocalPlayerId = source.LocalPlayerId;
         CopySecretDoorEntries(source);
         CopyRepairTaskEntries(source);
-        for (int i = 0; i < _players.Length; i++) CopyPlayer(ref _players[i], in source._players[i]);
+        for (int i = 0; i < _players.Length; i++)
+        {
+            CopyPlayer(ref _players[i], in source._players[i]);
+        }
+
         Array.Copy(source.RoomBuildWaveSlots, RoomBuildWaveSlots, RoomBuildWaveSlots.Length);
         Array.Copy(source.RoomSellWaveSlots, RoomSellWaveSlots, RoomSellWaveSlots.Length);
         _pendingWork.Clear();
@@ -75,9 +81,20 @@ public sealed partial class WorldState
         StateCopy.Sync(_objects, source._objects);
         _nextShotId = source._nextShotId;
         StateCopy.Sync(_shots, source._shots);
-        foreach (CreatureState creature in _creatures) creature.LinkWorld = this;
-        foreach (ObjectState thing in _objects) thing.LinkWorld = this;
-        foreach (ShotState shot in _shots) shot.LinkWorld = this;
+        foreach (CreatureState creature in _creatures)
+        {
+            creature.LinkWorld = this;
+        }
+
+        foreach (ObjectState thing in _objects)
+        {
+            thing.LinkWorld = this;
+        }
+
+        foreach (ShotState shot in _shots)
+        {
+            shot.LinkWorld = this;
+        }
 
         StateCopy.Sync(_actionPoints, source._actionPoints);
         TileHighlights.CopyFrom(source.TileHighlights);
@@ -122,7 +139,11 @@ public sealed partial class WorldState
 
     private void CopyRepairTaskEntries(WorldState source)
     {
-        if (source.RepairTaskEntries.Count == 0 && RepairTaskEntries.Count == 0) return;
+        if (source.RepairTaskEntries.Count == 0 && RepairTaskEntries.Count == 0)
+        {
+            return;
+        }
+
         RepairTaskEntries.Clear();
         foreach (KeyValuePair<(PlayerId Player, TilePos Tile), RepairTaskEntry> pair in source.RepairTaskEntries)
         {
@@ -137,14 +158,31 @@ public sealed partial class WorldState
         foreach (KeyValuePair<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> pair in source.SecretDoorEntries)
         {
             if (!SecretDoorEntries.TryGetValue(pair.Key, out SecretDoorTaskEntry? entry) || entry.Order != pair.Value.Order)
+            {
                 SecretDoorEntries[pair.Key] = entry = new SecretDoorTaskEntry { Order = pair.Value.Order };
+            }
+
             Array.Copy(pair.Value.Holders, entry.Holders, entry.Holders.Length);
         }
-        if (SecretDoorEntries.Count == source.SecretDoorEntries.Count) return;
+        if (SecretDoorEntries.Count == source.SecretDoorEntries.Count)
+        {
+            return;
+        }
+
         _staleSecretDoorKeys ??= [];
         foreach ((PlayerId Player, TilePos Tile) key in SecretDoorEntries.Keys)
-            if (!source.SecretDoorEntries.ContainsKey(key)) _staleSecretDoorKeys.Add(key);
-        foreach ((PlayerId Player, TilePos Tile) key in _staleSecretDoorKeys) SecretDoorEntries.Remove(key);
+        {
+            if (!source.SecretDoorEntries.ContainsKey(key))
+            {
+                _staleSecretDoorKeys.Add(key);
+            }
+        }
+
+        foreach ((PlayerId Player, TilePos Tile) key in _staleSecretDoorKeys)
+        {
+            SecretDoorEntries.Remove(key);
+        }
+
         _staleSecretDoorKeys.Clear();
     }
 
@@ -152,8 +190,15 @@ public sealed partial class WorldState
     {
         _copyIndex ??= new Dictionary<int, CreatureState>(_creatures.Count);
         _copyIndex.Clear();
-        foreach (CreatureState creature in _creatures) _copyIndex.Add(creature.Id, creature);
+        foreach (CreatureState creature in _creatures)
+        {
+            _copyIndex.Add(creature.Id, creature);
+        }
+
         _creaturesByOwnership.Clear();
-        foreach (CreatureState creature in source._creaturesByOwnership) _creaturesByOwnership.Add(_copyIndex[creature.Id]);
+        foreach (CreatureState creature in source._creaturesByOwnership)
+        {
+            _creaturesByOwnership.Add(_copyIndex[creature.Id]);
+        }
     }
 }

@@ -77,13 +77,19 @@ public static partial class CreatureStateCoverage
         foreach (StateCoverageRow row in rows)
         {
             if (byId[row.StateId] is not null)
+            {
                 throw new InvalidOperationException($"State {row.StateId} has two coverage rows.");
+            }
+
             byId[row.StateId] = row;
         }
 
         for (int id = 0; id < byId.Length; id++)
         {
-            if (byId[id] is null) throw new InvalidOperationException($"State {id} has no coverage row.");
+            if (byId[id] is null)
+            {
+                throw new InvalidOperationException($"State {id} has no coverage row.");
+            }
         }
 
         return byId;

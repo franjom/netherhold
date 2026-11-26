@@ -41,8 +41,16 @@ public static class PlayerTrapRoutines
     /// tries the left and right pair alone and uses the navigation solid test; the bot tries either pair.</summary>
     public static bool IsCorridor(PlayerTileGrid grid, TilePos at)
     {
-        if (!grid.Contains(at) || !IsWalkable(grid[at])) return false;
-        if (at.X == 0 || at.Y == 0 || at.X == grid.Width - 1 || at.Y == grid.Height - 1) return false;
+        if (!grid.Contains(at) || !IsWalkable(grid[at]))
+        {
+            return false;
+        }
+
+        if (at.X == 0 || at.Y == 0 || at.X == grid.Width - 1 || at.Y == grid.Height - 1)
+        {
+            return false;
+        }
+
         return (Solid(grid, at.X - 1, at.Y) && Solid(grid, at.X + 1, at.Y)) || (Solid(grid, at.X, at.Y - 1) && Solid(grid, at.X, at.Y + 1));
     }
 
@@ -53,8 +61,15 @@ public static class PlayerTrapRoutines
         foreach ((int dx, int dy) in Sides)
         {
             int run = 0;
-            while (run < LongCorridorTiles && IsCorridor(grid, new TilePos(at.X + dx * (run + 1), at.Y + dy * (run + 1)))) run++;
-            if (run == LongCorridorTiles) return true;
+            while (run < LongCorridorTiles && IsCorridor(grid, new TilePos(at.X + dx * (run + 1), at.Y + dy * (run + 1))))
+            {
+                run++;
+            }
+
+            if (run == LongCorridorTiles)
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -68,9 +83,21 @@ public static class PlayerTrapRoutines
     /// </summary>
     public static List<TilePos> Sites(PlayerObservation observation, IEnumerable<TilePos> entries, int spacing, ICollection<TilePos> skip)
     {
-        if (observation is null) throw new ArgumentNullException(nameof(observation));
-        if (entries is null) throw new ArgumentNullException(nameof(entries));
-        if (skip is null) throw new ArgumentNullException(nameof(skip));
+        if (observation is null)
+        {
+            throw new ArgumentNullException(nameof(observation));
+        }
+
+        if (entries is null)
+        {
+            throw new ArgumentNullException(nameof(entries));
+        }
+
+        if (skip is null)
+        {
+            throw new ArgumentNullException(nameof(skip));
+        }
+
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         int width = grid.Width;
@@ -78,14 +105,25 @@ public static class PlayerTrapRoutines
         Array.Fill(distance, -1);
         var queue = new Queue<TilePos>();
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < width; x++)
             {
                 var at = new TilePos(x, y);
-                if (!IsWalkable(grid[at]) || !NextToHeart(grid, at, self)) continue;
+                if (!IsWalkable(grid[at]) || !NextToHeart(grid, at, self))
+                {
+                    continue;
+                }
+
                 distance[y * width + x] = 0;
                 queue.Enqueue(at);
             }
-        if (queue.Count == 0) return [];
+        }
+
+        if (queue.Count == 0)
+        {
+            return [];
+        }
+
         while (queue.Count > 0)
         {
             TilePos at = queue.Dequeue();
@@ -93,7 +131,11 @@ public static class PlayerTrapRoutines
             foreach ((int dx, int dy) in Sides)
             {
                 var to = new TilePos(at.X + dx, at.Y + dy);
-                if (!grid.Contains(to) || distance[to.Y * width + to.X] >= 0 || !IsWalkable(grid[to])) continue;
+                if (!grid.Contains(to) || distance[to.Y * width + to.X] >= 0 || !IsWalkable(grid[to]))
+                {
+                    continue;
+                }
+
                 distance[to.Y * width + to.X] = next;
                 queue.Enqueue(to);
             }
@@ -103,13 +145,21 @@ public static class PlayerTrapRoutines
         bool[] onRoute = new bool[distance.Length];
         foreach (TilePos entry in entries)
         {
-            if (!grid.Contains(entry)) continue;
+            if (!grid.Contains(entry))
+            {
+                continue;
+            }
+
             TilePos at = entry;
             while (distance[at.Y * width + at.X] >= 0 && !onRoute[at.Y * width + at.X])
             {
                 onRoute[at.Y * width + at.X] = true;
                 int here = distance[at.Y * width + at.X];
-                if (here == 0) break;
+                if (here == 0)
+                {
+                    break;
+                }
+
                 foreach ((int dx, int dy) in Sides)
                 {
                     var to = new TilePos(at.X + dx, at.Y + dy);
@@ -121,17 +171,30 @@ public static class PlayerTrapRoutines
         var blockers = new List<TilePos>();
         var candidates = new List<TilePos>();
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < width; x++)
             {
                 var at = new TilePos(x, y);
                 PlayerTile tile = grid[at];
                 if ((tile.Flags & PlayerTileFlags.OwnTrap) != 0) { blockers.Add(at); continue; }
                 if (!onRoute[y * width + x] || tile.Owner != self || tile.Room != default || !IsWalkable(tile)
-                    || (tile.Flags & PlayerTileFlags.Water) != 0 || skip.Contains(at) || !IsCorridor(grid, at)) continue;
+                    || (tile.Flags & PlayerTileFlags.Water) != 0 || skip.Contains(at) || !IsCorridor(grid, at))
+                {
+                    continue;
+                }
+
                 candidates.Add(at);
             }
+        }
+
         foreach (PlayerVisibleThing thing in observation.Things)
-            if (thing.Kind == PlayerThingKind.Door) blockers.Add(thing.Tile);
+        {
+            if (thing.Kind == PlayerThingKind.Door)
+            {
+                blockers.Add(thing.Tile);
+            }
+        }
+
         candidates.Sort((a, b) =>
         {
             int c = distance[b.Y * width + b.X].CompareTo(distance[a.Y * width + a.X]);
@@ -140,7 +203,11 @@ public static class PlayerTrapRoutines
         var sites = new List<TilePos>();
         foreach (TilePos at in candidates)
         {
-            if (Near(blockers, at, spacing) || Near(sites, at, spacing)) continue;
+            if (Near(blockers, at, spacing) || Near(sites, at, spacing))
+            {
+                continue;
+            }
+
             sites.Add(at);
         }
         return sites;
@@ -153,14 +220,26 @@ public static class PlayerTrapRoutines
     /// dearer goes first, then the lower id. Null when none can be bought.</summary>
     public static PlayerWorkshopOffer? Choose(PlayerObservation observation, TilePos site, long goldKept)
     {
-        if (observation is null) throw new ArgumentNullException(nameof(observation));
+        if (observation is null)
+        {
+            throw new ArgumentNullException(nameof(observation));
+        }
+
         TrapSite kind = SiteKind(observation.Tiles, site);
         PlayerWorkshopOffer? best = null;
         int bestRank = int.MaxValue;
         foreach (PlayerWorkshopOffer offer in observation.Offers.Workshop)
         {
-            if (offer.Kind != PlayerWorkshopKind.Trap || offer.NeedsWorkshop || !offer.Affordable) continue;
-            if (observation.Gold.Value - offer.Cost.Value < goldKept) continue;
+            if (offer.Kind != PlayerWorkshopKind.Trap || offer.NeedsWorkshop || !offer.Affordable)
+            {
+                continue;
+            }
+
+            if (observation.Gold.Value - offer.Cost.Value < goldKept)
+            {
+                continue;
+            }
+
             int rank = Rank(kind, RoleOf(offer));
             if (best is not PlayerWorkshopOffer b || rank < bestRank
                 || (rank == bestRank && (offer.Cost.Value > b.Cost.Value || (offer.Cost.Value == b.Cost.Value && offer.Id < b.Id))))
@@ -176,12 +255,23 @@ public static class PlayerTrapRoutines
     /// onto floor that is no corridor: a room, a hall), or a narrow corridor.</summary>
     public static TrapSite SiteKind(PlayerTileGrid grid, TilePos at)
     {
-        if (grid is null) throw new ArgumentNullException(nameof(grid));
-        if (IsLongCorridor(grid, at)) return TrapSite.LongCorridor;
+        if (grid is null)
+        {
+            throw new ArgumentNullException(nameof(grid));
+        }
+
+        if (IsLongCorridor(grid, at))
+        {
+            return TrapSite.LongCorridor;
+        }
+
         foreach ((int dx, int dy) in Sides)
         {
             var to = new TilePos(at.X + dx, at.Y + dy);
-            if (grid.Contains(to) && IsWalkable(grid[to]) && !IsCorridor(grid, to)) return TrapSite.ChokePoint;
+            if (grid.Contains(to) && IsWalkable(grid[to]) && !IsCorridor(grid, to))
+            {
+                return TrapSite.ChokePoint;
+            }
         }
         return TrapSite.NarrowCorridor;
     }
@@ -190,10 +280,24 @@ public static class PlayerTrapRoutines
     public static TrapRole RoleOf(in PlayerWorkshopOffer offer)
     {
         string name = offer.Name ?? "";
-        if (name.IndexOf("Boulder", StringComparison.OrdinalIgnoreCase) >= 0) return TrapRole.Boulder;
-        if (name.IndexOf("Fear", StringComparison.OrdinalIgnoreCase) >= 0) return TrapRole.Fear;
+        if (name.IndexOf("Boulder", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return TrapRole.Boulder;
+        }
+
+        if (name.IndexOf("Fear", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return TrapRole.Fear;
+        }
+
         foreach (string strike in StrikeTraps)
-            if (name.IndexOf(strike, StringComparison.OrdinalIgnoreCase) >= 0) return TrapRole.Strike;
+        {
+            if (name.IndexOf(strike, StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return TrapRole.Strike;
+            }
+        }
+
         return TrapRole.Other;
     }
 
@@ -214,21 +318,40 @@ public static class PlayerTrapRoutines
     /// <summary>The player's own traps and trap blueprints in view.</summary>
     public static int OwnTraps(PlayerTileGrid grid)
     {
-        if (grid is null) throw new ArgumentNullException(nameof(grid));
+        if (grid is null)
+        {
+            throw new ArgumentNullException(nameof(grid));
+        }
+
         int count = 0;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
-                if ((grid[new TilePos(x, y)].Flags & PlayerTileFlags.OwnTrap) != 0) count++;
+            {
+                if ((grid[new TilePos(x, y)].Flags & PlayerTileFlags.OwnTrap) != 0)
+                {
+                    count++;
+                }
+            }
+        }
+
         return count;
     }
 
     private static bool NextToHeart(PlayerTileGrid grid, TilePos at, PlayerId self)
     {
-        if (IsHeart(grid[at], self)) return true;
+        if (IsHeart(grid[at], self))
+        {
+            return true;
+        }
+
         foreach ((int dx, int dy) in Sides)
         {
             var to = new TilePos(at.X + dx, at.Y + dy);
-            if (grid.Contains(to) && IsHeart(grid[to], self)) return true;
+            if (grid.Contains(to) && IsHeart(grid[to], self))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -244,7 +367,13 @@ public static class PlayerTrapRoutines
     private static bool Near(List<TilePos> tiles, TilePos at, int spacing)
     {
         foreach (TilePos t in tiles)
-            if (Math.Max(Math.Abs(t.X - at.X), Math.Abs(t.Y - at.Y)) < spacing) return true;
+        {
+            if (Math.Max(Math.Abs(t.X - at.X), Math.Abs(t.Y - at.Y)) < spacing)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 

@@ -34,8 +34,15 @@ public static class WorkStance
         TilePos target,
         TileWorkKind kind)
     {
-        if (!world.Contains(target)) return false;
-        if (!grid.IsWalkable(target.X, target.Y)) return false;
+        if (!world.Contains(target))
+        {
+            return false;
+        }
+
+        if (!grid.IsWalkable(target.X, target.Y))
+        {
+            return false;
+        }
 
         ref TileState tile = ref world.Tile(target);
         byte after = TileWorkRules.OutcomeTerrainId(database, tile, kind);

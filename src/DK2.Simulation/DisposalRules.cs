@@ -25,11 +25,16 @@ public static class DisposalRules
     {
         if (mover.CreatureId != 1 && world.Contains(at)
             && database.RoomByTerrain(world.Tile(at.X, at.Y).TerrainId)?.TypeId == RoomTypeId.Portal
-            && LeavingRules.IsDropCentre(world, database, at, playerId)) return true;
+            && LeavingRules.IsDropCentre(world, database, at, playerId))
+        {
+            return true;
+        }
         // 71 gives a worker back only with the Heart object (type 13) in the room; a ruined Heart
         // has none, so 71 sends it to 11 and the drop is an ordinary landing.
         if (((mover.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+        {
             return IsHeartCentreTile(world, database, at, playerId) && !world.Tile(at.X, at.Y).RoomRuined;
+        }
 
         return false;
     }
@@ -42,15 +47,28 @@ public static class DisposalRules
     public static bool IsHeartCentreTile(
         WorldState world, GameDatabase database, TilePos at, PlayerId playerId)
     {
-        if (!world.Contains(at)) return false;
+        if (!world.Contains(at))
+        {
+            return false;
+        }
 
         ref TileState tile = ref world.Tile(at.X, at.Y);
-        if (tile.OwnerPlayerId != playerId) return false;
-        if (tile.TerrainId != database.Room(RoomTypeId.DungeonHeart).TerrainId) return false;
+        if (tile.OwnerPlayerId != playerId)
+        {
+            return false;
+        }
+
+        if (tile.TerrainId != database.Room(RoomTypeId.DungeonHeart).TerrainId)
+        {
+            return false;
+        }
 
         int index = (at.Y * world.Width) + at.X;
         RoomInstance? heart = RoomIndex.RoomAt(world, database, index);
-        if (heart is null || heart.Definition.TypeId != RoomTypeId.DungeonHeart) return false;
+        if (heart is null || heart.Definition.TypeId != RoomTypeId.DungeonHeart)
+        {
+            return false;
+        }
 
         return at.X == (heart.MinX + heart.MaxX) / 2
             && at.Y == (heart.MinY + heart.MaxY) / 2;

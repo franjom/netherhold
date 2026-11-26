@@ -51,8 +51,13 @@ public static class LairRules
     {
         EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
+        {
             if (objects[i].TileIndex == tileIndex && IsBed(database, objects[i]))
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -62,8 +67,13 @@ public static class LairRules
     {
         EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
+        {
             if (objects[i].CreatureId == creature.Id && IsBed(database, objects[i]))
+            {
                 return objects[i];
+            }
+        }
+
         return null;
     }
 
@@ -87,7 +97,13 @@ public static class LairRules
     {
         int taken = 0;
         foreach (int index in lair.TileIndices)
-            if (BedTaken(world, database, index)) taken++;
+        {
+            if (BedTaken(world, database, index))
+            {
+                taken++;
+            }
+        }
+
         return taken;
     }
 
@@ -99,7 +115,11 @@ public static class LairRules
     public static bool IsLairTileOf(
         WorldState world, GameDatabase database, int tileIndex, PlayerId ownerPlayerId)
     {
-        if (tileIndex < 0 || tileIndex >= world.TileCount) return false;
+        if (tileIndex < 0 || tileIndex >= world.TileCount)
+        {
+            return false;
+        }
+
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         return tile.OwnerPlayerId == ownerPlayerId
             && tile.TerrainId == database.Room(RoomTypeId.Lair).TerrainId;
@@ -136,21 +156,41 @@ public static class LairRules
     {
         bool good = ((me.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood);
         bool evil = ((me.Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil);
-        if (!good && !evil) return false;
+        if (!good && !evil)
+        {
+            return false;
+        }
 
         EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
         {
             ObjectState candidate = objects[i];
-            if (!IsBed(database, candidate)) continue;
-            if (!lair.TileIndices.Contains(candidate.TileIndex)) continue;
+            if (!IsBed(database, candidate))
+            {
+                continue;
+            }
+
+            if (!lair.TileIndices.Contains(candidate.TileIndex))
+            {
+                continue;
+            }
 
             CreatureState? owner = world.CreatureById(candidate.CreatureId);
-            if (owner is null) continue;
+            if (owner is null)
+            {
+                continue;
+            }
 
             CreatureFlags theirs = database.CreatureById(owner.CreatureTypeId).Flags;
-            if (good && ((theirs & CreatureFlags.IsEvil) == CreatureFlags.IsEvil)) return true;
-            if (evil && ((theirs & CreatureFlags.IsGood) == CreatureFlags.IsGood)) return true;
+            if (good && ((theirs & CreatureFlags.IsEvil) == CreatureFlags.IsEvil))
+            {
+                return true;
+            }
+
+            if (evil && ((theirs & CreatureFlags.IsGood) == CreatureFlags.IsGood))
+            {
+                return true;
+            }
         }
 
         return false;
@@ -183,7 +223,10 @@ public static class LairRules
     {
         TilePos centre = CentreTile(room);
         int centreIndex = (centre.Y * world.Width) + centre.X;
-        if (room.TileIndices.Contains(centreIndex)) return centreIndex;
+        if (room.TileIndices.Contains(centreIndex))
+        {
+            return centreIndex;
+        }
 
         int best = room.TileIndices[0];
         long bestDistance = long.MaxValue;
@@ -241,10 +284,16 @@ public static class LairRules
         {
             int nx = from.X + NeighbourDx[i];
             int ny = from.Y + NeighbourDy[i];
-            if (!world.Contains(nx, ny)) continue;
+            if (!world.Contains(nx, ny))
+            {
+                continue;
+            }
 
             int index = (ny * world.Width) + nx;
-            if (!IsFreeLairTile(world, database, index, ownerPlayerId)) continue;
+            if (!IsFreeLairTile(world, database, index, ownerPlayerId))
+            {
+                continue;
+            }
 
             tileIndex = index;
             how = TileFound.Neighbour;
@@ -257,7 +306,10 @@ public static class LairRules
         for (int step = 0; step < count; step++)
         {
             int index = tiles[(start + step) % count];
-            if (!IsFreeLairTile(world, database, index, ownerPlayerId)) continue;
+            if (!IsFreeLairTile(world, database, index, ownerPlayerId))
+            {
+                continue;
+            }
 
             tileIndex = index;
             how = TileFound.Walk;
@@ -298,19 +350,36 @@ public static class LairRules
     public static bool TryPlaceBedInAnyLair(
         WorldState world, GameDatabase database, CreatureState creature)
     {
-        if (HasBed(world, database, creature)) return true;
+        if (HasBed(world, database, creature))
+        {
+            return true;
+        }
 
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-        if (!NeedsBed(definition)) return false;
+        if (!NeedsBed(definition))
+        {
+            return false;
+        }
 
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.OwnerPlayerId != creature.OwnerPlayerId) continue;
-            if (!IsLairRoom(database, room)) continue;
+            if (room.OwnerPlayerId != creature.OwnerPlayerId)
+            {
+                continue;
+            }
+
+            if (!IsLairRoom(database, room))
+            {
+                continue;
+            }
 
             foreach (int index in room.TileIndices)
             {
-                if (BedTaken(world, database, index)) continue;
+                if (BedTaken(world, database, index))
+                {
+                    continue;
+                }
+
                 PlaceBed(world, database, creature, index);
                 return true;
             }
@@ -356,7 +425,11 @@ public static class LairRules
         WorldState world, GameDatabase database, CreatureState creature)
     {
         ObjectState? bed = BedOf(world, database, creature);
-        if (bed is null) return false;
+        if (bed is null)
+        {
+            return false;
+        }
+
         return world.RemoveObject(bed.Id);
     }
 
@@ -369,10 +442,16 @@ public static class LairRules
         WorldState world, GameDatabase database, CreatureState creature)
     {
         ObjectState? bed = BedOf(world, database, creature);
-        if (bed is null) return false;
+        if (bed is null)
+        {
+            return false;
+        }
 
         int index = bed.TileIndex;
-        if (index < 0 || index >= world.TileCount) return false;
+        if (index < 0 || index >= world.TileCount)
+        {
+            return false;
+        }
 
         ref TileState tile = ref world.TileAtIndex(index);
         return tile.OwnerPlayerId == creature.OwnerPlayerId
@@ -396,10 +475,16 @@ public static class LairRules
     public static bool AsleepInOwnBed(
         WorldState world, GameDatabase database, CreatureState creature)
     {
-        if (creature.Activity != CreatureActivity.Sleeping) return false;
+        if (creature.Activity != CreatureActivity.Sleeping)
+        {
+            return false;
+        }
 
         int bed = BedTileIndex(world, database, creature);
-        if (bed < 0) return false;
+        if (bed < 0)
+        {
+            return false;
+        }
 
         TilePos at = creature.Tile;
         return world.Contains(at) && (at.Y * world.Width) + at.X == bed;

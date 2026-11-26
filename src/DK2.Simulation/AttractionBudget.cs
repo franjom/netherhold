@@ -23,23 +23,36 @@ public static class AttractionBudget
         WorldState world, CreatureDef creature,
         IReadOnlyList<RoomInstance> keeperRooms, PlayerId playerId)
     {
-        if (creature.Attractions.Count == 0) return true;
+        if (creature.Attractions.Count == 0)
+        {
+            return true;
+        }
 
         // The builder reads slot 0 alone, so a two-slot creature budgets on its first
         // room and the second room only has to reach its size (PortalRules.IsAttracted).
         CreatureAttraction first = creature.Attractions[0];
-        if (first.Present == 0 || first.RoomId == 0) return true;
+        if (first.Present == 0 || first.RoomId == 0)
+        {
+            return true;
+        }
 
         // The Lair arm stores a flat 1.0 and jumps past the draw-down (0x004DC18E),
         // so a Lair-attracted type is never capped however many are held. It walks no
         // room list either (0x004DC153), so the type needs no Lair: Level 4's first Goblin.
-        if (first.RoomId == (byte)RoomTypeId.Lair) return true;
+        if (first.RoomId == (byte)RoomTypeId.Lair)
+        {
+            return true;
+        }
 
         int budget = 0;
         for (int i = 0; i < keeperRooms.Count; i++)
         {
             RoomInstance room = keeperRooms[i];
-            if (room.Definition.RoomId != first.RoomId) continue;
+            if (room.Definition.RoomId != first.RoomId)
+            {
+                continue;
+            }
+
             budget += Contribution(world, room);
         }
 
@@ -73,9 +86,20 @@ public static class AttractionBudget
         for (int i = 0; i < objects.Count; i++)
         {
             ObjectState thing = objects[i];
-            if (thing.ObjectTypeId != AutoFurnitureRules.TempleHandObjectId) continue;
-            if (thing.OwnerPlayerId != room.OwnerPlayerId) continue;
-            if (room.TileIndices.Contains(thing.TileIndex)) return true;
+            if (thing.ObjectTypeId != AutoFurnitureRules.TempleHandObjectId)
+            {
+                continue;
+            }
+
+            if (thing.OwnerPlayerId != room.OwnerPlayerId)
+            {
+                continue;
+            }
+
+            if (room.TileIndices.Contains(thing.TileIndex))
+            {
+                return true;
+            }
         }
 
         return false;

@@ -30,7 +30,11 @@ public static class CampaignProgression
     public static CampaignProfile LocateHiddenLand(CampaignProfile profile, CampaignSlot playedMap)
     {
         int index = playedMap.Value switch { 5 => 0, 8 => 1, 11 => 2, 16 => 3, _ => -1 };
-        if (index < 0) return profile;
+        if (index < 0)
+        {
+            return profile;
+        }
+
         uint[] secrets = profile.SecretLevels.ToArray(); secrets[index] = 1;
         return profile with { SecretLevels = Array.AsReadOnly(secrets) };
     }
@@ -39,8 +43,16 @@ public static class CampaignProgression
     {
         for (int i = 0; i < 24; i++)
         {
-            if (profile.PlayerLevelStatus[i] == CampaignLevelStatus.Open) return profile;
-            if (profile.PlayerLevelStatus[i] != CampaignLevelStatus.Locked) continue;
+            if (profile.PlayerLevelStatus[i] == CampaignLevelStatus.Open)
+            {
+                return profile;
+            }
+
+            if (profile.PlayerLevelStatus[i] != CampaignLevelStatus.Locked)
+            {
+                continue;
+            }
+
             CampaignLevelStatus[] statuses = profile.PlayerLevelStatus.ToArray(); statuses[i] = CampaignLevelStatus.Open;
             return profile with { PlayerLevelStatus = Array.AsReadOnly(statuses) };
         }
@@ -59,18 +71,33 @@ public static class CampaignProgression
     /// Not here: the win tail's LEVEL-flag 0x20/0x40 completions and the finale (0x004BEDC0..).</summary>
     public static CampaignProfile RecordResult(CampaignProfile profile, CampaignSlot played, bool won)
     {
-        if (!played.IsCampaign && !played.IsSecret) throw new ArgumentOutOfRangeException(nameof(played));
+        if (!played.IsCampaign && !played.IsSecret)
+        {
+            throw new ArgumentOutOfRangeException(nameof(played));
+        }
+
         if (won)
         {
-            if (played.IsCampaign) return CompleteMap(profile, played);
+            if (played.IsCampaign)
+            {
+                return CompleteMap(profile, played);
+            }
+
             uint[] completed = profile.SecretLevelsCompleted.ToArray(); completed[played.Value - 26] = 1;
             return profile with { SecretLevelsCompleted = Array.AsReadOnly(completed) };
         }
         uint[] attempts = profile.LevelAttempts.ToArray(); attempts[played.Value - 1]++;
-        if (played.IsSecret) return profile with { LevelAttempts = Array.AsReadOnly(attempts) };
+        if (played.IsSecret)
+        {
+            return profile with { LevelAttempts = Array.AsReadOnly(attempts) };
+        }
+
         CampaignLevelStatus[] statuses = profile.PlayerLevelStatus.ToArray();
         if (statuses[played.Value - 1] is not (CampaignLevelStatus.Won or CampaignLevelStatus.ClosedBranch))
+        {
             statuses[played.Value - 1] = CampaignLevelStatus.Open;
+        }
+
         return profile with { PlayerLevelStatus = Array.AsReadOnly(statuses), LevelAttempts = Array.AsReadOnly(attempts),
             TransferCreatureId = 0 };
     }
@@ -83,14 +110,26 @@ public static class CampaignProgression
         CampaignSlot played, uint? keeperRank)
     {
         int row = player.Value;
-        if (row >= 8) throw new ArgumentOutOfRangeException(nameof(player));
+        if (row >= 8)
+        {
+            throw new ArgumentOutOfRangeException(nameof(player));
+        }
+
         uint[] statistics = profile.PlayerStatistics.ToArray();
         block.ToDwords().CopyTo(statistics, row * LevelStatisticsBlock.Dwords);
         uint[] valid = profile.PlayerStatisticsValid.ToArray(); valid[row] = 1;
         uint[] values = profile.PlayerValues.ToArray();
-        if (keeperRank is uint rank) values[row] = rank;
+        if (keeperRank is uint rank)
+        {
+            values[row] = rank;
+        }
+
         uint[] ratings = profile.TotalEvilRating.ToArray();
-        if (played.IsCampaign || played.IsSecret) ratings[played.Value - 1] = block.TotalEvilRating;
+        if (played.IsCampaign || played.IsSecret)
+        {
+            ratings[played.Value - 1] = block.TotalEvilRating;
+        }
+
         return profile with { PlayerStatistics = Array.AsReadOnly(statistics), PlayerStatisticsValid = Array.AsReadOnly(valid),
             PlayerValues = Array.AsReadOnly(values), TotalEvilRating = Array.AsReadOnly(ratings) };
     }
@@ -109,7 +148,11 @@ public static class CampaignProgression
     public static CampaignProfile AdvanceAfterResults(CampaignProfile profile)
     {
         CampaignSlot played = PlayedSlot(profile);
-        if (!played.IsCampaign || profile.PlayerLevelStatus[played.Value - 1] != CampaignLevelStatus.Won) return profile;
+        if (!played.IsCampaign || profile.PlayerLevelStatus[played.Value - 1] != CampaignLevelStatus.Won)
+        {
+            return profile;
+        }
+
         int next = played.Value switch { 6 or 7 => 8, 12 or 13 or 14 => 15, 18 or 19 => 20, _ => played.Value + 1 };
         return profile.PlayerLevelStatus[next - 1] is CampaignLevelStatus.Won or CampaignLevelStatus.ClosedBranch
             ? profile : profile with { LevelNumber = (byte)next };
@@ -117,7 +160,11 @@ public static class CampaignProgression
 
     public static CampaignProfile CompleteMap(CampaignProfile profile, CampaignSlot slot)
     {
-        if (!slot.IsCampaign) throw new ArgumentOutOfRangeException(nameof(slot));
+        if (!slot.IsCampaign)
+        {
+            throw new ArgumentOutOfRangeException(nameof(slot));
+        }
+
         CampaignLevelStatus[] statuses = profile.PlayerLevelStatus.ToArray();
         int won = slot.Value;
         Set(won, CampaignLevelStatus.Won);
@@ -141,7 +188,9 @@ public static class CampaignProgression
         void Set(int value, CampaignLevelStatus status)
         {
             if (statuses[value - 1] is not (CampaignLevelStatus.Won or CampaignLevelStatus.ClosedBranch))
+            {
                 statuses[value - 1] = status;
+            }
         }
     }
 }

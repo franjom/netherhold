@@ -21,9 +21,14 @@ public static class ReaperRules
     public static CreatureState? OwnedReaper(WorldState world, GameDatabase database, in PlayerState player)
     {
         foreach (CreatureState creature in world.CreatureOwnershipOrder)
+        {
             if (CreatureStateMachine.HasState(creature) && creature.OwnerPlayerId == player.PlayerId
                 && ((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+            {
                 return creature;
+            }
+        }
+
         return null;
     }
 
@@ -33,14 +38,21 @@ public static class ReaperRules
         uint turn = unchecked((uint)(world.CurrentTick.Value + 1));
         if (player.Status != PlayerStatus.Playing || reaper is null || reaper.IsOneShotReaper
             || reaper.Dk2StateId is 235 or 237 or 242 || reaper.HornyTick >= turn)
+        {
             return 0;
+        }
+
         return database.KeeperSpellById(SpellId)?.ManaUpkeepPerSecond ?? 0;
     }
 
     public static bool AfterPayment(SimulationContext context, in PlayerState player)
     {
         int upkeep = UpkeepPerSecond(context.World, context.Database, player);
-        if (upkeep == 0 || player.Mana >= upkeep) return false;
+        if (upkeep == 0 || player.Mana >= upkeep)
+        {
+            return false;
+        }
+
         Depart(context, OwnedReaper(context.World, context.Database, player)!);
         context.Emit("reaper", "unaffordable", $"player={player.PlayerId} upkeep={upkeep} mana={player.Mana}");
         return true;
@@ -57,13 +69,19 @@ public static class ReaperRules
     {
         if (CreatureStateMachine.HasState(reaper) && ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
             && reaper.ReaperTicks != 0 && --reaper.ReaperTicks == 0)
+        {
             Depart(context, reaper);
+        }
     }
 
     /// <summary>One creature's Reaper states 235-237 and 242, in its update.</summary>
     public static void RunLifecycle(SimulationContext context, CreatureState reaper)
     {
-        if (reaper.Dk2StateId is not (ArrivingState or MaterializingState or GreetingState or DepartingState)) return;
+        if (reaper.Dk2StateId is not (ArrivingState or MaterializingState or GreetingState or DepartingState))
+        {
+            return;
+        }
+
         uint age = ++reaper.ReaperStateAgeTicks;
         switch (reaper.Dk2StateId)
         {
@@ -77,13 +95,26 @@ public static class ReaperRules
                 }
                 break;
             case MaterializingState:
-                if (age == 1) reaper.ReaperAlpha = 0;
+                if (age == 1)
+                {
+                    reaper.ReaperAlpha = 0;
+                }
+
                 if (reaper.ReaperAlpha == byte.MaxValue)
+                {
                     EnterState(context, reaper, ReaperState.Greeting);
-                else reaper.ReaperAlpha = (byte)Math.Min(byte.MaxValue, reaper.ReaperAlpha + 32);
+                }
+                else
+                {
+                    reaper.ReaperAlpha = (byte)Math.Min(byte.MaxValue, reaper.ReaperAlpha + 32);
+                }
+
                 break;
             case GreetingState:
-                if (age == 1) BeginAction(context, reaper);
+                if (age == 1)
+                {
+                    BeginAction(context, reaper);
+                }
                 else if (context.Tick.Value >= reaper.ActionUntilTick)
                 {
                     reaper.ReaperActionId = 0;
@@ -92,11 +123,18 @@ public static class ReaperRules
                 }
                 break;
             case DepartingState:
-                if (age == 1 && reaper.ReaperActionId != 47) BeginAction(context, reaper);
+                if (age == 1 && reaper.ReaperActionId != 47)
+                {
+                    BeginAction(context, reaper);
+                }
+
                 if (age >= 6 * SimulationTiming.OriginalTicksPerGameSecond)
                 {
                     reaper.ReaperAlpha = (byte)Math.Max(0, reaper.ReaperAlpha - 32);
-                    if (reaper.ReaperAlpha == 0) reaper.Health = 0;
+                    if (reaper.ReaperAlpha == 0)
+                    {
+                        reaper.Health = 0;
+                    }
                 }
                 break;
         }
@@ -122,7 +160,10 @@ public static class ReaperRules
             definition.ReaperSummonAnimation, definition.ReaperSummonFallbackAnimation);
         reaper.ReaperActionId = 46;
         reaper.ActionUntilTick = context.Tick.Value + AnimationTimingRules.FirstCycleHoldTicks(animation);
-        if (animation.ResourceType is not (1 or 3)) reaper.ReaperAlpha = byte.MaxValue;
+        if (animation.ResourceType is not (1 or 3))
+        {
+            reaper.ReaperAlpha = byte.MaxValue;
+        }
     }
 
     /// <summary>How long action 46, the roar, holds: one first cycle of art 35 or its fallback 8.</summary>
@@ -132,15 +173,31 @@ public static class ReaperRules
     public static void Create(SimulationContext context, ShotState shot)
     {
         int targetLevel = shot.Data1 == 0 ? 10 : context.Database.Level?.OneShotReaperLevel ?? -1;
-        if (targetLevel < 0) return;
+        if (targetLevel < 0)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         var at = new TilePos(shot.PosX >> 12, shot.PosY >> 12);
         context.Navigation.Refresh();
-        if (!world.Contains(at) || (context.Navigation.NavByte(at.X, at.Y) & 8) != 0) return;
+        if (!world.Contains(at) || (context.Navigation.NavByte(at.X, at.Y) & 8) != 0)
+        {
+            return;
+        }
+
         CreatureDef? definition = ReaperDefinition(context.Database);
-        if (definition is null || !world.HasPlayer(shot.OwnerPlayerId)) return;
+        if (definition is null || !world.HasPlayer(shot.OwnerPlayerId))
+        {
+            return;
+        }
+
         CreatureState? reaper = world.TrySpawnCreature(context.Database, definition.CreatureId, shot.OwnerPlayerId, at);
-        if (reaper is null) return;
+        if (reaper is null)
+        {
+            return;
+        }
+
         reaper.PosX = reaper.LastPosX = shot.PosX;
         reaper.PosY = reaper.LastPosY = shot.PosY;
         EnterState(context, reaper, ReaperState.Arriving);
@@ -149,7 +206,11 @@ public static class ReaperRules
             reaper.ReaperTicks = unchecked((ushort)(shot.Data1 * SimulationTiming.OriginalTicksPerGameSecond));
             reaper.IsOneShotReaper = true;
         }
-        for (int level = 1; level < targetLevel; level++) CreatureLevelRules.LevelUp(context.Hooks, definition, reaper);
+        for (int level = 1; level < targetLevel; level++)
+        {
+            CreatureLevelRules.LevelUp(context.Hooks, definition, reaper);
+        }
+
         reaper.ReaperCanAcquireFight = reaper.ReaperIsAttackable = false;
         reaper.HornyTick = unchecked((uint)(context.Tick.Value + 1 + 50 * SimulationTiming.OriginalTicksPerGameSecond));
         context.Emit("reaper", "created", $"creature={reaper.Id} player={reaper.OwnerPlayerId} level={reaper.Level}");
@@ -157,9 +218,15 @@ public static class ReaperRules
 
     private static void EnterState(SimulationContext context, CreatureState reaper, ReaperState state)
     {
-        if (reaper.InHand) return;
+        if (reaper.InHand)
+        {
+            return;
+        }
+
         if (CreatureStateMachine.TrySetState(context.Hooks, reaper, (int)state, context.Tick.Value))
+        {
             reaper.ReaperStateAgeTicks = 0;
+        }
     }
 
     internal static CreatureDef? ReaperDefinition(GameDatabase database)
@@ -170,7 +237,9 @@ public static class ReaperRules
                 ? checked((byte)candidate.UniqueBaseCreatureId) : candidate.CreatureId;
             if (database.Creatures.TryGetValue(id, out CreatureDef? definition)
                 && ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+            {
                 return definition;
+            }
         }
         return null;
     }

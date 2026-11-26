@@ -54,7 +54,11 @@ public sealed partial class EffectGeneratorState
         hash.Add(X); hash.Add(Y);
         hash.Add(Unknown_0010); hash.Add(Unknown_0012);
         hash.Add(EffectIds.Count);
-        foreach (ushort effectId in EffectIds) hash.Add(effectId);
+        foreach (ushort effectId in EffectIds)
+        {
+            hash.Add(effectId);
+        }
+
         hash.Add(Frequency); hash.Add(GeneratorId);
         hash.Add(PosX); hash.Add(PosY); hash.Add(PosZ);
         hash.Add(NextDueTurn);

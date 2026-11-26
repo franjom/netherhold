@@ -33,35 +33,59 @@ public static class WeaponImpactRules
     /// <summary>The impact on a creature (<c>0x00499072</c>, definition <c>+0x685</c>).</summary>
     public static void OnCreature(SimulationContext context, string system, CreatureState attacker, CreatureDef mine, CreatureState target)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         Request(context, system, attacker, mine.MeleeAttackType, context.Database.CreatureById(target.CreatureTypeId).ImpactKind);
     }
 
     /// <summary>The impact on a door (<c>0x00499168</c>, definition <c>+0xB3</c>).</summary>
     public static void OnDoor(SimulationContext context, string system, CreatureState attacker, CreatureDef mine, DoorState door)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         Request(context, system, attacker, mine.MeleeAttackType, context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? def) ? def.ImpactKind : (byte)0);
     }
 
     /// <summary>The impact on a trap (<c>0x00499194</c>, definition <c>+0xBF</c>).</summary>
     public static void OnTrap(SimulationContext context, string system, CreatureState attacker, CreatureDef mine, TrapState trap)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         Request(context, system, attacker, mine.MeleeAttackType, context.Database.Traps.TryGetValue(trap.TrapId, out TrapDef? def) ? def.ImpactKind : (byte)0);
     }
 
     /// <summary>The impact on an object (<c>0x004991C0</c>, definition <c>+0x11C</c>); also the possessed act's (<c>0x00514C8B</c>).</summary>
     public static void OnObject(SimulationContext context, string system, CreatureState attacker, CreatureDef mine, byte objectTypeId)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         Request(context, system, attacker, mine.MeleeAttackType, context.Database.ObjectById(objectTypeId)?.ImpactKind ?? (byte)0);
     }
 
     private static void Request(SimulationContext context, string system, CreatureState attacker, AttackType type, byte surface)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
-        if (surface is < 1 or > 7 || CategoryOf(type) is not { } category) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
+        if (surface is < 1 or > 7 || CategoryOf(type) is not { } category)
+        {
+            return;
+        }
+
         ThingSoundRules.Request(context, system, SoundSourceId.Of(new CreatureId(attacker.Id)), category,
             (ThingSoundEvent)BySurface[surface - 1],
             new FpPosition3(new Fp32(attacker.PosX), new Fp32(attacker.PosY), new Fp32(attacker.PosZ)));

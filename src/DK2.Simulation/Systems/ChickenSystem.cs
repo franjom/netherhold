@@ -23,14 +23,25 @@ public sealed class ChickenSystem : ISimulationSystem
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) continue;
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined))
+            {
+                continue;
+            }
+
             if (StateShadow.IsTravelling(creature))
             {
-                if (creature.UtilityNewState != ChickenRules.ChickenState || creature.HasRoute) continue;
+                if (creature.UtilityNewState != ChickenRules.ChickenState || creature.HasRoute)
+                {
+                    continue;
+                }
+
                 StateShadow.Arrive(context, SystemName, creature);
                 continue;
             }
-            if (creature.Dk2StateId == ChickenRules.ChickenState) ChickenRules.Handle(context, creature);
+            if (creature.Dk2StateId == ChickenRules.ChickenState)
+            {
+                ChickenRules.Handle(context, creature);
+            }
         }
     }
 }

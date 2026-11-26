@@ -24,11 +24,17 @@ internal static class RepairStrikeRules
         if (creature.TargetWork != TileWorkKind.RepairWall || creature.TargetTileIndex < 0
             || creature.Dk2StateId != ImpStates.For(TileWorkKind.RepairWall).Work
             || context.Tick.Value <= creature.StateEnteredTick
-            || !context.RepairStrikesPolledThisTick.Add(creature)) return;
+            || !context.RepairStrikesPolledThisTick.Add(creature))
+        {
+            return;
+        }
 
         // Decrement first, then act on zero (ADR-0280).
         creature.TimerTicks--;
-        if (creature.TimerTicks > 0) return;
+        if (creature.TimerTicks > 0)
+        {
+            return;
+        }
 
         context.World.QueueWork(new TileWorkOrder(
             creature.TargetTileIndex, TileWorkKind.RepairWall, creature.OwnerPlayerId, creature.Id));

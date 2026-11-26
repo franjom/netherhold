@@ -299,7 +299,11 @@ public sealed partial class CreatureState
         get => _posX;
         set
         {
-            if (_posX == value) return;
+            if (_posX == value)
+            {
+                return;
+            }
+
             _posX = value;
             LinkWorld?.Relink(this);
         }
@@ -310,7 +314,11 @@ public sealed partial class CreatureState
         get => _posY;
         set
         {
-            if (_posY == value) return;
+            if (_posY == value)
+            {
+                return;
+            }
+
             _posY = value;
             LinkWorld?.Relink(this);
         }
@@ -608,7 +616,11 @@ public sealed partial class CreatureState
         get => _inHand;
         set
         {
-            if (_inHand == value) return;
+            if (_inHand == value)
+            {
+                return;
+            }
+
             _inHand = value;
             LinkWorld?.Relink(this);
         }
@@ -725,7 +737,11 @@ public sealed partial class CreatureState
         get => _carriedByCreatureId;
         set
         {
-            if (_carriedByCreatureId == value) return;
+            if (_carriedByCreatureId == value)
+            {
+                return;
+            }
+
             _carriedByCreatureId = value;
             LinkWorld?.Relink(this);
         }
@@ -1214,7 +1230,11 @@ public sealed partial class CreatureState
         for (int i = 0; i < size; i++)
         {
             int at = offset + i;
-            if (at < First || at > Last) continue;
+            if (at < First || at > Last)
+            {
+                continue;
+            }
+
             int shift = (at - First) * 8;
             window = (window & ~(0xFFUL << shift)) | ((ulong)(byte)(value >> (i * 8)) << shift);
         }
@@ -1734,7 +1754,11 @@ public sealed partial class CreatureState
         hash.Add(CasinoBigWinnerSlappedCount);
         hash.Add(GraveyardSlot);
         hash.Add((byte)BodyOwnerPlayerId);
-        for (int i = 0; i < SpellStamps.Length; i++) hash.Add(SpellStamps[i]);
+        for (int i = 0; i < SpellStamps.Length; i++)
+        {
+            hash.Add(SpellStamps[i]);
+        }
+
         hash.Add(AttackSpellSlot);
         hash.Add(SwingKind);
         hash.Add(SwingSpellSlot);
@@ -1816,7 +1840,14 @@ public sealed partial class CreatureState
         hash.Add(GoodJobActionPointId);
         hash.Add(GemCarrier);
         hash.Add(TrainingCharges);
-        for (int i = 0; i < EngagedMelee.Length; i++) hash.Add(EngagedMelee[i]);
-        for (int i = 0; i < EngagedRanged.Length; i++) hash.Add(EngagedRanged[i]);
+        for (int i = 0; i < EngagedMelee.Length; i++)
+        {
+            hash.Add(EngagedMelee[i]);
+        }
+
+        for (int i = 0; i < EngagedRanged.Length; i++)
+        {
+            hash.Add(EngagedRanged[i]);
+        }
     }
 }

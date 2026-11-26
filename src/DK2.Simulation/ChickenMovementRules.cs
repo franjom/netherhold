@@ -27,7 +27,11 @@ public static class ChickenMovementRules
 
     public static void Tick(SimulationContext context, ObjectState chicken)
     {
-        if (chicken.InHand || chicken.CarriedByCreatureId >= 0) return;
+        if (chicken.InHand || chicken.CarriedByCreatureId >= 0)
+        {
+            return;
+        }
+
         ReconcileMembership(context, chicken);
         if (chicken.ProcessState == 0)
         {
@@ -49,7 +53,11 @@ public static class ChickenMovementRules
                 break;
             case ChickenProcess.Loose:
                 // A process that returns 0 is cleared, and the next update restarts it (0x0049EED0).
-                if (!Roam(context, chicken)) SetProcess(chicken, ChickenProcess.None);
+                if (!Roam(context, chicken))
+                {
+                    SetProcess(chicken, ChickenProcess.None);
+                }
+
                 break;
         }
         Decay(context, chicken);
@@ -67,11 +75,22 @@ public static class ChickenMovementRules
         ObjectDef definition = context.Database.ObjectById(chicken.ObjectTypeId)!;
         bool decays = ((definition.Flags & ObjectFlags.DieOverTime) == ObjectFlags.DieOverTime)
             || (((definition.Flags & ObjectFlags.DieOverTimeIfNotInRoom) == ObjectFlags.DieOverTimeIfNotInRoom) && chicken.HatcheryRoomAnchorTileIndex < 0);
-        if (decays && chicken.Health > 0) chicken.Health--;
-        if (chicken.Health > 0) return;
+        if (decays && chicken.Health > 0)
+        {
+            chicken.Health--;
+        }
+
+        if (chicken.Health > 0)
+        {
+            return;
+        }
+
         if (definition.DeathEffectId != 0 && !chicken.DeathEffectCleared)
+        {
             context.RequestEffect("chicken", new ViewEffectRequest(new EffectId(definition.DeathEffectId), new PlayerId(chicken.OwnerPlayerId),
                 new FpPosition3(new Fp32(chicken.PosX), new Fp32(chicken.PosY), new Fp32(chicken.PosZ)), new Dk2Angle((ushort)chicken.Heading)));
+        }
+
         context.Emit("chicken", "chicken_died", $"object={chicken.Id}");
         context.World.RemoveObject(chicken.Id);
     }
@@ -100,7 +119,11 @@ public static class ChickenMovementRules
 
     public static void UnlinkHatchery(ObjectState chicken)
     {
-        if (chicken.HatcheryRoomAnchorTileIndex < 0) return;
+        if (chicken.HatcheryRoomAnchorTileIndex < 0)
+        {
+            return;
+        }
+
         chicken.HatcheryRoomAnchorTileIndex = -1;
         chicken.ChickenCanEscape = true;
     }
@@ -108,16 +131,26 @@ public static class ChickenMovementRules
     private static void ReconcileMembership(SimulationContext context, ObjectState chicken)
     {
         int anchor = chicken.HatcheryRoomAnchorTileIndex;
-        if (anchor < 0) return;
+        if (anchor < 0)
+        {
+            return;
+        }
+
         if (anchor >= context.World.Width * context.World.Height
             || context.World.TileAtIndex(anchor).OwnerPlayerId != chicken.OwnerPlayerId
             || context.Database.RoomByTerrain(context.World.TileAtIndex(anchor).TerrainId)?.TypeId != RoomTypeId.Hatchery)
+        {
             UnlinkHatchery(chicken);
+        }
     }
 
     private static void RegisterHatchery(SimulationContext context, ObjectState chicken, TilePos tile)
     {
-        if (chicken.HatcheryRoomAnchorTileIndex >= 0) return;
+        if (chicken.HatcheryRoomAnchorTileIndex >= 0)
+        {
+            return;
+        }
+
         Admit(context.World, context.Database, chicken,
             RoomIndex.RoomAt(context.World, context.Database, tile.Y * context.World.Width + tile.X)!);
     }
@@ -128,11 +161,20 @@ public static class ChickenMovementRules
     {
         int used = 0;
         foreach (ObjectState bird in world.Objects)
+        {
             if (bird.ObjectTypeId == HatcheryRules.ChickenObjectId
                 && room.Contains(bird.HatcheryRoomAnchorTileIndex))
+            {
                 used += database.ObjectById(bird.ObjectTypeId)!.RoomCapacity;
+            }
+        }
+
         int required = database.ObjectById(chicken.ObjectTypeId)!.RoomCapacity;
-        if (used + required > HatcheryRules.FlockCapacity(database, room)) return;
+        if (used + required > HatcheryRules.FlockCapacity(database, room))
+        {
+            return;
+        }
+
         chicken.HatcheryRoomAnchorTileIndex = room.TileIndices[0];
         chicken.ChickenCanEscape = false;
     }
@@ -141,11 +183,19 @@ public static class ChickenMovementRules
     /// membership anchor is one of <paramref name="tiles"/> leaves its Hatchery.</summary>
     internal static void ReleaseHatcheryBirds(WorldState world, IReadOnlyCollection<int> tiles)
     {
-        if (tiles.Count == 0) return;
+        if (tiles.Count == 0)
+        {
+            return;
+        }
+
         ISet<int> set = tiles as ISet<int> ?? new HashSet<int>(tiles);
         foreach (ObjectState bird in world.Objects)
+        {
             if (bird.ObjectTypeId == HatcheryRules.ChickenObjectId && set.Contains(bird.HatcheryRoomAnchorTileIndex))
+            {
                 UnlinkHatchery(bird);
+            }
+        }
     }
 
     /// <summary><c>Hatchery_AdoptChickens</c> (<c>0x004DEB70</c>), the tail of the Hatchery's slot +0x09
@@ -156,25 +206,44 @@ public static class ChickenMovementRules
     internal static void AdoptOnChain(WorldState world, GameDatabase database, IReadOnlyList<int> chain)
     {
         if (chain.Count == 0 || RoomIndex.RoomAt(world, database, chain[0]) is not { } room
-            || room.Definition.TypeId != RoomTypeId.Hatchery) return;
+            || room.Definition.TypeId != RoomTypeId.Hatchery)
+        {
+            return;
+        }
+
         var birds = new List<ObjectState>();
         foreach (ObjectState o in world.Objects)
+        {
             if (o.ObjectTypeId == HatcheryRules.ChickenObjectId && o.TileLink.IsLinked && room.Contains(o.TileLink.TileIndex))
+            {
                 birds.Add(o);
-        if (birds.Count == 0) return;
+            }
+        }
+
+        if (birds.Count == 0)
+        {
+            return;
+        }
         // A tile's thing list is newest first: the higher link order first.
         birds.Sort((a, b) => b.TileLink.Order.CompareTo(a.TileLink.Order));
         foreach (int tile in chain)
         {
             foreach (ObjectState bird in birds)
             {
-                if (bird.TileLink.TileIndex != tile) continue;
+                if (bird.TileLink.TileIndex != tile)
+                {
+                    continue;
+                }
+
                 if (bird.OwnerPlayerId != room.OwnerPlayerId)
                 {
                     UnlinkHatchery(bird);
                     bird.OwnerPlayerId = room.OwnerPlayerId;
                 }
-                if (bird.HatcheryRoomAnchorTileIndex < 0) Admit(world, database, bird, room);
+                if (bird.HatcheryRoomAnchorTileIndex < 0)
+                {
+                    Admit(world, database, bird, room);
+                }
             }
         }
     }
@@ -188,7 +257,11 @@ public static class ChickenMovementRules
     {
         WorldState world = context.World;
         var current = new TilePos(chicken.PosX >> 12, chicken.PosY >> 12);
-        if (!world.Contains(current)) throw new InvalidOperationException("Chicken movement position is outside the map.");
+        if (!world.Contains(current))
+        {
+            throw new InvalidOperationException("Chicken movement position is outside the map.");
+        }
+
         if (!IsOwnedHatchery(context, chicken, current))
         {
             SetProcess(chicken, context.Database.RoomByTerrain(world.Tile(current).TerrainId) is null
@@ -204,7 +277,11 @@ public static class ChickenMovementRules
             var neighbour = new TilePos(current.X + Dx8[direction], current.Y + Dy8[direction]);
             if (!IsOwnedHatchery(context, chicken, neighbour)
                 || CasinoStep.HasObstacle(world, context.Database, neighbour.Y * world.Width + neighbour.X)
-                || HasHatcheryPillar(context, neighbour)) continue;
+                || HasHatcheryPillar(context, neighbour))
+            {
+                continue;
+            }
+
             target = neighbour;
             break;
         }
@@ -217,7 +294,9 @@ public static class ChickenMovementRules
         var destination = new ObjectMovePoint(new Fp32((target.X << 12) + lowerX + context.Rng.NextInt(upperX - lowerX)),
             new Fp32((target.Y << 12) + lowerY + context.Rng.NextInt(upperY - lowerY)));
         if (!StartMove(context, chicken, destination, ChickenProcess.Reaction, default, interruptible: true))
+        {
             SetProcess(chicken, ChickenProcess.None);
+        }
     }
 
     /// <summary>Process 10, <c>0x004A26D0</c>. A bird a Hatchery holds (<c>+0x14A</c> clear) off any Hatchery
@@ -234,14 +313,22 @@ public static class ChickenMovementRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         var current = new TilePos(chicken.PosX >> 12, chicken.PosY >> 12);
-        if (!world.Contains(current)) throw new InvalidOperationException("Chicken movement position is outside the map.");
+        if (!world.Contains(current))
+        {
+            throw new InvalidOperationException("Chicken movement position is outside the map.");
+        }
+
         TileState here = world.Tile(current);
         if (!chicken.ChickenCanEscape && database.RoomByTerrain(here.TerrainId)?.TypeId != RoomTypeId.Hatchery)
         {
             Kill(context, chicken, "held_off_hatchery");
             return true;
         }
-        if (chicken.ChickenScared) return false;
+        if (chicken.ChickenScared)
+        {
+            return false;
+        }
+
         if (world.HasPlayer(chicken.OwnerPlayerId) && world.Player(chicken.OwnerPlayerId).KilledByPlayerId != 0)
         {
             Kill(context, chicken, "owner_fallen");
@@ -260,19 +347,38 @@ public static class ChickenMovementRules
         {
             int direction = ((start + i) & 3) * 2;
             var neighbour = new TilePos(current.X + Dx8[direction], current.Y + Dy8[direction]);
-            if (!world.Contains(neighbour)) continue;
+            if (!world.Contains(neighbour))
+            {
+                continue;
+            }
+
             TileState tile = world.Tile(neighbour);
             byte sideByte = context.Navigation.NavByte(neighbour.X, neighbour.Y);
             if (NavBytes.IsSolid(sideByte) || sideByte != navByte
-                || tile.OwnerPlayerId != chicken.OwnerPlayerId) continue;
-            if (i < 3 && database.RoomByTerrain(tile.TerrainId) is not null) continue;
+                || tile.OwnerPlayerId != chicken.OwnerPlayerId)
+            {
+                continue;
+            }
+
+            if (i < 3 && database.RoomByTerrain(tile.TerrainId) is not null)
+            {
+                continue;
+            }
+
             int index = neighbour.Y * world.Width + neighbour.X;
             if (HasDoorOrTrap(world, neighbour) || CasinoStep.HasObstacle(world, database, index)
-                || HasStorePile(database, tile) || HasHeartPillar(context, neighbour)) continue;
+                || HasStorePile(database, tile) || HasHeartPillar(context, neighbour))
+            {
+                continue;
+            }
+
             var destination = new ObjectMovePoint(
                 new Fp32((neighbour.X << 12) | (context.Rng.NextInt(0x555) + 0x555)),
                 new Fp32((neighbour.Y << 12) | (context.Rng.NextInt(0x555) + 0x555)));
-            if (StartMove(context, chicken, destination, ChickenProcess.Loose, default, interruptible: true)) return true;
+            if (StartMove(context, chicken, destination, ChickenProcess.Loose, default, interruptible: true))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -292,11 +398,18 @@ public static class ChickenMovementRules
         GameDatabase database = context.Database;
         if (database.RoomByTerrain(world.Tile(tile).TerrainId)?.TypeId != RoomTypeId.DungeonHeart
             || database.ObjectById(HeartPillarRules.ArchPillarObjectId) is not { } definition
-            || (definition.Flags & ObjectFlags.Obstacle) == 0) return false;
+            || (definition.Flags & ObjectFlags.Obstacle) == 0)
+        {
+            return false;
+        }
+
         for (int ordinal = 0; ordinal < 3; ordinal++)
         {
             var id = HeartPillarId.For(world, HeartPillarRules.At(tile, (HeartPillar)ordinal));
-            if (HeartPillarRules.TryResolve(world, database, world.Tile(tile).OwnerPlayerId, id, out _)) return true;
+            if (HeartPillarRules.TryResolve(world, database, world.Tile(tile).OwnerPlayerId, id, out _))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -309,23 +422,49 @@ public static class ChickenMovementRules
     internal static bool HasHatcheryPillar(WorldState world, GameDatabase database, TilePos tile)
     {
         if (database.ObjectById(HatcheryRules.PillarObjectId) is not { } definition
-            || (definition.Flags & ObjectFlags.Obstacle) == 0) return false;
+            || (definition.Flags & ObjectFlags.Obstacle) == 0)
+        {
+            return false;
+        }
+
         int index = tile.Y * world.Width + tile.X;
         RoomInstance? room = RoomIndex.RoomAt(world, database, index);
-        if (room is null || room.Definition.TypeId != RoomTypeId.Hatchery) return false;
+        if (room is null || room.Definition.TypeId != RoomTypeId.Hatchery)
+        {
+            return false;
+        }
+
         foreach (ObjectState thing in world.Objects)
+        {
             if (thing.TileIndex == index && !thing.InHand && thing.CarriedByCreatureId < 0
                 && database.ObjectById(thing.ObjectTypeId) is { } other
-                && (other.Flags & ObjectFlags.Pillar) != 0) return false;
+                && (other.Flags & ObjectFlags.Pillar) != 0)
+            {
+                return false;
+            }
+        }
+
         return AutoFurnitureRules.RoomPillarCorners(world, room, tile).Any();
     }
 
     private static bool HasDoorOrTrap(WorldState world, TilePos tile)
     {
         foreach (DoorState door in world.Doors)
-            if (door.X == tile.X && door.Y == tile.Y) return true;
+        {
+            if (door.X == tile.X && door.Y == tile.Y)
+            {
+                return true;
+            }
+        }
+
         foreach (TrapState trap in world.Traps)
-            if (trap.X == tile.X && trap.Y == tile.Y) return true;
+        {
+            if (trap.X == tile.X && trap.Y == tile.Y)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -344,9 +483,16 @@ public static class ChickenMovementRules
         for (int i = 0; i < 8; i++)
         {
             var neighbour = new TilePos(position.X + Dx8[i], position.Y + Dy8[i]);
-            if (!context.World.Contains(neighbour)) continue;
+            if (!context.World.Contains(neighbour))
+            {
+                continue;
+            }
+
             TileState other = context.World.Tile(neighbour);
-            if (other.TerrainId == tile.TerrainId && other.OwnerPlayerId == tile.OwnerPlayerId) mask |= 1 << i;
+            if (other.TerrainId == tile.TerrainId && other.OwnerPlayerId == tile.OwnerPlayerId)
+            {
+                mask |= 1 << i;
+            }
         }
         return mask;
     }
@@ -361,7 +507,11 @@ public static class ChickenMovementRules
 
     private static void React(SimulationContext context, ObjectState chicken)
     {
-        if (chicken.ProcessAgeTicks == 1) chicken.ChickenReactionTicks = context.Rng.NextInt(16) + 8;
+        if (chicken.ProcessAgeTicks == 1)
+        {
+            chicken.ChickenReactionTicks = context.Rng.NextInt(16) + 8;
+        }
+
         if (chicken.ChickenReactionTicks != 0)
         {
             if (chicken.ChickenScared && chicken.ProcessAgeTicks == 1
@@ -375,7 +525,11 @@ public static class ChickenMovementRules
                 int direction = context.Rng.NextInt(2) == 1 ? -1 : 1;
                 chicken.Heading = (chicken.Heading + direction * unchecked((short)context.Database.ObjectById(chicken.ObjectTypeId)!.ReactionTurn)) & Bearing.Mask;
             }
-            if (!TryAvoidCreature(context, chicken)) chicken.ChickenReactionTicks--;
+            if (!TryAvoidCreature(context, chicken))
+            {
+                chicken.ChickenReactionTicks--;
+            }
+
             return;
         }
         chicken.ChickenScared = false;
@@ -390,30 +544,56 @@ public static class ChickenMovementRules
     internal static bool TryAvoidCreature(SimulationContext context, ObjectState chicken)
     {
         if (!chicken.ChickenCanEscape || chicken.ChickenScared
-            || (chicken.MoveFlags & ObjectMoveFlags.Interruptible) == 0) return false;
+            || (chicken.MoveFlags & ObjectMoveFlags.Interruptible) == 0)
+        {
+            return false;
+        }
+
         WorldState world = context.World;
         int x = chicken.PosX >> 12, y = chicken.PosY >> 12;
         for (int i = 0; i <= 8; i++)
         {
             int tx = x + (i == 8 ? 0 : Dx8[i]), ty = y + (i == 8 ? 0 : Dy8[i]);
-            if (!world.Contains(tx, ty) || context.Database.TerrainById(world.Tile(tx, ty).TerrainId).IsSolid) continue;
+            if (!world.Contains(tx, ty) || context.Database.TerrainById(world.Tile(tx, ty).TerrainId).IsSolid)
+            {
+                continue;
+            }
+
             CreatureState? first = null;
             foreach (CreatureState creature in world.Creatures)
+            {
                 if (creature.Activity != CreatureActivity.Dead && creature.TileLink.TileIndex == ty * world.Width + tx
-                    && (first is null || creature.TileLink.Order > first.TileLink.Order)) first = creature;
-            if (first is null) continue;
+                    && (first is null || creature.TileLink.Order > first.TileLink.Order))
+                {
+                    first = creature;
+                }
+            }
+
+            if (first is null)
+            {
+                continue;
+            }
+
             CreatureDef definition = context.Database.CreatureById(first.CreatureTypeId);
             // 0x0049CEC0: a worker (def +0x686 bit 0) is passed over, and so is a creature above its floor word
             // (+0x22 > +0x26 at 0x0049CF68-0x0049CF6F), which its last position set refreshed: one still falling
             // to a lower floor (Q800). There is no flying test; a native flier stands on its floor word.
             // Ours' floor at the creature's point stands for that word.
             if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
-                || first.PosZ > FloorHeightRules.RelativeAt(world, context.Database, first.PosX, first.PosY)) continue;
+                || first.PosZ > FloorHeightRules.RelativeAt(world, context.Database, first.PosX, first.PosY))
+            {
+                continue;
+            }
+
             int heading = Bearing.Of(chicken.PosX - first.PosX, chicken.PosY - first.PosY);
             var target = new ObjectMovePoint(new Fp32(chicken.PosX + (unchecked(TrapRules.Sine(heading) << 11) >> 16)),
                 new Fp32(chicken.PosY + (unchecked(TrapRules.Cosine(heading) * -0x800) >> 16)));
             var destinationTile = new TilePos(target.X.Raw >> 12, target.Y.Raw >> 12);
-            if (!world.Contains(destinationTile) || context.Database.TerrainById(world.Tile(destinationTile).TerrainId).IsSolid) continue;
+            if (!world.Contains(destinationTile) || context.Database.TerrainById(world.Tile(destinationTile).TerrainId).IsSolid)
+            {
+                continue;
+            }
+
             StartMove(context, chicken, target, ChickenProcess.Reaction,
                 new Fp32(RuntimeSpeed(context.Database.ObjectById(chicken.ObjectTypeId)!)), interruptible: true);
             return true;

@@ -60,8 +60,15 @@ public sealed class PaydaySystem : ICreatureUpdateStep
             // Zero is "no payday": the clock is armed by the keeper's first
             // non-worker creature (PaydayRules.ArmOnGain, 0x004BE330), so a keeper
             // with only imps is never billed.
-            if (player.NextPaydayTick.Value == 0) continue;
-            if (now < player.NextPaydayTick.Value) continue;
+            if (player.NextPaydayTick.Value == 0)
+            {
+                continue;
+            }
+
+            if (now < player.NextPaydayTick.Value)
+            {
+                continue;
+            }
 
             PlayerId playerId = player.PlayerId;
             int billed = 0;
@@ -70,14 +77,28 @@ public sealed class PaydaySystem : ICreatureUpdateStep
 
             foreach (CreatureState creature in world.Creatures)
             {
-                if (creature.OwnerPlayerId != playerId) continue;
-                if (CreatureDeathRules.IsDown(creature)) continue;
-                if (CreatureDeathRules.IsCorpse(creature)) continue;
+                if (creature.OwnerPlayerId != playerId)
+                {
+                    continue;
+                }
+
+                if (CreatureDeathRules.IsDown(creature))
+                {
+                    continue;
+                }
+
+                if (CreatureDeathRules.IsCorpse(creature))
+                {
+                    continue;
+                }
 
                 // A captive is not on anybody's payroll. Ours: the original's
                 // loop walks the player's own creature chain and a prisoner has
                 // been moved off it, which this project has no equivalent of.
-                if (PrisonRules.IsImprisoned(creature)) continue;
+                if (PrisonRules.IsImprisoned(creature))
+                {
+                    continue;
+                }
 
                 creatures++;
 
@@ -106,7 +127,10 @@ public sealed class PaydaySystem : ICreatureUpdateStep
                 // The clock asks the collect decision itself, with no retry stamp: that is the
                 // needs routine's (0x00477F69). Ours keeps the needs routine's other gates.
                 if (MayCollect(context, creature)
-                    && !NeedRules.IsBusy(world, creature, now)) Decide(context, creature, database);
+                    && !NeedRules.IsBusy(world, creature, now))
+                {
+                    Decide(context, creature, database);
+                }
             }
 
             // Player event 46 once every creature has been handled and before the reschedule
@@ -132,31 +156,58 @@ public sealed class PaydaySystem : ICreatureUpdateStep
         if (creature.Activity == CreatureActivity.SeekingWages)
         {
             if (!CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined | CreatureGuards.Imprisoned))
+            {
                 Walking(context, creature);
+            }
+
             return;
         }
-        if (!MayCollect(context, creature)) return;
+        if (!MayCollect(context, creature))
+        {
+            return;
+        }
 
         // Tried every fourth turn: the stamp moves whether or not anything is owed, and
         // before the busy test (0x00477F69, ADR-0202).
         long now = context.Tick.Value;
-        if (now < creature.NextPayTryTick) return;
+        if (now < creature.NextPayTryTick)
+        {
+            return;
+        }
+
         creature.NextPayTryTick = now + (NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks);
-        if (NeedRules.IsBusy(context.World, creature, now)) return;
+        if (NeedRules.IsBusy(context.World, creature, now))
+        {
+            return;
+        }
 
         Decide(context, creature, context.Database);
     }
 
     private static bool MayCollect(SimulationContext context, CreatureState creature)
     {
-        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined | CreatureGuards.Imprisoned)) return false;
-        if (creature.Activity == CreatureActivity.SeekingWages) return false;
+        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined | CreatureGuards.Imprisoned))
+        {
+            return false;
+        }
+
+        if (creature.Activity == CreatureActivity.SeekingWages)
+        {
+            return false;
+        }
 
         // A creature walking out for good does not stop to be paid - it is
         // leaving BECAUSE of things like this. Same narrowing the eat and
         // sleep systems make, and ours rather than the original's.
-        if (creature.Activity == CreatureActivity.Leaving) return false;
-        if (Combat.CombatRules.Preoccupied(creature)) return false;
+        if (creature.Activity == CreatureActivity.Leaving)
+        {
+            return false;
+        }
+
+        if (Combat.CombatRules.Preoccupied(creature))
+        {
+            return false;
+        }
 
         // An idle creature sets off, and so does one at a job whose state admits
         // Payday: the needs routine's mask test (NeedRules, ADR-0198).
@@ -170,9 +221,20 @@ public sealed class PaydaySystem : ICreatureUpdateStep
         // owed or two failures all clear it (0x0047237F, hand-drop-earmark.md §9).
         bool skip = creature.SkipNextPayment;
         creature.SkipNextPayment = false;
-        if (skip) return;
-        if (creature.WageOwed <= 0) return;
-        if (creature.PayAttemptsFailed >= PaydayRules.MaxFailedAttempts) return;
+        if (skip)
+        {
+            return;
+        }
+
+        if (creature.WageOwed <= 0)
+        {
+            return;
+        }
+
+        if (creature.PayAttemptsFailed >= PaydayRules.MaxFailedAttempts)
+        {
+            return;
+        }
 
         SetOutForTheTreasury(context, creature, database.CreatureById(creature.CreatureTypeId));
     }
@@ -195,17 +257,37 @@ public sealed class PaydaySystem : ICreatureUpdateStep
         var scratch = new List<Steering.Fixed16Vector>();
         foreach (RoomInstance room in RoomLists.Of(world, database, creature.OwnerPlayerId))
         {
-            if (!PaydayRules.IsPayingRoomOf(room, creature.OwnerPlayerId) || room.TileCount == 0) continue;
+            if (!PaydayRules.IsPayingRoomOf(room, creature.OwnerPlayerId) || room.TileCount == 0)
+            {
+                continue;
+            }
+
             rooms++;
-            if (room.Definition.TypeId == RoomTypeId.DungeonHeart && RoomRules.IsRuined(world, room)) continue;
-            if (PaydayRules.GoldIn(world, room) <= 0) continue;
+            if (room.Definition.TypeId == RoomTypeId.DungeonHeart && RoomRules.IsRuined(world, room))
+            {
+                continue;
+            }
+
+            if (PaydayRules.GoldIn(world, room) <= 0)
+            {
+                continue;
+            }
+
             withGold++;
             TilePos position = ChickenRules.Position(world, room);
-            if (!ChickenRules.Reachable(context, creature, definition, position, scratch)) continue;
+            if (!ChickenRules.Reachable(context, creature, definition, position, scratch))
+            {
+                continue;
+            }
+
             long dx = Math.Abs((long)CreatureState.CentreOf(position.X) - creature.PosX);
             long dy = Math.Abs((long)CreatureState.CentreOf(position.Y) - creature.PosY);
             long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);
-            if (distance >= bestDistance) continue;
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+
             best = room;
             bestDistance = distance;
         }
@@ -260,7 +342,10 @@ public sealed class PaydaySystem : ICreatureUpdateStep
         for (int step = 0; step < chain.Length; step++)
         {
             int tile = chain[(start + step) % chain.Length];
-            if (world.TileAtIndex(tile).GoldHeld > 0 || !occupied.Contains(tile)) return tile;
+            if (world.TileAtIndex(tile).GoldHeld > 0 || !occupied.Contains(tile))
+            {
+                return tile;
+            }
         }
         return null;
     }
@@ -270,7 +355,11 @@ public sealed class PaydaySystem : ICreatureUpdateStep
     {
         // CreatureMovementSystem walks the path; this only notices the end of
         // it, exactly as the hunger walk does.
-        if (creature.HasRoute) return;
+        if (creature.HasRoute)
+        {
+            return;
+        }
+
         Arrived(context, creature);
     }
 
@@ -280,7 +369,11 @@ public sealed class PaydaySystem : ICreatureUpdateStep
     private static void SetOutInState(SimulationContext context, CreatureState creature)
     {
         // Taken off a job, 187 is set from the job's own state; otherwise from idle.
-        if (NeedRules.IsAtAJob(creature)) NeedRules.EndJob(creature);
+        if (NeedRules.IsAtAJob(creature))
+        {
+            NeedRules.EndJob(creature);
+        }
+
         StateShadow.Move(context, SystemName, creature, PaydayRules.FindTheMoneyState);
         CreatureStateMachine.BeginTravel(context.Hooks,
             creature, StateShadow.TravelToPoint, PaydayRules.ArrivingState);
@@ -306,7 +399,10 @@ public sealed class PaydaySystem : ICreatureUpdateStep
 
         (int faceX, int faceY) = PaydayRules.ArrivalFacingPoint(creature);
         bool stillTurning = Steering.CreatureTurn.Toward(context.Database, creature, faceX, faceY) != 0;
-        if (stillTurning) return;
+        if (stillTurning)
+        {
+            return;
+        }
 
         StateShadow.Move(context, SystemName, creature, PaydayRules.TakeItState);
         Take(context, creature);
@@ -376,7 +472,10 @@ public sealed class PaydaySystem : ICreatureUpdateStep
 
         // Paid in full, state 189 wipes the pay grievance outright (payday.md 4.4).
         if (creature.WageOwed == 0)
+        {
             CreatureAngerRules.Forget(world, definition, creature, AngerBucket.Pay);
+        }
+
         ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.GoldReceived);   // 0x0047287A
 
         context.Emit(SystemName, "paid",
@@ -389,7 +488,11 @@ public sealed class PaydaySystem : ICreatureUpdateStep
         // for anything still owed. Unless the creature's happy table holds Drink: then 189
         // hands it to the Drink handler, owed or not, which walks from 189 itself (Q421).
         creature.StopMoving();
-        if (CreatureJobSystem.TryGoGamblingWhenPaid(context, creature, definition)) return;
+        if (CreatureJobSystem.TryGoGamblingWhenPaid(context, creature, definition))
+        {
+            return;
+        }
+
         StateShadow.ToIdle(context, SystemName, creature);
     }
 }

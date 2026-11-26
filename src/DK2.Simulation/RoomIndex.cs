@@ -36,8 +36,15 @@ public static class RoomIndex
     private static bool[] ClearedVisited(int count)
     {
         bool[]? visited = s_visited;
-        if (visited is null || visited.Length < count) s_visited = visited = new bool[count];
-        else Array.Clear(visited, 0, count);
+        if (visited is null || visited.Length < count)
+        {
+            s_visited = visited = new bool[count];
+        }
+        else
+        {
+            Array.Clear(visited, 0, count);
+        }
+
         return visited;
     }
 
@@ -48,10 +55,16 @@ public static class RoomIndex
     /// </summary>
     public static RoomInstance? RoomAt(WorldState world, GameDatabase database, int tileIndex)
     {
-        if (tileIndex < 0 || tileIndex >= world.TileCount) return null;
+        if (tileIndex < 0 || tileIndex >= world.TileCount)
+        {
+            return null;
+        }
 
         ref TileState tile = ref world.TileAtIndex(tileIndex);
-        if (database.RoomByTerrain(tile.TerrainId) is null) return null;
+        if (database.RoomByTerrain(tile.TerrainId) is null)
+        {
+            return null;
+        }
 
         Build(world, database);
         return world.RoomSweepCache.RoomOf(tileIndex);
@@ -66,7 +79,10 @@ public static class RoomIndex
     public static IReadOnlyList<RoomInstance> Build(WorldState world, GameDatabase database)
     {
         Cache cache = world.RoomSweepCache;
-        if (cache.Matches(world, database)) return cache.Rooms!;
+        if (cache.Matches(world, database))
+        {
+            return cache.Rooms!;
+        }
 
         // Counted before the sweep reads a tile, so a write made while it runs makes the next call look again.
         long writes = TileState.KeyWriteCount;
@@ -83,7 +99,10 @@ public static class RoomIndex
 
         for (int i = 0; i < world.TileCount; i++)
         {
-            if (visited[i]) continue;
+            if (visited[i])
+            {
+                continue;
+            }
 
             ref TileState tile = ref world.TileAtIndex(i);
             RoomDef? definition = database.RoomByTerrain(tile.TerrainId);
@@ -108,7 +127,11 @@ public static class RoomIndex
     /// </summary>
     public static List<RoomInstance> Build(WorldState world, GameDatabase database, Predicate<RoomDef> include)
     {
-        if (include is null) throw new ArgumentNullException(nameof(include));
+        if (include is null)
+        {
+            throw new ArgumentNullException(nameof(include));
+        }
+
         var rooms = new List<RoomInstance>();
 
         // Which terrain ids hold a wanted room, asked once per id rather than once per tile.
@@ -118,20 +141,33 @@ public static class RoomIndex
         for (int terrain = 0; terrain < wanted.Length; terrain++)
         {
             RoomDef? definition = database.RoomByTerrain((byte)terrain);
-            if (definition is null || !include(definition)) continue;
+            if (definition is null || !include(definition))
+            {
+                continue;
+            }
+
             wanted[terrain] = definition;
             any = true;
         }
-        if (!any) return rooms;
+        if (!any)
+        {
+            return rooms;
+        }
 
         bool[] visited = ClearedVisited(world.TileCount);
         for (int i = 0; i < world.TileCount; i++)
         {
-            if (visited[i]) continue;
+            if (visited[i])
+            {
+                continue;
+            }
 
             ref TileState tile = ref world.TileAtIndex(i);
             RoomDef? definition = wanted[tile.TerrainId];
-            if (definition is null) continue;
+            if (definition is null)
+            {
+                continue;
+            }
 
             rooms.Add(Fill(world, definition, tile.TerrainId, tile.OwnerPlayerId, i, visited));
         }
@@ -160,14 +196,25 @@ public static class RoomIndex
         /// reading the tiles; otherwise every tile is compared, and a match is remembered as the new look.</summary>
         public bool Matches(WorldState world, GameDatabase database)
         {
-            if (Rooms is null || !ReferenceEquals(_database, database) || _count != world.TileCount) return false;
+            if (Rooms is null || !ReferenceEquals(_database, database) || _count != world.TileCount)
+            {
+                return false;
+            }
+
             long writes = TileState.KeyWriteCount;
-            if (writes == _keyWrites) return true;
+            if (writes == _keyWrites)
+            {
+                return true;
+            }
+
             ushort[] seen = _tiles;
             for (int i = 0; i < seen.Length; i++)
             {
                 ref TileState tile = ref world.TileAtIndex(i);
-                if (seen[i] != Key(tile)) return false;
+                if (seen[i] != Key(tile))
+                {
+                    return false;
+                }
             }
             _keyWrites = writes;
             return true;
@@ -181,10 +228,24 @@ public static class RoomIndex
                 _tiles = new ushort[count];
                 _byTile = new RoomInstance?[count];
             }
-            else Array.Clear(_byTile, 0, count);
-            for (int i = 0; i < count; i++) _tiles[i] = Key(world.TileAtIndex(i));
+            else
+            {
+                Array.Clear(_byTile, 0, count);
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                _tiles[i] = Key(world.TileAtIndex(i));
+            }
+
             foreach (RoomInstance room in rooms)
-                foreach (int index in room.Tiles) _byTile[index] = room;
+            {
+                foreach (int index in room.Tiles)
+                {
+                    _byTile[index] = room;
+                }
+            }
+
             _database = database;
             _count = count;
             _keyWrites = keyWrites;
@@ -225,23 +286,51 @@ public static class RoomIndex
 
             int cx = current % world.Width;
             int cy = current / world.Width;
-            if (cx < minX) minX = cx;
-            if (cx > maxX) maxX = cx;
-            if (cy < minY) minY = cy;
-            if (cy > maxY) maxY = cy;
+            if (cx < minX)
+            {
+                minX = cx;
+            }
+
+            if (cx > maxX)
+            {
+                maxX = cx;
+            }
+
+            if (cy < minY)
+            {
+                minY = cy;
+            }
+
+            if (cy > maxY)
+            {
+                maxY = cy;
+            }
 
             for (int i = 0; i < NeighbourDx.Length; i++)
             {
                 int nx = cx + NeighbourDx[i];
                 int ny = cy + NeighbourDy[i];
-                if (!world.Contains(nx, ny)) continue;
+                if (!world.Contains(nx, ny))
+                {
+                    continue;
+                }
 
                 int n = (ny * world.Width) + nx;
-                if (localVisited[n]) continue;
+                if (localVisited[n])
+                {
+                    continue;
+                }
 
                 ref TileState neighbour = ref world.TileAtIndex(n);
-                if (neighbour.TerrainId != terrainId) continue;
-                if (neighbour.OwnerPlayerId != ownerPlayerId) continue;
+                if (neighbour.TerrainId != terrainId)
+                {
+                    continue;
+                }
+
+                if (neighbour.OwnerPlayerId != ownerPlayerId)
+                {
+                    continue;
+                }
 
                 localVisited[n] = true;
                 frontier.Add(n);
@@ -275,19 +364,27 @@ public static class RoomIndex
         var point = new TilePos(sumX / indices.Length, sumY / indices.Length);
         bool Belongs(TilePos at) => world.Contains(at.X, at.Y)
             && Array.BinarySearch(indices, at.Y * world.Width + at.X) >= 0;
-        if (Belongs(point)) return point;
+        if (Belongs(point))
+        {
+            return point;
+        }
 
         int direction = 0;
         for (int length = 1; ; length++)
-        for (int leg = 0; leg < 2; leg++)
+        {
+            for (int leg = 0; leg < 2; leg++)
         {
             TilePos step = CentreSpiralSteps[direction];
             for (int i = 0; i < length; i++)
             {
                 point += step;
-                if (Belongs(point)) return point;
-            }
+                if (Belongs(point))
+                    {
+                        return point;
+                    }
+                }
             direction = (direction + 1) & 3;
+        }
         }
     }
 
@@ -316,13 +413,19 @@ public static class RoomIndex
                 int nx = cx + NeighbourDx[i];
                 int ny = cy + NeighbourDy[i];
 
-                if (world.Contains(nx, ny) && Array.BinarySearch(members, (ny * world.Width) + nx) >= 0) continue;
+                if (world.Contains(nx, ny) && Array.BinarySearch(members, (ny * world.Width) + nx) >= 0)
+                {
+                    continue;
+                }
 
                 surrounded = false;
                 break;
             }
 
-            if (surrounded) interior.Add(index);
+            if (surrounded)
+            {
+                interior.Add(index);
+            }
         }
 
         // The input is already ascending, so this is too.

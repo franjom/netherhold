@@ -59,7 +59,10 @@ public static class SimulationTiming
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-levels.md")]
     public static int LoaderRatePerTick(int fileValue)
     {
-        if (fileValue == 0) return 0;
+        if (fileValue == 0)
+        {
+            return 0;
+        }
 
         int perTick = fileValue / OriginalTicksPerGameSecond;
         return perTick != 0 ? perTick : 1;

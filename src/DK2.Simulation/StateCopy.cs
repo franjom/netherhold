@@ -25,7 +25,10 @@ public static class StateCopy
             }
             int found = -1;
             for (int k = i + 1; k < target.Count; k++)
+            {
                 if (target[k].Key == item.Key) { found = k; break; }
+            }
+
             if (found >= 0)
             {
                 target.RemoveRange(i, found - i);
@@ -49,7 +52,11 @@ public static class StateCopy
     /// the lengths agree.</summary>
     public static T[] Array<T>(T[] target, T[] source)
     {
-        if (target.Length != source.Length) target = new T[source.Length];
+        if (target.Length != source.Length)
+        {
+            target = new T[source.Length];
+        }
+
         System.Array.Copy(source, target, source.Length);
         return target;
     }

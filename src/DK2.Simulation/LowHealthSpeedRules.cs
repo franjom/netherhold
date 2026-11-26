@@ -30,11 +30,25 @@ public static class LowHealthSpeedRules
     /// zero becomes one, still long ready; ours keeps <see cref="CreatureState.NeverUsed"/>.</summary>
     public static void DelayRecharge(GameDatabase database, CreatureDef definition, CreatureState creature, long tick)
     {
-        if ((tick & 1) == 0 || !IsWeak(database, definition, creature)) return;
+        if ((tick & 1) == 0 || !IsWeak(database, definition, creature))
+        {
+            return;
+        }
+
         long[] stamps = creature.SpellStamps;
         for (int i = 0; i < stamps.Length; i++)
-            if (stamps[i] != CreatureState.NeverUsed) stamps[i]++;
-        if (creature.TimeLastUsedMelee == CreatureState.NeverUsed) return;
+        {
+            if (stamps[i] != CreatureState.NeverUsed)
+            {
+                stamps[i]++;
+            }
+        }
+
+        if (creature.TimeLastUsedMelee == CreatureState.NeverUsed)
+        {
+            return;
+        }
+
         creature.TimeLastUsedMelee++;
         creature.MeleeStampDelay++;
     }

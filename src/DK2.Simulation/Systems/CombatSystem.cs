@@ -67,7 +67,11 @@ public sealed class CombatSystem : ICreatureUpdateStep
         GameDatabase database = context.Database;
         // DK2's dead creature is a CDeadBody, not on this list; ours keeps the creature with no
         // state (ADR-0206), whose forced target would otherwise still be pursued (Q598).
-        if (CreatureDeathRules.IsCorpse(creature)) return;
+        if (CreatureDeathRules.IsCorpse(creature))
+        {
+            return;
+        }
+
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         PossessedMeleeRules.Poll(context, creature);
         ReinforcementActionRules.Poll(context, creature);
@@ -78,11 +82,17 @@ public sealed class CombatSystem : ICreatureUpdateStep
         {
             if (creature.SwingKind == SpellRules.SpellCast)
             {
-                if (FightRules.CastFires(creature, definition, context.Tick.Value)) FightRules.FireSpell(context, creature, definition);
+                if (FightRules.CastFires(creature, definition, context.Tick.Value))
+                {
+                    FightRules.FireSpell(context, creature, definition);
+                }
             }
             else if (creature.SwingKind == SpellRules.FreeAimCast)
             {
-                if (FightRules.CastFires(creature, definition, context.Tick.Value)) FightRules.FireFreeAim(context, creature, definition);
+                if (FightRules.CastFires(creature, definition, context.Tick.Value))
+                {
+                    FightRules.FireFreeAim(context, creature, definition);
+                }
             }
             else if (CombatRules.BlowLands(creature, definition, context.Tick.Value))
             {
@@ -101,12 +111,17 @@ public sealed class CombatSystem : ICreatureUpdateStep
                 creature.AvoidRetreatersCounter = 0;
             }
         }
-        else creature.AvoidRetreatersCounter = 0;
+        else
+        {
+            creature.AvoidRetreatersCounter = 0;
+        }
 
         // A creature in a combat state is its handler's; 6 -> 254 and 254 are outside the combat
         // group and look for a fight on the way.
         if (!CreatureDeathRules.IsPossessed(world, creature) && !InCombatState(creature))
+        {
             ProcessFight(context, creature, definition);
+        }
 
         // 0x0045E4F0 runs in the creature's own update, after its fight processing.
         FearRules.Radiate(context, _sight!, _hearts, creature, definition);
@@ -123,13 +138,19 @@ public sealed class CombatSystem : ICreatureUpdateStep
     private void Dispatch(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
-        if (CreatureDeathRules.IsCorpse(creature)) return;
+        if (CreatureDeathRules.IsCorpse(creature))
+        {
+            return;
+        }
+
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         if (!CreatureDeathRules.IsPossessed(world, creature))
         {
             bool handled = true;
             if (ThreatFleeRules.Dispatch(context, "combat", creature)) { }   // the walk to 221 and 221 (ADR-0678)
-            else switch (creature.Activity)
+            else
+            {
+                switch (creature.Activity)
             {
                 case CreatureActivity.Fighting: Fight(context, creature, definition); break;
                 case CreatureActivity.Fleeing: FearRules.Flee(context, _sight!, _hearts, _rooms, creature, definition, _scratch); break;
@@ -140,15 +161,22 @@ public sealed class CombatSystem : ICreatureUpdateStep
                 case CreatureActivity.Reporting: FearRules.Reporting(context, creature); break;
                 default: handled = false; break;
             }
+            }
             // A handler's zero, or its own SetState(1), ends the turn: state 1's handler runs on the
             // next one (0x00476FC0 runs one handler a turn, ADR-0574).
-            if (handled && creature.Dk2StateId == CreatureStateMachine.Idle) context.IdledByCombatHandlerThisTick.Add(creature);
+            if (handled && creature.Dk2StateId == CreatureStateMachine.Idle)
+            {
+                context.IdledByCombatHandlerThisTick.Add(creature);
+            }
         }
 
         // A creature on a new tile reveals adjacent traps.
         TilePos tile = creature.Tile;
         if (creature.LastFightScanTileIndex != (tile.Y * world.Width) + tile.X)
+        {
             TrapRules.RevealAround(context, creature, definition);
+        }
+
         creature.LastFightScanTileIndex = (tile.Y * world.Width) + tile.X;
     }
 
@@ -163,20 +191,32 @@ public sealed class CombatSystem : ICreatureUpdateStep
         // Inside a sweep the scan's BeginTurn ran first; this only covers a sweep without it.
         public void BeginTurn(SimulationContext context)
         {
-            if (!ReferenceEquals(combat._sightWorld, context.World)) combat.BeginTurn(context);
+            if (!ReferenceEquals(combat._sightWorld, context.World))
+            {
+                combat.BeginTurn(context);
+            }
         }
         public void Update(SimulationContext context, CreatureState creature) => combat.Dispatch(context, creature);
     }
 
     private void ProcessFight(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.OwnerPlayerId == PlayerIds.Neutral) return;
+        if (creature.OwnerPlayerId == PlayerIds.Neutral)
+        {
+            return;
+        }
         // A forced target skips the may-I-look gate (combat-pit.md §4).
-        if (!creature.AttackAbnormalTargets && !CombatRules.MayLookForAFight(context.World, context.Database, creature, force: false)) return;
+        if (!creature.AttackAbnormalTargets && !CombatRules.MayLookForAFight(context.World, context.Database, creature, force: false))
+        {
+            return;
+        }
 
         TilePos tile = creature.Tile;
         bool moved = creature.LastFightScanTileIndex != (tile.Y * context.World.Width) + tile.X;
-        if (!CombatRules.ScanIsDue(creature, moved)) return;
+        if (!CombatRules.ScanIsDue(creature, moved))
+        {
+            return;
+        }
 
         // A creature this engages raises the battle notice from 199's handler, later in this update.
         CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch);
@@ -194,7 +234,11 @@ public sealed class CombatSystem : ICreatureUpdateStep
         long tick = context.Tick.Value;
         // 0x0045EBC9: state 199 sets the run speed only when its entry stamp is this turn. A state set
         // from another handler is met a turn later, so the speed mode then stands, a shuffle included.
-        if (creature.Dk2StateId == CombatStates.Engaging && creature.StateEnteredTick == tick) creature.SetSpeedMode(CreatureSpeedMode.Run, tick);
+        if (creature.Dk2StateId == CombatStates.Engaging && creature.StateEnteredTick == tick)
+        {
+            creature.SetSpeedMode(CreatureSpeedMode.Run, tick);
+        }
+
         CombatMessageRules.UpdateBattle(world, creature, tick);
 
         if (!creature.AttackAbnormalTargets && !CombatRules.MayLookForAFight(world, context.Database, creature, force: false))
@@ -255,11 +299,19 @@ public sealed class CombatSystem : ICreatureUpdateStep
         if (creature.FightTargetKind == FightTargetKind.None)
         {
             if (CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+            {
                 return;
+            }
+
             if (creature.AttackType == CombatRules.AttackMode.Victorious)
+            {
                 VictoryRules.Victory(context, creature, definition);
+            }
             else
+            {
                 LetGo(context, creature, "nobody");
+            }
+
             return;
         }
 
@@ -279,10 +331,16 @@ public sealed class CombatSystem : ICreatureUpdateStep
             return;
         }
 
-        if (FearRules.FearChecks(context, _sight!, _hearts, _rooms, creature, definition, _scratch)) return;
+        if (FearRules.FearChecks(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+        {
+            return;
+        }
 
         // Busy (0x00496D00): the state handler does not select another attack or approach.
-        if (FightRules.ActionIsRunning(creature, definition, context.Tick)) return;
+        if (FightRules.ActionIsRunning(creature, definition, context.Tick))
+        {
+            return;
+        }
 
         // 0x0045F667: a live target and no action: the body blocks and stops ignoring blockers.
         creature.Body.IsBlocker = true;
@@ -291,29 +349,49 @@ public sealed class CombatSystem : ICreatureUpdateStep
         // Step 8: a Support re-acquires every tick, keeping a new target and restoring the old one
         // when nothing is found (combat-fight-state.md §2).
         if (definition.FightStyle == FightStyle.Support && !FightRules.Reacquire(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+        {
             return;
+        }
 
-        if (!FightRules.TargetPosition(world, context.Database, creature, out int x, out int y, out TilePos targetTile)) return;
+        if (!FightRules.TargetPosition(world, context.Database, creature, out int x, out int y, out TilePos targetTile))
+        {
+            return;
+        }
+
         if (FightRules.InRange(_sight!, creature, x, y))
         {
-            if (creature.CreatureTypeId == CombatRules.ImpCreatureTypeId) creature.StopMoving();
+            if (creature.CreatureTypeId == CombatRules.ImpCreatureTypeId)
+            {
+                creature.StopMoving();
+            }
+
             int heading = creature.Heading;
             int left = Bearing.TurnToward(ref heading, Bearing.Of(x - creature.PosX, y - creature.PosY), SimulationTiming.TurnRatePerTick(definition));
             creature.Heading = heading;
-            if (left != 0) return;
+            if (left != 0)
+            {
+                return;
+            }
+
             if (creature.AttackType == CombatRules.AttackMode.SpellAtAlly)
             {
                 // The ally arm (combat-spells.md §8): cast once when the cooldown allows, else stand.
                 if (SpellRules.CanCast(context.Database, creature, definition, creature.AttackSpellSlot, tick))
+                {
                     FightRules.CastOnAlly(context, creature, definition);
+                }
             }
             else if (creature.AttackType is CombatRules.AttackMode.SpellAtCreature or CombatRules.AttackMode.SpellAtThing)
             {
                 // The spell arm (combat-spells.md §6): cast when the cooldown allows, else §9.
                 if (SpellRules.CanCast(context.Database, creature, definition, creature.AttackSpellSlot, tick))
+                {
                     FightRules.StartCast(context, creature, definition, creature.AttackSpellSlot);
+                }
                 else
+                {
                     CannotCast(context, creature, definition, x, y);
+                }
             }
             else if (CombatRules.SwingMayBegin(context.Database, creature, definition, tick))
             {
@@ -335,19 +413,34 @@ public sealed class CombatSystem : ICreatureUpdateStep
                 LetGo(context, creature, "nobody_in_reach");
                 return;
             }
-            if (!CombatRules.IsFighting(creature)) return;
-            if (creature.FightTargetId != previous && creature.CreatureTypeId == CombatRules.ImpCreatureTypeId) creature.StopMoving();
-            if (!FightRules.TargetPosition(world, context.Database, creature, out x, out y, out targetTile)) return;
+            if (!CombatRules.IsFighting(creature))
+            {
+                return;
+            }
+
+            if (creature.FightTargetId != previous && creature.CreatureTypeId == CombatRules.ImpCreatureTypeId)
+            {
+                creature.StopMoving();
+            }
+
+            if (!FightRules.TargetPosition(world, context.Database, creature, out x, out y, out targetTile))
+            {
+                return;
+            }
         }
 
         // Only this out-of-reach path clears the count, after re-selection (0x0045F960-0x0045F97D).
         if (creature.FightTargetKind == FightTargetKind.Creature && world.CreatureById(creature.FightTargetId) is { } fought
             && !ApproachRules.IsRetreating(fought))
+        {
             creature.ChaseTicks = 0;
+        }
 
         // State 8 (combat-approach-and-victory.md §1): the walk, with its own handler from next tick.
         if (ApproachRules.Enter(context, creature, x, y))
+        {
             ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.BattleCall);
+        }
     }
 
     /// <summary>A spell that cannot be cast (combat-spells.md §9, §10): the target is let go and
@@ -374,7 +467,10 @@ public sealed class CombatSystem : ICreatureUpdateStep
             creature.AttackingId = previous;
             creature.AttackingKind = kind;
             if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+            {
                 LetGo(context, creature, "cannot_cast");
+            }
+
             return;
         }
         CombatRules.Unlink(world, creature);
@@ -383,9 +479,21 @@ public sealed class CombatSystem : ICreatureUpdateStep
             LetGo(context, creature, "cannot_cast");
             return;
         }
-        if (!CombatRules.IsFighting(creature)) return;
-        if (creature.FightTargetKind != kind || creature.FightTargetId != previous) return;
-        if (creature.AttackType is not (CombatRules.AttackMode.SpellAtCreature or CombatRules.AttackMode.SpellAtThing)) return;
+        if (!CombatRules.IsFighting(creature))
+        {
+            return;
+        }
+
+        if (creature.FightTargetKind != kind || creature.FightTargetId != previous)
+        {
+            return;
+        }
+
+        if (creature.AttackType is not (CombatRules.AttackMode.SpellAtCreature or CombatRules.AttackMode.SpellAtThing))
+        {
+            return;
+        }
+
         StepBackOrRun(context, creature, definition, targetX, targetY, previous);
     }
 
@@ -415,22 +523,43 @@ public sealed class CombatSystem : ICreatureUpdateStep
     /// then a victim is sought and on none the victory arm or the state's end (<c>0x004601D7</c>).</summary>
     private void WithoutTarget(SimulationContext context, CreatureState creature, CreatureDef definition, string reason)
     {
-        if (FearRules.FearChecks(context, _sight!, _hearts, _rooms, creature, definition, _scratch)) return;
-        if (FightRules.ActionIsRunning(creature, definition, context.Tick)) return;
-        if (CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch)) return;
+        if (FearRules.FearChecks(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+        {
+            return;
+        }
+
+        if (FightRules.ActionIsRunning(creature, definition, context.Tick))
+        {
+            return;
+        }
+
+        if (CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+        {
+            return;
+        }
+
         if (creature.AttackType == CombatRules.AttackMode.Victorious)
+        {
             VictoryRules.Victory(context, creature, definition);
+        }
         else
+        {
             LetGo(context, creature, reason);
+        }
     }
 
     private static void LetGo(SimulationContext context, CreatureState creature, string reason)
     {
         if (creature.CreatureTypeId != CombatRules.ImpCreatureTypeId
             && creature.Dk2StateId is CombatStates.Engaging or 200)
+        {
             CombatStates.Idle(context.Hooks, creature);
+        }
         else
+        {
             CombatRules.Disengage(context.Hooks, creature);
+        }
+
         context.Emit(SystemName, "disengaged", $"creature={creature.Id} player={creature.OwnerPlayerId} reason={reason}");
     }
 }

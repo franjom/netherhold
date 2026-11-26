@@ -30,8 +30,16 @@ public sealed partial class NavMesh
     /// three words, which returns -1 when none matches).</summary>
     private int SlotToward(int u, int t)
     {
-        if (_n[3 * u] == t) return 0;
-        if (_n[(3 * u) + 1] == t) return 1;
+        if (_n[3 * u] == t)
+        {
+            return 0;
+        }
+
+        if (_n[(3 * u) + 1] == t)
+        {
+            return 1;
+        }
+
         return _n[(3 * u) + 2] == t ? 2 : -1;
     }
 
@@ -78,7 +86,11 @@ public sealed partial class NavMesh
     {
         triangle = Locate(x * UnitsPerTile, y * UnitsPerTile);
         slot = -1;
-        if (triangle < 0) return false;
+        if (triangle < 0)
+        {
+            return false;
+        }
+
         for (int k = 0; k < 3; k++)
         {
             int p = Vertex(triangle, k);
@@ -94,7 +106,11 @@ public sealed partial class NavMesh
     public bool TryEdgeToward(int x, int y, int tx, int ty, out int triangle, out int slot)
     {
         triangle = slot = -1;
-        if (!TryLocateVertex(x, y, out int start, out int s)) return false;
+        if (!TryLocateVertex(x, y, out int start, out int s))
+        {
+            return false;
+        }
+
         long dx = tx - x, dy = ty - y;
         int cur = start;
         do
@@ -108,7 +124,11 @@ public sealed partial class NavMesh
                 return true;
             }
             int nb = Neighbour(cur, EdgeLeaving(s));
-            if (nb == NoNeighbour) return false;
+            if (nb == NoNeighbour)
+            {
+                return false;
+            }
+
             s = SlotToward(nb, cur);
             cur = nb;
         } while (cur != start);
@@ -125,7 +145,10 @@ public sealed partial class NavMesh
         {
             int t0 = triangle, s0 = slot;
             int count = CountFan(t0, s0);
-            if (count == 3) return 3;
+            if (count == 3)
+            {
+                return 3;
+            }
 
             int refused = 0, cur = t0, cs = s0;
             int nb = Neighbour(cur, EdgeLeaving(cs));
@@ -148,14 +171,31 @@ public sealed partial class NavMesh
                 }
                 nb = Neighbour(cur, EdgeLeaving(cs));
             }
-            if (!closed) refused = -1;
-            if (refused == 3) return 3;
-            if (refused == -1) return -1;
+            if (!closed)
+            {
+                refused = -1;
+            }
+
+            if (refused == 3)
+            {
+                return 3;
+            }
+
+            if (refused == -1)
+            {
+                return -1;
+            }
 
             int recount = CountFan(triangle, slot);
-            if (recount == refused && refused == 4) return 4;
+            if (recount == refused && refused == 4)
+            {
+                return 4;
+            }
             // The original logs "l0 %02ld n %02ld l1 %02ld" here and returns any count below 5.
-            if (refused < 5) return refused;
+            if (refused < 5)
+            {
+                return refused;
+            }
         }
     }
 
@@ -169,7 +209,11 @@ public sealed partial class NavMesh
         {
             int back = SlotToward(nb, prev);
             count++;
-            if (nb == t0) return count;
+            if (nb == t0)
+            {
+                return count;
+            }
+
             prev = nb;
             nb = Neighbour(nb, EdgeLeaving(back));
         }
@@ -184,12 +228,23 @@ public sealed partial class NavMesh
     {
         int p = Vertex(t, s);
         int u = Neighbour(t, EdgeLeaving(s));
-        if (u == NoNeighbour) return false;
+        if (u == NoNeighbour)
+        {
+            return false;
+        }
+
         int su = SlotToward(u, t);
         int w = Neighbour(u, EdgeLeaving(su));
-        if (w == NoNeighbour) return false;
+        if (w == NoNeighbour)
+        {
+            return false;
+        }
+
         int sw = SlotToward(w, u);
-        if (Neighbour(w, EdgeLeaving(sw)) != t) return false;
+        if (Neighbour(w, EdgeLeaving(sw)) != t)
+        {
+            return false;
+        }
 
         // The outer edges: the original's edge prev(b) of each is our Next(b).
         int outerW = Neighbour(w, Next(sw));
@@ -199,9 +254,21 @@ public sealed partial class NavMesh
         // The original's edge s of t (now r-q) takes u's outer edge; its edge prev(s) (now o-r) w's.
         _n[(3 * t) + EdgeLeaving(s)] = outerU;
         _n[(3 * t) + s] = outerW;
-        if (outerU != NoNeighbour) _n[(3 * outerU) + SlotToward(outerU, u)] = t;
-        if (outerW != NoNeighbour) _n[(3 * outerW) + SlotToward(outerW, w)] = t;
-        for (int k = 0; k < 3; k++) _pointTri[Vertex(t, k)] = t;
+        if (outerU != NoNeighbour)
+        {
+            _n[(3 * outerU) + SlotToward(outerU, u)] = t;
+        }
+
+        if (outerW != NoNeighbour)
+        {
+            _n[(3 * outerW) + SlotToward(outerW, w)] = t;
+        }
+
+        for (int k = 0; k < 3; k++)
+        {
+            _pointTri[Vertex(t, k)] = t;
+        }
+
         FreeTriangle(u);
         FreeTriangle(w);
         FreePoint(p);
@@ -217,15 +284,30 @@ public sealed partial class NavMesh
     {
         int p = Vertex(t, s);
         int u = Neighbour(t, EdgeLeaving(s));
-        if (u == NoNeighbour) return false;
+        if (u == NoNeighbour)
+        {
+            return false;
+        }
+
         int su = SlotToward(u, t);
         int w = Neighbour(u, EdgeLeaving(su));
-        if (w == NoNeighbour) return false;
+        if (w == NoNeighbour)
+        {
+            return false;
+        }
+
         int sw = SlotToward(w, u);
         int x = Neighbour(w, EdgeLeaving(sw));
-        if (x == NoNeighbour) return false;
+        if (x == NoNeighbour)
+        {
+            return false;
+        }
+
         int sx = SlotToward(x, w);
-        if (Neighbour(x, EdgeLeaving(sx)) != t) return false;
+        if (Neighbour(x, EdgeLeaving(sx)) != t)
+        {
+            return false;
+        }
 
         // The rim in the original's walk order: q after p in t, r and m the far corners of u and w,
         // o before p in t.
@@ -242,10 +324,18 @@ public sealed partial class NavMesh
             SetVertex(u, su, m);
             SetVertex(x, sx, q);
             _n[(3 * u) + Prev(su)] = outerW;
-            if (outerW != NoNeighbour) _n[(3 * outerW) + SlotToward(outerW, w)] = u;
+            if (outerW != NoNeighbour)
+            {
+                _n[(3 * outerW) + SlotToward(outerW, w)] = u;
+            }
+
             _n[(3 * u) + su] = x;
             _n[(3 * x) + Prev(sx)] = outerT;
-            if (outerT != NoNeighbour) _n[(3 * outerT) + SlotToward(outerT, t)] = x;
+            if (outerT != NoNeighbour)
+            {
+                _n[(3 * outerT) + SlotToward(outerT, t)] = x;
+            }
+
             _n[(3 * x) + sx] = u;
             for (int k = 0; k < 3; k++) { _pointTri[Vertex(u, k)] = u; _pointTri[Vertex(x, k)] = x; }
             FreeTriangle(w);
@@ -258,10 +348,18 @@ public sealed partial class NavMesh
             SetVertex(t, s, r);
             SetVertex(w, sw, o);
             _n[(3 * t) + EdgeLeaving(s)] = outerU;
-            if (outerU != NoNeighbour) _n[(3 * outerU) + SlotToward(outerU, u)] = t;
+            if (outerU != NoNeighbour)
+            {
+                _n[(3 * outerU) + SlotToward(outerU, u)] = t;
+            }
+
             _n[(3 * t) + s] = w;
             _n[(3 * w) + Prev(sw)] = outerX;
-            if (outerX != NoNeighbour) _n[(3 * outerX) + SlotToward(outerX, x)] = w;
+            if (outerX != NoNeighbour)
+            {
+                _n[(3 * outerX) + SlotToward(outerX, x)] = w;
+            }
+
             _n[(3 * w) + sw] = t;
             for (int k = 0; k < 3; k++) { _pointTri[Vertex(t, k)] = t; _pointTri[Vertex(w, k)] = w; }
             FreeTriangle(u);

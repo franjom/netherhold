@@ -44,8 +44,15 @@ public sealed partial class ImpTaskSystem
     {
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.UtilityNewState != CreatureStateMachine.Idle || creature.TargetTileIndex >= 0) return false;
-            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One) return true;
+            if (creature.UtilityNewState != CreatureStateMachine.Idle || creature.TargetTileIndex >= 0)
+            {
+                return false;
+            }
+
+            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One)
+            {
+                return true;
+            }
             // Native state 6 stops the body at the committed entity position with zero velocity.
             creature.StopMoving();
             StateShadow.Arrive(context, SystemName, creature);
@@ -58,7 +65,11 @@ public sealed partial class ImpTaskSystem
         {
             case ImpStates.AfterDrop:
                 // 71's handler sets 11 earlier in this update; 11's own handler is the next turn's (Q759).
-                if (context.Tick.Value <= creature.StateEnteredTick) return true;
+                if (context.Tick.Value <= creature.StateEnteredTick)
+                {
+                    return true;
+                }
+
                 creature.WorkerIdle = false;
                 if (StateShadow.TryMove(context, SystemName, creature, ImpStates.TaskSelection))
                 {
@@ -71,7 +82,11 @@ public sealed partial class ImpTaskSystem
                 Rest(context, creature, definition);
                 return true;
             case ImpStates.Wandering:
-                if (!Wander(context, creature, definition)) StateShadow.ToIdle(context, SystemName, creature);
+                if (!Wander(context, creature, definition))
+                {
+                    StateShadow.ToIdle(context, SystemName, creature);
+                }
+
                 return true;
             default:
                 return false;
@@ -83,7 +98,10 @@ public sealed partial class ImpTaskSystem
     private static void ToRest(SimulationContext context, CreatureState creature)
     {
         if (creature.OwnerPlayerId != PlayerIds.Neutral)
+        {
             creature.StateDeadlineTick = context.Tick.Value + RestBaseTicks + context.Rng.NextInt(RestRandomTicks);
+        }
+
         StateShadow.Move(context, SystemName, creature, ImpStates.Resting);
     }
 
@@ -94,16 +112,27 @@ public sealed partial class ImpTaskSystem
     {
         creature.WorkerIdle = true;
         long now = context.Tick.Value;
-        if (now < creature.ActionUntilTick) return;
+        if (now < creature.ActionUntilTick)
+        {
+            return;
+        }
+
         if (PlaysIdleAction(creature))
         {
-            if (!ActionAnimationClock.CountedActionEnded(creature)) return;
+            if (!ActionAnimationClock.CountedActionEnded(creature))
+            {
+                return;
+            }
+
             ActionAnimationClock.Clear(creature);
         }
         if (creature.StateDeadlineTick <= now)
         {
             if (StateShadow.TryMove(context, SystemName, creature, ImpStates.TaskSelection))
+            {
                 creature.WorkerIdle = false;
+            }
+
             return;
         }
         if (creature.WanderStamp != 0)
@@ -121,7 +150,10 @@ public sealed partial class ImpTaskSystem
                 return;
             }
         }
-        if (CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.Wandering)) creature.WanderStamp = now + 32;
+        if (CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.Wandering))
+        {
+            creature.WanderStamp = now + 32;
+        }
     }
 
     /// <summary>State 87 (<c>0x004808E0</c>): a destination at ring radius 4–7, then each smaller one
@@ -130,14 +162,21 @@ public sealed partial class ImpTaskSystem
     /// non-worker reaches it from state 3 (<see cref="CreatureJobSystem"/>, ADR-0228).</summary>
     internal static bool Wander(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (context.Tick.Value < creature.ActionUntilTick || creature.IdleAction != IdleActionId.None) return true;
+        if (context.Tick.Value < creature.ActionUntilTick || creature.IdleAction != IdleActionId.None)
+        {
+            return true;
+        }
+
         int x = creature.PosX, y = creature.PosY;
         int r = context.Rng.NextInt(4) + 4;
         (int X, int Y)? at = null;
         for (; r > 0; r--)
         {
             at = Destination(context, creature, r);
-            if (at is not null) break;
+            if (at is not null)
+            {
+                break;
+            }
         }
         if (at is { } d)
         {
@@ -147,7 +186,11 @@ public sealed partial class ImpTaskSystem
         (int ox, int oy) = HeroJobRules.RandomSubTile(context);
         x = (x & ~0xFFF) | ox;
         y = (y & ~0xFFF) | oy;
-        if (!context.Navigation.TryRouteToStance(creature, x, y, Navigation.MoveOptions.Loose)) return false;
+        if (!context.Navigation.TryRouteToStance(creature, x, y, Navigation.MoveOptions.Loose))
+        {
+            return false;
+        }
+
         int resume = ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) ? 238 : CreatureStateMachine.Idle;
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         return true;
@@ -161,7 +204,10 @@ public sealed partial class ImpTaskSystem
     {
         WorldState world = context.World;
         int cx = creature.PosX >> 12, cy = creature.PosY >> 12;
-        if (context.Rng.NextInt(8) == 0 && RoomDestination(context, creature) is { } room) return room;
+        if (context.Rng.NextInt(8) == 0 && RoomDestination(context, creature) is { } room)
+        {
+            return room;
+        }
 
         int n = r * 8, side = n >> 2;
         int start = context.Rng.NextInt(n);
@@ -176,12 +222,19 @@ public sealed partial class ImpTaskSystem
                 case 2: x = cx + o - r; y = cy + r; break;
                 default: x = cx - r; y = cy + o - r; break;
             }
-            if (Wanderable(context, creature, x, y, heartTest: true)) return (x, y);
+            if (Wanderable(context, creature, x, y, heartTest: true))
+            {
+                return (x, y);
+            }
         }
 
         // DK2's fallback runs only when the last tile tried was (0, 0), and re-derives one ring tile
         // from the start index with its own arithmetic; the heart is not tested.
-        if (x != 0 || y != 0) return null;
+        if (x != 0 || y != 0)
+        {
+            return null;
+        }
+
         int fx = 0, fy = 0;
         for (int k = 0; k < start; k++)
         {
@@ -211,20 +264,42 @@ public sealed partial class ImpTaskSystem
         for (int i = 0; i < all.Count; i++)
         {
             RoomInstance room = all[i];
-            if (room.OwnerPlayerId != creature.OwnerPlayerId) continue;
+            if (room.OwnerPlayerId != creature.OwnerPlayerId)
+            {
+                continue;
+            }
+
             rooms.Add(room);
-            if (IsWanderRoom(room.Definition)) remaining++;
+            if (IsWanderRoom(room.Definition))
+            {
+                remaining++;
+            }
         }
-        if (remaining == 0) return null;
+        if (remaining == 0)
+        {
+            return null;
+        }
+
         foreach (RoomInstance room in rooms)
         {
             if (remaining != 0)
             {
-                if (!IsWanderRoom(room.Definition)) continue;
-                if (--remaining != 0) continue;
+                if (!IsWanderRoom(room.Definition))
+                {
+                    continue;
+                }
+
+                if (--remaining != 0)
+                {
+                    continue;
+                }
             }
             if (RoomWalkRules.RoomPoint(world, context.Database, room, context.Rng) is not int pick
-                || HasObstacle(world, context.Database, pick)) continue;
+                || HasObstacle(world, context.Database, pick))
+            {
+                continue;
+            }
+
             return (pick % world.Width, pick / world.Width);
         }
         return null;
@@ -235,11 +310,27 @@ public sealed partial class ImpTaskSystem
     private static bool Wanderable(SimulationContext context, CreatureState creature, int x, int y, bool heartTest)
     {
         WorldState world = context.World;
-        if (!world.Contains(new TilePos(x, y))) return false;
+        if (!world.Contains(new TilePos(x, y)))
+        {
+            return false;
+        }
+
         ref TileState tile = ref world.Tile(x, y);
-        if (context.Database.TerrainById(tile.TerrainId).IsSolid) return false;
-        if (heartTest && context.Database.RoomByTerrain(tile.TerrainId)?.TypeId == RoomTypeId.DungeonHeart) return false;
-        if (tile.OwnerPlayerId != creature.OwnerPlayerId) return false;
+        if (context.Database.TerrainById(tile.TerrainId).IsSolid)
+        {
+            return false;
+        }
+
+        if (heartTest && context.Database.RoomByTerrain(tile.TerrainId)?.TypeId == RoomTypeId.DungeonHeart)
+        {
+            return false;
+        }
+
+        if (tile.OwnerPlayerId != creature.OwnerPlayerId)
+        {
+            return false;
+        }
+
         return !HasObstacle(context, (y * world.Width) + x);
     }
 
@@ -250,10 +341,15 @@ public sealed partial class ImpTaskSystem
     private static bool HasObstacle(WorldState world, GameDatabase database, int tileIndex)
     {
         foreach (ObjectState o in world.Objects)
+        {
             if (o.TileIndex == tileIndex
                 && database.Objects.TryGetValue(o.ObjectTypeId, out ObjectDef? def)
                 && ((def.Flags & ObjectFlags.Obstacle) == ObjectFlags.Obstacle))
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 }

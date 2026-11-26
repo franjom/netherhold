@@ -32,9 +32,21 @@ public static class NeedRules
     /// Everything else still on our own activities (combat, leaving) is left alone.</summary>
     public static bool MayAsk(CreatureState creature, CreatureStateCategory need)
     {
-        if (!RunsNeeds(creature)) return false;
-        if (creature.Activity == CreatureActivity.Idle) return true;
-        if (creature.Activity is not (CreatureActivity.AtWork or CreatureActivity.GoingToJob)) return false;
+        if (!RunsNeeds(creature))
+        {
+            return false;
+        }
+
+        if (creature.Activity == CreatureActivity.Idle)
+        {
+            return true;
+        }
+
+        if (creature.Activity is not (CreatureActivity.AtWork or CreatureActivity.GoingToJob))
+        {
+            return false;
+        }
+
         return CreatureStateMachine.HasState(creature) && Admits(creature, need);
     }
 
@@ -42,13 +54,19 @@ public static class NeedRules
     public static bool Admits(CreatureState creature, CreatureStateCategory need)
     {
         ref readonly CreatureStateDef current = ref CreatureStateTable.Get(creature.Dk2StateId);
-        if (current.Group is NeedGroup or BusyGroup) return false;
+        if (current.Group is NeedGroup or BusyGroup)
+        {
+            return false;
+        }
 
         CreatureStateCategory from = ResolvedCategory(creature);
 
         // Hunger and sleep also refuse their own category (`!= 8`, `!= 9`); pay has no such
         // test, and only the group-7 skip keeps it from asking a creature already at it.
-        if (need != CreatureStateCategory.Payday && from == need) return false;
+        if (need != CreatureStateCategory.Payday && from == need)
+        {
+            return false;
+        }
 
         // The rule's three arms: the same category, a zero mask, or the bit.
         return from == need
@@ -93,10 +111,18 @@ public static class NeedRules
     public static int CannotSleepHealthPerSecond(
         GameDatabase database, CreatureDef definition, CreatureState creature)
     {
-        if (!IsAsked(definition, creature) || !IsTired(definition, creature)) return 0;
+        if (!IsAsked(definition, creature) || !IsTired(definition, creature))
+        {
+            return 0;
+        }
+
         if (CreatureStateMachine.HasState(creature)
             && (CreatureStateTable.Get(creature.Dk2StateId).Group == NeedGroup
-                || ResolvedCategory(creature) == CreatureStateCategory.Sleeping)) return 0;
+                || ResolvedCategory(creature) == CreatureStateCategory.Sleeping))
+        {
+            return 0;
+        }
+
         int perTurn = database[VariableTypeId.CannotSleepModifyCreatureHealthPerSecond]
                       / SimulationTiming.OriginalTicksPerGameSecond;
         return perTurn * SimulationTiming.OriginalTicksPerGameSecond;
@@ -121,8 +147,16 @@ public static class NeedRules
     public static void UpdateSleepClock(CreatureDef definition, CreatureState creature, GameTick now)
     {
         if (!IsAsked(definition, creature) || definition.TimeSleep == 0
-            || definition.TimeAwake >= CreatureHealthRules.Never || !TirednessClockRuns(creature)) return;
-        if (now.Value - creature.LastSleptTick.Value < SimulationTiming.TicksFromSeconds(definition.TimeAwake)) return;
+            || definition.TimeAwake >= CreatureHealthRules.Never || !TirednessClockRuns(creature))
+        {
+            return;
+        }
+
+        if (now.Value - creature.LastSleptTick.Value < SimulationTiming.TicksFromSeconds(definition.TimeAwake))
+        {
+            return;
+        }
+
         creature.LastSleptTick = now;
         creature.SleepDebtTicks = SimulationTiming.TicksFromSeconds(definition.TimeSleep);
     }

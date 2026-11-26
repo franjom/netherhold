@@ -83,12 +83,25 @@ public static class CasinoJackpotRules
         GameDatabase database = context.Database;
         PlayerId keeper = winner.OwnerPlayerId;
         foreach (CreatureState c in world.Creatures)
-            if (c.OwnerPlayerId == keeper && c.JackpotDeadlineTicks != 0) return;
-        if (!winner.HeldPlace.IsHeld || RoomIndex.RoomAt(world, database, winner.HeldPlace.TileIndex) is not { } room) return;
+        {
+            if (c.OwnerPlayerId == keeper && c.JackpotDeadlineTicks != 0)
+            {
+                return;
+            }
+        }
+
+        if (!winner.HeldPlace.IsHeld || RoomIndex.RoomAt(world, database, winner.HeldPlace.TileIndex) is not { } room)
+        {
+            return;
+        }
 
         foreach (CreatureState c in world.Creatures)
         {
-            if (c.Id == winner.Id || c.OwnerPlayerId != keeper || !c.HeldPlace.In(room)) continue;
+            if (c.Id == winner.Id || c.OwnerPlayerId != keeper || !c.HeldPlace.In(room))
+            {
+                continue;
+            }
+
             Kick(context, system, c, CasinoStep.DancingState);
         }
 
@@ -116,8 +129,16 @@ public static class CasinoJackpotRules
         int bill = 0;
         foreach (CreatureState c in world.Creatures)
         {
-            if (c.OwnerPlayerId != keeper || CreatureDeathRules.IsDying(c) || CreatureDeathRules.IsCorpse(c)) continue;
-            if (c.GetPaid || !CountsOnPayroll(world, database, c)) continue;
+            if (c.OwnerPlayerId != keeper || CreatureDeathRules.IsDying(c) || CreatureDeathRules.IsCorpse(c))
+            {
+                continue;
+            }
+
+            if (c.GetPaid || !CountsOnPayroll(world, database, c))
+            {
+                continue;
+            }
+
             bill += PaydayRules.Wage(database, database.CreatureById(c.CreatureTypeId), c.Level);
         }
 
@@ -126,12 +147,20 @@ public static class CasinoJackpotRules
 
     private static bool CountsOnPayroll(WorldState world, GameDatabase database, CreatureState c)
     {
-        if (!CreatureStateMachine.HasState(c)) return false;
+        if (!CreatureStateMachine.HasState(c))
+        {
+            return false;
+        }
+
         int state = StateShadow.IsTravelling(c) ? c.UtilityNewState : c.Dk2StateId;
         CreatureStateCategory category = CreatureStateTable.Get(state).Category;
         bool held = category is CreatureStateCategory.Prison or CreatureStateCategory.Torture
             || state is 126 or 136 || c.CombatPitFighter;
-        if (!held || !c.HeldPlace.IsHeld) return true;
+        if (!held || !c.HeldPlace.IsHeld)
+        {
+            return true;
+        }
+
         return RoomIndex.RoomAt(world, database, c.HeldPlace.TileIndex) is not { } room || room.OwnerPlayerId == c.OwnerPlayerId;
     }
 
@@ -141,7 +170,11 @@ public static class CasinoJackpotRules
     {
         creature.StopMoving();
         CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
-        if (StateShadow.TryMove(context, system, creature, state)) return;
+        if (StateShadow.TryMove(context, system, creature, state))
+        {
+            return;
+        }
+
         creature.CurrentJob = JobType.None;
         creature.JobTileIndex = -1;
     }
@@ -161,18 +194,30 @@ public static class CasinoJackpotRules
         if ((first.CasinoParty & PartyBit) != 0)
         {
             if (now - first.CasinoPartyStartTick > (long)PartySeconds * SimulationTiming.OriginalTicksPerGameSecond)
+            {
                 EndParty(context, system, room, ref first);
-            if (!AnyPlaceHeld(world, room)) EndParty(context, system, room, ref first);
+            }
+
+            if (!AnyPlaceHeld(world, room))
+            {
+                EndParty(context, system, room, ref first);
+            }
+
             bool dancing = false;
             foreach (CreatureState c in world.Creatures)
+            {
                 if (c.HeldPlace.In(room) && c.Dk2StateId == CasinoStep.DancingState)
                 {
                     first.CasinoParty |= MusicBit;
                     dancing = true;
                 }
+            }
             // 0x004D63D0: the music is asked for each dancer of the room, with the room's handle (the repeats of one handle are one request
             // here), at the camera's point: the room's tile (read as the first tile) only picks the category and the volume by distance.
-            if (dancing) RequestPartySound(context, system, room, ThingSoundEvent.PartyMusic, listenerRelative: true);
+            if (dancing)
+            {
+                RequestPartySound(context, system, room, ThingSoundEvent.PartyMusic, listenerRelative: true);
+            }
             // Every twelve seconds an effect on a random tile: the effect is presentation, its draw is
             // on the simulation stream (0x004D6561), and the effect is asked for at that tile's corner.
             if ((now + 1) % (EffectSeconds * SimulationTiming.OriginalTicksPerGameSecond) == 0)   // DK2's turn is our tick + 1
@@ -184,10 +229,18 @@ public static class CasinoJackpotRules
             return true;
         }
 
-        if ((first.CasinoParty & MusicBit) == 0) return false;
+        if ((first.CasinoParty & MusicBit) == 0)
+        {
+            return false;
+        }
+
         foreach (CreatureState c in world.Creatures)
         {
-            if (!c.HeldPlace.In(room) || c.Dk2StateId != CasinoStep.DancingState) continue;
+            if (!c.HeldPlace.In(room) || c.Dk2StateId != CasinoStep.DancingState)
+            {
+                continue;
+            }
+
             c.ActionUntilTick = 0;
             if (!StateShadow.TryMove(context, system, c, CasinoStep.ChoosingState))
             {
@@ -217,7 +270,13 @@ public static class CasinoJackpotRules
     private static bool AnyPlaceHeld(WorldState world, RoomInstance room)
     {
         foreach (CreatureState c in world.Creatures)
-            if (c.HeldPlace.In(room)) return true;
+        {
+            if (c.HeldPlace.In(room))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -236,15 +295,26 @@ public static class CasinoJackpotRules
     /// bucket and posts message 91 (<c>0x0048AA07</c>, <c>0x004D6A40</c>).</summary>
     public static void CountDown(SimulationContext context, string system, CreatureState creature)
     {
-        if (creature.DrunkTicks > 0) creature.DrunkTicks--;
-        if (creature.JackpotDeadlineTicks == 0 || --creature.JackpotDeadlineTicks != 0) return;
+        if (creature.DrunkTicks > 0)
+        {
+            creature.DrunkTicks--;
+        }
+
+        if (creature.JackpotDeadlineTicks == 0 || --creature.JackpotDeadlineTicks != 0)
+        {
+            return;
+        }
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int percent = database[VariableTypeId.GamblingJackpotPayTimeLimitMissedAngerPercentageModifier];
         foreach (CreatureState c in world.Creatures)
         {
-            if (c.OwnerPlayerId != creature.OwnerPlayerId) continue;
+            if (c.OwnerPlayerId != creature.OwnerPlayerId)
+            {
+                continue;
+            }
+
             CreatureDef definition = database.CreatureById(c.CreatureTypeId);
             int delta = c.Anger[AngerBucket.Treatment] * percent / 100;
             CreatureAngerRules.Apply(world, definition, c, AngerBucket.Treatment, delta, AngerComplaint.General);
@@ -261,13 +331,21 @@ public static class CasinoJackpotRules
     {
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return true;
+            if (creature.HasRoute)
+            {
+                return true;
+            }
+
             creature.StopMoving();
             return StateShadow.Arrive(context, system, creature);
         }
 
         long age = context.Tick.Value - creature.StateEnteredTick;
-        if (age == 0) return true;
+        if (age == 0)
+        {
+            return true;
+        }
+
         return creature.Dk2StateId switch
         {
             CelebratingState => Celebrate(context, system, creature, age),
@@ -288,16 +366,29 @@ public static class CasinoJackpotRules
         {
             creature.ActionUntilTick = 0;
             if (AnimationTimingRules.ResolvesPresent(definition, 28))
+            {
                 creature.ActionUntilTick = now + AnimationTimingRules.CountedHoldTicks(definition, 28, 0);
+            }
             else if (AnimationTimingRules.ResolvesPresent(definition, 8))
+            {
                 creature.ActionUntilTick = now + AnimationTimingRules.CountedHoldTicks(definition, 8, context.Rng.NextInt(4) + 3);
-            else return false;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         if (now >= creature.ActionUntilTick)
+        {
             creature.ActionUntilTick = now + AnimationTimingRules.CountedHoldTicks(definition, 8, 0);
+        }
+
         if (age >= (long)CelebrationSeconds * SimulationTiming.OriginalTicksPerGameSecond)
+        {
             Kick(context, system, creature, SeekingTheGoldState);
+        }
+
         return CreatureStateMachine.HasState(creature) && creature.Dk2StateId != CreatureStateMachine.Idle;
     }
 
@@ -307,7 +398,10 @@ public static class CasinoJackpotRules
     private static bool SeekTheGold(SimulationContext context, string system, CreatureState creature)
     {
         WorldState world = context.World;
-        if ((Bank(context, creature, mustCover: true) ?? Bank(context, creature, mustCover: false)) is not { } room) return true;
+        if ((Bank(context, creature, mustCover: true) ?? Bank(context, creature, mustCover: false)) is not { } room)
+        {
+            return true;
+        }
 
         int[] chain = SlabChain.Order(world, room);
         int start = context.Rng.NextInt(chain.Length);
@@ -315,8 +409,16 @@ public static class CasinoJackpotRules
         for (int k = 0; k < chain.Length; k++)
         {
             int candidate = chain[(start + k) % chain.Length];
-            if (world.TileAtIndex(candidate).GoldHeld <= 0) continue;
-            if (room.Definition.TypeId == RoomTypeId.DungeonHeart && !OnHeartRing(world, room, candidate)) continue;
+            if (world.TileAtIndex(candidate).GoldHeld <= 0)
+            {
+                continue;
+            }
+
+            if (room.Definition.TypeId == RoomTypeId.DungeonHeart && !OnHeartRing(world, room, candidate))
+            {
+                continue;
+            }
+
             tile = candidate;
             break;
         }
@@ -344,15 +446,30 @@ public static class CasinoJackpotRules
         var scratch = new List<Fixed16Vector>();
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (!IsBankOf(world, room, creature.OwnerPlayerId) || room.TileIndices.Count == 0) continue;
-            if (mustCover && PaydayRules.GoldIn(world, room) <= creature.JackpotWinnings) continue;
+            if (!IsBankOf(world, room, creature.OwnerPlayerId) || room.TileIndices.Count == 0)
+            {
+                continue;
+            }
+
+            if (mustCover && PaydayRules.GoldIn(world, room) <= creature.JackpotWinnings)
+            {
+                continue;
+            }
+
             int first = SlabChain.FirstSlab(world, room);
             int x = CreatureState.CentreOf(first % world.Width), y = CreatureState.CentreOf(first / world.Width);
             if (!CombatTargetRules.CanReach(context.Navigation, creature, definition, x, y, int.MaxValue, scratch, MoveOptions.Loose))
+            {
                 continue;
+            }
+
             long ax = Math.Abs((long)x - creature.PosX), ay = Math.Abs((long)y - creature.PosY);
             uint distance = unchecked((uint)((ax * ax) >> 12) + (uint)((ay * ay) >> 12));
-            if (distance >= bestDistance) continue;
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+
             best = room;
             bestDistance = distance;
         }
@@ -378,9 +495,17 @@ public static class CasinoJackpotRules
     /// position scaled a second time, wrapped to 32 bits, then 1 and 157; elsewhere it stays.</summary>
     private static bool Arrived(SimulationContext context, string system, CreatureState creature)
     {
-        if (BankUnder(context, creature) is null) return true;
+        if (BankUnder(context, creature) is null)
+        {
+            return true;
+        }
+
         int x = unchecked((creature.PosX * 0x1000) + 0x800), y = unchecked((creature.PosY * 0x1000) + 0x800);
-        if (CasinoStep.TurnTo(context, creature, x, y) != 0) return true;
+        if (CasinoStep.TurnTo(context, creature, x, y) != 0)
+        {
+            return true;
+        }
+
         CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
         return StateShadow.TryMove(context, system, creature, CollectingState);
     }
@@ -393,8 +518,14 @@ public static class CasinoJackpotRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         if (GoldStore.Total(world, creature.OwnerPlayerId) < creature.JackpotWinnings)
+        {
             world.Messages.Post(world, creature.OwnerPlayerId, PlayerMessageKind.JackpotUnpaid, 0, 0);
-        if (BankUnder(context, creature) is not { } room) return false;
+        }
+
+        if (BankUnder(context, creature) is not { } room)
+        {
+            return false;
+        }
 
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         int asked = Math.Min(creature.JackpotWinnings, PaydayRules.GoldIn(world, room));
@@ -422,7 +553,11 @@ public static class CasinoJackpotRules
     private static RoomInstance? BankUnder(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
-        if (!world.Contains(creature.Tile)) return null;
+        if (!world.Contains(creature.Tile))
+        {
+            return null;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X);
         return room is not null && room.OwnerPlayerId == creature.OwnerPlayerId
             && room.Definition.TypeId is RoomTypeId.Treasury or RoomTypeId.DungeonHeart ? room : null;

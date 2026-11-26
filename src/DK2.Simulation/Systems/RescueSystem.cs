@@ -29,26 +29,46 @@ public sealed class RescueSystem : ISimulationSystem
         for (int i = 0; i < world.Creatures.Count; i++)
         {
             CreatureState creature = world.Creatures[i];
-            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) continue;
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined))
+            {
+                continue;
+            }
 
             int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
             if (creature.Activity == CreatureActivity.Rescuing)
             {
                 creature.ContactTileIndex = here;
-                if (IsBreakingOut(creature)) BreakOut(context, creature);
-                else Step(context, creature, here);
+                if (IsBreakingOut(creature))
+                {
+                    BreakOut(context, creature);
+                }
+                else
+                {
+                    Step(context, creature, here);
+                }
+
                 continue;
             }
 
-            if (here == creature.ContactTileIndex) continue;
+            if (here == creature.ContactTileIndex)
+            {
+                continue;
+            }
+
             creature.ContactTileIndex = here;
             // 0x004E8660's Library arm: anyone not researching disturbs it (ADR-0397), behind the call's
             // own gates at 0x0048A844: not dying and holding no place. The rescue arms above lack them.
             if (!creature.HeldPlace.IsHeld && !CreatureDeathRules.IsDown(creature)
                 && RoomIndex.RoomAt(world, database, here) is { } room && room.Definition.TypeId == RoomTypeId.Library
                 && ResearchStep.ResolvedCategory(creature) != CreatureStateCategory.Research)
+            {
                 ResearchStep.Disturb(context, SystemName, room, creature);
-            if (MayStart(creature) && RescueRules.StateFor(world, database, creature, here) is int state) Start(context, creature, state);
+            }
+
+            if (MayStart(creature) && RescueRules.StateFor(world, database, creature, here) is int state)
+            {
+                Start(context, creature, state);
+            }
         }
     }
 
@@ -57,7 +77,11 @@ public sealed class RescueSystem : ISimulationSystem
 
     private static void Start(SimulationContext context, CreatureState creature, int state)
     {
-        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, state)) return;
+        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, state))
+        {
+            return;
+        }
+
         NeedRules.EndJob(creature);
 
         creature.StopMoving();
@@ -73,13 +97,20 @@ public sealed class RescueSystem : ISimulationSystem
 
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return;
+            if (creature.HasRoute)
+            {
+                return;
+            }
+
             creature.StopMoving();
             if (!CreatureStateMachine.Arrive(context.Hooks, creature)) { Stop(context, creature); return; }
             creature.RescueTurnsLeft = RescueRules.WaitTurns;
         }
 
-        if (creature.RescueTurnsLeft > 0 && --creature.RescueTurnsLeft > 0) return;
+        if (creature.RescueTurnsLeft > 0 && --creature.RescueTurnsLeft > 0)
+        {
+            return;
+        }
 
         RoomInstance? room = RoomIndex.RoomAt(world, database, here);
         if (room is null || room.Definition.TypeId != RoomTypeId.TortureChamber) { Stop(context, creature); return; }
@@ -119,13 +150,27 @@ public sealed class RescueSystem : ISimulationSystem
     {
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return;
+            if (creature.HasRoute)
+            {
+                return;
+            }
+
             creature.StopMoving();
-            if (!CreatureStateMachine.Arrive(context.Hooks, creature)) Stop(context, creature);
+            if (!CreatureStateMachine.Arrive(context.Hooks, creature))
+            {
+                Stop(context, creature);
+            }
+
             return;
         }
-        if (!JailBreakRules.BreakOut(context, SystemName, creature)) Stop(context, creature);
-        else if (creature.Dk2StateId == ImpStates.Wandering) creature.ClearJob();
+        if (!JailBreakRules.BreakOut(context, SystemName, creature))
+        {
+            Stop(context, creature);
+        }
+        else if (creature.Dk2StateId == ImpStates.Wandering)
+        {
+            creature.ClearJob();
+        }
     }
 
     /// <summary>134 moves the victim to 133, which drops it to idle off the device; 134 then

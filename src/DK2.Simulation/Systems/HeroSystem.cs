@@ -32,35 +32,81 @@ public sealed class HeroSystem : ICreatureUpdateStep
     /// older leader reroutes.</summary>
     public void Update(SimulationContext context, CreatureState creature)
     {
-        if (!_onOriginalTick) return;
-        if (creature.Possessed) return;
-        if (Combat.ThreatFleeRules.IsFleeing(creature)) return;   // the combat states' (ADR-0678)
-        if (context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
-        if (!HeroJobRules.IsHero(creature)) return;
+        if (!_onOriginalTick)
+        {
+            return;
+        }
+
+        if (creature.Possessed)
+        {
+            return;
+        }
+
+        if (Combat.ThreatFleeRules.IsFleeing(creature))
+        {
+            return;   // the combat states' (ADR-0678)
+        }
+
+        if (context.TremorRecoveryCompletedThisTick.Contains(creature))
+        {
+            return;
+        }
+
+        if (!HeroJobRules.IsHero(creature))
+        {
+            return;
+        }
+
         if (CreatureEligibility.IsExcluded(creature,
-            CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) return;
+            CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied))
+        {
+            return;
+        }
+
         Turn(context, creature);
     }
 
     private static void Turn(SimulationContext context, CreatureState creature)
     {
         // The creature update's room arm runs before any state handler, whatever the state.
-        if (RoomAttackRules.TryBegin(context, SystemName, creature)) return;
-        if (creature.Dk2StateId == DropLandingRules.HeartDropState) return;   // the stun recovery step's (Q759)
+        if (RoomAttackRules.TryBegin(context, SystemName, creature))
+        {
+            return;
+        }
+
+        if (creature.Dk2StateId == DropLandingRules.HeartDropState)
+        {
+            return;   // the stun recovery step's (Q759)
+        }
 
         if (StateShadow.IsTravelling(creature))
         {
-            if (!IsHeroResume(creature.UtilityNewState)) return;
+            if (!IsHeroResume(creature.UtilityNewState))
+            {
+                return;
+            }
             // State 6 resumes on whole progress (0x00470C80); a stop's own self-point has it at once.
-            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One) return;
+            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One)
+            {
+                return;
+            }
+
             creature.StopMoving();
             StateShadow.Arrive(context, SystemName, creature);
             return;
         }
 
         // A combat handler set 1 this turn: 1's handler is next turn's (0x00476FC0).
-        if (context.IdleHandlerWaits(creature)) return;
-        if (creature.Dk2StateId == CreatureStateMachine.Idle) creature.Fleeing = false;
+        if (context.IdleHandlerWaits(creature))
+        {
+            return;
+        }
+
+        if (creature.Dk2StateId == CreatureStateMachine.Idle)
+        {
+            creature.Fleeing = false;
+        }
+
         bool stays = creature.Dk2StateId switch
         {
             CreatureStateMachine.Idle => Combat.FightReturnRules.TryReturn(context, creature)
@@ -91,7 +137,10 @@ public sealed class HeroSystem : ICreatureUpdateStep
             RoomAttackRules.DestroyingRoomsState => RoomAttackRules.DestroyRoomTile(context, creature),
             _ => true,
         };
-        if (!stays) StateShadow.ToIdle(context, SystemName, creature);
+        if (!stays)
+        {
+            StateShadow.ToIdle(context, SystemName, creature);
+        }
     }
 
     /// <summary>State 90 (<c>0x00477850</c>): a follower goes to 222; anyone else runs its standing

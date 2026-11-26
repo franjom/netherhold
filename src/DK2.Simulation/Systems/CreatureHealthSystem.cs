@@ -24,9 +24,15 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         for (int i = context.World.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState state = context.World.Creatures[i];
-            if (CreatureDeathRules.IsDying(state)) DyingStateRules.Update(context, state);
+            if (CreatureDeathRules.IsDying(state))
+            {
+                DyingStateRules.Update(context, state);
+            }
         }
-        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
+        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0)
+        {
+            return;
+        }
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -40,7 +46,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // PrisonModifyCreatureHealthPerSecond and dies into a Skeleton, not a
             // collapse, so nothing here touches its health or dying clock
             // (ADR-0064). Its hunger clock runs in the needs routine like anyone's (ADR-0074).
-            if (PrisonRules.IsPrisonInmate(state)) continue;
+            if (PrisonRules.IsPrisonInmate(state))
+            {
+                continue;
+            }
 
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
@@ -69,7 +78,11 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // left to collapse into.
             if (CreatureDeathRules.IsCorpse(state))
             {
-                if (context.DyingStatesUpdatedThisTick.Contains(state)) continue;
+                if (context.DyingStatesUpdatedThisTick.Contains(state))
+                {
+                    continue;
+                }
+
                 Rotting(context, creature, state);
                 continue;
             }
@@ -79,7 +92,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
                 continue;
             }
 
-            if (!state.Possessed) CannotSleep(context, database, creature, state);
+            if (!state.Possessed)
+            {
+                CannotSleep(context, database, creature, state);
+            }
 
             // The lair heal, once a second; own-land regeneration is the creature update's, every
             // turn (RegenerateOnOwnLand). Lair healing is not gated at zero health: a bed is the one
@@ -104,7 +120,11 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             // rescued into its bed at zero health is healed to 100 on this same
             // second and so is never seen collapsed. CreatureDeathRules.Rescue
             // explains why reversing these two would undo every rescue.
-            if (!CreatureDeathRules.HasCollapsed(state)) continue;
+            if (!CreatureDeathRules.HasCollapsed(state))
+            {
+                continue;
+            }
+
             RunOutOfHealth(context, creature, state);
         }
     }
@@ -124,9 +144,13 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         }
 
         if (CreatureDeathRules.HasDyingState(context.World, context.Database, creature, state))
+        {
             Collapse(context, creature, state);
+        }
         else
+        {
             Die(context, SystemName, creature, state);
+        }
     }
 
     /// <summary>Tired and not asleep: the needs routine's health loss (NeedRules, ADR-0199).</summary>
@@ -134,9 +158,17 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         SimulationContext context, GameDatabase database, CreatureDef creature, CreatureState state)
     {
         int delta = NeedRules.CannotSleepHealthPerSecond(database, creature, state);
-        if (delta == 0) return;
+        if (delta == 0)
+        {
+            return;
+        }
+
         int landed = CreatureHealthRules.Apply(database, creature, state, delta, state.OwnerPlayerId); // 0x00477E7B: own owner
-        if (landed == 0) return;
+        if (landed == 0)
+        {
+            return;
+        }
+
         context.Emit(SystemName, "creature_cannot_sleep_health",
             $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} delta={landed} " +
             $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)}");
@@ -154,11 +186,17 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     private static void Rotting(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
-        if (state.CarriedByCreatureId >= 0) return;
+        if (state.CarriedByCreatureId >= 0)
+        {
+            return;
+        }
 
         state.DyingTicks += SimulationTiming.TicksPerSecond;
 
-        if (!CreatureDeathRules.BodyWindowElapsed(context.Database, state)) return;
+        if (!CreatureDeathRules.BodyWindowElapsed(context.Database, state))
+        {
+            return;
+        }
 
         // One lying in a Graveyard is buried as it goes (0x004B1070, Q578).
         if (GraveyardRules.BuryLying(context, state) is { } result)
@@ -204,7 +242,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         if (state.CarriedByCreatureId >= 0)
         {
             CreatureState? carrier = context.World.CreatureById(state.CarriedByCreatureId);
-            if (carrier is not null) CarryRules.PutDown(carrier, state);
+            if (carrier is not null)
+            {
+                CarryRules.PutDown(carrier, state);
+            }
         }
 
         // And whatever it was carrying goes on the floor where it fell, rather
@@ -223,14 +264,24 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     /// the creature's own <c>+0x36</c> as the source. Ours alone skips a Prison inmate, whose health is PrisonSystem's (ADR-0064); a pit binding does not suppress it.</summary>
     internal static void RegenerateOnOwnLand(SimulationContext context, CreatureDef creature, CreatureState state)
     {
-        if (PrisonRules.IsPrisonInmate(state)) return;
+        if (PrisonRules.IsPrisonInmate(state))
+        {
+            return;
+        }
+
         int regen = CreatureHealthRules.OwnLandRegenPerTurn(context.World, context.Database, creature, state);
-        if (regen == 0) return;
+        if (regen == 0)
+        {
+            return;
+        }
+
         int landed = CreatureHealthRules.Apply(context.Database, creature, state, regen, state.HealthSourcePlayerId);
         if (landed != 0 && !ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
             context.Emit(SystemName, "creature_health",
                 $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} delta={landed} " +
                 $"health={state.Health}/{CreatureHealthRules.MaxHealth(context.Database, creature, state)}");
+        }
     }
 
     /// <summary>
@@ -241,7 +292,10 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     private static void Collapse(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
-        if (!CreatureDeathRules.Collapse(context.Hooks, state)) return;
+        if (!CreatureDeathRules.Collapse(context.Hooks, state))
+        {
+            return;
+        }
         // Only when 216 took: 0x004596D0 returns before the picks and the drop if SetState refuses it.
         if (state.Dk2StateId == CreatureDeathRules.FallingState)
         {
@@ -280,13 +334,21 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // creature trigger action 35, CreatureRemovalSystem). Not mirrored: the function head's skip while the world's level-leave probe (vtable +0x4C, 0x00487CB8) is nonzero, and the
         // skip while world +0x7239 bit 0x80 is set (a saved game being restored, INFERRED); a simulation has neither. DK2 runs the bookkeeping for every freed
         // creature; ours asks it where the creature dies, not where the other removal paths (leaving, the Temple's pool) free one.
-        if (!state.DeathUncounted) ThingSoundRules.Request(context, system, state, ThingSoundEvent.CreatureFreed);
+        if (!state.DeathUncounted)
+        {
+            ThingSoundRules.Request(context, system, state, ThingSoundEvent.CreatureFreed);
+        }
         // A hypnotised or following creature's bookkeeping (0x00487DD2, 0x00487E6A) before the possession exit.
         PossessionRules.CreatureFreed(context.World, state);
         if (state.Possessed && context.World.HasPlayer(state.OwnerPlayerId))
+        {
             PossessionRules.Leave(context, ref context.World.Player(state.OwnerPlayerId));
+        }
         // 0x00487CCB: +0x3E6 bit 0x40 jumps past the killed event (0x00487CF5).
-        if (!state.DeathUncounted) context.FireCreatureEvent(state, CreatureTriggerEvent.Killed);
+        if (!state.DeathUncounted)
+        {
+            context.FireCreatureEvent(state, CreatureTriggerEvent.Killed);
+        }
 
         // A dead creature gives up its bed, or a lair leaks a tile forever.
         // Not on collapse — the rescue path carries it back to that bed. A
@@ -308,7 +370,11 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // Bit 0x40 also skips the carried-gold drop (0x0048814B): the gold goes with it.
         int carried = state.GoldHeld;
         int dropped = state.DeathUncounted ? 0 : FloorGold.DropFrom(context.World, context.Database, state, context.Rng);
-        if (state.DeathUncounted) state.GoldHeld = 0;
+        if (state.DeathUncounted)
+        {
+            state.GoldHeld = 0;
+        }
+
         PortalRules.ArrivalDied(context.World, state);
         CreditHeroKill(context.World, creature, state);
 
@@ -346,23 +412,37 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     /// built: the MPD score (game mode 4) and the per-owner kill tally (<c>+0x19E</c>).</summary>
     public static byte CreditHeroKill(WorldState world, CreatureDef creature, CreatureState state)
     {
-        if (state.Health > 0) return 0;
+        if (state.Health > 0)
+        {
+            return 0;
+        }
+
         byte credited = state.HealthSourcePlayerId;
         if (credited == 0)
         {
             for (int i = 0; i < Combat.CombatRules.Slots; i++)
             {
                 int attacker = state.EngagedMelee[i] != 0 ? state.EngagedMelee[i] : state.EngagedRanged[i];
-                if (attacker == 0) continue;
+                if (attacker == 0)
+                {
+                    continue;
+                }
                 // DK2 reads the slot's thing whatever it is; a creature gone from our list reads as no owner.
                 credited = world.CreatureById(attacker)?.OwnerPlayerId ?? 0;
                 break;
             }
         }
         LevelStatisticsRules.CreditDeath(world, creature, state, credited);
-        if (credited == 0 || state.DeathUncounted) return credited;
+        if (credited == 0 || state.DeathUncounted)
+        {
+            return credited;
+        }
+
         if (((creature.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood) && world.HasPlayer(credited))
+        {
             world.Player(credited).HeroesDestroyed++;
+        }
+
         return credited;
     }
 }

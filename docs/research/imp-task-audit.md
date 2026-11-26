@@ -171,7 +171,7 @@ the paired test, without claiming a win-rate improvement.
 
 ### 3. Create Imp skips the arrival path: confirmed difference, low local explanatory power
 
-Our `ImpSupplySystem.cs:199–219` spawns at a tile centre, arms the drop scan
+Our `ImpSupplySystem.Cast` spawns at a tile centre, arms the drop scan
 and starts with ordinary state 1. Fresh seed 5 observes 1 at 392, 10 at 393,
 and the first job walk at 394. Original 443 is observed in 214 at capture
 392–393, 11 at 394, 10 at 395 and the walk at 396.

@@ -41,13 +41,22 @@ public sealed class RoomBorderFlameSystem : IRoomTickStep
         RoomBorderCursor cursor = default;
         bool found = false;
         foreach (RoomBorderCursor held in world.RoomBorderCursorList)
+        {
             if (room.Contains(held.Y * world.Width + held.X)) { cursor = held; found = true; break; }
-        if (!found) cursor = RoomBorderRules.Start(world, room);
+        }
+
+        if (!found)
+        {
+            cursor = RoomBorderRules.Start(world, room);
+        }
+
         cursor = RoomBorderRules.Advance(cursor, world, room);
         _next.Add(cursor);
         if (_births)
+        {
             context.RequestEffect(Name, new ViewEffectRequest(new EffectId(RoomBorderRules.FlameEffectId),
                 new PlayerId(room.OwnerPlayerId), RoomBorderRules.FlamePoint(cursor)));
+        }
     }
 
     public void EndTurn(SimulationContext context)

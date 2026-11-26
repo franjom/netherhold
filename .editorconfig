@@ -49,3 +49,19 @@ csharp_style_var_when_type_is_apparent = true
 csharp_style_var_elsewhere = false
 dotnet_diagnostic.IDE0007.severity = warning
 dotnet_diagnostic.IDE0008.severity = warning
+
+[src/DK2.Simulation/**.cs]
+csharp_prefer_braces = true
+dotnet_diagnostic.IDE0011.severity = warning
+
+[src/DK2.AI/**.cs]
+csharp_prefer_braces = true
+dotnet_diagnostic.IDE0011.severity = warning
+
+[src/DK2.Pathfinding/**.cs]
+csharp_prefer_braces = true
+dotnet_diagnostic.IDE0011.severity = warning
+
+[src/DK2.Core/**.cs]
+csharp_prefer_braces = true
+dotnet_diagnostic.IDE0011.severity = warning

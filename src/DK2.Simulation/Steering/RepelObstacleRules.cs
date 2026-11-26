@@ -26,14 +26,24 @@ public static class RepelObstacleRules
         int reach = body.Radius + Fixed16.One;
 
         if (body.SnapsOnArrival && body.OnLastPoint && (body.Pos - body.CurrentPoint).Octile() <= reach)
+        {
             return Fixed16Vector.Zero;
-        if (body.EscapeStuckMode) return Fixed16Vector.Zero;
+        }
+
+        if (body.EscapeStuckMode)
+        {
+            return Fixed16Vector.Zero;
+        }
 
         Scratch.Clear();
         world.CollectObstacles(body.Pos, reach, Scratch);
 
         Fixed16Vector force = Fixed16Vector.Zero;
-        foreach (SteeringObstacle obstacle in Scratch) force += Contact(body, obstacle);
+        foreach (SteeringObstacle obstacle in Scratch)
+        {
+            force += Contact(body, obstacle);
+        }
+
         return force;
     }
 
@@ -43,13 +53,22 @@ public static class RepelObstacleRules
     {
         Fixed16Vector v = body.Pos - obstacle.Pos;
         int distance = v.Length();
-        if (distance == 0 || distance > obstacle.Size + body.Radius) return Fixed16Vector.Zero;
+        if (distance == 0 || distance > obstacle.Size + body.Radius)
+        {
+            return Fixed16Vector.Zero;
+        }
 
         Fixed16Vector normal = Fixed16.Normalise(v);
-        if (!obstacle.Solid) return normal.Scale(body.MaxForce);
+        if (!obstacle.Solid)
+        {
+            return normal.Scale(body.MaxForce);
+        }
 
         if (body.SolidContacts.Count < SteeringBody.SolidContactSlots)
+        {
             body.SolidContacts.Add(new SolidContact(normal, obstacle.Flag2));
+        }
+
         return Fixed16Vector.Zero;
     }
 }

@@ -38,12 +38,24 @@ public static class ImpCreationRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (!database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition)) return;
+        if (!database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition))
+        {
+            return;
+        }
+
         bool single = definition.ProcessType == CreateSingleCreatureProcess;
         int count = single ? 1 : shot.Data2;
-        if (count <= 0) return;
+        if (count <= 0)
+        {
+            return;
+        }
+
         var at = new TilePos(shot.PosX >> 12, shot.PosY >> 12);
-        if (shot.PosX < 0 || shot.PosY < 0 || !world.Contains(at)) return;
+        if (shot.PosX < 0 || shot.PosY < 0 || !world.Contains(at))
+        {
+            return;
+        }
+
         context.Navigation.Refresh();
         if ((context.Navigation.NavByte(at.X, at.Y) & 8) != 0)
         {
@@ -72,9 +84,17 @@ public static class ImpCreationRules
             }
             int x = shot.PosX + (offsetX / 16), y = shot.PosY + (offsetY / 16);
             var tile = new TilePos(x >> 12, y >> 12);
-            if (x < 0 || y < 0 || !world.Contains(tile)) continue;
+            if (x < 0 || y < 0 || !world.Contains(tile))
+            {
+                continue;
+            }
+
             if (world.TrySpawnCreature(database, new CreatureTypeId(type.CreatureId), new PlayerId(shot.OwnerPlayerId), tile)
-                is not { } made) continue;
+                is not { } made)
+            {
+                continue;
+            }
+
             made.PosX = made.LastPosX = shot.PosX;
             made.PosY = made.LastPosY = shot.PosY;
             made.Heading = single ? (context.Rng.NextInt(4) & 3) << 9 : context.Rng.NextInt(0x800) & 0x7FF;
@@ -91,8 +111,16 @@ public static class ImpCreationRules
             // Process 36 then calls Creature_LevelUp (0x0048B120) until the level reaches Data2,
             // each with its promotion effect 339; process 1 never levels.
             if (single)
+            {
                 for (int level = CreatureLevelRules.Clamp(shot.Data2); made.Level < level;)
-                    if (!CreatureLevelRules.LevelUp(context.Hooks, type, made)) break;
+                {
+                    if (!CreatureLevelRules.LevelUp(context.Hooks, type, made))
+                    {
+                        break;
+                    }
+                }
+            }
+
             context.Emit("ImpCreation", "creature_created",
                 $"shot={shot.Id} player={shot.OwnerPlayerId} creature={made.Id} at=({tile.X},{tile.Y}) heading={made.Heading} level={made.Level}");
         }
@@ -126,7 +154,10 @@ public static class ImpCreationRules
         int gravity = unchecked((byte)context.Database[VariableTypeId.GravityConstant]);
         creature.CreationVelocityZ -= gravity * 0x100;
         creature.PosZ += creature.CreationVelocityZ / 16;
-        if (creature.PosZ < 0) creature.PosZ = creature.CreationVelocityZ = 0;
+        if (creature.PosZ < 0)
+        {
+            creature.PosZ = creature.CreationVelocityZ = 0;
+        }
     }
 
     internal static void Leave(CreatureState creature)

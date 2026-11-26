@@ -59,10 +59,16 @@ public sealed class KeeperResearchStep
     public int Run(int allowance)
     {
         int roll = _rng.NextInt(3);
-        if ((_p.ProbabilityOfMovingCreatureForResearch & 3) > roll || allowance <= 0) return allowance;
+        if ((_p.ProbabilityOfMovingCreatureForResearch & 3) > roll || allowance <= 0)
+        {
+            return allowance;
+        }
         // 0x004C6460(6) only for the first spell at availability 2; the move spends nothing.
         if (ResearchableSpellRemains(_view)
-            && _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Library, _rng) is not null) _move.Run();
+            && _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Library, _rng) is not null)
+        {
+            _move.Run();
+        }
         // Every queued event task is a response to an attack (task 1), which holds placement back.
         return _state.Responses.Count == 0 ? PlaceJobs(allowance) : allowance;
     }
@@ -73,11 +79,19 @@ public sealed class KeeperResearchStep
         int held = _view.HandItems.Count;
         for (; held != 0 && allowance != 0; allowance--)
         {
-            if (Creature(_view.HandItems[held - 1]) is not KeeperCreatureView creature) continue;
+            if (Creature(_view.HandItems[held - 1]) is not KeeperCreatureView creature)
+            {
+                continue;
+            }
+
             foreach (JobType job in Jobs(creature))
             {
                 if (KeeperMoodRemedies.JobRoom(job) is not RoomTypeId type
-                    || _view.RandomRoomOfType(_view.PlayerId, type, _rng) is not KeeperRoomView room) continue;
+                    || _view.RandomRoomOfType(_view.PlayerId, type, _rng) is not KeeperRoomView room)
+                {
+                    continue;
+                }
+
                 _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, _view.PositionOf(room)));
                 held--;
                 break;
@@ -85,15 +99,30 @@ public sealed class KeeperResearchStep
         }
 
         int capacity = HandRules.Capacity(_view.Database);
-        if (_rng.NextInt(100) >= PickUpPercent || allowance == 0 || held >= capacity) return allowance;
+        if (_rng.NextInt(100) >= PickUpPercent || allowance == 0 || held >= capacity)
+        {
+            return allowance;
+        }
+
         foreach (KeeperCreatureView creature in Owned(_view))
         {
-            if (!Scanned(creature)) continue;
+            if (!Scanned(creature))
+            {
+                continue;
+            }
+
             foreach (JobType job in Jobs(creature))
             {
                 if (KeeperMoodRemedies.JobRoom(job) is not RoomTypeId type
-                    || _view.RandomRoomOfType(_view.PlayerId, type, _rng) is null) continue;
-                if (!MayPlace(job) || !creature.PickupPermitted) continue;
+                    || _view.RandomRoomOfType(_view.PlayerId, type, _rng) is null)
+                {
+                    continue;
+                }
+
+                if (!MayPlace(job) || !creature.PickupPermitted)
+                {
+                    continue;
+                }
                 // DK2 rereads the hand's count; the take passes here, permitted with room in the hand.
                 _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
                 _prepared.Add(creature.Id);
@@ -101,8 +130,15 @@ public sealed class KeeperResearchStep
                 allowance--;
                 break;
             }
-            if (allowance == 0) return 0;
-            if (held >= capacity) return allowance;
+            if (allowance == 0)
+            {
+                return 0;
+            }
+
+            if (held >= capacity)
+            {
+                return allowance;
+            }
         }
         return allowance;
     }
@@ -113,10 +149,21 @@ public sealed class KeeperResearchStep
     {
         int state = StateOf(creature, _prepared);
         if (creature.ActivityCode != IdleActivityCode || state is KeeperTrainingStep.PreparedState or DropLandingRules.LandingState)
+        {
             return false;
+        }
+
         if (creature.LastDroppedCounter <= KeeperThreatResponder.DroppedGraceTurns
-            && _turn > KeeperThreatResponder.DroppedGraceTurns) return false;
-        if (creature.DroppedToDoJob != JobType.None) return false;
+            && _turn > KeeperThreatResponder.DroppedGraceTurns)
+        {
+            return false;
+        }
+
+        if (creature.DroppedToDoJob != JobType.None)
+        {
+            return false;
+        }
+
         return CreatureStateTable.Get(state).Group != NeedRules.NeedGroup && state != ExcludedState;
     }
 
@@ -128,8 +175,16 @@ public sealed class KeeperResearchStep
         switch (job)
         {
             case JobType.Research:
-                if (!ResearchableSpellRemains(_view)) return false;
-                if (_view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Library, _rng) is not null) _move.Run();
+                if (!ResearchableSpellRemains(_view))
+                {
+                    return false;
+                }
+
+                if (_view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Library, _rng) is not null)
+                {
+                    _move.Run();
+                }
+
                 return true;
             case JobType.Train: return !_readiness.ArmyReady();
             case JobType.Manufacture: return true;
@@ -144,9 +199,19 @@ public sealed class KeeperResearchStep
     /// <summary>A held creature, the thing class job placement drops; a body or an object is none.</summary>
     private KeeperCreatureView? Creature(HandItem item)
     {
-        if (item.Kind != HandItemKind.Creature) return null;
+        if (item.Kind != HandItemKind.Creature)
+        {
+            return null;
+        }
+
         foreach (KeeperCreatureView c in _view.Creatures)
-            if (c.Id == item.Id) return c.Activity == CreatureActivity.Dead ? null : c;
+        {
+            if (c.Id == item.Id)
+            {
+                return c.Activity == CreatureActivity.Dead ? null : c;
+            }
+        }
+
         return null;
     }
 
@@ -156,7 +221,13 @@ public sealed class KeeperResearchStep
     {
         int count = view.Database.KeeperSpells.Count;
         for (int id = 1; id <= count; id++)
-            if (view.Availability(AvailabilityKind.Spell, id) == 2) return true;
+        {
+            if (view.Availability(AvailabilityKind.Spell, id) == 2)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 

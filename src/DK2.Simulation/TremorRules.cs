@@ -52,9 +52,17 @@ public static partial class TremorRules
     /// place and height <c>0x2000</c>; <c>0x2EC</c> carries none, at the floor tile it shakes (docs/research/sound-effects-combat.md section 2).</summary>
     private static void RequestSound(SimulationContext context, int slot, ThingSoundEvent sound, int x, int y, int z, bool voiced = true)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         string category = context.Database.KeeperSpellById(SpellId)?.SoundCategory ?? "";
-        if (category.Length == 0) return;
+        if (category.Length == 0)
+        {
+            return;
+        }
+
         ThingSoundRules.Request(context, "tremor", new SoundSourceId(SoundSourceKind.Tremor, slot), category, sound,
             new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z)), voiced);
     }
@@ -67,7 +75,11 @@ public static partial class TremorRules
         for (int i = 0; i < slots.Length; i++)
         {
             ref TremorState tremor = ref slots[i];
-            if (tremor.Radius == 0) continue;
+            if (tremor.Radius == 0)
+            {
+                continue;
+            }
+
             if (unchecked(now - tremor.StartedAt) >= tremor.DurationTicks)
             {
                 tremor.Radius = 0;
@@ -80,14 +92,24 @@ public static partial class TremorRules
                 TrapRules.RelinkCreatures(context.World);
                 refreshed = true;
             }
-            if (!TryChooseFloor(context, tremor, out TilePos floor)) continue;
+            if (!TryChooseFloor(context, tremor, out TilePos floor))
+            {
+                continue;
+            }
             // 0x005105C3, after the view effect and before the tile pass, only for a floor found: no handle, the tile's centre at height 0.
             RequestSound(context, i, ThingSoundEvent.TremorShook, CreatureState.CentreOf(floor.X), CreatureState.CentreOf(floor.Y), 0, voiced: false);
             foreach ((int X, int Y) offset in Neighbors)
             {
                 var at = new TilePos(floor.X + offset.X, floor.Y + offset.Y);
-                if (!context.World.Contains(at)) continue;
-                if (NavBytes.IsSolid(context.Navigation.NavByte(at.X, at.Y))) DamageWall(context, at);
+                if (!context.World.Contains(at))
+                {
+                    continue;
+                }
+
+                if (NavBytes.IsSolid(context.Navigation.NavByte(at.X, at.Y)))
+                {
+                    DamageWall(context, at);
+                }
                 else
                 {
                     int tile = context.World.TileIndex(at);
@@ -95,7 +117,9 @@ public static partial class TremorRules
                         .Where(c => c.ChainTileIndex == tile).OrderByDescending(c => c.ChainOrder).ToArray();
                     var centre = new TilePos(tremor.WorldX >> 12, tremor.WorldY >> 12);
                     foreach (CreatureState creature in chain)
+                    {
                         Respond(context, creature, centre, new Fp32(tremor.Radius));
+                    }
                 }
             }
         }
@@ -111,7 +135,11 @@ public static partial class TremorRules
         foreach ((int X, int Y) offset in Neighbors)
         {
             var at = new TilePos(sampled.X + offset.X, sampled.Y + offset.Y);
-            if (!context.World.Contains(at) || NavBytes.IsSolid(context.Navigation.NavByte(at.X, at.Y))) continue;
+            if (!context.World.Contains(at) || NavBytes.IsSolid(context.Navigation.NavByte(at.X, at.Y)))
+            {
+                continue;
+            }
+
             floor = at;
             return true;
         }
@@ -123,7 +151,11 @@ public static partial class TremorRules
     {
         WorldState world = context.World;
         ref TileState tile = ref world.Tile(at);
-        if (tile.TerrainId != ReinforcedWallTerrainId || tile.OwnerPlayerId == PlayerIds.Neutral) return;
+        if (tile.TerrainId != ReinforcedWallTerrainId || tile.OwnerPlayerId == PlayerIds.Neutral)
+        {
+            return;
+        }
+
         int halfDamage = context.Database[VariableTypeId.TremorDamagePerTerrainTilePerSecond] / 2;
         var damage = new TileHealthDamage(halfDamage + context.Rng.NextInt(halfDamage));
         byte before = tile.TerrainId;
@@ -135,12 +167,20 @@ public static partial class TremorRules
             SlabChain.Changed(world, context.Database, world.TileIndex(at), before, ownerBefore, context.Rng, context);
             // The applier's neighbour refresh (0x00453221): a Hatchery beside the wall places its coops again (ADR-0672).
             if (tile.TerrainId != before)
+            {
                 HatcheryRules.AfterNeighbourWork(world, context.Database, world.TileIndex(at), context.Rng);
+            }
+
             if (tile.TerrainId != before)
+            {
                 ThingSoundRules.RequestTile(context, "tremor", before, world.TileIndex(at), ThingSoundEvent.TileBroken);
+            }
+
             context.Navigation.Refresh();
         }
         if (result.GoldSpilled > 0)
+        {
             FloorGold.Drop(world, context.Database, world.TileIndex(at), result.GoldSpilled, PlayerIds.Neutral);
+        }
     }
 }

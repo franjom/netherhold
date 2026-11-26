@@ -15,7 +15,10 @@ public sealed partial class ImpTaskSystem
     private void UpdateIdle(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
     {
-        if (creature.Dk2StateId == CreatureStateMachine.Idle) creature.Fleeing = false;
+        if (creature.Dk2StateId == CreatureStateMachine.Idle)
+        {
+            creature.Fleeing = false;
+        }
         // State 1 hands a worker to 10 (0x004773D0), and 10 looks on its own next update: both
         // captures show one tick in 1 and one in 10 before every walk or rest (mining-cadence.md
         // §6). A worker whose job ended is already in 10 and looks at once.
@@ -27,9 +30,19 @@ public sealed partial class ImpTaskSystem
 
         // DK2's state 10 hands a worker that found nothing to 12 at once (ADR-0224).
         if (creature.OwnerPlayerId != PlayerIds.Neutral && !creature.JustDropped && Throttled(context, creature))
+        {
             return;
-        if (creature.OwnerPlayerId != PlayerIds.Neutral) creature.WorkerIdle = false;
-        if (!TryTakeJob(context, creature, definition, grid)) ToRest(context, creature);
+        }
+
+        if (creature.OwnerPlayerId != PlayerIds.Neutral)
+        {
+            creature.WorkerIdle = false;
+        }
+
+        if (!TryTakeJob(context, creature, definition, grid))
+        {
+            ToRest(context, creature);
+        }
     }
 
     /// <summary>State 10's cap (<c>0x00463E2C</c>–<c>0x00463E9C</c>): a keeper's fifth worker to
@@ -65,7 +78,10 @@ public sealed partial class ImpTaskSystem
         // entering the tile (imp-task-objects-and-walks.md §4, Q490, ADR-0297).
         if (creature.Dk2StateId == StateShadow.TravelToPoint)
         {
-            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One) return;
+            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One)
+            {
+                return;
+            }
             // State 6 resumes without asking the job's stance; the entry checks it next turn.
             creature.StopMoving();
             creature.TimerTicks = WorkCadence.FirstApplicationTicks;
@@ -87,7 +103,10 @@ public sealed partial class ImpTaskSystem
                         Steering.Bearing.Of(CreatureState.CentreOf(target.X) - creature.PosX,
                             CreatureState.CentreOf(target.Y) - creature.PosY), SimulationTiming.TurnRatePerTick(definition));
                     creature.Heading = heading;
-                    if (remaining != 0) return;
+                    if (remaining != 0)
+                    {
+                        return;
+                    }
                 }
                 // Only the completed turn counts toward the first work application.
                 StateShadow.Move(context, SystemName, creature, work);
@@ -100,7 +119,10 @@ public sealed partial class ImpTaskSystem
             return;
         }
 
-        if (creature.HasRoute) return;
+        if (creature.HasRoute)
+        {
+            return;
+        }
 
         // Walked the whole route and the target is still not next to it: the
         // world changed under the route. Drop the job rather than re-planning
@@ -125,16 +147,22 @@ public sealed partial class ImpTaskSystem
         if (ReinforcementActionRules.UsesClock(creature, definition))
         {
             if (context.Tick.Value > creature.StateEnteredTick)
+            {
                 ReinforcementActionRules.Begin(context, creature, definition,
                     new TilePos(creature.TargetTileIndex % context.World.Width, creature.TargetTileIndex / context.World.Width));
+            }
+
             return;
         }
 
         if (ClaimActionRules.UsesClock(creature, definition))
         {
             if (context.Tick.Value > creature.StateEnteredTick)
+            {
                 ClaimActionRules.Begin(context, creature, definition,
                     new TilePos(creature.TargetTileIndex % context.World.Width, creature.TargetTileIndex / context.World.Width));
+            }
+
             return;
         }
 
@@ -146,7 +174,9 @@ public sealed partial class ImpTaskSystem
         // only strikes.
         if (context.Tick.Value == creature.StateEnteredTick + 1 && !PlaysWorkLoop(creature, definition)
             && TryLeaveTheSeam(context, creature, definition))
+        {
             return;
+        }
 
         // State 24's handler (0x00466710) begins action 8 on its first call, when none runs (0x004667C0), and that begin asks the
         // record's 0x10C (sound-effects-continuous.md section 2). The repair clip's length is unread, so ours begins it once per
@@ -154,7 +184,9 @@ public sealed partial class ImpTaskSystem
         if (creature.TargetWork == TileWorkKind.RepairWall)
         {
             if (context.Tick.Value == creature.StateEnteredTick + 1)
+            {
                 CreatureActionSounds.Begin(context, SystemName, creature, CreatureActionTable.RepairWall);
+            }
             // The strike is action 8's, run from the poll before the fight scan (RepairStrikeRules).
             RepairStrikeRules.Poll(context, creature);
             return;
@@ -163,7 +195,10 @@ public sealed partial class ImpTaskSystem
         // Decrement first, then act on zero. The timer is WorkCadence's: three ticks
         // from arrival, a kind-dependent gap, then every tick (ADR-0280).
         creature.TimerTicks--;
-        if (creature.TimerTicks > 0) return;
+        if (creature.TimerTicks > 0)
+        {
+            return;
+        }
 
         context.World.QueueWork(new TileWorkOrder(
             creature.TargetTileIndex, creature.TargetWork, creature.OwnerPlayerId, creature.Id));
@@ -172,12 +207,23 @@ public sealed partial class ImpTaskSystem
         creature.TimerTicks = WorkCadence.AfterApplication(
             creature.TargetWork, context.Tick.Value, creature.StateEnteredTick);
 
-        if (creature.TargetWork != TileWorkKind.MineGold) return;
+        if (creature.TargetWork != TileWorkKind.MineGold)
+        {
+            return;
+        }
+
         _tileWork.Execute(context);
         // Native action work precedes the state/hands check. An exhausted seam
         // keeps the work state this turn; its remaining action lifetime is separate.
-        if (!JobStillStands(context, creature)) return;
-        if (!PlaysWorkLoop(creature, definition)) TryLeaveTheSeam(context, creature, definition);
+        if (!JobStillStands(context, creature))
+        {
+            return;
+        }
+
+        if (!PlaysWorkLoop(creature, definition))
+        {
+            TryLeaveTheSeam(context, creature, definition);
+        }
     }
 
     /// <summary>
@@ -191,7 +237,11 @@ public sealed partial class ImpTaskSystem
     /// </summary>
     private bool TryLeaveTheSeam(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.TargetWork != TileWorkKind.MineGold) return false;
+        if (creature.TargetWork != TileWorkKind.MineGold)
+        {
+            return false;
+        }
+
         if (HandsFull(context, creature, definition) && TryRouteToSomewhereItFits(context, creature))
         {
             // 26 walks to the store in 6 resuming in 28.
@@ -203,7 +253,10 @@ public sealed partial class ImpTaskSystem
         if (FloorGold.PileInCell(context.World, creature.Tile.Y * context.World.Width + creature.Tile.X,
                 creature.WorkSlot == MiningSlots.None ? MiningSlots.AnyCell : MiningSlots.Cell(creature.WorkSlot))
             <= FloorGold.MaxPile(context.Database))
+        {
             return false;
+        }
+
         context.Emit(SystemName, "job_abandoned",
             $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
             $"{creature.TargetWork} reason=pile_underfoot_full");

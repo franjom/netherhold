@@ -55,9 +55,17 @@ public sealed class SpecialSystem : ISimulationSystem
         foreach (ActivateSpecialCommand command in context.Commands<ActivateSpecialCommand>())
         {
             ObjectState? item = context.World.ObjectById(command.ObjectId);
-            if (item is null) continue;
+            if (item is null)
+            {
+                continue;
+            }
+
             ObjectDef? definition = context.Database.ObjectById(item.ObjectTypeId);
-            if (definition?.IsSpecial != true) continue;
+            if (definition?.IsSpecial != true)
+            {
+                continue;
+            }
+
             int affected;
             switch (item.ObjectTypeId)
             {
@@ -116,7 +124,11 @@ public sealed class SpecialSystem : ISimulationSystem
 
             // 0x004A4D80 plays its sound only when it kills; the box goes either way (0x00513760).
             bool sounded = item.ObjectTypeId != KillCreatures || affected != 0;
-            if (sounded && SoundOf(item.ObjectTypeId) is { } sound) ThingSoundRules.Request(context, Name, item, sound);
+            if (sounded && SoundOf(item.ObjectTypeId) is { } sound)
+            {
+                ThingSoundRules.Request(context, Name, item, sound);
+            }
+
             context.World.RemoveObject(item.Id);
             context.World.Player(command.PlayerId).Statistics.SpecialsFound++; // 0x004A3FE6
             context.Emit(Name, "special_activated",
@@ -133,7 +145,11 @@ public sealed class SpecialSystem : ISimulationSystem
         WorldState world = context.World;
         CreatureState? target = world.CreatureById(command.TargetId);
         if (world.GameMode != GameMode.Campaign || target is null
-            || target.OwnerPlayerId != command.PlayerId.Value) return false;
+            || target.OwnerPlayerId != command.PlayerId.Value)
+        {
+            return false;
+        }
+
         world.Carry.TransferStored = true;
         world.Carry.TransferCreatureTypeId = target.CreatureTypeId;
         world.Carry.TransferCreatureLevel = (byte)target.Level;
@@ -157,24 +173,43 @@ public sealed class SpecialSystem : ISimulationSystem
         // DK2 reads the live route byte (0x00509200); ours brings the cache up to date first.
         context.Navigation.Refresh();
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
             {
                 if (world.Tile(new TilePos(x, y)).OwnerPlayerId != playerId.Value
-                    || NavBytes.IsSolid(context.Navigation.NavByte(x, y))) continue;
+                    || NavBytes.IsSolid(context.Navigation.NavByte(x, y)))
+                {
+                    continue;
+                }
+
                 foreach ((int dx, int dy) in Around)
                 {
                     var at = new TilePos(x + dx, y + dy);
-                    if (!world.Contains(at)) continue;
+                    if (!world.Contains(at))
+                    {
+                        continue;
+                    }
+
                     ref TileState wall = ref world.Tile(at);
                     TerrainDef terrain = database.TerrainById(wall.TerrainId);
                     if (!TileWorkRules.IsDiggableWall(terrain)
                         || (wall.OwnerPlayerId != playerId.Value && !TileWorkRules.IsNeutralTile(wall))
-                        || wall.Health == terrain.MaxHealth) continue;
+                        || wall.Health == terrain.MaxHealth)
+                    {
+                        continue;
+                    }
+
                     Work(context, world.TileIndex(at), terrain.MaxHealth - wall.Health, playerId);
                     worked++;
                 }
             }
-        if (worked > 0) context.Navigation.Refresh();
+        }
+
+        if (worked > 0)
+        {
+            context.Navigation.Refresh();
+        }
+
         return worked;
     }
 
@@ -192,11 +227,19 @@ public sealed class SpecialSystem : ISimulationSystem
             TerrainDef terrain = database.TerrainById(wall.TerrainId);
             if (wall.OwnerPlayerId == playerId.Value || !TileWorkRules.IsDiggableWall(terrain)
                 || !CombatRules.IsHostile(world, playerId.Value, wall.OwnerPlayerId)
-                || (terrain.Flags & TerrainFlags.PlayerColouredWall) != TerrainFlags.PlayerColouredWall) continue;
+                || (terrain.Flags & TerrainFlags.PlayerColouredWall) != TerrainFlags.PlayerColouredWall)
+            {
+                continue;
+            }
+
             Work(context, i, -wall.Health, playerId);
             broken++;
         }
-        if (broken > 0) context.Navigation.Refresh();
+        if (broken > 0)
+        {
+            context.Navigation.Refresh();
+        }
+
         return broken;
     }
 
@@ -213,20 +256,33 @@ public sealed class SpecialSystem : ISimulationSystem
         PlayerId ownerBefore = tile.OwnerPlayerId;
         TileWorkResult result = TileWorkRules.ApplyDelta(world, database, ref tile, delta, playerId);
         SlabChain.Changed(world, database, index, before, ownerBefore, context.Rng, context);
-        if (tile.TerrainId == before) return;
+        if (tile.TerrainId == before)
+        {
+            return;
+        }
+
         tile.FreshlyDug = false;
         HatcheryRules.AfterNeighbourWork(world, database, index, context.Rng);
         var at = new TilePos(index % world.Width, index / world.Width);
-        if (result.Outcome == TileWorkOutcome.Transformed) TileWorkSystem.RequestCompletionEffect(context, before, at, playerId);
+        if (result.Outcome == TileWorkOutcome.Transformed)
+        {
+            TileWorkSystem.RequestCompletionEffect(context, before, at, playerId);
+        }
+
         if (result.Outcome == TileWorkOutcome.Destroyed)
         {
             TerrainDef old = database.TerrainById(before);
             ThingSoundRules.RequestTile(context, "Special", before, index, ThingSoundEvent.TileBroken);
             context.RequestEffect("Special", ViewEffectRequest.AtTileCentre(old.DestroyedEffectId, playerId, at, new Fp32(Fp32.One)));
             if (ownerBefore != playerId && world.HasPlayer(ownerBefore) && old.IsSolid && old.IsOwnable)
+            {
                 world.Messages.Post(world, ownerBefore.Value, PlayerMessageKind.WallBreached, at.X, at.Y);
+            }
         }
-        if (result.GoldSpilled > 0) FloorGold.Drop(world, database, index, result.GoldSpilled, PlayerIds.Neutral);
+        if (result.GoldSpilled > 0)
+        {
+            FloorGold.Drop(world, database, index, result.GoldSpilled, PlayerIds.Neutral);
+        }
     }
 
     /// <summary>Special 123, <c>0x004A4870</c>: every worker (<c>IsWorker</c>) of every other player
@@ -236,10 +292,21 @@ public sealed class SpecialSystem : ISimulationSystem
         int stunned = 0;
         foreach (CreatureState creature in context.World.Creatures)
         {
-            if (creature.OwnerPlayerId == playerId) continue;
+            if (creature.OwnerPlayerId == playerId)
+            {
+                continue;
+            }
+
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-            if ((definition.Flags & CreatureFlags.IsWorker) != CreatureFlags.IsWorker) continue;
-            if (StatusEffectRules.StunFromStarter(context, creature, definition)) stunned++;
+            if ((definition.Flags & CreatureFlags.IsWorker) != CreatureFlags.IsWorker)
+            {
+                continue;
+            }
+
+            if (StatusEffectRules.StunFromStarter(context, creature, definition))
+            {
+                stunned++;
+            }
         }
         return stunned;
     }
@@ -254,7 +321,11 @@ public sealed class SpecialSystem : ISimulationSystem
     {
         int amount = context.Database[VariableTypeId.SpecialIncreaseGoldAmount];
         int stored = GoldStore.Deposit(context.World, context.Database, playerId, amount);
-        if (amount > stored) FloorGold.PutDown(context.World, context.Database, box.TileIndex, box.Cell, amount - stored);
+        if (amount > stored)
+        {
+            FloorGold.PutDown(context.World, context.Database, box.TileIndex, box.Cell, amount - stored);
+        }
+
         return stored;
     }
 
@@ -264,7 +335,10 @@ public sealed class SpecialSystem : ISimulationSystem
     private static int KillTarget(SimulationContext context, ActivateSpecialCommand command, ObjectState box)
     {
         CreatureState? target = context.World.CreatureById(command.TargetId);
-        if (target is null || target.OwnerPlayerId == command.PlayerId.Value) return 0;
+        if (target is null || target.OwnerPlayerId == command.PlayerId.Value)
+        {
+            return 0;
+        }
         // Through the health routine (0x004B2CE0): its refusals and multiplier apply, so an armoured
         // creature takes half and lives; a creature brought to zero collapses inside the call.
         StatusEffectRules.Hurt(context.World, context.Database, context.Database.CreatureById(target.CreatureTypeId),
@@ -291,7 +365,11 @@ public sealed class SpecialSystem : ISimulationSystem
         int affected = 0;
         foreach (CreatureState creature in context.World.Creatures)
         {
-            if (creature.OwnerPlayerId != playerId) continue;
+            if (creature.OwnerPlayerId != playerId)
+            {
+                continue;
+            }
+
             CreatureAngerRules.ForgetAll(context.World, context.Database.CreatureById(creature.CreatureTypeId), creature);
             affected++;
         }
@@ -308,9 +386,17 @@ public sealed class SpecialSystem : ISimulationSystem
         int affected = 0;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.OwnerPlayerId == playerId) continue;
+            if (creature.OwnerPlayerId == playerId)
+            {
+                continue;
+            }
+
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-            if (!CreatureAngerRules.CanBeAngered(definition)) continue;
+            if (!CreatureAngerRules.CanBeAngered(definition))
+            {
+                continue;
+            }
+
             CreatureAngerRules.SaturateAll(world, definition, creature);
             context.FireCreatureEvent(creature, CreatureTriggerEvent.Angry);
             affected++;
@@ -328,7 +414,11 @@ public sealed class SpecialSystem : ISimulationSystem
         int affected = 0;
         foreach (CreatureState creature in context.World.Creatures)
         {
-            if (creature.OwnerPlayerId != playerId || creature.Health <= 0) continue;
+            if (creature.OwnerPlayerId != playerId || creature.Health <= 0)
+            {
+                continue;
+            }
+
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             CreatureHealthRules.Apply(context.Database, definition, creature,
                 CreatureHealthRules.MaxHealth(context.Database, definition, creature) - creature.Health, playerId.Value);
@@ -343,7 +433,10 @@ public sealed class SpecialSystem : ISimulationSystem
         foreach (CreatureState creature in context.World.Creatures)
         {
             if (creature.OwnerPlayerId != playerId || creature.Health <= 0)
+            {
                 continue;
+            }
+
             CreatureDef creatureDef = context.Database.CreatureById(creature.CreatureTypeId);
             CreatureLevelRules.LevelUp(context.Hooks, creatureDef, creature);
             // 0x004A434A passes the picking player's TagId (+0x04) as the source.
@@ -366,7 +459,10 @@ public sealed class SpecialSystem : ISimulationSystem
         GameDatabase database = context.Database;
         int count = database[VariableTypeId.SpecialReceiveImpsAmount];
         int heart = HeartSites.PositionOf(world, database, playerId);
-        if (count <= 0 || heart < 0) return 0;
+        if (count <= 0 || heart < 0)
+        {
+            return 0;
+        }
 
         // The world's type list, taken in id order (its iterators are unread); with no worker the
         // type stays id 1, the default stored before the walk (0x004A4992).
@@ -382,13 +478,24 @@ public sealed class SpecialSystem : ISimulationSystem
             int x = centreX + (int)(((long)TrapRules.Sine(angle) * 0x2000) >> 16);
             int y = centreY - (int)(((long)TrapRules.Cosine(angle) * 0x2000) >> 16);
             var tile = new TilePos(x >> 12, y >> 12);
-            if (!world.Contains(tile)) continue;
+            if (!world.Contains(tile))
+            {
+                continue;
+            }
 
             CreatureState? imp = world.TrySpawnCreature(database, worker.CreatureId, playerId, tile);
-            if (imp is null) continue;
+            if (imp is null)
+            {
+                continue;
+            }
+
             imp.PosX = x;
             imp.PosY = y;
-            for (int level = 0; level < 4; level++) CreatureLevelRules.LevelUp(context.Hooks, worker, imp);
+            for (int level = 0; level < 4; level++)
+            {
+                CreatureLevelRules.LevelUp(context.Hooks, worker, imp);
+            }
+
             imp.Heading = context.Rng.NextInt(0x800) & 0x7FF;
 
             // 76's landing for a keeper's worker, as the hand's drop writes it.

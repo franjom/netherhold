@@ -93,8 +93,15 @@ public static class RoomRules
     {
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
 
-        if (terrain.IsWater) return room.PlaceableOnWater;
-        if (terrain.IsLava) return room.PlaceableOnLava;
+        if (terrain.IsWater)
+        {
+            return room.PlaceableOnWater;
+        }
+
+        if (terrain.IsLava)
+        {
+            return room.PlaceableOnLava;
+        }
 
         // Land. Solid rock has to be dug out first, and a tile that is already a
         // room is occupied rather than free ground.
@@ -112,15 +119,31 @@ public static class RoomRules
     public static RoomPlacement CanBuild(
         GameDatabase database, in TileState tile, RoomDef room, PlayerId playerId, bool touchesOwnLand)
     {
-        if (!room.IsBuildable) return RoomPlacement.NotBuildable;
+        if (!room.IsBuildable)
+        {
+            return RoomPlacement.NotBuildable;
+        }
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
-        if (RefusesByTerrainId(terrain.TerrainId)) return RoomPlacement.ReservedTerrain;
-        if (terrain.IsRoom) return RoomPlacement.Occupied;
-        if (!IsSuitableGround(database, tile, room)) return RoomPlacement.WrongGround;
+        if (RefusesByTerrainId(terrain.TerrainId))
+        {
+            return RoomPlacement.ReservedTerrain;
+        }
+
+        if (terrain.IsRoom)
+        {
+            return RoomPlacement.Occupied;
+        }
+
+        if (!IsSuitableGround(database, tile, room))
+        {
+            return RoomPlacement.WrongGround;
+        }
 
         if (terrain.IsWater || terrain.IsLava)
+        {
             return touchesOwnLand ? RoomPlacement.Allowed : RoomPlacement.NotTouchingOwnLand;
+        }
 
         return terrain.IsOwnable && tile.OwnerPlayerId == playerId
             ? RoomPlacement.Allowed
@@ -138,7 +161,11 @@ public static class RoomRules
     public static RoomPlacement CanBuild(
         GameDatabase database, WorldState world, TilePos at, RoomDef room, PlayerId playerId)
     {
-        if (!world.Contains(at)) return RoomPlacement.OffMap;
+        if (!world.Contains(at))
+        {
+            return RoomPlacement.OffMap;
+        }
+
         ref TileState tile = ref world.Tile(at);
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
         bool touches = (terrain.IsWater || terrain.IsLava) && OwnFloorRules.Touches(database, world, at, playerId);
@@ -157,14 +184,31 @@ public static class RoomRules
     {
         int tile = world.TileIndex(at);
         foreach (TrapState trap in world.Traps)
-            if (trap.TileLink.TileIndex == tile) return true;
+        {
+            if (trap.TileLink.TileIndex == tile)
+            {
+                return true;
+            }
+        }
+
         foreach (DoorState door in world.Doors)
-            if (door.TileLink.TileIndex == tile) return true;
+        {
+            if (door.TileLink.TileIndex == tile)
+            {
+                return true;
+            }
+        }
+
         foreach (CreatureState creature in world.Creatures)
+        {
             if (creature.TileLink.TileIndex == tile && creature.OwnerPlayerId != playerId
                 && creature.CreatureTypeId != CombatRules.ImpCreatureTypeId
                 && !CreatureDeathRules.IsDown(creature) && !CreatureDeathRules.IsCorpse(creature))
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -178,12 +222,22 @@ public static class RoomRules
     {
         var inOrder = new HashSet<TilePos>();
         foreach (TilePos p in order)
-            if (world.Contains(p) && IsSpannable(database, world.Tile(p), room)) inOrder.Add(p);
+        {
+            if (world.Contains(p) && IsSpannable(database, world.Tile(p), room))
+            {
+                inOrder.Add(p);
+            }
+        }
 
         var marked = new HashSet<TilePos>();
         var frontier = new Queue<TilePos>();
         foreach (TilePos p in inOrder)
-            if (CanBuild(database, world, p, room, playerId) == RoomPlacement.Allowed && marked.Add(p)) frontier.Enqueue(p);
+        {
+            if (CanBuild(database, world, p, room, playerId) == RoomPlacement.Allowed && marked.Add(p))
+            {
+                frontier.Enqueue(p);
+            }
+        }
 
         ReadOnlySpan<int> dx = OwnFloorRules.NeighbourDx, dy = OwnFloorRules.NeighbourDy;
         while (frontier.Count > 0)
@@ -192,7 +246,10 @@ public static class RoomRules
             for (int i = 0; i < dx.Length; i++)
             {
                 var n = new TilePos(p.X + dx[i], p.Y + dy[i]);
-                if (inOrder.Contains(n) && marked.Add(n)) frontier.Enqueue(n);
+                if (inOrder.Contains(n) && marked.Add(n))
+                {
+                    frontier.Enqueue(n);
+                }
             }
         }
         return marked;
@@ -247,19 +304,37 @@ public static class RoomRules
         // Standalone tile bookkeeping for GainPerSecond; world income uses the running
         // player rate through the world-aware overload, including the bridge bonus.
         byte kept = 0;
-        if (!covered.IsRoom && tile.OwnerPlayerId == playerId) kept = (byte)Math.Min(byte.MaxValue, covered.ManaGain);
-        else if (covered.IsRoom && tile.OwnerPlayerId == playerId) kept = tile.KeptManaGain;
+        if (!covered.IsRoom && tile.OwnerPlayerId == playerId)
+        {
+            kept = (byte)Math.Min(byte.MaxValue, covered.ManaGain);
+        }
+        else if (covered.IsRoom && tile.OwnerPlayerId == playerId)
+        {
+            kept = tile.KeptManaGain;
+        }
+
         tile.KeptManaGain = kept;
 
         tile.TerrainId = room.TerrainId;
         tile.Health = terrain.StartingHealth;
-        if (!terrain.IsTaggable) tile.TaggedBy = PlayerMask.None;
-        if (terrain.IsOwnable) tile.OwnerPlayerId = playerId.Value;
+        if (!terrain.IsTaggable)
+        {
+            tile.TaggedBy = PlayerMask.None;
+        }
+
+        if (terrain.IsOwnable)
+        {
+            tile.OwnerPlayerId = playerId.Value;
+        }
+
         tile.SetExploredBy(playerId);
 
         // A tile on its own is a one-tile room, whose Prison slot +0x09 turns Activation on
         // (0x004E2B30). Joined to a room, it takes that room's door byte (SlabChain.Added).
-        if (room.TypeId == RoomTypeId.Prison) tile.PrisonDoor |= JailBreakRules.Activated;
+        if (room.TypeId == RoomTypeId.Prison)
+        {
+            tile.PrisonDoor |= JailBreakRules.Activated;
+        }
     }
 
     /// <summary>Whether <paramref name="playerId"/> may sell the room on this tile,
@@ -272,11 +347,21 @@ public static class RoomRules
         GameDatabase database, in TileState tile, PlayerId playerId, out RoomDef? room)
     {
         room = RoomOn(database, tile);
-        if (room is null) return RoomSale.NoRoomHere;
-        if (!room.IsBuildable) return RoomSale.NotSellable;
+        if (room is null)
+        {
+            return RoomSale.NoRoomHere;
+        }
+
+        if (!room.IsBuildable)
+        {
+            return RoomSale.NotSellable;
+        }
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
-        if (!terrain.IsOwnable) return RoomSale.Allowed;
+        if (!terrain.IsOwnable)
+        {
+            return RoomSale.Allowed;
+        }
 
         return tile.OwnerPlayerId == playerId ? RoomSale.Allowed : RoomSale.NotYourRoom;
     }
@@ -316,7 +401,10 @@ public static class RoomRules
     /// <summary>Makes the room a ruin (<c>0x004E9130</c> with 1).</summary>
     public static void Ruin(WorldState world, RoomInstance room)
     {
-        foreach (int index in room.TileIndices) world.TileAtIndex(index).RoomRuined = true;
+        foreach (int index in room.TileIndices)
+        {
+            world.TileAtIndex(index).RoomRuined = true;
+        }
     }
 
     /// <summary>Ruins each Dungeon Heart <paramref name="player"/> owns, as the heart's frame does to its
@@ -324,7 +412,12 @@ public static class RoomRules
     public static void RuinHearts(WorldState world, GameDatabase database, PlayerId player)
     {
         foreach (RoomInstance room in RoomIndex.Build(world, database))
-            if (room.Definition.TypeId == RoomTypeId.DungeonHeart && room.OwnerPlayerId == player.Value) Ruin(world, room);
+        {
+            if (room.Definition.TypeId == RoomTypeId.DungeonHeart && room.OwnerPlayerId == player.Value)
+            {
+                Ruin(world, room);
+            }
+        }
     }
 
     /// <summary>Takes a room tile back to what it was, and says how much stored gold
@@ -356,18 +449,29 @@ public static class RoomRules
         tile.Health = next.StartingHealth;
         tile.BurnTicksRemaining = 0;
         tile.RoomRuined = false;
-        if (!next.IsTaggable) tile.TaggedBy = PlayerMask.None;
+        if (!next.IsTaggable)
+        {
+            tile.TaggedBy = PlayerMask.None;
+        }
 
         // Unownable ground belongs to the neutral player, as Tile_SetTerrain gives it
         // (0x0044FDBF, Q514); keeping a stale byte was a four-month defect (Q95, ADR-0045).
         // The bridge marker returns to its default: the bridge that recorded the hazard is gone.
-        if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Neutral;
+        if (!next.IsOwnable)
+        {
+            tile.OwnerPlayerId = PlayerIds.Neutral;
+        }
+
         DiscoveryRules.TerrainChanged(database, ref tile, oldTerrain);
         tile.Flags = BridgeRules.SpansWater;
 
         int displaced = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));
         tile.GoldHeld -= displaced;
-        if (tile.GoldHeld == 0) tile.StoreGoldLinkOrder = 0;
+        if (tile.GoldHeld == 0)
+        {
+            tile.StoreGoldLinkOrder = 0;
+        }
+
         return displaced;
     }
 }

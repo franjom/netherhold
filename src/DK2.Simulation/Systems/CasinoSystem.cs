@@ -44,8 +44,16 @@ public sealed class CasinoSystem : IRoomTickStep
 
     public void Tick(SimulationContext context, RoomInstance room)
     {
-        if (CasinoJackpotRules.RoomUpdate(context, SystemName, room)) return;
-        if (!_settles || CasinoRules.Lever(context.World, room) is not { } lever) return;
+        if (CasinoJackpotRules.RoomUpdate(context, SystemName, room))
+        {
+            return;
+        }
+
+        if (!_settles || CasinoRules.Lever(context.World, room) is not { } lever)
+        {
+            return;
+        }
+
         Settle(context, room, lever);
     }
 
@@ -54,7 +62,13 @@ public sealed class CasinoSystem : IRoomTickStep
     private static bool AnyParty(WorldState world)
     {
         for (int i = 0; i < world.TileCount; i++)
-            if (world.TileAtIndex(i).CasinoParty != 0) return true;
+        {
+            if (world.TileAtIndex(i).CasinoParty != 0)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -65,13 +79,24 @@ public sealed class CasinoSystem : IRoomTickStep
         foreach (PullCasinoLeverCommand request in context.Commands<PullCasinoLeverCommand>())
         {
             WorldState world = context.World;
-            if (!world.Contains(request.Tile)) continue;
+            if (!world.Contains(request.Tile))
+            {
+                continue;
+            }
+
             int tile = (request.Tile.Y * world.Width) + request.Tile.X;
 
             foreach (ObjectState thing in world.Objects)
             {
-                if (thing.ObjectTypeId != AutoFurnitureRules.CasinoLeverObjectId) continue;
-                if (thing.TileIndex != tile || thing.OwnerPlayerId != request.PlayerId) continue;
+                if (thing.ObjectTypeId != AutoFurnitureRules.CasinoLeverObjectId)
+                {
+                    continue;
+                }
+
+                if (thing.TileIndex != tile || thing.OwnerPlayerId != request.PlayerId)
+                {
+                    continue;
+                }
 
                 thing.Setting = thing.Setting == CasinoRules.Generous
                     ? CasinoRules.Stingy
@@ -96,22 +121,45 @@ public sealed class CasinoSystem : IRoomTickStep
 
         foreach (CreatureState creature in world.Creatures)
         {
-            if (CreatureStateMachine.UpdatingCategory(creature) != CreatureStateCategory.Casino) continue;
-            if (!world.Contains(creature.Tile)) continue;
-            if (!EatingRules.Contains(room, (creature.Tile.Y * world.Width) + creature.Tile.X)) continue;
+            if (CreatureStateMachine.UpdatingCategory(creature) != CreatureStateCategory.Casino)
+            {
+                continue;
+            }
+
+            if (!world.Contains(creature.Tile))
+            {
+                continue;
+            }
+
+            if (!EatingRules.Contains(room, (creature.Tile.Y * world.Width) + creature.Tile.X))
+            {
+                continue;
+            }
 
             gamblers++;
-            if (each > 0) dropped += Drop(world, database, lever, each);
-            else paid += PayOut(world, database, room.OwnerPlayerId, lever, -each);
+            if (each > 0)
+            {
+                dropped += Drop(world, database, lever, each);
+            }
+            else
+            {
+                paid += PayOut(world, database, room.OwnerPlayerId, lever, -each);
+            }
         }
 
-        if (gamblers == 0) return;
+        if (gamblers == 0)
+        {
+            return;
+        }
         // The generous lever's payout floats up from the lever's tile for the room's owner, at its nominal
         // rate per gambler, not what the keeper's gold allowed (0x004D685D; the stingy lever shows nothing).
         if (each < 0)
+        {
             CostNumberRules.Show(context, SystemName, new PlayerId(room.OwnerPlayerId),
                 CostNumberRules.TileCentre(new TilePos(lever.TileIndex % world.Width, lever.TileIndex / world.Width), 0),
                 gamblers * -each);
+        }
+
         context.Emit(SystemName, "settled",
             $"player={room.OwnerPlayerId} lever={lever.TileIndex} gamblers={gamblers} " +
             $"dropped={dropped} paid={paid} under_lever={FloorGold.OnTile(world, database, lever.TileIndex)}");
@@ -122,8 +170,15 @@ public sealed class CasinoSystem : IRoomTickStep
     {
         _piles.Clear();
         FloorGold.PilesOn(world, database, lever.TileIndex, _piles);
-        if (_piles.Count > 0) _piles[0].GoldHeld += amount;
-        else FloorGold.Drop(world, database, lever.TileIndex, amount);
+        if (_piles.Count > 0)
+        {
+            _piles[0].GoldHeld += amount;
+        }
+        else
+        {
+            FloorGold.Drop(world, database, lever.TileIndex, amount);
+        }
+
         return amount;
     }
 
@@ -135,7 +190,10 @@ public sealed class CasinoSystem : IRoomTickStep
         _piles.Clear();
         FloorGold.PilesOn(world, database, lever.TileIndex, _piles);
         int rest = amount;
-        if (_piles.Count > 0) rest -= FloorGold.Take(world, database, _piles[0], rest);
+        if (_piles.Count > 0)
+        {
+            rest -= FloorGold.Take(world, database, _piles[0], rest);
+        }
 
         int fromTreasury = Math.Min(rest, GoldStore.Total(world, keeper));
         GoldStore.TryWithdraw(world, keeper, fromTreasury);

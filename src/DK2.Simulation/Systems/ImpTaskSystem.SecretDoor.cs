@@ -37,26 +37,53 @@ public sealed partial class ImpTaskSystem
             var target = new TilePos(index % world.Width, index / world.Width);
             long distance = TaskStealing.DistanceSquared(creature.PosX, creature.PosY,
                 CreatureState.CentreOf(target.X), CreatureState.CentreOf(target.Y));
-            if (distance >= nearest) continue;
+            if (distance >= nearest)
+            {
+                continue;
+            }
+
             (int side, int step) = MiningSlots.StartSide(creature.Tile.X - target.X, creature.Tile.Y - target.Y);
             for (int turn = 0; turn < 4; turn++, side = (side + step) & 3)
             {
                 var stand = new TilePos(target.X + SideDx[side], target.Y + SideDy[side]);
-                if (!world.Contains(stand) || context.Database.TerrainById(world.Tile(stand).TerrainId).IsSolid) continue;
+                if (!world.Contains(stand) || context.Database.TerrainById(world.Tile(stand).TerrainId).IsSolid)
+                {
+                    continue;
+                }
+
                 int cx = CreatureState.CentreOf(stand.X), cy = CreatureState.CentreOf(stand.Y);
-                if (!PointReachable(context, creature, cx, cy)) continue;
+                if (!PointReachable(context, creature, cx, cy))
+                {
+                    continue;
+                }
+
                 byte slot = (byte)(MiningSlots.Face(stand, target) * MiningSlots.PerFace + 1);
                 CreatureState? holder = SecretDoorHolder(world, creature, index, slot);
                 if (holder is not null && (!TaskStealing.CanLoseItsTask(holder)
-                    || distance >= TaskStealing.DistanceSquared(holder.PosX, holder.PosY, cx, cy))) continue;
+                    || distance >= TaskStealing.DistanceSquared(holder.PosX, holder.PosY, cx, cy)))
+                {
+                    continue;
+                }
+
                 (nearest, chosen, chosenSlot, chosenHolder) = (distance, target, slot, holder);
-                if (holder is null) break;
+                if (holder is null)
+                {
+                    break;
+                }
             }
         }
-        if (chosen is not TilePos at) return false;
+        if (chosen is not TilePos at)
+        {
+            return false;
+        }
+
         if (chosenHolder is not null)
         {
-            if (!CreatureStateMachine.TrySetState(context.Hooks, chosenHolder, ImpStates.TaskSelection)) return false;
+            if (!CreatureStateMachine.TrySetState(context.Hooks, chosenHolder, ImpStates.TaskSelection))
+            {
+                return false;
+            }
+
             TakeTaskFrom(context, chosenHolder, creature, at.Y * world.Width + at.X);
         }
         return TakeSecretDoorSlot(context, creature, at, chosenSlot);
@@ -76,7 +103,11 @@ public sealed partial class ImpTaskSystem
         WorldState world = context.World;
         ref TileState tile = ref world.Tile(target);
         PlayerId owner = creature.OwnerPlayerId;
-        if (!tile.SecretDoorTasks.Contains(owner)) return false;
+        if (!tile.SecretDoorTasks.Contains(owner))
+        {
+            return false;
+        }
+
         if (!tile.SecretDoor)
         {
             world.RemoveSecretDoorEntry(owner, target);
@@ -104,8 +135,15 @@ public sealed partial class ImpTaskSystem
                 if (!TaskStealing.CanLoseItsTask(holder)
                     || TaskStealing.DistanceSquared(creature.PosX, creature.PosY, sx, sy)
                         >= TaskStealing.DistanceSquared(holder.PosX, holder.PosY, sx, sy) + 0x32)
+                {
                     continue;
-                if (!CreatureStateMachine.TrySetState(context.Hooks, holder, ImpStates.TaskSelection)) return false;
+                }
+
+                if (!CreatureStateMachine.TrySetState(context.Hooks, holder, ImpStates.TaskSelection))
+                {
+                    return false;
+                }
+
                 TakeTaskFrom(context, holder, creature, index);
             }
             if (!TakeSecretDoorSlot(context, creature, target, slot))
@@ -128,7 +166,11 @@ public sealed partial class ImpTaskSystem
             _ => new TilePos(target.X, target.Y - 1),
         };
         (long sx, long sy) = MiningSlots.StancePoint(stand, slot);
-        if (!context.Navigation.TryRouteToStance(creature, sx, sy, MoveOptions.ExactSpot)) return false;
+        if (!context.Navigation.TryRouteToStance(creature, sx, sy, MoveOptions.ExactSpot))
+        {
+            return false;
+        }
+
         int index = target.Y * context.World.Width + target.X;
         creature.TargetTileIndex = index;
         creature.SecretDoorTask = true;
@@ -144,10 +186,18 @@ public sealed partial class ImpTaskSystem
 
     private static void UpdateSecretDoor(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (!IsSecretDoorState(creature)) return;
+        if (!IsSecretDoorState(creature))
+        {
+            return;
+        }
+
         if (StateShadow.IsTravelling(creature))
         {
-            if (FollowPathRules.Progress(creature.Body) != Fixed16.One) return;
+            if (FollowPathRules.Progress(creature.Body) != Fixed16.One)
+            {
+                return;
+            }
+
             StateShadow.Arrive(context, SystemName, creature);
             return;
         }
@@ -168,7 +218,11 @@ public sealed partial class ImpTaskSystem
                 Bearing.Of(CreatureState.CentreOf(target.X) - creature.PosX,
                     CreatureState.CentreOf(target.Y) - creature.PosY), SimulationTiming.TurnRatePerTick(definition));
             creature.Heading = heading;
-            if (remaining != 0) return;
+            if (remaining != 0)
+            {
+                return;
+            }
+
             if (!StateShadow.TryMove(context, SystemName, creature, ImpStates.SecretDoorWork)
                 || world.Tile(creature.Tile).SecretDoor)
             {
@@ -177,7 +231,10 @@ public sealed partial class ImpTaskSystem
                 return;
             }
             if (ActionAnimationClock.CanPlay(definition, WorkArtSlot))
+            {
                 ActionAnimationClock.BeginCounted(creature, definition, WorkArtSlot, 1, context.Rng);
+            }
+
             return;
         }
         if (creature.ActionArtSlot != 0)
@@ -191,9 +248,15 @@ public sealed partial class ImpTaskSystem
                         creature.OwnerPlayerId, creature.Id, Strike: TileWorkStrike.DiggableWallGuard));
                     creature.ActionHandlerDone = true;
                 }
-                else creature.ActionAnimationFlags |= ActionAnimationFlags.Stop;
+                else
+                {
+                    creature.ActionAnimationFlags |= ActionAnimationFlags.Stop;
+                }
             }
-            if (!ActionAnimationClock.CountedActionEnded(creature)) return;
+            if (!ActionAnimationClock.CountedActionEnded(creature))
+            {
+                return;
+            }
         }
         tile.SecretDoor = false;
         world.RemoveSecretDoorEntry(creature.OwnerPlayerId, target);

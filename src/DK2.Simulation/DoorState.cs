@@ -117,6 +117,9 @@ public sealed partial class DoorState
         hash.Add(Orientation);
         hash.Add(Health);
         hash.Add(RecoveryDeadline);
-        foreach (byte value in Unknown_0011.Span) hash.Add(value);
+        foreach (byte value in Unknown_0011.Span)
+        {
+            hash.Add(value);
+        }
     }
 }

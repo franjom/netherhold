@@ -16,7 +16,11 @@ public static partial class PossessionRules
 
     public static void ApplySpeedModifier(GameDatabase database, CreatureState creature)
     {
-        if (!creature.Possessed && !creature.InfluencedByPossessed) return;
+        if (!creature.Possessed && !creature.InfluencedByPossessed)
+        {
+            return;
+        }
+
         const uint limit = Systems.CreatureMovementSystem.MaxSpeedPerTick;
         // The original's preceding setters already clamp before the entity-speed getter.
         uint speed = Math.Min(unchecked((uint)(creature.Body.MaxSpeed >> 4)), limit);
@@ -29,7 +33,11 @@ public static partial class PossessionRules
     {
         ref PlayerState player = ref context.World.Player(target.OwnerPlayerId);
         if (player.PossessedCreatureId != 0 || JackInTheBoxRules.IsJack(target)
-            || target.Possessed) return;
+            || target.Possessed)
+        {
+            return;
+        }
+
         target.Possessed = true;
         target.FollowerCount = 0;   // the possession setter 0x0048DEA0, both ways
         target.NextPossessionInfluenceTick = new GameTick(0);
@@ -43,7 +51,11 @@ public static partial class PossessionRules
         {
             // Action 21 frees the hypnotised creature first (0x005145D9); 0x0048EE70 then ends the
             // disguise, SniperMode and Creeping.
-            if (target.HypnotisedCreatureId != 0) ReleaseHypnotised(context, target);
+            if (target.HypnotisedCreatureId != 0)
+            {
+                ReleaseHypnotised(context, target);
+            }
+
             target.SneakingAs = 0;
             target.SniperMode = false;
             target.PossessionFlightForm = false;
@@ -53,9 +65,18 @@ public static partial class PossessionRules
             target.Possessed = false;
             target.FollowerCount = 0;
             if (!HandRules.IsHeld(target))
+            {
                 CreatureStateMachine.TrySetState(context.Hooks, target, CreatureStateMachine.Idle, context.Tick.Value);
+            }
+
             foreach (CreatureState other in context.World.Creatures)
-                if (other.OwnerPlayerId == target.OwnerPlayerId) other.InfluencedByPossessed = false;
+            {
+                if (other.OwnerPlayerId == target.OwnerPlayerId)
+                {
+                    other.InfluencedByPossessed = false;
+                }
+            }
+
             target.NextPossessionInfluenceTick = new GameTick(0);
             if (target.FrozenTicks != 0)
             {
@@ -63,7 +84,9 @@ public static partial class PossessionRules
                 target.ActionUntilTick = 0;
                 target.Tunnel.Digging = false;
                 if (!HandRules.IsHeld(target))
+                {
                     CreatureStateMachine.TrySetState(context.Hooks, target, CombatStates.Frozen, context.Tick.Value);
+                }
             }
             CarryRules.DropWhatever(context.World, target);
             ObjectCarryRules.DropWhatever(context.World, target);
@@ -74,10 +97,18 @@ public static partial class PossessionRules
     public static void RefreshInfluence(SimulationContext context, CreatureState possessed, ISightBlocker sight)
     {
         if (!possessed.Possessed || unchecked((uint)context.Tick.Value)
-            <= unchecked((uint)possessed.NextPossessionInfluenceTick.Value)) return;
+            <= unchecked((uint)possessed.NextPossessionInfluenceTick.Value))
+        {
+            return;
+        }
+
         foreach (CreatureState other in context.World.Creatures)
         {
-            if (other == possessed || other.OwnerPlayerId != possessed.OwnerPlayerId) continue;
+            if (other == possessed || other.OwnerPlayerId != possessed.OwnerPlayerId)
+            {
+                continue;
+            }
+
             other.InfluencedByPossessed = LineOfSight.Clear(sight, possessed.PosX, possessed.PosY, other.PosX, other.PosY);
         }
         // The creature update adds twenty turns after a strict unsigned deadline test.

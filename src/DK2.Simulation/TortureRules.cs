@@ -104,8 +104,15 @@ public static class TortureRules
         WorldState world, GameDatabase database, byte keeper, int tileIndex, int exceptCreatureId)
     {
         RoomInstance? room = RoomIndex.RoomAt(world, database, tileIndex);
-        if (room is null || room.Definition.TypeId != RoomTypeId.TortureChamber) return null;
-        if (room.OwnerPlayerId != keeper) return null;
+        if (room is null || room.Definition.TypeId != RoomTypeId.TortureChamber)
+        {
+            return null;
+        }
+
+        if (room.OwnerPlayerId != keeper)
+        {
+            return null;
+        }
 
         ObjectState? device = null;
         foreach (ObjectState thing in world.Objects)
@@ -117,11 +124,22 @@ public static class TortureRules
             }
         }
 
-        if (device is null) return null;
+        if (device is null)
+        {
+            return null;
+        }
+
         foreach (CreatureState other in world.Creatures)
         {
-            if (other.Id == exceptCreatureId || !IsBeingTortured(other) || HandRules.IsHeld(other)) continue;
-            if ((other.Tile.Y * world.Width) + other.Tile.X == tileIndex) return null;
+            if (other.Id == exceptCreatureId || !IsBeingTortured(other) || HandRules.IsHeld(other))
+            {
+                continue;
+            }
+
+            if ((other.Tile.Y * world.Width) + other.Tile.X == tileIndex)
+            {
+                return null;
+            }
         }
 
         return device;
@@ -136,7 +154,10 @@ public static class TortureRules
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
         ObjectState? device = FreeDeviceAt(world, database, keeper.Value, tileIndex, creature.Id);
-        if (device is null) return false;
+        if (device is null)
+        {
+            return false;
+        }
 
         creature.PrisonOwnerPlayerId = keeper.Value;
         StrapOn(hooks, creature, device);
@@ -147,7 +168,11 @@ public static class TortureRules
     private static bool EnterTheDevice(in StateHookContext hooks, CreatureState creature)
     {
         CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
-        if (!CreatureStateMachine.TrySetState(hooks, creature, StrappingState)) return false;
+        if (!CreatureStateMachine.TrySetState(hooks, creature, StrappingState))
+        {
+            return false;
+        }
+
         return EnterTortured(hooks, creature);
     }
 
@@ -172,9 +197,16 @@ public static class TortureRules
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-        if ((definition.Flags & CreatureFlags.IsHorny) != 0 || creature.CreatureTypeId == ImpTypeId) return false;
+        if ((definition.Flags & CreatureFlags.IsHorny) != 0 || creature.CreatureTypeId == ImpTypeId)
+        {
+            return false;
+        }
+
         ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, tileIndex, creature.Id);
-        if (device is null) return false;
+        if (device is null)
+        {
+            return false;
+        }
 
         StrapOn(hooks, creature, device);
         creature.CurrentJob = JobType.None;
@@ -193,10 +225,17 @@ public static class TortureRules
         ReadOnlySpan<(int X, int Y)> order = [(x, y), (x, y - 1), (x - 1, y), (x + 1, y), (x, y + 1)];
         foreach ((int tx, int ty) in order)
         {
-            if (tx < 0 || ty < 0 || tx >= world.Width || ty >= world.Height) continue;
+            if (tx < 0 || ty < 0 || tx >= world.Width || ty >= world.Height)
+            {
+                continue;
+            }
+
             int index = (ty * world.Width) + tx;
             ObjectState? device = FreeDeviceAt(world, database, keeper, index, creature.Id);
-            if (device is not null) return index;
+            if (device is not null)
+            {
+                return index;
+            }
         }
 
         return -1;
@@ -209,15 +248,24 @@ public static class TortureRules
         WorldState world = hooks.World;
         CreatureStateMachine.TrySetState(hooks, creature, ReleasedState);
         ObjectState? device = FreeDeviceAt(world, hooks.Database, KeeperOf(creature), tileIndex, creature.Id);
-        if (device is null) return;
+        if (device is null)
+        {
+            return;
+        }
         // 136's own wall-wheel arm (0x00484F8A) turns the victim a step from the tile it stands on,
         // then 130's strap turns it again from the device's (0x0048439A).
         int stood = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (RoomIndex.RoomAt(world, hooks.Database, stood) is RoomInstance stoodRoom
             && device.ObjectTypeId == WheelObjectId && !AutoFurnitureRules.IsFloorSlot(world, stoodRoom, stood))
+        {
             Roll(world, creature, stood);
+        }
+
         StrapOn(hooks, creature, device);
-        if (CreatureStateMachine.TrySetState(hooks, creature, StrappingState)) EnterTortured(hooks, creature);
+        if (CreatureStateMachine.TrySetState(hooks, creature, StrappingState))
+        {
+            EnterTortured(hooks, creature);
+        }
     }
 
     /// <summary>130 for a creature that walked onto a free device of its own keeper's chamber,
@@ -229,8 +277,15 @@ public static class TortureRules
         GameDatabase database = hooks.Database;
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, here, creature.Id);
-        if (device is null) return false;
-        if (!EnterTortured(hooks, creature)) return false;
+        if (device is null)
+        {
+            return false;
+        }
+
+        if (!EnterTortured(hooks, creature))
+        {
+            return false;
+        }
 
         StrapOn(hooks, creature, device);
         return true;
@@ -259,11 +314,18 @@ public static class TortureRules
         RoomInstance room = RoomIndex.RoomAt(hooks.World, hooks.Database, device.TileIndex)!;
         (creature.PosX, creature.PosY) = AutoFurnitureRules.FurniturePosition(hooks.World, hooks.Database, room, device);
         // 130's strap turns a wall wheel's victim one step (0x0048439A).
-        if (OnWallWheel(hooks.World, room, device)) Roll(hooks.World, creature, device.TileIndex);
+        if (OnWallWheel(hooks.World, room, device))
+        {
+            Roll(hooks.World, creature, device.TileIndex);
+        }
+
         if (device.AutoPlaced && AutoFurnitureRules.IsWallFurniture(room.Definition, device))
         {
             int side = AutoFurnitureRules.WallSide(hooks.World, hooks.Database, room, device.TileIndex);
-            if (side >= 0) creature.Heading = ((side + 2) & 3) << 9;
+            if (side >= 0)
+            {
+                creature.Heading = ((side + 2) & 3) << 9;
+            }
         }
         creature.StopMoving();
     }
@@ -273,7 +335,11 @@ public static class TortureRules
     /// <see cref="PrisonRules.Release"/>. A creature that got on by itself is idle.</summary>
     public static void Unstrap(in StateHookContext hooks, CreatureState creature)
     {
-        if (!IsBeingTortured(creature)) return;
+        if (!IsBeingTortured(creature))
+        {
+            return;
+        }
+
         CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
         if (PrisonRules.IsImprisoned(creature))
         {
@@ -292,7 +358,11 @@ public static class TortureRules
     /// Chair's sparks (draw and effect bits only, <c>leave-hook-bodies.md</c>).</summary>
     public static void Leave(in StateHookContext hooks, CreatureState creature)
     {
-        if (!creature.TortureVoluntary) creature.DroppedToDoJob = JobType.None;
+        if (!creature.TortureVoluntary)
+        {
+            creature.DroppedToDoJob = JobType.None;
+        }
+
         creature.TortureVoluntary = false;
         RoomCapacityRules.Release(creature);
     }

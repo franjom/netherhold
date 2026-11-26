@@ -22,7 +22,11 @@ public static class KeeperViewSnapshot
         w.Write(Magic); w.Write(FormatVersion);
         w.Write(view.PlayerId.Value); w.Write(view.Tick.Value); w.Write(view.Status); w.Write(view.AlliedWith);
         w.Write(view.PlayerOrder.Count);
-        foreach (PlayerId player in view.PlayerOrder) w.Write(player.Value);
+        foreach (PlayerId player in view.PlayerOrder)
+        {
+            w.Write(player.Value);
+        }
+
         w.Write(view.Width); w.Write(view.Height); w.Write(view.Gold); w.Write(view.ImpCount);
         w.Write(view.Mana);
         w.Write(view.Heart.HasValue);
@@ -55,7 +59,11 @@ public static class KeeperViewSnapshot
             w.Write(c.SpellTargetAllowed); w.Write(c.CombatPitFighter); w.Write(c.AttachedToRoom);
             w.Write(c.HealTargetAllowed); w.Write(c.ChickenTargetAllowed); w.Write(c.InfernoPlaceAllowed);
             w.Write(c.Experience); w.Write((int)c.DroppedToDoJob);
-            for (int b = 0; b < CreatureAnger.Count; b++) w.Write(c.Anger[(AngerBucket)b]);
+            for (int b = 0; b < CreatureAnger.Count; b++)
+            {
+                w.Write(c.Anger[(AngerBucket)b]);
+            }
+
             w.Write(c.ActivityCode); w.Write(c.SpeedChanging);
             w.Write(c.PlaceTile); w.Write(c.PlaceSerial); w.Write(c.OnTortureDevice); w.Write(c.CameThroughPortal);
         }
@@ -70,14 +78,29 @@ public static class KeeperViewSnapshot
             w.Write(room.Definition.RoomId); w.Write(room.OwnerPlayerId);
             w.Write(room.MinX); w.Write(room.MinY); w.Write(room.MaxX); w.Write(room.MaxY);
             w.Write(room.TileIndices.Count);
-            foreach (int index in room.TileIndices) w.Write(index);
+            foreach (int index in room.TileIndices)
+            {
+                w.Write(index);
+            }
+
             w.Write(room.FloorSlots.Count);
-            foreach (int index in room.FloorSlots) w.Write(index);
-            foreach (int index in room.ChainOrder) w.Write(index);
+            foreach (int index in room.FloorSlots)
+            {
+                w.Write(index);
+            }
+
+            foreach (int index in room.ChainOrder)
+            {
+                w.Write(index);
+            }
+
             w.Write(room.ObjectListHead);
             w.Write(room.Ruined);
             w.Write(room.WallSlots.Count);
-            foreach (int index in room.WallSlots) w.Write(index);
+            foreach (int index in room.WallSlots)
+            {
+                w.Write(index);
+            }
         }
         w.Write(view.Messages.Count);
         foreach (PlayerMessage m in view.Messages)
@@ -88,14 +111,30 @@ public static class KeeperViewSnapshot
         }
         w.Write(view.CallToArms.On); w.Write(view.CallToArms.ObjectId);
         w.Write(view.CallToArms.X); w.Write(view.CallToArms.Y); w.Write(view.CallToArms.ManaTick);
-        foreach (byte status in view.StatusEntries) w.Write(status);
-        foreach (bool ruined in view.HeartRuinedEntries) w.Write(ruined);
+        foreach (byte status in view.StatusEntries)
+        {
+            w.Write(status);
+        }
+
+        foreach (bool ruined in view.HeartRuinedEntries)
+        {
+            w.Write(ruined);
+        }
+
         int[] refused = view.CallRefusedTiles.ToArray();
         w.Write(refused.Length);
-        foreach (int index in refused) w.Write(index);
+        foreach (int index in refused)
+        {
+            w.Write(index);
+        }
+
         int[] sightRefused = view.SightRefusedTiles.ToArray();
         w.Write(sightRefused.Length);
-        foreach (int index in sightRefused) w.Write(index);
+        foreach (int index in sightRefused)
+        {
+            w.Write(index);
+        }
+
         w.Write(view.HandItems.Count);
         foreach (HandItem item in view.HandItems) { w.Write((byte)item.Kind); w.Write(item.Id); }
         w.Write(view.Doors.Count);
@@ -117,26 +156,42 @@ public static class KeeperViewSnapshot
         using var stream = new MemoryStream(bytes, writable: false);
         using var r = new BinaryReader(stream, Encoding.UTF8);
         if (r.ReadUInt32() != Magic || r.ReadInt32() != FormatVersion)
+        {
             throw new InvalidDataException("Unsupported keeper observation format.");
+        }
+
         PlayerId player = r.ReadByte();
         var tick = new GameTick(r.ReadInt64());
         byte status = r.ReadByte();
         byte alliedWith = r.ReadByte();
         var playerIds = new PlayerId[ReadCount(r, 1)];
-        for (int i = 0; i < playerIds.Length; i++) playerIds[i] = r.ReadByte();
+        for (int i = 0; i < playerIds.Length; i++)
+        {
+            playerIds[i] = r.ReadByte();
+        }
+
         int width = r.ReadInt32(), height = r.ReadInt32();
         if (width <= 0 || height <= 0 || (long)width * height > bytes.Length / 5)
+        {
             throw new InvalidDataException("Invalid observation dimensions.");
+        }
+
         int gold = r.ReadInt32(), imps = r.ReadInt32();
         int mana = r.ReadInt32();
         TilePos? heart = r.ReadBoolean() ? new TilePos(r.ReadInt32(), r.ReadInt32()) : null;
         var tiles = new KeeperTileView[width * height];
         for (int i = 0; i < tiles.Length; i++)
+        {
             tiles[i] = new KeeperTileView(r.ReadByte(), r.ReadByte(), new PlayerMask(r.ReadUInt16()), r.ReadByte());
+        }
+
         var availability = new AvailabilityState[ReadCount(r, 19)];
         for (int i = 0; i < availability.Length; i++)
+        {
             availability[i] = new AvailabilityState((AvailabilityKind)r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(),
                 r.ReadInt64());
+        }
+
         var creatures = new KeeperCreatureView[ReadCount(r, 109)];
         for (int i = 0; i < creatures.Length; i++)
         {
@@ -150,7 +205,11 @@ public static class KeeperViewSnapshot
                 r.ReadBoolean(), r.ReadBoolean(), r.ReadBoolean(),
                 r.ReadInt32(), (JobType)r.ReadInt32());
             var anger = new CreatureAnger();
-            for (int b = 0; b < CreatureAnger.Count; b++) anger[(AngerBucket)b] = r.ReadInt32();
+            for (int b = 0; b < CreatureAnger.Count; b++)
+            {
+                anger[(AngerBucket)b] = r.ReadInt32();
+            }
+
             creatures[i] = creatures[i] with
             {
                 Anger = anger, ActivityCode = r.ReadInt32(), SpeedChanging = r.ReadBoolean(),
@@ -158,11 +217,16 @@ public static class KeeperViewSnapshot
                 CameThroughPortal = r.ReadBoolean(),
             };
             if (creatures[i].PlaceTile < -1 || creatures[i].PlaceTile >= tiles.Length)
+            {
                 throw new InvalidDataException("A creature's place is outside the observation.");
+            }
         }
         var traps = new KeeperTrapView[ReadCount(r, 12)];
         for (int i = 0; i < traps.Length; i++)
+        {
             traps[i] = new KeeperTrapView(r.ReadByte(), r.ReadByte(), r.ReadInt32(), r.ReadInt32(), r.ReadUInt16());
+        }
+
         var rooms = new KeeperRoomView[ReadCount(r, 30)];
         for (int i = 0; i < rooms.Length; i++)
         {
@@ -174,19 +238,30 @@ public static class KeeperViewSnapshot
             {
                 indices[j] = r.ReadInt32();
                 if ((uint)indices[j] >= tiles.Length)
+                {
                     throw new InvalidDataException("Room tile is outside the observation.");
+                }
             }
             int[] slots = new int[ReadCount(r, 4)];
             for (int j = 0; j < slots.Length; j++)
             {
                 slots[j] = r.ReadInt32();
                 if (Array.IndexOf(indices, slots[j]) < 0)
+                {
                     throw new InvalidDataException("Floor slot is not a tile of its room.");
+                }
             }
             int[] chain = new int[indices.Length];
-            for (int j = 0; j < chain.Length; j++) chain[j] = r.ReadInt32();
+            for (int j = 0; j < chain.Length; j++)
+            {
+                chain[j] = r.ReadInt32();
+            }
+
             if (!new HashSet<int>(chain).SetEquals(indices) || chain.Distinct().Count() != chain.Length)
+            {
                 throw new InvalidDataException("A room's chain order is not its tiles.");
+            }
+
             int objectListHead = r.ReadInt32();
             bool ruined = r.ReadBoolean();
             int[] walls = new int[ReadCount(r, 4)];
@@ -194,45 +269,75 @@ public static class KeeperViewSnapshot
             {
                 walls[j] = r.ReadInt32();
                 if (Array.IndexOf(indices, walls[j]) < 0)
+                {
                     throw new InvalidDataException("Wall slot is not a tile of its room.");
+                }
             }
             rooms[i] = new KeeperRoomView(definition, owner, indices, minX, minY, maxX, maxY, slots, chain,
                 objectListHead, ruined, walls);
         }
         var messages = new PlayerMessage[ReadCount(r, 27)];
         for (int i = 0; i < messages.Length; i++)
+        {
             messages[i] = new PlayerMessage(r.ReadUInt32(), r.ReadByte(),
                 (PlayerMessageKind)r.ReadUInt32(), r.ReadInt32(), r.ReadInt32(),
                 r.ReadUInt32(), r.ReadUInt32(), r.ReadBoolean(), r.ReadBoolean());
+        }
+
         var callToArms = new CallToArmsState(r.ReadBoolean(), r.ReadInt32(), r.ReadUInt16(), r.ReadUInt16(), r.ReadUInt32());
         byte[] statuses = new byte[8];
-        for (int i = 0; i < statuses.Length; i++) statuses[i] = r.ReadByte();
+        for (int i = 0; i < statuses.Length; i++)
+        {
+            statuses[i] = r.ReadByte();
+        }
+
         bool[] heartRuined = new bool[8];
-        for (int i = 0; i < heartRuined.Length; i++) heartRuined[i] = r.ReadBoolean();
+        for (int i = 0; i < heartRuined.Length; i++)
+        {
+            heartRuined[i] = r.ReadBoolean();
+        }
+
         int[] refused = new int[ReadCount(r, 4)];
         for (int i = 0; i < refused.Length; i++)
         {
             refused[i] = r.ReadInt32();
             if ((uint)refused[i] >= tiles.Length)
+            {
                 throw new InvalidDataException("Refused tile is outside the observation.");
+            }
         }
         int[] sightRefused = new int[ReadCount(r, 4)];
         for (int i = 0; i < sightRefused.Length; i++)
         {
             sightRefused[i] = r.ReadInt32();
             if ((uint)sightRefused[i] >= tiles.Length)
+            {
                 throw new InvalidDataException("Refused tile is outside the observation.");
+            }
         }
         var hand = new HandItem[ReadCount(r, 5)];
-        for (int i = 0; i < hand.Length; i++) hand[i] = new HandItem((HandItemKind)r.ReadByte(), r.ReadInt32());
+        for (int i = 0; i < hand.Length; i++)
+        {
+            hand[i] = new HandItem((HandItemKind)r.ReadByte(), r.ReadInt32());
+        }
+
         var doors = new KeeperDoorView[ReadCount(r, 10)];
         for (int i = 0; i < doors.Length; i++)
+        {
             doors[i] = new KeeperDoorView(r.ReadByte(), r.ReadByte(), r.ReadInt32(), r.ReadInt32());
+        }
+
         var specials = new KeeperSpecialView[ReadCount(r, 14)];
         for (int i = 0; i < specials.Length; i++)
+        {
             specials[i] = new KeeperSpecialView(r.ReadInt32(), r.ReadByte(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean());
+        }
+
         if (stream.Position != stream.Length)
+        {
             throw new InvalidDataException("Trailing keeper observation data.");
+        }
+
         return new KeeperView(database, player, tick, status, alliedWith, playerIds, width, height, gold, imps,
             heart, tiles, availability, creatures, traps, rooms, messages, callToArms, mana, statuses, refused, heartRuined,
             sightRefused, hand, doors, specials);
@@ -242,7 +347,10 @@ public static class KeeperViewSnapshot
     {
         int count = r.ReadInt32();
         if (count < 0 || count > (r.BaseStream.Length - r.BaseStream.Position) / minimumEntryBytes)
+        {
             throw new InvalidDataException("Invalid observation entry count.");
+        }
+
         return count;
     }
 }

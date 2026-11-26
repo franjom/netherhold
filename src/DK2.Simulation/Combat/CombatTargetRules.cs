@@ -46,7 +46,13 @@ public sealed class HeartSites
     public Site? SiteOf(PlayerId owner)
     {
         for (int i = 0; i < _sites.Count; i++)
-            if (_sites[i].Owner == owner) return _sites[i];
+        {
+            if (_sites[i].Owner == owner)
+            {
+                return _sites[i];
+            }
+        }
+
         return null;
     }
 
@@ -56,12 +62,20 @@ public sealed class HeartSites
     public static int PositionOf(WorldState world, GameDatabase database, PlayerId playerId)
     {
         byte? heartTerrain = ManaRules.DungeonHeartTerrainId(database);
-        if (heartTerrain is null) return -1;
+        if (heartTerrain is null)
+        {
+            return -1;
+        }
+
         int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
         for (int i = 0; i < world.TileCount; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
-            if (tile.OwnerPlayerId != playerId || tile.TerrainId != heartTerrain.Value) continue;
+            if (tile.OwnerPlayerId != playerId || tile.TerrainId != heartTerrain.Value)
+            {
+                continue;
+            }
+
             int x = i % world.Width, y = i / world.Width;
             minX = Math.Min(minX, x);
             maxX = Math.Max(maxX, x);
@@ -77,26 +91,40 @@ public sealed class HeartSites
     {
         _sites.Clear();
         byte? heartTerrain = ManaRules.DungeonHeartTerrainId(database);
-        if (heartTerrain is null) return;
+        if (heartTerrain is null)
+        {
+            return;
+        }
 
         for (int p = 0; p < world.PlayerCount; p++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(p);
-            if (!PlayerIds.IsKeeper(player.PlayerId.Value)) continue;
+            if (!PlayerIds.IsKeeper(player.PlayerId.Value))
+            {
+                continue;
+            }
+
             bool standing = !player.HeartRuined && player.HeartHealth > 0;
 
             int minX = int.MaxValue, minY = int.MaxValue, maxX = -1, maxY = -1;
             for (int i = 0; i < world.TileCount; i++)
             {
                 ref TileState tile = ref world.TileAtIndex(i);
-                if (tile.OwnerPlayerId != player.PlayerId || tile.TerrainId != heartTerrain.Value) continue;
+                if (tile.OwnerPlayerId != player.PlayerId || tile.TerrainId != heartTerrain.Value)
+                {
+                    continue;
+                }
+
                 int x = i % world.Width, y = i / world.Width;
                 minX = Math.Min(minX, x);
                 maxX = Math.Max(maxX, x);
                 minY = Math.Min(minY, y);
                 maxY = Math.Max(maxY, y);
             }
-            if (maxX < 0) continue;
+            if (maxX < 0)
+            {
+                continue;
+            }
 
             RoomInstance? room = RoomIndex.RoomAt(world, database, (minY * world.Width) + minX);
             HeartPillarTarget[] pillars = room is null ? [] : HeartPillarRules.In(world, room);
@@ -135,16 +163,28 @@ public static class CombatTargetRules
         if (me.AttackAbnormalTargets && me.AttackingKind == FightTargetKind.Door
             && context.World.DoorById(me.AttackingId) is not null)
         {
-            if (!ForcedDoor(context, sight, me, definition, scratch)) return false;
+            if (!ForcedDoor(context, sight, me, definition, scratch))
+            {
+                return false;
+            }
         }
-        else if (!Choose(context, sight, hearts, rooms, me, definition, scratch, out bool left)) return false;
-        else if (left) return true;
+        else if (!Choose(context, sight, hearts, rooms, me, definition, scratch, out bool left))
+        {
+            return false;
+        }
+        else if (left)
+        {
+            return true;
+        }
 
         // The acquirer's own withdraw check (0x0045DEE0): a hurt creature far from its heart lets
         // the target it just chose go and runs instead; finding nowhere to run, it fights. DK2
         // zeroes +0x502 for the call (0x0045DF2A), so nothing is staged.
         if (FearRules.ShouldWithdraw(context.World, context.Database, hearts, me, definition) && !CreatureDeathRules.IsDown(me))
+        {
             FearRules.Withdraw(context, sight, hearts, rooms, me, definition, staged: null, scratch);
+        }
+
         return true;
     }
 
@@ -177,7 +217,10 @@ public static class CombatTargetRules
             CreatureState? ally = FriendlyScan(context, sight, me, definition, friendly,
                 CombatRules.RangeSquared(definition.DistanceCanSee), CombatRules.RangeSquared(definition.DistanceCanHear), scratch);
             // An ally found outranks the door; one the route refuses ends this call with no fight.
-            if (ally != null) return EngageAlly(context, me, definition, ally, friendlySlot, friendly, scratch);
+            if (ally != null)
+            {
+                return EngageAlly(context, me, definition, ally, friendlySlot, friendly, scratch);
+            }
         }
         return EngageDoor(context, me, definition, door, spellSlot, spell);
     }
@@ -261,7 +304,9 @@ public static class CombatTargetRules
         // Scan B (0x0045D095): the nearest neutral body, whose distance seeds the best every enemy scan below must beat.
         CreatureState? body = runOrdinaryScans && bodySlot >= 0 ? ScanBodies(context, sight, me, sightSq, ref best) : null;
         if (runOrdinaryScans)
+        {
             chosen = ScanAttackers(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        }
         // 0x0045D5BF: a follower takes its leader's last melee target over scan A's pick; with a
         // creature chosen no fight-style arm runs (0x0045D5F5).
         if (runOrdinaryScans && PossessionRules.LeaderTarget(world, me) is { } leaders)
@@ -276,7 +321,10 @@ public static class CombatTargetRules
                 return true;
             }
         }
-        else if (runOrdinaryScans && chosen is null) chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        else if (runOrdinaryScans && chosen is null)
+        {
+            chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+        }
 
         // 0x0045D69D-0x0045D701: strategy scores choose the creature; the later
         // Heart comparison and commit use its plain distance, even if its route fails.
@@ -290,14 +338,19 @@ public static class CombatTargetRules
         // dropped unless an attack spell can see it, and the scans below look on.
         if (chosen != null && !CanReach(context.Navigation, me, definition, chosen.PosX, chosen.PosY, int.MaxValue, scratch)
             && (spell is null || !LineOfSight.Clear(sight, me.PosX, me.PosY, chosen.PosX, chosen.PosY)))
+        {
             chosen = null;
+        }
 
         // Scan D: an enemy's revealed trap, when no creature is left; skipped during Turncoat.
         TrapState? trap = null;
         int trapDistance = 0;
         // Skipped when a body was chosen (0x0045D782, §6.3). An enemy that displaced the body and was then dropped by
         // the route check leaves none: its id overwrote the body's and 0x0045D77D zeroes it.
-        if (chosen is null && body is null) trap = ScanTraps(world, sight, me, definition, sightSq, out trapDistance);
+        if (chosen is null && body is null)
+        {
+            trap = ScanTraps(world, sight, me, definition, sightSq, out trapDistance);
+        }
 
         // Scan E: the enemy heart outranks nothing but a worker, and only an Imp or a Horned
         // Reaper never looks at it; a trap outranks it (the class test at 0x0045D91B). A chosen body
@@ -308,30 +361,52 @@ public static class CombatTargetRules
         HeartPillar heartPillar = default;
         PlayerId heartOwner = 0;
         if (heartMayEnter && me.CreatureTypeId != CombatRules.ImpCreatureTypeId && !((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+        {
             heartTile = ScanHearts(world, sight, hearts, me, sightSq, ref best, out heartOwner, out heartPillar);
+        }
 
         // Scan F (spell-friendly-arm.md §8): an ally that wants the friendly spell outranks whatever
         // the hostile scans found; none found, the hostile best stands.
         if (friendly != null)
         {
             CreatureState? ally = FriendlyScan(context, sight, me, definition, friendly, sightSq, hearSq, scratch);
-            if (ally != null) return EngageAlly(context, me, definition, ally, friendlySlot, friendly, scratch);
+            if (ally != null)
+            {
+                return EngageAlly(context, me, definition, ally, friendlySlot, friendly, scratch);
+            }
         }
 
-        if (body != null) return EngageBody(context, me, definition, body, bodySlot, bodySpell!);
+        if (body != null)
+        {
+            return EngageBody(context, me, definition, body, bodySlot, bodySpell!);
+        }
 
         if (heartTile >= 0)
         {
             HeartPillarTarget target = HeartPillarRules.At(new TilePos(heartTile % world.Width, heartTile / world.Width), heartPillar);
             if (!CanReach(context.Navigation, me, definition, target.X.Raw, target.Y.Raw, int.MaxValue, scratch))
+            {
                 return false;
+            }
+
             return EngageHeart(context, me, definition, heartOwner, target, spellSlot, spell);
         }
 
-        if (trap != null) return EngageTrap(context, sight, me, definition, trap, trapDistance, sightSq, hearSq, spellSlot, spell);
-        if (chosen is null) return false;
+        if (trap != null)
+        {
+            return EngageTrap(context, sight, me, definition, trap, trapDistance, sightSq, hearSq, spellSlot, spell);
+        }
+
+        if (chosen is null)
+        {
+            return false;
+        }
+
         if (forced)
+        {
             return Engage(context, me, definition, chosen, database.CreatureById(chosen.CreatureTypeId), spellSlot, spell, forced: true);
+        }
+
         return Commit(context, sight, me, definition, chosen, spellSlot, spell);
     }
 
@@ -344,17 +419,32 @@ public static class CombatTargetRules
         CreatureState? chosen = null;
         IReadOnlyList<CreatureState> owned = context.World.CreatureOwnershipOrder;
         foreach (PlayerId player in context.World.ActivePlayerOrder)
-        foreach (CreatureState candidate in owned)
         {
-            if (candidate.OwnerPlayerId != player || candidate.Id == me.Id || !CombatRules.IsAttackable(candidate)) continue;
-            int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
-            if (distance >= best) continue;
-            bool seen = distance < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+            foreach (CreatureState candidate in owned)
+        {
+            if (candidate.OwnerPlayerId != player || candidate.Id == me.Id || !CombatRules.IsAttackable(candidate))
+                {
+                    continue;
+                }
+
+                int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+            if (distance >= best)
+                {
+                    continue;
+                }
+
+                bool seen = distance < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
             if (!seen && !(distance < hearSq
-                && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch))) continue;
-            best = distance;
+                && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch)))
+                {
+                    continue;
+                }
+
+                best = distance;
             chosen = candidate;
         }
+        }
+
         return chosen;
     }
 
@@ -379,13 +469,32 @@ public static class CombatTargetRules
         for (int i = traps.Count - 1; i >= 0; i--)
         {
             TrapState trap = traps[i];
-            if (trap.Hidden || trap.UnderConstruction || trap.TrapId == TrapRules.JackInTheBoxId) continue;
-            if (!CombatRules.IsHostile(world, me.OwnerPlayerId, trap.PlayerId)) continue;
+            if (trap.Hidden || trap.UnderConstruction || trap.TrapId == TrapRules.JackInTheBoxId)
+            {
+                continue;
+            }
+
+            if (!CombatRules.IsHostile(world, me.OwnerPlayerId, trap.PlayerId))
+            {
+                continue;
+            }
+
             int d = CombatRules.DistanceSquared(me.PosX, me.PosY, trap.PosX, trap.PosY);
-            if (worker && d >= WorkerTrapDistance) continue;
+            if (worker && d >= WorkerTrapDistance)
+            {
+                continue;
+            }
             // Walking newest first, an equal distance keeps the earlier find, and a lower player's.
-            if (d > best || (d == best && trap.PlayerId >= chosen!.PlayerId) || d > sightSq) continue;
-            if (!LineOfSight.Clear(sight, me.PosX, me.PosY, trap.PosX, trap.PosY)) continue;
+            if (d > best || (d == best && trap.PlayerId >= chosen!.PlayerId) || d > sightSq)
+            {
+                continue;
+            }
+
+            if (!LineOfSight.Clear(sight, me.PosX, me.PosY, trap.PosX, trap.PosY))
+            {
+                continue;
+            }
+
             best = d;
             chosen = trap;
         }
@@ -406,7 +515,9 @@ public static class CombatTargetRules
     {
         int third = distance / 3;
         if (third >= hearSq && (third >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, trap.PosX, trap.PosY)))
+        {
             return false;
+        }
 
         bool melee = spell is null || (distance < MeleeDecisionDistance && mine.FightStyle != FightStyle.Support) || SpellRules.IsStatus(spell);
         bool same = me.FightTargetKind == FightTargetKind.Trap && me.FightTargetId == trap.Id;
@@ -439,10 +550,16 @@ public static class CombatTargetRules
         SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition, CreatureSpellDef spell,
         int sightSq, int hearSq, List<Fixed16Vector> scratch)
     {
-        if (TurncoatRules.IsActive(me)) return null;
+        if (TurncoatRules.IsActive(me))
+        {
+            return null;
+        }
+
         GameDatabase database = context.Database;
         if (SpellRules.IsSelfOnly(spell))
+        {
             return CombatRules.InCombat(me) && SpellRules.BuffApplies(database, definition, me, spell) ? me : null;
+        }
 
         CreatureState? chosen = null;
         int best = int.MaxValue;
@@ -450,15 +567,34 @@ public static class CombatTargetRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            if (candidate.OwnerPlayerId != me.OwnerPlayerId) continue;
+            if (candidate.OwnerPlayerId != me.OwnerPlayerId)
+            {
+                continue;
+            }
+
             int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
-            if (d >= best || PrisonRules.IsImprisoned(candidate)) continue;
+            if (d >= best || PrisonRules.IsImprisoned(candidate))
+            {
+                continue;
+            }
+
             CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
-            if (!SpellRules.BuffApplies(database, theirs, candidate, spell) || !CombatRules.InCombat(candidate)) continue;
-            if (candidate.Health >= (CreatureHealthRules.MaxHealth(database, theirs, candidate) >> 2)) continue;
+            if (!SpellRules.BuffApplies(database, theirs, candidate, spell) || !CombatRules.InCombat(candidate))
+            {
+                continue;
+            }
+
+            if (candidate.Health >= (CreatureHealthRules.MaxHealth(database, theirs, candidate) >> 2))
+            {
+                continue;
+            }
+
             bool seen = d < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
             if (!seen && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch)))
+            {
                 continue;
+            }
+
             best = d;
             chosen = candidate;
         }
@@ -471,13 +607,20 @@ public static class CombatTargetRules
         SimulationContext context, CreatureState me, CreatureDef mine, CreatureState ally, int slot, CreatureSpellDef spell,
         List<Fixed16Vector> scratch)
     {
-        if (ally.Id != me.Id && !CanReach(context.Navigation, me, mine, ally.PosX, ally.PosY, int.MaxValue, scratch)) return false;
+        if (ally.Id != me.Id && !CanReach(context.Navigation, me, mine, ally.PosX, ally.PosY, int.MaxValue, scratch))
+        {
+            return false;
+        }
+
         bool same = me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId == ally.Id
             && me.AttackType == CombatRules.AttackMode.SpellAtAlly;
         if (me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId != CombatRules.NoTarget && !same)
         {
             CreatureState? previous = context.World.CreatureById(me.FightTargetId);
-            if (previous != null) CombatRules.Unregister(previous, me.Id);
+            if (previous != null)
+            {
+                CombatRules.Unregister(previous, me.Id);
+            }
         }
         me.FightTargetKind = FightTargetKind.Creature;
         me.FightTargetId = ally.Id;
@@ -502,9 +645,17 @@ public static class CombatTargetRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            if (!CreatureDeathRules.IsCorpse(candidate) || candidate.BodyOwnerPlayerId != PlayerIds.Neutral) continue;
+            if (!CreatureDeathRules.IsCorpse(candidate) || candidate.BodyOwnerPlayerId != PlayerIds.Neutral)
+            {
+                continue;
+            }
+
             int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
-            if (d >= best || d > sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY)) continue;
+            if (d >= best || d > sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY))
+            {
+                continue;
+            }
+
             best = d;
             chosen = candidate;
         }
@@ -521,7 +672,10 @@ public static class CombatTargetRules
         if (me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId != CombatRules.NoTarget)
         {
             CreatureState? previous = context.World.CreatureById(me.FightTargetId);
-            if (previous != null) CombatRules.Unregister(previous, me.Id);
+            if (previous != null)
+            {
+                CombatRules.Unregister(previous, me.Id);
+            }
         }
         me.FightTargetKind = FightTargetKind.Body;
         me.FightTargetId = body.Id;
@@ -546,7 +700,9 @@ public static class CombatTargetRules
         int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, chosen.PosX, chosen.PosY);
         int third = distance / 3;
         if (third >= hearSq && (third >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, chosen.PosX, chosen.PosY)))
+        {
             return false;
+        }
 
         return Engage(context, me, definition, chosen, context.Database.CreatureById(chosen.CreatureTypeId), spellSlot, spell);
     }
@@ -585,12 +741,21 @@ public static class CombatTargetRules
         IReadOnlyList<CreatureState> owned = world.CreatureOwnershipOrder;
         IReadOnlyList<PlayerId> players = world.ActivePlayerOrder;
         for (int k = 0; k < players.Count; k++)
-        for (int i = 0; i < owned.Count; i++)
+        {
+            for (int i = 0; i < owned.Count; i++)
         {
             CreatureState candidate = owned[i];
-            if (candidate.OwnerPlayerId != players[k]) continue;
-            if (candidate.Id == me.Id || !TurncoatRules.AreCombatEnemies(world, me, candidate)) continue;
-            CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
+            if (candidate.OwnerPlayerId != players[k])
+                {
+                    continue;
+                }
+
+                if (candidate.Id == me.Id || !TurncoatRules.AreCombatEnemies(world, me, candidate))
+                {
+                    continue;
+                }
+
+                CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
             int d = PossessionRules.CreepingDistance(database,
                 candidate, CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY));
 
@@ -600,40 +765,86 @@ public static class CombatTargetRules
             if (nearHeart || impCandidate)
             {
                 // The shared template: distance, the alignment discount, attackable, seen or reached.
-                if (CombatRules.OppositeAlignment(definition, theirs)) d = CombatRules.Discounted(d);
-                if (d >= best || !CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate)) continue;
-                bool seen = d < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+                if (CombatRules.OppositeAlignment(definition, theirs))
+                    {
+                        d = CombatRules.Discounted(d);
+                    }
+
+                    if (d >= best || !CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate))
+                    {
+                        continue;
+                    }
+
+                    bool seen = d < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
                 if (!seen && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch)))
-                    continue;
-                best = d;
+                    {
+                        continue;
+                    }
+
+                    best = d;
                 chosen = candidate;
                 continue;
             }
 
             // The hero path: reluctance, never a fight.
-            if (candidate.OwnerPlayerId != PlayerIds.Good) continue;
-            if (d >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY)) continue;
-            if (d >= best) continue;
-            // The hero's target word (+0x502) empty or me: one busy with any other thing, a door, a
-            // trap or a heart included, is passed over (0x0045C07B-0x0045C08E, ADR-0585).
-            if (candidate.FightTargetKind != FightTargetKind.None
-                && !(candidate.FightTargetKind == FightTargetKind.Creature && candidate.FightTargetId == me.Id)) continue;
-            if (!CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate)) continue;
+            if (candidate.OwnerPlayerId != PlayerIds.Good)
+                {
+                    continue;
+                }
 
-            // DK2 stages the candidate in +0x502 before the room test, the alarm and the withdrawal
-            // (0x0045C0AF), and restores the old tag when neither takes the Imp out.
-            if (!FearRules.NearOwnGuardRooms(context, rooms, me.OwnerPlayerId, candidate.Tile))
+                if (d >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY))
+                {
+                    continue;
+                }
+
+                if (d >= best)
+                {
+                    continue;
+                }
+                // The hero's target word (+0x502) empty or me: one busy with any other thing, a door, a
+                // trap or a heart included, is passed over (0x0045C07B-0x0045C08E, ADR-0585).
+                if (candidate.FightTargetKind != FightTargetKind.None
+                && !(candidate.FightTargetKind == FightTargetKind.Creature && candidate.FightTargetId == me.Id))
+                {
+                    continue;
+                }
+
+                if (!CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate))
+                {
+                    continue;
+                }
+
+                // DK2 stages the candidate in +0x502 before the room test, the alarm and the withdrawal
+                // (0x0045C0AF), and restores the old tag when neither takes the Imp out.
+                if (!FearRules.NearOwnGuardRooms(context, rooms, me.OwnerPlayerId, candidate.Tile))
             {
-                if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, candidate.Tile, scratch)) return true;
-                continue;
+                if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, candidate.Tile, scratch))
+                    {
+                        return true;
+                    }
+
+                    continue;
             }
             int theirStrength = FearRules.LocalStrength(context, candidate.OwnerPlayerId, me.PosX, me.PosY);
             int ourStrength = FearRules.LocalStrength(context, me.OwnerPlayerId, me.PosX, me.PosY) * 3 / 4;
-            if (ourStrength > theirStrength) continue;
-            int deficit = (theirStrength - ourStrength) * 3 / 2;
-            if (FearRules.RaiseAlarm(context, rooms, me, definition, candidate.PosX, candidate.PosY, deficit)) return true;
-            if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, candidate.Tile, scratch)) return true;
+            if (ourStrength > theirStrength)
+                {
+                    continue;
+                }
+
+                int deficit = (theirStrength - ourStrength) * 3 / 2;
+            if (FearRules.RaiseAlarm(context, rooms, me, definition, candidate.PosX, candidate.PosY, deficit))
+                {
+                    return true;
+                }
+
+                if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, candidate.Tile, scratch))
+                {
+                    return true;
+                }
+            }
         }
+
         return chosen != null;
     }
 
@@ -652,24 +863,55 @@ public static class CombatTargetRules
         bool imp = me.CreatureTypeId == CombatRules.ImpCreatureTypeId;
         if (imp) { sightSq = MeleeDecisionDistance; hearSq = 0; }
         for (int slot = 0; slot < CombatRules.Slots; slot++)
+        {
             for (int kind = 0; kind < 2; kind++)
             {
                 int id = kind == 0 ? me.EngagedMelee[slot] : me.EngagedRanged[slot];
-                if (id == CombatRules.NoTarget) continue;
+                if (id == CombatRules.NoTarget)
+                {
+                    continue;
+                }
+
                 CreatureState? candidate = context.World.CreatureById(id);
-                if (candidate is null || !CombatRules.IsAttackable(candidate)) continue;
+                if (candidate is null || !CombatRules.IsAttackable(candidate))
+                {
+                    continue;
+                }
+
                 CreatureDef theirs = context.Database.CreatureById(candidate.CreatureTypeId);
                 int d = PossessionRules.CreepingDistance(context.Database,
                 candidate, CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY));
-                if (CombatRules.OppositeAlignment(definition, theirs)) d = CombatRules.Discounted(d);
-                if (d >= best || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY)) continue;
-                if (PossessionRules.IsDisguisedFrom(me, candidate)) continue;   // 0x0045D2DC, 0x0045D4EA
+                if (CombatRules.OppositeAlignment(definition, theirs))
+                {
+                    d = CombatRules.Discounted(d);
+                }
+
+                if (d >= best || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY))
+                {
+                    continue;
+                }
+
+                if (PossessionRules.IsDisguisedFrom(me, candidate))
+                {
+                    continue;   // 0x0045D2DC, 0x0045D4EA
+                }
+
                 if (!imp && d >= sightSq
-                    && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch))) continue;
-                if (!CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, int.MaxValue, scratch)) continue;
+                    && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch)))
+                {
+                    continue;
+                }
+
+                if (!CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, int.MaxValue, scratch))
+                {
+                    continue;
+                }
+
                 best = d;
                 chosen = candidate;
             }
+        }
+
         return chosen;
     }
 
@@ -690,33 +932,58 @@ public static class CombatTargetRules
         IReadOnlyList<CreatureState> owned = world.CreatureOwnershipOrder;
         IReadOnlyList<PlayerId> players = world.ActivePlayerOrder;
         for (int k = 0; k < players.Count; k++)
-        for (int i = 0; i < owned.Count; i++)
+        {
+            for (int i = 0; i < owned.Count; i++)
         {
             CreatureState candidate = owned[i];
-            if (candidate.OwnerPlayerId != players[k]) continue;
-            if (!TurncoatRules.AreCombatEnemies(world, me, candidate)) continue;
-            // Every arm but Blitzer passes over a candidate walking to 251 or 202 while I track one I
-            // gave up on (0x0045B224, 0x0045B5E4, 0x0045BBB4; ADR-0584).
-            if (definition.FightStyle != FightStyle.Blitzer && me.RetreatingCreature != 0
-                && ApproachRules.IsRetreating(candidate)) continue;
+            if (candidate.OwnerPlayerId != players[k])
+                {
+                    continue;
+                }
 
-            CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
+                if (!TurncoatRules.AreCombatEnemies(world, me, candidate))
+                {
+                    continue;
+                }
+                // Every arm but Blitzer passes over a candidate walking to 251 or 202 while I track one I
+                // gave up on (0x0045B224, 0x0045B5E4, 0x0045BBB4; ADR-0584).
+                if (definition.FightStyle != FightStyle.Blitzer && me.RetreatingCreature != 0
+                && ApproachRules.IsRetreating(candidate))
+                {
+                    continue;
+                }
+
+                CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
             int d = PossessionRules.CreepingDistance(database,
                 candidate, CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY));
-            if (CombatRules.OppositeAlignment(definition, theirs)) d = CombatRules.Discounted(d);
+            if (CombatRules.OppositeAlignment(definition, theirs))
+                {
+                    d = CombatRules.Discounted(d);
+                }
 
-            CombatRules.CountEngaged(world, database, candidate, out int melee, out int ranged);
+                CombatRules.CountEngaged(world, database, candidate, out int melee, out int ranged);
             int score = CombatRules.Score(definition.FightStyle, d, sightSq, melee, ranged, theirs.FightStyle == FightStyle.Support);
-            if (score >= best) continue;
-            if (!CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate)) continue;
+            if (score >= best)
+                {
+                    continue;
+                }
 
-            bool seen = d < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
+                if (!CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate))
+                {
+                    continue;
+                }
+
+                bool seen = d < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY);
             if (!seen && !(d < hearSq && CanReach(context.Navigation, me, definition, candidate.PosX, candidate.PosY, hearSq, scratch)))
-                continue;
+                {
+                    continue;
+                }
 
-            best = score;
+                best = score;
             chosen = candidate;
         }
+        }
+
         return chosen;
     }
 
@@ -728,21 +995,40 @@ public static class CombatTargetRules
     {
         owner = 0;
         pillar = default;
-        if (TurncoatRules.IsActive(me)) return -1;
+        if (TurncoatRules.IsActive(me))
+        {
+            return -1;
+        }
+
         int chosen = -1;
         for (int s = 0; s < hearts.Sites.Count; s++)
         {
             HeartSites.Site site = hearts.Sites[s];
-            if (!site.Standing || !CombatRules.IsHostile(world, me.OwnerPlayerId, site.Owner)) continue;
-            if (CombatRules.DistanceSquared(me.PosX, me.PosY, site.CentreX, site.CentreY) > sightSq) continue;
-            if (!LineOfSight.Clear(sight, me.PosX, me.PosY, site.CentreX, site.CentreY)) continue;
+            if (!site.Standing || !CombatRules.IsHostile(world, me.OwnerPlayerId, site.Owner))
+            {
+                continue;
+            }
+
+            if (CombatRules.DistanceSquared(me.PosX, me.PosY, site.CentreX, site.CentreY) > sightSq)
+            {
+                continue;
+            }
+
+            if (!LineOfSight.Clear(sight, me.PosX, me.PosY, site.CentreX, site.CentreY))
+            {
+                continue;
+            }
 
             // The room object list prepends each built pillar; see furniture-placement.md §6.
             for (int i = site.Pillars.Length - 1; i >= 0; i--)
             {
                 HeartPillarTarget target = site.Pillars[i];
                 int d = CombatRules.DistanceSquared(me.PosX, me.PosY, target.X.Raw, target.Y.Raw);
-                if (d >= best) continue;
+                if (d >= best)
+                {
+                    continue;
+                }
+
                 best = d;
                 chosen = (target.Tile.Y * world.Width) + target.Tile.X;
                 owner = site.Owner;
@@ -771,7 +1057,10 @@ public static class CombatTargetRules
         WorldSteering navigation, CreatureState me, CreatureDef definition, int toX, int toY, int rangeSq,
         List<Fixed16Vector> scratch, Navigation.MoveOptions options)
     {
-        if (me.PosX == toX && me.PosY == toY) return true;
+        if (me.PosX == toX && me.PosY == toY)
+        {
+            return true;
+        }
 
         scratch.Clear();
         bool routed = navigation.Route(
@@ -780,8 +1069,15 @@ public static class CombatTargetRules
             WorldSteering.ProfileOf(definition, me.OwnerPlayerId, options),
             scratch,
             refresh: false, pointKind: RoutePointKind.FunnelCorners);
-        if (!routed) return false;
-        if (scratch.Count == 0) return true;
+        if (!routed)
+        {
+            return false;
+        }
+
+        if (scratch.Count == 0)
+        {
+            return true;
+        }
 
         int length = 0, px = me.PosX, py = me.PosY;
         for (int i = 0; i < scratch.Count; i++)
@@ -808,13 +1104,23 @@ public static class CombatTargetRules
         bool useSpell = spell != null && (forced || !(distance < MeleeDecisionDistance && mine.FightStyle != FightStyle.Support));
         bool same = me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId == target.Id;
         bool wasRanged = me.AttackType is CombatRules.AttackMode.SpellAtCreature or CombatRules.AttackMode.SpellAtThing;
-        if (same && wasRanged != useSpell) CombatRules.Unregister(target, me.Id);
-        if ((!same || wasRanged != useSpell) && !CombatRules.Register(target, me.Id, ranged: useSpell)) return false;
+        if (same && wasRanged != useSpell)
+        {
+            CombatRules.Unregister(target, me.Id);
+        }
+
+        if ((!same || wasRanged != useSpell) && !CombatRules.Register(target, me.Id, ranged: useSpell))
+        {
+            return false;
+        }
 
         // The fight-starter's 0x0049AA30(target, 6, 0, 0) after registration (combat-acquisition.md
         // §8). Ours fires on a new engagement only; DK2's fight-starter may run again for the same
         // target and fire again, which a one-shot event subtree would not notice.
-        if (!same) context.FireCreatureEvent(target, CreatureTriggerEvent.Attacked);
+        if (!same)
+        {
+            context.FireCreatureEvent(target, CreatureTriggerEvent.Attacked);
+        }
 
         me.FightTargetKind = FightTargetKind.Creature;
         me.FightTargetId = target.Id;
@@ -878,16 +1184,32 @@ public static class CombatTargetRules
         // State 8 unlinks before reselecting. Its handler ends the route if the new target differs.
         if (!sameTarget && !me.Approaching
             && (me.CreatureTypeId == CombatRules.ImpCreatureTypeId
-                || NeedRules.ResolvedCategory(me) != CreatureStateCategory.Combat)) me.StopMoving();
-        if (!CombatRules.IsFighting(me)) me.CombatStateEnteredTick = context.Tick.Value;
+                || NeedRules.ResolvedCategory(me) != CreatureStateCategory.Combat))
+        {
+            me.StopMoving();
+        }
+
+        if (!CombatRules.IsFighting(me))
+        {
+            me.CombatStateEnteredTick = context.Tick.Value;
+        }
+
         bool enters = CreatureStateMachine.HasState(me)
             && (NeedRules.ResolvedCategory(me) != CreatureStateCategory.Combat
                 || (thing && me.Dk2StateId == Systems.StateShadow.TravelToPoint
                     && me.UtilityNewState is CombatStates.RespondingToThreat or CombatStates.Withdrawn));
         // The run speed is state 199's own, on its entry turn (CombatSystem.Fight); a creature with no
         // state has no handler to set it.
-        if (!CreatureStateMachine.HasState(me)) me.Running = true;
-        if (enters) CombatStates.Enter(context, me, CombatStates.Engaging);
+        if (!CreatureStateMachine.HasState(me))
+        {
+            me.Running = true;
+        }
+
+        if (enters)
+        {
+            CombatStates.Enter(context, me, CombatStates.Engaging);
+        }
+
         context.Emit("combat", "engaged",
             $"creature={me.Id} type={mine.Name} player={me.OwnerPlayerId} {target} reach2={me.AttackRangeSquared}");
     }

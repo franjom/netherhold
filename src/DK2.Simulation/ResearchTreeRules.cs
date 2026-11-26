@@ -63,7 +63,11 @@ public static class ResearchTreeRules
     public static bool IsUpgradeTarget(
         WorldState world, GameDatabase database, PlayerId playerId, ResearchEntry entry)
     {
-        if (entry.Kind != KindSpell) return false;
+        if (entry.Kind != KindSpell)
+        {
+            return false;
+        }
+
         AvailabilityKind kind = AvailabilityKindOf(KindSpell);
         return world.Availability(playerId, kind, entry.TypeId) == Available
             && !world.IsUpgraded(playerId, kind, entry.TypeId)
@@ -80,7 +84,11 @@ public static class ResearchTreeRules
 
         for (int i = 0; i < list.Count; i++)
         {
-            if (!IsResearchable(world, playerId, list[i])) continue;
+            if (!IsResearchable(world, playerId, list[i]))
+            {
+                continue;
+            }
+
             player.ResearchTarget = i + 1;
             return;
         }
@@ -88,14 +96,25 @@ public static class ResearchTreeRules
         for (int i = 0; i < list.Count; i++)
         {
             ResearchEntry entry = list[i];
-            if (entry.Kind is >= KindRoom and < KindSpell) continue;
-            if (entry.Kind == KindSpell && !IsUpgradeTarget(world, context.Database, playerId, entry)) continue;
+            if (entry.Kind is >= KindRoom and < KindSpell)
+            {
+                continue;
+            }
+
+            if (entry.Kind == KindSpell && !IsUpgradeTarget(world, context.Database, playerId, entry))
+            {
+                continue;
+            }
+
             player.ResearchTarget = i + 1;
             return;
         }
 
         if (player.ResearchTarget != 0)
+        {
             context.Emit(SystemName, "research_finished", $"player={playerId}");
+        }
+
         player.ResearchTarget = 0;
     }
 
@@ -107,16 +126,32 @@ public static class ResearchTreeRules
         WorldState world = context.World;
         List<ResearchEntry> list = context.Database.Variables.Research;
         ref PlayerState player = ref world.Player(playerId);
-        if (player.ResearchTarget == 0) return;
+        if (player.ResearchTarget == 0)
+        {
+            return;
+        }
 
         ResearchEntry entry = list[player.ResearchTarget - 1];
         if (!IsResearchable(world, playerId, entry) && !StillWanted(context, playerId, entry))
+        {
             ChooseTarget(context, playerId);
+        }
 
-        if (player.ResearchTarget == 0) return;
+        if (player.ResearchTarget == 0)
+        {
+            return;
+        }
+
         entry = list[player.ResearchTarget - 1];
-        if (player.ResearchPoints < entry.Cost) return;
-        if (!Deliver(context, playerId, entry)) return;
+        if (player.ResearchPoints < entry.Cost)
+        {
+            return;
+        }
+
+        if (!Deliver(context, playerId, entry))
+        {
+            return;
+        }
 
         player.Statistics.ThingsResearched++; // 0x004C2FDC, beside the points reset
         player.ResearchPoints = 0;
@@ -144,7 +179,11 @@ public static class ResearchTreeRules
 
         // 0x004E08B0: the Library's place-holders cheer before the item is granted (ADR-0402).
         ResearchStep.Cheer(context, SystemName, library);
-        if (AvailabilityKindOf(entry.Kind) == AvailabilityKind.None) return false;
+        if (AvailabilityKindOf(entry.Kind) == AvailabilityKind.None)
+        {
+            return false;
+        }
+
         Grant(context, library, entry);
         return true;
     }
@@ -159,19 +198,40 @@ public static class ResearchTreeRules
         WorldState world = context.World;
         var libraries = new List<RoomInstance>();
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
+        {
             if (room.OwnerPlayerId == playerId && room.Definition.TypeId == RoomTypeId.Library)
+            {
                 libraries.Add(room);
+            }
+        }
 
         int count = 0;
         foreach (RoomInstance library in libraries)
-            if (Takes(context, library)) count++;
-        if (count == 0) return null;
+        {
+            if (Takes(context, library))
+            {
+                count++;
+            }
+        }
+
+        if (count == 0)
+        {
+            return null;
+        }
 
         int pick = context.Rng.NextInt(count);
         foreach (RoomInstance library in libraries)
         {
-            if (!Takes(context, library)) continue;
-            if (pick == 0) return library;
+            if (!Takes(context, library))
+            {
+                continue;
+            }
+
+            if (pick == 0)
+            {
+                return library;
+            }
+
             pick--;
         }
         return null;
@@ -183,10 +243,20 @@ public static class ResearchTreeRules
     /// plus the book's units must stay within <c>+0x67</c> (signed, <c>0x004E54E3</c>).</summary>
     private static bool Takes(SimulationContext context, RoomInstance library)
     {
-        if (FindShelf(context, library) < 0) return false;
+        if (FindShelf(context, library) < 0)
+        {
+            return false;
+        }
+
         EntityList<CreatureState> creatures = context.World.Creatures;
         for (int i = 0; i < creatures.Count; i++)
-            if (creatures[i].HeldPlace.In(library)) return true;
+        {
+            if (creatures[i].HeldPlace.In(library))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -209,7 +279,10 @@ public static class ResearchTreeRules
         }
 
         int shelf = FindShelf(context, library);
-        if (shelf < 0) return;
+        if (shelf < 0)
+        {
+            return;
+        }
 
         ObjectState book = world.SpawnObject(context.Database, BookObjectTypeId, PlayerIds.Neutral, shelf);
         book.ResearchKind = (byte)entry.Kind;
@@ -235,7 +308,10 @@ public static class ResearchTreeRules
         }
 
         if (kind != 0 && database.ObjectById(book.ObjectTypeId)?.IsSpecial != true)
+        {
             world.SetAvailability(ownerPlayerId, kind, book.ResearchTypeId, Available);
+        }
+
         return true;
     }
 
@@ -248,13 +324,23 @@ public static class ResearchTreeRules
     public static void Unshelved(WorldState world, PlayerId ownerPlayerId, ObjectState book)
     {
         AvailabilityKind kind = AvailabilityKindOf(book.ResearchKind);
-        if (kind == 0) return;
+        if (kind == 0)
+        {
+            return;
+        }
 
         foreach (ObjectState other in world.Objects)
         {
-            if (other.Id == book.Id || other.OwnerPlayerId != ownerPlayerId) continue;
+            if (other.Id == book.Id || other.OwnerPlayerId != ownerPlayerId)
+            {
+                continue;
+            }
+
             if (other.ObjectTypeId == BookObjectTypeId && other.ResearchKind == book.ResearchKind
-                && other.ResearchTypeId == book.ResearchTypeId) return;
+                && other.ResearchTypeId == book.ResearchTypeId)
+            {
+                return;
+            }
         }
 
         world.SetAvailability(ownerPlayerId, kind, book.ResearchTypeId, Researchable);
@@ -274,24 +360,49 @@ public static class ResearchTreeRules
         HashSet<int> slots = AutoFurnitureRules.FloorSlotSet(world, library);
 
         for (int i = start; i < chain.Length; i++)
-            if (HasShelfSpace(world, hooks.Database, library, slots, chain[i])) return chain[i];
+        {
+            if (HasShelfSpace(world, hooks.Database, library, slots, chain[i]))
+            {
+                return chain[i];
+            }
+        }
+
         for (int i = 0; i < start && i < chain.Length; i++)
-            if (HasShelfSpace(world, hooks.Database, library, slots, chain[i])) return chain[i];
+        {
+            if (HasShelfSpace(world, hooks.Database, library, slots, chain[i]))
+            {
+                return chain[i];
+            }
+        }
+
         return -1;
     }
 
     private static bool HasShelfSpace(
         WorldState world, GameDatabase database, RoomInstance library, HashSet<int> slots, int tile)
     {
-        if (!slots.Contains(tile)) return false;
+        if (!slots.Contains(tile))
+        {
+            return false;
+        }
 
         int stored = 0;
         foreach (ObjectState thing in world.Objects)
         {
-            if (thing.TileIndex != tile || thing.InHand || thing.CarriedByCreatureId >= 0) continue;
-            if (thing.OwnerPlayerId != library.OwnerPlayerId) continue;
+            if (thing.TileIndex != tile || thing.InHand || thing.CarriedByCreatureId >= 0)
+            {
+                continue;
+            }
+
+            if (thing.OwnerPlayerId != library.OwnerPlayerId)
+            {
+                continue;
+            }
+
             if (thing.ObjectTypeId == BookObjectTypeId || database.ObjectById(thing.ObjectTypeId)?.IsSpecial == true)
+            {
                 stored++;
+            }
         }
 
         return stored < ShelfCapacity;

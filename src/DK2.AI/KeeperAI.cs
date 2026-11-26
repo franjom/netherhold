@@ -66,12 +66,21 @@ public sealed class KeeperAI
     public IReadOnlyList<PlayerCommand> Think(KeeperView view)
     {
         if (view.PlayerId != PlayerId)
+        {
             throw new ArgumentException("The observation belongs to another keeper.", nameof(view));
+        }
+
         view.RouteCache ??= _routes;
         var commands = new List<PlayerCommand>();
         if (view.Status is PlayerStatus.Conquered or PlayerStatus.Lost)
+        {
             return commands;
-        if (view.Heart is not TilePos heart) return commands;
+        }
+
+        if (view.Heart is not TilePos heart)
+        {
+            return commands;
+        }
 
         BuildArea area = _area ?? RecordArea(_p, view);
         if (!_directionsFixed)
@@ -96,8 +105,15 @@ public sealed class KeeperAI
         bool goldUntagged = UntagGold(view, commands);
 
         // 4. The attack and Call to Arms countdowns.
-        if (State.CannotAttackCounter != 0) State.CannotAttackCounter--;
-        if (State.CallToArmsCounter != 0) State.CallToArmsCounter--;
+        if (State.CannotAttackCounter != 0)
+        {
+            State.CannotAttackCounter--;
+        }
+
+        if (State.CallToArmsCounter != 0)
+        {
+            State.CallToArmsCounter--;
+        }
 
         // 5. The message walk, then 6. the head event, which spends the whole tick when it runs.
         var rooms = new KeeperRoomRequests(view, State, _p, RoomAvailable(view), commands, goldUntagged);
@@ -112,9 +128,20 @@ public sealed class KeeperAI
         var battle = new KeeperBattleStep(view, State, _p, _rng, commands, retreat.Prepared);
         var readiness = new KeeperReadiness(view, _p, commands);
         var attack = new KeeperAttackPlanner(view, State, _p, _rng, commands, readiness, battle, retreat.Prepared);
-        if (budget > 0 && State.PlayersAttackedFlags != 0) budget = attack.Manage(budget);
-        if (budget > 0 && State.CallToArmsInUse) battle.TestRemoval();
-        if (budget > 0) budget = retreat.Run(budget);
+        if (budget > 0 && State.PlayersAttackedFlags != 0)
+        {
+            budget = attack.Manage(budget);
+        }
+
+        if (budget > 0 && State.CallToArmsInUse)
+        {
+            battle.TestRemoval();
+        }
+
+        if (budget > 0)
+        {
+            budget = retreat.Run(budget);
+        }
 
         // 8. The specials step (0x00500DEF), every tick, spending no allowance.
         KeeperSpecialStep.Run(view, commands);
@@ -122,30 +149,52 @@ public sealed class KeeperAI
         // 9. The training roll, drawn with or without allowance; readiness grants levels as it
         // tests, and a not-ready army gets the training moves (0x004FF5C0).
         if (_rng.NextInt(100) < 50 && budget > 0 && !readiness.ArmyReady())
+        {
             budget = new KeeperTrainingStep(view, State, _p, _rng, commands, readiness, retreat.Prepared).Run(budget);
+        }
 
         // 10. Traps and doors, drawn only with allowance (0x00500E62).
         if (budget > 0 && _rng.NextInt(100) < 10)
+        {
             budget = new KeeperTrapDoorStep(view, _p, _rng, commands).Run(budget);
+        }
 
         // 11. Imps while no fight is on, else the battle step; 12. the research roll, drawn every
         // turn, with the researcher move and job placement (0x00500FAE); then 13. slaps.
         if (budget > 0)
         {
-            if (State.FightGoingOn) budget = battle.Run(budget);
-            else CreateImps(view, commands, ref budget);
+            if (State.FightGoingOn)
+            {
+                budget = battle.Run(budget);
+            }
+            else
+            {
+                CreateImps(view, commands, ref budget);
+            }
         }
         budget = new KeeperResearchStep(view, State, _p, _rng, commands, readiness, retreat.Prepared).Run(budget);
-        if (budget > 0) Slap(view, commands, ref budget);
+        if (budget > 0)
+        {
+            Slap(view, commands, ref budget);
+        }
 
         // 14. The prisoner step (0x005006D0), then Sight of Evil, each while allowance remains.
-        if (budget > 0) budget = new KeeperPrisonerStep(view, _p, _rng, commands, retreat.Prepared).Run(budget);
-        if (budget > 0 && (_p.UseSightOfEvil & SightModeMask) != 0) SightOfEvil(view, commands, ref budget);
+        if (budget > 0)
+        {
+            budget = new KeeperPrisonerStep(view, _p, _rng, commands, retreat.Prepared).Run(budget);
+        }
+
+        if (budget > 0 && (_p.UseSightOfEvil & SightModeMask) != 0)
+        {
+            SightOfEvil(view, commands, ref budget);
+        }
 
         // 15. The task machine, while the budget lasts.
         int guard = 64;
         while (budget > 0 && guard-- > 0 && State.Task != KeeperTask.Stop)
+        {
             RunTask(view, area, commands, attack, ref budget);
+        }
 
         return commands;
     }
@@ -155,16 +204,30 @@ public sealed class KeeperAI
     /// <summary>True when every gold-dig tag came off this tick.</summary>
     private bool UntagGold(KeeperView view, List<PlayerCommand> commands)
     {
-        if (State.UntagGoldCounter <= 0) return false;
-        if (--State.UntagGoldCounter > 0) return false;
+        if (State.UntagGoldCounter <= 0)
+        {
+            return false;
+        }
+
+        if (--State.UntagGoldCounter > 0)
+        {
+            return false;
+        }
 
         var tiles = new List<TilePos>();
         for (int i = 0; i < view.TileCount; i++)
         {
             TilePos p = view.FromIndex(i);
-            if (view.IsTaggedByMe(p) && view.IsGoldRock(p)) tiles.Add(p);
+            if (view.IsTaggedByMe(p) && view.IsGoldRock(p))
+            {
+                tiles.Add(p);
+            }
         }
-        if (tiles.Count > 0) commands.Add(new TagTilesCommand(PlayerId, tiles, false));
+        if (tiles.Count > 0)
+        {
+            commands.Add(new TagTilesCommand(PlayerId, tiles, false));
+        }
+
         return true;
     }
 
@@ -174,15 +237,26 @@ public sealed class KeeperAI
 
     private void CreateImps(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
-        if (view.Availability(AvailabilityKind.Spell, 4) != 3) return;
+        if (view.Availability(AvailabilityKind.Spell, 4) != 3)
+        {
+            return;
+        }
+
         int imps = view.ImpCount;
         int perTiles = Math.Max(1, (int)_p.TilesPerImpRatio);
-        if (imps >= _p.MaximumImps || imps >= view.OwnedTiles / perTiles) return;
+        if (imps >= _p.MaximumImps || imps >= view.OwnedTiles / perTiles)
+        {
+            return;
+        }
         // 0x004BBD30's own cost test (0x004BB8A0: cost at most the mana), predicted as the
         // simulation's Create Imp will price it; a refused cast spends no allowance in DK2.
         int cost = ImpSupplyRules.CreateImpBaseCost(view.Database)
             * (Math.Max(0, imps - ImpSupplyRules.MinimumImps(view.Database)) + 1);
-        if (cost > view.Mana) return;
+        if (cost > view.Mana)
+        {
+            return;
+        }
+
         commands.Add(new CreateImpCommand(PlayerId));
         budget--;
     }
@@ -201,16 +275,37 @@ public sealed class KeeperAI
     {
         foreach (KeeperCreatureView c in view.Creatures)
         {
-            if (budget <= 0) return;
+            if (budget <= 0)
+            {
+                return;
+            }
             // 0x00502F00: the activity code, health above half, the speed timer, then 1 in 100.
-            if (c.OwnerPlayerId != PlayerId || c.ActivityCode != CreatureActivityRules.Slappable) continue;
+            if (c.OwnerPlayerId != PlayerId || c.ActivityCode != CreatureActivityRules.Slappable)
+            {
+                continue;
+            }
             // DK2's step has no 0x004918B0 gate, so it also slaps a Reaper not yet idle (ADR-0776); ours does not.
-            if (!c.CanSlap) continue;
+            if (!c.CanSlap)
+            {
+                continue;
+            }
+
             CreatureDef def = view.Database.CreatureById(c.CreatureTypeId);
-            if (c.Health * 2 <= CreatureLevelRules.MaxHealth(view.Database, def, c.Level)) continue;
+            if (c.Health * 2 <= CreatureLevelRules.MaxHealth(view.Database, def, c.Level))
+            {
+                continue;
+            }
             // SpeedChangeTimer (+0x459): a slap starts it for 400 ticks (SlapRules.SpeedSeconds).
-            if (c.SpeedChanging) continue;
-            if (_rng.NextInt(100) >= 1) continue;
+            if (c.SpeedChanging)
+            {
+                continue;
+            }
+
+            if (_rng.NextInt(100) >= 1)
+            {
+                continue;
+            }
+
             commands.Add(new SlapCreatureCommand(PlayerId, c.Id));
             budget--;
         }
@@ -231,21 +326,35 @@ public sealed class KeeperAI
         switch (_p.UseSightOfEvil & SightModeMask)
         {
             case 1:
-                if ((uint)_rng.NextInt(100) >= 2) return;
+                if ((uint)_rng.NextInt(100) >= 2)
+                {
+                    return;
+                }
+
                 break;
             case 2:
-                if ((uint)_rng.NextInt(100) >= 20 || !view.IsEnemyLand(at)) return;
+                if ((uint)_rng.NextInt(100) >= 20 || !view.IsEnemyLand(at))
+                {
+                    return;
+                }
+
                 break;
             default:
                 return;
         }
-        if (view.Availability(AvailabilityKind.Spell, KeeperSpellRules.SightOfEvil) != 3) return;
+        if (view.Availability(AvailabilityKind.Spell, KeeperSpellRules.SightOfEvil) != 3)
+        {
+            return;
+        }
+
         commands.Add(new CastSpellAtPlaceCommand(PlayerId, KeeperSpellRules.SightOfEvil, x, y));
         // 0x004BB8A0 inside 0x004BBD30: the cost against the mana, the cooldown, then location 5 and target 4.
         KeeperSpellDef? spell = view.Database.KeeperSpellById(KeeperSpellRules.SightOfEvil);
         if (spell is not null && (spell.ManaCost == 0 || spell.ManaCost <= view.Mana)
             && KeeperBattleStep.Ready(view, spell) && view.SightPlaceAllowed(at))
+        {
             budget--;
+        }
     }
 
     // ----------------------------------------------------------------- the task machine
@@ -258,7 +367,11 @@ public sealed class KeeperAI
                 budget--;
                 // The attack planner first; the room planner when it declines (Flags bit 0 is
                 // always on); the gold step when neither started a task.
-                if (!attack.Plan() && !PlanRoom(view, area) && WantsGold(view)) GoldStep(view, commands);
+                if (!attack.Plan() && !PlanRoom(view, area) && WantsGold(view))
+                {
+                    GoldStep(view, commands);
+                }
+
                 break;
 
             case KeeperTask.FindSite:
@@ -277,7 +390,11 @@ public sealed class KeeperAI
             case KeeperTask.Done:
                 budget--;
                 State.BeginTask(KeeperTask.Decide);
-                if (WantsGold(view)) GoldStep(view, commands);
+                if (WantsGold(view))
+                {
+                    GoldStep(view, commands);
+                }
+
                 break;
 
             case KeeperTask.RouteToGold:
@@ -329,8 +446,15 @@ public sealed class KeeperAI
 
         byte request = State.NextRoomToBuild;
         State.CurrentRoomToBuild = request;
-        if (request == (byte)RoomTypeId.Portal) State.NextRoomToBuildSet = false;
-        else State.NextRoomToBuild = (byte)RoomTypeId.Portal;
+        if (request == (byte)RoomTypeId.Portal)
+        {
+            State.NextRoomToBuildSet = false;
+        }
+        else
+        {
+            State.NextRoomToBuild = (byte)RoomTypeId.Portal;
+        }
+
         byte room = (byte)(request & ~KeeperRoomRequests.ExpandBit);
         bool portal = room is (byte)RoomTypeId.Portal or (byte)RoomTypeId.HeroPortal;
 
@@ -355,7 +479,9 @@ public sealed class KeeperAI
 
         RoomDef def = view.Database.RoomById(room);
         if (RoomRules.CostPerTile(def) * _p.DefaultRoomSize > view.Gold)
+        {
             return CostArm(view);
+        }
 
         if ((request & KeeperRoomRequests.ExpandBit) != 0)
         {
@@ -425,9 +551,13 @@ public sealed class KeeperAI
     private IEnumerable<TilePos> RectangleWalk()
     {
         for (int j = 0; j < State.RectangleHeight; j++)
+        {
             for (int i = 0; i < State.RectangleWidth; i++)
+            {
                 yield return new TilePos(State.RectangleStart.X + (i * State.RectangleStepX),
                     State.RectangleStart.Y + (j * State.RectangleStepY));
+            }
+        }
     }
 
     /// <summary>Task 2 (<c>0x004FD030</c>). After a site search the first pass digs the joining path
@@ -451,7 +581,13 @@ public sealed class KeeperAI
         budget--;
         var toTag = new List<TilePos>();
         foreach (TilePos t in RectangleWalk())
-            if (view.InBounds(t) && view.Terrain(t).IsTaggable && !view.IsTaggedByMe(t)) toTag.Add(t);
+        {
+            if (view.InBounds(t) && view.Terrain(t).IsTaggable && !view.IsTaggedByMe(t))
+            {
+                toTag.Add(t);
+            }
+        }
+
         if (toTag.Count > 0)
         {
             commands.Add(new TagTilesCommand(PlayerId, toTag, true));
@@ -517,7 +653,10 @@ public sealed class KeeperAI
         {
             x = State.RectangleStart.X;
             y += State.RectangleStepY;
-            if (y == State.RectangleStart.Y + (State.RectangleHeight * State.RectangleStepY)) return false;
+            if (y == State.RectangleStart.Y + (State.RectangleHeight * State.RectangleStepY))
+            {
+                return false;
+            }
         }
         State.DigRoomAtCurrent = new TilePos(x, y);
         return true;
@@ -536,7 +675,11 @@ public sealed class KeeperAI
     /// the previous scan's. True when a task started.</summary>
     private bool GoldStep(KeeperView view, List<PlayerCommand> commands)
     {
-        if (RouteToStoredGold(view)) return true;
+        if (RouteToStoredGold(view))
+        {
+            return true;
+        }
+
         if (view.Availability(AvailabilityKind.Spell, KeeperSpellRules.CreateGold) == 3)
         {
             // The centre of the tile diagonally south-east of the heart's centre (0x004FD619): inside
@@ -561,7 +704,10 @@ public sealed class KeeperAI
         for (int i = 0; i < view.TileCount; i++)
         {
             TilePos p = view.FromIndex(i);
-            if (view.IsTaggedByMe(p) && view.IsGoldRock(p)) return false;
+            if (view.IsTaggedByMe(p) && view.IsGoldRock(p))
+            {
+                return false;
+            }
         }
         State.DigRoomAt = State.CurrentGoldArea < State.GoldDeposits.Count
             ? State.GoldDeposits[State.CurrentGoldArea].Centre
@@ -582,7 +728,11 @@ public sealed class KeeperAI
         State.CurrentGoldArea = 0;
         State.GoldDeposits.Clear();
         State.GoldDeposits.AddRange(GoldScanner.Scan(view));
-        if (stored is not GoldDeposit deposit) return false;
+        if (stored is not GoldDeposit deposit)
+        {
+            return false;
+        }
+
         State.DigRoomAt = deposit.Centre;
         State.BeginTask(KeeperTask.RouteToGold, State.NextTask);
         return true;
@@ -613,12 +763,22 @@ public sealed class KeeperAI
         int r = State.MineRadius;
         var tiles = new List<TilePos>();
         for (int y = c.Y - r; y <= c.Y + r; y++)
+        {
             for (int x = c.X - r; x <= c.X + r; x++)
             {
-                if (Math.Max(Math.Abs(x - c.X), Math.Abs(y - c.Y)) != r) continue;
+                if (Math.Max(Math.Abs(x - c.X), Math.Abs(y - c.Y)) != r)
+                {
+                    continue;
+                }
+
                 var t = new TilePos(x, y);
-                if (view.IsGoldRock(t) && view.Terrain(t).IsTaggable && !view.IsTaggedByMe(t)) tiles.Add(t);
+                if (view.IsGoldRock(t) && view.Terrain(t).IsTaggable && !view.IsTaggedByMe(t))
+                {
+                    tiles.Add(t);
+                }
             }
+        }
+
         if (tiles.Count > 0)
         {
             commands.Add(new TagTilesCommand(PlayerId, tiles, true));
@@ -665,7 +825,10 @@ public sealed class KeeperAI
             // A span that landed was paid for by last tick's allowance, which in DK2 also stepped
             // the walker at once, with no route query between; a refused one is retried below.
             walkOwed = requested == State.DigRoomAtCurrent && !hazard;
-            if (walkOwed) budget++;
+            if (walkOwed)
+            {
+                budget++;
+            }
         }
         if (hazard)
         {
@@ -766,7 +929,11 @@ public sealed class KeeperAI
     /// so lava never takes the Wooden Bridge its flags would allow.</summary>
     private RoomDef? BridgeFor(KeeperView view, bool water)
     {
-        if (water && IsRoomAvailable(view, RoomTypeId.WoodenBridge, out RoomDef? wood)) return wood;
+        if (water && IsRoomAvailable(view, RoomTypeId.WoodenBridge, out RoomDef? wood))
+        {
+            return wood;
+        }
+
         return IsRoomAvailable(view, RoomTypeId.StoneBridge, out RoomDef? stone) ? stone : null;
     }
 
@@ -774,7 +941,11 @@ public sealed class KeeperAI
     private bool IsRoomAvailable(KeeperView view, RoomTypeId room, out RoomDef? def)
     {
         byte id = (byte)room;
-        if (!view.Database.Rooms.TryGetValue((RoomTypeId)id, out def)) return false;
+        if (!view.Database.Rooms.TryGetValue((RoomTypeId)id, out def))
+        {
+            return false;
+        }
+
         return _isRoomAvailable?.Invoke(id) ?? view.Availability(AvailabilityKind.Room, id) == 3;
     }
 }

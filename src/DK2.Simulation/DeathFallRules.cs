@@ -41,8 +41,16 @@ public static class DeathFallRules
     /// tile's navigation byte, and stamps state <c>+0xAB</c> (the turn plus ten).</summary>
     public static void Fall(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (context.Tick.Value < creature.ActionUntilTick) return;
-        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureDeathRules.DyingState, context.Tick.Value)) return;
+        if (context.Tick.Value < creature.ActionUntilTick)
+        {
+            return;
+        }
+
+        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureDeathRules.DyingState, context.Tick.Value))
+        {
+            return;
+        }
+
         creature.PitTransportAfter = new GameTick(context.Tick.Value + 10);
         int back = unchecked(-definition.DeathFallStepY);
         int x = unchecked(creature.PosX + ((TrapRules.Sine(creature.Heading) * back) >> 16));
@@ -51,9 +59,17 @@ public static class DeathFallRules
         var target = new TilePos(x >> 12, y >> 12);
         TilePos own = creature.Tile;
         if (!world.Contains(target) || !world.Contains(own)
-            || (context.Database.TerrainById(world.Tile(target).TerrainId).Flags & TerrainFlags.Solid) != 0) return;
+            || (context.Database.TerrainById(world.Tile(target).TerrainId).Flags & TerrainFlags.Solid) != 0)
+        {
+            return;
+        }
+
         context.Navigation.Refresh();
-        if (context.Navigation.NavByte(target.X, target.Y) != context.Navigation.NavByte(own.X, own.Y)) return;
+        if (context.Navigation.NavByte(target.X, target.Y) != context.Navigation.NavByte(own.X, own.Y))
+        {
+            return;
+        }
+
         creature.PosX = creature.LastPosX = x;
         creature.PosY = creature.LastPosY = y;
         creature.LastPosZ = creature.PosZ;
@@ -68,7 +84,10 @@ public static class DeathFallRules
         int mode = Mode(context, world.TileIndex(at));
         bool n = Blocked(context, at.X, at.Y - 1, mode), e = Blocked(context, at.X + 1, at.Y, mode);
         bool s = Blocked(context, at.X, at.Y + 1, mode), w = Blocked(context, at.X - 1, at.Y, mode);
-        if (n && e && s && w) return creature.Heading;
+        if (n && e && s && w)
+        {
+            return creature.Heading;
+        }
 
         Span<bool> sector =
         [
@@ -81,7 +100,10 @@ public static class DeathFallRules
         {
             int drawn = context.Rng.NextInt(HeadingRange);
             int sixteenth = ((drawn + 0x20) & (HeadingRange - 1)) >> 7;
-            if ((sixteenth & 1) == 0 && !sector[sixteenth >> 1]) return drawn;
+            if ((sixteenth & 1) == 0 && !sector[sixteenth >> 1])
+            {
+                return drawn;
+            }
         }
     }
 
@@ -90,7 +112,11 @@ public static class DeathFallRules
     private static int Mode(SimulationContext context, int tileIndex)
     {
         RoomInstance? room = RoomIndex.RoomAt(context.World, context.Database, tileIndex);
-        if (room is null || room.Definition.TypeId is not (RoomTypeId.Temple or RoomTypeId.CombatPit)) return 0;
+        if (room is null || room.Definition.TypeId is not (RoomTypeId.Temple or RoomTypeId.CombatPit))
+        {
+            return 0;
+        }
+
         return AutoFurnitureRules.IsFloorSlot(context.World, room, tileIndex) ? 2 : 1;
     }
 
@@ -99,10 +125,17 @@ public static class DeathFallRules
     private static bool Blocked(SimulationContext context, int x, int y, int mode)
     {
         WorldState world = context.World;
-        if (!world.Contains(x, y)) return true;
+        if (!world.Contains(x, y))
+        {
+            return true;
+        }
+
         int tileIndex = (y * world.Width) + x;
         if (mode != 0 && RoomIndex.RoomAt(world, context.Database, tileIndex) is { } room)
+        {
             return room.IsInterior(tileIndex) != (mode == 2);
+        }
+
         return context.Database.TerrainById(world.Tile(x, y).TerrainId).IsSolid;
     }
 }

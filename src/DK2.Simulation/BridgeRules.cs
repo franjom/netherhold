@@ -33,7 +33,10 @@ public static class BridgeRules
     public static TerrainDef? SpannedTerrain(GameDatabase database, in TileState tile)
     {
         RoomDef? room = database.RoomByTerrain(tile.TerrainId);
-        if (room is null || !IsBridge(room)) return null;
+        if (room is null || !IsBridge(room))
+        {
+            return null;
+        }
 
         return tile.Flags == SpansLava ? database.LavaTerrain : database.WaterTerrain;
     }
@@ -51,8 +54,15 @@ public static class BridgeRules
     /// a room type, because DK2's variable does: Wooden and Stone Bridge carry identical flags (0x30000034) and health and neither carries <see cref="TerrainFlags.Decay"/>.</summary>
     public static int LifetimeTicks(GameDatabase database, RoomDef room, TerrainDef covered)
     {
-        if (!covered.IsLava) return 0;
-        if (room.TypeId != RoomTypeId.WoodenBridge) return 0;
+        if (!covered.IsLava)
+        {
+            return 0;
+        }
+
+        if (room.TypeId != RoomTypeId.WoodenBridge)
+        {
+            return 0;
+        }
 
         return SimulationTiming.TicksFromSeconds(
             database[VariableTypeId.WoodBridgeLifeOnLavaSeconds]);

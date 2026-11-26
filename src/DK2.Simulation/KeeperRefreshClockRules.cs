@@ -16,7 +16,11 @@ public static class KeeperRefreshClockRules
     public static KeeperRefreshClock Advance(KeeperRefreshClock clock, GameTick tick, SimRandom rng)
     {
         uint now = unchecked((uint)(tick.Value + 1));
-        if (now < unchecked((uint)clock.NextRefreshTick.Value) && !clock.Requested) return clock;
+        if (now < unchecked((uint)clock.NextRefreshTick.Value) && !clock.Requested)
+        {
+            return clock;
+        }
+
         uint next = unchecked(now + 100u + (uint)rng.NextInt(50));
         return new KeeperRefreshClock(new GameTick(now), new GameTick(next));
     }

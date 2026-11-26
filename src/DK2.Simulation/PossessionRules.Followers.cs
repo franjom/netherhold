@@ -30,7 +30,11 @@ public static partial class PossessionRules
     /// <c>+0x3CB</c> (a prison's or a Combat Pit's owner), not rebelling, and happy.</summary>
     internal static bool MayFollow(GameDatabase database, CreatureState c)
     {
-        if (!CreatureStateMachine.HasState(c)) return false;
+        if (!CreatureStateMachine.HasState(c))
+        {
+            return false;
+        }
+
         CreatureDef def = database.CreatureById(c.CreatureTypeId);
         return c.FollowLeaderId == 0
             && !((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
@@ -44,9 +48,21 @@ public static partial class PossessionRules
     /// It never stamps the slot.</summary>
     private static void Recruit(SimulationContext context, ISightBlocker sight, CreatureState me, PossessionAim aim)
     {
-        if (PickFollower(context.World, context.Database, sight, me, aim) is not { } pick) return;
-        if (me.FollowerCount >= (context.Database[VariableTypeId.MaximumGroupNumberOfFollowers] & 0xFF)) return;
-        if (!StartFollowing(context, pick, me.Id)) return;
+        if (PickFollower(context.World, context.Database, sight, me, aim) is not { } pick)
+        {
+            return;
+        }
+
+        if (me.FollowerCount >= (context.Database[VariableTypeId.MaximumGroupNumberOfFollowers] & 0xFF))
+        {
+            return;
+        }
+
+        if (!StartFollowing(context, pick, me.Id))
+        {
+            return;
+        }
+
         me.FollowerCount++;
         context.Emit(ActSystem, "possessed_recruit", $"creature={me.Id} follower={pick.Id} count={me.FollowerCount}");
     }
@@ -66,16 +82,40 @@ public static partial class PossessionRules
         for (int i = 0; i < world.PlayerCount; i++)
         {
             PlayerId player = world.PlayerAtIndex(i).PlayerId;
-            if (CombatRules.IsHostile(world, me.OwnerPlayerId, player.Value)) continue;
+            if (CombatRules.IsHostile(world, me.OwnerPlayerId, player.Value))
+            {
+                continue;
+            }
+
             foreach (CreatureState c in world.OwnedCreatures(player))
             {
-                if (!MayFollow(database, c)) continue;
-                if (TrapRules.DistanceSquared(me.PosX, me.PosY, c.PosX, c.PosY) >= FollowerScanLimit) continue;
+                if (!MayFollow(database, c))
+                {
+                    continue;
+                }
+
+                if (TrapRules.DistanceSquared(me.PosX, me.PosY, c.PosX, c.PosY) >= FollowerScanLimit)
+                {
+                    continue;
+                }
+
                 var at = new Vec3(c.PosX, c.PosY, FloorHeight + c.PosZ);
-                if (!InAimCone(aim.Yaw.Value, pose, at)) continue;
-                if (!LineOfSight.Clear(sight, me.PosX, me.PosY, c.PosX, c.PosY)) continue;
+                if (!InAimCone(aim.Yaw.Value, pose, at))
+                {
+                    continue;
+                }
+
+                if (!LineOfSight.Clear(sight, me.PosX, me.PosY, c.PosX, c.PosY))
+                {
+                    continue;
+                }
+
                 int score = 4096 - Dot(Normalised(at - pose), aimVector);
-                if (score >= best) continue;
+                if (score >= best)
+                {
+                    continue;
+                }
+
                 best = score;
                 chosen = c;
             }
@@ -88,7 +128,11 @@ public static partial class PossessionRules
     /// leader's count is the caller's.</summary>
     public static bool StartFollowing(SimulationContext context, CreatureState c, int leaderId)
     {
-        if (leaderId != 0 && leaderId == c.FollowLeaderId) c.FollowLeaderId = 0;
+        if (leaderId != 0 && leaderId == c.FollowLeaderId)
+        {
+            c.FollowLeaderId = 0;
+        }
+
         long now = context.Tick.Value;
         if (MayFollow(context.Database, c) && CreatureStateMachine.TrySetState(context.Hooks, c, FollowingState, now))
         {
@@ -117,7 +161,11 @@ public static partial class PossessionRules
         }
 
         long now = context.Tick.Value;
-        if (unchecked((ulong)me.FollowRouteTick) > unchecked((ulong)now)) return true;
+        if (unchecked((ulong)me.FollowRouteTick) > unchecked((ulong)now))
+        {
+            return true;
+        }
+
         if (!context.Navigation.TryRouteTo(me, leader.PosX, leader.PosY, MoveOptions.Loose))
         {
             me.FollowRouteTick = now + SimulationTiming.OriginalTicksPerGameSecond;
@@ -135,17 +183,36 @@ public static partial class PossessionRules
     {
         // 1's arm, not in the turn a combat handler set 1 (0x00476FC0).
         if (c.Dk2StateId == CreatureStateMachine.Idle && c.FollowLeaderId != 0)
+        {
             return context.IdleHandlerWaits(c) || StartFollowing(context, c, c.FollowLeaderId);
+        }
+
         if (StateShadow.IsTravelling(c) && c.UtilityNewState == FollowingState)
         {
-            if (c.HasRoute) return true;
+            if (c.HasRoute)
+            {
+                return true;
+            }
+
             c.StopMoving();
             StateShadow.Arrive(context, system, c);
             return true;
         }
-        if (c.Dk2StateId != FollowingState) return false;
-        if (context.UpdateStartStateId != FollowingState) return true;
-        if (!Follow(context, c)) StateShadow.ToIdle(context, system, c);
+        if (c.Dk2StateId != FollowingState)
+        {
+            return false;
+        }
+
+        if (context.UpdateStartStateId != FollowingState)
+        {
+            return true;
+        }
+
+        if (!Follow(context, c))
+        {
+            StateShadow.ToIdle(context, system, c);
+        }
+
         return true;
     }
 
@@ -156,7 +223,11 @@ public static partial class PossessionRules
     {
         foreach (CreatureState c in context.World.OwnedCreatures(player))
         {
-            if (c.FollowLeaderId == 0) continue;
+            if (c.FollowLeaderId == 0)
+            {
+                continue;
+            }
+
             c.FollowLeaderId = 0;
             me.FollowerCount--;
         }
@@ -168,8 +239,16 @@ public static partial class PossessionRules
     /// with its field set; ours clears it, so a corpse that is later removed does not count twice.</summary>
     public static void LeaderLosesFollower(WorldState world, CreatureState c)
     {
-        if (c.FollowLeaderId == 0) return;
-        if (world.CreatureById(c.FollowLeaderId) is { } leader) leader.FollowerCount--;
+        if (c.FollowLeaderId == 0)
+        {
+            return;
+        }
+
+        if (world.CreatureById(c.FollowLeaderId) is { } leader)
+        {
+            leader.FollowerCount--;
+        }
+
         c.FollowLeaderId = 0;
     }
 
@@ -182,8 +261,16 @@ public static partial class PossessionRules
     public static CreatureState? LeaderTarget(WorldState world, CreatureState me)
     {
         if (me.FollowLeaderId == 0 || world.CreatureById(me.FollowLeaderId) is not { } leader
-            || !CreatureStateMachine.HasState(leader)) return null;
-        if (leader.PossessedTargetKind != FightTargetKind.Creature) return null;
+            || !CreatureStateMachine.HasState(leader))
+        {
+            return null;
+        }
+
+        if (leader.PossessedTargetKind != FightTargetKind.Creature)
+        {
+            return null;
+        }
+
         return world.CreatureById(leader.PossessedTargetId) is { } target && CreatureStateMachine.HasState(target)
             ? target : null;
     }
@@ -192,8 +279,16 @@ public static partial class PossessionRules
     /// forgotten three seconds after it was struck. A creature no longer possessed keeps it.</summary>
     internal static void ForgetStaleTarget(SimulationContext context, CreatureState c)
     {
-        if (!c.Possessed) return;
-        if (unchecked((ulong)context.Tick.Value) <= unchecked((ulong)(c.PossessedTargetTick + PossessedTargetTicks))) return;
+        if (!c.Possessed)
+        {
+            return;
+        }
+
+        if (unchecked((ulong)context.Tick.Value) <= unchecked((ulong)(c.PossessedTargetTick + PossessedTargetTicks)))
+        {
+            return;
+        }
+
         c.PossessedTargetKind = FightTargetKind.None;
         c.PossessedTargetId = 0;
     }

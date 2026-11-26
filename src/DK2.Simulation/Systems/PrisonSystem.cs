@@ -29,7 +29,10 @@ public sealed class PrisonSystem : ISimulationSystem
         // The drain is the Prison hook, which the dispatcher runs every turn (ADR-0192).
         Wither(context);
         WalkOut(context);
-        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
+        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0)
+        {
+            return;
+        }
 
         FreeThoseWhoseCellIsGone(context);
         BreakOutTheOvercrowded(context);
@@ -49,17 +52,37 @@ public sealed class PrisonSystem : ISimulationSystem
 
         foreach (CreatureState creature in world.Creatures)
         {
-            if (!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) continue;
+            if (!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature))
+            {
+                continue;
+            }
 
             // A prisoner in the keeper's hand is between cells, not out of one.
             // Where it lands is the drop's business (HandSystem).
-            if (HandRules.IsHeld(creature)) continue;
+            if (HandRules.IsHeld(creature))
+            {
+                continue;
+            }
             // Pickup preparation leaves the wheel before insertion into the hand (ADR-0731).
-            if (creature.Dk2StateId == HandRules.PreparationState) continue;
-            if (TortureRules.IsBeingTortured(creature)) continue;   // TortureSystem's
+            if (creature.Dk2StateId == HandRules.PreparationState)
+            {
+                continue;
+            }
+
+            if (TortureRules.IsBeingTortured(creature))
+            {
+                continue;   // TortureSystem's
+            }
             // Dropped outside a cell and lying stunned: 255's end clears the word (0x004811E5, ADR-0616).
-            if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256) continue;
-            if (StandsInItsOwnPrison(context, creature)) continue;
+            if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256)
+            {
+                continue;
+            }
+
+            if (StandsInItsOwnPrison(context, creature))
+            {
+                continue;
+            }
 
             context.Emit(SystemName, "prisoner_freed",
                 $"creature={creature.Id} owner={creature.OwnerPlayerId} " +
@@ -77,11 +100,23 @@ public sealed class PrisonSystem : ISimulationSystem
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) continue;
-            if ((!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) || !JailBreakRules.IsEscaping(creature)) continue;
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined))
+            {
+                continue;
+            }
+
+            if ((!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) || !JailBreakRules.IsEscaping(creature))
+            {
+                continue;
+            }
+
             if (StateShadow.IsTravelling(creature))
             {
-                if (creature.HasRoute) continue;
+                if (creature.HasRoute)
+                {
+                    continue;
+                }
+
                 creature.StopMoving();
                 StateShadow.Arrive(context, SystemName, creature);
                 continue;
@@ -97,8 +132,15 @@ public sealed class PrisonSystem : ISimulationSystem
 
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (!PrisonRules.IsPrisonOf(room, (byte)creature.PrisonOwnerPlayerId)) continue;
-            if (room.TileIndices.Contains(here)) return true;
+            if (!PrisonRules.IsPrisonOf(room, (byte)creature.PrisonOwnerPlayerId))
+            {
+                continue;
+            }
+
+            if (room.TileIndices.Contains(here))
+            {
+                return true;
+            }
         }
 
         return false;
@@ -117,17 +159,26 @@ public sealed class PrisonSystem : ISimulationSystem
 
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (room.Definition.TypeId != RoomTypeId.Prison) continue;
+            if (room.Definition.TypeId != RoomTypeId.Prison)
+            {
+                continue;
+            }
 
             int held = PrisonRules.PrisonerCount(world, room);
             int over = held - PrisonRules.Capacity(room);
             int percent = PrisonRules.JailBreakPercent(context.Database, over);
-            if (percent <= 0) continue;
+            if (percent <= 0)
+            {
+                continue;
+            }
 
             // Rolled even when the chance is at or above certainty, so the
             // sequence a level draws does not depend on how full a prison is.
             bool broken = context.Rng.NextInt(100) < percent;
-            if (!broken) continue;
+            if (!broken)
+            {
+                continue;
+            }
 
             context.Emit(SystemName, "jail_break",
                 $"player={room.OwnerPlayerId} {Describe(world, room.TileIndices[0])} " +
@@ -158,10 +209,25 @@ public sealed class PrisonSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = world.Creatures[i];
-            if (creature.Possessed) continue;
-            if (!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) continue;
-            if (HandRules.IsHeld(creature)) continue;
-            if (creature.Health <= 0) continue;   // SlayTheFallen's, on the second
+            if (creature.Possessed)
+            {
+                continue;
+            }
+
+            if (!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature))
+            {
+                continue;
+            }
+
+            if (HandRules.IsHeld(creature))
+            {
+                continue;
+            }
+
+            if (creature.Health <= 0)
+            {
+                continue;   // SlayTheFallen's, on the second
+            }
 
             // Read here rather than once above, so that a level with no prison
             // does not demand a variable that only a prison needs. The synthetic
@@ -171,18 +237,30 @@ public sealed class PrisonSystem : ISimulationSystem
             CreatureDef definition =
                 context.Database.CreatureById(creature.CreatureTypeId);
 
-            if (!PrisonRules.Withers(creature)) continue;   // neutral in a neutral cell
+            if (!PrisonRules.Withers(creature))
+            {
+                continue;   // neutral in a neutral cell
+            }
 
             // The drain is the Prison category's update hook 0x0047B7C0 (ADR-0191): a captive
             // whose state is not in category 14, or a walk between two of them, takes none.
-            if (CreatureStateMachine.UpdatingCategory(creature) != CreatureStateCategory.Prison) continue;
+            if (CreatureStateMachine.UpdatingCategory(creature) != CreatureStateCategory.Prison)
+            {
+                continue;
+            }
 
             // The countdown runs whatever the creature is, so a Skeleton's phase is the
             // same as anyone's; only what lands when it fires depends on the record.
-            if (!CreatureStateMachine.HookFires(creature, PrisonRules.WitherReload)) continue;
+            if (!CreatureStateMachine.HookFires(creature, PrisonRules.WitherReload))
+            {
+                continue;
+            }
 
             int wither = PrisonRules.WitherPerApplication(context.Database, definition);
-            if (wither == 0) continue;   // never eats, never withers - Q173
+            if (wither == 0)
+            {
+                continue;   // never eats, never withers - Q173
+            }
 
             // Health and anger in the same breath, and the anger is not scaled by the
             // interval (ADR-0171).
@@ -192,7 +270,10 @@ public sealed class PrisonSystem : ISimulationSystem
 
             creature.HealthSourcePlayerId = creature.OwnerPlayerId; // 0x0047B886: the prisoner's own owner
             creature.Health += wither;
-            if (creature.Health > 0) continue;
+            if (creature.Health > 0)
+            {
+                continue;
+            }
 
             Raise(context, creature);
         }
@@ -206,9 +287,20 @@ public sealed class PrisonSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = world.Creatures[i];
-            if ((!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) || HandRules.IsHeld(creature)) continue;
-            if (TortureRules.IsBeingTortured(creature)) continue;
-            if (creature.Health <= 0) Slain(context, creature);
+            if ((!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) || HandRules.IsHeld(creature))
+            {
+                continue;
+            }
+
+            if (TortureRules.IsBeingTortured(creature))
+            {
+                continue;
+            }
+
+            if (creature.Health <= 0)
+            {
+                Slain(context, creature);
+            }
         }
     }
 
@@ -230,13 +322,27 @@ public sealed class PrisonSystem : ISimulationSystem
 
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (!PrisonRules.IsPrisonOf(room, keeper)) continue;
-            if (!room.TileIndices.Contains((died.Y * world.Width) + died.X)) continue;
+            if (!PrisonRules.IsPrisonOf(room, keeper))
+            {
+                continue;
+            }
+
+            if (!room.TileIndices.Contains((died.Y * world.Width) + died.X))
+            {
+                continue;
+            }
 
             foreach (int tileIndex in room.TileIndices)
             {
-                if (room.IsInterior(tileIndex)) continue;
-                if (Occupied(world, tileIndex, creature.Id)) continue;
+                if (room.IsInterior(tileIndex))
+                {
+                    continue;
+                }
+
+                if (Occupied(world, tileIndex, creature.Id))
+                {
+                    continue;
+                }
 
                 creature.PosX = CreatureState.CentreOf(tileIndex % world.Width);
                 creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
@@ -263,8 +369,15 @@ public sealed class PrisonSystem : ISimulationSystem
     {
         foreach (CreatureState other in world.Creatures)
         {
-            if (other.Id == exceptId) continue;
-            if ((other.Tile.Y * world.Width) + other.Tile.X == tileIndex) return true;
+            if (other.Id == exceptId)
+            {
+                continue;
+            }
+
+            if ((other.Tile.Y * world.Width) + other.Tile.X == tileIndex)
+            {
+                return true;
+            }
         }
 
         return false;
@@ -287,8 +400,15 @@ public sealed class PrisonSystem : ISimulationSystem
         byte raises = 0;
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (!PrisonRules.IsPrisonOf(room, keeper)) continue;
-            if (!room.TileIndices.Contains((at.Y * world.Width) + at.X)) continue;
+            if (!PrisonRules.IsPrisonOf(room, keeper))
+            {
+                continue;
+            }
+
+            if (!room.TileIndices.Contains((at.Y * world.Width) + at.X))
+            {
+                continue;
+            }
 
             raises = room.Definition.CreatedCreatureId;
             break;
@@ -318,7 +438,10 @@ public sealed class PrisonSystem : ISimulationSystem
         }
 
         CreatureState? skeleton = world.TrySpawnCreature(context.Database, raises, keeper, at);
-        if (skeleton is null) return;
+        if (skeleton is null)
+        {
+            return;
+        }
 
         context.Emit(SystemName, "prisoner_perished",
             $"creature={prisoner.Id} type={definition.Name} owner={prisoner.OwnerPlayerId} " +

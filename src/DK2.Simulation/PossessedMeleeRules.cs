@@ -32,12 +32,19 @@ internal static class PossessedMeleeRules
 
     internal static void Poll(SimulationContext context, CreatureState creature)
     {
-        if (!creature.PossessedMelee.Active || !context.PossessedMeleePolledThisTick.Add(creature)) return;
+        if (!creature.PossessedMelee.Active || !context.PossessedMeleePolledThisTick.Add(creature))
+        {
+            return;
+        }
+
         if (!creature.ActionHandlerDone)
         {
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             if (creature.SwingInProgress && CombatRules.BlowLands(creature, definition, context.Tick.Value))
+            {
                 FightRules.LandBlow(context, creature, definition);
+            }
+
             creature.ActionHandlerDone = !creature.SwingInProgress;
         }
         creature.PossessedMelee.AnimationComplete |= ActionAnimationClock.AnimationDone(creature);
@@ -49,19 +56,32 @@ internal static class PossessedMeleeRules
 
     internal static void Advance(SimulationContext context, CreatureState creature)
     {
-        if (!creature.PossessedMelee.OwnsClip || !context.PossessedMeleeAdvancedThisTick.Add(creature)) return;
+        if (!creature.PossessedMelee.OwnsClip || !context.PossessedMeleeAdvancedThisTick.Add(creature))
+        {
+            return;
+        }
+
         if (!creature.PossessedMelee.Active)
         {
-            if (creature.ActionArtSlot == ArtSlot) ActionAnimationClock.Clear(creature);
+            if (creature.ActionArtSlot == ArtSlot)
+            {
+                ActionAnimationClock.Clear(creature);
+            }
+
             creature.PossessedMelee = default;
         }
         else if (!StatusEffectRules.IsFrozen(creature))
+        {
             ActionAnimationClock.Advance(creature, context.Database.CreatureById(creature.CreatureTypeId));
+        }
     }
 
     internal static void Cancel(CreatureState creature)
     {
-        if (!creature.PossessedMelee.OwnsClip) return;
+        if (!creature.PossessedMelee.OwnsClip)
+        {
+            return;
+        }
         // Ending or replacing the action clears its pending handler and current target.
         creature.SwingInProgress = false;
         creature.SwingTargetKind = FightTargetKind.None;

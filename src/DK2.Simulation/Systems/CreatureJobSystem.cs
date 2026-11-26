@@ -50,35 +50,90 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (creature.Possessed) return;
+        if (creature.Possessed)
+        {
+            return;
+        }
         // Isolated job-system hosts omit TrainingActionSystem; completed handler work is guarded.
-        if (creature.TrainingActionId != 0) TrainingStep.PollAction(context, creature);
-        if (context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
+        if (creature.TrainingActionId != 0)
+        {
+            TrainingStep.PollAction(context, creature);
+        }
+
+        if (context.TremorRecoveryCompletedThisTick.Contains(creature))
+        {
+            return;
+        }
+
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         if (creature.Dk2StateId == LeavingRules.PortalDropState)
         {
-            if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) return;
+            if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature))
+            {
+                return;
+            }
+
             if (context.Tick.Value > creature.StateEnteredTick
-                && !LeavingRules.PortalDrop(context, creature, SystemName)) StateShadow.ToIdle(context, SystemName, creature);
+                && !LeavingRules.PortalDrop(context, creature, SystemName))
+            {
+                StateShadow.ToIdle(context, SystemName, creature);
+            }
+
             return;
         }
-        if (creature.Dk2StateId == DropLandingRules.HeartDropState) return;   // the stun recovery step's (Q759)
+        if (creature.Dk2StateId == DropLandingRules.HeartDropState)
+        {
+            return;   // the stun recovery step's (Q759)
+        }
 
         // Workers have their own whole system and their own priority order
         // (ADR-0018). DK2 dispatches them before any of this too - an Imp's
         // happy table is Explore at 100%, and nothing here would know what
         // to do with it.
-        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return;
+        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+        {
+            return;
+        }
 
-        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) return;
-        if (PossessionRules.FollowerTurn(context, SystemName, creature)) return;
-        if (creature.CombatPitFighter) return;   // idle sends it back to the pit (ADR-0213)
+        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down))
+        {
+            return;
+        }
+
+        if (PossessionRules.FollowerTurn(context, SystemName, creature))
+        {
+            return;
+        }
+
+        if (creature.CombatPitFighter)
+        {
+            return;   // idle sends it back to the pit (ADR-0213)
+        }
         // Before the leaving test: 169, the thief's escape, reads as leaving (ADR-0223).
-        if (!HeroJobRules.IsHero(creature) && StealGoldRules.KeeperTurn(context, SystemName, creature)) return;
-        if (creature.Activity == CreatureActivity.Leaving) return;
-        if (HeroJobRules.IsHero(creature)) return;   // HeroSystem: state 1 sends a hero to 90
-        if (Combat.ThreatFleeRules.IsFleeing(creature)) return;   // the combat states' (ADR-0678)
-        if (ExploreRules.KeeperTurn(context, SystemName, creature)) return;   // job 24's state 225 (ADR-0674)
+        if (!HeroJobRules.IsHero(creature) && StealGoldRules.KeeperTurn(context, SystemName, creature))
+        {
+            return;
+        }
+
+        if (creature.Activity == CreatureActivity.Leaving)
+        {
+            return;
+        }
+
+        if (HeroJobRules.IsHero(creature))
+        {
+            return;   // HeroSystem: state 1 sends a hero to 90
+        }
+
+        if (Combat.ThreatFleeRules.IsFleeing(creature))
+        {
+            return;   // the combat states' (ADR-0678)
+        }
+
+        if (ExploreRules.KeeperTurn(context, SystemName, creature))
+        {
+            return;   // job 24's state 225 (ADR-0674)
+        }
 
         // A walk resuming 1 is state 1's own, back to a fight (ADR-0225): the arrival is idle.
         if (StateShadow.IsTravelling(creature) && creature.UtilityNewState == CreatureStateMachine.Idle)
@@ -91,9 +146,15 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             }
             return;
         }
-        if (Combat.CombatRules.Preoccupied(creature)) return;
+        if (Combat.CombatRules.Preoccupied(creature))
+        {
+            return;
+        }
         // A combat handler set 1 this turn: 1's handler is next turn's (0x00476FC0).
-        if (context.IdleHandlerWaits(creature)) return;
+        if (context.IdleHandlerWaits(creature))
+        {
+            return;
+        }
 
         // 193, joining your Dungeon: the Entrance animation, a step off the portal, then 1 and the
         // lair attempt in the same tick, its result unread (0x00459C20, the call at 0x00459D34).
@@ -102,7 +163,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         {
             // The sound is requested before the step off the hole (0x00459C73), at the position it still has.
             var atTheHole = new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
-            if (PortalRules.StillJoining(world, creature, definition)) return;
+            if (PortalRules.StillJoining(world, creature, definition))
+            {
+                return;
+            }
             // Only for the local player's creatures (+0x264): the owner is the one viewer that hears it.
             ThingSoundRules.Request(context, SystemName, SoundSourceId.Of(new CreatureId(creature.Id)), definition.SoundCategory,
                 ThingSoundEvent.JoinedDungeon, atTheHole, viewerOnlyFor: creature.OwnerPlayerId);
@@ -124,22 +188,38 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         }
         if (creature.Dk2StateId == ImpStates.Wandering)
         {
-            if (context.UpdateStartStateId == LairRules.MistressBedExitState) return;
-            if (!ImpTaskSystem.Wander(context, creature, definition)) StateShadow.ToIdle(context, SystemName, creature);
+            if (context.UpdateStartStateId == LairRules.MistressBedExitState)
+            {
+                return;
+            }
+
+            if (!ImpTaskSystem.Wander(context, creature, definition))
+            {
+                StateShadow.ToIdle(context, SystemName, creature);
+            }
+
             return;
         }
 
         // 211, the gold celebration: holds while its action plays, then idle (ADR-0400).
         if (creature.Dk2StateId == DropDeliveryRules.CelebratingState)
         {
-            if (!DropDeliveryRules.Celebrating(context, creature)) StateShadow.ToIdle(context, SystemName, creature);
+            if (!DropDeliveryRules.Celebrating(context, creature))
+            {
+                StateShadow.ToIdle(context, SystemName, creature);
+            }
+
             return;
         }
 
         // 250, after a drop with nowhere to go: stands, then idle (ADR-0226).
         if (creature.Dk2StateId == DropLandingRules.StandingState)
         {
-            if (!DropLandingRules.Stands(context, creature)) StateShadow.ToIdle(context, SystemName, creature);
+            if (!DropLandingRules.Stands(context, creature))
+            {
+                StateShadow.ToIdle(context, SystemName, creature);
+            }
+
             return;
         }
 
@@ -170,7 +250,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     private void Choose(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.Dk2StateId == IdleChooserState && TryDispatchMoodPrelude(context, creature, definition)) return;
+        if (creature.Dk2StateId == IdleChooserState && TryDispatchMoodPrelude(context, creature, definition))
+        {
+            return;
+        }
         // State 1 (0x004773D0) requests 89 and returns; 89's body runs on a later turn (ADR-0574).
         // A Horny's arm is 238, which is not built, so a Horny not fleeing still chooses below.
         if (creature.Dk2StateId == CreatureStateMachine.Idle
@@ -180,7 +263,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             return;
         }
         // State 1's first arm, before it sends the creature to 89: back to a fight it withdrew from.
-        if (creature.Dk2StateId == CreatureStateMachine.Idle && Combat.FightReturnRules.TryReturn(context, creature)) return;
+        if (creature.Dk2StateId == CreatureStateMachine.Idle && Combat.FightReturnRules.TryReturn(context, creature))
+        {
+            return;
+        }
 
         // State 1's neutral arm (0x004775BE-0x004775DA): every neutral creature, fleeing or not,
         // takes +0x7E = now + 12 and state 5 (ADR-0400).
@@ -216,19 +302,27 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // leaving (Level 3's Goblins, ADR-0328).
         if (!LairRules.HasBed(context.World, context.Database, creature)
             && _seeker.TryGoForALair(context, SystemName, creature, definition))
+        {
             return;
+        }
 
         // State 89 (0x004778E0) asks the job the hand dropped this creature on before either
         // chooser, whatever the mood, and forgets it only when it is refused (ADR-0215).
         if (creature.DroppedToDoJob != JobType.None)
         {
-            if (TryTake(context, creature, definition, creature.DroppedToDoJob, roll: -1, "dropped", report: false)) return;
+            if (TryTake(context, creature, definition, creature.DroppedToDoJob, roll: -1, "dropped", report: false))
+            {
+                return;
+            }
+
             creature.DroppedToDoJob = JobType.None;
         }
 
         if (creature.Dk2StateId == IdleChooserState && creature.ReturnToJob != JobType.None
             && TryTake(context, creature, definition, creature.ReturnToJob, roll: -1, "remembered", report: false))
+        {
             return;
+        }
 
         CreatureMood mood = creature.Dk2StateId == IdleChooserState
             ? CreatureMood.Content : CreatureAngerRules.MoodOf(definition, creature);
@@ -236,7 +330,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // An angry creature is CreatureAngerSystem's, and has been since
         // ADR-0061. Two systems rolling on two tables in one second would be
         // two decisions where DK2 makes one.
-        if (mood == CreatureMood.Angry) return;
+        if (mood == CreatureMood.Angry)
+        {
+            return;
+        }
 
         long now = context.Tick.Value;
         long last = mood == CreatureMood.Content
@@ -273,21 +370,42 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         for (int i = 0; i < _ranges.Count && taken < 0; i++)
         {
             (JobType job, int low, int high) = _ranges[i];
-            if (job == JobType.None || roll < low || high < roll) continue;
-            if (TryTake(context, creature, definition, job, roll, "rolled", false)) taken = i;
+            if (job == JobType.None || roll < low || high < roll)
+            {
+                continue;
+            }
+
+            if (TryTake(context, creature, definition, job, roll, "rolled", false))
+            {
+                taken = i;
+            }
         }
 
         for (int i = 0; i < _ranges.Count && taken < 0; i++)
         {
             JobType job = _ranges[i].Job;
-            if (job == JobType.None) continue;
-            if (TryTake(context, creature, definition, job, roll, "fell_through", report)) taken = i;
+            if (job == JobType.None)
+            {
+                continue;
+            }
+
+            if (TryTake(context, creature, definition, job, roll, "fell_through", report))
+            {
+                taken = i;
+            }
         }
 
         if (taken >= 0)
         {
-            if (mood == CreatureMood.Content) creature.LastHappyChoiceTick = now;
-            else creature.LastUnhappyChoiceTick = now;
+            if (mood == CreatureMood.Content)
+            {
+                creature.LastHappyChoiceTick = now;
+            }
+            else
+            {
+                creature.LastUnhappyChoiceTick = now;
+            }
+
             return;
         }
 
@@ -324,7 +442,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         string? refused = JobRules.Refused(context.World, context.Database, definition, creature, job);
         // The dispatcher (0x00478800) admits only Leave and Rebel while the owner's Call to Arms is on (ADR-0145, ADR-0279).
         if (refused is null && job is not (JobType.Leave or JobType.Rebel) && CallToArmsRules.IsOn(context.World, creature.OwnerPlayerId))
+        {
             refused = "call_to_arms";
+        }
+
         RoomTypeId? wants = JobRules.RoomFor(job);
 
         // Job 26's handler (0x00457780) wants a fight on in one of the keeper's pits (ADR-0227).
@@ -348,7 +469,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // Job 13's arm is the same for a keeper's creature as for a hero (0x00481FA0, ADR-0223).
         if (refused is null && job == JobType.StealGold)
         {
-            if (!StealGoldRules.Arm(context, SystemName, creature)) refused = "no_target";
+            if (!StealGoldRules.Arm(context, SystemName, creature))
+            {
+                refused = "no_target";
+            }
             else
             {
                 creature.CurrentJob = job;
@@ -362,7 +486,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // Job 24's arm (0x0045A290, Job_Dispatch case 0x18): a neutral tile anywhere, then 225 (ADR-0674).
         if (refused is null && job == JobType.Explore)
         {
-            if (!ExploreRules.Arm(context, creature)) refused = "no_target";
+            if (!ExploreRules.Arm(context, creature))
+            {
+                refused = "no_target";
+            }
             else
             {
                 creature.CurrentJob = job;
@@ -389,17 +516,32 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         bool sleepRouted = false;
         if (refused is null && job == JobType.Sleep)
         {
-            if (!LairRules.HasBed(context.World, context.Database, creature)) refused = "no_bed";
-            else if (!LairRules.WantsToSleep(context.Database, definition, creature)) refused = "not_tired";
-            else if (!CreatureSleepSystem.GoToBed(context, creature, definition)) refused = "no_route";
-            else sleepRouted = true;
+            if (!LairRules.HasBed(context.World, context.Database, creature))
+            {
+                refused = "no_bed";
+            }
+            else if (!LairRules.WantsToSleep(context.Database, definition, creature))
+            {
+                refused = "not_tired";
+            }
+            else if (!CreatureSleepSystem.GoToBed(context, creature, definition))
+            {
+                refused = "no_route";
+            }
+            else
+            {
+                sleepRouted = true;
+            }
         }
 
         if (refused is null && !sleepRouted && !TrySetOut(context, creature, definition, job, wants!.Value))
         {
             refused = "no_room";
             // The Library finder's messages are posted by its search in TrySetOut: one call in DK2.
-            if (job != JobType.Research) RoomNeedRules.NoJobRoomFor(context, creature, definition, wants.Value);
+            if (job != JobType.Research)
+            {
+                RoomNeedRules.NoJobRoomFor(context, creature, definition, wants.Value);
+            }
         }
 
         // Job_StartTrain (0x00485240) calls the fighter's pit finder, for its messages only, for a
@@ -407,7 +549,9 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         if (job == JobType.Train && refused != "call_to_arms"
             && creature.Level >= context.Database[VariableTypeId.TrainingRoomMaxExperienceLevel]
             && creature.Level < context.Database[VariableTypeId.CombatPitMaxExperienceLevel])
+        {
             RoomNeedRules.NoFightingPitFor(context, creature, definition);
+        }
 
         if (refused is not null)
         {
@@ -422,7 +566,11 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             return false;
         }
 
-        if (!sleepRouted) creature.CurrentJob = job;
+        if (!sleepRouted)
+        {
+            creature.CurrentJob = job;
+        }
+
         context.Emit(SystemName, "job_taken",
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} job={job} roll={roll} how={how} " +
@@ -437,7 +585,11 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     internal static bool TryGoGamblingWhenPaid(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (!definition.HappyJobs.Any(j => j.Job == JobType.Drink)) return false;
+        if (!definition.HappyJobs.Any(j => j.Job == JobType.Drink))
+        {
+            return false;
+        }
+
         return TryTake(context, creature, definition, JobType.Drink, roll: -1, how: "paid", report: true);
     }
 
@@ -458,9 +610,20 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         var candidates = new List<(long Distance, int FirstTile, RoomInstance Room)>();
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.OwnerPlayerId != creature.OwnerPlayerId) continue;
-            if (room.Definition.TypeId != wants) continue;
-            if (room.TileIndices.Count == 0) continue;
+            if (room.OwnerPlayerId != creature.OwnerPlayerId)
+            {
+                continue;
+            }
+
+            if (room.Definition.TypeId != wants)
+            {
+                continue;
+            }
+
+            if (room.TileIndices.Count == 0)
+            {
+                continue;
+            }
 
             candidates.Add((
                 EatingRules.DistanceSquared(world, creature.Tile, CentreTileIndex(world, room)),
@@ -479,7 +642,9 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             // Job_TryResearch (0x004759D0): the Library finder 0x004E2500 names one room, or none.
             candidates.Clear();
             if (RoomNeedRules.FindLibrary(context, creature, definition, out _) is { } library)
+            {
                 candidates.Add((0, library.TileIndices[0], library));
+            }
         }
         else if (party)
         {
@@ -488,7 +653,9 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             candidates.Reverse();
         }
         else if (job == JobType.Torture && candidates.Any(c => HoldsAVictim(world, c.Room)))
+        {
             candidates.RemoveAll(c => !HoldsAVictim(world, c.Room));
+        }
         else
         {
             int units = job == JobType.Torture ? 2 * RoomCapacityRules.Units : RoomCapacityRules.Units;
@@ -496,16 +663,23 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         }
 
         if (!party)
+        {
             candidates.Sort((a, b) =>
                 a.Distance != b.Distance
                     ? a.Distance.CompareTo(b.Distance)
                     : a.FirstTile.CompareTo(b.FirstTile));
+        }
 
         RoomInstance? savedGuardRoom = job == JobType.Guard && creature.ReturnToJob == JobType.Guard
             ? creature.ReturnRoom.Resolve(world, database, creature.OwnerPlayerId, RoomTypeId.GuardRoom) : null;
         if (savedGuardRoom is not null && RoomCapacityRules.HasRoom(world, database, savedGuardRoom, creature.Id))
+        {
             candidates.Insert(0, (0, savedGuardRoom.TileIndices[0], savedGuardRoom));
-        else savedGuardRoom = null;
+        }
+        else
+        {
+            savedGuardRoom = null;
+        }
 
         foreach ((_, _, RoomInstance room) in candidates)
         {
@@ -515,17 +689,34 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             // room point 0x004E4C10, which is never a furniture slot (ADR-0403).
             int here = world.Contains(creature.Tile) ? (creature.Tile.Y * world.Width) + creature.Tile.X : -1;
             int target;
-            if (here >= 0 && room.Contains(here)) target = here;
-            else if (RoomWalkRules.ArrivalTile(context, room) is int point) target = point;
-            else continue;
+            if (here >= 0 && room.Contains(here))
+            {
+                target = here;
+            }
+            else if (RoomWalkRules.ArrivalTile(context, room) is int point)
+            {
+                target = point;
+            }
+            else
+            {
+                continue;
+            }
+
             var at = new TilePos(target % world.Width, target / world.Width);
-            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) continue;
+            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose))
+            {
+                continue;
+            }
 
             creature.JobTileIndex = target;
             bool entered = SetOutInState(context, creature, job);
             if (job == JobType.Guard)
             {
-                if (!entered) continue;
+                if (!entered)
+                {
+                    continue;
+                }
+
                 if (!reusingGuardRoom)
                 {
                     creature.ReturnRoom = RoomReference.Capture(world, room);
@@ -535,7 +726,11 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
 
             // Standing in it already - a creature that rolls Train while stood
             // in the training room. No walk to make, so it is at work now.
-            if (!creature.IsRouted) Arrive(context, creature, definition, job, entered);
+            if (!creature.IsRouted)
+            {
+                Arrive(context, creature, definition, job, entered);
+            }
+
             return true;
         }
 
@@ -549,7 +744,11 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (creature.CurrentJob == JobType.Research
-            ? Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One : creature.HasRoute) return;
+            ? Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One : creature.HasRoute)
+        {
+            return;
+        }
+
         Arrive(context, creature, definition, creature.CurrentJob);
     }
 
@@ -561,8 +760,15 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     {
         creature.StopMoving();
 
-        if (StateShadow.IsTravelling(creature)) entered = StateShadow.Arrive(context, SystemName, creature);
-        if (!entered && ClaimRefused(context, creature, definition, job)) return;
+        if (StateShadow.IsTravelling(creature))
+        {
+            entered = StateShadow.Arrive(context, SystemName, creature);
+        }
+
+        if (!entered && ClaimRefused(context, creature, definition, job))
+        {
+            return;
+        }
 
         context.Emit(SystemName, "job_started",
             $"creature={creature.Id} type={definition.Name} " +
@@ -584,7 +790,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     {
         bool second = OnTheSecond(context);
         bool originalTick = SimulationTiming.OnOriginalTick(context.Tick.Value);
-        if (!second && !originalTick) return;
+        if (!second && !originalTick)
+        {
+            return;
+        }
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -607,7 +816,11 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // one turn at a time (ADR-0196).
         if (job == JobType.Torture)
         {
-            if (originalTick && !TorturerStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            if (originalTick && !TorturerStep.Turn(context, SystemName, creature))
+            {
+                Stop(context, creature);
+            }
+
             return;
         }
 
@@ -616,8 +829,15 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         {
             if (CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Spectating
                 && CreatureStateMachine.HookFires(creature, CreatureStateMachine.HookCountdownSeed))
+            {
                 Spectate(context, world, database, creature, definition);
-            if (originalTick && !CombatPitSpectatorRules.Turn(context, SystemName, creature)) Stop(context, creature);
+            }
+
+            if (originalTick && !CombatPitSpectatorRules.Turn(context, SystemName, creature))
+            {
+                Stop(context, creature);
+            }
+
             return;
         }
 
@@ -629,8 +849,15 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         if (job == JobType.Research)
         {
             if (originalTick && CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Research)
+            {
                 Research(context, world, database, creature, definition, second);
-            if (originalTick && !ResearchStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            }
+
+            if (originalTick && !ResearchStep.Turn(context, SystemName, creature))
+            {
+                Stop(context, creature);
+            }
+
             return;
         }
 
@@ -639,9 +866,15 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         {
             if (CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Temple
                 && CreatureStateMachine.HookFires(creature, CreatureStateMachine.HookCountdownSeed))
+            {
                 Pray(context, world, database, creature, definition);
+            }
+
             if (originalTick && !TempleStep.Turn(context, SystemName, creature) && world.CreatureById(creature.Id) is not null)
+            {
                 Stop(context, creature);
+            }
+
             return;
         }
 
@@ -651,16 +884,31 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             if (CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Casino
                 && CreatureStateMachine.HookFires(creature, CreatureStateMachine.HookCountdownSeed)
                 && !Gamble(context, world, database, creature, definition))
+            {
                 return;
-            if (creature.CurrentJob != JobType.Drink) return;   // the jackpot's winner
-            if (originalTick && !CasinoStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            }
+
+            if (creature.CurrentJob != JobType.Drink)
+            {
+                return;   // the jackpot's winner
+            }
+
+            if (originalTick && !CasinoStep.Turn(context, SystemName, creature))
+            {
+                Stop(context, creature);
+            }
+
             return;
         }
 
         // Guard's category has no update hook either: 97, 98 and 99 are the whole of it (ADR-0212).
         if (job == JobType.Guard)
         {
-            if (originalTick && !GuardStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            if (originalTick && !GuardStep.Turn(context, SystemName, creature))
+            {
+                Stop(context, creature);
+            }
+
             return;
         }
 
@@ -668,7 +916,11 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // this turn; a maker that waited on its running action draws here a turn late (ADR-0671).
         if (creature.Dk2StateId == CrateRules.CrateMadeState)
         {
-            if (originalTick) CrateMade(context, creature, definition);
+            if (originalTick)
+            {
+                CrateMade(context, creature, definition);
+            }
+
             return;
         }
 
@@ -676,10 +928,17 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // MANUFACTURE IS CREDITED EVERY TURN, like research: 0x0047B190 has no countdown.
         if (job == JobType.Manufacture)
         {
-            if (!originalTick) return;
+            if (!originalTick)
+            {
+                return;
+            }
+
             if (CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Manufacture)
             {
-                if (!Manufacture(context, world, database, creature, definition)) return;
+                if (!Manufacture(context, world, database, creature, definition))
+                {
+                    return;
+                }
                 // The maker's own handler runs after its hook, in the state the crate maker set.
                 if (creature.Dk2StateId == CrateRules.CrateMadeState)
                 {
@@ -688,7 +947,11 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
                 }
             }
 
-            if (!WorkshopStep.Turn(context, SystemName, creature)) Stop(context, creature);
+            if (!WorkshopStep.Turn(context, SystemName, creature))
+            {
+                Stop(context, creature);
+            }
+
             return;
         }
 
@@ -696,10 +959,18 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // and goes back to 108 (0x004F2EA0, 0x00485A60; ADR-0400).
         if (job == JobType.Train)
         {
-            if (originalTick && RoomEvictRules.Evict(context, SystemName, creature, RoomTypeId.TrainingRoom)) return;
+            if (originalTick && RoomEvictRules.Evict(context, SystemName, creature, RoomTypeId.TrainingRoom))
+            {
+                return;
+            }
+
             if (creature.Dk2StateId == TrainingRules.ReturningState)
             {
-                if (originalTick && !TrainingRules.Return(context, SystemName, creature)) Stop(context, creature);
+                if (originalTick && !TrainingRules.Return(context, SystemName, creature))
+                {
+                    Stop(context, creature);
+                }
+
                 return;
             }
         }
@@ -715,24 +986,43 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             // creature levels, so the size of an award decides how much is thrown away and
             // collapsing four into one would leave a different balance behind.
             case CreatureStateCategory.Training:
-                if (originalTick) Train(context, world, database, creature, definition);
-                if (CreatureStateMachine.HookFires(creature, reload))
-                    ChargeForTraining(context, world, database, creature, definition);
                 if (originalTick)
                 {
-                    if (!TrainingRules.BelowCap(database, creature)) TrainingCapHandlers(context, database, creature, definition);
-                    else if (creature.CurrentJob == JobType.Train && !TrainingStep.Turn(context, SystemName, creature)) Stop(context, creature);
+                    Train(context, world, database, creature, definition);
+                }
+
+                if (CreatureStateMachine.HookFires(creature, reload))
+                {
+                    ChargeForTraining(context, world, database, creature, definition);
+                }
+
+                if (originalTick)
+                {
+                    if (!TrainingRules.BelowCap(database, creature))
+                    {
+                        TrainingCapHandlers(context, database, creature, definition);
+                    }
+                    else if (creature.CurrentJob == JobType.Train && !TrainingStep.Turn(context, SystemName, creature))
+                    {
+                        Stop(context, creature);
+                    }
                 }
                 return;
 
             case CreatureStateCategory.Spectating:
                 if (CreatureStateMachine.HookFires(creature, reload))
+                {
                     Spectate(context, world, database, creature, definition);
+                }
+
                 return;
 
             case CreatureStateCategory.Casino:
                 if (CreatureStateMachine.HookFires(creature, reload))
+                {
                     Gamble(context, world, database, creature, definition);
+                }
+
                 return;
         }
     }
@@ -746,7 +1036,9 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         CreatureState creature, CreatureDef definition)
     {
         if (CasinoRules.StepFearlessCountdown(database, creature))
+        {
             context.Emit(SystemName, "gambling_fearless", $"creature={creature.Id} type={definition.Name}");
+        }
 
         if (creature.GoldHeld <= CasinoRules.Stake(database))
         {
@@ -774,7 +1066,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
 
         int chance = CasinoJackpotRules.Chance(database, setting);
         if (chance > 0 && context.Rng.NextInt(chance) == CasinoJackpotRules.WinningRoll)
+        {
             CasinoJackpotRules.Jackpot(context, SystemName, creature);
+        }
+
         return true;
     }
 
@@ -793,7 +1088,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         int healed = CreatureHealthRules.Apply(
             database, definition, creature, JobRules.PrayingHeal(database), creature.OwnerPlayerId);
 
-        if (before.Equals(creature.Anger) && healed == 0) return;
+        if (before.Equals(creature.Anger) && healed == 0)
+        {
+            return;
+        }
 
         context.Emit(SystemName, "prayed",
             $"creature={creature.Id} type={definition.Name} " +
@@ -809,7 +1107,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     {
         CreatureAnger before = creature.Anger;
         CreatureAngerRules.Apply(world, definition, creature, JobRules.SpectatorCalm(database), AngerComplaint.General);
-        if (before.Equals(creature.Anger)) return;
+        if (before.Equals(creature.Anger))
+        {
+            return;
+        }
 
         context.Emit(SystemName, "spectated",
             $"creature={creature.Id} type={definition.Name} " +
@@ -830,7 +1131,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         CreatureState creature, CreatureDef definition)
     {
         int amount = TrainingRules.ExperiencePerOriginalTick(database, definition, creature);
-        if (amount <= 0) return;
+        if (amount <= 0)
+        {
+            return;
+        }
 
         int before = creature.ExperiencePoints;
         int level = creature.Level;
@@ -840,7 +1144,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         {
             // Every original tick would be four lines a second in a log that is
             // read by eye. The gain is reported on the second only.
-            if (!OnTheSecond(context)) return;
+            if (!OnTheSecond(context))
+            {
+                return;
+            }
 
             context.Emit(SystemName, "trained",
                 $"creature={creature.Id} type={definition.Name} " +
@@ -871,7 +1178,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         CreatureState creature, CreatureDef definition, bool second)
     {
         int amount = ResearchRules.PerOriginalTick(database, definition, creature);
-        if (amount <= 0) return;
+        if (amount <= 0)
+        {
+            return;
+        }
 
         int bonus = second
             ? ResearchRules.SlapBonus(database, creature, amount, context.Tick.Value)
@@ -884,7 +1194,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // always banked first, and only then may it pay for something.
         ResearchTreeRules.Advance(context, creature.OwnerPlayerId);
 
-        if (!second) return;
+        if (!second)
+        {
+            return;
+        }
 
         context.Emit(SystemName, "researched",
             $"creature={creature.Id} type={definition.Name} " +
@@ -912,7 +1225,11 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         }
 
         ObjectState? crate = ManufactureRules.Credit(context.Hooks, creature, amount);
-        if (crate is null) return true;
+        if (crate is null)
+        {
+            return true;
+        }
+
         context.Emit(SystemName, "crate_manufactured",
             $"creature={creature.Id} player={creature.OwnerPlayerId} object={crate.ObjectTypeId} " +
             $"at=({crate.TileIndex % world.Width},{crate.TileIndex / world.Width}) " +
@@ -934,10 +1251,18 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     /// celebration takes no time.</summary>
     private static void CrateMade(SimulationContext context, CreatureState creature, CreatureDef definition, bool makersOwnTurn = false)
     {
-        if (!makersOwnTurn) CreatureStateMachine.EndAction(creature);
+        if (!makersOwnTurn)
+        {
+            CreatureStateMachine.EndAction(creature);
+        }
+
         if (AnimationTimingRules.ResolvesPresent(definition, 8))
         {
-            if (context.Tick.Value < creature.ActionUntilTick) return;
+            if (context.Tick.Value < creature.ActionUntilTick)
+            {
+                return;
+            }
+
             context.Rng.NextInt(2);
         }
         context.Emit(SystemName, "crate_celebrated",
@@ -960,12 +1285,19 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         CreatureState creature, CreatureDef definition)
     {
         int cost = TrainingRules.GoldPerSecond(database);
-        if (cost <= 0) return;
+        if (cost <= 0)
+        {
+            return;
+        }
 
         if (GoldStore.TryWithdraw(world, creature.OwnerPlayerId, cost))
         {
             // Every fourth paid charge floats the four together from the trainee (0x0047B3D3..0x0047B40A).
-            if (++creature.TrainingCharges != 4) return;
+            if (++creature.TrainingCharges != 4)
+            {
+                return;
+            }
+
             CostNumberRules.Show(context, SystemName, new PlayerId(creature.OwnerPlayerId),
                 CostNumberRules.PointOf(creature), 4 * cost);
             creature.TrainingCharges = 0;
@@ -987,9 +1319,16 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     private static bool ClaimRefused(
         SimulationContext context, CreatureState creature, CreatureDef definition, JobType job)
     {
-        if (JobRules.StateFor(job) is not int state || creature.Dk2StateId != CreatureStateMachine.Idle) return false;
+        if (JobRules.StateFor(job) is not int state || creature.Dk2StateId != CreatureStateMachine.Idle)
+        {
+            return false;
+        }
+
         CreatureStateCategory category = CreatureStateTable.Get(state).Category;
-        if (!RoomCapacityRules.Claims(category)) return false;
+        if (!RoomCapacityRules.Claims(category))
+        {
+            return false;
+        }
 
         WorldState world = context.World;
         RoomInstance? room = world.Contains(creature.Tile)
@@ -1018,7 +1357,11 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     private static void TrainingCapHandlers(
         SimulationContext context, GameDatabase database, CreatureState creature, CreatureDef definition)
     {
-        if (TrainingRules.BelowCap(database, creature)) return;
+        if (TrainingRules.BelowCap(database, creature))
+        {
+            return;
+        }
+
         if (creature.Dk2StateId == TrainingRules.WalkToMachineState)
         {
             context.Emit(SystemName, "training_refused",
@@ -1050,7 +1393,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     private static bool SetOutInState(
         SimulationContext context, CreatureState creature, JobType job)
     {
-        if (JobRules.StateFor(job) is not int state) return true;
+        if (JobRules.StateFor(job) is not int state)
+        {
+            return true;
+        }
 
         if (creature.IsRouted)
         {
@@ -1072,7 +1418,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         WorldState world, GameDatabase database, CreatureState creature, RoomTypeId wants)
     {
         TilePos at = creature.Tile;
-        if (!world.Contains(at)) return false;
+        if (!world.Contains(at))
+        {
+            return false;
+        }
 
         RoomInstance? room = RoomIndex.RoomAt(world, database, (at.Y * world.Width) + at.X);
         return room is not null

@@ -24,8 +24,15 @@ public static class RoomExpansion
         foreach (int index in room.ChainOrder)
         {
             TilePos t = view.FromIndex(index);
-            if (t.X + t.Y < minX + minY) (minX, minY) = (t.X, t.Y);
-            if (maxX + maxY < t.X + t.Y) (maxX, maxY) = (t.X, t.Y);
+            if (t.X + t.Y < minX + minY)
+            {
+                (minX, minY) = (t.X, t.Y);
+            }
+
+            if (maxX + maxY < t.X + t.Y)
+            {
+                (maxX, maxY) = (t.X, t.Y);
+            }
         }
 
         int top = Grow(view, minX, maxX, x => new TilePos(x, minY - 1), x => new TilePos(x, minY - 2)) ? minY - 1 : minY;
@@ -33,7 +40,11 @@ public static class RoomExpansion
         int left = Grow(view, top, bottom, y => new TilePos(minX - 1, y), y => new TilePos(minX - 2, y)) ? minX - 1 : minX;
         int right = Grow(view, top, bottom, y => new TilePos(maxX + 1, y), y => new TilePos(maxX + 2, y)) ? maxX + 1 : maxX;
 
-        if (top == minY && bottom == maxY && left == minX && right == maxX) return null;
+        if (top == minY && bottom == maxY && left == minX && right == maxX)
+        {
+            return null;
+        }
+
         return new RoomSite(new TilePos(left, top), right - left + 1, bottom - top + 1);
     }
 
@@ -46,10 +57,18 @@ public static class RoomExpansion
         for (int i = from; i < to; i++)
         {
             TilePos tile = strip(i), gap = gapLine(i);
-            if (!view.InBounds(tile) || !Acceptable(view, tile) || !view.InBounds(gap)) return false;
+            if (!view.InBounds(tile) || !Acceptable(view, tile) || !view.InBounds(gap))
+            {
+                return false;
+            }
+
             if (view.IsTaggedByMe(gap) || !view.Terrain(gap).IsTaggable)
             {
-                if (gapSeen) return false;
+                if (gapSeen)
+                {
+                    return false;
+                }
+
                 gapSeen = true;
             }
         }
@@ -61,8 +80,16 @@ public static class RoomExpansion
     public static bool Acceptable(KeeperView view, TilePos tile)
     {
         TerrainDef terrain = view.Terrain(tile);
-        if (terrain.IsTaggable && !terrain.IsImpenetrable) return true;
-        if (HealsIntoAnother(terrain)) return true;
+        if (terrain.IsTaggable && !terrain.IsImpenetrable)
+        {
+            return true;
+        }
+
+        if (HealsIntoAnother(terrain))
+        {
+            return true;
+        }
+
         return view.IsMine(tile) && !terrain.IsRoom;
     }
 

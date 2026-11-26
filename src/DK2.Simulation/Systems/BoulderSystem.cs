@@ -26,8 +26,17 @@ public sealed class BoulderSystem : ISimulationSystem
         WorldState world = context.World;
         _boulders.Clear();
         foreach (ObjectState thing in world.Objects)
-            if (thing.ObjectTypeId == BoulderRules.ObjectId && thing.ProcessState == BoulderRules.ProcessState) _boulders.Add(thing);
-        if (_boulders.Count == 0) return;
+        {
+            if (thing.ObjectTypeId == BoulderRules.ObjectId && thing.ProcessState == BoulderRules.ProcessState)
+            {
+                _boulders.Add(thing);
+            }
+        }
+
+        if (_boulders.Count == 0)
+        {
+            return;
+        }
 
         TrapRules.RelinkCreatures(world);
         context.Navigation.Refresh();
@@ -39,9 +48,19 @@ public sealed class BoulderSystem : ISimulationSystem
         _destroyed.Clear();
         foreach (ObjectState boulder in _boulders)
         {
-            if (_destroyed.Contains(boulder)) continue;
-            if (BoulderRules.Update(context, _sight!, boulder, _destroyed)) _destroyed.Add(boulder);
+            if (_destroyed.Contains(boulder))
+            {
+                continue;
+            }
+
+            if (BoulderRules.Update(context, _sight!, boulder, _destroyed))
+            {
+                _destroyed.Add(boulder);
+            }
         }
-        foreach (ObjectState gone in _destroyed) world.RemoveObject(gone.Id);
+        foreach (ObjectState gone in _destroyed)
+        {
+            world.RemoveObject(gone.Id);
+        }
     }
 }

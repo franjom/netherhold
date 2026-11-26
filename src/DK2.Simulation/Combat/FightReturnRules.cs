@@ -22,7 +22,11 @@ public static class FightReturnRules
     /// are the x coordinate (<c>+0x1A</c> twice, <c>0x004617FB</c>–<c>0x00461811</c>).</summary>
     public static void Stamp(SimulationContext context, CreatureState creature)
     {
-        if (creature.CreatureTypeId == CombatRules.ImpCreatureTypeId) return;
+        if (creature.CreatureTypeId == CombatRules.ImpCreatureTypeId)
+        {
+            return;
+        }
+
         creature.OldFightTileX = creature.PosX >> 12;
         creature.OldFightTileY = creature.PosX >> 12;
         creature.OldFightTick = context.Tick.Value;
@@ -33,7 +37,11 @@ public static class FightReturnRules
     /// for an Imp and 0 otherwise, and is cleared once the walk is taken. True when it walks.</summary>
     public static bool TryReturn(SimulationContext context, CreatureState creature)
     {
-        if (creature.OldFightTileX == 0) return false;
+        if (creature.OldFightTileX == 0)
+        {
+            return false;
+        }
+
         if (context.Tick.Value >= creature.OldFightTick + ReturnWindowTicks)
         {
             Clear(creature);
@@ -41,12 +49,23 @@ public static class FightReturnRules
         }
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         int max = CreatureHealthRules.MaxHealth(context.Database, definition, creature);
-        if (((max * 3) >> 2) >= creature.Health) return false;
+        if (((max * 3) >> 2) >= creature.Health)
+        {
+            return false;
+        }
 
         int x = CreatureState.CentreOf(creature.OldFightTileX), y = CreatureState.CentreOf(creature.OldFightTileY);
         Navigation.MoveOptions options = creature.CreatureTypeId == CombatRules.ImpCreatureTypeId ? Navigation.MoveOptions.Loose : Navigation.MoveOptions.Plain;
-        if (!context.World.Contains(new TilePos(x >> 12, y >> 12))) return false;
-        if (!context.Navigation.TryRouteTo(creature, x, y, options)) return false;
+        if (!context.World.Contains(new TilePos(x >> 12, y >> 12)))
+        {
+            return false;
+        }
+
+        if (!context.Navigation.TryRouteTo(creature, x, y, options))
+        {
+            return false;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, CreatureStateMachine.Idle);
         Clear(creature);
         context.Emit("FightReturn", "returns_to_fight",

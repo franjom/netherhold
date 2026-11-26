@@ -21,12 +21,26 @@ public sealed class CasinoJackpotSystem : ICreatureUpdateStep
 
     public void Update(SimulationContext context, CreatureState creature)
     {
-        if (CreatureDeathRules.IsCorpse(creature)) return;
+        if (CreatureDeathRules.IsCorpse(creature))
+        {
+            return;
+        }
+
         CasinoJackpotRules.CountDown(context, SystemName, creature);
-        if (creature.Activity != CreatureActivity.CollectingWinnings || creature.Possessed) return;
-        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Down)) return;
+        if (creature.Activity != CreatureActivity.CollectingWinnings || creature.Possessed)
+        {
+            return;
+        }
+
+        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Down))
+        {
+            return;
+        }
+
         if (!CasinoJackpotRules.Turn(context, SystemName, creature) && CreatureStateMachine.HasState(creature)
             && creature.Dk2StateId != CreatureStateMachine.Idle)
+        {
             StateShadow.ToIdle(context, SystemName, creature);
+        }
     }
 }

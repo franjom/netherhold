@@ -20,20 +20,33 @@ public sealed class DoorHealthSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         WorldState world = context.World;
-        if (world.Doors.Count == 0) return;
+        if (world.Doors.Count == 0)
+        {
+            return;
+        }
+
         context.Navigation.Refresh();
         IReadOnlyList<DoorState> doors = world.Doors;
         for (int i = doors.Count - 1; i >= 0; i--)
         {
             DoorState door = doors[i];
-            if (!context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)) continue;
+            if (!context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition))
+            {
+                continue;
+            }
+
             DoorRules.Recover(context, door, definition);
             if (DoorRules.OwnerLost(world, door))
+            {
                 context.Emit("doors", "door_owner_lost", $"door={door.Id} player={door.PlayerId} tile_owner={world.Tile(door.X, door.Y).OwnerPlayerId}");
+            }
             // Step 4, before the barricade's return: a closed built door, a barricade included, pushes off its tile.
             DoorPushRules.PushCreaturesOff(context, door);
             if ((definition.Flags & DoorFlags.Barricade) == 0 && DoorRules.SupportLost(context.Navigation, door))
+            {
                 context.Emit("doors", "door_unsupported", $"door={door.Id} at={door.X},{door.Y}");
+            }
+
             if (DoorRules.IsDead(door) && !door.UnderConstruction && definition.DeathEffectId != 0)
             {
                 int x = CreatureState.CentreOf(door.X), y = CreatureState.CentreOf(door.Y);
@@ -59,8 +72,14 @@ public sealed class DoorRemovalSystem : ISimulationSystem
         IReadOnlyList<DoorState> doors = context.World.Doors;
         for (int i = 0; i < doors.Count;)
         {
-            if (DoorRules.IsDead(doors[i])) DoorRules.Remove(context, doors[i]);
-            else i++;
+            if (DoorRules.IsDead(doors[i]))
+            {
+                DoorRules.Remove(context, doors[i]);
+            }
+            else
+            {
+                i++;
+            }
         }
     }
 }

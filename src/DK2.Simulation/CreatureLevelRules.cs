@@ -69,9 +69,16 @@ public static class CreatureLevelRules
         in StateHookContext hooks, CreatureDef creature, CreatureState state, int amount)
     {
         GameDatabase database = hooks.Database;
-        if (CombatPitRules.AtTheCap(database, state)) return false;
+        if (CombatPitRules.AtTheCap(database, state))
+        {
+            return false;
+        }
+
         int needed = ExperienceForNextLevel(database, creature, state.Level);
-        if (needed <= 0) return false;
+        if (needed <= 0)
+        {
+            return false;
+        }
 
         if (amount < 0)
         {
@@ -79,10 +86,16 @@ public static class CreatureLevelRules
             return false;
         }
 
-        if (amount == 0) return false;
+        if (amount == 0)
+        {
+            return false;
+        }
 
         state.ExperiencePoints += amount;
-        if (state.ExperiencePoints < needed) return false;
+        if (state.ExperiencePoints < needed)
+        {
+            return false;
+        }
 
         // The remainder is thrown away, and only one level is bought, through the same level
         // increment every promotion uses (0x004579D4 calls 0x0048B120), health rescaled with it.
@@ -94,7 +107,10 @@ public static class CreatureLevelRules
     /// <c>CombatPitMaxExperienceLevel</c> is set to 1, and idle sends it back to 138.</summary>
     private static void LeaveThePitAtTheCap(in StateHookContext hooks, CreatureState state)
     {
-        if (CombatPitRules.AtTheCap(hooks.Database, state)) CreatureStateMachine.TrySetState(hooks, state, CreatureStateMachine.Idle);
+        if (CombatPitRules.AtTheCap(hooks.Database, state))
+        {
+            CreatureStateMachine.TrySetState(hooks, state, CreatureStateMachine.Idle);
+        }
     }
 
     /// <summary>DK2's level increment <c>0x0048B120</c>: nothing at
@@ -108,7 +124,11 @@ public static class CreatureLevelRules
     public static bool LevelUp(in StateHookContext hooks, CreatureDef creature, CreatureState state)
     {
         GameDatabase database = hooks.Database;
-        if (state.Level >= MaxLevel || state.Health <= 0) return false;
+        if (state.Level >= MaxLevel || state.Health <= 0)
+        {
+            return false;
+        }
+
         int oldMax = CreatureHealthRules.MaxHealth(database, creature, state);
         int current = state.Health;
         long ratio = ((long)current << 12) / oldMax;

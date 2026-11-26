@@ -23,7 +23,11 @@ public static class PossessionAbilityRules
     }
     public static void Frighten(SimulationContext context, CreatureId targetId, CreatureId sourceId, FearAmount amount)
     {
-        if (context.World.CreatureById(targetId.Value) is not { } target || CreatureDeathRules.IsCorpse(target)) return;
+        if (context.World.CreatureById(targetId.Value) is not { } target || CreatureDeathRules.IsCorpse(target))
+        {
+            return;
+        }
+
         if (target.PossessionFearTicks == 0)
         {
             int eye = (ushort)context.Database.CreatureById(target.CreatureTypeId).EyeHeight.Raw;
@@ -36,13 +40,19 @@ public static class PossessionAbilityRules
     }
     internal static void UpdateFear(SimulationContext context, CreatureState creature)
     {
-        if (creature.PossessionFearTicks == 0) return;
+        if (creature.PossessionFearTicks == 0)
+        {
+            return;
+        }
+
         creature.PossessionFearTicks--;
         creature.TempFear = unchecked((ushort)(creature.TempFear + creature.PossessionFearAmount));
         ThreatFleeRules.Record(creature, creature.PossessionFearAmount,
             new ThreatSource(ThreatSource.Creature, creature.PossessionFearSource.Value));
         if ((creature.PossessionFearTicks & 4) == 0)
+        {
             FearEffect(context, creature, new EffectId(336), new Fp32(creature.PosZ + Fp32.One));
+        }
     }
     private static void FearEffect(SimulationContext context, CreatureState creature, EffectId effect, Fp32 height) =>
         context.RequestEffect("possession", new ViewEffectRequest(effect, new PlayerId(PlayerIds.Neutral),
@@ -59,7 +69,11 @@ public static class PossessionAbilityRules
         creature.PossessionPraying = !creature.PossessionPraying;
     internal static void BeginPrayer(SimulationContext context, CreatureState creature)
     {
-        if (!creature.Possessed || !creature.PossessionPraying || creature.PossessionPrayerAction) return;
+        if (!creature.Possessed || !creature.PossessionPraying || creature.PossessionPrayerAction)
+        {
+            return;
+        }
+
         CreatureStateMachine.EndAction(creature);
         ActionAnimationClock.Begin(creature, context.Database.CreatureById(creature.CreatureTypeId), 23, context.Rng);
         creature.PossessionPrayerAction = true;
@@ -67,7 +81,11 @@ public static class PossessionAbilityRules
     }
     internal static void PollPrayer(SimulationContext context, CreatureState creature)
     {
-        if (!creature.PossessionPrayerAction) return;
+        if (!creature.PossessionPrayerAction)
+        {
+            return;
+        }
+
         if (!creature.PossessionPraying)
         {
             CancelPrayer(creature);
@@ -76,18 +94,28 @@ public static class PossessionAbilityRules
         int delta = unchecked((ushort)context.Database[VariableTypeId.ModifyCreatureHealthWhilePrayingPerSecond])
             / SimulationTiming.OriginalTicksPerGameSecond;
         creature.HealthSourcePlayerId = creature.OwnerPlayerId;
-        if (delta == 0 || CreatureDeathRules.IsDying(creature) || creature.CarriedByCreatureId >= 0) return;
+        if (delta == 0 || CreatureDeathRules.IsDying(creature) || creature.CarriedByCreatureId >= 0)
+        {
+            return;
+        }
+
         CreatureHealthRules.Apply(context.Database, context.Database.CreatureById(creature.CreatureTypeId),
             creature, delta, creature.OwnerPlayerId);
     }
     internal static void AdvancePrayer(SimulationContext context, CreatureState creature)
     {
         if (creature.PossessionPrayerAction && creature.FrozenTicks == 0)
+        {
             ActionAnimationClock.Advance(creature, context.Database.CreatureById(creature.CreatureTypeId));
+        }
     }
     internal static void CancelPrayer(CreatureState creature)
     {
-        if (!creature.PossessionPrayerAction) return;
+        if (!creature.PossessionPrayerAction)
+        {
+            return;
+        }
+
         creature.PossessionPrayerAction = false;
         ActionAnimationClock.Clear(creature);
     }

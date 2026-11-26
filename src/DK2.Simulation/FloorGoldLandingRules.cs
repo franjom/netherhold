@@ -41,7 +41,11 @@ public static class FloorGoldLandingRules
             Store(context, room!, incoming);
             return;
         }
-        if (state != LandingState.Standing) return;
+        if (state != LandingState.Standing)
+        {
+            return;
+        }
+
         incoming.OwnerPlayerId = PlayerIds.Neutral;
 
         int lowX = bandX * BandWidth, highX = bandX == 2 ? PositionMask : lowX + BandWidth - 1;
@@ -51,11 +55,19 @@ public static class FloorGoldLandingRules
             ObjectState candidate = world.Objects[index];
             if (candidate.Id == incoming.Id || candidate.ObjectTypeId != FloorGold.FloorGoldObjectId
                 || candidate.TileIndex != incoming.TileIndex || candidate.Health <= 0
-                || candidate.InHand || candidate.CarriedByCreatureId >= 0) continue;
+                || candidate.InHand || candidate.CarriedByCreatureId >= 0)
+            {
+                continue;
+            }
+
             int cell = candidate.Cell < 9 ? candidate.Cell : 4;
             int candidateX = HasPosition(candidate) ? candidate.PosX & PositionMask : cell % 3 * BandWidth + BandWidth / 2;
             int candidateY = HasPosition(candidate) ? candidate.PosY & PositionMask : cell / 3 * BandWidth + BandWidth / 2;
-            if (candidateX <= lowX || candidateX >= highX || candidateY <= lowY || candidateY >= highY) continue;
+            if (candidateX <= lowX || candidateX >= highX || candidateY <= lowY || candidateY >= highY)
+            {
+                continue;
+            }
+
             candidate.GoldHeld = Math.Max(0, unchecked(candidate.GoldHeld + incoming.GoldHeld));
             candidate.OwnerPlayerId = PlayerIds.Neutral;
             world.RemoveObject(incoming.Id);

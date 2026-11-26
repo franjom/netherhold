@@ -69,13 +69,21 @@ public static class EggLaunchRules
         int ground = FloorHeight(context.World, context.Database, new Fp32(egg.PosX), new Fp32(egg.PosY));
         int temporaryZ = temporaryVelocityZ.Raw;
         if (egg.PosZ > ground && (short)(context.Database.ObjectById(egg.ObjectTypeId)?.Mass.Raw ?? 0) != 0)
+        {
             egg.PhysicalVelocityZ -= context.Database[VariableTypeId.GravityConstant] * 0x100;
+        }
         else if (egg.PosZ <= ground && Math.Abs(egg.PhysicalVelocityX) + Math.Abs(egg.PhysicalVelocityY) > 0x1000)
+        {
             temporaryZ += 0x3000;
+        }
 
         int vx = egg.PhysicalVelocityX, vy = egg.PhysicalVelocityY, vz = egg.PhysicalVelocityZ + temporaryZ;
         int norm = IntegerMath.Length(vx, vy, vz);
-        if (norm == 0) return true;
+        if (norm == 0)
+        {
+            return true;
+        }
+
         int steps = Math.Min(16, (norm >> 14) + 1);
         int baseX = egg.PosX, baseY = egg.PosY, baseZ = egg.PosZ;
         int lastX = baseX, lastY = baseY, lastZ = baseZ;
@@ -124,13 +132,25 @@ public static class EggLaunchRules
             egg.PosZ = ground;
             egg.PhysicalVelocityZ = 0;
         }
-        else if (egg.PosZ > 0x3000) egg.PosZ = 0x2000;
+        else if (egg.PosZ > 0x3000)
+        {
+            egg.PosZ = 0x2000;
+        }
+
         int friction = 4096 - (ushort)(context.Database.ObjectById(egg.ObjectTypeId)?.AirFriction.Raw ?? 0);
-        if (friction < 0) friction = 2048;
+        if (friction < 0)
+        {
+            friction = 2048;
+        }
+
         egg.PhysicalVelocityX = unchecked(egg.PhysicalVelocityX * friction) / 4096;
         egg.PhysicalVelocityY = unchecked(egg.PhysicalVelocityY * friction) / 4096;
         int horizontal = Math.Abs(egg.PhysicalVelocityX) + Math.Abs(egg.PhysicalVelocityY);
-        if (horizontal > 0 && horizontal < 128) egg.PhysicalVelocityX = egg.PhysicalVelocityY = 0;
+        if (horizontal > 0 && horizontal < 128)
+        {
+            egg.PhysicalVelocityX = egg.PhysicalVelocityY = 0;
+        }
+
         return true;
     }
 

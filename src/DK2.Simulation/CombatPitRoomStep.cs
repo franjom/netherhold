@@ -25,14 +25,31 @@ public sealed class CombatPitRoomStep : IRoomTickStep
         int standing = 0, down = 0;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (!CreatureStateMachine.HasState(creature) || !CombatPitRules.IsOnTheMap(creature)) continue;
+            if (!CreatureStateMachine.HasState(creature) || !CombatPitRules.IsOnTheMap(creature))
+            {
+                continue;
+            }
+
             int tile = creature.Tile.Y * world.Width + creature.Tile.X;
-            if (!CombatPitRules.IsFloor(room, tile)) continue;
-            if (CreatureDeathRules.IsDying(creature)) down++;
-            else standing++;
+            if (!CombatPitRules.IsFloor(room, tile))
+            {
+                continue;
+            }
+
+            if (CreatureDeathRules.IsDying(creature))
+            {
+                down++;
+            }
+            else
+            {
+                standing++;
+            }
         }
         if (standing == 1 && state.PitPreviousStandingCount > 1 && down != 0)
+        {
             world.Messages.Post(world, room.OwnerPlayerId, PlayerMessageKind.CombatPitFightOver, 0, 0);
+        }
+
         state.PitPreviousStandingCount = unchecked((byte)standing);
     }
 
@@ -40,7 +57,11 @@ public sealed class CombatPitRoomStep : IRoomTickStep
     {
         if (ticks != 0) { ticks--; return; }
         ticks = unchecked((byte)context.Rng.NextInt(CombatPitRules.NativeTicksPerGameSecond(context.Database) * seconds));
-        if (effect == 0) return;
+        if (effect == 0)
+        {
+            return;
+        }
+
         int[] slots;
         if (walls)
         {
@@ -48,8 +69,16 @@ public sealed class CombatPitRoomStep : IRoomTickStep
             AutoFurnitureRules.FurnitureSlots(context.World, context.Database, room, accepted);
             slots = SlabChain.Order(context.World, room).Where(accepted.Contains).ToArray();
         }
-        else slots = AutoFurnitureRules.FloorSlotsInChainOrder(context.World, room);
-        if (slots.Length == 0) return;
+        else
+        {
+            slots = AutoFurnitureRules.FloorSlotsInChainOrder(context.World, room);
+        }
+
+        if (slots.Length == 0)
+        {
+            return;
+        }
+
         int chosen = slots[context.Rng.NextInt(slots.Length)];
         int x = CreatureState.CentreOf(chosen % context.World.Width), y = CreatureState.CentreOf(chosen / context.World.Width);
         context.RequestEffect(Name, new ViewEffectRequest(new EffectId(effect), room.OwnerPlayerId,
@@ -63,7 +92,10 @@ public sealed class CombatPitRoomStep : IRoomTickStep
     {
         int tile = creature.Tile.Y * context.World.Width + creature.Tile.X;
         if (CombatPitRules.PitAt(context.World, context.Database, tile) is not { } room
-            || room.Definition.CreatedObjectEffectId == 0) return;
+            || room.Definition.CreatedObjectEffectId == 0)
+        {
+            return;
+        }
         // The foreign-owner helper 0x004D83D0 only queries a floor and discards the result.
         context.RequestEffect("combat pit room", new ViewEffectRequest(new EffectId(room.Definition.CreatedObjectEffectId), creature.OwnerPlayerId,
             new FpPosition3(new(creature.PosX), new(creature.PosY), new(creature.PosZ + FloorHeightRules.Ordinary)),

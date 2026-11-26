@@ -26,10 +26,17 @@ public readonly record struct PlaybookItem(PlaybookItemKind Kind, string Name)
     {
         item = default;
         int colon = text?.IndexOf(':', StringComparison.Ordinal) ?? -1;
-        if (colon <= 0 || colon == text!.Length - 1 || text[(colon + 1)..].Trim() != text[(colon + 1)..]) return false;
+        if (colon <= 0 || colon == text!.Length - 1 || text[(colon + 1)..].Trim() != text[(colon + 1)..])
+        {
+            return false;
+        }
+
         string kind = text[..colon];
         foreach (PlaybookItemKind k in (PlaybookItemKind[])Enum.GetValues(typeof(PlaybookItemKind)))
+        {
             if (k.ToString().ToLowerInvariant() == kind) { item = new PlaybookItem(k, text[(colon + 1)..]); return true; }
+        }
+
         return false;
     }
 }
@@ -132,27 +139,55 @@ public sealed record Playbook
         var problems = new List<string>();
         var warnings = new List<string>();
         if (string.IsNullOrWhiteSpace(Level) || !Level.StartsWith("campaign:", StringComparison.Ordinal))
+        {
             problems.Add($"level '{Level}' is not a campaign level (campaign:<name>)");
+        }
 
         Unique("available start", Start.Select(i => i.ToString()));
         Unique("available creatures", Creatures.Select(i => i.ToString()));
-        if (Creatures.Any(c => c.Kind != PlaybookItemKind.Creature)) problems.Add("available creatures lists an item that is not a creature");
-        if (Start.Any(c => c.Kind == PlaybookItemKind.Creature)) problems.Add("available start lists a creature; creatures go under available creatures");
+        if (Creatures.Any(c => c.Kind != PlaybookItemKind.Creature))
+        {
+            problems.Add("available creatures lists an item that is not a creature");
+        }
+
+        if (Start.Any(c => c.Kind == PlaybookItemKind.Creature))
+        {
+            problems.Add("available start lists a creature; creatures go under available creatures");
+        }
+
         foreach (PlaybookChange change in MayChange)
-            if (string.IsNullOrWhiteSpace(change.By)) problems.Add($"may-change {change.Item} says nothing of what changes it");
+        {
+            if (string.IsNullOrWhiteSpace(change.By))
+            {
+                problems.Add($"may-change {change.Item} says nothing of what changes it");
+            }
+        }
 
         IReadOnlyList<RoomTypeId> planned = [.. Rooms ?? [], .. ExtraRooms ?? []];
         Unique("planned rooms", planned.Select(r => r.ToString()));
         foreach (RoomTypeId room in planned)
         {
             var item = PlaybookItem.Room(room);
-            if (Start.Contains(item)) continue;
-            if (MayChange.Any(c => c.Item == item && c.ToAvailable)) warnings.Add($"{item} is planned but only may become available ({string.Join(", ", MayChange.Where(c => c.Item == item && c.ToAvailable).Select(c => c.By))})");
-            else problems.Add($"{item} is planned but the level neither offers it at the start nor may make it available");
+            if (Start.Contains(item))
+            {
+                continue;
+            }
+
+            if (MayChange.Any(c => c.Item == item && c.ToAvailable))
+            {
+                warnings.Add($"{item} is planned but only may become available ({string.Join(", ", MayChange.Where(c => c.Item == item && c.ToAvailable).Select(c => c.By))})");
+            }
+            else
+            {
+                problems.Add($"{item} is planned but the level neither offers it at the start nor may make it available");
+            }
         }
 
         Unique("rules", Rules);
-        if (Rules.Any(string.IsNullOrWhiteSpace)) problems.Add("a rule id is empty");
+        if (Rules.Any(string.IsNullOrWhiteSpace))
+        {
+            problems.Add("a rule id is empty");
+        }
 
         Unique("tunables", Tunables.Select(t => t.Path));
         foreach (PlaybookTunable t in Tunables)
@@ -163,11 +198,20 @@ public sealed record Playbook
                 continue;
             }
             if (t.Min > t.Max || t.Value < t.Min || t.Value > t.Max)
+            {
                 problems.Add(Invariant($"tunable {t.Path}: value {t.Value} is not within min {t.Min} and max {t.Max}"));
+            }
+
             if (t.Min < knob.Floor || t.Max > knob.Ceiling)
+            {
                 problems.Add(Invariant($"tunable {t.Path}: range {t.Min}-{t.Max} leaves {knob.Floor}-{knob.Ceiling}"));
+            }
+
             if (t.Path == "strategy.pit-fighters" && t.Value == 1)
+            {
                 problems.Add("tunable strategy.pit-fighters: one fighter has no one to pair with; use 0 or 2 or more");
+            }
+
             switch (t.Provenance)
             {
                 case PlaybookProvenance.Researched when string.IsNullOrWhiteSpace(t.Source):
@@ -182,29 +226,48 @@ public sealed record Playbook
             }
         }
 
-        foreach (PlaybookNote note in Notes) Sourced("note", note);
-        foreach (PlaybookNote e in Events) Sourced("event", e);
+        foreach (PlaybookNote note in Notes)
+        {
+            Sourced("note", note);
+        }
+
+        foreach (PlaybookNote e in Events)
+        {
+            Sourced("event", e);
+        }
 
         Positive("max-ticks", Caps.MaxTicks);
         Positive("max-actions", Caps.MaxActions);
         Positive("wall-seconds", Caps.WallSeconds);
-        if (Caps.OutputMiB is int mib && (mib < 2 || mib > 1024 * 1024)) problems.Add(Invariant($"cap output-mib {mib} is not between 2 and 1048576"));
+        if (Caps.OutputMiB is int mib && (mib < 2 || mib > 1024 * 1024))
+        {
+            problems.Add(Invariant($"cap output-mib {mib} is not between 2 and 1048576"));
+        }
+
         return new PlaybookReview(problems, warnings);
 
         void Unique(string what, IEnumerable<string> names)
         {
             foreach (string name in names.GroupBy(n => n, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => g.Key))
+            {
                 problems.Add($"{what} lists '{name}' more than once");
+            }
         }
 
         void Sourced(string what, PlaybookNote note)
         {
-            if (string.IsNullOrWhiteSpace(note.Source)) problems.Add($"{what} '{note.Kind}' cites no source");
+            if (string.IsNullOrWhiteSpace(note.Source))
+            {
+                problems.Add($"{what} '{note.Kind}' cites no source");
+            }
         }
 
         void Positive(string what, int? value)
         {
-            if (value is <= 0) problems.Add(Invariant($"cap {what} {value} is not positive"));
+            if (value is <= 0)
+            {
+                problems.Add(Invariant($"cap {what} {value} is not positive"));
+            }
         }
     }
 
@@ -212,12 +275,36 @@ public sealed record Playbook
     /// and tunable values; everything else unchanged. Call on a playbook whose review found no problems.</summary>
     public PlayerStrategy Apply(PlayerStrategy strategy)
     {
-        if (strategy is null) throw new ArgumentNullException(nameof(strategy));
-        if (Rooms is not null) strategy = strategy with { Rooms = Rooms };
-        if (ExtraRooms is not null) strategy = strategy with { ExtraRooms = ExtraRooms };
-        if (Take is not null) strategy = strategy with { TakeAt = Take };
-        if (Attack is not null) strategy = strategy with { AttackAt = Attack };
-        foreach (PlaybookTunable t in Tunables) strategy = Knobs[t.Path].Set(strategy, t.Value);
+        if (strategy is null)
+        {
+            throw new ArgumentNullException(nameof(strategy));
+        }
+
+        if (Rooms is not null)
+        {
+            strategy = strategy with { Rooms = Rooms };
+        }
+
+        if (ExtraRooms is not null)
+        {
+            strategy = strategy with { ExtraRooms = ExtraRooms };
+        }
+
+        if (Take is not null)
+        {
+            strategy = strategy with { TakeAt = Take };
+        }
+
+        if (Attack is not null)
+        {
+            strategy = strategy with { AttackAt = Attack };
+        }
+
+        foreach (PlaybookTunable t in Tunables)
+        {
+            strategy = Knobs[t.Path].Set(strategy, t.Value);
+        }
+
         return strategy;
     }
 

@@ -29,7 +29,10 @@ public static class InfernoRules
         int scaled = radius << 12;
         // Thirty-two bits, as DK2 computes it, and halved toward zero on the shot's first tick.
         int bound = unchecked(scaled * scaled) >> 12;
-        if (shot.Age == 1) bound /= 2;
+        if (shot.Age == 1)
+        {
+            bound /= 2;
+        }
 
         int cx = shot.PosX >> 12, cy = shot.PosY >> 12;
         int x0 = Math.Max(cx - radius, 0), y0 = Math.Max(cy - radius, 0);
@@ -40,16 +43,35 @@ public static class InfernoRules
         {
             CreatureState target = creatures[i];
             // On a tile's thing list: not in a hand or carried, and a creature rather than a body.
-            if (target.Activity == CreatureActivity.Dead || !CombatPitRules.IsOnTheMap(target)) continue;
+            if (target.Activity == CreatureActivity.Dead || !CombatPitRules.IsOnTheMap(target))
+            {
+                continue;
+            }
+
             TilePos tile = target.Tile;
-            if (tile.X < x0 || tile.X > x1 || tile.Y < y0 || tile.Y > y1) continue;
+            if (tile.X < x0 || tile.X > x1 || tile.Y < y0 || tile.Y > y1)
+            {
+                continue;
+            }
             // World slot +0x208: the navigation grid's solid bit at the tile.
-            if ((context.Navigation.NavByte(tile.X, tile.Y) & 8) != 0) continue;
+            if ((context.Navigation.NavByte(tile.X, tile.Y) & 8) != 0)
+            {
+                continue;
+            }
+
             CreatureDef definition = database.CreatureById(target.CreatureTypeId);
-            if (((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava) && !((definition.Flags & CreatureFlags.CanFly) == CreatureFlags.CanFly)) continue;
+            if (((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava) && !((definition.Flags & CreatureFlags.CanFly) == CreatureFlags.CanFly))
+            {
+                continue;
+            }
+
             long dx = Math.Abs((long)target.PosX - shot.PosX), dy = Math.Abs((long)target.PosY - shot.PosY);
             uint distance = unchecked((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12));
-            if (distance >= (uint)bound) continue;
+            if (distance >= (uint)bound)
+            {
+                continue;
+            }
+
             StatusEffectRules.SetBurning(target, 1, shot.OwnerPlayerId);
             // 0x004B2CE0 refuses a dying creature; it tests no owner and no invulnerability.
             // The refusal comes after the source stamp, so a dying creature still takes the caster's owner (0x004AF838).

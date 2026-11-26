@@ -32,8 +32,16 @@ public static class HeroPartyRules
     {
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.OwnerPlayerId != PlayerIds.Good || creature.PartyId != partyId) continue;
-            if (PrisonRules.IsImprisoned(creature) || CreatureDeathRules.IsDying(creature)) continue;
+            if (creature.OwnerPlayerId != PlayerIds.Good || creature.PartyId != partyId)
+            {
+                continue;
+            }
+
+            if (PrisonRules.IsImprisoned(creature) || CreatureDeathRules.IsDying(creature))
+            {
+                continue;
+            }
+
             return true;
         }
         return false;
@@ -47,16 +55,28 @@ public static class HeroPartyRules
         int x = 0, y = 0;
         foreach (ActionPointState point in world.ActionPoints)
         {
-            if (point.Id != actionPointId) continue;
+            if (point.Id != actionPointId)
+            {
+                continue;
+            }
+
             x = (point.StartX + point.EndX) / 2;
             y = (point.StartY + point.EndY) / 2;
             break;
         }
         fromGate = false;
-        if (!world.Contains(x, y)) return new TilePos(x, y);
+        if (!world.Contains(x, y))
+        {
+            return new TilePos(x, y);
+        }
+
         byte terrain = world.Tile(x, y).TerrainId;
         if (terrain == 33) { fromGate = true; x++; y++; }
-        else if (terrain == 37) fromGate = true;
+        else if (terrain == 37)
+        {
+            fromGate = true;
+        }
+
         return new TilePos(x, y);
     }
 
@@ -86,9 +106,17 @@ public static class HeroPartyRules
         WorldState world, GameDatabase database, SimRandom? rng, PlayerId playerId, ref TilePos at, out TilePos side)
     {
         side = at;
-        if (playerId != PlayerIds.Good || !world.Contains(at)) return StepOffResult.None;
+        if (playerId != PlayerIds.Good || !world.Contains(at))
+        {
+            return StepOffResult.None;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(world, database, (at.Y * world.Width) + at.X);
-        if (room is null) return StepOffResult.None;
+        if (room is null)
+        {
+            return StepOffResult.None;
+        }
+
         switch ((RoomTypeId)room.Definition.RoomId)
         {
             case RoomTypeId.HeroGate2By2:
@@ -100,8 +128,12 @@ public static class HeroPartyRules
             case RoomTypeId.HeroGate3By1:
             {
                 int[] chain = SlabChain.Order(world, room);
-                if (chain.Length < 2) return StepOffResult.None;
-                at = new TilePos(chain[1] % world.Width, chain[1] / world.Width);
+                if (chain.Length < 2)
+                    {
+                        return StepOffResult.None;
+                    }
+
+                    at = new TilePos(chain[1] % world.Width, chain[1] / world.Width);
                 return StepOffResult.Moved;
             }
             case RoomTypeId.HeroGateTile:
@@ -113,13 +145,28 @@ public static class HeroPartyRules
                 for (int i = 0; i < 4; i++)
                 {
                     int x = at.X + probe[i].dx, y = at.Y + probe[i].dy;
-                    if (world.Contains(x, y) && !database.TerrainById(world.Tile(x, y).TerrainId).IsSolid) mask |= 1 << i;
-                }
-                if (mask == 0) return StepOffResult.Refused;
-                int roll;
-                do roll = rng?.NextInt(4) ?? 0; while ((mask & (1 << roll)) == 0 && rng != null);
-                if ((mask & (1 << roll)) == 0) return StepOffResult.None;
-                side = new TilePos(at.X + table[roll].dx, at.Y + table[roll].dy);
+                    if (world.Contains(x, y) && !database.TerrainById(world.Tile(x, y).TerrainId).IsSolid)
+                        {
+                            mask |= 1 << i;
+                        }
+                    }
+                if (mask == 0)
+                    {
+                        return StepOffResult.Refused;
+                    }
+
+                    int roll;
+                do
+                    {
+                        roll = rng?.NextInt(4) ?? 0;
+                    }
+                    while ((mask & (1 << roll)) == 0 && rng != null);
+                if ((mask & (1 << roll)) == 0)
+                    {
+                        return StepOffResult.None;
+                    }
+
+                    side = new TilePos(at.X + table[roll].dx, at.Y + table[roll].dy);
                 return StepOffResult.Walks;
             }
             default:
@@ -138,27 +185,47 @@ public static class HeroPartyRules
     {
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
-        if (partyType != 0 && IsAlive(world, party.PartyId)) return true;
+        if (partyType != 0 && IsAlive(world, party.PartyId))
+        {
+            return true;
+        }
 
         TilePos at = SpawnTile(world, database, actionPointId, out bool fromGate);
-        if (party.TriggerId != 0) armSubtree(party.TriggerId);
+        if (party.TriggerId != 0)
+        {
+            armSubtree(party.TriggerId);
+        }
 
         for (int i = 0; i < party.Members.Count; i++)
         {
             HeroPartyMemberState member = party.Members[i];
-            if (member.CreatureId == 0) continue;
+            if (member.CreatureId == 0)
+            {
+                continue;
+            }
 
             byte type = partyType == 0 ? member.CreatureId
                 : i == 0 ? DwarfCreatureId
                 : RandomInvader(database, rng);
-            if (!world.Contains(at)) return false;
+            if (!world.Contains(at))
+            {
+                return false;
+            }
 
             CreatureDef def = database.CreatureById(type);
             TilePos made = at;
             bool corner = OnTheCorner(world, database, at);
-            if (StepOff(world, database, rng, PlayerIds.Good, ref made, out _) == StepOffResult.Refused) return false;
+            if (StepOff(world, database, rng, PlayerIds.Good, ref made, out _) == StepOffResult.Refused)
+            {
+                return false;
+            }
+
             CreatureState? state = world.TrySpawnCreature(database, type, PlayerIds.Good, made);
-            if (state is null) return false;
+            if (state is null)
+            {
+                return false;
+            }
+
             if (corner)
             {
                 // The point is the tile times 4096, its corner (the handler adds and takes away 0x800);
@@ -178,7 +245,10 @@ public static class HeroPartyRules
             int health = (int)(member.InitialHealth * 0.01 * CreatureLevelRules.MaxHealth(database, def, member.Level));
             // 0x0051A409 passes the hero player id (global 0x006F254C) as the source.
             CreatureHealthRules.Apply(database, def, state, health - state.Health, PlayerIds.Good);
-            for (int k = 0; k < levelUps; k++) CreatureLevelRules.LevelUp(hooks, def, state);
+            for (int k = 0; k < levelUps; k++)
+            {
+                CreatureLevelRules.LevelUp(hooks, def, state);
+            }
 
             state.WanderRadius = member.WanderRadius;
             state.PartyId = member.PartyId;
@@ -195,9 +265,16 @@ public static class HeroPartyRules
 
             state.TriggerId = member.TriggerId;
             state.TriggerRepeat = tree.ResolveCondition(member.TriggerId)?.RepeatCount ?? 0;
-            if (member.TriggerId != 0) armSubtree(member.TriggerId);
+            if (member.TriggerId != 0)
+            {
+                armSubtree(member.TriggerId);
+            }
+
             created?.Invoke(state);
-            if (!fromGate) PartyArrivalRules.Begin(hooks, state);
+            if (!fromGate)
+            {
+                PartyArrivalRules.Begin(hooks, state);
+            }
         }
 
         party.SpawnCount++;
@@ -212,7 +289,11 @@ public static class HeroPartyRules
     /// (<c>+0x800</c>, <c>0x00519BB5</c>–<c>0x00519C52</c>).</summary>
     public static bool OnTheCorner(WorldState world, GameDatabase database, TilePos at)
     {
-        if (!world.Contains(at)) return true;
+        if (!world.Contains(at))
+        {
+            return true;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(world, database, (at.Y * world.Width) + at.X);
         return room is null || (RoomTypeId)room.Definition.RoomId != RoomTypeId.HeroGate3By1;
     }
@@ -222,12 +303,23 @@ public static class HeroPartyRules
     public static byte RandomInvader(GameDatabase database, SimRandom? rng)
     {
         if (rng is null)
+        {
             throw new InvalidOperationException("A random hero party needs the simulation's random source.");
+        }
+
         int count = 0;
         foreach (CreatureDef def in database.Creatures.Values)
-            if ((def.Flags & CreatureFlags.MpdRandomInvader) != 0) count++;
+        {
+            if ((def.Flags & CreatureFlags.MpdRandomInvader) != 0)
+            {
+                count++;
+            }
+        }
+
         if (count == 0)
+        {
             throw new InvalidOperationException("No creature definition is flagged MpdRandomInvader; DK2 would loop forever here.");
+        }
 
         int range = database.Creatures.Keys.Max();
         while (true)
@@ -235,7 +327,9 @@ public static class HeroPartyRules
             byte id = (byte)(rng.NextInt(range) + 1);
             if (database.Creatures.TryGetValue(id, out CreatureDef? def)
                 && (def.Flags & CreatureFlags.MpdRandomInvader) != 0)
+            {
                 return id;
+            }
         }
     }
 
@@ -245,11 +339,25 @@ public static class HeroPartyRules
     {
         int slowest = int.MaxValue;
         foreach (CreatureState c in world.Creatures)
+        {
             if (c.OwnerPlayerId == PlayerIds.Good && c.PartyId == partyId)
+            {
                 slowest = Math.Min(slowest, database.CreatureById(c.CreatureTypeId).Speed.Raw);
-        if (slowest == int.MaxValue) return;
+            }
+        }
+
+        if (slowest == int.MaxValue)
+        {
+            return;
+        }
+
         foreach (CreatureState c in world.Creatures)
-            if (c.OwnerPlayerId == PlayerIds.Good && c.PartyId == partyId) c.PartySpeedRaw = slowest;
+        {
+            if (c.OwnerPlayerId == PlayerIds.Good && c.PartyId == partyId)
+            {
+                c.PartySpeedRaw = slowest;
+            }
+        }
     }
 
     /// <summary>The tail of the handler, scanning newest first: the last leader-flagged member is leader;
@@ -262,20 +370,38 @@ public static class HeroPartyRules
         for (int i = creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = creatures[i];
-            if (creature.OwnerPlayerId != PlayerIds.Good || creature.PartyId != partyId) continue;
-            if ((creature.Flags & 0x02) != 0) leader = creature;
+            if (creature.OwnerPlayerId != PlayerIds.Good || creature.PartyId != partyId)
+            {
+                continue;
+            }
+
+            if ((creature.Flags & 0x02) != 0)
+            {
+                leader = creature;
+            }
         }
 
         byte k = 0;
         for (int i = creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = creatures[i];
-            if (creature.OwnerPlayerId != PlayerIds.Good || creature.PartyId != partyId) continue;
-            if ((creature.Flags & 0x04) == 0) continue;
+            if (creature.OwnerPlayerId != PlayerIds.Good || creature.PartyId != partyId)
+            {
+                continue;
+            }
+
+            if ((creature.Flags & 0x04) == 0)
+            {
+                continue;
+            }
+
             creature.LeaderId = leader?.Id ?? -1;
             creature.PositionInParty = ++k;
         }
-        if (leader is not null) leader.PositionInParty = k;
+        if (leader is not null)
+        {
+            leader.PositionInParty = k;
+        }
     }
 
     /// <summary>The knock-out branch of <c>ModifyHealth</c> (<c>0x004B2FBA</c>–<c>0x004B30F3</c>),
@@ -291,7 +417,11 @@ public static class HeroPartyRules
     {
         WorldState world = hooks.World;
         TriggerExecutor? triggers = hooks.Triggers;
-        if (fallen.OwnerPlayerId != PlayerIds.Good || fallen.PartyId == 0) return;
+        if (fallen.OwnerPlayerId != PlayerIds.Good || fallen.PartyId == 0)
+        {
+            return;
+        }
+
         byte party = fallen.PartyId;
 
         if ((fallen.Flags & 0x02) == 0)
@@ -306,24 +436,42 @@ public static class HeroPartyRules
         CreatureState? heir = null;
         foreach (CreatureState c in world.Creatures)
         {
-            if (!InPartyAsFollower(c, party)) continue;
+            if (!InPartyAsFollower(c, party))
+            {
+                continue;
+            }
+
             heir = c;
             break;
         }
-        if (heir is null) return;
+        if (heir is null)
+        {
+            return;
+        }
 
         heir.Flags = (byte)((heir.Flags | 0x02) & ~0x04);
         heir.GoodJob = fallen.GoodJob;
         heir.GoodJobPlayerId = fallen.GoodJobPlayerId;
         heir.GoodJobActionPointId = fallen.GoodJobActionPointId;
-        if (triggers is not null) triggers.AttachCreatureRoot(heir, fallen.TriggerId);
-        else heir.TriggerId = fallen.TriggerId;
+        if (triggers is not null)
+        {
+            triggers.AttachCreatureRoot(heir, fallen.TriggerId);
+        }
+        else
+        {
+            heir.TriggerId = fallen.TriggerId;
+        }
+
         CreatureStateMachine.TrySetState(hooks, heir, CreatureStateMachine.Idle);
 
         byte k = 0;
         foreach (CreatureState c in world.Creatures)
         {
-            if (!InPartyAsFollower(c, party)) continue;
+            if (!InPartyAsFollower(c, party))
+            {
+                continue;
+            }
+
             c.LeaderId = heir.Id;
             c.PositionInParty = ++k;
         }

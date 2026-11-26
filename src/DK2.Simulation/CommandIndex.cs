@@ -20,12 +20,25 @@ internal sealed class CommandIndex
 
     public IReadOnlyList<T> Of<T>() where T : PlayerCommand
     {
-        if (_all.Count == 0) return Array.Empty<T>();
-        if (_byType.TryGetValue(typeof(T), out object? cached)) return (List<T>)cached;
+        if (_all.Count == 0)
+        {
+            return Array.Empty<T>();
+        }
+
+        if (_byType.TryGetValue(typeof(T), out object? cached))
+        {
+            return (List<T>)cached;
+        }
 
         var matching = new List<T>();
         for (int i = 0; i < _all.Count; i++)
-            if (_all[i] is T command) matching.Add(command);
+        {
+            if (_all[i] is T command)
+            {
+                matching.Add(command);
+            }
+        }
+
         _byType[typeof(T)] = matching;
         return matching;
     }

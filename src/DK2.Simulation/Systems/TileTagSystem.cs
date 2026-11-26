@@ -86,7 +86,9 @@ public sealed class TileTagSystem : ISimulationSystem
                 // The pool adder raising kind 1 first removes the tile's kind-16 entry, side holders
                 // and all (0x00507BB0, 0x00507D08-0x00507D6C); a gold seam is kind 2 and removes none.
                 if (terrain.GoldValue == 0 && world.RepairTaskEntries.Count != 0)
+                {
                     world.RepairTaskEntries.Remove((command.PlayerId, pos));
+                }
             }
             else if (!tile.IsTaggedByAnyone)
             {

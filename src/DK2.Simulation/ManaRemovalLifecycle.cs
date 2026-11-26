@@ -30,7 +30,13 @@ public static class ManaRemovalLifecycle
     {
         uint count = 0;
         foreach (CreatureState creature in world.OwnedCreatures(playerId))
-            if (IsEvilWorker(database.CreatureById(creature.CreatureTypeId))) count++;
+        {
+            if (IsEvilWorker(database.CreatureById(creature.CreatureTypeId)))
+            {
+                count++;
+            }
+        }
+
         return count;
     }
 
@@ -57,7 +63,11 @@ public static class ManaRemovalLifecycle
     public static (ushort X, ushort Y) HeartTile(WorldState world, GameDatabase database, PlayerId playerId)
     {
         int index = Combat.HeartSites.PositionOf(world, database, playerId);
-        if (index < 0) return (InitialHeartTile, InitialHeartTile);
+        if (index < 0)
+        {
+            return (InitialHeartTile, InitialHeartTile);
+        }
+
         return ((ushort)(index % world.Width), (ushort)(index / world.Width));
     }
 
@@ -70,7 +80,10 @@ public static class ManaRemovalLifecycle
         (ushort x, ushort y) = HeartTile(world, context.Database, playerId);
         int? id = ManaPressureRules.SelectForRemoval(
             Candidates(world, context.Database, playerId), minimumWorkers, x, y);
-        if (id is null) return null;
+        if (id is null)
+        {
+            return null;
+        }
 
         CreatureState chosen = world.CreatureById(id.Value)!;
         chosen.CorpseSuppressed = true;

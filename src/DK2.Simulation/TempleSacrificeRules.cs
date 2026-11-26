@@ -40,7 +40,11 @@ public static class TempleSacrificeRules
         var current = new HashSet<(int Anchor, byte Owner)>();
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.Definition.TypeId != RoomTypeId.Temple) continue;
+            if (room.Definition.TypeId != RoomTypeId.Temple)
+            {
+                continue;
+            }
+
             current.Add((room.TileIndices[0], room.OwnerPlayerId));
         }
 
@@ -101,18 +105,26 @@ public static class TempleSacrificeRules
         foreach (SacrificeEntry recipe in database.Variables.Sacrifices)
         {
             int count = IngredientCount(recipe);
-            if (count == 0 || count > history.Count || !Matches(history, recipe, count)) continue;
+            if (count == 0 || count > history.Count || !Matches(history, recipe, count))
+            {
+                continue;
+            }
+
             match = recipe;
             ingredientCount = count;
             break;
         }
 
         if (match is null)
+        {
             return new SacrificeResult(false, FailedSpeechId, SacrificeRewardKind.None, -1);
+        }
 
         var matched = new SacrificeIngredient[ingredientCount];
         for (int i = 0; i < ingredientCount; i++)
+        {
             matched[ingredientCount - 1 - i] = history.Newest(i);
+        }
 
         // DK2 empties the room's ring before dispatching its reward.
         history.Clear();
@@ -125,13 +137,21 @@ public static class TempleSacrificeRules
             {
                 CreatureState? reward = world.TrySpawnCreature(
                     database, rewardId, temple.OwnerPlayerId, at);
-                if (reward is null) return new SacrificeResult(true, 0, SacrificeRewardKind.None, -1);
-                int levelTotal = 0;
+                if (reward is null)
+                    {
+                        return new SacrificeResult(true, 0, SacrificeRewardKind.None, -1);
+                    }
+
+                    int levelTotal = 0;
                 int creatureCount = 0;
                 foreach (SacrificeIngredient offered in matched)
                 {
-                    if (offered.Type != CreatureIngredient) continue;
-                    levelTotal += offered.CreatureLevel;
+                    if (offered.Type != CreatureIngredient)
+                        {
+                            continue;
+                        }
+
+                        levelTotal += offered.CreatureLevel;
                     creatureCount++;
                 }
 
@@ -163,15 +183,26 @@ public static class TempleSacrificeRules
             int recipeIndex = count - 1 - newestOffset;
             (byte type, byte id) = IngredientAt(recipe, recipeIndex);
             SacrificeIngredient offered = history.Newest(newestOffset);
-            if (offered.Type != type || offered.Id != id) return false;
+            if (offered.Type != type || offered.Id != id)
+            {
+                return false;
+            }
         }
         return true;
     }
 
     private static int IngredientCount(SacrificeEntry recipe)
     {
-        if (recipe.Type1 == 0) return 0;
-        if (recipe.Type2 == 0) return 1;
+        if (recipe.Type1 == 0)
+        {
+            return 0;
+        }
+
+        if (recipe.Type2 == 0)
+        {
+            return 1;
+        }
+
         return recipe.Type3 == 0 ? 2 : 3;
     }
 

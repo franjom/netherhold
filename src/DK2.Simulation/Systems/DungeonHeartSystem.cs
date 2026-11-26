@@ -35,13 +35,20 @@ public sealed class DungeonHeartSystem : ISimulationSystem
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (_frames) RoomTickSystem.RunAlone(context, _frame);
+        if (_frames)
+        {
+            RoomTickSystem.RunAlone(context, _frame);
+        }
 
         // The frame's tail is the player update's, which walks the active list (0x004C2310); a
         // verdict carries to allies, so which fallen keeper is judged first can decide who wins.
         foreach (PlayerId id in world.ActivePlayerOrder)
         {
-            if (!PlayerIds.IsKeeper(id.Value)) continue;
+            if (!PlayerIds.IsKeeper(id.Value))
+            {
+                continue;
+            }
+
             ref PlayerState player = ref world.Player(id);
 
             // No killer or bit22 keeps the ordinary frame tail; otherwise the killer determines
@@ -55,8 +62,15 @@ public sealed class DungeonHeartSystem : ISimulationSystem
                 continue;
             }
             byte fallen = player.PlayerId.Value;
-            if (DefeatRules.IsDeathTurn(context.Tick, player.HeartDiedTick)) DefeatRules.OnDeathTurn(context, fallen);
-            if (DefeatRules.CreaturesGo(context.Tick, player.HeartDiedTick)) DefeatRules.ScatterCreatures(context, fallen);
+            if (DefeatRules.IsDeathTurn(context.Tick, player.HeartDiedTick))
+            {
+                DefeatRules.OnDeathTurn(context, fallen);
+            }
+
+            if (DefeatRules.CreaturesGo(context.Tick, player.HeartDiedTick))
+            {
+                DefeatRules.ScatterCreatures(context, fallen);
+            }
 
             player = ref world.Player(fallen);
             byte verdict = PlayerIds.IsKeeper(player.KilledByPlayerId)
@@ -66,7 +80,10 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             VerdictRules.End(world, database, player.PlayerId, verdict, (who, status) => Report(context, who, status, fallen, killer));
 
             // The tail's award follows each fallen keeper's verdict, every turn (0x004BB39A).
-            if (world.GameMode != GameMode.Campaign) AwardLastKeeperStanding(context);
+            if (world.GameMode != GameMode.Campaign)
+            {
+                AwardLastKeeperStanding(context);
+            }
         }
     }
 
@@ -90,15 +107,21 @@ public sealed class DungeonHeartSystem : ISimulationSystem
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
-            if (!PlayerIds.IsKeeper(player.PlayerId.Value) || PlayerStatus.HasEnded(player.Status)) continue;
+            if (!PlayerIds.IsKeeper(player.PlayerId.Value) || PlayerStatus.HasEnded(player.Status))
+            {
+                continue;
+            }
+
             standing++;
             survivor = player.PlayerId.Value;
         }
 
         if (standing == 1)
+        {
             VerdictRules.End(world, context.Database, survivor, PlayerStatus.Won,
                 (id, status) => context.Emit(Name, status == PlayerStatus.Won ? "won" : "lost",
                     id == survivor ? $"player={id} last keeper standing" : $"player={id} by alliance"));
+        }
     }
 }
 
@@ -123,7 +146,10 @@ public sealed class HeartFrameStep : IRoomTickStep
     {
         if (room.Definition.TypeId != RoomTypeId.DungeonHeart || !PlayerIds.IsKeeper(room.OwnerPlayerId)
             || !context.World.HasPlayer(room.OwnerPlayerId))
+        {
             return false;
+        }
+
         int tile = ImpSupplyRules.HeartTileOf(context.World, context.Database, new PlayerId(room.OwnerPlayerId));
         return tile >= 0 && room.Contains(tile);
     }
@@ -143,12 +169,17 @@ public sealed class HeartFrameStep : IRoomTickStep
             context.RequestEffect(Name, ViewEffectRequest.AtTileCentre(new EffectId(heart.DeathEffectId),
                 player.PlayerId, new TilePos(x, y), new Fp32(0)));
         }
-        if (!player.HeartRuined) HeartIntroRules.RoomFrame(context, player.PlayerId);
+        if (!player.HeartRuined)
+        {
+            HeartIntroRules.RoomFrame(context, player.PlayerId);
+        }
         // The ordinary frame waits for the opening sequence (0x004D9BA5): no regeneration
         // and no ruin until nine seconds after its start.
         if (HeartIntroRules.SequenceOver(HeartIntroRules.Turn(context.Tick), database))
+        {
             RoomFrame(context, ref player, database[VariableTypeId.DungeonHeartObjectHealth],
                 database[VariableTypeId.DungeonHeartHealthRegenerationPerSecond]);
+        }
     }
 
     /// <summary>Every <c>var19 + 1</c> turns (<see cref="PlayerState.HeartRegenCountdown"/>,
@@ -162,7 +193,11 @@ public sealed class HeartFrameStep : IRoomTickStep
     {
         if (player.HeartHealth <= 0)
         {
-            if (player.HeartRuined) return;
+            if (player.HeartRuined)
+            {
+                return;
+            }
+
             player.HeartRuined = true;
             RoomRules.RuinHearts(context.World, context.Database, player.PlayerId);
             context.Emit(SystemName, "heart_ruined", $"player={player.PlayerId}");
@@ -176,7 +211,11 @@ public sealed class HeartFrameStep : IRoomTickStep
         }
         player.HeartRegenCountdown = (byte)SimulationTiming.TicksPerSecond;
         int amount = Math.Min(regen, max - player.HeartHealth);
-        if (amount <= 0) return;
+        if (amount <= 0)
+        {
+            return;
+        }
+
         context.World.RegenerateHeart(player.PlayerId, amount);
     }
 }

@@ -33,11 +33,18 @@ public sealed class NeutralAmbientEffectSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         WorldState world = context.World;
-        if (!IsActive(world)) return;
+        if (!IsActive(world))
+        {
+            return;
+        }
+
         int x = context.Rng.NextInt(world.Width - 2) + 1;
         int y = context.Rng.NextInt(world.Height - 2) + 1;
         TerrainDef? lava = context.Database.LavaTerrain;
-        if (lava is null || world.Tile(new TilePos(x, y)).TerrainId != lava.TerrainId) return;
+        if (lava is null || world.Tile(new TilePos(x, y)).TerrainId != lava.TerrainId)
+        {
+            return;
+        }
 
         int roll = context.Rng.NextInt(LavaRareRange);
         (int effect, Fp32 height) = roll < RareEffectCount
@@ -52,7 +59,13 @@ public sealed class NeutralAmbientEffectSystem : ISimulationSystem
     private static bool IsActive(WorldState world)
     {
         foreach (PlayerId id in world.ActivePlayerOrder)
-            if (id.Value == PlayerIds.Neutral) return true;
+        {
+            if (id.Value == PlayerIds.Neutral)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 }

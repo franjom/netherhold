@@ -45,7 +45,11 @@ public static class RoomHealthRules
     public static int Health(WorldState world, GameDatabase database, RoomInstance room)
     {
         int lost = 0;
-        foreach (int index in room.TileIndices) lost += world.TileAtIndex(index).RoomHealthLost;
+        foreach (int index in room.TileIndices)
+        {
+            lost += world.TileAtIndex(index).RoomHealthLost;
+        }
+
         return (StartPerTile(database, room.Definition) * room.TileCount) - lost;
     }
 
@@ -57,7 +61,9 @@ public static class RoomHealthRules
     private static void Set(WorldState world, IReadOnlyList<int> tiles, int startPerTile, int health)
     {
         for (int i = 0; i < tiles.Count; i++)
+        {
             world.TileAtIndex(tiles[i]).RoomHealthLost = i == 0 ? (startPerTile * tiles.Count) - health : 0;
+        }
     }
 
     /// <summary>
@@ -107,12 +113,20 @@ public static class RoomHealthRules
         {
             ref TileState tile = ref world.TileAtIndex(index);
             tile.SetExploredBy(playerId);
-            if (tile.OwnerPlayerId == playerId) continue;
+            if (tile.OwnerPlayerId == playerId)
+            {
+                continue;
+            }
+
             ManaRules.SetOwner(world, database, ref tile, playerId);
             context?.RequestEffect("RoomHealth", ViewEffectRequest.AtTileCentre(new EffectId(8), playerId,
                 new TilePos(index % world.Width, index / world.Width), new Fp32(0)));
             tile.KeptManaGain = 0; // Tile_SetOwner moves the room terrain's 0, not the floor's 1 (ADR-0334)
-            if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
+            if (PortalRules.IsPortalTerrain(database, tile.TerrainId))
+            {
+                PortalRules.OnOwnerChanged(ref tile);
+            }
+
             WallSupportRules.ReleaseUnsupported(world, database, new TilePos(index % world.Width, index / world.Width));
         }
 
@@ -121,12 +135,18 @@ public static class RoomHealthRules
         HatcheryRules.ReownCoops(world, room, playerId);
         SlabChain.Kick(world, room);
         if (room.Definition.TypeId == RoomTypeId.CombatPit && context is not null)
+        {
             Systems.CombatPitSystem.ReleaseAttached(context, place => place.In(room));
+        }
+
         GoldStore.Recapture(world, database, room, context?.Rng, context);
         if (RoomIndex.RoomAt(world, database, room.TileIndices[0]) is { } merged)
         {
             RoomLists.Set(world, merged.TileIndices, listPosition);
-            if (room.Definition.TypeId == RoomTypeId.CombatPit) CombatPitRoomStep.Place(world, merged.TileIndices, pit);
+            if (room.Definition.TypeId == RoomTypeId.CombatPit)
+            {
+                CombatPitRoomStep.Place(world, merged.TileIndices, pit);
+            }
         }
     }
 
@@ -138,10 +158,15 @@ public static class RoomHealthRules
         int tag = SlabChain.FirstSlab(world, room);
         var type = (RoomTypeId)room.Definition.RoomId;
         if (world.HasPlayer(oldOwner))
+        {
             world.Messages.PostOwnership(world, oldOwner.Value, PlayerMessageKind.RoomLost, type, tag);
+        }
+
         if (world.HasPlayer(newOwner))
+        {
             world.Messages.PostOwnership(world, newOwner.Value,
                 oldOwner == PlayerIds.Neutral ? PlayerMessageKind.NeutralRoomCaptured : PlayerMessageKind.RoomCaptured, type, tag);
+        }
     }
 
     /// <summary>The variable action 10 (<c>0x00497BF0</c>) reads for a tile with this owner: a
@@ -171,7 +196,9 @@ public static class RoomHealthRules
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         if (!TileWorkRules.Applies(world, database, tile, TileWorkKind.ConvertRoom, playerId)
             || RoomIndex.RoomAt(world, database, tileIndex) is not { } room)
+        {
             return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
+        }
 
         int delta = ConvertPerApplication(database, tile.OwnerPlayerId, efficiency);
         RoomHealthOutcome applied = Apply(world, database, room, delta, playerId, context);
@@ -202,9 +229,14 @@ public static class RoomHealthRules
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         if (!TileWorkRules.Applies(database, tile, TileWorkKind.RepairRoom, playerId)
             || RoomIndex.RoomAt(world, database, tileIndex) is not { } room)
+        {
             return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
+        }
+
         if (!NeedsRepair(world, database, room, playerId))
+        {
             return new TileWorkResult(TileWorkOutcome.NoChange, 0, 0, 0, tile.TerrainId);
+        }
 
         int before = Health(world, database, room);
         Apply(world, database, room, RepairPerApplication(database, efficiency), playerId);
@@ -228,7 +260,11 @@ public static class RoomHealthRules
     /// </summary>
     public static int SharePercent(int health, int cap)
     {
-        if (cap <= 0) return 0;
+        if (cap <= 0)
+        {
+            return 0;
+        }
+
         int fraction = (int)(((long)health << 12) / cap);
         return (fraction * 100) >> 12;
     }
@@ -248,7 +284,11 @@ public static class RoomHealthRules
     public static void Regenerate(WorldState world, GameDatabase database, RoomInstance room)
     {
         int gain = room.Definition.HealthGain;
-        if (gain == 0 || Health(world, database, room) >= Cap(database, room)) return;
+        if (gain == 0 || Health(world, database, room) >= Cap(database, room))
+        {
+            return;
+        }
+
         Apply(world, database, room, gain, room.OwnerPlayerId);
     }
 }

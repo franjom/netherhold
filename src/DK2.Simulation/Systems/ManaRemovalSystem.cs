@@ -31,13 +31,19 @@ public sealed class ManaRemovalSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = world.Creatures[i];
-            if (creature.ManaRemovalStamp == 0 || !world.HasPlayer(creature.OwnerPlayerId)) continue;
+            if (creature.ManaRemovalStamp == 0 || !world.HasPlayer(creature.OwnerPlayerId))
+            {
+                continue;
+            }
 
             ManaRemovalAction action = ManaPressureRules.Countdown(
                 creature.CreatureTypeId, CreatureDeathRules.IsPossessed(world, creature),
                 creature.ManaRemovalStamp, now, world.Player(creature.OwnerPlayerId).Mana, upkeep,
                 (uint)SimulationTiming.TicksPerSecond);
-            if (action == ManaRemovalAction.None) continue;
+            if (action == ManaRemovalAction.None)
+            {
+                continue;
+            }
 
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
             if (action == ManaRemovalAction.Cancel)

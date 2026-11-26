@@ -66,11 +66,27 @@ public static class TrapRules
     private static int[] BuildSine()
     {
         int[] table = new int[2560];
-        for (int i = 0; i <= 512; i++) table[i] = (int)(65536.0 * Math.Sin(2.0 * Math.PI * i / 2048.0));
+        for (int i = 0; i <= 512; i++)
+        {
+            table[i] = (int)(65536.0 * Math.Sin(2.0 * Math.PI * i / 2048.0));
+        }
+
         table[512] = 65536;
-        for (int i = 513; i <= 1024; i++) table[i] = table[1024 - i];
-        for (int i = 1025; i < 2048; i++) table[i] = -table[i - 1024];
-        for (int i = 2048; i < 2560; i++) table[i] = table[i - 2048];
+        for (int i = 513; i <= 1024; i++)
+        {
+            table[i] = table[1024 - i];
+        }
+
+        for (int i = 1025; i < 2048; i++)
+        {
+            table[i] = -table[i - 1024];
+        }
+
+        for (int i = 2048; i < 2560; i++)
+        {
+            table[i] = table[i - 2048];
+        }
+
         return table;
     }
 
@@ -91,8 +107,11 @@ public static class TrapRules
         byte[] known = Scope.GetValue(database, _ => new byte[256]);
         byte state = known[definition.TrapId];
         if (state == 0)
+        {
             known[definition.TrapId] = state = definition.ShotTypeId == 0 || ShotBuilt(database, definition.ShotTypeId, 0)
                 ? (byte)1 : (byte)2;
+        }
+
         return state == 1;
     }
 
@@ -101,10 +120,26 @@ public static class TrapRules
 
     private static bool ShotBuilt(GameDatabase database, byte shotId, int depth)
     {
-        if (shotId == 0 || depth > 4 || !database.Shots.TryGetValue(shotId, out ShotDef? shot)) return false;
-        if (shot.DamageType is not (0 or ShotRules.SquareDamageType or ShotRules.AreaDamageType or ShotRules.ContactDamageType)) return false;
-        if (shot.ProcessType != 0 && !BuiltProcesses.Contains(shot.ProcessType)) return false;
-        if (shot.ProcessType == ShotRules.GasProcess && shot.DamageType == 0) return false;
+        if (shotId == 0 || depth > 4 || !database.Shots.TryGetValue(shotId, out ShotDef? shot))
+        {
+            return false;
+        }
+
+        if (shot.DamageType is not (0 or ShotRules.SquareDamageType or ShotRules.AreaDamageType or ShotRules.ContactDamageType))
+        {
+            return false;
+        }
+
+        if (shot.ProcessType != 0 && !BuiltProcesses.Contains(shot.ProcessType))
+        {
+            return false;
+        }
+
+        if (shot.ProcessType == ShotRules.GasProcess && shot.DamageType == 0)
+        {
+            return false;
+        }
+
         return Chained(database, shot.DeathShotId, depth) && Chained(database, shot.HitSolidShotId, depth)
             && Chained(database, shot.HitLavaShotId, depth) && Chained(database, shot.HitWaterShotId, depth)
             && Chained(database, shot.HitThingShotId, depth);
@@ -128,10 +163,17 @@ public static class TrapRules
     /// from its flag <c>0x20</c>, a Guard Post's room (<c>0x004A7A9C</c>); every timer and counter zero.</summary>
     public static void Seed(WorldState world, GameDatabase database, TrapState trap, TrapDef? definition)
     {
-        if (definition is null) return;
+        if (definition is null)
+        {
+            return;
+        }
+
         trap.Health = definition.Health;
         trap.Hidden = (definition.Flags & StartsHidden) != 0;
-        if ((definition.Flags & GuardPostBranch) != 0) trap.GuardRoomTile = NearestGuardRoom(world, RoomIndex.Build(world, database), trap);
+        if ((definition.Flags & GuardPostBranch) != 0)
+        {
+            trap.GuardRoomTile = NearestGuardRoom(world, RoomIndex.Build(world, database), trap);
+        }
     }
 
     // ------------------------------------------------------------------ the Guard Post
@@ -146,11 +188,19 @@ public static class TrapRules
         uint best = uint.MaxValue;
         foreach (RoomInstance room in rooms)
         {
-            if (room.OwnerPlayerId != trap.PlayerId || room.Definition.TypeId != RoomTypeId.GuardRoom) continue;
+            if (room.OwnerPlayerId != trap.PlayerId || room.Definition.TypeId != RoomTypeId.GuardRoom)
+            {
+                continue;
+            }
+
             int first = SlabChain.FirstSlab(world, room);
             uint distance = DistanceSquared(CreatureState.CentreOf(first % world.Width), CreatureState.CentreOf(first / world.Width),
                 trap.PosX, trap.PosY);
-            if (distance >= best) continue;
+            if (distance >= best)
+            {
+                continue;
+            }
+
             best = distance;
             found = first;
         }
@@ -161,7 +211,11 @@ public static class TrapRules
     /// (<c>+0x3B9</c>). DK2 compares two ids, so a post with no room matches a creature with none.</summary>
     public static bool SameRoom(WorldState world, GameDatabase database, TrapState trap, RoomPlace place)
     {
-        if (trap.GuardRoomTile < 0) return !place.IsHeld;
+        if (trap.GuardRoomTile < 0)
+        {
+            return !place.IsHeld;
+        }
+
         return place.IsHeld && RoomIndex.RoomAt(world, database, trap.GuardRoomTile) is { } room && place.In(room);
     }
 
@@ -172,11 +226,19 @@ public static class TrapRules
     /// the eight-in-sixteen window is ours.</summary>
     private static void GuardPost(SimulationContext context, ISightBlocker sight, TrapState trap, long now, RoomCache rooms)
     {
-        if (((now + 1 + trap.Id) & 8) == 0) return;
+        if (((now + 1 + trap.Id) & 8) == 0)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
         trap.GuardRoomTile = NearestGuardRoom(world, rooms.Of(context, trap.PlayerId), trap);
-        if (trap.GuardRoomTile < 0 || PostEnemy(world, database, sight, trap) is not { } enemy) return;
+        if (trap.GuardRoomTile < 0 || PostEnemy(world, database, sight, trap) is not { } enemy)
+        {
+            return;
+        }
+
         ReportToRoom(context, trap, enemy);
     }
 
@@ -190,14 +252,33 @@ public static class TrapRules
         EntityList<CreatureState> creatures = world.Creatures;
         foreach (PlayerId player in world.PlayerIds)
         {
-            if (!CombatRules.IsHostile(world, trap.PlayerId, player.Value)) continue;
+            if (!CombatRules.IsHostile(world, trap.PlayerId, player.Value))
+            {
+                continue;
+            }
+
             for (int i = creatures.Count - 1; i >= 0; i--)
             {
                 CreatureState creature = creatures[i];
-                if (creature.OwnerPlayerId != player || !IsHostileOnMap(world, trap.PlayerId, creature)) continue;
-                if ((int)DistanceSquared(trap.PosX, trap.PosY, creature.PosX, creature.PosY) >= limit) continue;
-                if (!LineOfSight.Clear(sight, creature.PosX, creature.PosY, trap.PosX, trap.PosY)) continue;
-                if (CombatRules.IsAttackableOnMap(creature)) return creature;
+                if (creature.OwnerPlayerId != player || !IsHostileOnMap(world, trap.PlayerId, creature))
+                {
+                    continue;
+                }
+
+                if ((int)DistanceSquared(trap.PosX, trap.PosY, creature.PosX, creature.PosY) >= limit)
+                {
+                    continue;
+                }
+
+                if (!LineOfSight.Clear(sight, creature.PosX, creature.PosY, trap.PosX, trap.PosY))
+                {
+                    continue;
+                }
+
+                if (CombatRules.IsAttackableOnMap(creature))
+                {
+                    return creature;
+                }
             }
         }
         return null;
@@ -214,26 +295,63 @@ public static class TrapRules
         GameDatabase database = context.Database;
         int wanted = FearRules.LocalStrength(context, enemy.OwnerPlayerId, enemy.PosX, enemy.PosY)
             - (FearRules.LocalStrength(context, trap.PlayerId, enemy.PosX, enemy.PosY) * 3 / 4);
-        if (wanted <= 0 || FearRules.AlreadyResponding(world, trap.PlayerId, enemy.PosX, enemy.PosY)) return;
-        if (RoomIndex.RoomAt(world, database, trap.GuardRoomTile) is not { } room) return;
+        if (wanted <= 0 || FearRules.AlreadyResponding(world, trap.PlayerId, enemy.PosX, enemy.PosY))
+        {
+            return;
+        }
+
+        if (RoomIndex.RoomAt(world, database, trap.GuardRoomTile) is not { } room)
+        {
+            return;
+        }
 
         int sent = 0;
         EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count && wanted >= 0; i++)
         {
             CreatureState c = creatures[i];
-            if (c.OwnerPlayerId != trap.PlayerId || !c.HeldPlace.In(room)) continue;
+            if (c.OwnerPlayerId != trap.PlayerId || !c.HeldPlace.In(room))
+            {
+                continue;
+            }
+
             CreatureDef def = database.CreatureById(c.CreatureTypeId);
-            if (((def.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || ((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) continue;
-            if (CallToArmsRules.IsUnderCallToArms(world, c) || NeedRules.ResolvedCategory(c) == CreatureStateCategory.Combat) continue;
-            if (!CombatRules.MayLookForAFight(world, database, c, force: false)) continue;
-            if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4) continue;
+            if (((def.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || ((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+            {
+                continue;
+            }
+
+            if (CallToArmsRules.IsUnderCallToArms(world, c) || NeedRules.ResolvedCategory(c) == CreatureStateCategory.Combat)
+            {
+                continue;
+            }
+
+            if (!CombatRules.MayLookForAFight(world, database, c, force: false))
+            {
+                continue;
+            }
+
+            if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4)
+            {
+                continue;
+            }
             // state+0x3C == 2 is the alarm's unread test too (Q391).
-            if (CreatureStateTable.Get(c.Dk2StateId).Group is 3 or 7) continue;
-            if (c.Dk2StateId == StateShadow.TravelToPoint && c.UtilityNewState == CombatStates.ReportingDanger) continue;
+            if (CreatureStateTable.Get(c.Dk2StateId).Group is 3 or 7)
+            {
+                continue;
+            }
+
+            if (c.Dk2StateId == StateShadow.TravelToPoint && c.UtilityNewState == CombatStates.ReportingDanger)
+            {
+                continue;
+            }
             // +0x36F == 1 (the Imp) routes with 0x80, everyone else with 0 (0x004A89B5).
             Navigation.MoveOptions options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
-            if (!context.Navigation.TryRouteTo(c, enemy.PosX, enemy.PosY, options)) continue;
+            if (!context.Navigation.TryRouteTo(c, enemy.PosX, enemy.PosY, options))
+            {
+                continue;
+            }
+
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;
             c.Running = true;
@@ -244,7 +362,9 @@ public static class TrapRules
             wanted -= FearRules.ThreatAtLevel(database, def, c.Level);
         }
         if (sent != 0)
+        {
             context.Emit(SystemName, "guard_post_reported", $"trap={trap.Id} player={trap.PlayerId} enemy={enemy.Id} sent={sent} left={wanted}");
+        }
     }
 
     /// <summary><c>0x004A96D0</c>: construction done. A Trigger adds itself to every own non-Trigger
@@ -255,16 +375,31 @@ public static class TrapRules
     public static void Complete(WorldState world, GameDatabase database, TrapState trap)
     {
         trap.UnderConstruction = false;
-        if (!database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition)) return;
+        if (!database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition))
+        {
+            return;
+        }
+
         if (definition.TriggerType == TriggerSelector)
         {
             foreach (TrapState near in Near(world, trap))
-                if (Selector(database, near) != TriggerSelector) near.TriggerCount = (byte)((near.TriggerCount + 1) & 0xF);
+            {
+                if (Selector(database, near) != TriggerSelector)
+                {
+                    near.TriggerCount = (byte)((near.TriggerCount + 1) & 0xF);
+                }
+            }
+
             return;
         }
         trap.TriggerCount = 0;
         foreach (TrapState near in Near(world, trap))
-            if (Selector(database, near) == TriggerSelector) trap.TriggerCount = (byte)((trap.TriggerCount + 1) & 0xF);
+        {
+            if (Selector(database, near) == TriggerSelector)
+            {
+                trap.TriggerCount = (byte)((trap.TriggerCount + 1) & 0xF);
+            }
+        }
     }
 
     /// <summary>The cleanup <c>0x004A7B20</c>'s gameplay half: a completed Trigger takes itself off
@@ -278,8 +413,16 @@ public static class TrapRules
         // Alarm and the Boulder trap).
         ThingSoundRules.Request(context, SystemName, trap, ThingSoundEvent.TrapDestroyed);
         if (!trap.UnderConstruction && Selector(database, trap) == TriggerSelector)
+        {
             foreach (TrapState near in Near(world, trap))
-                if (Selector(database, near) != TriggerSelector && near.TriggerCount != 0) near.TriggerCount--;
+            {
+                if (Selector(database, near) != TriggerSelector && near.TriggerCount != 0)
+                {
+                    near.TriggerCount--;
+                }
+            }
+        }
+
         world.RemoveTrap(trap);
         context.Emit(SystemName, "trap_removed", $"trap={trap.Id} type={trap.TrapId} player={trap.PlayerId} at={trap.X},{trap.Y}");
     }
@@ -287,11 +430,20 @@ public static class TrapRules
     private static IEnumerable<TrapState> Near(WorldState world, TrapState trap)
     {
         for (int y = Math.Max(0, trap.Y - 1); y < Math.Min(world.Height, trap.Y + 2); y++)
+        {
             for (int x = Math.Max(0, trap.X - 1); x < Math.Min(world.Width, trap.X + 2); x++)
             {
-                if (world.TrapAt(x, y, trap.PlayerId) is not { } near) continue;
-                if (DistanceSquared(near.PosX, near.PosY, trap.PosX, trap.PosY) <= TriggerReachSquared) yield return near;
+                if (world.TrapAt(x, y, trap.PlayerId) is not { } near)
+                {
+                    continue;
+                }
+
+                if (DistanceSquared(near.PosX, near.PosY, trap.PosX, trap.PosY) <= TriggerReachSquared)
+                {
+                    yield return near;
+                }
             }
+        }
     }
 
     private static byte Selector(GameDatabase database, TrapState trap) =>
@@ -319,7 +471,11 @@ public static class TrapRules
             int tile = CreatureDeathRules.IsCorpse(creature) || !CombatPitRules.IsOnTheMap(creature) || !world.Contains(creature.Tile)
                 ? -1
                 : (creature.Tile.Y * world.Width) + creature.Tile.X;
-            if (tile == creature.ChainTileIndex) continue;
+            if (tile == creature.ChainTileIndex)
+            {
+                continue;
+            }
+
             creature.ChainTileIndex = tile;
             creature.ChainOrder = tile < 0 ? 0 : ++world.NextChainOrder;
         }
@@ -333,9 +489,20 @@ public static class TrapRules
         CreatureState? first = null;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.ChainTileIndex != tile) continue;
-            if (creature.OwnerPlayerId == trapOwner || creature.OwnerPlayerId == PlayerIds.Neutral) continue;
-            if (first is null || creature.ChainOrder > first.ChainOrder) first = creature;
+            if (creature.ChainTileIndex != tile)
+            {
+                continue;
+            }
+
+            if (creature.OwnerPlayerId == trapOwner || creature.OwnerPlayerId == PlayerIds.Neutral)
+            {
+                continue;
+            }
+
+            if (first is null || creature.ChainOrder > first.ChainOrder)
+            {
+                first = creature;
+            }
         }
         return first;
     }
@@ -353,18 +520,35 @@ public static class TrapRules
         // The tile's owner is not the trap's: a blueprint leaves its keeper's list, and the trap dies.
         if (world.Contains(trap.X, trap.Y) && world.Tile(trap.X, trap.Y).OwnerPlayerId != trap.PlayerId)
         {
-            if (trap.UnderConstruction) CrateRules.Unregister(world, trap.PlayerId, new BlueprintRef(CrateRules.TrapKind, trap.Id));
+            if (trap.UnderConstruction)
+            {
+                CrateRules.Unregister(world, trap.PlayerId, new BlueprintRef(CrateRules.TrapKind, trap.Id));
+            }
+
             if (trap.Health > 0)
+            {
                 context.Emit(SystemName, "trap_owner_lost", $"trap={trap.Id} player={trap.PlayerId} tile_owner={world.Tile(trap.X, trap.Y).OwnerPlayerId}");
+            }
+
             trap.Health = 0;
         }
-        if (trap.ThreatDuration != 0) trap.ThreatDuration--;
+        if (trap.ThreatDuration != 0)
+        {
+            trap.ThreatDuration--;
+        }
 
         if (!trap.UnderConstruction && !IsDead(trap) && (definition.Flags & GuardPostBranch) != 0)
+        {
             GuardPost(context, sight, trap, now, rooms);
+        }
+
         if (!trap.UnderConstruction && !IsDead(trap) && FiringBuilt(database, definition))
         {
-            if ((definition.Flags & TurnsToTarget) != 0) Turn(world, database, sight, trap, definition, now);
+            if ((definition.Flags & TurnsToTarget) != 0)
+            {
+                Turn(world, database, sight, trap, definition, now);
+            }
+
             if (now >= trap.RechargeAt)
             {
                 int target = definition.TriggerType switch
@@ -374,36 +558,52 @@ public static class TrapRules
                     TriggerSelector => FirstOnTile(world, trap.X, trap.Y, trap.PlayerId)?.Id ?? 0,
                     _ => 0,
                 };
-                if (target == 0) trap.Charge = 0;
+                if (target == 0)
+                {
+                    trap.Charge = 0;
+                }
                 else
                 {
                     trap.Charge = TrapActivationRules.AdvanceCharge(trap.Charge, true);
                     if (TrapActivationRules.ChargeReached(definition, trap.Charge))
+                    {
                         Attempt(context, trap, definition, target);
+                    }
                 }
             }
         }
 
         if (trap.Threat != 0)
+        {
             ShareThreat(world, sight, trap, trap.Threat,
                 definition.TriggerType == SightSelector ? (definition.RangeTiles + 1) << 12 : ThreatRadius);
+        }
 
         if (definition.TriggerType == TriggerSelector && trap.TriggerCountdown != 0)
         {
             if (world.CreatureById(trap.TriggerCreatureId) is not { } struck || CreatureDeathRules.IsCorpse(struck))
+            {
                 trap.TriggerCreatureId = 0;
+            }
+
             Propagate(context, sight, trap);
         }
 
         if (IsDead(trap) && !trap.UnderConstruction && definition.DeathEffectId != 0)
+        {
             context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(definition.DeathEffectId), trap.PlayerId,
                 new FpPosition3(new Fp32(trap.PosX), new Fp32(trap.PosY),
                     new Fp32(FloorHeightRules.At(world, database, trap.PosX, trap.PosY))), new Dk2Angle((ushort)trap.Heading)));
+        }
 
         if (!IsDead(trap) && now > trap.RecoveryAt && definition.HealthGain != 0)
         {
             int gain = Math.Min(definition.HealthGain, definition.Health - trap.Health);
-            if ((short)gain != 0) trap.Health += (short)gain; // 0x004A8E2F passes the signed low word
+            if ((short)gain != 0)
+            {
+                trap.Health += (short)gain; // 0x004A8E2F passes the signed low word
+            }
+
             trap.RecoveryAt += SimulationTiming.OriginalTicksPerGameSecond;
         }
     }
@@ -414,8 +614,13 @@ public static class TrapRules
     {
         TrapReadiness readiness = Readiness(context.World, trap, definition, context.Tick.Value);
         if (readiness == TrapReadiness.InsufficientMana)
+        {
             NoMana(context, trap, definition);
-        else if (readiness == TrapReadiness.Ready) Fire(context, trap, definition, target);
+        }
+        else if (readiness == TrapReadiness.Ready)
+        {
+            Fire(context, trap, definition, target);
+        }
     }
 
     /// <summary><c>0x004A7D90</c>, a boulder rolling over the trap: readiness, then the firing at it
@@ -423,19 +628,33 @@ public static class TrapRules
     /// thing, as no shot strikes an object here (shots.md §10), so a tile trap's forced hit is lost.</summary>
     public static void AttemptAt(SimulationContext context, TrapState trap, TrapDef definition, int x, int y)
     {
-        if (!FiringBuilt(context.Database, definition)) return;
+        if (!FiringBuilt(context.Database, definition))
+        {
+            return;
+        }
+
         TrapReadiness readiness = Readiness(context.World, trap, definition, context.Tick.Value);
         if (readiness == TrapReadiness.InsufficientMana)
         {
             NoMana(context, trap, definition);
             return;
         }
-        if (readiness != TrapReadiness.Ready) return;
+        if (readiness != TrapReadiness.Ready)
+        {
+            return;
+        }
+
         ShotState? shot = Shoot(context, trap, definition, x, y, null);
         if (shot != null && (context.Database.Shots[shot.ShotTypeId].Flags & ShotLaunches) != 0)
+        {
             ShotRules.Launch(shot, context.Database.Shots[shot.ShotTypeId], x, y);
-        if (shot != null) ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)trap.Heading),
+        }
+
+        if (shot != null)
+        {
+            ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)trap.Heading),
             new Fp32(Fp32.One + definition.ShotOffsetZ));
+        }
     }
 
     /// <summary>Readiness 2, short of mana: the no-mana effect (presentation) and <c>0x004C1A30</c> on
@@ -445,10 +664,18 @@ public static class TrapRules
     {
         context.Emit(SystemName, "trap_no_mana", $"trap={trap.Id} player={trap.PlayerId} cost={definition.ManaCostToFire}");
         WorldState world = context.World;
-        if (!world.HasPlayer(trap.PlayerId)) return;
+        if (!world.HasPlayer(trap.PlayerId))
+        {
+            return;
+        }
+
         ref PlayerState player = ref world.Player(trap.PlayerId);
         long now = context.Tick.Value;
-        if (now < player.TrapNoManaMessageAt) return;
+        if (now < player.TrapNoManaMessageAt)
+        {
+            return;
+        }
+
         world.Messages.Post(world, trap.PlayerId, PlayerMessageKind.ManaShortfall, TrapNoManaSubtype, 0);
         player.TrapNoManaMessageAt = now + (15L * SimulationTiming.OriginalTicksPerGameSecond);
     }
@@ -469,8 +696,14 @@ public static class TrapRules
         int target = FindSightTarget(world, database, sight, trap, definition, now, wider: true);
         int heading = trap.Heading;
         if (target != 0 && world.CreatureById(target) is { } creature)
+        {
             Bearing.TurnToward(ref heading, Bearing.Of(creature.PosX - trap.PosX, creature.PosY - trap.PosY), TurnRate);
-        else Bearing.TurnToward(ref heading, (trap.Heading + SweepStep) & Bearing.Mask, TurnRate);
+        }
+        else
+        {
+            Bearing.TurnToward(ref heading, (trap.Heading + SweepStep) & Bearing.Mask, TurnRate);
+        }
+
         trap.Heading = heading;
     }
 
@@ -479,12 +712,32 @@ public static class TrapRules
     /// also wants a worker.</summary>
     private static int TileTarget(WorldState world, GameDatabase database, TrapState trap, TrapDef definition)
     {
-        if (trap.TriggerCount != 0) return 0;
-        if (FirstOnTile(world, trap.X, trap.Y, trap.PlayerId) is not { } creature) return 0;
-        if (CreatureDeathRules.IsDying(creature)) return 0;
+        if (trap.TriggerCount != 0)
+        {
+            return 0;
+        }
+
+        if (FirstOnTile(world, trap.X, trap.Y, trap.PlayerId) is not { } creature)
+        {
+            return 0;
+        }
+
+        if (CreatureDeathRules.IsDying(creature))
+        {
+            return 0;
+        }
+
         CreatureDef type = database.CreatureById(creature.CreatureTypeId);
-        if (IsFlying(creature, type) || ((type.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return 0;
-        if (trap.TrapId == JackInTheBoxId && !((type.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return 0;
+        if (IsFlying(creature, type) || ((type.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+        {
+            return 0;
+        }
+
+        if (trap.TrapId == JackInTheBoxId && !((type.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+        {
+            return 0;
+        }
+
         return creature.Id;
     }
 
@@ -502,7 +755,11 @@ public static class TrapRules
     public static int FindSightTarget(WorldState world, GameDatabase database, ISightBlocker sight, TrapState trap,
         TrapDef definition, long now, bool wider)
     {
-        if (now == trap.SightTurn) return trap.SightTargetId;
+        if (now == trap.SightTurn)
+        {
+            return trap.SightTargetId;
+        }
+
         int range = definition.RangeTiles + (wider ? 2 : 0);
         uint limit = unchecked((uint)(range * range * 0x1000));
         uint best = 0x7FFFFFFF;
@@ -512,26 +769,51 @@ public static class TrapRules
             found = trap.SightTargetId;
             if (!LineOfSight.Clear(sight, trap.PosX, trap.PosY, kept.PosX, kept.PosY) || !CombatRules.IsAttackableOnMap(kept)
                 || ((database.CreatureById(kept.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+            {
                 found = 0;
+            }
             else
             {
                 best = DistanceSquared(kept.PosX, kept.PosY, trap.PosX, trap.PosY);
-                if (limit < best) found = 0;
+                if (limit < best)
+                {
+                    found = 0;
+                }
             }
         }
 
         EntityList<CreatureState> creatures = world.Creatures;
         foreach (PlayerId player in world.PlayerIds)
         {
-            if (!CombatRules.IsHostile(world, trap.PlayerId, player.Value)) continue;
+            if (!CombatRules.IsHostile(world, trap.PlayerId, player.Value))
+            {
+                continue;
+            }
+
             for (int i = creatures.Count - 1; i >= 0; i--)
             {
                 CreatureState creature = creatures[i];
-                if (creature.OwnerPlayerId != player || !CombatRules.IsAttackableOnMap(creature)) continue;
-                if (((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) continue;
+                if (creature.OwnerPlayerId != player || !CombatRules.IsAttackableOnMap(creature))
+                {
+                    continue;
+                }
+
+                if (((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+                {
+                    continue;
+                }
+
                 uint distance = DistanceSquared(creature.PosX, creature.PosY, trap.PosX, trap.PosY);
-                if (distance >= limit || distance >= best) continue;
-                if (!LineOfSight.Clear(sight, trap.PosX, trap.PosY, creature.PosX, creature.PosY)) continue;
+                if (distance >= limit || distance >= best)
+                {
+                    continue;
+                }
+
+                if (!LineOfSight.Clear(sight, trap.PosX, trap.PosY, creature.PosX, creature.PosY))
+                {
+                    continue;
+                }
+
                 found = creature.Id;
                 best = distance;
             }
@@ -554,17 +836,31 @@ public static class TrapRules
             int aimX = trap.PosX + (int)(((long)Sine(trap.Heading) * 0x1000) >> 16);
             int aimY = trap.PosY - (int)(((long)Cosine(trap.Heading) * 0x1000) >> 16);
             ShotState? directional = Shoot(context, trap, definition, aimX, aimY, null);
-            if (directional != null) ShotRules.RequestTrail(context, directional, new Dk2Angle((ushort)trap.Heading),
+            if (directional != null)
+            {
+                ShotRules.RequestTrail(context, directional, new Dk2Angle((ushort)trap.Heading),
                 new Fp32(Fp32.One + definition.ShotOffsetZ));
+            }
+
             return directional;
         }
         ShotState? shot = Shoot(context, trap, definition, creature.PosX, creature.PosY, creature);
         if (shot != null && (context.Database.Shots[shot.ShotTypeId].Flags & ShotLaunches) != 0)
+        {
             ShotRules.Launch(shot, context.Database.Shots[shot.ShotTypeId], creature.PosX, creature.PosY);
-        if (shot != null) ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)trap.Heading),
+        }
+
+        if (shot != null)
+        {
+            ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)trap.Heading),
             new Fp32(Fp32.One + definition.ShotOffsetZ));
+        }
         // DK2 writes the target's thing tag, a slot ours does not model; ours writes its id.
-        if (shot != null && trap.TrapId == JackInTheBoxId) shot.Data2 = creature.Id;
+        if (shot != null && trap.TrapId == JackInTheBoxId)
+        {
+            shot.Data2 = creature.Id;
+        }
+
         return shot;
     }
 
@@ -577,16 +873,28 @@ public static class TrapRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (definition.ShotTypeId == 0 || !database.Shots.TryGetValue(definition.ShotTypeId, out ShotDef? shotDef)) return null;
+        if (definition.ShotTypeId == 0 || !database.Shots.TryGetValue(definition.ShotTypeId, out ShotDef? shotDef))
+        {
+            return null;
+        }
+
         int sine = Sine(trap.Heading), cosine = Cosine(trap.Heading);
         int originX = unchecked(((definition.ShotOffsetX * cosine) >> 16) - ((definition.ShotOffsetY * sine) >> 16) + trap.PosX);
         int originY = unchecked(((definition.ShotOffsetY * cosine) >> 16) + ((definition.ShotOffsetX * sine) >> 16) + trap.PosY);
 
-        if (target != null) FightRules.AnswerTrap(context, target, trap);
+        if (target != null)
+        {
+            FightRules.AnswerTrap(context, target, trap);
+        }
+
         ShotState shot = ShotRules.Spawn(world, shotDef, trap.PlayerId, originX, originY, definition.ShotData1, definition.ShotData2, 0,
             target is null ? FightTargetKind.None : FightTargetKind.Creature, target?.Id ?? CombatRules.NoTarget,
             target?.OwnerPlayerId ?? 0, -1, aimX, aimY);
-        if (target != null && definition.TriggerType is not (SightSelector or TriggerSelector)) shot.ForcedCollision = true;
+        if (target != null && definition.TriggerType is not (SightSelector or TriggerSelector))
+        {
+            shot.ForcedCollision = true;
+        }
+
         RequestFireSound(context, trap, definition, target);
 
         if ((definition.Flags & TrapActivationRules.UsesMana) != 0 && trap.PlayerId != PlayerIds.Good && world.HasPlayer(trap.PlayerId))
@@ -595,7 +903,11 @@ public static class TrapRules
             player.Mana = Math.Max(0, player.Mana - definition.ManaCostToFire);
             player.OneShotManaSpent += definition.ManaCostToFire;
         }
-        if ((definition.Flags & RevealsOnFire) != 0) trap.Hidden = false;
+        if ((definition.Flags & RevealsOnFire) != 0)
+        {
+            trap.Hidden = false;
+        }
+
         trap.Charge = 0;
         uint duration = SimulationTiming.LoaderFixedSecondsToTicks(definition.ThreatSecondsRaw);
         trap.ThreatDuration = unchecked((byte)duration);
@@ -628,7 +940,11 @@ public static class TrapRules
             ThingSoundRules.Request(context, SystemName, trap, ThingSoundEvent.TrapFired);
             return;
         }
-        if (target is not null) ThingSoundRules.Request(context, SystemName, trap, ThingSoundEvent.TrapFired, new PlayerId(target.OwnerPlayerId));
+        if (target is not null)
+        {
+            ThingSoundRules.Request(context, SystemName, trap, ThingSoundEvent.TrapFired, new PlayerId(target.OwnerPlayerId));
+        }
+
         ThingSoundRules.Request(context, SystemName, trap, ThingSoundEvent.TrapFired, new PlayerId(trap.PlayerId));
     }
 
@@ -654,9 +970,15 @@ public static class TrapRules
             if (IsHostileOnMap(world, owner, creature)
                 && (int)DistanceSquared(creature.PosX, creature.PosY, x, y) < outer
                 && LineOfSight.Clear(sight, x, y, creature.PosX, creature.PosY))
+            {
                 count++;
+            }
         }
-        if (count == 0) return;
+        if (count == 0)
+        {
+            return;
+        }
+
         int inner = Math.Max(1, (radius >> 12) - 1);
         int innerSquared = inner * inner * 0x1000;
         int share = amount / count;
@@ -699,34 +1021,59 @@ public static class TrapRules
         int y0 = Math.Max(0, trigger.Y - half), y1 = Math.Min(world.Height, trigger.Y + half + 1);
         long now = context.Tick.Value;
         for (int y = y0; y < y1; y++)
+        {
             for (int x = x0; x < x1; x++)
             {
-                if (world.TrapAt(x, y, trigger.PlayerId) is not { } found) continue;
-                if (DistanceSquared(found.PosX, found.PosY, trigger.PosX, trigger.PosY) > limit) continue;
-                if (!database.Traps.TryGetValue(found.TrapId, out TrapDef? definition) || !FiringBuilt(database, definition)) continue;
+                if (world.TrapAt(x, y, trigger.PlayerId) is not { } found)
+                {
+                    continue;
+                }
+
+                if (DistanceSquared(found.PosX, found.PosY, trigger.PosX, trigger.PosY) > limit)
+                {
+                    continue;
+                }
+
+                if (!database.Traps.TryGetValue(found.TrapId, out TrapDef? definition) || !FiringBuilt(database, definition))
+                {
+                    continue;
+                }
+
                 CreatureState? struck = world.CreatureById(trigger.TriggerCreatureId) is { } c && !CreatureDeathRules.IsCorpse(c) ? c : null;
                 if (struck != null && (definition.TriggerType == TriggerSelector || found.TrapId == JackInTheBoxId
                     || LineOfSight.Clear(sight, trigger.PosX, trigger.PosY, struck.PosX, struck.PosY)))
                 {
                     TrapReadiness ready = Readiness(world, found, definition, now);
                     if (ready == TrapReadiness.InsufficientMana)
+                    {
                         NoMana(context, found, definition);
-                    else if (ready == TrapReadiness.Ready) Fire(context, found, definition, struck.Id);
+                    }
+                    else if (ready == TrapReadiness.Ready)
+                    {
+                        Fire(context, found, definition, struck.Id);
+                    }
+
                     continue;
                 }
                 int toward = Bearing.Of(trigger.PosX - found.PosX, trigger.PosY - found.PosY);
                 TrapReadiness readiness = Readiness(world, found, definition, now);
                 if (readiness == TrapReadiness.InsufficientMana)
+                {
                     NoMana(context, found, definition);
+                }
                 else if (readiness == TrapReadiness.Ready)
                 {
                     ShotState? made = Shoot(context, found, definition,
                         found.PosX + (int)(((long)Sine(toward) * 0x1000) >> 16),
                         found.PosY - (int)(((long)Cosine(toward) * 0x1000) >> 16), null);
-                    if (made != null) ShotRules.RequestTrail(context, made, new Dk2Angle((ushort)found.Heading),
+                    if (made != null)
+                    {
+                        ShotRules.RequestTrail(context, made, new Dk2Angle((ushort)found.Heading),
                         new Fp32(Fp32.One + definition.ShotOffsetZ));
+                    }
                 }
             }
+        }
     }
 
     /// <summary>A creature whose definition reveals adjacent traps, on entering a new tile (the creature
@@ -735,17 +1082,29 @@ public static class TrapRules
     /// 22–25) set to 10. True when it revealed one.</summary>
     public static bool RevealAround(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (!((definition.Flags & CreatureFlags.RevealsAdjacentTraps) == CreatureFlags.RevealsAdjacentTraps)) return false;
+        if (!((definition.Flags & CreatureFlags.RevealsAdjacentTraps) == CreatureFlags.RevealsAdjacentTraps))
+        {
+            return false;
+        }
+
         WorldState world = context.World;
         TilePos at = creature.Tile;
         bool revealed = false;
         foreach ((int dx, int dy) in RevealOffsets)
         {
             int x = at.X + dx, y = at.Y + dy;
-            if (!world.Contains(x, y)) continue;
+            if (!world.Contains(x, y))
+            {
+                continue;
+            }
+
             foreach (TrapState trap in world.Traps)
             {
-                if (trap.X != x || trap.Y != y || !trap.Hidden || !CombatRules.IsHostile(world, creature.OwnerPlayerId, trap.PlayerId)) continue;
+                if (trap.X != x || trap.Y != y || !trap.Hidden || !CombatRules.IsHostile(world, creature.OwnerPlayerId, trap.PlayerId))
+                {
+                    continue;
+                }
+
                 trap.Hidden = false;
                 creature.FightProcessCounter = RevealFightCounter;
                 revealed = true;

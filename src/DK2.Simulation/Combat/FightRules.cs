@@ -32,8 +32,16 @@ public static class FightRules
         {
             case FightTargetKind.Creature:
                 CreatureState? target = world.CreatureById(me.FightTargetId);
-                if (target is null) return false;
-                if (me.CombatPitFighter) return CreatureStateMachine.HasState(target) && CombatPitRules.IsOnTheMap(target);
+                if (target is null)
+                {
+                    return false;
+                }
+
+                if (me.CombatPitFighter)
+                {
+                    return CreatureStateMachine.HasState(target) && CombatPitRules.IsOnTheMap(target);
+                }
+
                 return CombatRules.IsAttackableOnMap(target);   // spFighting tests +0x16 == 2 first (0x0045F2BE)
             case FightTargetKind.Heart:
                 return HeartPillarRules.TryResolve(world, database, me.FightTargetPlayerId, new HeartPillarId(me.FightTargetId), out HeartPillarTarget pillar)
@@ -116,8 +124,16 @@ public static class FightRules
     /// (<c>0x004511A0</c>, door-blocking.md).</summary>
     public static bool InRange(ISightBlocker sight, CreatureState me, int targetX, int targetY)
     {
-        if (CombatRules.DistanceSquared(me.PosX, me.PosY, targetX, targetY) >= me.AttackRangeSquared) return false;
-        if (sight is WorldSight world && world.DoorOn(targetX / Fp32.One, targetY / Fp32.One)) sight = world.SolidOnly;
+        if (CombatRules.DistanceSquared(me.PosX, me.PosY, targetX, targetY) >= me.AttackRangeSquared)
+        {
+            return false;
+        }
+
+        if (sight is WorldSight world && world.DoorOn(targetX / Fp32.One, targetY / Fp32.One))
+        {
+            sight = world.SolidOnly;
+        }
+
         return LineOfSight.Clear(sight, me.PosX, me.PosY, targetX, targetY);
     }
 
@@ -125,7 +141,11 @@ public static class FightRules
     /// option word, requested again only when the target has changed tile.</summary>
     public static void Approach(WorldSteering navigation, CreatureState me, int targetX, int targetY, TilePos targetTile)
     {
-        if (me.IsRouted && me.Destination == targetTile) return;
+        if (me.IsRouted && me.Destination == targetTile)
+        {
+            return;
+        }
+
         navigation.TryRouteTo(me, targetX, targetY, MoveOptions.Plain);
     }
 
@@ -141,11 +161,23 @@ public static class FightRules
     /// their holds, where a release a turn earlier gave 7 and 9 (ADR-0598).</summary>
     public static bool MeleeActionIsRunning(CreatureState creature, CreatureDef definition, GameTick tick)
     {
-        if (creature.PossessedMelee.Active) return true;
-        if (creature.SwingInProgress) return true;
+        if (creature.PossessedMelee.Active)
+        {
+            return true;
+        }
+
+        if (creature.SwingInProgress)
+        {
+            return true;
+        }
+
         if (creature.SwingKind != SpellRules.MeleeSwing
             || creature.SwingTargetKind == FightTargetKind.None
-            || creature.TimeLastUsedMelee - creature.MeleeStampDelay != creature.SwingStartTick) return false;
+            || creature.TimeLastUsedMelee - creature.MeleeStampDelay != creature.SwingStartTick)
+        {
+            return false;
+        }
+
         long elapsed = tick.Value - creature.SwingStartTick;
         return elapsed >= 0 && elapsed < AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(5));
     }
@@ -157,7 +189,11 @@ public static class FightRules
     {
         PossessedMeleeRules.Cancel(me);
         // Legacy swings use their computed hold and must release the previous shared clip.
-        if (me.PossessedMelee.OwnsClip) ActionAnimationClock.Clear(me);
+        if (me.PossessedMelee.OwnsClip)
+        {
+            ActionAnimationClock.Clear(me);
+        }
+
         me.PossessedMelee = default;
         PossessedExcavationRules.Cancel(me);
         ReinforcementActionRules.Cancel(me);
@@ -174,16 +210,26 @@ public static class FightRules
         me.SwingTargetPlayerId = me.FightTargetPlayerId;
         // CreatureAction_Begin(17) asks the record's sound word as the action begins (0x004968BC); the clip is installed fresh.
         CreatureActionSounds.Begin(context, SystemName, me, CreatureActionTable.MeleeSwing);
-        if (me.CreatureTypeId == CombatRules.ImpCreatureTypeId) me.StopMoving();
+        if (me.CreatureTypeId == CombatRules.ImpCreatureTypeId)
+        {
+            me.StopMoving();
+        }
+
         context.Emit(SystemName, "swing", $"creature={me.Id} type={mine.Name} target={me.SwingTargetId} heart={me.SwingTargetPlayerId}");
 
         if (me.SwingTargetKind == FightTargetKind.Creature)
         {
             CreatureState? target = context.World.CreatureById(me.SwingTargetId);
-            if (target != null) Retaliate(context, target, me);
+            if (target != null)
+            {
+                Retaliate(context, target, me);
+            }
         }
 
-        if (CombatRules.BlowLands(me, mine, context.Tick.Value)) LandBlow(context, me, mine);
+        if (CombatRules.BlowLands(me, mine, context.Tick.Value))
+        {
+            LandBlow(context, me, mine);
+        }
     }
 
     /// <summary>The blow (<c>0x00498E30</c> past its gate): the swing's own target, whether or not
@@ -198,7 +244,9 @@ public static class FightRules
     {
         // 0x004992EB, the swing's last act: asked by every arm that reached the handler's tail (a blow of zero included), at the attacker.
         if (Land(context, me, mine) && !ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
             ThingSoundRules.Request(context, SystemName, me, ThingSoundEvent.Struck);
+        }
     }
 
     /// <summary>The swing's arms; false where DK2's handler returns before its tail (no live target, an invulnerable creature).</summary>
@@ -211,11 +259,17 @@ public static class FightRules
         if (me.SwingTargetKind == FightTargetKind.Creature)
         {
             CreatureState? target = world.CreatureById(me.SwingTargetId);
-            if (target is null || CreatureDeathRules.IsDown(target) || StatusEffectRules.IsInvulnerable(target)) return false;
+            if (target is null || CreatureDeathRules.IsDown(target) || StatusEffectRules.IsInvulnerable(target))
+            {
+                return false;
+            }
             // 0x00499072: the impact lookup, after the invulnerable return and before the blow-of-zero test.
             WeaponImpactRules.OnCreature(context, SystemName, me, mine, target);
             int blow = Blow(database, me, mine, target.PosX, target.PosY);
-            if (blow == 0) return true;
+            if (blow == 0)
+            {
+                return true;
+            }
             // 0x0049926C (0x0049924D for the Reaper-type arm): the swing passes the attacker's owner (+0x28) as the source.
             int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, -blow, me.OwnerPlayerId);
             context.Emit(SystemName, "hit",
@@ -223,16 +277,28 @@ public static class FightRules
         }
         else if (me.SwingTargetKind == FightTargetKind.Heart)
         {
-            if (!HeartPillarRules.TryResolve(world, database, me.SwingTargetPlayerId, new HeartPillarId(me.SwingTargetId), out HeartPillarTarget pillar)) return false;
+            if (!HeartPillarRules.TryResolve(world, database, me.SwingTargetPlayerId, new HeartPillarId(me.SwingTargetId), out HeartPillarTarget pillar))
+            {
+                return false;
+            }
+
             ref PlayerState owner = ref world.Player(me.SwingTargetPlayerId);
             // A health change, negative as Blow's is, with no bearing term.
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 -MeleeDamageRules.Swing(database, mine, me.Level, MeleeDamageRules.StanceOf(me)), 0, 0);
             // A pillar is an object (class 2): its definition's surface byte, looked up at 0x004991C0 before the blow-of-zero test.
             WeaponImpactRules.OnObject(context, SystemName, me, mine, HeartPillarRules.ArchPillarObjectId);
-            if (blow == 0) return true;
+            if (blow == 0)
+            {
+                return true;
+            }
+
             bool killed = HeartSoundRules.Damage(context, SystemName, owner.PlayerId, -blow, me.OwnerPlayerId);
-            if (blow < 0) CombatMessageRules.HeartDamaged(context, owner.PlayerId);
+            if (blow < 0)
+            {
+                CombatMessageRules.HeartDamaged(context, owner.PlayerId);
+            }
+
             context.Emit(SystemName, "heart_hit",
                 $"creature={me.Id} heart={owner.PlayerId} blow={blow} health={owner.HeartHealth}{(killed ? " destroyed" : "")}");
         }
@@ -242,12 +308,20 @@ public static class FightRules
             // which is the creature arm's alone, applied flat through the health routine. The two
             // player modifiers (+0x1090, +0x1091) apply in DK2; ours passes 0, as the creature arm does.
             DoorState? door = world.DoorById(me.SwingTargetId);
-            if (door is null || door.Health <= 0) return false;
+            if (door is null || door.Health <= 0)
+            {
+                return false;
+            }
+
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 MeleeDamageRules.Swing(database, mine, me.Level,
                     MeleeDamageRules.StanceOf(me)), 0, 0);
             WeaponImpactRules.OnDoor(context, SystemName, me, mine, door);   // 0x00499168
-            if (blow == 0) return true;
+            if (blow == 0)
+            {
+                return true;
+            }
+
             DoorRules.Damage(context, door, -blow, me.OwnerPlayerId);
             context.Emit(SystemName, "door_hit", $"creature={me.Id} door={door.Id} blow={blow} health={door.Health}");
         }
@@ -257,17 +331,28 @@ public static class FightRules
             // definition (+0xBF, presentation), then the blow flat through the health routine, which
             // adds it to a trap with no refusal. The trap goes when the world next removes the dead.
             TrapState? trap = world.TrapById(me.SwingTargetId);
-            if (trap is null || trap.Health <= 0) return false;
+            if (trap is null || trap.Health <= 0)
+            {
+                return false;
+            }
+
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 MeleeDamageRules.Swing(database, mine, me.Level,
                     MeleeDamageRules.StanceOf(me)), 0, 0);
             WeaponImpactRules.OnTrap(context, SystemName, me, mine, trap);   // 0x00499194
-            if (blow == 0) return true;
+            if (blow == 0)
+            {
+                return true;
+            }
+
             TrapRules.Damage(trap, -blow);
             context.Emit(SystemName, "trap_hit", $"creature={me.Id} trap={trap.Id} blow={blow} health={trap.Health}");
         }
         else if (me.SwingTargetKind is FightTargetKind.Shot or FightTargetKind.Body or FightTargetKind.Object)
+        {
             return LandThingBlow(context, me, mine);
+        }
+
         return true;
     }
 
@@ -285,18 +370,30 @@ public static class FightRules
         switch (me.SwingTargetKind)
         {
             case FightTargetKind.Shot:
-                if (world.ShotById(me.SwingTargetId) is not { } shot) return false;
+                if (world.ShotById(me.SwingTargetId) is not { } shot)
+                {
+                    return false;
+                }
+
                 shot.Health = unchecked(shot.Health - blow);
                 context.Emit(SystemName, "shot_struck", $"creature={me.Id} shot={shot.Id} blow={blow} health={shot.Health}");
                 break;
             case FightTargetKind.Body:
                 // The body's health is its rot timer counting down; ours counts the window up.
-                if (world.CreatureById(me.SwingTargetId) is not { } body || !CreatureDeathRules.IsCorpse(body)) return false;
+                if (world.CreatureById(me.SwingTargetId) is not { } body || !CreatureDeathRules.IsCorpse(body))
+                {
+                    return false;
+                }
+
                 body.DyingTicks = unchecked(body.DyingTicks + blow);
                 context.Emit(SystemName, "body_struck", $"creature={me.Id} body={body.Id} blow={blow} lain={body.DyingTicks}");
                 break;
             case FightTargetKind.Object:
-                if (world.ObjectById(me.SwingTargetId) is not { } thing) return false;
+                if (world.ObjectById(me.SwingTargetId) is not { } thing)
+                {
+                    return false;
+                }
+
                 WeaponImpactRules.OnObject(context, SystemName, me, mine, thing.ObjectTypeId);   // 0x004991C0
                 bool damageable = context.Database.ObjectById(thing.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.Damageable) == ObjectFlags.Damageable);
                 // Only a Book Case reaches here, and it is not Damageable; a Damageable one would take
@@ -329,14 +426,21 @@ public static class FightRules
         me.AttackCreatureHits = unchecked((ushort)(me.AttackCreatureHits + 1));   // 0x0048F3E0
         me.SpellStamps[slot] = context.Tick.Value;
         CreatureActionSounds.Begin(context, SystemName, me, CreatureActionTable.SpellCast);   // 0x004968BC, action 16
-        if (me.CreatureTypeId == CombatRules.ImpCreatureTypeId) me.StopMoving();
+        if (me.CreatureTypeId == CombatRules.ImpCreatureTypeId)
+        {
+            me.StopMoving();
+        }
+
         context.Emit(SystemName, "cast",
             $"creature={me.Id} type={mine.Name} slot={slot} spell={mine.Spells[slot].CreatureSpellId} target={me.SwingTargetId} heart={me.SwingTargetPlayerId}");
 
         if (tell && me.SwingTargetKind == FightTargetKind.Creature)
         {
             CreatureState? target = context.World.CreatureById(me.SwingTargetId);
-            if (target != null) Retaliate(context, target, me);
+            if (target != null)
+            {
+                Retaliate(context, target, me);
+            }
         }
     }
 
@@ -354,12 +458,24 @@ public static class FightRules
         int id = me.FightTargetId, tile = me.FightTargetTileIndex, range = me.AttackRangeSquared;
         CreatureState? old = kind == FightTargetKind.Creature ? world.CreatureById(id) : null;
         bool ranged = attack is CombatRules.AttackMode.SpellAtCreature or CombatRules.AttackMode.SpellAtThing;
-        if (old != null) CombatRules.Unregister(old, me.Id);
+        if (old != null)
+        {
+            CombatRules.Unregister(old, me.Id);
+        }
+
         me.FightTargetKind = FightTargetKind.None;
         me.FightTargetId = CombatRules.NoTarget;
         me.AttackType = 0;
-        if (CombatTargetRules.SelectAVictim(context, sight, hearts, rooms, me, mine, scratch)) return CombatRules.IsFighting(me);
-        if (!CombatRules.IsFighting(me)) return false;
+        if (CombatTargetRules.SelectAVictim(context, sight, hearts, rooms, me, mine, scratch))
+        {
+            return CombatRules.IsFighting(me);
+        }
+
+        if (!CombatRules.IsFighting(me))
+        {
+            return false;
+        }
+
         me.FightTargetKind = kind;
         me.FightTargetId = id;
         me.FightTargetPlayerId = player;
@@ -367,7 +483,11 @@ public static class FightRules
         me.AttackType = attack;
         me.AttackSpellSlot = slot;
         me.AttackRangeSquared = range;
-        if (old != null && attack != CombatRules.AttackMode.SpellAtAlly) CombatRules.Register(old, me.Id, ranged);
+        if (old != null && attack != CombatRules.AttackMode.SpellAtAlly)
+        {
+            CombatRules.Register(old, me.Id, ranged);
+        }
+
         return true;
     }
 
@@ -379,9 +499,14 @@ public static class FightRules
         int slot = me.AttackSpellSlot;
         StartCast(context, me, mine, slot, tell: false);
         if (me.FightTargetKind == FightTargetKind.Body)
+        {
             context.Emit(SystemName, "casts_on_body", $"creature={me.Id} body={me.FightTargetId} slot={slot}");
+        }
         else
+        {
             context.Emit(SystemName, "casts_on_ally", $"creature={me.Id} ally={me.FightTargetId} slot={slot}");
+        }
+
         me.FightTargetId = CombatRules.NoTarget;
         me.FightTargetKind = FightTargetKind.None;
         me.FightTargetPlayerId = 0;
@@ -409,7 +534,11 @@ public static class FightRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         CreatureSpellDef? spell = SpellRules.SpellOf(database, mine, me.SwingSpellSlot);
-        if (spell is null) return;
+        if (spell is null)
+        {
+            return;
+        }
+
         if (!database.Shots.TryGetValue(spell.ShotTypeId, out ShotDef? shotDef))
         {
             context.Emit(SystemName, "cast_failed", $"creature={me.Id} spell={spell.CreatureSpellId} reason=no_shot_type");
@@ -422,7 +551,11 @@ public static class FightRules
         if (me.SwingTargetKind == FightTargetKind.Creature)
         {
             CreatureState? target = world.CreatureById(me.SwingTargetId);
-            if (target is null || CreatureDeathRules.IsDown(target)) return;
+            if (target is null || CreatureDeathRules.IsDown(target))
+            {
+                return;
+            }
+
             int distanceSquared = CombatRules.DistanceSquared(me.PosX, me.PosY, target.PosX, target.PosY);
             long tiles = ShotRules.Isqrt((long)distanceSquared << 4) >> 8;
             aimX = target.PosX + (int)((target.PosX - target.LastPosX) * tiles * 3 / 2);
@@ -435,7 +568,11 @@ public static class FightRules
         }
         else if (me.SwingTargetKind == FightTargetKind.Heart)
         {
-            if (!HeartPillarRules.TryResolve(world, database, me.SwingTargetPlayerId, new HeartPillarId(me.SwingTargetId), out HeartPillarTarget pillar)) return;
+            if (!HeartPillarRules.TryResolve(world, database, me.SwingTargetPlayerId, new HeartPillarId(me.SwingTargetId), out HeartPillarTarget pillar))
+            {
+                return;
+            }
+
             targetTile = pillar.Tile.Y * world.Width + pillar.Tile.X;
             aimX = pillar.X.Raw;
             aimY = pillar.Y.Raw;
@@ -487,7 +624,11 @@ public static class FightRules
     /// no group; DK2 asks it all the same. A third caller, <c>0x004982B0</c>, is action 14's handler, which nothing begins.</summary>
     private static void RequestCastSound(SimulationContext context, CreatureState me, CreatureSpellDef spell, ShotDef shotDef)
     {
-        if (shotDef.SoundCategory.Length == 0 || ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (shotDef.SoundCategory.Length == 0 || ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         ThingSoundRules.Request(context, SystemName, SoundSourceId.Of(new CreatureId(me.Id)), shotDef.SoundCategory,
             (ThingSoundEvent)spell.SoundEvent, new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)));
     }
@@ -498,7 +639,11 @@ public static class FightRules
     /// creature adds only the height, which the caller sets on the shot (<see cref="ShotState.PosZ"/>, ADR-0728).</summary>
     public static (int X, int Y) ShotOrigin(CreatureState me, CreatureSpellSlot slot)
     {
-        if (me.Possessed) return (me.PosX, me.PosY);
+        if (me.Possessed)
+        {
+            return (me.PosX, me.PosY);
+        }
+
         long sin = TrapRules.Sine(me.Heading), cos = TrapRules.Cosine(me.Heading);
         int dx = (int)((slot.OriginX * cos) >> 16) - (int)((slot.OriginY * sin) >> 16);
         int dy = (int)((slot.OriginX * sin) >> 16) + (int)((slot.OriginY * cos) >> 16);
@@ -517,7 +662,11 @@ public static class FightRules
         ReinforcementActionRules.Cancel(me);
         ClaimActionRules.Cancel(me);
         me.ActionUntilTick = 0;
-        if (kind == SpellRules.MeleeSwing) PossessedMeleeRules.Begin(context, me);
+        if (kind == SpellRules.MeleeSwing)
+        {
+            PossessedMeleeRules.Begin(context, me);
+        }
+
         me.SwingInProgress = true;
         me.SwingKind = kind;
         me.SwingSpellSlot = (byte)slot;
@@ -559,7 +708,11 @@ public static class FightRules
         me.SwingInProgress = false;
         me.SwingKind = SpellRules.MeleeSwing;
         CreatureSpellDef? spell = SpellRules.SpellOf(context.Database, mine, me.SwingSpellSlot);
-        if (spell is null || !context.Database.Shots.TryGetValue(spell.ShotTypeId, out ShotDef? shotDef)) return;
+        if (spell is null || !context.Database.Shots.TryGetValue(spell.ShotTypeId, out ShotDef? shotDef))
+        {
+            return;
+        }
+
         ShotState shot = ShotRules.Spawn(context.World, shotDef, me.OwnerPlayerId, me.PosX, me.PosY, (int)spell.ShotData1, (int)spell.ShotData2,
             me.Id, FightTargetKind.None, CombatRules.NoTarget, 0, -1, me.SwingPointX, me.SwingPointY);
         shot.Sniper = me.Possessed && me.SniperMode;
@@ -585,10 +738,20 @@ public static class FightRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (target.Activity == CreatureActivity.Fleeing) return;
+        if (target.Activity == CreatureActivity.Fleeing)
+        {
+            return;
+        }
         // A celebrating creature is not switched out of state 260 by a blow (combat-approach-and-victory.md §7).
-        if (target.Activity is CreatureActivity.Celebrating or CreatureActivity.GoingToBody) return;
-        if (!CombatRules.MayLookForAFight(world, database, target, force: false)) return;
+        if (target.Activity is CreatureActivity.Celebrating or CreatureActivity.GoingToBody)
+        {
+            return;
+        }
+
+        if (!CombatRules.MayLookForAFight(world, database, target, force: false))
+        {
+            return;
+        }
 
         if (CombatRules.IsFighting(target))
         {
@@ -598,12 +761,22 @@ public static class FightRules
                 CreatureState? current = world.CreatureById(target.FightTargetId);
                 if (current != null)
                 {
-                    if (current.Id == attacker.Id) return;
+                    if (current.Id == attacker.Id)
+                    {
+                        return;
+                    }
+
                     turn = CombatRules.AttackerCount(current) > 1;
-                    if (turn) CombatRules.Unregister(current, target.Id);
+                    if (turn)
+                    {
+                        CombatRules.Unregister(current, target.Id);
+                    }
                 }
             }
-            if (!turn) return;
+            if (!turn)
+            {
+                return;
+            }
 
             target.FightTargetKind = FightTargetKind.Creature;
             target.FightTargetId = attacker.Id;
@@ -630,14 +803,29 @@ public static class FightRules
     /// position (<c>0x00471890</c>). One in the combat category does nothing.</summary>
     public static void AnswerTrap(SimulationContext context, CreatureState target, TrapState trap)
     {
-        if (NeedRules.ResolvedCategory(target) == CreatureStateCategory.Combat) return;
-        if (!CombatRules.MayLookForAFight(context.World, context.Database, target, force: false)) return;
-        if (target.CreatureTypeId == CombatRules.ImpCreatureTypeId) return;
+        if (NeedRules.ResolvedCategory(target) == CreatureStateCategory.Combat)
+        {
+            return;
+        }
+
+        if (!CombatRules.MayLookForAFight(context.World, context.Database, target, force: false))
+        {
+            return;
+        }
+
+        if (target.CreatureTypeId == CombatRules.ImpCreatureTypeId)
+        {
+            return;
+        }
+
         WorldSteering navigation = context.Navigation;
         MoverProfile profile = WorldSteering.ProfileOf(context.Database.CreatureById(target.CreatureTypeId), target.OwnerPlayerId, MoveOptions.Plain);
         RouteScratch.Clear();
         if (!navigation.Route(new Fixed16Vector(target.PosX << 4, target.PosY << 4), new Fixed16Vector(trap.PosX << 4, trap.PosY << 4), profile, RouteScratch))
+        {
             return;
+        }
+
         target.CurrentJob = JobType.None;
         target.JobTileIndex = -1;
         CombatStates.Idle(context.Hooks, target);

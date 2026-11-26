@@ -29,16 +29,30 @@ public sealed partial class ImpTaskSystem
         // The kind-8 arm (0x004686D6) scans with no gate, so the draw comes first; the refusals
         // below are the objects handler's (0x0046B9C0), run on the scan's own tile (ADR-0351).
         int side = _only is null ? DrawnStartSide(context) : 0;
-        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return false;
-        if (creature.CarriedObjectId >= 0 || creature.CarriedCreatureId >= 0) return false;
-        if (_only is TilePos only) return TryObjectAt(context, creature, grid, only);
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+        {
+            return false;
+        }
+
+        if (creature.CarriedObjectId >= 0 || creature.CarriedCreatureId >= 0)
+        {
+            return false;
+        }
+
+        if (_only is TilePos only)
+        {
+            return TryObjectAt(context, creature, grid, only);
+        }
 
         WorldState world = context.World;
         var rings = new DiamondRings(world, creature.Tile, side);
         while (rings.MoveNext())
         {
             TilePos tile = rings.Current;
-            if (RingScanVisits(context, world, tile, creature.Tile) && TryObjectAt(context, creature, grid, tile)) return true;
+            if (RingScanVisits(context, world, tile, creature.Tile) && TryObjectAt(context, creature, grid, tile))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -60,17 +74,27 @@ public sealed partial class ImpTaskSystem
         int index = (at.Y * world.Width) + at.X;
         ref TileState tile = ref world.TileAtIndex(index);
         if (tile.OwnerPlayerId != creature.OwnerPlayerId && !context.Database.TerrainById(tile.TerrainId).IsWater)
+        {
             return false;
+        }
 
         bool specialsFailed = false, othersFailed = false;
         foreach (ObjectState thing in world.Objects)
         {
-            if (thing.TileIndex != index || !ObjectCarryRules.IsLoose(context.Database, thing)) continue;
+            if (thing.TileIndex != index || !ObjectCarryRules.IsLoose(context.Database, thing))
+            {
+                continue;
+            }
+
             ObjectFlags flags = context.Database.ObjectById(thing.ObjectTypeId)!.Flags;
 
             if (((flags & ObjectFlags.TypeSpecial) == ObjectFlags.TypeSpecial))
             {
-                if (specialsFailed) continue;
+                if (specialsFailed)
+                {
+                    continue;
+                }
+
                 if (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0)
                 {
                     specialsFailed = true;
@@ -82,8 +106,15 @@ public sealed partial class ImpTaskSystem
                 if (((flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate)
                     && BlueprintForLooseCrate(context, creature, grid, thing) is { } blueprint
                     && CommitCrateFetch(context, creature, blueprint, thing, "loose"))
+                {
                     return true;
-                if (othersFailed) continue;
+                }
+
+                if (othersFailed)
+                {
+                    continue;
+                }
+
                 if (ObjectCarryRules.TryDestinationFor(world, context.Database, creature, thing) < 0)
                 {
                     othersFailed = true;
@@ -95,22 +126,36 @@ public sealed partial class ImpTaskSystem
                 continue;
             }
 
-            if (!Reaches(grid, creature, at)) continue;
+            if (!Reaches(grid, creature, at))
+            {
+                continue;
+            }
+
             (long tx, long ty) = PileCentre(world, thing);
-            if (!PointReachable(context, creature, (int)tx, (int)ty)) continue;
+            if (!PointReachable(context, creature, (int)tx, (int)ty))
+            {
+                continue;
+            }
+
             if (ObjectHolder(context, creature, index) is { } holder)
             {
                 (long ox, long oy) = (tx, ty);
                 if (!TaskStealing.CanLoseItsTask(holder)
                     || TaskStealing.DistanceSquared(creature.PosX, creature.PosY, ox, oy)
                         >= TaskStealing.DistanceSquared(holder.PosX, holder.PosY, ox, oy))
+                {
                     continue;
+                }
+
                 TakeTaskFrom(context, holder, creature, index);
                 holder.TargetObjectId = -1;
             }
 
             // 0x0046B9C0: a walk that does not start moves on to the tile's next object (Q590).
-            if (CommitObjectFetch(context, creature, thing, at)) return true;
+            if (CommitObjectFetch(context, creature, thing, at))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -121,9 +166,15 @@ public sealed partial class ImpTaskSystem
         foreach (CreatureState other in context.World.Creatures)
         {
             if (other.Id == asking.Id || other.OwnerPlayerId != asking.OwnerPlayerId
-                || other.Activity != CreatureActivity.FetchingObject) continue;
+                || other.Activity != CreatureActivity.FetchingObject)
+            {
+                continue;
+            }
+
             if (context.World.ObjectById(other.TargetObjectId) is { } target && target.TileIndex == tileIndex)
+            {
                 return other;
+            }
         }
         return null;
     }
@@ -171,7 +222,10 @@ public sealed partial class ImpTaskSystem
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (here != thing.TileIndex)
         {
-            if (creature.HasRoute) return;
+            if (creature.HasRoute)
+            {
+                return;
+            }
 
             context.Emit(SystemName, "object_abandoned",
                 $"imp={creature.Id} object={thing.Id} reason=out_of_reach");
@@ -231,7 +285,10 @@ public sealed partial class ImpTaskSystem
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (here != creature.TargetTileIndex)
         {
-            if (creature.HasRoute) return;
+            if (creature.HasRoute)
+            {
+                return;
+            }
 
             int destination = CrateRules.IsCrate(context.Database, thing)
                 ? CrateHome(context, creature)
@@ -318,7 +375,10 @@ public sealed partial class ImpTaskSystem
     {
         WorldState world = context.World;
 
-        if (creature.CarriedCreatureId >= 0 || creature.GoldHeld > 0) return false;
+        if (creature.CarriedCreatureId >= 0 || creature.GoldHeld > 0)
+        {
+            return false;
+        }
 
         // 0x0046D810 settles the Lair and the Prison once per scan, the first time a body asks, and
         // the corpse selections their Graveyard (once, not per tile: the room index is rebuilt).
@@ -333,7 +393,13 @@ public sealed partial class ImpTaskSystem
         // since the Lair and Prison rows of messages 41-43 all carry a lifetime (ADR-0453). 0x0046D810 also asks Route_IsPointReachable(body, 0x80).
         _bodyTiles.Clear();
         foreach (CreatureState lying in world.Creatures)
-            if (CreatureDeathRules.IsCorpse(lying) == corpses) _bodyTiles.Add(lying.Tile);
+        {
+            if (CreatureDeathRules.IsCorpse(lying) == corpses)
+            {
+                _bodyTiles.Add(lying.Tile);
+            }
+        }
+
         bool found = Flooded(grid, creature).TryNearest(
             _bodyTiles,
             at => InScanRange(at)
@@ -342,11 +408,17 @@ public sealed partial class ImpTaskSystem
                   && MayTakeBodyTask(context, creature, candidate, corpses),
             _route);
 
-        if (!found) return false;
+        if (!found)
+        {
+            return false;
+        }
 
         TilePos at = _route.Count > 0 ? _route[_route.Count - 1] : creature.Tile;
         CreatureState? body = BodyToCarryAt(context, creature, definition, at, corpses, graveyard);
-        if (body is null) return false;
+        if (body is null)
+        {
+            return false;
+        }
 
         // 0x0046D810 and 0x0046D3C0 kick a held kind-13 or kind-12 task's holder to 10 before their own
         // walk (0x0048AD30).
@@ -404,17 +476,36 @@ public sealed partial class ImpTaskSystem
 
         foreach (CreatureState body in world.Creatures)
         {
-            if (body.Tile != at) continue;
-            if (CreatureDeathRules.IsCorpse(body) != corpses) continue;
-            if (!CarryRules.CanCarry(definition, worker, body)) continue;
+            if (body.Tile != at)
+            {
+                continue;
+            }
+
+            if (CreatureDeathRules.IsCorpse(body) != corpses)
+            {
+                continue;
+            }
+
+            if (!CarryRules.CanCarry(definition, worker, body))
+            {
+                continue;
+            }
+
             bool bedless = false;
 
             // The selector meets only bodies on a tile its keeper owns (the cell word +0x08's
             // low 12 bits against the worker's owner); elsewhere it neither posts nor carries.
-            if (world.Tile(at).OwnerPlayerId != worker.OwnerPlayerId) continue;
+            if (world.Tile(at).OwnerPlayerId != worker.OwnerPlayerId)
+            {
+                continue;
+            }
             // The selections take only a neutral dead body lying in no room (0x0046D3C0 walks the
             // neutral player's list, 0x0046CF40 tests the owner; both test +0x132).
-            if (corpses && (body.GraveyardSlot >= 0 || body.BodyOwnerPlayerId != PlayerIds.Neutral)) continue;
+            if (corpses && (body.GraveyardSlot >= 0 || body.BodyOwnerPlayerId != PlayerIds.Neutral))
+            {
+                continue;
+            }
+
             if (corpses)
             {
                 _corpseGraveyard ??= GraveyardRules.ForCorpse(context, worker, search: _only is null);
@@ -425,7 +516,10 @@ public sealed partial class ImpTaskSystem
             {
                 _prisonResult ??= RoomNeedRules.RescueResult(context, worker, definition, RoomTypeId.Prison);
                 RoomNeedRules.ForRescue(context, worker.OwnerPlayerId, _prisonResult.Value, RoomTypeId.Prison);
-                if (_prisonResult != RoomNeedRules.RescueRoom.Usable) continue;
+                if (_prisonResult != RoomNeedRules.RescueRoom.Usable)
+                {
+                    continue;
+                }
             }
             else if (!corpses && !LairRules.HasBed(world, context.Database, body))
             {
@@ -434,7 +528,11 @@ public sealed partial class ImpTaskSystem
                 // DK2 raises the carry on result 4 whatever the creature; ours carries only one with a
                 // lair object, which every own creature with a dying state has.
                 if (_lairResult != RoomNeedRules.RescueRoom.Usable
-                    || !LairRules.NeedsBed(context.Database.CreatureById(body.CreatureTypeId))) continue;
+                    || !LairRules.NeedsBed(context.Database.CreatureById(body.CreatureTypeId)))
+                {
+                    continue;
+                }
+
                 bedless = true;
             }
 
@@ -443,11 +541,17 @@ public sealed partial class ImpTaskSystem
             // cheap one.
             // A bedless body's Lair is chosen at the pick-up; the selector has settled it has one.
             if (!bedless && (corpses ? graveyard : CarryRules.TryDestinationFor(world, context.Database, worker, body)) < 0)
+            {
                 continue;
+            }
+
             int rank = corpses ? 0 : RescuePriorityRules.Rank(body, worker.OwnerPlayerId);
             int bestRank = best is null ? int.MaxValue
                 : corpses ? 0 : RescuePriorityRules.Rank(best, worker.OwnerPlayerId);
-            if (rank < bestRank || (rank == bestRank && body.Id < best!.Id)) best = body;
+            if (rank < bestRank || (rank == bestRank && body.Id < best!.Id))
+            {
+                best = body;
+            }
         }
 
         return best;
@@ -463,8 +567,15 @@ public sealed partial class ImpTaskSystem
         {
             if (other.Id == asking.Id || other.OwnerPlayerId != asking.OwnerPlayerId
                 || other.Activity != CreatureActivity.FetchingBody
-                || other.LastTaskKind != kind) continue;
-            if (other.TargetTileIndex == tileIndex) return other;
+                || other.LastTaskKind != kind)
+            {
+                continue;
+            }
+
+            if (other.TargetTileIndex == tileIndex)
+            {
+                return other;
+            }
         }
         return null;
     }
@@ -477,7 +588,11 @@ public sealed partial class ImpTaskSystem
     /// read clears it on a collapse, so ours takes it as set (inferred).</summary>
     private static bool MayTakeBodyTask(SimulationContext context, CreatureState asking, CreatureState body, bool corpses)
     {
-        if (BodyTaskHolder(context, asking, context.World.TileIndex(body.Tile), corpses) is not { } holder) return true;
+        if (BodyTaskHolder(context, asking, context.World.TileIndex(body.Tile), corpses) is not { } holder)
+        {
+            return true;
+        }
+
         return TaskStealing.CanLoseItsTask(holder)
             && TaskStealing.DistanceSquared(asking.PosX, asking.PosY, body.PosX, body.PosY)
                 < TaskStealing.DistanceSquared(holder.PosX, holder.PosY, body.PosX, body.PosY);
@@ -494,11 +609,22 @@ public sealed partial class ImpTaskSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int bed = LairRules.BedTileIndex(world, database, body);
-        if (bed >= 0 && RouteTo(context, worker, grid, bed)) return bed;
-        if (!LairRules.NeedsBed(database.CreatureById(body.CreatureTypeId))) return -1;
+        if (bed >= 0 && RouteTo(context, worker, grid, bed))
+        {
+            return bed;
+        }
+
+        if (!LairRules.NeedsBed(database.CreatureById(body.CreatureTypeId)))
+        {
+            return -1;
+        }
+
         if (RoomNeedRules.NearestLairWithSpace(context, worker, database.CreatureById(worker.CreatureTypeId), body) is not { } lair
             || RoomWalkRules.RoomPoint(world, database, lair, context.Rng) is not int point)
+        {
             return -1;
+        }
+
         return RouteTo(context, worker, grid, point) ? point : -1;
     }
 
@@ -523,7 +649,10 @@ public sealed partial class ImpTaskSystem
         // Still on the road.
         if (creature.Tile != body.Tile)
         {
-            if (creature.HasRoute) return;
+            if (creature.HasRoute)
+            {
+                return;
+            }
 
             context.Emit(SystemName, "body_abandoned",
                 $"imp={creature.Id} body={body.Id} reason=out_of_reach");
@@ -601,15 +730,24 @@ public sealed partial class ImpTaskSystem
         // State 41's handler asks for the carrying sound at its start (0x00467B37) whenever it runs for a
         // corpse, which is when the walk has ended; the creature update asks again for a body still held.
         if (corpse && (here == creature.TargetTileIndex || !creature.HasRoute))
+        {
             ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.CarriedThing);
+        }
+
         if (!own && !corpse && here == creature.TargetTileIndex
             && AtThePrisonGate(context, creature, body, grid, here))
+        {
             return;
+        }
+
         if (here != creature.TargetTileIndex
             || (own && RoomIndex.RoomAt(world, context.Database, here) is not { Definition.TypeId: RoomTypeId.Lair })
             || (corpse && !GraveyardRules.TryLay(world, context.Database, body, here)))
         {
-            if (here != creature.TargetTileIndex && creature.HasRoute) return;
+            if (here != creature.TargetTileIndex && creature.HasRoute)
+            {
+                return;
+            }
 
             // The destination moved or the route was lost. Try again from here;
             // failing that, put the body down where it stands.
@@ -672,7 +810,11 @@ public sealed partial class ImpTaskSystem
             // The walk from the door (43's inner leg) ends in 44; a door-less Prison is entered
             // direct, so its 44 falls in this tick. The walks 44 starts after a refusal on this
             // Prison (47, 48) are elided.
-            if (creature.Dk2StateId != ImpStates.AtThePrisonDoor) WalkOn(context, creature, ImpStates.AtThePrisonDoor);
+            if (creature.Dk2StateId != ImpStates.AtThePrisonDoor)
+            {
+                WalkOn(context, creature, ImpStates.AtThePrisonDoor);
+            }
+
             int cell = (creature.Tile.Y * world.Width) + creature.Tile.X;
             if (PrisonRules.AdmitsAt(world, context.Database, cell))
             {
@@ -688,7 +830,10 @@ public sealed partial class ImpTaskSystem
                     $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
                     $"type={definition.Name} owner={body.OwnerPlayerId} " +
                     $"{Describe(world, cell)} health={body.Health}");
-                if (LeaveByTheDoor(context, creature, cell)) return;
+                if (LeaveByTheDoor(context, creature, cell))
+                {
+                    return;
+                }
 
                 // No door to walk out by: 46 falls in this tick.
                 WalkOn(context, creature, ImpStates.LeavingThePrisoner);
@@ -776,7 +921,11 @@ public sealed partial class ImpTaskSystem
     /// the walk. Ours begins the walk only once a route is found, where DK2 scans before routing.</summary>
     private static void BeginTaskWalk(SimulationContext context, CreatureState creature, int resume)
     {
-        if (resume != ImpStates.SecretDoorApproach) creature.SecretDoorTask = false;
+        if (resume != ImpStates.SecretDoorApproach)
+        {
+            creature.SecretDoorTask = false;
+        }
+
         CastOnTheWalk(context, creature);
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
     }
@@ -797,11 +946,27 @@ public sealed partial class ImpTaskSystem
         int count = Math.Min(definition.Spells.Count, SpellRules.Slots);
         for (int slot = 0; slot < count; slot++)
         {
-            if (definition.Spells[slot].LevelAvailable > creature.Level) continue;
-            if (!SpellRules.CanCast(database, creature, definition, slot, now)) continue;
+            if (definition.Spells[slot].LevelAvailable > creature.Level)
+            {
+                continue;
+            }
+
+            if (!SpellRules.CanCast(database, creature, definition, slot, now))
+            {
+                continue;
+            }
+
             CreatureSpellDef spell = SpellRules.SpellOf(database, definition, slot)!;
-            if ((spell.Flags & PossessionRules.TeleportSpellFlag) != 0) break;
-            if ((spell.Flags & PossessionRules.SpeedSpellFlag) == 0) continue;
+            if ((spell.Flags & PossessionRules.TeleportSpellFlag) != 0)
+            {
+                break;
+            }
+
+            if ((spell.Flags & PossessionRules.SpeedSpellFlag) == 0)
+            {
+                continue;
+            }
+
             creature.SpellStamps[slot] = now;
             StatusEffectRules.ModifySpeed(context, creature, unchecked((int)spell.ShotData1), unchecked((int)spell.ShotData2));
         }
@@ -811,7 +976,11 @@ public sealed partial class ImpTaskSystem
     /// the same tick.</summary>
     private static void WalkOn(SimulationContext context, CreatureState creature, int resume)
     {
-        if (!CreatureStateMachine.HasState(creature)) return;
+        if (!CreatureStateMachine.HasState(creature))
+        {
+            return;
+        }
+
         BeginTaskWalk(context, creature, resume);
         StateShadow.Arrive(context, SystemName, creature);
     }
@@ -838,7 +1007,10 @@ public sealed partial class ImpTaskSystem
         Navigation.MoveOptions options = Navigation.MoveOptions.ExactSpot;
         if (context.Database.RoomByTerrain(world.Tile(to).TerrainId)?.TypeId == RoomTypeId.Prison
             && RoomIndex.RoomAt(world, context.Database, tileIndex) is { } room)
+        {
             options = room.IsInterior(tileIndex) ? Navigation.MoveOptions.PrisonDelivery : Navigation.MoveOptions.Spot;
+        }
+
         return context.Navigation.TryRoute(creature, to, options);
     }
 
@@ -853,7 +1025,10 @@ public sealed partial class ImpTaskSystem
         WorldState world = context.World;
         RoomInstance? room = RoomIndex.RoomAt(world, context.Database, here);
         bool prison = room is { Definition.TypeId: RoomTypeId.Prison };
-        if (prison && room!.IsInterior(here)) return false;
+        if (prison && room!.IsInterior(here))
+        {
+            return false;
+        }
 
         if (prison && JailBreakRules.DoorTile(world, room!) == here)
         {
@@ -895,12 +1070,23 @@ public sealed partial class ImpTaskSystem
     private bool LeaveByTheDoor(SimulationContext context, CreatureState creature, int cell)
     {
         WorldState world = context.World;
-        if (RoomIndex.RoomAt(world, context.Database, cell) is not { } room) return false;
+        if (RoomIndex.RoomAt(world, context.Database, cell) is not { } room)
+        {
+            return false;
+        }
+
         int door = JailBreakRules.DoorTile(world, room);
-        if (door < 0) return false;
+        if (door < 0)
+        {
+            return false;
+        }
 
         var to = new TilePos(door % world.Width, door / world.Width);
-        if (!context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.PrisonLeaving)) return false;
+        if (!context.Navigation.TryRoute(creature, to, Navigation.MoveOptions.PrisonLeaving))
+        {
+            return false;
+        }
+
         creature.TargetTileIndex = door;
         BeginTaskWalk(context, creature, ImpStates.LeavingThePrisoner);
         return true;
@@ -916,7 +1102,10 @@ public sealed partial class ImpTaskSystem
     private static void UpdateLeavingThePrison(SimulationContext context, CreatureState creature)
     {
         int here = (creature.Tile.Y * context.World.Width) + creature.Tile.X;
-        if (here != creature.TargetTileIndex && creature.HasRoute) return;
+        if (here != creature.TargetTileIndex && creature.HasRoute)
+        {
+            return;
+        }
 
         StateShadow.Arrive(context, SystemName, creature);
         WorkerPickupRules.SetEnabled(creature, true);

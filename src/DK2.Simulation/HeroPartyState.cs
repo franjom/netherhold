@@ -68,6 +68,9 @@ public sealed partial class HeroPartyState
         hash.Add(Name); hash.Add(TriggerId); hash.Add(PartyId);
         hash.Add(Unknown_0023); hash.Add(Unknown_0027); hash.Add(SpawnCount);
         hash.Add(Members.Count);
-        foreach (HeroPartyMemberState member in Members) member.HashInto(ref hash);
+        foreach (HeroPartyMemberState member in Members)
+        {
+            member.HashInto(ref hash);
+        }
     }
 }

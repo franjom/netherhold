@@ -31,7 +31,11 @@ public static class PayloadChecksum
                 hash = Rotate(v1, 1) + Rotate(v2, 7) + Rotate(v3, 12) + Rotate(v4, 18);
                 hash = Merge(Merge(Merge(Merge(hash, v1), v2), v3), v4);
             }
-            else hash = P5;
+            else
+            {
+                hash = P5;
+            }
+
             hash += (ulong)bytes.Length;
             while (offset <= bytes.Length - 8)
             {

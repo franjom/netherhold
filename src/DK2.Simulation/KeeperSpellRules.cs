@@ -55,7 +55,11 @@ public static class KeeperSpellRules
         out KeeperSpellRefusal refusal)
     {
         refusal = CanCast(context, cast);
-        if (refusal != KeeperSpellRefusal.None) return 0;
+        if (refusal != KeeperSpellRefusal.None)
+        {
+            return 0;
+        }
+
         WorldState world = context.World;
         KeeperSpellDef spell = context.Database.KeeperSpellById(cast.SpellId)!;
         CreatureState target = world.CreatureById(cast.CreatureId)!;
@@ -88,7 +92,11 @@ public static class KeeperSpellRules
     public static int CastAtPlace(SimulationContext context, CastSpellAtPlaceCommand cast, out KeeperSpellRefusal refusal)
     {
         refusal = CanCastAtPlace(context, cast);
-        if (refusal != KeeperSpellRefusal.None) return 0;
+        if (refusal != KeeperSpellRefusal.None)
+        {
+            return 0;
+        }
+
         WorldState world = context.World;
         KeeperSpellDef spell = context.Database.KeeperSpellById(cast.SpellId)!;
         ref PlayerState player = ref world.Player(cast.PlayerId);
@@ -106,7 +114,11 @@ public static class KeeperSpellRules
         {
             LastCastTick = context.Tick.Value, LastCheckedTick = context.Tick.Value
         };
-        if (cast.SpellId == ReaperRules.OneShotSpellId) player.OneShotReaperUsed = true;
+        if (cast.SpellId == ReaperRules.OneShotSpellId)
+        {
+            player.OneShotReaperUsed = true;
+        }
+
         return 1;
     }
 
@@ -116,14 +128,21 @@ public static class KeeperSpellRules
     /// height, so a caller passes the shot's view height for the position's.</summary>
     internal static void RequestPlaceCastSound(SimulationContext context, KeeperSpellDef spell, ShotDef shot, PlayerId caster, FpPosition3 at)
     {
-        if (shot.SoundCategory.Length == 0) RequestCastSound(context, spell, caster, at);
+        if (shot.SoundCategory.Length == 0)
+        {
+            RequestCastSound(context, spell, caster, at);
+        }
     }
 
     /// <summary>The cast's <c>0xEF</c> in the spell's own category (definition <c>+0x6D</c>, <see cref="KeeperSpellDef.SoundCategory"/>),
     /// with handle 0, at <paramref name="at"/> (docs/research/sound-effects-combat.md section 1).</summary>
     private static void RequestCastSound(SimulationContext context, KeeperSpellDef spell, PlayerId caster, FpPosition3 at)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance) || spell.SoundCategory.Length == 0) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance) || spell.SoundCategory.Length == 0)
+        {
+            return;
+        }
+
         ThingSoundRules.Request(context, "keeper_spells", new SoundSourceId(SoundSourceKind.Player, caster.Value),
             spell.SoundCategory, ThingSoundEvent.SpellCast, at, voiced: false);
     }
@@ -146,40 +165,96 @@ public static class KeeperSpellRules
     private static KeeperSpellRefusal CanCastAtPlace(WorldState world, GameDatabase database, INavByteGrid navigation,
         Navigation.WorldSteering? refresh, GameTick tick, CastSpellAtPlaceCommand cast)
     {
-        if (!ExecutesAtPlace(cast.SpellId)) return KeeperSpellRefusal.UnsupportedSpell;
-        if (cast.Flags != 0) return KeeperSpellRefusal.UnsupportedFlags;
+        if (!ExecutesAtPlace(cast.SpellId))
+        {
+            return KeeperSpellRefusal.UnsupportedSpell;
+        }
+
+        if (cast.Flags != 0)
+        {
+            return KeeperSpellRefusal.UnsupportedFlags;
+        }
+
         KeeperSpellDef? spell = database.KeeperSpellById(cast.SpellId);
-        if (spell is null) return KeeperSpellRefusal.MissingDefinition;
-        if (!world.HasPlayer(cast.PlayerId)) return KeeperSpellRefusal.MissingPlayer;
+        if (spell is null)
+        {
+            return KeeperSpellRefusal.MissingDefinition;
+        }
+
+        if (!world.HasPlayer(cast.PlayerId))
+        {
+            return KeeperSpellRefusal.MissingPlayer;
+        }
+
         ref PlayerState player = ref world.Player(cast.PlayerId);
         int row = player.Availabilities.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == cast.SpellId);
-        if (row < 0) return KeeperSpellRefusal.NoSpellEntry;
+        if (row < 0)
+        {
+            return KeeperSpellRefusal.NoSpellEntry;
+        }
+
         AvailabilityState availability = player.Availabilities[row];
-        if (spell.ManaCost != 0 && spell.ManaCost > player.Mana) return KeeperSpellRefusal.Mana;
+        if (spell.ManaCost != 0 && spell.ManaCost > player.Mana)
+        {
+            return KeeperSpellRefusal.Mana;
+        }
+
         long cooldown = (uint)unchecked(spell.CooldownRaw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
         if (availability.LastCastTick != 0 && tick.Value - availability.LastCastTick < cooldown)
+        {
             return KeeperSpellRefusal.Cooldown;
+        }
+
         if (cast.SpellId == ReaperRules.SpellId && ReaperRules.OwnedReaper(world, database, player) is not null)
+        {
             return KeeperSpellRefusal.ExistingReaper;
+        }
+
         if (cast.SpellId == ReaperRules.OneShotSpellId && player.OneShotReaperUsed)
+        {
             return KeeperSpellRefusal.OneShotReaperUsed;
+        }
+
         var at = new TilePos(cast.X >> 12, cast.Y >> 12);
         refresh?.Refresh();
         switch (spell.LocationSelector)
         {
-            case 1: if (!LocationOne(world, database, navigation, cast.PlayerId, at, default)) return KeeperSpellRefusal.Location; break;
-            case 4: if (!LocationFour(world, navigation, at)) return KeeperSpellRefusal.Location; break;
+            case 1: if (!LocationOne(world, database, navigation, cast.PlayerId, at, default)) { return KeeperSpellRefusal.Location; } break;
+            case 4: if (!LocationFour(world, navigation, at)) { return KeeperSpellRefusal.Location; } break;
             case 5: break;
             default: return KeeperSpellRefusal.UnsupportedLocationSelector;
         }
-        if (spell.TargetSelector is not (4 or 5)) return KeeperSpellRefusal.UnsupportedTargetSelector;
-        if (!PlaceTargetAllowed(world, database, cast.PlayerId, spell, at, default)) return KeeperSpellRefusal.Target;
+        if (spell.TargetSelector is not (4 or 5))
+        {
+            return KeeperSpellRefusal.UnsupportedTargetSelector;
+        }
+
+        if (!PlaceTargetAllowed(world, database, cast.PlayerId, spell, at, default))
+        {
+            return KeeperSpellRefusal.Target;
+        }
+
         (byte ShotTypeId, int Data1, int Data2) effect = spell.Shot(availability.Upgraded);
-        if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
-        if (cast.SpellId == SightOfEvil) return KeeperSpellRefusal.None;
-        if (shot.ProcessType is not (ShotRules.CreateObjectProcess or ShotRules.InfernoProcess or ShotRules.TremorProcess or ReaperRules.ProcessType)) return KeeperSpellRefusal.UnsupportedShotProcess;
+        if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot))
+        {
+            return KeeperSpellRefusal.MissingShot;
+        }
+
+        if (cast.SpellId == SightOfEvil)
+        {
+            return KeeperSpellRefusal.None;
+        }
+
+        if (shot.ProcessType is not (ShotRules.CreateObjectProcess or ShotRules.InfernoProcess or ShotRules.TremorProcess or ReaperRules.ProcessType))
+        {
+            return KeeperSpellRefusal.UnsupportedShotProcess;
+        }
+
         if (shot.ProcessType == ReaperRules.ProcessType && effect.Data1 != 0 && database.Level?.OneShotReaperLevel is null)
+        {
             return KeeperSpellRefusal.MissingLevelDefinition;
+        }
+
         return KeeperSpellRefusal.None;
     }
 
@@ -279,11 +354,17 @@ public static class KeeperSpellRules
     private static bool TargetOne(WorldState world, GameDatabase database, PlayerId playerId, CreatureState target)
     {
         if (RoomMembershipRules.IsAttached(target))
+        {
             return world.Contains(target.Tile) && world.Tile(target.Tile).OwnerPlayerId == playerId;
+        }
+
         if (target.CombatPitFighter && world.Contains(target.Tile))
         {
             int index = target.Tile.Y * world.Width + target.Tile.X;
-            if (RoomIndex.RoomAt(world, database, index) is not null && world.TileAtIndex(index).OwnerPlayerId == playerId) return true;
+            if (RoomIndex.RoomAt(world, database, index) is not null && world.TileAtIndex(index).OwnerPlayerId == playerId)
+            {
+                return true;
+            }
         }
         return !((database.CreatureById(target.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) && target.OwnerPlayerId == playerId;
     }
@@ -297,7 +378,11 @@ public static class KeeperSpellRules
     /// refuses, and cast flag bit 1 would also want tile flag <c>0x2000</c>.</summary>
     private static bool LocationFour(WorldState world, INavByteGrid navigation, TilePos at)
     {
-        if (!world.Contains(at)) return false;
+        if (!world.Contains(at))
+        {
+            return false;
+        }
+
         return (navigation.NavByte(at.X, at.Y) & 8) == 0;
     }
 
@@ -305,10 +390,18 @@ public static class KeeperSpellRules
     /// Portal, Heart, Prison, Temple and Combat Pit interior exclusions; anything else passes.</summary>
     private static bool TargetFour(WorldState world, GameDatabase database, PlayerId playerId, TilePos at, KnownRoom known)
     {
-        if (!world.Contains(at)) return false;
+        if (!world.Contains(at))
+        {
+            return false;
+        }
+
         int index = at.Y * world.Width + at.X;
         RoomInstance? room = known.At(world, database, index);
-        if (room is null || world.TileAtIndex(index).OwnerPlayerId != playerId) return true;
+        if (room is null || world.TileAtIndex(index).OwnerPlayerId != playerId)
+        {
+            return true;
+        }
+
         return !RoomExcludes(world, room, at, index);
     }
 
@@ -328,50 +421,117 @@ public static class KeeperSpellRules
         Navigation.WorldSteering? refresh, GameTick tick, CastSpellOnCreatureCommand cast)
     {
         // The researched creature casts share this boundary; Create Imp retains its own command.
-        if (!ExecutesOnCreature(cast.SpellId)) return KeeperSpellRefusal.UnsupportedSpell;
+        if (!ExecutesOnCreature(cast.SpellId))
+        {
+            return KeeperSpellRefusal.UnsupportedSpell;
+        }
         // The ordinary packet path is read; bypass/inverted targeting is a separate boundary.
-        if (cast.Flags != 0) return KeeperSpellRefusal.UnsupportedFlags;
+        if (cast.Flags != 0)
+        {
+            return KeeperSpellRefusal.UnsupportedFlags;
+        }
+
         KeeperSpellDef? spell = database.KeeperSpellById(cast.SpellId);
-        if (spell is null) return KeeperSpellRefusal.MissingDefinition;
-        if (!world.HasPlayer(cast.PlayerId)) return KeeperSpellRefusal.MissingPlayer;
+        if (spell is null)
+        {
+            return KeeperSpellRefusal.MissingDefinition;
+        }
+
+        if (!world.HasPlayer(cast.PlayerId))
+        {
+            return KeeperSpellRefusal.MissingPlayer;
+        }
+
         ref PlayerState player = ref world.Player(cast.PlayerId);
         int row = player.Availabilities.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == cast.SpellId);
         // Availability is not tested: neither action 55 nor 0x004BBF90 reads it, and the
         // interface or the computer keeper gates it, as for Create Imp (ADR-0247, ADR-0260
         // amended). The entry is still needed: it holds the clocks and the Upgraded flag.
-        if (row < 0) return KeeperSpellRefusal.NoSpellEntry;
+        if (row < 0)
+        {
+            return KeeperSpellRefusal.NoSpellEntry;
+        }
+
         AvailabilityState availability = player.Availabilities[row];
         long cooldown = (uint)unchecked(spell.CooldownRaw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
         if (availability.LastCastTick != 0 && tick.Value - availability.LastCastTick < cooldown)
+        {
             return KeeperSpellRefusal.Cooldown;
-        if (spell.ManaCost != 0 && spell.ManaCost > player.Mana) return KeeperSpellRefusal.Mana;
+        }
+
+        if (spell.ManaCost != 0 && spell.ManaCost > player.Mana)
+        {
+            return KeeperSpellRefusal.Mana;
+        }
+
         CreatureState? target = world.CreatureById(cast.CreatureId);
-        if (target is null || !CreatureStateMachine.HasState(target)) return KeeperSpellRefusal.MissingCreature;
-        if (spell.LocationSelector is not (1 or 4 or 5)) return KeeperSpellRefusal.UnsupportedLocationSelector;
+        if (target is null || !CreatureStateMachine.HasState(target))
+        {
+            return KeeperSpellRefusal.MissingCreature;
+        }
+
+        if (spell.LocationSelector is not (1 or 4 or 5))
+        {
+            return KeeperSpellRefusal.UnsupportedLocationSelector;
+        }
+
         refresh?.Refresh();
-        if (!LocationAllowed(world, database, navigation, cast.PlayerId, spell, target.Tile)) return KeeperSpellRefusal.Location;
-        if (spell.TargetSelector is not (1 or 2 or 3 or 6)) return KeeperSpellRefusal.UnsupportedTargetSelector;
-        if (!TargetAllowed(world, database, cast.PlayerId, spell, target)) return KeeperSpellRefusal.Target;
+        if (!LocationAllowed(world, database, navigation, cast.PlayerId, spell, target.Tile))
+        {
+            return KeeperSpellRefusal.Location;
+        }
+
+        if (spell.TargetSelector is not (1 or 2 or 3 or 6))
+        {
+            return KeeperSpellRefusal.UnsupportedTargetSelector;
+        }
+
+        if (!TargetAllowed(world, database, cast.PlayerId, spell, target))
+        {
+            return KeeperSpellRefusal.Target;
+        }
+
         (byte ShotTypeId, int Data1, int Data2) effect = spell.Shot(availability.Upgraded);
-        if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
+        if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot))
+        {
+            return KeeperSpellRefusal.MissingShot;
+        }
+
         if (shot.ProcessType is not (ShotRules.LightningProcess or ShotRules.ModifyHealthProcess or ShotRules.ChickenProcess or TurncoatRules.ProcessType or PossessionRules.ProcessType))
+        {
             return KeeperSpellRefusal.UnsupportedShotProcess;
+        }
         // 0x004BC13C, after the permission and before the shot and the payment: a positive Modify
         // Health carrier wants its target strictly below the level-scaled maximum.
         if (shot.ProcessType == ShotRules.ModifyHealthProcess && effect.Data1 > 0
             && target.Health >= CreatureHealthRules.MaxHealth(database, database.CreatureById(target.CreatureTypeId), target))
+        {
             return KeeperSpellRefusal.TargetAtMaxHealth;
+        }
+
         return KeeperSpellRefusal.None;
     }
 
     private static bool LocationOne(WorldState world, GameDatabase database, INavByteGrid navigation, PlayerId playerId,
         TilePos at, KnownRoom known)
     {
-        if (!world.Contains(at)) return false;
+        if (!world.Contains(at))
+        {
+            return false;
+        }
+
         int index = at.Y * world.Width + at.X;
         PlayerId owner = world.TileAtIndex(index).OwnerPlayerId;
-        if (owner == PlayerIds.Neutral || !world.AreAllied(playerId, owner.Value)) return false;
-        if ((navigation.NavByte(at.X, at.Y) & 8) != 0) return false;
+        if (owner == PlayerIds.Neutral || !world.AreAllied(playerId, owner.Value))
+        {
+            return false;
+        }
+
+        if ((navigation.NavByte(at.X, at.Y) & 8) != 0)
+        {
+            return false;
+        }
+
         RoomInstance? room = known.At(world, database, index);
         return room is null || !RoomExcludes(world, room, at, index);
     }
@@ -393,11 +553,17 @@ public static class KeeperSpellRules
             case RoomTypeId.Temple:
             case RoomTypeId.CombatPit:
                 for (int dy8 = -1; dy8 <= 1; dy8++)
+                {
                     for (int dx8 = -1; dx8 <= 1; dx8++)
                     {
                         int x = at.X + dx8, y = at.Y + dy8;
-                        if (!world.Contains(x, y) || !room.TileIndices.Contains(y * world.Width + x)) return false;
+                        if (!world.Contains(x, y) || !room.TileIndices.Contains(y * world.Width + x))
+                        {
+                            return false;
+                        }
                     }
+                }
+
                 return true;
             default:
                 return false;

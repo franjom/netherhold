@@ -45,12 +45,21 @@ public sealed class InputJournalWriter : IDisposable
     /// <summary>The frame given to the tick that starts at <paramref name="tick"/>; empty frames are not written.</summary>
     public void WriteFrame(long tick, in InputFrame frame)
     {
-        if (frame.All.Count == 0) return;
+        if (frame.All.Count == 0)
+        {
+            return;
+        }
         // Encoded whole before any byte reaches the journal: a command the codec refuses must
         // not leave half a frame for the end record to follow.
         using var buffer = new MemoryStream();
         using (var b = new BinaryWriter(buffer, Encoding.UTF8, leaveOpen: true))
-            foreach (PlayerCommand command in frame.All) CommandCodec.Write(b, command);
+        {
+            foreach (PlayerCommand command in frame.All)
+            {
+                CommandCodec.Write(b, command);
+            }
+        }
+
         _w.Write(InputJournal.FrameRecord);
         _w.Write(tick);
         _w.Write(frame.All.Count);
@@ -65,7 +74,10 @@ public sealed class InputJournalWriter : IDisposable
         _w.Write(tick);
         _w.Write(hash);
         _lastHashTick = tick;
-        if (tick - _lastFlushTick >= FlushEveryTicks) Flush();
+        if (tick - _lastFlushTick >= FlushEveryTicks)
+        {
+            Flush();
+        }
     }
 
     /// <summary>Closes the journal with how the run ended: "completed", or a failure's description.</summary>
@@ -81,7 +93,11 @@ public sealed class InputJournalWriter : IDisposable
     {
         _w.Flush();
         _stream.Flush();
-        if (_stream is FileStream file) file.Flush(flushToDisk: false);
+        if (_stream is FileStream file)
+        {
+            file.Flush(flushToDisk: false);
+        }
+
         _lastFlushTick = _lastHashTick;
     }
 
@@ -143,12 +159,22 @@ public sealed class InputJournal
         var header = new Dictionary<string, string>(StringComparer.Ordinal);
         try
         {
-            if (r.ReadUInt32() != Magic) throw new InvalidDataException("Not an input journal.");
+            if (r.ReadUInt32() != Magic)
+            {
+                throw new InvalidDataException("Not an input journal.");
+            }
+
             int format = r.ReadInt32();
             if (format != FormatVersion)
+            {
                 throw new InvalidDataException($"Journal format {format}; this build reads {FormatVersion}.");
+            }
+
             hashVersion = r.ReadUInt64();
-            for (int i = r.ReadInt32(); i > 0; i--) header[r.ReadString()] = r.ReadString();
+            for (int i = r.ReadInt32(); i > 0; i--)
+            {
+                header[r.ReadString()] = r.ReadString();
+            }
         }
         catch (EndOfStreamException)
         {
@@ -166,7 +192,11 @@ public sealed class InputJournal
         while (ticksRun is null)
         {
             int kind = stream.ReadByte();
-            if (kind < 0) break;
+            if (kind < 0)
+            {
+                break;
+            }
+
             try
             {
                 switch (kind)
@@ -174,7 +204,11 @@ public sealed class InputJournal
                     case FrameRecord:
                         long tick = r.ReadInt64();
                         var commands = new PlayerCommand[StreamCount.Read(r, CommandCodec.MinBytes)];
-                        for (int i = 0; i < commands.Length; i++) commands[i] = CommandCodec.Read(r);
+                        for (int i = 0; i < commands.Length; i++)
+                        {
+                            commands[i] = CommandCodec.Read(r);
+                        }
+
                         frames[tick] = new InputFrame(commands);
                         break;
                     case HashRecord:

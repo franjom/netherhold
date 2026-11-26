@@ -28,12 +28,27 @@ public static class PaydayRules
     /// reads "armed" as a non-zero deadline where DK2 keeps <c>player+0x76</c> bit <c>0x200</c>.</summary>
     public static void ArmOnGain(WorldState world, GameDatabase database, CreatureState creature)
     {
-        if (((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return;
-        if (!world.HasPlayer(creature.OwnerPlayerId)) return;
+        if (((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+        {
+            return;
+        }
+
+        if (!world.HasPlayer(creature.OwnerPlayerId))
+        {
+            return;
+        }
+
         ref PlayerState player = ref world.Player(creature.OwnerPlayerId);
-        if (player.NextPaydayTick.Value != 0) return;
+        if (player.NextPaydayTick.Value != 0)
+        {
+            return;
+        }
         // Data without the variable (a test's) has no payday to arm.
-        if (!database.Variables.TryGet(VariableTypeId.TimeBeforeFirstPayDaySeconds, out int seconds)) return;
+        if (!database.Variables.TryGet(VariableTypeId.TimeBeforeFirstPayDaySeconds, out int seconds))
+        {
+            return;
+        }
+
         player.NextPaydayTick = new GameTick(world.CurrentTick.Value + (seconds * SimulationTiming.TicksPerSecond));
         player.LastPaydayTick = world.CurrentTick;
     }
@@ -45,10 +60,22 @@ public static class PaydayRules
     /// turn 0 out too: whether DK2 builds a level's creatures on turn 0 is unread (payday.md §2.1).</summary>
     public static bool TooCloseToPayday(WorldState world, GameDatabase database, PlayerId ownerPlayerId)
     {
-        if (!world.HasPlayer(ownerPlayerId)) return false;
+        if (!world.HasPlayer(ownerPlayerId))
+        {
+            return false;
+        }
+
         long deadline = world.Player(ownerPlayerId).NextPaydayTick.Value;
-        if (deadline == 0) return false;
-        if (!database.Variables.TryGet(VariableTypeId.PayDayCutOffTimeSeconds, out int cutOff)) return false;
+        if (deadline == 0)
+        {
+            return false;
+        }
+
+        if (!database.Variables.TryGet(VariableTypeId.PayDayCutOffTimeSeconds, out int cutOff))
+        {
+            return false;
+        }
+
         long left = deadline - world.CurrentTick.Value;
         return left >= 0 && left < cutOff * SimulationTiming.OriginalTickPeriodTicks;
     }
@@ -106,7 +133,11 @@ public static class PaydayRules
     public static int GoldIn(WorldState world, RoomInstance room)
     {
         int total = 0;
-        foreach (int index in room.TileIndices) total += world.TileAtIndex(index).GoldHeld;
+        foreach (int index in room.TileIndices)
+        {
+            total += world.TileAtIndex(index).GoldHeld;
+        }
+
         return total;
     }
 
@@ -117,11 +148,22 @@ public static class PaydayRules
     /// <see cref="RoomInstance.TileIndices"/> in index order, where DK2 follows each cell's link.</summary>
     public static int TakeFromRoom(WorldState world, RoomInstance room, int start, int wanted)
     {
-        if (wanted <= 0) return 0;
+        if (wanted <= 0)
+        {
+            return 0;
+        }
+
         IReadOnlyList<int> tiles = room.TileIndices;
         int first = 0;
-        while (first < tiles.Count && tiles[first] != start) first++;
-        if (first == tiles.Count) first = 0;
+        while (first < tiles.Count && tiles[first] != start)
+        {
+            first++;
+        }
+
+        if (first == tiles.Count)
+        {
+            first = 0;
+        }
 
         int taken = 0;
         for (int k = 0; k < tiles.Count && taken < wanted; k++)
@@ -129,7 +171,11 @@ public static class PaydayRules
             ref TileState tile = ref world.TileAtIndex(tiles[(first + k) % tiles.Count]);
             int take = Math.Min(tile.GoldHeld, wanted - taken);
             tile.GoldHeld -= take;
-            if (tile.GoldHeld == 0) tile.StoreGoldLinkOrder = 0;
+            if (tile.GoldHeld == 0)
+            {
+                tile.StoreGoldLinkOrder = 0;
+            }
+
             taken += take;
         }
         return taken;

@@ -37,11 +37,21 @@ public static partial class PossessionRules
             };
         }
         if (action.Slot.Value == PossessedSlot.FollowerArm)
+        {
             return PickFollower(world, database, sight, me, action.Aim) is { } follower
                 ? new(FightTargetKind.Creature, follower.Id, follower.Tile) : PossessionTarget.None;
-        if (action.Slot.Value >= definition.Spells.Count) return PossessionTarget.None;
-        if (!database.CreatureSpells.TryGetValue(definition.Spells[action.Slot.Value].CreatureSpellId, out CreatureSpellDef? spell))
+        }
+
+        if (action.Slot.Value >= definition.Spells.Count)
+        {
             return PossessionTarget.None;
+        }
+
+        if (!database.CreatureSpells.TryGetValue(definition.Spells[action.Slot.Value].CreatureSpellId, out CreatureSpellDef? spell))
+        {
+            return PossessionTarget.None;
+        }
+
         SpellTarget target = PickSpellTarget(world, database, sight, me, action.Aim, SpellRules.IsFriendly(spell), hearts);
         TilePos? tile = target.Kind switch
         {

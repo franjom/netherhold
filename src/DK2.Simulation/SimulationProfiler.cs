@@ -27,17 +27,29 @@ public sealed class SimulationMarker
     /// <summary>How many markers exist so far; every <see cref="Id"/> is below it.</summary>
     public static int Count
     {
-        get { lock (Gate) return ById.Count; }
+        get { lock (Gate)
+            {
+                return ById.Count;
+            }
+        }
     }
 
     /// <summary>The marker for <paramref name="name"/>, made on first use. Call it once and keep
     /// the result in a field: it takes a lock.</summary>
     public static SimulationMarker Named(string name)
     {
-        if (name is null) throw new ArgumentNullException(nameof(name));
+        if (name is null)
+        {
+            throw new ArgumentNullException(nameof(name));
+        }
+
         lock (Gate)
         {
-            if (ByName.TryGetValue(name, out SimulationMarker? marker)) return marker;
+            if (ByName.TryGetValue(name, out SimulationMarker? marker))
+            {
+                return marker;
+            }
+
             marker = new SimulationMarker(name, ById.Count);
             ByName.Add(name, marker);
             ById.Add(marker);
@@ -48,7 +60,10 @@ public sealed class SimulationMarker
     /// <summary>The marker with <paramref name="id"/>.</summary>
     public static SimulationMarker ForId(int id)
     {
-        lock (Gate) return ById[id];
+        lock (Gate)
+        {
+            return ById[id];
+        }
     }
 
     public override string ToString() => Name;

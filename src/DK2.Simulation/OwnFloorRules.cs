@@ -34,9 +34,16 @@ public static class OwnFloorRules
         for (int i = 0; i < NeighbourDx.Length; i++)
         {
             var neighbour = new TilePos(at.X + NeighbourDx[i], at.Y + NeighbourDy[i]);
-            if (!world.Contains(neighbour)) continue;
+            if (!world.Contains(neighbour))
+            {
+                continue;
+            }
+
             ref TileState tile = ref world.Tile(neighbour);
-            if (IsOwnFloor(database.TerrainById(tile.TerrainId), tile.OwnerPlayerId, playerId)) return true;
+            if (IsOwnFloor(database.TerrainById(tile.TerrainId), tile.OwnerPlayerId, playerId))
+            {
+                return true;
+            }
         }
         return false;
     }

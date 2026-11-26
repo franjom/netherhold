@@ -22,12 +22,26 @@ public sealed partial class NavMesh
     /// anything else is partitioned by the scanner, byte-0 rectangles included.</summary>
     public void Retriangulate(INavByteGrid grid, int x0, int y0, int x1, int y1)
     {
-        if (grid is null) throw new ArgumentNullException(nameof(grid));
-        if (x1 < x0) (x0, x1) = (x1, x0);
-        if (y1 < y0) (y0, y1) = (y1, y0);
+        if (grid is null)
+        {
+            throw new ArgumentNullException(nameof(grid));
+        }
+
+        if (x1 < x0)
+        {
+            (x0, x1) = (x1, x0);
+        }
+
+        if (y1 < y0)
+        {
+            (y0, y1) = (y1, y0);
+        }
         // The original returns on a -1 corner or an empty rectangle; any other corner outside the
         // map is widened below.
-        if (x0 == -1 || y0 == -1 || x0 == x1 || y0 == y1) return;
+        if (x0 == -1 || y0 == -1 || x0 == x1 || y0 == y1)
+        {
+            return;
+        }
 
         int width = grid.Width, height = grid.Height;
         bool single = x1 == x0 + 1 && y1 == y0 + 1;
@@ -55,30 +69,54 @@ public sealed partial class NavMesh
             MarkSide(x0, y1, x1, y1);
             MarkSide(x1, y1, x1, y0);
             MarkSide(x1, y0, x0, y0);
-            if (!single) EmptyRectangle(x0, y0, x1, y1);
+            if (!single)
+            {
+                EmptyRectangle(x0, y0, x1, y1);
+            }
         }
 
         int uniform = -1;
-        if (single) uniform = grid.NavByte(x0, y0);
+        if (single)
+        {
+            uniform = grid.NavByte(x0, y0);
+        }
         else if (partial && x1 - x0 < 4 && y1 - y0 < 4)
         {
             uniform = grid.NavByte(x0, y0);
             for (int y = y0; y < y1 && uniform >= 0; y++)
+            {
                 for (int x = x0; x < x1; x++)
+                {
                     if (grid.NavByte(x, y) != uniform) { uniform = -1; break; }
+                }
+            }
         }
 
-        if (uniform < 0) InsertRectangles(grid, x0, y0, x1, y1, skipFloor: !partial);
-        else InsertRectangle(x0, y0, x1, y1, (byte)uniform);
+        if (uniform < 0)
+        {
+            InsertRectangles(grid, x0, y0, x1, y1, skipFloor: !partial);
+        }
+        else
+        {
+            InsertRectangle(x0, y0, x1, y1, (byte)uniform);
+        }
+
         CoarsenRectangle(x0, y0, x1, y1);
 
-        if (!partial) return;
+        if (!partial)
+        {
+            return;
+        }
+
         _sidePoints.Clear();
         QueueSide(x0, y0, x0, y1);
         QueueSide(x0, y1, x1, y1);
         QueueSide(x1, y1, x1, y0);
         QueueSide(x1, y0, x0, y0);
-        for (int i = _sidePoints.Count - 1; i >= 0; i--) RemoveIfRedundant(_sidePoints[i].X, _sidePoints[i].Y);
+        for (int i = _sidePoints.Count - 1; i >= 0; i--)
+        {
+            RemoveIfRedundant(_sidePoints[i].X, _sidePoints[i].Y);
+        }
     }
 
     /// <summary>`0x004CDFE0`: the points of a horizontal side at <paramref name="y"/>, from
@@ -90,7 +128,11 @@ public sealed partial class NavMesh
         int first = InsertPoint(x0, y);
         for (int x = x0 + 1; x < x1; x++)
         {
-            if (grid.NavByte(x, y - 1) == above && grid.NavByte(x, y) == below) continue;
+            if (grid.NavByte(x, y - 1) == above && grid.NavByte(x, y) == below)
+            {
+                continue;
+            }
+
             InsertPoint(x, y);
             above = grid.NavByte(x, y - 1);
             below = grid.NavByte(x, y);
@@ -107,7 +149,11 @@ public sealed partial class NavMesh
         int first = InsertPoint(x, y0);
         for (int y = y0 + 1; y < y1; y++)
         {
-            if (grid.NavByte(x, y) == right && grid.NavByte(x - 1, y) == left) continue;
+            if (grid.NavByte(x, y) == right && grid.NavByte(x - 1, y) == left)
+            {
+                continue;
+            }
+
             InsertPoint(x, y);
             left = grid.NavByte(x - 1, y);
             right = grid.NavByte(x, y);
@@ -126,7 +172,10 @@ public sealed partial class NavMesh
         while (x != tx || y != ty)
         {
             if (!TryEdgeToward(x, y, tx, ty, out int t, out int s))
+            {
                 throw new InvalidOperationException($"no edge leaves ({x},{y}) toward ({tx},{ty})");
+            }
+
             MarkConstraint(t, EdgeLeaving(s));
             int q = CornerAfter(t, s);
             x = _px[q];
@@ -142,7 +191,10 @@ public sealed partial class NavMesh
         while (x != tx || y != ty)
         {
             if (!TryEdgeToward(x, y, tx, ty, out int t, out int s))
+            {
                 throw new InvalidOperationException($"no edge leaves ({x},{y}) toward ({tx},{ty})");
+            }
+
             _sidePoints.Add((x, y));
             ClearConstraint(t, EdgeLeaving(s));
             int q = CornerAfter(t, s);
@@ -159,10 +211,18 @@ public sealed partial class NavMesh
     /// <c>Prev(b)</c> and its corner <c>prev(b)</c> our <c>Prev(b)</c> throughout.</summary>
     private void EmptyRectangle(int x0, int y0, int x1, int y1)
     {
-        if (!TryEdgeToward(x0, y0, x1, y0, out int start, out int startSlot)) return;
+        if (!TryEdgeToward(x0, y0, x1, y0, out int start, out int startSlot))
+        {
+            return;
+        }
+
         int startEdge = EdgeLeaving(startSlot);
         int cur = Neighbour(start, startEdge);
-        if (cur == NoNeighbour) return;
+        if (cur == NoNeighbour)
+        {
+            return;
+        }
+
         int slot = SlotToward(cur, start);
         int guard = 0;
         do
@@ -174,29 +234,59 @@ public sealed partial class NavMesh
                 {
                     int far = Prev(slot);
                     int v = Vertex(cur, far);
-                    if (_px[v] == x0 || _px[v] == x1 || _py[v] == y0 || _py[v] == y1) break;
+                    if (_px[v] == x0 || _px[v] == x1 || _py[v] == y0 || _py[v] == y1)
+                    {
+                        break;
+                    }
+
                     RemoveVertex(cur, far);
                     cur = Neighbour(start, startEdge);
-                    if (cur == NoNeighbour) return;
+                    if (cur == NoNeighbour)
+                    {
+                        return;
+                    }
+
                     slot = SlotToward(cur, start);
-                    if (++guard > (4 * _triCount) + 64) throw new InvalidOperationException("emptying a rectangle did not converge");
+                    if (++guard > (4 * _triCount) + 64)
+                    {
+                        throw new InvalidOperationException("emptying a rectangle did not converge");
+                    }
                 }
                 slot = Prev(slot);
                 int nb = Neighbour(cur, slot);
-                if (nb == NoNeighbour) return;
+                if (nb == NoNeighbour)
+                {
+                    return;
+                }
+
                 int back = SlotToward(nb, cur);
                 prev = cur;
-                if (!IsConstraint(nb, back)) break;
-                if (nb == start) return;
+                if (!IsConstraint(nb, back))
+                {
+                    break;
+                }
+
+                if (nb == start)
+                {
+                    return;
+                }
             }
             int across;
             do
             {
                 cur = Neighbour(prev, slot);
-                if (cur == NoNeighbour) return;
+                if (cur == NoNeighbour)
+                {
+                    return;
+                }
+
                 slot = Prev(SlotToward(cur, prev));
                 across = Neighbour(cur, slot);
-                if (across == NoNeighbour) return;
+                if (across == NoNeighbour)
+                {
+                    return;
+                }
+
                 prev = cur;
             } while (!IsConstraint(across, SlotToward(across, cur)));
         } while (Neighbour(cur, slot) != start);
@@ -207,11 +297,19 @@ public sealed partial class NavMesh
     /// all round and is removed. A point on a byte boundary, or whose fan is open, stays.</summary>
     private void RemoveIfRedundant(int x, int y)
     {
-        if (!TryLocateVertex(x, y, out int t, out int s)) return;
+        if (!TryLocateVertex(x, y, out int t, out int s))
+        {
+            return;
+        }
+
         byte nav = _nav[t];
         int cur = t;
         int nb = Neighbour(t, EdgeLeaving(s));
-        if (nb == NoNeighbour) return;
+        if (nb == NoNeighbour)
+        {
+            return;
+        }
+
         while (_nav[nb] == nav)
         {
             int back = SlotToward(nb, cur);
@@ -223,7 +321,10 @@ public sealed partial class NavMesh
             int next = Neighbour(nb, EdgeLeaving(back));
             cur = nb;
             nb = next;
-            if (nb == NoNeighbour) return;
+            if (nb == NoNeighbour)
+            {
+                return;
+            }
         }
     }
 }

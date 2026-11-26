@@ -38,7 +38,11 @@ public sealed class SimRandom
     /// <summary>Uniform integer in [min, max] inclusive.</summary>
     public int NextInt(int min, int maxInclusive)
     {
-        if (maxInclusive < min) throw new ArgumentOutOfRangeException(nameof(maxInclusive));
+        if (maxInclusive < min)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxInclusive));
+        }
+
         return min + NextInt(maxInclusive - min + 1);
     }
 

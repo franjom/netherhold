@@ -272,65 +272,271 @@ public sealed record PlayerStrategy
     {
         var problems = new List<string>();
         // One fighter has no one to pair with and would be lifted straight out again (the lone-victor rule).
-        if (PitFighters is < 0 or 1) problems.Add($"PitFighters {PitFighters} is neither 0 nor 2 or more");
-        if (Scouts is < 0 or > 1) problems.Add($"Scouts {Scouts} is not 0 or 1");
-        if (CreateImps is < 0 or > 1) problems.Add($"CreateImps {CreateImps} is not 0 or 1");
-        if (MaxImps <= 0) problems.Add($"MaxImps {MaxImps} is not positive");
-        if (MinImps < 0) problems.Add($"MinImps {MinImps} is negative");   // above MaxImps, the cap wins
-        if (ManaReserve < 0) problems.Add($"ManaReserve {ManaReserve} is negative");
-        if (MaxTraps < 0) problems.Add($"MaxTraps {MaxTraps} is negative");
-        if (ImpPriceSeconds <= 0) problems.Add($"ImpPriceSeconds {ImpPriceSeconds} is not positive");
-        if (Rooms is null) problems.Add("Rooms is null");
-        else if (Rooms.Distinct().Count() != Rooms.Count) problems.Add("Rooms names a room twice");
-        if (RoomSide <= 0) problems.Add($"RoomSide {RoomSide} is not positive");
-        if (MaxOutstandingTags <= 0) problems.Add($"MaxOutstandingTags {MaxOutstandingTags} is not positive");
-        if (HomeGuardTiles < 0) problems.Add($"HomeGuardTiles {HomeGuardTiles} is negative");
-        if (AdvanceTicks is < 1 or > MaxAdvanceTicks) problems.Add($"AdvanceTicks {AdvanceTicks} is outside 1 to {MaxAdvanceTicks}");
-        if (AttackParty < 0) problems.Add($"AttackParty {AttackParty} is negative");
-        if (AttackLevels < 0) problems.Add($"AttackLevels {AttackLevels} is negative");
-        if (AttackPaydays < 0) problems.Add($"AttackPaydays {AttackPaydays} is negative");
+        if (PitFighters is < 0 or 1)
+        {
+            problems.Add($"PitFighters {PitFighters} is neither 0 nor 2 or more");
+        }
+
+        if (Scouts is < 0 or > 1)
+        {
+            problems.Add($"Scouts {Scouts} is not 0 or 1");
+        }
+
+        if (CreateImps is < 0 or > 1)
+        {
+            problems.Add($"CreateImps {CreateImps} is not 0 or 1");
+        }
+
+        if (MaxImps <= 0)
+        {
+            problems.Add($"MaxImps {MaxImps} is not positive");
+        }
+
+        if (MinImps < 0)
+        {
+            problems.Add($"MinImps {MinImps} is negative");   // above MaxImps, the cap wins
+        }
+
+        if (ManaReserve < 0)
+        {
+            problems.Add($"ManaReserve {ManaReserve} is negative");
+        }
+
+        if (MaxTraps < 0)
+        {
+            problems.Add($"MaxTraps {MaxTraps} is negative");
+        }
+
+        if (ImpPriceSeconds <= 0)
+        {
+            problems.Add($"ImpPriceSeconds {ImpPriceSeconds} is not positive");
+        }
+
+        if (Rooms is null)
+        {
+            problems.Add("Rooms is null");
+        }
+        else if (Rooms.Distinct().Count() != Rooms.Count)
+        {
+            problems.Add("Rooms names a room twice");
+        }
+
+        if (RoomSide <= 0)
+        {
+            problems.Add($"RoomSide {RoomSide} is not positive");
+        }
+
+        if (MaxOutstandingTags <= 0)
+        {
+            problems.Add($"MaxOutstandingTags {MaxOutstandingTags} is not positive");
+        }
+
+        if (HomeGuardTiles < 0)
+        {
+            problems.Add($"HomeGuardTiles {HomeGuardTiles} is negative");
+        }
+
+        if (AdvanceTicks is < 1 or > MaxAdvanceTicks)
+        {
+            problems.Add($"AdvanceTicks {AdvanceTicks} is outside 1 to {MaxAdvanceTicks}");
+        }
+
+        if (AttackParty < 0)
+        {
+            problems.Add($"AttackParty {AttackParty} is negative");
+        }
+
+        if (AttackLevels < 0)
+        {
+            problems.Add($"AttackLevels {AttackLevels} is negative");
+        }
+
+        if (AttackPaydays < 0)
+        {
+            problems.Add($"AttackPaydays {AttackPaydays} is negative");
+        }
+
         if (AttackAt is TilePos attack && mapWidth is int attackWidth && mapHeight is int attackHeight
-            && (attack.X < 0 || attack.Y < 0 || attack.X >= attackWidth || attack.Y >= attackHeight)) problems.Add("AttackAt is outside the map");
-        if (TakeRooms is null) problems.Add("TakeRooms is null");
-        if (TakeAt is null) problems.Add("TakeAt is null");
+            && (attack.X < 0 || attack.Y < 0 || attack.X >= attackWidth || attack.Y >= attackHeight))
+        {
+            problems.Add("AttackAt is outside the map");
+        }
+
+        if (TakeRooms is null)
+        {
+            problems.Add("TakeRooms is null");
+        }
+
+        if (TakeAt is null)
+        {
+            problems.Add("TakeAt is null");
+        }
         else if (mapWidth is int takeWidth && mapHeight is int takeHeight
-                 && TakeAt.Any(t => t.X < 0 || t.Y < 0 || t.X >= takeWidth || t.Y >= takeHeight)) problems.Add("TakeAt names a tile outside the map");
-        if (ExtraRooms is null) problems.Add("ExtraRooms is null");
-        else if (ExtraRooms.Distinct().Count() != ExtraRooms.Count) problems.Add("ExtraRooms names a room twice");
-        if (UseRooms is null) problems.Add("UseRooms is null");
-        else if (UseRooms.Distinct().Count() != UseRooms.Count) problems.Add("UseRooms names a room twice");
-        if (LairTilesPerCreature < 0) problems.Add($"LairTilesPerCreature {LairTilesPerCreature} is negative");
-        if (CreaturesPerHatcheryTile <= 0) problems.Add($"CreaturesPerHatcheryTile {CreaturesPerHatcheryTile} is not positive");
-        if (TreasuryFullPercent is < 1 or > 100) problems.Add($"TreasuryFullPercent {TreasuryFullPercent} is outside 1 to 100");
-        if (TilesPerWorkingCreature <= 0) problems.Add($"TilesPerWorkingCreature {TilesPerWorkingCreature} is not positive");
-        if (UseRoomEveryTicks < 0) problems.Add($"UseRoomEveryTicks {UseRoomEveryTicks} is negative");
-        if (UseRoomMinGold < 0) problems.Add($"UseRoomMinGold {UseRoomMinGold} is negative");
-        if (EnemyClearanceTiles < 0) problems.Add($"EnemyClearanceTiles {EnemyClearanceTiles} is negative");
-        if (EnemyNearTiles < 0) problems.Add($"EnemyNearTiles {EnemyNearTiles} is negative");
-        if (GoldMarginPercent < 0) problems.Add($"GoldMarginPercent {GoldMarginPercent} is negative");
-        if (GoldBudget is < 0 or > 1) problems.Add($"GoldBudget {GoldBudget} is not 0 or 1");
-        if (SecondRooms is < 0 or > 1) problems.Add($"SecondRooms {SecondRooms} is not 0 or 1");
-        if (FreeBeds < 0) problems.Add($"FreeBeds {FreeBeds} is negative");
-        if (HungryPercent is < 1 or > 100) problems.Add($"HungryPercent {HungryPercent} is outside 1 to 100");
-        if (TrainGold < 0) problems.Add($"TrainGold {TrainGold} is negative");
-        if (AssaultParty < 0) problems.Add($"AssaultParty {AssaultParty} is negative");
-        if (AvoidTraps is < 0 or > 1) problems.Add($"AvoidTraps {AvoidTraps} is not 0 or 1");
-        if (RallyParty < 0) problems.Add($"RallyParty {RallyParty} is negative");
-        if (RecruitGold < 0) problems.Add($"RecruitGold {RecruitGold} is negative");
-        if (AttractionTargets is null) problems.Add("AttractionTargets is null");
-        else foreach (KeyValuePair<RoomTypeId, int> t in AttractionTargets.Where(t => t.Value <= 0))
-            problems.Add($"AttractionTargets[{t.Key}] {t.Value} is not positive");
-        if (SlotTargets is null) problems.Add("SlotTargets is null");
-        else foreach (KeyValuePair<RoomTypeId, int> t in SlotTargets.Where(t => t.Value <= 0))
-            problems.Add($"SlotTargets[{t.Key}] {t.Value} is not positive");
-        if (TileTargets is null) problems.Add("TileTargets is null");
-        else foreach (KeyValuePair<RoomTypeId, int> t in TileTargets.Where(t => t.Value <= 0))
-            problems.Add($"TileTargets[{t.Key}] {t.Value} is not positive");
-        if (Dig == DigMode.Toward && DigTarget is null) problems.Add("Dig Toward needs a DigTarget");
-        if (Dig != DigMode.Toward && DigTarget is not null) problems.Add($"DigTarget is set but Dig is {Dig}");
+                 && TakeAt.Any(t => t.X < 0 || t.Y < 0 || t.X >= takeWidth || t.Y >= takeHeight))
+        {
+            problems.Add("TakeAt names a tile outside the map");
+        }
+
+        if (ExtraRooms is null)
+        {
+            problems.Add("ExtraRooms is null");
+        }
+        else if (ExtraRooms.Distinct().Count() != ExtraRooms.Count)
+        {
+            problems.Add("ExtraRooms names a room twice");
+        }
+
+        if (UseRooms is null)
+        {
+            problems.Add("UseRooms is null");
+        }
+        else if (UseRooms.Distinct().Count() != UseRooms.Count)
+        {
+            problems.Add("UseRooms names a room twice");
+        }
+
+        if (LairTilesPerCreature < 0)
+        {
+            problems.Add($"LairTilesPerCreature {LairTilesPerCreature} is negative");
+        }
+
+        if (CreaturesPerHatcheryTile <= 0)
+        {
+            problems.Add($"CreaturesPerHatcheryTile {CreaturesPerHatcheryTile} is not positive");
+        }
+
+        if (TreasuryFullPercent is < 1 or > 100)
+        {
+            problems.Add($"TreasuryFullPercent {TreasuryFullPercent} is outside 1 to 100");
+        }
+
+        if (TilesPerWorkingCreature <= 0)
+        {
+            problems.Add($"TilesPerWorkingCreature {TilesPerWorkingCreature} is not positive");
+        }
+
+        if (UseRoomEveryTicks < 0)
+        {
+            problems.Add($"UseRoomEveryTicks {UseRoomEveryTicks} is negative");
+        }
+
+        if (UseRoomMinGold < 0)
+        {
+            problems.Add($"UseRoomMinGold {UseRoomMinGold} is negative");
+        }
+
+        if (EnemyClearanceTiles < 0)
+        {
+            problems.Add($"EnemyClearanceTiles {EnemyClearanceTiles} is negative");
+        }
+
+        if (EnemyNearTiles < 0)
+        {
+            problems.Add($"EnemyNearTiles {EnemyNearTiles} is negative");
+        }
+
+        if (GoldMarginPercent < 0)
+        {
+            problems.Add($"GoldMarginPercent {GoldMarginPercent} is negative");
+        }
+
+        if (GoldBudget is < 0 or > 1)
+        {
+            problems.Add($"GoldBudget {GoldBudget} is not 0 or 1");
+        }
+
+        if (SecondRooms is < 0 or > 1)
+        {
+            problems.Add($"SecondRooms {SecondRooms} is not 0 or 1");
+        }
+
+        if (FreeBeds < 0)
+        {
+            problems.Add($"FreeBeds {FreeBeds} is negative");
+        }
+
+        if (HungryPercent is < 1 or > 100)
+        {
+            problems.Add($"HungryPercent {HungryPercent} is outside 1 to 100");
+        }
+
+        if (TrainGold < 0)
+        {
+            problems.Add($"TrainGold {TrainGold} is negative");
+        }
+
+        if (AssaultParty < 0)
+        {
+            problems.Add($"AssaultParty {AssaultParty} is negative");
+        }
+
+        if (AvoidTraps is < 0 or > 1)
+        {
+            problems.Add($"AvoidTraps {AvoidTraps} is not 0 or 1");
+        }
+
+        if (RallyParty < 0)
+        {
+            problems.Add($"RallyParty {RallyParty} is negative");
+        }
+
+        if (RecruitGold < 0)
+        {
+            problems.Add($"RecruitGold {RecruitGold} is negative");
+        }
+
+        if (AttractionTargets is null)
+        {
+            problems.Add("AttractionTargets is null");
+        }
+        else
+        {
+            foreach (KeyValuePair<RoomTypeId, int> t in AttractionTargets.Where(t => t.Value <= 0))
+            {
+                problems.Add($"AttractionTargets[{t.Key}] {t.Value} is not positive");
+            }
+        }
+
+        if (SlotTargets is null)
+        {
+            problems.Add("SlotTargets is null");
+        }
+        else
+        {
+            foreach (KeyValuePair<RoomTypeId, int> t in SlotTargets.Where(t => t.Value <= 0))
+            {
+                problems.Add($"SlotTargets[{t.Key}] {t.Value} is not positive");
+            }
+        }
+
+        if (TileTargets is null)
+        {
+            problems.Add("TileTargets is null");
+        }
+        else
+        {
+            foreach (KeyValuePair<RoomTypeId, int> t in TileTargets.Where(t => t.Value <= 0))
+            {
+                problems.Add($"TileTargets[{t.Key}] {t.Value} is not positive");
+            }
+        }
+
+        if (Dig == DigMode.Toward && DigTarget is null)
+        {
+            problems.Add("Dig Toward needs a DigTarget");
+        }
+
+        if (Dig != DigMode.Toward && DigTarget is not null)
+        {
+            problems.Add($"DigTarget is set but Dig is {Dig}");
+        }
+
         if (DigTarget is TilePos target && mapWidth is int width && mapHeight is int height
             && (target.X < 0 || target.Y < 0 || target.X >= width || target.Y >= height))
+        {
             problems.Add($"DigTarget ({target.X},{target.Y}) is outside the {width}x{height} map");
+        }
+
         return problems;
     }
 }

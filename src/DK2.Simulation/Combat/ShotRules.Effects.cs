@@ -21,7 +21,11 @@ public static partial class ShotRules
             shot.ViewHeading = initialHeading;
             shot.Heading = initialHeading.Raw;
         }
-        if (!context.Database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition)) return;
+        if (!context.Database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition))
+        {
+            return;
+        }
+
         RequestConstructionSounds(context, shot, definition);
         context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(definition.GeneralEffectId),
             shot.OwnerPlayerId, shot.ViewPosition, initialHeading)
@@ -53,7 +57,11 @@ public static partial class ShotRules
     internal static void RequestShotSound(SimulationContext context, ShotState shot, ShotDef definition, ThingSoundEvent sound,
         SoundSourceKind handle = SoundSourceKind.Shot, PlayerId? viewerOnlyFor = null, FpPosition3? at = null)
     {
-        if (definition.SoundCategory.Length == 0 || ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (definition.SoundCategory.Length == 0 || ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         ThingSoundRules.Request(context, SystemName, new SoundSourceId(handle, shot.Id), definition.SoundCategory, sound,
             at ?? shot.ViewPosition, viewerOnlyFor: viewerOnlyFor);
     }
@@ -72,7 +80,9 @@ public static partial class ShotRules
         FpPosition3 point)
     {
         if (definition.TimedEffectId != 0 && shot.Age % definition.TimedDelay == 0)
+        {
             RequestShotEffect(context, shot, new EffectId(definition.TimedEffectId), point, aimed: true);
+        }
     }
 
     internal static void RequestEffectsAfterProcessKill(SimulationContext context, ShotState shot,
@@ -88,10 +98,21 @@ public static partial class ShotRules
             int x = point.X.Raw + (step == 0 ? halfX : shot.VelX - halfX);
             int y = point.Y.Raw + (step == 0 ? halfY : shot.VelY - halfY);
             if (!Passable(context.World, context.Navigation, x, y)) { stopped = true; point = shot.ViewPosition; }
-            else point = new FpPosition3(new Fp32(x), new Fp32(y), point.Z);
+            else
+            {
+                point = new FpPosition3(new Fp32(x), new Fp32(y), point.Z);
+            }
         }
-        if (stopped) RequestShotEffect(context, shot, new EffectId(definition.HitSolidEffectId), start);
-        if (stopped && (definition.Flags & DiesOnSolid) != 0) return;
+        if (stopped)
+        {
+            RequestShotEffect(context, shot, new EffectId(definition.HitSolidEffectId), start);
+        }
+
+        if (stopped && (definition.Flags & DiesOnSolid) != 0)
+        {
+            return;
+        }
+
         RequestShotEffect(context, shot, new EffectId(definition.DeathEffectId), point);
         RequestTimedEffect(context, shot, definition, point);
     }

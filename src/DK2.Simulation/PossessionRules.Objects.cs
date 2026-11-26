@@ -69,12 +69,22 @@ public static partial class PossessionRules
     /// <summary>The standing hearts' pillars, each list in the order the heart built them.</summary>
     internal static IEnumerable<PillarThing> Pillars(WorldState world, HeartSites? hearts)
     {
-        if (hearts is null) yield break;
+        if (hearts is null)
+        {
+            yield break;
+        }
+
         foreach (HeartSites.Site site in hearts.Sites)
         {
-            if (!site.Standing) continue;
+            if (!site.Standing)
+            {
+                continue;
+            }
+
             foreach (HeartPillarTarget pillar in site.Pillars)
+            {
                 yield return new PillarThing(site.Owner, HeartPillarId.For(world, pillar), pillar);
+            }
         }
     }
 }

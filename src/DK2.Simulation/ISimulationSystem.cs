@@ -126,7 +126,11 @@ public sealed class SimulationContext
 
     public void RequestEffect(string system, ViewEffectRequest request)
     {
-        if (request.EffectId == EffectId.None) return;
+        if (request.EffectId == EffectId.None)
+        {
+            return;
+        }
+
         Events.Emit(new SimEvent(Tick, system, "effect_requested",
             $"player={request.Owner} effect={request.EffectId} tile=({request.Tile.X},{request.Tile.Y}) height={request.Height.Raw}"
             + (request.Amount is int amount ? $" amount={amount}" : ""))
@@ -140,7 +144,11 @@ public sealed class SimulationContext
     public void RequestSound(string system, ThingSoundRequest request)
     {
         // Nobody listening: skip the detail string and the event (the null sink is the one cheap test there is).
-        if (ReferenceEquals(Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         Events.Emit(new SimEvent(Tick, system, "thing_sound",
             $"{request.Source.Kind.ToString().ToLowerInvariant()}={request.Source.Value} event={(ushort)request.Event}")
         {

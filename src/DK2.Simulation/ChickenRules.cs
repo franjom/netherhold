@@ -38,7 +38,11 @@ public static class ChickenRules
     /// state still carries the timer. Its <c>0x004B32A0</c> call has radius 2 and does nothing.</summary>
     public static void Strike(SimulationContext context, ShotState shot, CreatureState target, CreatureDef targetDef)
     {
-        if (target.Activity == CreatureActivity.Dead) return;
+        if (target.Activity == CreatureActivity.Dead)
+        {
+            return;
+        }
+
         if (((targetDef.Flags & CreatureFlags.IsImmuneToChicken) == CreatureFlags.IsImmuneToChicken))
         {
             context.Emit(SystemName, "chicken_immune", $"shot={shot.Id} target={target.Id}");
@@ -47,7 +51,11 @@ public static class ChickenRules
         target.ChickenTicks = shot.Data1 * SimulationTiming.OriginalTicksPerGameSecond;
         bool entered = CreatureStateMachine.TrySetState(context.Hooks, target, ChickenState, context.Tick.Value);
         // DK2 moves only a walking state (0x0048A23B), so a route goes with the state it left.
-        if (entered) target.StopMoving();
+        if (entered)
+        {
+            target.StopMoving();
+        }
+
         context.Emit(SystemName, "chickened",
             $"shot={shot.Id} target={target.Id} ticks={target.ChickenTicks} state={(entered ? "96" : "refused")}");
     }
@@ -57,7 +65,11 @@ public static class ChickenRules
     public static void TimerEnded(SimulationContext context, CreatureState creature)
     {
         bool idled = CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
-        if (idled) creature.StopMoving();
+        if (idled)
+        {
+            creature.StopMoving();
+        }
+
         context.Emit(SystemName, "unchickened", $"creature={creature.Id} idle={(idled ? 1 : 0)}");
     }
 
@@ -74,7 +86,10 @@ public static class ChickenRules
         if (hatchery is not null)
         {
             _ = context.Rng.NextInt(hatchery.TileCount);
-            if (StealGoldRules.ToRoom(context, SystemName, creature, hatchery, ChickenState, MoveOptions.Loose)) return;
+            if (StealGoldRules.ToRoom(context, SystemName, creature, hatchery, ChickenState, MoveOptions.Loose))
+            {
+                return;
+            }
         }
 
         TilePos here = creature.Tile;
@@ -89,7 +104,11 @@ public static class ChickenRules
                 2 => new TilePos(here.X, here.Y + 1),
                 _ => new TilePos(here.X, here.Y - 1),
             };
-            if (!CanWanderOnto(world, context.Database, next)) continue;
+            if (!CanWanderOnto(world, context.Database, next))
+            {
+                continue;
+            }
+
             to = next;
             break;
         }
@@ -105,7 +124,11 @@ public static class ChickenRules
     /// Off the map counts as solid; shipped maps are bordered by rock.</summary>
     private static bool CanWanderOnto(WorldState world, GameDatabase database, TilePos at)
     {
-        if (!world.Contains(at)) return false;
+        if (!world.Contains(at))
+        {
+            return false;
+        }
+
         TerrainDef terrain = database.TerrainById(world.Tile(at).TerrainId);
         return !terrain.IsSolid && !terrain.IsWater && !terrain.IsLava;
     }
@@ -125,13 +148,25 @@ public static class ChickenRules
         var scratch = new List<Fixed16Vector>();
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (!EatingRules.IsHatcheryOf(room, creature.OwnerPlayerId) || room.TileIndices.Count == 0) continue;
+            if (!EatingRules.IsHatcheryOf(room, creature.OwnerPlayerId) || room.TileIndices.Count == 0)
+            {
+                continue;
+            }
+
             TilePos position = Position(world, room);
             long dx = Math.Abs((long)CreatureState.CentreOf(position.X) - creature.PosX);
             long dy = Math.Abs((long)CreatureState.CentreOf(position.Y) - creature.PosY);
             long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);
-            if (distance >= bestDistance) continue;
-            if (!Reachable(context, creature, definition, position, scratch)) continue;
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+
+            if (!Reachable(context, creature, definition, position, scratch))
+            {
+                continue;
+            }
+
             best = room;
             bestDistance = distance;
         }
@@ -142,7 +177,11 @@ public static class ChickenRules
     internal static bool Reachable(SimulationContext context, CreatureState creature, CreatureDef definition, TilePos at,
         List<Fixed16Vector> scratch)
     {
-        if (creature.Tile == at) return true;
+        if (creature.Tile == at)
+        {
+            return true;
+        }
+
         scratch.Clear();
         var from = new Fixed16Vector(creature.PosX << 4, creature.PosY << 4);
         var to = new Fixed16Vector(CreatureState.CentreOf(at.X) << 4, CreatureState.CentreOf(at.Y) << 4);
@@ -157,7 +196,11 @@ public static class ChickenRules
         long sumX = 0, sumY = 0;
         foreach (int index in room.TileIndices) { sumX += index % w; sumY += index / w; }
         int cx = (int)(sumX / room.TileIndices.Count), cy = (int)(sumY / room.TileIndices.Count);
-        if (room.Contains(cy * w + cx)) return new TilePos(cx, cy);
+        if (room.Contains(cy * w + cx))
+        {
+            return new TilePos(cx, cy);
+        }
+
         int best = room.TileIndices[0];
         long bestDistance = long.MaxValue;
         foreach (int index in room.TileIndices)

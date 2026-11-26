@@ -32,10 +32,21 @@ public sealed class DoorSystem : ISimulationSystem
             // The countdown runs before anything reads it and whatever the door is doing:
             // the original decrements at 0x004A56A1, above both the construction bypass and
             // the open decision.
-            if (door.LockPickTicks > 0) door.LockPickTicks--;
-            if (door.UnderConstruction) continue;
+            if (door.LockPickTicks > 0)
+            {
+                door.LockPickTicks--;
+            }
+
+            if (door.UnderConstruction)
+            {
+                continue;
+            }
+
             if (context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)
-                && ((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) continue;
+                && ((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade))
+            {
+                continue;
+            }
 
             bool was = door.Open;
             door.Open = door.LockPickTicks > 0
@@ -44,14 +55,22 @@ public sealed class DoorSystem : ISimulationSystem
             // kills run inside the same update, before that test, and ours are DoorHealthSystem's, after this one: a door
             // killed this tick may still sound this tick (a deviation with no practical effect, it goes the same turn).
             // The change writes the navigation byte afresh (0x004A6081), floor for an open door.
-            if (door.Open != was) door.SeenWhileOpen = false;
+            if (door.Open != was)
+            {
+                door.SeenWhileOpen = false;
+            }
+
             if (door.Open != was && !DoorRules.IsDead(door))
+            {
                 ThingSoundRules.Request(context, Name, door, door.Open ? ThingSoundEvent.DoorOpened : ThingSoundEvent.DoorClosed);
+            }
 
             // DK2 leaves the update for a dead door before this arm.
             if (door.Open && !DoorRules.IsDead(door)
                 && definition is not null && (definition.Flags & DoorFlags.Secret) == DoorFlags.Secret)
+            {
                 SeenOpen(context, door);
+            }
         }
     }
 
@@ -75,14 +94,36 @@ public sealed class DoorSystem : ISimulationSystem
         foreach (CreatureState creature in world.Creatures)
         {
             // A body stays in the list with no state; in DK2 it is another class of thing.
-            if (!CreatureStateMachine.HasState(creature)) continue;
-            if (world.AreAllied(creature.OwnerPlayerId, door.PlayerId)) continue;
-            if (CombatRules.DistanceSquared(creature.PosX, creature.PosY, doorX, doorY) >= SeeingRangeSquared) continue;
-            if (NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Combat) continue;
-            if (!CombatRules.MayLookForAFight(world, context.Database, creature, force: false)) continue;
+            if (!CreatureStateMachine.HasState(creature))
+            {
+                continue;
+            }
+
+            if (world.AreAllied(creature.OwnerPlayerId, door.PlayerId))
+            {
+                continue;
+            }
+
+            if (CombatRules.DistanceSquared(creature.PosX, creature.PosY, doorX, doorY) >= SeeingRangeSquared)
+            {
+                continue;
+            }
+
+            if (NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Combat)
+            {
+                continue;
+            }
+
+            if (!CombatRules.MayLookForAFight(world, context.Database, creature, force: false))
+            {
+                continue;
+            }
 
             solidTiles ??= SolidTiles(context);
-            if (!LineOfSight.Clear(solidTiles, creature.PosX, creature.PosY, doorX, doorY)) continue;
+            if (!LineOfSight.Clear(solidTiles, creature.PosX, creature.PosY, doorX, doorY))
+            {
+                continue;
+            }
 
             CombatPitRules.ForceTarget(world, creature, door.Id, FightTargetKind.Door);
             Unhide(context, door, seenBy: creature);
@@ -100,7 +141,11 @@ public sealed class DoorSystem : ISimulationSystem
     private static void Unhide(SimulationContext context, DoorState door, CreatureState seenBy)
     {
         ref TileState tile = ref context.World.Tile(door.X, door.Y);
-        if (!tile.SecretDoor) return;
+        if (!tile.SecretDoor)
+        {
+            return;
+        }
+
         tile.SecretDoor = false;
         context.Emit(SystemName, "secret_door_seen",
             $"door={door.Id} player={door.PlayerId} creature={seenBy.Id} by={seenBy.OwnerPlayerId} at=({door.X},{door.Y})");
@@ -131,12 +176,22 @@ public sealed class DoorSystem : ISimulationSystem
         {
             foreach (DoorState door in context.World.Doors)
             {
-                if (door.X != request.Tile.X || door.Y != request.Tile.Y) continue;
-                if (door.PlayerId != request.PlayerId) continue;
+                if (door.X != request.Tile.X || door.Y != request.Tile.Y)
+                {
+                    continue;
+                }
+
+                if (door.PlayerId != request.PlayerId)
+                {
+                    continue;
+                }
+
                 door.LockMode = door.LockMode == 0 ? (byte)3 : (byte)0;
                 // 0x004A6844, only for a completed door: the lock, or the unlock.
                 if (!door.UnderConstruction)
+                {
                     ThingSoundRules.Request(context, SystemName, door, door.LockMode == 0 ? ThingSoundEvent.DoorUnlocked : ThingSoundEvent.DoorLocked);
+                }
             }
         }
     }
@@ -152,8 +207,15 @@ public sealed class DoorSystem : ISimulationSystem
             bool beside = door.Orientation == 0
                 ? dy == 0 && (dx == 1 || dx == -1)
                 : dx == 0 && (dy == 1 || dy == -1);
-            if (!onDoor && !beside) continue;
-            if (Eligible(context, door, creature)) return true;
+            if (!onDoor && !beside)
+            {
+                continue;
+            }
+
+            if (Eligible(context, door, creature))
+            {
+                return true;
+            }
         }
 
         return false;
@@ -168,9 +230,20 @@ public sealed class DoorSystem : ISimulationSystem
     /// every other system here uses, and a wider door than the original's until that pass.</remarks>
     public static bool Eligible(SimulationContext context, DoorState door, CreatureState creature)
     {
-        if (!context.World.AreAllied(door.PlayerId, creature.OwnerPlayerId)) return false;
-        if (creature.OwnerPlayerId == PlayerIds.Neutral) return false;
-        if (CreatureDeathRules.IsDown(creature)) return false;
+        if (!context.World.AreAllied(door.PlayerId, creature.OwnerPlayerId))
+        {
+            return false;
+        }
+
+        if (creature.OwnerPlayerId == PlayerIds.Neutral)
+        {
+            return false;
+        }
+
+        if (CreatureDeathRules.IsDown(creature))
+        {
+            return false;
+        }
 
         bool worker = ((context.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
         return door.LockMode switch

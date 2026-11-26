@@ -15,6 +15,8 @@ public sealed class RoomBuildWaveSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         for (int playerIndex = 0; playerIndex < context.World.PlayerCount; playerIndex++)
+        {
             RoomBuildSystem.Drain(context, context.World.PlayerAtIndex(playerIndex).PlayerId);
+        }
     }
 }

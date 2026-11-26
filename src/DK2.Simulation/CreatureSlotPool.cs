@@ -23,7 +23,11 @@ internal sealed partial class CreatureSlotPool
 
     internal NativeCreatureTag Take()
     {
-        if (_free.Count == 0) throw new InvalidOperationException("The native creature pool is full.");
+        if (_free.Count == 0)
+        {
+            throw new InvalidOperationException("The native creature pool is full.");
+        }
+
         NativeCreatureTag tag = _free[_free.Count - 1];
         _free.RemoveAt(_free.Count - 1);
         return tag;
@@ -32,7 +36,10 @@ internal sealed partial class CreatureSlotPool
     internal void Return(NativeCreatureTag tag)
     {
         if (tag.Value < 8 || tag.Value > 455 || _free.Contains(tag))
+        {
             throw new InvalidOperationException("The native creature slot is invalid or already free.");
+        }
+
         _free.Add(tag);
     }
 
@@ -41,7 +48,10 @@ internal sealed partial class CreatureSlotPool
         NativeCreatureTag[] saved = tags.ToArray();
         if (saved.Length > Capacity || saved.Any(tag => tag.Value < 8 || tag.Value > 455)
             || saved.Distinct().Count() != saved.Length)
+        {
             throw new InvalidDataException("Invalid native creature free slots in snapshot.");
+        }
+
         _free.Clear();
         _free.AddRange(saved);
     }
@@ -49,7 +59,10 @@ internal sealed partial class CreatureSlotPool
     internal void HashInto(ref Hash64 hash)
     {
         hash.Add(_free.Count);
-        foreach (NativeCreatureTag tag in _free) hash.Add(tag.Value);
+        foreach (NativeCreatureTag tag in _free)
+        {
+            hash.Add(tag.Value);
+        }
     }
 
     internal bool IsValidPartition(IEnumerable<CreatureState> creatures)
@@ -59,11 +72,18 @@ internal sealed partial class CreatureSlotPool
         {
             if (creature.NativeSlotTag == 0)
             {
-                if (!CreatureDeathRules.IsCorpse(creature)) return false;
+                if (!CreatureDeathRules.IsCorpse(creature))
+                {
+                    return false;
+                }
+
                 continue;
             }
             var tag = new NativeCreatureTag(creature.NativeSlotTag);
-            if (tag.Value < 8 || tag.Value > 455 || _free.Contains(tag) || !allocated.Add(tag)) return false;
+            if (tag.Value < 8 || tag.Value > 455 || _free.Contains(tag) || !allocated.Add(tag))
+            {
+                return false;
+            }
         }
         return allocated.Count + _free.Count == Capacity;
     }

@@ -21,7 +21,10 @@ public sealed class Xoshiro256StarStar : IRandomAlgorithm
         _s1 = SplitMix64(ref x);
         _s2 = SplitMix64(ref x);
         _s3 = SplitMix64(ref x);
-        if ((_s0 | _s1 | _s2 | _s3) == 0) _s0 = 1; // all-zero state is invalid
+        if ((_s0 | _s1 | _s2 | _s3) == 0)
+        {
+            _s0 = 1; // all-zero state is invalid
+        }
     }
 
     private Xoshiro256StarStar(ulong s0, ulong s1, ulong s2, ulong s3)
@@ -54,13 +57,20 @@ public sealed class Xoshiro256StarStar : IRandomAlgorithm
     /// <summary>Uniform integer in [0, exclusiveMax). Rejection-sampled — no modulo bias.</summary>
     public int NextInt(int exclusiveMax)
     {
-        if (exclusiveMax <= 0) throw new ArgumentOutOfRangeException(nameof(exclusiveMax));
+        if (exclusiveMax <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(exclusiveMax));
+        }
+
         ulong bound = (ulong)exclusiveMax;
         ulong threshold = (0UL - bound) % bound;
         while (true)
         {
             ulong r = NextUInt64();
-            if (r >= threshold) return (int)(r % bound);
+            if (r >= threshold)
+            {
+                return (int)(r % bound);
+            }
         }
     }
 

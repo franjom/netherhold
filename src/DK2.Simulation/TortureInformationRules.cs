@@ -45,10 +45,20 @@ public static class TortureInformationRules
             };
             if (pair is (int a, int b))
             {
-                if (!Given(world, a, chamberOwner, victimOwner)) list.Add(a);
-                if (!Given(world, b, chamberOwner, victimOwner)) list.Add(b);
+                if (!Given(world, a, chamberOwner, victimOwner))
+                {
+                    list.Add(a);
+                }
+
+                if (!Given(world, b, chamberOwner, victimOwner))
+                {
+                    list.Add(b);
+                }
             }
-            if (!Given(world, 10, chamberOwner, victimOwner)) list.Add(10);
+            if (!Given(world, 10, chamberOwner, victimOwner))
+            {
+                list.Add(10);
+            }
         }
         list.Add(Reveal);
         return list;
@@ -58,8 +68,16 @@ public static class TortureInformationRules
     /// itself, otherwise the stored flag.</summary>
     public static bool Given(WorldState world, int reward, PlayerId chamberOwner, PlayerId victimOwner)
     {
-        if (chamberOwner == victimOwner) return true;
-        if (reward is < 3 or > 10) return false;
+        if (chamberOwner == victimOwner)
+        {
+            return true;
+        }
+
+        if (reward is < 3 or > 10)
+        {
+            return false;
+        }
+
         return (world.Player(chamberOwner).InformationGiven & Bit(reward, victimOwner)) != 0;
     }
 
@@ -69,7 +87,11 @@ public static class TortureInformationRules
     {
         List<int> candidates = Candidates(world, victim, victimOwner, chamberOwner);
         int reward = candidates[rng.NextInt(candidates.Count)];
-        if (reward != Reveal) world.Player(chamberOwner).InformationGiven |= Bit(reward, victimOwner);
+        if (reward != Reveal)
+        {
+            world.Player(chamberOwner).InformationGiven |= Bit(reward, victimOwner);
+        }
+
         return reward;
     }
 
@@ -90,11 +112,18 @@ public static class TortureInformationRules
         {
             uint nextId = world.Messages.NextMessageId;
             if (world.Messages.Post(world, chamberOwner.Value, PlayerMessageKind.InformationLearned, 0, 0) is { } learned
-                && learned.Id == nextId) onPosted?.Invoke(learned);
+                && learned.Id == nextId)
+            {
+                onPosted?.Invoke(learned);
+            }
+
             nextId = world.Messages.NextMessageId;
             if (world.Messages.Post(world, chamberOwner.Value,
                     reward == Reveal ? PlayerMessageKind.InformationReveal : PlayerMessageKind.InformationUnlocked, 0, 0) is { } information
-                && information.Id == nextId) onPosted?.Invoke(information);
+                && information.Id == nextId)
+            {
+                onPosted?.Invoke(information);
+            }
         }
         return (reward, revealed);
     }
@@ -110,18 +139,33 @@ public static class TortureInformationRules
     /// needed here: the view rebuilds from the explored layer.</para></summary>
     public static RevealResult RevealTo(WorldState world, GameDatabase database, PlayerId victimOwner, PlayerId chamberOwner)
     {
-        if (!world.FogOfWarEnabled) return RevealResult.None;
+        if (!world.FogOfWarEnabled)
+        {
+            return RevealResult.None;
+        }
+
         foreach (RoomInstance room in RoomLists.Of(world, database, victimOwner))
         {
-            if (world.TileAtIndex(SlabChain.FirstSlab(world, room)).IsExploredBy(chamberOwner)) continue;
+            if (world.TileAtIndex(SlabChain.FirstSlab(world, room)).IsExploredBy(chamberOwner))
+            {
+                continue;
+            }
+
             foreach (int tile in SlabChain.Order(world, room))
+            {
                 DiscoveryRules.SetExplored(world, database, new TilePos(tile % world.Width, tile / world.Width), chamberOwner);
+            }
+
             return RevealResult.Room;
         }
 
         foreach (CreatureState creature in world.OwnedCreatures(victimOwner))
         {
-            if (world.Tile(creature.Tile).IsExploredBy(chamberOwner)) continue;
+            if (world.Tile(creature.Tile).IsExploredBy(chamberOwner))
+            {
+                continue;
+            }
+
             creature.TortureSightPasses = SightPasses;
             creature.TortureSightPlayerId = chamberOwner.Value;
             creature.TortureSightTileIndex = world.TileIndex(creature.Tile);

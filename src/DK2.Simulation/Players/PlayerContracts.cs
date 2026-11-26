@@ -19,18 +19,32 @@ public readonly record struct PlayerRunId
 
     public PlayerRunId(string value)
     {
-        if (value is null) throw new ArgumentNullException(nameof(value));
+        if (value is null)
+        {
+            throw new ArgumentNullException(nameof(value));
+        }
+
         if (value.Length is 0 or > MaxLength)
+        {
             throw new ArgumentException($"A run id has 1-{MaxLength} characters.", nameof(value));
+        }
+
         bool named = false;
         foreach (char c in value)
         {
             if (!(c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or '.' or '_' or '-'))
+            {
                 throw new ArgumentException("A run id uses only letters, digits, '.', '_' and '-'.", nameof(value));
+            }
+
             named |= c != '.';
         }
         // "." and ".." would name a folder above the run's own.
-        if (!named) throw new ArgumentException("A run id is not only dots.", nameof(value));
+        if (!named)
+        {
+            throw new ArgumentException("A run id is not only dots.", nameof(value));
+        }
+
         _value = value;
     }
 
@@ -47,7 +61,11 @@ public readonly record struct PlayerActionId
 {
     public PlayerActionId(long value)
     {
-        if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value), value, "Action ids start at 1.");
+        if (value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), value, "Action ids start at 1.");
+        }
+
         Value = value;
     }
 
@@ -64,7 +82,11 @@ public readonly record struct PlayerRevision : IComparable<PlayerRevision>
 {
     public PlayerRevision(long value)
     {
-        if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value), value, "Revisions start at 1.");
+        if (value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), value, "Revisions start at 1.");
+        }
+
         Value = value;
     }
 
@@ -89,8 +111,16 @@ public readonly record struct PlayerThingHandle
 {
     public PlayerThingHandle(PlayerRevision revision, int ordinal)
     {
-        if (!revision.IsValid) throw new ArgumentOutOfRangeException(nameof(revision), "A handle needs a revision.");
-        if (ordinal < 0) throw new ArgumentOutOfRangeException(nameof(ordinal), ordinal, "Ordinals start at 0.");
+        if (!revision.IsValid)
+        {
+            throw new ArgumentOutOfRangeException(nameof(revision), "A handle needs a revision.");
+        }
+
+        if (ordinal < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(ordinal), ordinal, "Ordinals start at 0.");
+        }
+
         Revision = revision;
         Ordinal = ordinal;
     }
@@ -170,9 +200,15 @@ public readonly record struct PlayerReceipt
     {
         bool refusal = status is PlayerReceiptStatus.Refused or PlayerReceiptStatus.Cancelled;
         if (refusal == (reason == PlayerRefusalReason.None))
+        {
             throw new ArgumentException($"A {status} receipt {(refusal ? "needs" : "takes no")} reason.", nameof(reason));
+        }
+
         if ((status == PlayerReceiptStatus.Submitted) != scheduledTick.HasValue)
+        {
             throw new ArgumentException("Only a Submitted receipt has a scheduled tick.", nameof(scheduledTick));
+        }
+
         Id = id;
         Status = status;
         Reason = reason;

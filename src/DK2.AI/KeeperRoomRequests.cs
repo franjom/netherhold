@@ -60,7 +60,11 @@ public sealed class KeeperRoomRequests
         ReleasePortalPlaceholder();
         byte request = (byte)message.Data1;
         UntagGoldDigs();
-        if (untagRefused && request == (byte)RoomTypeId.Treasury) return true;
+        if (untagRefused && request == (byte)RoomTypeId.Treasury)
+        {
+            return true;
+        }
+
         switch (_p.BuildNewRoomWhenMoreSpaceRequired & 3)
         {
             case 0: request |= ExpandBit; break;
@@ -77,7 +81,10 @@ public sealed class KeeperRoomRequests
     {
         if (!_p.AutomaticallyBuildBiggerLairWhenPortalTakenOver
             || message.Data1 is not ((int)RoomTypeId.Portal or (int)RoomTypeId.HeroPortal))
+        {
             return false;
+        }
+
         byte request = (byte)RoomTypeId.Lair;
         switch (_p.BuildNewRoomWhenMoreSpaceRequired & 3)
         {
@@ -94,7 +101,11 @@ public sealed class KeeperRoomRequests
     public bool RoomLost(PlayerMessage message)
     {
         ReleasePortalPlaceholder();
-        if (_state.NextRoomToBuildSet) return false;
+        if (_state.NextRoomToBuildSet)
+        {
+            return false;
+        }
+
         _state.NextRoomToBuildSet = true;
         if (RoomPlanner.ChooseRoom(_view, _p, _isAvailable, _state.CurrentRoomToBuild) is byte chosen)
         {
@@ -111,15 +122,25 @@ public sealed class KeeperRoomRequests
     private void ReleasePortalPlaceholder()
     {
         if (_state.NextRoomToBuildSet && _state.NextRoomToBuild == (byte)RoomTypeId.Portal)
+        {
             _state.NextRoomToBuildSet = false;
+        }
     }
 
     /// <summary>Availability 3 of the room without bit 7, then a free request slot. The room being
     /// built now is not asked for again.</summary>
     private bool Request(byte request)
     {
-        if (!_isAvailable((byte)(request & ~ExpandBit))) return true;
-        if (_state.NextRoomToBuildSet) return false;
+        if (!_isAvailable((byte)(request & ~ExpandBit)))
+        {
+            return true;
+        }
+
+        if (_state.NextRoomToBuildSet)
+        {
+            return false;
+        }
+
         if (((_state.CurrentRoomToBuild ^ request) & ~ExpandBit & 0xFF) != 0)
         {
             _state.NextRoomToBuild = request;
@@ -131,14 +152,24 @@ public sealed class KeeperRoomRequests
     /// <summary><c>0x004FA7C0</c>: action 41 on every task of kind 2, the keeper's gold-dig tags.</summary>
     private void UntagGoldDigs()
     {
-        if (_goldUntagged) return;
+        if (_goldUntagged)
+        {
+            return;
+        }
+
         _goldUntagged = true;
         var tiles = new List<TilePos>();
         for (int i = 0; i < _view.TileCount; i++)
         {
             TilePos p = _view.FromIndex(i);
-            if (_view.IsTaggedByMe(p) && _view.IsGoldRock(p)) tiles.Add(p);
+            if (_view.IsTaggedByMe(p) && _view.IsGoldRock(p))
+            {
+                tiles.Add(p);
+            }
         }
-        if (tiles.Count > 0) _commands.Add(new TagTilesCommand(_view.PlayerId, tiles, false));
+        if (tiles.Count > 0)
+        {
+            _commands.Add(new TagTilesCommand(_view.PlayerId, tiles, false));
+        }
     }
 }

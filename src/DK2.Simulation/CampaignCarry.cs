@@ -49,21 +49,40 @@ public static class TransferCreatureRules
     {
         WorldState world = simulation.World;
         GameDatabase database = simulation.Database;
-        if (creatureTypeId == 0 || !database.Creatures.ContainsKey(creatureTypeId)) return null;
+        if (creatureTypeId == 0 || !database.Creatures.ContainsKey(creatureTypeId))
+        {
+            return null;
+        }
+
         int heart = Combat.HeartSites.PositionOf(world, database, keeper);
-        if (heart < 0) return null;
+        if (heart < 0)
+        {
+            return null;
+        }
+
         int x = (heart % world.Width) * 0x1000 + 0x800, y = (heart / world.Width) * 0x1000 + 0x800 - 0x2000;
         var tile = new TilePos(x >> 12, y >> 12);
-        if (y < 0 || !world.Contains(tile)) return null;
+        if (y < 0 || !world.Contains(tile))
+        {
+            return null;
+        }
 
         CreatureState? creature = world.TrySpawnCreature(database, creatureTypeId, keeper, tile);
-        if (creature is null) return null;
+        if (creature is null)
+        {
+            return null;
+        }
+
         creature.PosX = x;
         creature.PosY = y;
         creature.Heading = (simulation.Rng.NextInt(4) << 9) & 0x7FF;
         CreatureDef definition = database.CreatureById(creatureTypeId);
         var hooks = new StateHookContext(world, database);
-        for (int i = 1; i < level; i++) CreatureLevelRules.LevelUp(hooks, definition, creature);
+        for (int i = 1; i < level; i++)
+        {
+            CreatureLevelRules.LevelUp(hooks, definition, creature);
+        }
+
         return creature;
     }
 }

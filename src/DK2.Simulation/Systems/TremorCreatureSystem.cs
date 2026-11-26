@@ -11,6 +11,9 @@ public sealed class TremorCreatureSystem : ICreatureUpdateStep
     public void BeginTurn(SimulationContext context) => context.TremorRecoveryCompletedThisTick.Clear();
     public void Update(SimulationContext context, CreatureState creature)
     {
-        if (!PartyArrivalRules.Update(context, creature)) TremorRules.RunRecovery(context, creature);
+        if (!PartyArrivalRules.Update(context, creature))
+        {
+            TremorRules.RunRecovery(context, creature);
+        }
     }
 }

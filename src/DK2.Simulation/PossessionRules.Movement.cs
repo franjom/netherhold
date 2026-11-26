@@ -36,7 +36,11 @@ public static partial class PossessionRules
         }
 
         // DK2 compares the coordinates' bits 12 and up, an arithmetic shift, not a truncation.
-        if (creature.PosX >> 12 == beforeX && creature.PosY >> 12 == beforeY) return;
+        if (creature.PosX >> 12 == beforeX && creature.PosY >> 12 == beforeY)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         creature.ChainTileIndex = world.Contains(creature.Tile)
             ? creature.Tile.Y * world.Width + creature.Tile.X : -1;

@@ -45,7 +45,10 @@ public static class VictoryRules
         if (me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId != CombatRules.NoTarget)
         {
             CreatureState? target = world.CreatureById(me.FightTargetId);
-            if (target != null) CombatRules.Unregister(target, me.Id);
+            if (target != null)
+            {
+                CombatRules.Unregister(target, me.Id);
+            }
         }
         int victim = me.FightTargetId;
         me.FightTargetId = CombatRules.NoTarget;
@@ -95,9 +98,17 @@ public static class VictoryRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            if (!CreatureDeathRules.IsCorpse(candidate) || candidate.BodyOwnerPlayerId != PlayerIds.Neutral) continue;
+            if (!CreatureDeathRules.IsCorpse(candidate) || candidate.BodyOwnerPlayerId != PlayerIds.Neutral)
+            {
+                continue;
+            }
+
             int distance = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);
-            if (distance >= bestDistance) continue;
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+
             best = candidate;
             bestDistance = distance;
         }
@@ -137,7 +148,11 @@ public static class VictoryRules
             context.Emit(SystemName, "body_gone", $"creature={me.Id}");
             return;
         }
-        if (me.HasRoute && CombatRules.DistanceSquared(me.PosX, me.PosY, body.PosX, body.PosY) >= BodyStandSquared) return;
+        if (me.HasRoute && CombatRules.DistanceSquared(me.PosX, me.PosY, body.PosX, body.PosY) >= BodyStandSquared)
+        {
+            return;
+        }
+
         me.StopMoving();
 
         int heading = me.Heading;
@@ -145,14 +160,25 @@ public static class VictoryRules
             Steering.Bearing.Of(body.PosX - me.PosX, body.PosY - me.PosY),
             SimulationTiming.TurnRatePerTick(context.Database.CreatureById(me.CreatureTypeId)));
         me.Heading = heading;
-        if (left == 0) Celebrate(context, me);
+        if (left == 0)
+        {
+            Celebrate(context, me);
+        }
     }
 
     /// <summary>State 260 each tick: the pause counts down and ends in state 1, idle.</summary>
     public static void Celebrating(SimulationContext context, CreatureState me)
     {
-        if (me.CelebrationTicks > 0) me.CelebrationTicks--;
-        if (me.CelebrationTicks > 0) return;
+        if (me.CelebrationTicks > 0)
+        {
+            me.CelebrationTicks--;
+        }
+
+        if (me.CelebrationTicks > 0)
+        {
+            return;
+        }
+
         CombatStates.Idle(context.Hooks, me);
         context.Emit(SystemName, "celebration_over", $"creature={me.Id}");
     }

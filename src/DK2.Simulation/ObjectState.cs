@@ -36,7 +36,11 @@ public sealed partial class ObjectState
         get => _tileIndex;
         set
         {
-            if (_tileIndex == value) return;
+            if (_tileIndex == value)
+            {
+                return;
+            }
+
             _tileIndex = value;
             LinkWorld?.Relink(this);
         }
@@ -76,7 +80,11 @@ public sealed partial class ObjectState
         get => _carriedByCreatureId;
         set
         {
-            if (_carriedByCreatureId == value) return;
+            if (_carriedByCreatureId == value)
+            {
+                return;
+            }
+
             _carriedByCreatureId = value;
             LinkWorld?.Relink(this);
         }
@@ -97,7 +105,11 @@ public sealed partial class ObjectState
         get => _inHand;
         set
         {
-            if (_inHand == value) return;
+            if (_inHand == value)
+            {
+                return;
+            }
+
             _inHand = value;
             LinkWorld?.Relink(this);
         }

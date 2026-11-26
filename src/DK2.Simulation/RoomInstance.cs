@@ -125,7 +125,10 @@ public sealed class RoomInstance
     /// <c>FiveByFiveRotated</c> field; under 3 wide either way it answers false, keeping a half-destroyed heart from swallowing its storage.</summary>
     public bool IsCentrePlatform(int x, int y)
     {
-        if (Width < 3 || Height < 3) return false;
+        if (Width < 3 || Height < 3)
+        {
+            return false;
+        }
 
         int cx = (MinX + MaxX) / 2;
         int cy = (MinY + MaxY) / 2;

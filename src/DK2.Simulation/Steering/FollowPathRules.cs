@@ -52,7 +52,11 @@ public static class FollowPathRules
     /// <summary>How much of the route is behind the body, 16.16; 1.0 with no route left.</summary>
     public static int Progress(SteeringBody body)
     {
-        if (body.PathFinished || body.PathTotalDist == 0) return Fixed16.One;
+        if (body.PathFinished || body.PathTotalDist == 0)
+        {
+            return Fixed16.One;
+        }
+
         int remaining = RouteWindow.Sixteenths((body.CurrentPoint - body.Pos).Octile())
             + body.PathSubpathDist + body.PathTailDist;
         return Fixed16.One - Fixed16.Div(remaining, body.PathTotalDist);
@@ -64,7 +68,10 @@ public static class FollowPathRules
         int bits = 0;
         for (int mask = 1; mask < 1 << 15; mask <<= 1)
         {
-            if ((history & mask) != 0) bits++;
+            if ((history & mask) != 0)
+            {
+                bits++;
+            }
         }
 
         return (bits << 16) / 15;
@@ -83,10 +90,17 @@ public static class FollowPathRules
         if (body.EscapeStuckMode)
         {
             int stuck = Progress(body) == Fixed16.One ? 0 : StuckFraction(body.PathStuckBuffer);
-            if (stuck <= EscapeClearFraction) body.EscapeStuckMode = false;
+            if (stuck <= EscapeClearFraction)
+            {
+                body.EscapeStuckMode = false;
+            }
         }
 
-        if (body.PathTotalCount == 0 || body.PathFinished) return -body.Vel;
+        if (body.PathTotalCount == 0 || body.PathFinished)
+        {
+            return -body.Vel;
+        }
+
         return mover.IsWorker ? ImpArm(body, mover, world) : CreatureArm(body, mover, world);
     }
 
@@ -108,7 +122,10 @@ public static class FollowPathRules
         world.CollectObstacles(point, ObstacleProbeRange, Scratch);
         foreach (SteeringObstacle o in Scratch)
         {
-            if ((o.Pos - point).Octile() <= o.Size) return true;
+            if ((o.Pos - point).Octile() <= o.Size)
+            {
+                return true;
+            }
         }
 
         return false;
@@ -120,16 +137,26 @@ public static class FollowPathRules
         if (body.OnLastPoint)
         {
             aim = body.PathTargetPos;
-            if ((aim - body.Pos).Octile() < ImpArrival) body.PathFinished = true;
+            if ((aim - body.Pos).Octile() < ImpArrival)
+            {
+                body.PathFinished = true;
+            }
         }
         else
         {
             if ((body.CurrentPoint - body.Pos).Octile() < ImpAdvance && RouteWindow.Advance(body))
+            {
                 RouteWindow.Request(body, world, mover.Profile, body.PathTargetPos, body.PathFlags);
+            }
+
             aim = body.CurrentPoint;
         }
 
-        if (Turn(body, mover, aim) != 0) return -body.Vel;
+        if (Turn(body, mover, aim) != 0)
+        {
+            return -body.Vel;
+        }
+
         return (aim - body.Pos).Scale(ImpGain - CrowdWeight(body, world)) - body.Vel;
     }
 
@@ -141,7 +168,9 @@ public static class FollowPathRules
             aim = body.PathTargetPos;
             int threshold = Fixed16.Mul(body.TightArrival ? 0x1999 : 0x8000, body.Radius);
             if ((aim - body.Pos).Octile() < threshold && body.Vel.Octile() <= ArrivalSpeed)
+            {
                 body.PathFinished = true;
+            }
         }
         else
         {
@@ -150,20 +179,37 @@ public static class FollowPathRules
             int d = (p - body.Pos).Octile();
             bool advance = d < Fixed16.Mul(CreatureAdvanceRadii, body.Radius) || (occupied && d < OccupiedAdvance);
             if (advance && RouteWindow.Advance(body))
+            {
                 RouteWindow.Request(body, world, mover.Profile, body.PathTargetPos, body.PathFlags);
+            }
+
             aim = body.CurrentPoint;
         }
 
         bool finalApproach = body.SubpathIndex >= body.PathTotalCount - 1 && !body.NoFinalApproach;
-        if (Turn(body, mover, aim) != 0) return -body.Vel;
+        if (Turn(body, mover, aim) != 0)
+        {
+            return -body.Vel;
+        }
 
-        if (!finalApproach) return (aim - body.Pos).Scale(CreatureGain - CrowdWeight(body, world)) - body.Vel;
+        if (!finalApproach)
+        {
+            return (aim - body.Pos).Scale(CreatureGain - CrowdWeight(body, world)) - body.Vel;
+        }
 
         Fixed16Vector toAim = aim - body.Pos;
         int len = toAim.Length();
-        if (len == 0) return Fixed16Vector.Zero;
+        if (len == 0)
+        {
+            return Fixed16Vector.Zero;
+        }
+
         int speed = Fixed16.Div(len, 2 * Fixed16.One);
-        if (body.MaxSpeed < speed) speed = body.MaxSpeed;
+        if (body.MaxSpeed < speed)
+        {
+            speed = body.MaxSpeed;
+        }
+
         return toAim.Scale(Fixed16.Div(speed, len)) - body.Vel;
     }
 

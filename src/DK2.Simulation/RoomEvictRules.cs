@@ -40,13 +40,24 @@ public static class RoomEvictRules
     internal static bool BackIn(
         SimulationContext context, string system, CreatureState creature, RoomTypeId type, int back, bool endsAction)
     {
-        if (endsAction) creature.ActionUntilTick = 0;
-        if (context.Tick.Value - creature.StateEnteredTick <= 1) return true;
+        if (endsAction)
+        {
+            creature.ActionUntilTick = 0;
+        }
+
+        if (context.Tick.Value - creature.StateEnteredTick <= 1)
+        {
+            return true;
+        }
+
         WorldState world = context.World;
         if (!world.Contains(creature.Tile)
             || RoomIndex.RoomAt(world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X) is not { } room
             || room.Definition.TypeId != type || room.OwnerPlayerId != creature.OwnerPlayerId)
+        {
             return false;
+        }
+
         StateShadow.TryMove(context, system, creature, back);
         return true;
     }
@@ -55,7 +66,11 @@ public static class RoomEvictRules
     /// freed, rebuilt, taken or kicked by a neighbour's change since its claim.</summary>
     public static bool Kicked(WorldState world, GameDatabase database, CreatureState creature, RoomTypeId type)
     {
-        if (!creature.HeldPlace.IsHeld) return false;
+        if (!creature.HeldPlace.IsHeld)
+        {
+            return false;
+        }
+
         return RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex) is not { } held
             || held.Definition.TypeId != type
             || SlabChain.HoldersStamp(world, held) != creature.HeldPlaceStamp;
@@ -67,7 +82,10 @@ public static class RoomEvictRules
     {
         if (ReturnStateOf(type) is not int state || creature.Dk2StateId == state
             || !Kicked(context.World, context.Database, creature, type))
+        {
             return false;
+        }
+
         context.Emit(system, "room_evicted", $"creature={creature.Id} room={type} to={state}");
         creature.StopMoving();
         return StateShadow.TryMove(context, system, creature, state);

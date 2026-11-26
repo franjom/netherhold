@@ -28,7 +28,11 @@ public static class DoorPushRules
     /// is pushed, whoever owns it, in any state.</summary>
     public static void PushCreaturesOff(SimulationContext context, DoorState door)
     {
-        if (door.UnderConstruction || door.Open) return;
+        if (door.UnderConstruction || door.Open)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         WorldSteering navigation = context.Navigation;
 
@@ -45,20 +49,48 @@ public static class DoorPushRules
         // The point the creatures are pushed away from: the tile's centre, moved half a tile toward every
         // closed side (0x004A5821-0x004A5864).
         int pointX = CreatureState.CentreOf(door.X), pointY = CreatureState.CentreOf(door.Y);
-        if (!open[0]) pointY -= 0x800;
-        if (!open[1]) pointX += 0x800;
-        if (!open[2]) pointY += 0x800;
-        if (!open[3]) pointX -= 0x800;
+        if (!open[0])
+        {
+            pointY -= 0x800;
+        }
+
+        if (!open[1])
+        {
+            pointX += 0x800;
+        }
+
+        if (!open[2])
+        {
+            pointY += 0x800;
+        }
+
+        if (!open[3])
+        {
+            pointX -= 0x800;
+        }
+
         bool onlyAlongX = !open[0] && !open[2];
         bool onlyAlongY = !open[1] && !open[3];
 
         int tileIndex = (door.Y * world.Width) + door.X;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.TileLink.TileIndex != tileIndex) continue;
+            if (creature.TileLink.TileIndex != tileIndex)
+            {
+                continue;
+            }
+
             int dx = creature.PosX - pointX, dy = creature.PosY - pointY;
-            if (onlyAlongX) dy = 0; // walls north and south: the push runs along the passage
-            if (onlyAlongY) dx = 0;
+            if (onlyAlongX)
+            {
+                dy = 0; // walls north and south: the push runs along the passage
+            }
+
+            if (onlyAlongY)
+            {
+                dx = 0;
+            }
+
             int length = IntegerMath.SquareRoot(unchecked((uint)((dx * dx) + (dy * dy))));
             if (length != 0)
             {
@@ -87,12 +119,19 @@ public static class DoorPushRules
     private static (int X, int Y) TowardAnOpenSide(ReadOnlySpan<bool> open, int dx, int dy)
     {
         int facing = Math.Abs(dx) >= Math.Abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0);
-        if (open[facing]) return (dx, dy);
+        if (open[facing])
+        {
+            return (dx, dy);
+        }
 
         int best = -1, bestDot = int.MinValue;
         for (int side = 0; side < 4; side++)
         {
-            if (!open[side]) continue;
+            if (!open[side])
+            {
+                continue;
+            }
+
             int dot = (dx * Neighbours[side].X) + (dy * Neighbours[side].Y);
             if (dot > bestDot)
             {

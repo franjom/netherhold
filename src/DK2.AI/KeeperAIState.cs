@@ -80,7 +80,10 @@ public sealed class KeeperAIState
     /// <summary>The loaders copy <c>BreachAtXPoints</c>, kept to four bits, into every enemy's count.</summary>
     public void InitialiseBreaches(byte breachAtXPoints)
     {
-        foreach (KeeperBreachState breach in Breaches) breach.TunnelsLeft = (byte)(breachAtXPoints & 0xF);
+        foreach (KeeperBreachState breach in Breaches)
+        {
+            breach.TunnelsLeft = (byte)(breachAtXPoints & 0xF);
+        }
     }
 
     /// <summary>The three-slot respond-to-attack ring and its residuals.</summary>
@@ -174,7 +177,14 @@ public sealed class KeeperBreachState
     {
         get
         {
-            foreach (TilePos start in Start) if (start.X != 0) return true;
+            foreach (TilePos start in Start)
+            {
+                if (start.X != 0)
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
     }

@@ -70,7 +70,11 @@ public static partial class CreatureActionCoverage
 
     public static ActionCoverageRow Get(int actionId)
     {
-        if ((uint)actionId >= CreatureActionTable.Count) throw new ArgumentOutOfRangeException(nameof(actionId));
+        if ((uint)actionId >= CreatureActionTable.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(actionId));
+        }
+
         return Rows[actionId];
     }
 
@@ -82,13 +86,19 @@ public static partial class CreatureActionCoverage
         foreach (ActionCoverageRow row in rows)
         {
             if (byId[row.ActionId] is not null)
+            {
                 throw new InvalidOperationException($"Action {row.ActionId} has two coverage rows.");
+            }
+
             byId[row.ActionId] = row;
         }
 
         for (int id = 0; id < byId.Length; id++)
         {
-            if (byId[id] is null) throw new InvalidOperationException($"Action {id} has no coverage row.");
+            if (byId[id] is null)
+            {
+                throw new InvalidOperationException($"Action {id} has no coverage row.");
+            }
         }
 
         return byId;

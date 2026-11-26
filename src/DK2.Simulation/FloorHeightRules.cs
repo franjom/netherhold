@@ -38,12 +38,23 @@ public static class FloorHeightRules
     public static int At(WorldState world, GameDatabase database, int x, int y)
     {
         var at = new TilePos(x >> 12, y >> 12);
-        if (!world.Contains(at)) return Ordinary;
+        if (!world.Contains(at))
+        {
+            return Ordinary;
+        }
+
         TileState tile = world.Tile(at);
-        if (database.RoomByTerrain(tile.TerrainId) is { } room) return RoomFloor(world, database, room, at, x, y);
+        if (database.RoomByTerrain(tile.TerrainId) is { } room)
+        {
+            return RoomFloor(world, database, room, at, x, y);
+        }
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
-        if (!terrain.IsWater && !terrain.IsLava) return Ordinary;
+        if (!terrain.IsWater && !terrain.IsLava)
+        {
+            return Ordinary;
+        }
+
         return BankFloor(world, database, tile, at, x, y);
     }
 
@@ -54,7 +65,11 @@ public static class FloorHeightRules
 
     private static int RoomFloor(WorldState world, GameDatabase database, RoomDef room, TilePos at, int x, int y)
     {
-        if (BridgeRules.IsBridge(room)) return Bridge;
+        if (BridgeRules.IsBridge(room))
+        {
+            return Bridge;
+        }
+
         TileState tile = world.Tile(at);
         switch (room.TypeId)
         {
@@ -90,7 +105,9 @@ public static class FloorHeightRules
                     var next = new TilePos(at.X + Dx[k], at.Y + Dy[k]);
                     if (world.Contains(next) && SameRoom(world, tile, next)
                         && SameRoomMask(world, world.Tile(next), next) == 0xFF)
+                    {
                         interior |= 1 << k;
+                    }
                 }
                 return (interior & required) == 0 ? Ordinary : 0x1200;
             default:
@@ -115,16 +132,25 @@ public static class FloorHeightRules
             var next = new TilePos(at.X + Dx[k], at.Y + Dy[k]);
             if (!world.Contains(next) || world.Tile(next).TerrainId == tile.TerrainId
                 || (BridgeRules.SpannedTerrain(database, world.Tile(next)) is { } under && under.TerrainId == tile.TerrainId))
+            {
                 liquid |= 1 << k;
+            }
         }
-        if (liquid == 0xFF) return Liquid;
+        if (liquid == 0xFF)
+        {
+            return Liquid;
+        }
 
         int dx = x - CreatureState.CentreOf(at.X), dy = y - CreatureState.CentreOf(at.Y);
         int octant = (Steering.Bearing.Of(dx, dy) >> 8) & 7;
         int cardinal = octant & 6;
         int dry = ~liquid; // bits 8 and up stay set, as native's 32-bit NOT leaves them
         int near = ((7 << cardinal) | (7 >> (8 - cardinal))) & 0xFF;
-        if ((dry & near) == 0) return Liquid;
+        if ((dry & near) == 0)
+        {
+            return Liquid;
+        }
+
         int ax = Math.Abs(dx), ay = Math.Abs(dy);
         bool larger = (octant & 1) == 0
             ? (dry & (1 << cardinal)) != 0
@@ -145,7 +171,10 @@ public static class FloorHeightRules
         for (int k = 0; k < 8; k++)
         {
             var next = new TilePos(at.X + Dx[k], at.Y + Dy[k]);
-            if (world.Contains(next) && SameRoom(world, tile, next)) mask |= 1 << k;
+            if (world.Contains(next) && SameRoom(world, tile, next))
+            {
+                mask |= 1 << k;
+            }
         }
         return mask;
     }
@@ -155,7 +184,10 @@ public static class FloorHeightRules
         foreach (int k in (ReadOnlySpan<int>)[0, 2, 4, 6])
         {
             var next = new TilePos(at.X + Dx[k], at.Y + Dy[k]);
-            if (!world.Contains(next) || !SameRoom(world, tile, next)) return false;
+            if (!world.Contains(next) || !SameRoom(world, tile, next))
+            {
+                return false;
+            }
         }
         return true;
     }
@@ -165,11 +197,17 @@ public static class FloorHeightRules
     private static bool IsHeartCentre(WorldState world, TileState tile, TilePos at)
     {
         for (int dy = -2; dy <= 2; dy++)
+        {
             for (int dx = -2; dx <= 2; dx++)
             {
                 var next = new TilePos(at.X + dx, at.Y + dy);
-                if (!world.Contains(next) || !SameRoom(world, tile, next)) return false;
+                if (!world.Contains(next) || !SameRoom(world, tile, next))
+                {
+                    return false;
+                }
             }
+        }
+
         return true;
     }
 }

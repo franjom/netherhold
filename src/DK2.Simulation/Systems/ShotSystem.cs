@@ -29,11 +29,18 @@ public sealed class ShotSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         WorldState world = context.World;
-        if (world.Shots.Count == 0) return;
+        if (world.Shots.Count == 0)
+        {
+            return;
+        }
+
         _work.Clear();
         _work.AddRange(world.Shots);
 
-        for (int i = _work.Count - 1; i >= 0; i--) Update(context, _work[i]);
+        for (int i = _work.Count - 1; i >= 0; i--)
+        {
+            Update(context, _work[i]);
+        }
     }
 
     /// <summary>One shot's update (<c>0x004AB180</c>), which <see cref="Execute"/> runs for every shot.
@@ -80,7 +87,11 @@ public sealed class ShotSystem : ISimulationSystem
         // A forced collision searches nothing; otherwise the first of the creature and the trap in the walk.
         long trapOrder = long.MaxValue;
         TrapState? trapHit = forced ? null : ShotRules.FindTrapHit(world, shot, definition, out trapOrder);
-        if (trapHit != null && hit != null && hitOrder < trapOrder) trapHit = null;
+        if (trapHit != null && hit != null && hitOrder < trapOrder)
+        {
+            trapHit = null;
+        }
+
         if (trapHit != null)
         {
             // The target word now names a trap, which no creature-side process handler acts on.
@@ -91,7 +102,10 @@ public sealed class ShotSystem : ISimulationSystem
             ShotRules.Chain(context, shot, definition.HitThingShotId, onThing: true);
             ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, null);
             ShotRules.ContactDamageTrap(context, shot, definition, trapHit);
-            if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+            if ((definition.Flags & ShotRules.DiesOnThing) != 0)
+            {
+                shot.Health = 0;
+            }
         }
         else if (hit != null && CreatureDeathRules.IsCorpse(hit))
         {
@@ -106,7 +120,10 @@ public sealed class ShotSystem : ISimulationSystem
             // 0x004ABFE7-0x004AC00C: a class 6 thing struck sounds 0x31A in the shot's category at the body.
             ShotRules.RequestShotSound(context, shot, definition, ThingSoundEvent.ShotHitBody,
                 at: new FpPosition3(new Fp32(hit.PosX), new Fp32(hit.PosY), new Fp32(hit.PosZ)));
-            if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+            if ((definition.Flags & ShotRules.DiesOnThing) != 0)
+            {
+                shot.Health = 0;
+            }
         }
         else if (hit != null)
         {
@@ -124,26 +141,41 @@ public sealed class ShotSystem : ISimulationSystem
             // becomes the angle distance of the shot's heading from 0x400 (so a collapse's own pick is
             // overwritten), and the hit sounds in its own category at its own position with the shot's handle.
             if ((definition.Flags & ShotRules.TurnsCreature) != 0)
+            {
                 hit.Heading = Steering.Bearing.Distance(shot.Heading, 0x400);
+            }
+
             if ((definition.Flags & ShotRules.TurnsCreature) != 0 && database.CreatureById(hit.CreatureTypeId).SoundCategory is { Length: > 0 } struck
                 && !ReferenceEquals(context.Events, NullEventSink.Instance))
+            {
                 ThingSoundRules.Request(context, SystemName, new SoundSourceId(SoundSourceKind.Shot, shot.Id), struck, ThingSoundEvent.Struck,
                     new FpPosition3(new Fp32(hit.PosX), new Fp32(hit.PosY), new Fp32(hit.PosZ)));
-            if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+            }
+
+            if ((definition.Flags & ShotRules.DiesOnThing) != 0)
+            {
+                shot.Health = 0;
+            }
         }
         else if (ShotRules.HitsHeart(world, database, shot, definition))
         {
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition);
             ShotRules.Chain(context, shot, definition.HitThingShotId, onThing: true);
             ShotRules.ContactDamageHeart(context, shot, definition);
-            if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+            if ((definition.Flags & ShotRules.DiesOnThing) != 0)
+            {
+                shot.Health = 0;
+            }
         }
         else if (ShotRules.HitsDoor(world, shot, definition, out DoorState? door))
         {
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition);
             ShotRules.Chain(context, shot, definition.HitThingShotId, onThing: true);
             ShotRules.ContactDamageDoor(context, shot, definition, door!);
-            if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+            if ((definition.Flags & ShotRules.DiesOnThing) != 0)
+            {
+                shot.Health = 0;
+            }
         }
         else
         {
@@ -157,9 +189,20 @@ public sealed class ShotSystem : ISimulationSystem
         // The lifetime counts down every tick the shot is not destroyed by the world; a shot
         // standing still (an explosion, a cloud, an Inferno) counts down too (Q398), and so does one
         // the world stopped without killing (0x004AB4B6, keeper-spell-inferno-chicken.md §4).
-        if (shot.Health > 0 && !stopped && (definition.Flags & ShotRules.CountsDown) != 0) shot.Health--;
-        if (shot.Health <= 0) Die(context, shot, definition, deathShot: !stopped, showDeathEffect: !stopped);
-        if (!stopped) ShotRules.RequestTimedEffect(context, shot, definition, shot.ViewPosition);
+        if (shot.Health > 0 && !stopped && (definition.Flags & ShotRules.CountsDown) != 0)
+        {
+            shot.Health--;
+        }
+
+        if (shot.Health <= 0)
+        {
+            Die(context, shot, definition, deathShot: !stopped, showDeathEffect: !stopped);
+        }
+
+        if (!stopped)
+        {
+            ShotRules.RequestTimedEffect(context, shot, definition, shot.ViewPosition);
+        }
     }
 
     /// <summary><c>0x004ABE6F</c>-<c>0x004ABE84</c>: on every non-forced finder hit the thing's position (<c>+0x1A</c>) is copied into
@@ -180,8 +223,16 @@ public sealed class ShotSystem : ISimulationSystem
     {
         WorldState world = context.World;
         // A collide type with no search has no collision step at all (table 0x006E4FF0, types 0 and 5 up).
-        if (definition.CollideType == ShotRules.CollideNone || definition.CollideType > ShotRules.CollideBodies) return;
-        if (shot.VelX == 0 && shot.VelY == 0 && shot.VelZ == 0) return;
+        if (definition.CollideType == ShotRules.CollideNone || definition.CollideType > ShotRules.CollideBodies)
+        {
+            return;
+        }
+
+        if (shot.VelX == 0 && shot.VelY == 0 && shot.VelZ == 0)
+        {
+            return;
+        }
+
         int startX = shot.PosX, startY = shot.PosY;
         int halfX = shot.VelX / 2, halfY = shot.VelY / 2, halfZ = shot.VelZ / 2;
         int doneX = 0, doneY = 0, doneZ = 0;
@@ -201,7 +252,11 @@ public sealed class ShotSystem : ISimulationSystem
             doneY += halfY;
             doneZ += halfZ;
             // The probe point is taken wherever it lies on the map, solid or not (0x00509050).
-            if (!world.Contains(new TilePos((startX + doneX) >> 12, (startY + doneY) >> 12))) continue;
+            if (!world.Contains(new TilePos((startX + doneX) >> 12, (startY + doneY) >> 12)))
+            {
+                continue;
+            }
+
             shot.PosX = startX + doneX;
             shot.PosY = startY + doneY;
         }
@@ -243,8 +298,16 @@ public sealed class ShotSystem : ISimulationSystem
             {
                 bool xBlocked = !ShotRules.Passable(world, navigation, nx, shot.PosY);
                 bool yBlocked = !ShotRules.Passable(world, navigation, shot.PosX, ny);
-                if (xBlocked || !yBlocked) shot.VelX = -shot.VelX / 2;
-                if (yBlocked || !xBlocked) shot.VelY = -shot.VelY / 2;
+                if (xBlocked || !yBlocked)
+                {
+                    shot.VelX = -shot.VelX / 2;
+                }
+
+                if (yBlocked || !xBlocked)
+                {
+                    shot.VelY = -shot.VelY / 2;
+                }
+
                 context.Emit(SystemName, "shot_bounced", $"shot={shot.Id} at={shot.PosX},{shot.PosY}");
                 return true;
             }
@@ -252,7 +315,11 @@ public sealed class ShotSystem : ISimulationSystem
             shot.VelX = 0;
             shot.VelY = 0;
             context.Emit(SystemName, "shot_stopped", $"shot={shot.Id} type={definition.ShotId} at={shot.PosX},{shot.PosY}");
-            if ((definition.Flags & ShotRules.DiesOnSolid) == 0) return true;
+            if ((definition.Flags & ShotRules.DiesOnSolid) == 0)
+            {
+                return true;
+            }
+
             shot.Health = 0;
             return false;
         }

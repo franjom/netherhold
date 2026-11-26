@@ -19,7 +19,11 @@ public sealed class ObjectReactionSystem : ISimulationSystem
             if (target.ObjectTypeId == AutoFurnitureRules.CasinoLeverObjectId && target.ProcessState is 48 or 49)
             {
                 target.ProcessAgeTicks++;
-                if (target.ProcessAgeTicks == 1) target.ProcessDeadline = context.Tick.Value;
+                if (target.ProcessAgeTicks == 1)
+                {
+                    target.ProcessDeadline = context.Tick.Value;
+                }
+
                 int slot = target.ProcessState == 48 ? 5 : 6;
                 ObjectDef? definition = context.Database.ObjectById(target.ObjectTypeId);
                 if (definition is null || target.ProcessAgeTicks > AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(slot)))

@@ -78,30 +78,61 @@ public sealed class KeeperThreatResponder
     {
         foreach (PlayerMessage message in _view.Messages)
         {
-            if (message.Handled) continue;
+            if (message.Handled)
+            {
+                continue;
+            }
+
             switch (message.Kind)
             {
                 case PlayerMessageKind.RoomNeeded when _rooms is not null:
-                    if (_rooms.RoomNeeded(message)) Acknowledge(message);
+                    if (_rooms.RoomNeeded(message))
+                    {
+                        Acknowledge(message);
+                    }
+
                     break;
                 case PlayerMessageKind.RoomFull when _rooms is not null:
-                    if (_rooms.RoomFull(message)) Acknowledge(message);
+                    if (_rooms.RoomFull(message))
+                    {
+                        Acknowledge(message);
+                    }
+
                     break;
                 case PlayerMessageKind.RoomCaptured when _rooms is not null:
-                    if (_rooms.RoomCaptured(message)) Acknowledge(message);
+                    if (_rooms.RoomCaptured(message))
+                    {
+                        Acknowledge(message);
+                    }
+
                     break;
                 case PlayerMessageKind.RoomLost when _rooms is not null:
-                    if (_rooms.RoomLost(message)) Acknowledge(message);
+                    if (_rooms.RoomLost(message))
+                    {
+                        Acknowledge(message);
+                    }
+
                     break;
                 case PlayerMessageKind.CreatureUnhappy when _mood is not null:
-                    if (_mood.Unhappy(message)) Acknowledge(message);
+                    if (_mood.Unhappy(message))
+                    {
+                        Acknowledge(message);
+                    }
+
                     break;
                 case PlayerMessageKind.CreatureAngry when _mood is not null:
-                    if (_mood.Angry(message)) Acknowledge(message);
+                    if (_mood.Angry(message))
+                    {
+                        Acknowledge(message);
+                    }
+
                     break;
                 case PlayerMessageKind.RoomAttacked:
                     if (_state.Responses.TryReceive(() => EvaluateRoom(message.Data2)))
+                    {
                         _commands.Add(new AcknowledgePlayerMessageCommand(_view.PlayerId, message.Id));
+                    }
+
                     _state.FightGoingOn = true;
                     break;
                 case PlayerMessageKind.HeartAttacked:
@@ -111,7 +142,10 @@ public sealed class KeeperThreatResponder
                     // Flags bit 3 (respond to attack) is always on: both loaders write 0xFFFF.
                     var target = new TilePos(message.Data1, message.Data2);
                     if (_state.Responses.TryReceive(() => EvaluatePosition(target)))
+                    {
                         _commands.Add(new AcknowledgePlayerMessageCommand(_view.PlayerId, message.Id));
+                    }
+
                     _state.FightGoingOn = true; // 0x004FA520, even when the queue refused
                     break;
                 default:
@@ -130,7 +164,11 @@ public sealed class KeeperThreatResponder
     /// Null cancels the reservation; the message is still handled.</summary>
     public KeeperThreatResponse? EvaluatePosition(TilePos target)
     {
-        if (_view.OwnRoomOfType((byte)RoomTypeId.Prison) is not null) RerollImprisonment();
+        if (_view.OwnRoomOfType((byte)RoomTypeId.Prison) is not null)
+        {
+            RerollImprisonment();
+        }
+
         KeeperThreatAssessment threat = ThreatEvaluator.Assess(_view, target, false, TrapsStartFights);
         if (threat.AttackingPlayer is byte attacker)
         {
@@ -149,7 +187,11 @@ public sealed class KeeperThreatResponder
     {
         RerollImprisonment();
         KeeperRoomView? room = _view.AllRooms.FirstOrDefault(r => _view.IndexOf(_view.FirstSlabOf(r)) == roomTag);
-        if (room is null) return null;
+        if (room is null)
+        {
+            return null;
+        }
+
         TilePos target = _view.PositionOf(room);
         KeeperThreatAssessment threat = ThreatEvaluator.Assess(_view, target, true, TrapsStartFights);
         if (threat.AttackingPlayer is byte attacker)
@@ -171,13 +213,24 @@ public sealed class KeeperThreatResponder
         int bit = 1 << (_view.PlayerId.Value - 1);
         foreach (PlayerId player in _view.PlayerOrder)
         {
-            if (_view.AreAllied(player.Value)) continue;
+            if (_view.AreAllied(player.Value))
+            {
+                continue;
+            }
+
             foreach (KeeperCreatureView creature in Owned(player))
             {
                 bool mark = _rng.NextInt(100) < _p.ImprisonPercentage;
                 if (!_marks.TryGetValue(creature.Id, out bool pending))
+                {
                     pending = (creature.RescuePriorityMask & bit) != 0;
-                if (mark == pending) continue;
+                }
+
+                if (mark == pending)
+                {
+                    continue;
+                }
+
                 _marks[creature.Id] = mark;
                 _commands.Add(new SetRescuePriorityCommand(_view.PlayerId, creature.Id, mark));
             }
@@ -190,7 +243,11 @@ public sealed class KeeperThreatResponder
     /// allowance left, which is zero whenever an event ran (<c>0x004FE37D</c>).</summary>
     public int Dispatch(int budget)
     {
-        if (budget <= 0 || _state.Responses.Count == 0) return budget;
+        if (budget <= 0 || _state.Responses.Count == 0)
+        {
+            return budget;
+        }
+
         return _state.Responses.Dispatch((byte)Math.Min(budget, byte.MaxValue), Attempt);
     }
 
@@ -198,8 +255,15 @@ public sealed class KeeperThreatResponder
     {
         bool withdrawing = response.RemainingThreat < 0;
         KeeperCreatureView? pick = withdrawing ? SelectForWithdrawal(response.Position) : SelectForReinforcement();
-        if (pick is not KeeperCreatureView creature) return new KeeperResponseAttempt(false, null);
-        if (!creature.PickupPermitted) return new KeeperResponseAttempt(true, null);
+        if (pick is not KeeperCreatureView creature)
+        {
+            return new KeeperResponseAttempt(false, null);
+        }
+
+        if (!creature.PickupPermitted)
+        {
+            return new KeeperResponseAttempt(true, null);
+        }
 
         CreatureDef definition = _view.Database.CreatureById(creature.CreatureTypeId);
         int threat = ThreatEvaluator.CreatureThreat(definition.Threat, (byte)creature.Level,
@@ -216,7 +280,10 @@ public sealed class KeeperThreatResponder
         if (!_view.IsMine(response.Position))
         {
             replacement = ReplacementSite(response.Position);
-            if (replacement is TilePos site) Move(creature, site);
+            if (replacement is TilePos site)
+            {
+                Move(creature, site);
+            }
         }
         return new KeeperResponseAttempt(true, threat, replacement);
     }
@@ -228,7 +295,11 @@ public sealed class KeeperThreatResponder
     private void Move(KeeperCreatureView creature, TilePos to)
     {
         _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
-        if (!creature.CanPickUp) return;
+        if (!creature.CanPickUp)
+        {
+            return;
+        }
+
         _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, to));
         _moved.Add(creature.Id);
     }
@@ -245,13 +316,37 @@ public sealed class KeeperThreatResponder
         int centreX = target.X * Fp32.One + Fp32.One / 2, centreY = target.Y * Fp32.One + Fp32.One / 2;
         foreach (KeeperCreatureView creature in Owned(_view.PlayerId))
         {
-            if (_moved.Contains(creature.Id)) continue;
-            if (!WithinFiveTiles(creature.PosX, creature.PosY, centreX, centreY)) continue;
+            if (_moved.Contains(creature.Id))
+            {
+                continue;
+            }
+
+            if (!WithinFiveTiles(creature.PosX, creature.PosY, centreX, centreY))
+            {
+                continue;
+            }
+
             CreatureDef definition = _view.Database.CreatureById(creature.CreatureTypeId);
-            if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) continue;
-            if (UnderCallToArms(creature)) continue;
-            if (creature.LastDroppedCounter <= DroppedGraceTurns && _turn > DroppedGraceTurns) continue;
-            if (creature.InMyHand || creature.StateId == DropLandingRules.LandingState) continue;
+            if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+            {
+                continue;
+            }
+
+            if (UnderCallToArms(creature))
+            {
+                continue;
+            }
+
+            if (creature.LastDroppedCounter <= DroppedGraceTurns && _turn > DroppedGraceTurns)
+            {
+                continue;
+            }
+
+            if (creature.InMyHand || creature.StateId == DropLandingRules.LandingState)
+            {
+                continue;
+            }
+
             return creature;
         }
         return null;
@@ -266,16 +361,48 @@ public sealed class KeeperThreatResponder
     {
         foreach (KeeperCreatureView creature in Owned(_view.PlayerId))
         {
-            if (_moved.Contains(creature.Id)) continue;
+            if (_moved.Contains(creature.Id))
+            {
+                continue;
+            }
+
             CreatureDef definition = _view.Database.CreatureById(creature.CreatureTypeId);
-            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) continue;
-            if (UnderCallToArms(creature) || !creature.MayFight) continue;
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+            {
+                continue;
+            }
+
+            if (UnderCallToArms(creature) || !creature.MayFight)
+            {
+                continue;
+            }
+
             int group = CreatureStateTable.Get(creature.StateId).Group;
-            if (creature.MaxHealth / 4 >= creature.Health || group is 7 or 3) continue;
-            if (creature.MaxHealth / 2 >= creature.Health) continue;
-            if (CreatureStateTable.Get(creature.ResolvedStateId).Category == CreatureStateCategory.Combat) continue;
-            if (creature.InMyHand || creature.StateId == DropLandingRules.LandingState) continue;
-            if (IsStunned(creature.StateId)) continue;
+            if (creature.MaxHealth / 4 >= creature.Health || group is 7 or 3)
+            {
+                continue;
+            }
+
+            if (creature.MaxHealth / 2 >= creature.Health)
+            {
+                continue;
+            }
+
+            if (CreatureStateTable.Get(creature.ResolvedStateId).Category == CreatureStateCategory.Combat)
+            {
+                continue;
+            }
+
+            if (creature.InMyHand || creature.StateId == DropLandingRules.LandingState)
+            {
+                continue;
+            }
+
+            if (IsStunned(creature.StateId))
+            {
+                continue;
+            }
+
             return creature;
         }
         return null;
@@ -307,7 +434,11 @@ public sealed class KeeperThreatResponder
     /// is open; it gives up when a side reaches twice the larger map dimension.</summary>
     public TilePos? ReplacementSite(TilePos payload)
     {
-        if (_view.IsThreatDropCandidate(payload)) return payload;
+        if (_view.IsThreatDropCandidate(payload))
+        {
+            return payload;
+        }
+
         int bound = 2 * Math.Max(_view.Width, _view.Height);
         int x = payload.X + 1, y = payload.Y;
         int step = 1, run = 1, count = 1;
@@ -316,7 +447,11 @@ public sealed class KeeperThreatResponder
             for (; run > 0; run--)
             {
                 var tile = new TilePos(x, y);
-                if (_view.IsThreatDropCandidate(tile)) return tile;
+                if (_view.IsThreatDropCandidate(tile))
+                {
+                    return tile;
+                }
+
                 y += step;
             }
             run = count + 1;
@@ -325,12 +460,19 @@ public sealed class KeeperThreatResponder
             for (; count > 0; count--)
             {
                 var tile = new TilePos(x, y);
-                if (_view.IsThreatDropCandidate(tile)) return tile;
+                if (_view.IsThreatDropCandidate(tile))
+                {
+                    return tile;
+                }
+
                 x += pending;
             }
             step = pending;
             count = run;
-            if (run >= bound) return null;
+            if (run >= bound)
+            {
+                return null;
+            }
         }
     }
 }

@@ -22,13 +22,27 @@ public static class TimeLimitCountdown
     /// event id (1 to 18) and whether it clears the queue first; null when no line is due.</summary>
     public static (int SoundId, bool ClearsQueue)? LineFor(int timeLeftTicks)
     {
-        if (timeLeftTicks == 0) return null;
+        if (timeLeftTicks == 0)
+        {
+            return null;
+        }
+
         for (int i = 0; i < MinuteMarksSeconds.Length; i++)
+        {
             if (timeLeftTicks == MinuteMarksSeconds[i] * SimulationTiming.TicksPerSecond)
+            {
                 return (i + 1, false);
+            }
+        }
+
         for (int seconds = 10; seconds >= 1; seconds--)
+        {
             if (timeLeftTicks == seconds * SimulationTiming.TicksPerSecond)
+            {
                 return (19 - seconds, true);
+            }
+        }
+
         return null;
     }
 
@@ -37,11 +51,23 @@ public static class TimeLimitCountdown
     /// world is still playing; there is no local-player test.</summary>
     internal static void Announce(WorldState world, TriggerState triggers, Action<ScriptedViewRequest>? requested)
     {
-        if (requested is null || !triggers.TimerSpeechEnabled || world.GameMode == GameMode.MyPetDungeon) return;
-        if (LineFor(triggers.LevelTimeLimit) is not { } line) return;
+        if (requested is null || !triggers.TimerSpeechEnabled || world.GameMode == GameMode.MyPetDungeon)
+        {
+            return;
+        }
+
+        if (LineFor(triggers.LevelTimeLimit) is not { } line)
+        {
+            return;
+        }
+
         foreach (PlayerId player in world.ActivePlayerOrder)
         {
-            if (!world.HasPlayer(player) || world.Player(player).Status != 0) continue;
+            if (!world.HasPlayer(player) || world.Player(player).Status != 0)
+            {
+                continue;
+            }
+
             requested(new ScriptedViewRequest(ScriptedViewKind.MentorSpeech, PlayerIds.Unowned, line.SoundId, default, line.ClearsQueue));
             return;
         }

@@ -88,7 +88,11 @@ public static class MeleeDamageRules
     public static int BearingPercent(int rawAngle)
     {
         int a = rawAngle & 0x7FF;
-        if (a > 0x3FF) a = 0x7FE - a;
+        if (a > 0x3FF)
+        {
+            a = 0x7FE - a;
+        }
+
         return (a & 0x3FF) / 20;
     }
 
@@ -101,8 +105,16 @@ public static class MeleeDamageRules
     /// look like this.</summary>
     public static int ApplyPlayerModifiers(int damage, int first, int second)
     {
-        if (first > 0) damage = damage * (first + 10) * 10 / 100;
-        if (second > 0) damage = damage * (second * 15 + 100) / 100;
+        if (first > 0)
+        {
+            damage = damage * (first + 10) * 10 / 100;
+        }
+
+        if (second > 0)
+        {
+            damage = damage * (second * 15 + 100) / 100;
+        }
+
         return damage;
     }
 

@@ -26,7 +26,10 @@ public static class TorturerStep
     {
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return true;
+            if (creature.HasRoute)
+            {
+                return true;
+            }
             // State 6's arrival sets the resume state and returns 1 (0x00470DE6-0x00470E18); the dispatcher
             // makes one handler call a turn (0x004772AA), so 128's or 130's own handler runs the next turn.
             creature.StopMoving();
@@ -48,14 +51,28 @@ public static class TorturerStep
     public static CreatureState? UnattendedVictim(WorldState world, GameDatabase database, CreatureState torturer)
     {
         RoomInstance? room = ChamberUnder(world, database, torturer);
-        if (room is null) return null;
+        if (room is null)
+        {
+            return null;
+        }
 
         foreach (CreatureState victim in world.Creatures)
         {
-            if (victim.Id == torturer.Id || !TortureRules.IsBeingTortured(victim) || HandRules.IsHeld(victim)) continue;
+            if (victim.Id == torturer.Id || !TortureRules.IsBeingTortured(victim) || HandRules.IsHeld(victim))
+            {
+                continue;
+            }
+
             int at = TileOf(world, victim);
-            if (!EatingRules.Contains(room, at) || TortureRules.KeeperOf(victim) != torturer.OwnerPlayerId) continue;
-            if (!IsWhipped(world, torturer.OwnerPlayerId, at)) return victim;
+            if (!EatingRules.Contains(room, at) || TortureRules.KeeperOf(victim) != torturer.OwnerPlayerId)
+            {
+                continue;
+            }
+
+            if (!IsWhipped(world, torturer.OwnerPlayerId, at))
+            {
+                return victim;
+            }
         }
 
         return null;
@@ -93,7 +110,10 @@ public static class TorturerStep
     private static bool Face(SimulationContext context, string system, CreatureState creature)
     {
         CreatureState? victim = VictimAt(context.World, creature.TortureTargetTile, creature.Id);
-        if (victim is null) return false;
+        if (victim is null)
+        {
+            return false;
+        }
 
         StateShadow.Move(context, system, creature, CreatureStateMachine.Idle);
         StateShadow.Move(context, system, creature, TortureRules.TorturerWhippingState);
@@ -108,9 +128,14 @@ public static class TorturerStep
 
         // Action 63 first: on its last turn it spawns effect 0xED at the victim, no hurt.
         if (creature.WhipTurnsLeft > 0 && --creature.WhipTurnsLeft == 0 && victim is not null)
+        {
             context.Emit(system, "whipped", $"creature={creature.Id} victim={victim.Id} effect=0xED");
+        }
 
-        if (victim is not null && creature.WhipTurnsLeft > 0) return true;
+        if (victim is not null && creature.WhipTurnsLeft > 0)
+        {
+            return true;
+        }
 
         creature.WhipTurnsLeft = 0;
         StateShadow.Move(context, system, creature, CreatureStateMachine.Idle);
@@ -120,7 +145,11 @@ public static class TorturerStep
 
     private static bool StrapSelf(SimulationContext context, string system, CreatureState creature)
     {
-        if (!TortureRules.TryStrapSelf(context.Hooks, creature)) return false;
+        if (!TortureRules.TryStrapSelf(context.Hooks, creature))
+        {
+            return false;
+        }
+
         context.Emit(system, "torturer_strapped",
             $"creature={creature.Id} at=({creature.Tile.X},{creature.Tile.Y})");
         return true;
@@ -130,14 +159,24 @@ public static class TorturerStep
     private static ObjectState? FreeDevice(WorldState world, GameDatabase database, CreatureState creature)
     {
         RoomInstance? room = ChamberUnder(world, database, creature);
-        if (room is null) return null;
+        if (room is null)
+        {
+            return null;
+        }
 
         ObjectState? best = null;
         long bestDistance = long.MaxValue;
         foreach (ObjectState thing in world.Objects)
         {
-            if (thing.InHand || !TortureRules.IsDevice(thing.ObjectTypeId) || !EatingRules.Contains(room, thing.TileIndex)) continue;
-            if (TortureRules.FreeDeviceAt(world, database, creature.OwnerPlayerId, thing.TileIndex, creature.Id) is null) continue;
+            if (thing.InHand || !TortureRules.IsDevice(thing.ObjectTypeId) || !EatingRules.Contains(room, thing.TileIndex))
+            {
+                continue;
+            }
+
+            if (TortureRules.FreeDeviceAt(world, database, creature.OwnerPlayerId, thing.TileIndex, creature.Id) is null)
+            {
+                continue;
+            }
 
             long distance = EatingRules.DistanceSquared(world, creature.Tile, thing.TileIndex);
             if (distance < bestDistance)
@@ -155,7 +194,10 @@ public static class TorturerStep
         foreach (CreatureState other in world.Creatures)
         {
             if (other.OwnerPlayerId == keeper && other.Dk2StateId == TortureRules.TorturerWhippingState
-                && other.TortureTargetTile == tileIndex) return true;
+                && other.TortureTargetTile == tileIndex)
+            {
+                return true;
+            }
         }
 
         return false;
@@ -163,11 +205,18 @@ public static class TorturerStep
 
     private static CreatureState? VictimAt(WorldState world, int tileIndex, int exceptId)
     {
-        if (tileIndex < 0) return null;
+        if (tileIndex < 0)
+        {
+            return null;
+        }
+
         foreach (CreatureState other in world.Creatures)
         {
             if (other.Id != exceptId && TortureRules.IsBeingTortured(other) && !HandRules.IsHeld(other)
-                && TileOf(world, other) == tileIndex) return other;
+                && TileOf(world, other) == tileIndex)
+            {
+                return other;
+            }
         }
 
         return null;

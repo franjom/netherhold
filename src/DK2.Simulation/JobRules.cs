@@ -82,18 +82,41 @@ public static class JobRules
     {
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
-        if (RoomIndex.RoomAt(world, database, tileIndex) is not { } room) return null;
-        if (room.Definition.TypeId is not { } type) return null;
+        if (RoomIndex.RoomAt(world, database, tileIndex) is not { } room)
+        {
+            return null;
+        }
+
+        if (room.Definition.TypeId is not { } type)
+        {
+            return null;
+        }
+
         JobType job = JobOfRoom(type);
-        if (job == JobType.None || StateFor(job) is not int state) return null;
-        if (definition.HateJobs.Contains(job)) return null;
+        if (job == JobType.None || StateFor(job) is not int state)
+        {
+            return null;
+        }
+
+        if (definition.HateJobs.Contains(job))
+        {
+            return null;
+        }
 
         CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
-        if (CreatureStateMachine.Classify(creature, state) == StateTransition.Refused) return null;
+        if (CreatureStateMachine.Classify(creature, state) == StateTransition.Refused)
+        {
+            return null;
+        }
+
         creature.DroppedToDoJob = job;
 
         // The enter hook's claim (ADR-0309): refused, the creature is left in 1.
-        if (!CreatureStateMachine.TrySetState(hooks, creature, state)) return job;
+        if (!CreatureStateMachine.TrySetState(hooks, creature, state))
+        {
+            return job;
+        }
+
         creature.CurrentJob = job;
         creature.JobTileIndex = tileIndex;
         return job;
@@ -138,7 +161,9 @@ public static class JobRules
                 // enter hook's test (0x0047B230, ADR-0313): DK2 asks at the choice and again
                 // on arrival, and gold spent during the walk is refused only by the second.
                 if (!TrainingRules.CanAfford(world, database, state.OwnerPlayerId))
+                {
                     return "keeper_cannot_pay";
+                }
 
                 // `level < TrainingRoomMaxExperienceLevel`, against the shipped 4. Above
                 // it the handler falls through to the combat pit's call — unbuilt, which

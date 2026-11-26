@@ -18,7 +18,10 @@ internal static class TrainingFurnitureRules
         for (int i = world.Objects.Count - 1; i >= 0; i--)
         {
             ObjectState thing = world.Objects[i];
-            if (thing.AutoPlaced && !thing.InHand && room.Contains(thing.TileIndex)) world.RemoveObject(thing.Id);
+            if (thing.AutoPlaced && !thing.InHand && room.Contains(thing.TileIndex))
+            {
+                world.RemoveObject(thing.Id);
+            }
         }
 
         var desired = new List<(int TileIndex, byte ObjectTypeId)>();
@@ -26,7 +29,11 @@ internal static class TrainingFurnitureRules
         HashSet<int> floor = AutoFurnitureRules.FloorSlotSet(world, room);
         var order = new Dictionary<int, int>();
         int ordinal = 0;
-        foreach (int tile in SlabChain.Order(world, room)) order[tile] = ordinal++;
+        foreach (int tile in SlabChain.Order(world, room))
+        {
+            order[tile] = ordinal++;
+        }
+
         desired.Sort((a, b) =>
         {
             bool aFloor = floor.Contains(a.TileIndex), bFloor = floor.Contains(b.TileIndex);
@@ -34,10 +41,17 @@ internal static class TrainingFurnitureRules
         });
         foreach ((int tile, byte type) in desired)
         {
-            if (database.ObjectById(type) is null) continue;
+            if (database.ObjectById(type) is null)
+            {
+                continue;
+            }
+
             world.SpawnObject(database, type, room.OwnerPlayerId, tile).AutoPlaced = true;
             // Native writes this to animation +D4/+D8; object animation phases remain unmirrored.
-            if (type == TargetObjectId && !floor.Contains(tile)) rng.NextInt(4096);
+            if (type == TargetObjectId && !floor.Contains(tile))
+            {
+                rng.NextInt(4096);
+            }
         }
     }
 }

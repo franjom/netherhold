@@ -46,7 +46,7 @@ nothing is CONFIRMED: a claim read from the instructions is STRONGLY INFERRED.
    341 a tick), and only then enters 189. It also re-checks that the tile is the keeper's room type
    1 or 5. The PR and our `payday.md` section 4.3, `tunnelling.md` and the 0x00472690 record all
    said "turns to the tile centre"; the docs and the record are corrected. `PaydaySystem.Arrived` now
-   does both, with the point in `PaydayRules.ArrivalFacingPoint`. The 8-spot table at `0x698C20` was read byte for byte and `PaydaySystem.cs:243-248`
+   does both, with the point in `PaydayRules.ArrivalFacingPoint`. The 8-spot table at `0x698C20` was read byte for byte and `PaydaySystem.PileOffsets`
    matches it.
 3. **Terrain health reaches a dying creature in ours
    ([#1391](https://github.com/tonihele/OpenKeeper/pull/1391)).** Ghidra, STRONGLY INFERRED.
@@ -59,8 +59,8 @@ nothing is CONFIRMED: a claim read from the instructions is STRONGLY INFERRED.
    health is refused for a creature that is down and the source is still stamped
    (`CreatureHealthRules.RefuseForTheDying`, tested in `CreatureNeedsTests`). Every other heal and damage path the reviewer traced is guarded, so
    OpenKeeper's banked-heal bug has no counterpart in ours. Not traced for a dying target:
-   `CreatureLevelRules.cs:119`, `EatingRules.cs:326`, `PossessionRules.Objects.cs:51`,
-   `CreatureJobSystem.cs:793`, `TortureSystem.cs:129-130`.
+   `CreatureLevelRules.LevelUp`, `EatingRules.Swallow`, `PossessionRules.Objects.cs:51`,
+   `CreatureJobSystem.Pray`, `TortureSystem.Act`.
 4. **Stale prose, code right (#1391).** `creature-death.md` said lair healing is not suppressed for
    a dying creature. The binary refuses every mode-0 delta while bit 21 is set, lair heal included;
    the lair heal acts only after state 45 clears the bit (`0x468483`, `0x4684B5`). Our code already

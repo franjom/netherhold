@@ -65,7 +65,12 @@ public sealed class KeeperRoomView
         var accepted = new HashSet<int>(FloorSlots);
         accepted.UnionWith(WallSlots);
         foreach (int tile in ChainOrder)
-            if (accepted.Contains(tile)) yield return tile;
+        {
+            if (accepted.Contains(tile))
+            {
+                yield return tile;
+            }
+        }
     }
 
     /// <summary>Every tile in slab-chain order, <c>FirstSlab</c> first: the walk the expansion's

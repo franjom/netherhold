@@ -23,11 +23,19 @@ public sealed partial class ImpTaskSystem
         {
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             if (!creature.ReinforcementAction.Active && !ReinforcementActionRules.UsesClock(creature, definition)
-                && creature.ClaimAction.Kind == ClaimActionKind.None && !ClaimActionRules.UsesClock(creature, definition)) return;
+                && creature.ClaimAction.Kind == ClaimActionKind.None && !ClaimActionRules.UsesClock(creature, definition))
+            {
+                return;
+            }
+
             if (creature.Possessed || HeroJobRules.IsHero(creature) || !((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
                 || context.TremorRecoveryCompletedThisTick.Contains(creature)
                 || CreatureEligibility.IsExcluded(creature,
-                    CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) return;
+                    CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied))
+            {
+                return;
+            }
+
             owner.RunWorkerPrelude(context, creature, definition);
         }
     }
@@ -35,17 +43,26 @@ public sealed partial class ImpTaskSystem
     private bool RunWorkerPrelude(SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid? grid = null)
     {
         if (!context.WorkerPreludeProcessedThisTick.Add(creature))
+        {
             return context.WorkerPreludeClaimedThisTick.Contains(creature);
+        }
+
         bool claimed = false;
         if (CreatureStateMachine.HasState(creature)
             && NeedRules.ResolvedCategory(creature) == CreatureStateCategory.WorkerJob
             && creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0)
         {
             using (context.Profiler.Scope(SimulationMarkers.ImpClaimOnTheWay))
+            {
                 claimed = TryClaimOnTheWay(context, creature, grid ?? new WorldPathGrid(context.Database, context.World, definition));
+            }
         }
         PickUpGoldInPassing(context, creature, definition);
-        if (claimed) context.WorkerPreludeClaimedThisTick.Add(creature);
+        if (claimed)
+        {
+            context.WorkerPreludeClaimedThisTick.Add(creature);
+        }
+
         return claimed;
     }
 }

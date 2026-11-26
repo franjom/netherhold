@@ -49,7 +49,11 @@ public static class TaskStealing
     /// the ticks in state (imp-task-stealing.md §6).</summary>
     public static bool CanLoseItsTask(CreatureState holder)
     {
-        if (holder is null) throw new ArgumentNullException(nameof(holder));
+        if (holder is null)
+        {
+            throw new ArgumentNullException(nameof(holder));
+        }
+
         return CreatureStateMachine.HasState(holder)
             && holder.Dk2StateId is not (TeleportingOut or TeleportingIn)
             && CreatureStateMachine.Classify(holder, ImpStates.TaskSelection) != StateTransition.Refused;
@@ -58,7 +62,11 @@ public static class TaskStealing
     /// <summary>The claim and reinforce rule: strictly nearer the tile's centre.</summary>
     public static bool NearerTheTile(CreatureState asking, (long X, long Y) holder, TilePos tile)
     {
-        if (asking is null) throw new ArgumentNullException(nameof(asking));
+        if (asking is null)
+        {
+            throw new ArgumentNullException(nameof(asking));
+        }
+
         long cx = CreatureState.CentreOf(tile.X), cy = CreatureState.CentreOf(tile.Y);
         return DistanceSquared(asking.PosX, asking.PosY, cx, cy) < DistanceSquared(holder.X, holder.Y, cx, cy);
     }

@@ -51,7 +51,11 @@ public sealed class KeeperMoodRemedies
     /// <c>AngryCreaturesHappy</c>, else handled.</summary>
     public bool Angry(PlayerMessage message)
     {
-        if (_p.AngryCreaturesDisposeOf) return Dispose(message.Data2);
+        if (_p.AngryCreaturesDisposeOf)
+        {
+            return Dispose(message.Data2);
+        }
+
         return !_p.AngryCreaturesHappy || MakeHappy(message);
     }
 
@@ -61,7 +65,11 @@ public sealed class KeeperMoodRemedies
     /// creature without a test; ours treats one no longer in the world as a refused lift.</summary>
     public bool Dispose(int creatureId)
     {
-        if (Creature(creatureId) is not KeeperCreatureView creature) return false;
+        if (Creature(creatureId) is not KeeperCreatureView creature)
+        {
+            return false;
+        }
+
         if (_p.AngryDisposalMethod == 1
             && _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Temple, _rng) is KeeperRoomView temple
             && temple.FloorSlots.Count > 0)
@@ -79,10 +87,21 @@ public sealed class KeeperMoodRemedies
     /// complaint. A missing or content creature is handled.</summary>
     public bool MakeHappy(PlayerMessage message)
     {
-        if (message.Kind is not (PlayerMessageKind.CreatureUnhappy or PlayerMessageKind.CreatureAngry)) return true;
-        if (Creature(message.Data2) is not KeeperCreatureView creature) return true;
+        if (message.Kind is not (PlayerMessageKind.CreatureUnhappy or PlayerMessageKind.CreatureAngry))
+        {
+            return true;
+        }
+
+        if (Creature(message.Data2) is not KeeperCreatureView creature)
+        {
+            return true;
+        }
+
         CreatureDef definition = _view.Database.CreatureById(creature.CreatureTypeId);
-        if (CreatureAngerRules.MoodOf(definition, creature.Anger) == CreatureMood.Content) return true;
+        if (CreatureAngerRules.MoodOf(definition, creature.Anger) == CreatureMood.Content)
+        {
+            return true;
+        }
 
         bool done = creature.Anger.Worst switch
         {
@@ -98,8 +117,16 @@ public sealed class KeeperMoodRemedies
     /// on the creature. Nothing to take, or a hand with no room, fails.</summary>
     private bool Pay(KeeperCreatureView creature)
     {
-        if (_view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Treasury, _rng) is null) return false;
-        if (_view.Gold <= 0) return false;
+        if (_view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Treasury, _rng) is null)
+        {
+            return false;
+        }
+
+        if (_view.Gold <= 0)
+        {
+            return false;
+        }
+
         _commands.Add(new MintWageCommand(_view.PlayerId, creature.Id));
         return DropOn(creature);
     }
@@ -108,14 +135,21 @@ public sealed class KeeperMoodRemedies
     private bool Feed(KeeperCreatureView creature)
     {
         if (_view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Hatchery, _rng) is not { ObjectListHead: >= 0 } hatchery)
+        {
             return false;
+        }
+
         _commands.Add(new PickUpObjectCommand(_view.PlayerId, hatchery.ObjectListHead));
         return DropOn(creature);
     }
 
     private bool DropOn(KeeperCreatureView creature)
     {
-        if (_view.HandCount >= HandRules.Capacity(_view.Database)) return false;
+        if (_view.HandCount >= HandRules.Capacity(_view.Database))
+        {
+            return false;
+        }
+
         _commands.Add(new DropCommand(_view.PlayerId, CreatureTile(creature), creature.Id));
         return true;
     }
@@ -126,10 +160,25 @@ public sealed class KeeperMoodRemedies
     {
         foreach (CreatureJobPreference job in definition.HappyJobs)
         {
-            if ((int)job.Job >= 10 || JobRoom(job.Job) is not RoomTypeId type) continue;
-            if (_view.RandomRoomOfType(_view.PlayerId, type, _rng) is not KeeperRoomView room) continue;
-            if (creature.LastDroppedCounter <= DroppedGraceTurns && _turn > DroppedGraceTurns) continue;
-            if (MoveTo(creature, room)) return true;
+            if ((int)job.Job >= 10 || JobRoom(job.Job) is not RoomTypeId type)
+            {
+                continue;
+            }
+
+            if (_view.RandomRoomOfType(_view.PlayerId, type, _rng) is not KeeperRoomView room)
+            {
+                continue;
+            }
+
+            if (creature.LastDroppedCounter <= DroppedGraceTurns && _turn > DroppedGraceTurns)
+            {
+                continue;
+            }
+
+            if (MoveTo(creature, room))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -138,7 +187,11 @@ public sealed class KeeperMoodRemedies
     /// job room's: refused by <c>0x0048E6A0</c>, or not held after the lift, fails.</summary>
     private bool MoveTo(KeeperCreatureView creature, KeeperRoomView? room)
     {
-        if (room is null || !Lift(creature)) return false;
+        if (room is null || !Lift(creature))
+        {
+            return false;
+        }
+
         _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, _view.PositionOf(room)));
         return true;
     }
@@ -147,7 +200,11 @@ public sealed class KeeperMoodRemedies
     /// predicted held. A refused permission issues nothing.</summary>
     private bool Lift(KeeperCreatureView creature)
     {
-        if (!creature.PickupPermitted) return false;
+        if (!creature.PickupPermitted)
+        {
+            return false;
+        }
+
         _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
         return creature.CanPickUp;
     }
@@ -165,7 +222,13 @@ public sealed class KeeperMoodRemedies
     private KeeperCreatureView? Creature(int id)
     {
         foreach (KeeperCreatureView c in _view.Creatures)
-            if (c.Id == id) return c;
+        {
+            if (c.Id == id)
+            {
+                return c;
+            }
+        }
+
         return null;
     }
 

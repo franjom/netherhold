@@ -102,7 +102,11 @@ public static class CombatRules
         int[] slots = ranged ? target.EngagedRanged : target.EngagedMelee;
         for (int i = 0; i < Slots; i++)
         {
-            if (slots[i] != NoTarget) continue;
+            if (slots[i] != NoTarget)
+            {
+                continue;
+            }
+
             slots[i] = attackerId;
             RefreshAttackable(target);   // 0x0045AA08: only when a slot was taken
             return true;
@@ -116,8 +120,15 @@ public static class CombatRules
     {
         for (int i = 0; i < Slots; i++)
         {
-            if (target.EngagedMelee[i] == attackerId) target.EngagedMelee[i] = NoTarget;
-            if (target.EngagedRanged[i] == attackerId) target.EngagedRanged[i] = NoTarget;
+            if (target.EngagedMelee[i] == attackerId)
+            {
+                target.EngagedMelee[i] = NoTarget;
+            }
+
+            if (target.EngagedRanged[i] == attackerId)
+            {
+                target.EngagedRanged[i] = NoTarget;
+            }
         }
     }
 
@@ -125,7 +136,13 @@ public static class CombatRules
     public static bool AllSlotsTaken(CreatureState creature)
     {
         for (int i = 0; i < Slots; i++)
-            if (creature.EngagedMelee[i] == NoTarget || creature.EngagedRanged[i] == NoTarget) return false;
+        {
+            if (creature.EngagedMelee[i] == NoTarget || creature.EngagedRanged[i] == NoTarget)
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -135,8 +152,15 @@ public static class CombatRules
         int count = 0;
         for (int i = 0; i < Slots; i++)
         {
-            if (creature.EngagedMelee[i] != NoTarget) count++;
-            if (creature.EngagedRanged[i] != NoTarget) count++;
+            if (creature.EngagedMelee[i] != NoTarget)
+            {
+                count++;
+            }
+
+            if (creature.EngagedRanged[i] != NoTarget)
+            {
+                count++;
+            }
         }
         return count;
     }
@@ -156,12 +180,26 @@ public static class CombatRules
 
         static void Count(WorldState world, GameDatabase database, int id, ref int melee, ref int ranged)
         {
-            if (id == NoTarget) return;
+            if (id == NoTarget)
+            {
+                return;
+            }
+
             CreatureState? attacker = world.CreatureById(id);
-            if (attacker is null) return;
+            if (attacker is null)
+            {
+                return;
+            }
+
             FightStyle style = database.CreatureById(attacker.CreatureTypeId).FightStyle;
-            if (style is FightStyle.Blitzer or FightStyle.Blocker) melee++;
-            else if (style == FightStyle.Support) ranged++;
+            if (style is FightStyle.Blitzer or FightStyle.Blocker)
+            {
+                melee++;
+            }
+            else if (style == FightStyle.Support)
+            {
+                ranged++;
+            }
         }
     }
 
@@ -254,7 +292,11 @@ public static class CombatRules
         bool due = movedTile
             || creature.FightProcessCounter >= StandingScanPeriod
             || (creature.FightProcessCounter >= ImpStandingScanPeriod && creature.CreatureTypeId == ImpCreatureTypeId);
-        if (due) creature.FightProcessCounter = 0;
+        if (due)
+        {
+            creature.FightProcessCounter = 0;
+        }
+
         return due;
     }
 
@@ -321,7 +363,11 @@ public static class CombatRules
     /// <summary>Possession's recharge factor, with each fixed-point division truncated separately.</summary>
     public static Fp32 RechargeMultiplier(GameDatabase database, CreatureState creature)
     {
-        if (!creature.Possessed && !creature.InfluencedByPossessed) return new(Fp32.One);
+        if (!creature.Possessed && !creature.InfluencedByPossessed)
+        {
+            return new(Fp32.One);
+        }
+
         int stat = database.FirstPersonStat(CreatureStatId.MeleeRecharge);
         int numerator = unchecked((100 + stat) << 12);
         int ceiling = creature.Possessed ? 100 : 200;
@@ -410,7 +456,11 @@ public static class CombatRules
         // Its epilogue clears the body's blocker and ignore-blocker bits (0x0045AF8F..0x0045AFA6).
         creature.Body.IsBlocker = false;
         creature.Body.IgnoreBlocker = false;
-        if (AttackerCount(creature) == 0) return;
+        if (AttackerCount(creature) == 0)
+        {
+            return;
+        }
+
         bool dead = creature.Health <= 0 && !CreatureDeathRules.HasDyingState(
             world, hooks.Database, hooks.Database.CreatureById(creature.CreatureTypeId), creature);
         for (int i = 0; i < Slots; i++)
@@ -426,15 +476,30 @@ public static class CombatRules
     /// its attack nibble, so ours keeps <see cref="CreatureState.AttackType"/> too.</summary>
     private static void ReleaseAttacker(WorldState world, CreatureState me, int attackerId, bool dead)
     {
-        if (attackerId == NoTarget) return;
+        if (attackerId == NoTarget)
+        {
+            return;
+        }
+
         CreatureState? attacker = world.CreatureById(attackerId);
-        if (attacker is null || attacker.FightTargetKind != FightTargetKind.Creature || attacker.FightTargetId != me.Id) return;
-        if (dead) attacker.AttackType = AttackMode.Victorious;
+        if (attacker is null || attacker.FightTargetKind != FightTargetKind.Creature || attacker.FightTargetId != me.Id)
+        {
+            return;
+        }
+
+        if (dead)
+        {
+            attacker.AttackType = AttackMode.Victorious;
+        }
+
         attacker.FightTargetId = NoTarget;
         attacker.FightTargetKind = FightTargetKind.None;
         attacker.FightTargetPlayerId = 0;
         attacker.FightTargetTileIndex = -1;
-        if (!attacker.AttackAbnormalTargets) return;
+        if (!attacker.AttackAbnormalTargets)
+        {
+            return;
+        }
         // 0x0048F3F0's own unlink finds the engagement gone; ours would also wipe the nibble.
         attacker.AttackingId = NoTarget;
         attacker.AttackAbnormalTargets = false;
@@ -453,7 +518,10 @@ public static class CombatRules
         if (creature.FightTargetKind == FightTargetKind.Creature && creature.FightTargetId != NoTarget)
         {
             CreatureState? target = world.CreatureById(creature.FightTargetId);
-            if (target != null) Unregister(target, creature.Id);
+            if (target != null)
+            {
+                Unregister(target, creature.Id);
+            }
         }
         creature.FightTargetId = NoTarget;
         creature.FightTargetKind = FightTargetKind.None;
@@ -462,6 +530,8 @@ public static class CombatRules
         creature.AttackType = 0;
         creature.AttackRangeSquared = 0;
         if (dropForced && engaged && creature.AttackAbnormalTargets && creature.AttackingId != NoTarget)
+        {
             CombatPitRules.ClearForcedTarget(world, creature);
+        }
     }
 }

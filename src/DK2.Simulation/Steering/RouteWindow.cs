@@ -22,7 +22,11 @@ public static class RouteWindow
         // The route is asked for the point itself; ADR-0439 then moves a live-core destination of a
         // route that exists to its edge. A refused one keeps the point asked for (0x004D5100).
         var points = new List<Fixed16Vector>();
-        if (world.Route(body.Pos, target, mover, points)) target = world.ConstrainTarget(body.Pos, target);
+        if (world.Route(body.Pos, target, mover, points))
+        {
+            target = world.ConstrainTarget(body.Pos, target);
+        }
+
         Load(body, points, target, flags);
         return points.Count != 0;
     }
@@ -53,10 +57,17 @@ public static class RouteWindow
         body.PathBufferCount = n < SteeringBody.WindowSize ? n : SteeringBody.WindowSize;
 
         int total = Sixteenths((route[0] - body.Pos).Octile());
-        for (int i = 1; i < n; i++) total += Sixteenths((route[i] - route[i - 1]).Octile());
+        for (int i = 1; i < n; i++)
+        {
+            total += Sixteenths((route[i] - route[i - 1]).Octile());
+        }
+
         body.PathTotalDist = total;
 
-        for (int i = 0; i < body.PathBufferCount; i++) body.Subpath[i] = route[i];
+        for (int i = 0; i < body.PathBufferCount; i++)
+        {
+            body.Subpath[i] = route[i];
+        }
 
         int window = 0;
         for (int k = 0; k + 1 < body.PathBufferCount; k++)
@@ -67,7 +78,11 @@ public static class RouteWindow
         body.PathSubpathDist = window;
 
         int tail = 0;
-        for (int j = body.PathBufferCount; j < n; j++) tail += Sixteenths((route[j] - route[j - 1]).Octile());
+        for (int j = body.PathBufferCount; j < n; j++)
+        {
+            tail += Sixteenths((route[j] - route[j - 1]).Octile());
+        }
+
         body.PathTailDist = tail;
 
         body.PathFinished = false;

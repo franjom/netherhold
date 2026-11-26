@@ -59,7 +59,11 @@ public sealed class InputLog
     public static InputLog Read(
         string path, long lag = 1, long origin = 1, HashSet<byte>? kinds = null)
     {
-        if (path is null) throw new ArgumentNullException(nameof(path));
+        if (path is null)
+        {
+            throw new ArgumentNullException(nameof(path));
+        }
+
         using StreamReader reader = File.OpenText(path);
         return Read(reader, path, lag, origin, kinds);
     }
@@ -76,18 +80,28 @@ public sealed class InputLog
         TextReader reader, string name, long lag = 1, long origin = 1,
         HashSet<byte>? kinds = null)
     {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
+        if (reader is null)
+        {
+            throw new ArgumentNullException(nameof(reader));
+        }
+
         kinds ??= TagKinds;
 
         string? line = reader.ReadLine();
         if (line != Header)
+        {
             throw new InvalidDataException(
                 $"'{name}' does not have the task-pool probe's header.");
+        }
 
         var rows = new List<Row>();
         for (int number = 2; (line = reader.ReadLine()) is not null; number++)
         {
-            if (line.Length == 0) continue;
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
             rows.Add(Row.Parse(line, name, number));
         }
 
@@ -107,7 +121,9 @@ public sealed class InputLog
             // so a tile changing kind lists shows as both; adding first makes
             // that a migration rather than a spurious leave and re-enter.
             foreach (Row row in sample.OrderByDescending(r => r.Tagged))
+            {
                 Apply(row, pool, kinds, claims, pending, tally, lag, origin);
+            }
         }
 
         return Emit(pending, tally, rows);
@@ -119,7 +135,10 @@ public sealed class InputLog
         Counters tally, long lag, long origin)
     {
         (byte, TilePos) key = (row.Player, row.Tile);
-        if (!pool.TryGetValue(key, out Occupancy? held)) pool[key] = held = new Occupancy();
+        if (!pool.TryGetValue(key, out Occupancy? held))
+        {
+            pool[key] = held = new Occupancy();
+        }
 
         bool was = held.Kinds.Count > 0;
         if (row.Tagged)
@@ -131,7 +150,10 @@ public sealed class InputLog
             held.Kinds.Remove(row.Kind);
         }
 
-        if (!kinds.Contains(row.Kind)) held.Worked = true;
+        if (!kinds.Contains(row.Kind))
+        {
+            held.Worked = true;
+        }
 
         bool now = held.Kinds.Count > 0;
         if (was == now)
@@ -151,17 +173,30 @@ public sealed class InputLog
         if (!player)
         {
             tally.Worked++;
-            if (!now) pool.Remove(key);
+            if (!now)
+            {
+                pool.Remove(key);
+            }
+
             return;
         }
 
         long turn = row.Stamp - lag - origin + 1;
         if (!pending.TryGetValue(turn, out SortedDictionary<byte, TurnMarks>? byPlayer))
+        {
             pending[turn] = byPlayer = [];
+        }
+
         if (!byPlayer.TryGetValue(row.Player, out TurnMarks? marks))
+        {
             byPlayer[row.Player] = marks = new TurnMarks();
+        }
+
         (now ? marks.Tagged : marks.Untagged).Add(row.Tile);
-        if (!now) pool.Remove(key);
+        if (!now)
+        {
+            pool.Remove(key);
+        }
     }
 
     private static InputLog Emit(
@@ -177,12 +212,21 @@ public sealed class InputLog
             foreach ((byte player, TurnMarks marks) in byPlayer)
             {
                 if (marks.Untagged.Count > 0)
+                {
                     issued.Add(new TagTilesCommand(player, Sorted(marks.Untagged), false));
+                }
+
                 if (marks.Tagged.Count > 0)
+                {
                     issued.Add(new TagTilesCommand(player, Sorted(marks.Tagged), true));
+                }
             }
 
-            if (issued.Count == 0) continue;
+            if (issued.Count == 0)
+            {
+                continue;
+            }
+
             if (turn < 1)
             {
                 tally.Before += issued.Count;
@@ -226,8 +270,16 @@ public sealed class InputLog
                     row.Kind == ClaimKind ? claims._claimed
                     : kinds.Contains(row.Kind) ? claims._marked
                     : null;
-                if (into is null) continue;
-                if (!into.TryGetValue(row.Tile, out List<long>? at)) into[row.Tile] = at = [];
+                if (into is null)
+                {
+                    continue;
+                }
+
+                if (!into.TryGetValue(row.Tile, out List<long>? at))
+                {
+                    into[row.Tile] = at = [];
+                }
+
                 at.Add(row.Stamp);
             }
             return claims;
@@ -237,7 +289,11 @@ public sealed class InputLog
         /// before the tile is marked again — that is, whether this dig finished.</summary>
         public bool Follows(TilePos tile, long stamp)
         {
-            if (!_claimed.TryGetValue(tile, out List<long>? claimed)) return false;
+            if (!_claimed.TryGetValue(tile, out List<long>? claimed))
+            {
+                return false;
+            }
+
             long next = _marked.TryGetValue(tile, out List<long>? marked)
                 ? marked.Where(m => m > stamp).DefaultIfEmpty(long.MaxValue).Min()
                 : long.MaxValue;
@@ -286,8 +342,10 @@ public sealed class InputLog
         {
             string[] c = line.Split(',');
             if (c.Length != 11)
+            {
                 throw new InvalidDataException(
                     $"'{name}' line {number} has {c.Length} columns; expected 11.");
+            }
 
             long N(int i) =>
                 long.TryParse(c[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out long v)

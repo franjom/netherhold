@@ -191,7 +191,11 @@ public sealed partial class PlayerMessageQueue
     /// <summary>A 32 to 35 message as the producers post it: the room type and the room.</summary>
     public PlayerMessage? PostOwnership(WorldState world, byte recipient, PlayerMessageKind kind, RoomTypeId room, int roomTag)
     {
-        if (!IsOwnershipMessage(kind)) throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a room-ownership message.");
+        if (!IsOwnershipMessage(kind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a room-ownership message.");
+        }
+
         return Post(world, recipient, kind, (int)room, roomTag);
     }
 
@@ -203,7 +207,11 @@ public sealed partial class PlayerMessageQueue
     /// for 44 and 45 the room (ours: its first slab's tile).</summary>
     public PlayerMessage? PostRoom(WorldState world, byte recipient, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0)
     {
-        if (!IsRoomMessage(kind)) throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a room message.");
+        if (!IsRoomMessage(kind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a room message.");
+        }
+
         bool tagged = kind is PlayerMessageKind.RoomUnequipped or PlayerMessageKind.RoomStorageFull;
         return Post(world, recipient, kind, (int)room, tagged ? roomTag : 0);
     }
@@ -276,35 +284,66 @@ public sealed partial class PlayerMessageQueue
                 throw new ArgumentOutOfRangeException(nameof(data1), data1, $"No subtype row for {kind}."),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
-        if (timeout == uint.MaxValue) return null;
+        if (timeout == uint.MaxValue)
+        {
+            return null;
+        }
+
         if (world.Player(recipient).Status != PlayerStatus.Playing
             || !world.Triggers.NotificationsEnabled && kind is not (PlayerMessageKind.CreatureIntroduction or PlayerMessageKind.ScriptedSpeech))
+        {
             return null;
-        if (graveyardWanted && world.Player(recipient).GraveyardWantedPosted) return null;
+        }
+
+        if (graveyardWanted && world.Player(recipient).GraveyardWantedPosted)
+        {
+            return null;
+        }
+
         if (kind is not (PlayerMessageKind.RoomLost or PlayerMessageKind.CasinoRowdy or PlayerMessageKind.CreatureConverted or PlayerMessageKind.CombatPitFightOver
             or PlayerMessageKind.CreatureArrived or PlayerMessageKind.CreatureIntroduction or PlayerMessageKind.ScriptedSpeech)
-            && Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
-        if (_entries.Count == Capacity) _entries.RemoveAt(0);
+            && Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained)
+        {
+            return retained;
+        }
+
+        if (_entries.Count == Capacity)
+        {
+            _entries.RemoveAt(0);
+        }
+
         var added = new PlayerMessage(_nextId, recipient, kind, data1, data2, 0, timeout, true, false);
         _nextId = unchecked(_nextId + 1);
         _entries.Add(added);
-        if (graveyardWanted) world.Player(recipient).GraveyardWantedPosted = true;
+        if (graveyardWanted)
+        {
+            world.Player(recipient).GraveyardWantedPosted = true;
+        }
+
         return added;
     }
 
     internal PlayerMessage? Unexpired(byte recipient, PlayerMessageKind kind, int? subtype = null)
     {
         foreach (PlayerMessage message in _entries)
+        {
             if (message.PlayerId == recipient && message.Kind == kind && message.Age < message.Timeout
                 && (subtype is null || message.Data1 == subtype.Value))
+            {
                 return message;
+            }
+        }
+
         return null;
     }
 
     internal void Acknowledge(PlayerId player, uint id)
     {
         int index = _entries.FindIndex(m => m.Id == id && m.PlayerId == player);
-        if (index >= 0) _entries[index] = _entries[index] with { Handled = true };
+        if (index >= 0)
+        {
+            _entries[index] = _entries[index] with { Handled = true };
+        }
     }
 
     /// <summary><c>0x004C41E0</c>: ages every record, frees a 17 or 18 whose creature still exists
@@ -315,8 +354,14 @@ public sealed partial class PlayerMessageQueue
         {
             PlayerMessage message = _entries[i];
             uint age = unchecked(message.Age + 1);
-            if (age >= message.Timeout || LeftItsBand(world, database, message)) _entries.RemoveAt(i);
-            else _entries[i] = message with { Age = age, NeedsTab = message.NeedsTab && age < 200 };
+            if (age >= message.Timeout || LeftItsBand(world, database, message))
+            {
+                _entries.RemoveAt(i);
+            }
+            else
+            {
+                _entries[i] = message with { Age = age, NeedsTab = message.NeedsTab && age < 200 };
+            }
         }
     }
 
@@ -331,14 +376,21 @@ public sealed partial class PlayerMessageQueue
             PlayerMessageKind.CreatureAngry => CreatureMood.Angry,
             _ => CreatureMood.Content,
         };
-        if (band == CreatureMood.Content || world.CreatureById(message.Data2) is not CreatureState creature) return false;
+        if (band == CreatureMood.Content || world.CreatureById(message.Data2) is not CreatureState creature)
+        {
+            return false;
+        }
+
         return CreatureAngerRules.MoodOf(database.CreatureById(creature.CreatureTypeId), creature) != band;
     }
 
     internal void HashInto(ref Hash64 hash)
     {
         hash.Add(_nextId); hash.Add(_entries.Count);
-        foreach (PlayerMessage message in _entries) message.HashInto(ref hash);
+        foreach (PlayerMessage message in _entries)
+        {
+            message.HashInto(ref hash);
+        }
     }
 
     internal void Write(BinaryWriter writer)
@@ -358,8 +410,10 @@ public sealed partial class PlayerMessageQueue
         int count = SaveReader.Count(reader, "retained messages", 27, Capacity);
         _entries.Clear();
         for (int i = 0; i < count; i++)
+        {
             _entries.Add(new PlayerMessage(reader.ReadUInt32(), reader.ReadByte(),
                 (PlayerMessageKind)reader.ReadUInt32(), reader.ReadInt32(), reader.ReadInt32(),
                 reader.ReadUInt32(), reader.ReadUInt32(), reader.ReadBoolean(), reader.ReadBoolean()));
+        }
     }
 }

@@ -49,23 +49,51 @@ public sealed class HatedCompanySystem : IRoomTickStep
         bool anyEvil = false, anyOther = false;
         foreach (CreatureState c in world.Creatures)
         {
-            if (!c.HeldPlace.IsHeld) continue;
+            if (!c.HeldPlace.IsHeld)
+            {
+                continue;
+            }
+
             RoomDef? kind = RoomRules.RoomOn(database, world.TileAtIndex(c.HeldPlace.TileIndex));
-            if (kind is null || !Applies(kind.TypeId)) continue;
+            if (kind is null || !Applies(kind.TypeId))
+            {
+                continue;
+            }
+
             _holders.Add(c);
-            if (IsEvil(database, c)) anyEvil = true;
-            else anyOther = true;
+            if (IsEvil(database, c))
+            {
+                anyEvil = true;
+            }
+            else
+            {
+                anyOther = true;
+            }
         }
 
-        if (!anyEvil || !anyOther) return;
+        if (!anyEvil || !anyOther)
+        {
+            return;
+        }
+
         if (!database.Variables.TryGet(
-                VariableTypeId.ModifyAngerInCompanyOfHatedCreaturesPerSecond, out int perSecond)) return;
+                VariableTypeId.ModifyAngerInCompanyOfHatedCreaturesPerSecond, out int perSecond))
+        {
+            return;
+        }
 
         foreach (CreatureState c in _holders)
         {
-            if (InKnownRoom(c)) continue;
+            if (InKnownRoom(c))
+            {
+                continue;
+            }
+
             RoomInstance? room = RoomIndex.RoomAt(world, database, c.HeldPlace.TileIndex);
-            if (room is not null) _rooms.Add(room);
+            if (room is not null)
+            {
+                _rooms.Add(room);
+            }
         }
 
         _delta = perSecond * SecondsPerApplication;
@@ -81,12 +109,24 @@ public sealed class HatedCompanySystem : IRoomTickStep
         GameDatabase database = context.Database;
         // DK2's turn is our tick plus one (ADR-0119).
         long turn = context.Tick.Value + 1;
-        if ((turn + room.TileIndices[0]) % PeriodTurns != 0 || !Mixed(database, room)) return;
+        if ((turn + room.TileIndices[0]) % PeriodTurns != 0 || !Mixed(database, room))
+        {
+            return;
+        }
+
         foreach (CreatureState c in _holders)
         {
-            if (!c.HeldPlace.In(room)) continue;
+            if (!c.HeldPlace.In(room))
+            {
+                continue;
+            }
+
             CreatureDef definition = database.CreatureById(c.CreatureTypeId);
-            if (((definition.Flags & CreatureFlags.DoesntGetAngryWithEnemies) == CreatureFlags.DoesntGetAngryWithEnemies)) continue;
+            if (((definition.Flags & CreatureFlags.DoesntGetAngryWithEnemies) == CreatureFlags.DoesntGetAngryWithEnemies))
+            {
+                continue;
+            }
+
             int applied = CreatureAngerRules.Apply(
                 world, definition, c, AngerBucket.Treatment, _delta, AngerComplaint.HatedCompany);
             context.Emit(Name, "angered",
@@ -97,14 +137,26 @@ public sealed class HatedCompanySystem : IRoomTickStep
     private bool InKnownRoom(RoomInstance room)
     {
         foreach (RoomInstance known in _rooms)
-            if (known.TileIndices[0] == room.TileIndices[0]) return true;
+        {
+            if (known.TileIndices[0] == room.TileIndices[0])
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
     private bool InKnownRoom(CreatureState c)
     {
         foreach (RoomInstance room in _rooms)
-            if (c.HeldPlace.In(room)) return true;
+        {
+            if (c.HeldPlace.In(room))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -113,10 +165,24 @@ public sealed class HatedCompanySystem : IRoomTickStep
         bool evil = false, other = false;
         foreach (CreatureState c in _holders)
         {
-            if (!c.HeldPlace.In(room)) continue;
-            if (IsEvil(database, c)) evil = true;
-            else other = true;
-            if (evil && other) return true;
+            if (!c.HeldPlace.In(room))
+            {
+                continue;
+            }
+
+            if (IsEvil(database, c))
+            {
+                evil = true;
+            }
+            else
+            {
+                other = true;
+            }
+
+            if (evil && other)
+            {
+                return true;
+            }
         }
 
         return false;

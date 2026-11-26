@@ -41,8 +41,16 @@ public static class CreatureActivityRules
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-management.md")]
     public static int Code(CreatureDef definition, CreatureState creature)
     {
-        if (creature.Mood == CreatureMood.Unhappy) return Unhappy;
-        if (creature.Mood == CreatureMood.Angry) return Angry;
+        if (creature.Mood == CreatureMood.Unhappy)
+        {
+            return Unhappy;
+        }
+
+        if (creature.Mood == CreatureMood.Angry)
+        {
+            return Angry;
+        }
+
         return JobCode(definition, creature);
     }
 
@@ -53,9 +61,15 @@ public static class CreatureActivityRules
     {
         CreatureStateCategory category = NeedRules.ResolvedCategory(creature);
         if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+        {
             return (int)category < ByCategory.Length ? ByCategory[(int)category] : 0;
+        }
 
-        if (creature.WorkerIdle || creature.LastTaskKind == ImpTaskKind.Reinforce) return Slappable;
+        if (creature.WorkerIdle || creature.LastTaskKind == ImpTaskKind.Reinforce)
+        {
+            return Slappable;
+        }
+
         return category == CreatureStateCategory.Combat ? WorkerFighting : WorkerBusy;
     }
 }

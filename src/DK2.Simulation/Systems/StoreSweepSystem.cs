@@ -52,7 +52,9 @@ public sealed class StoreSweepSystem : IRoomTickStep
     {
         Sparkle(context, room, _pile);
         if (_sweepTurn && PlayerIds.IsKeeper(room.OwnerPlayerId) && Sweeps(context.World, context.Database, room))
+        {
             Sweep(context, room);
+        }
     }
 
     /// <summary>A Treasury, or a Heart that is not a ruin: the rooms whose update
@@ -72,11 +74,19 @@ public sealed class StoreSweepSystem : IRoomTickStep
     /// back in the store on landing (state 5, ADR-0613).</summary>
     private static void Sparkle(SimulationContext context, RoomInstance room, ObjectDef? pile)
     {
-        if (context.Rng.NextInt(100) >= SparkleRoomChance || pile is not { IsGold: true }) return;
+        if (context.Rng.NextInt(100) >= SparkleRoomChance || pile is not { IsGold: true })
+        {
+            return;
+        }
+
         WorldState world = context.World;
         foreach (int tile in SlabChain.Order(world, room))
         {
-            if (world.TileAtIndex(tile).GoldHeld <= 0 || context.Rng.NextInt(100) >= SparklePileChance) continue;
+            if (world.TileAtIndex(tile).GoldHeld <= 0 || context.Rng.NextInt(100) >= SparklePileChance)
+            {
+                continue;
+            }
+
             context.RequestEffect("store sparkle", ViewEffectRequest.AtTileCentre(new EffectId(pile.IdleEffectId),
                 room.OwnerPlayerId, world.TilePosition(tile), new Fp32(StoreFloorHeight + pile.Height.Raw)));
         }
@@ -91,7 +101,13 @@ public sealed class StoreSweepSystem : IRoomTickStep
             // The tile's chain, head first: the newest link first (0x004B5020).
             onTile.Clear();
             foreach (ObjectState thing in world.Objects)
-                if (IsLoosePile(thing) && thing.TileLink.TileIndex == tile) onTile.Add(thing);
+            {
+                if (IsLoosePile(thing) && thing.TileLink.TileIndex == tile)
+                {
+                    onTile.Add(thing);
+                }
+            }
+
             onTile.Sort((a, b) => b.TileLink.Order.CompareTo(a.TileLink.Order));
 
             foreach (ObjectState pile in onTile)
@@ -112,9 +128,17 @@ public sealed class StoreSweepSystem : IRoomTickStep
     /// Heart always sweeps.</summary>
     private static bool Sweeps(WorldState world, GameDatabase database, RoomInstance room)
     {
-        if (room.Definition.TypeId != RoomTypeId.Treasury) return true;
+        if (room.Definition.TypeId != RoomTypeId.Treasury)
+        {
+            return true;
+        }
+
         long held = 0;
-        foreach (int tile in room.TileIndices) held += world.TileAtIndex(tile).GoldHeld;
+        foreach (int tile in room.TileIndices)
+        {
+            held += world.TileAtIndex(tile).GoldHeld;
+        }
+
         return held < (long)room.TileIndices.Count * database[VariableTypeId.MaxGoldPerTreasuryTile];
     }
 
@@ -126,8 +150,13 @@ public sealed class StoreSweepSystem : IRoomTickStep
     private static bool AnyLoosePileInAStore(WorldState world, GameDatabase database)
     {
         foreach (ObjectState thing in world.Objects)
+        {
             if (IsLoosePile(thing) && GoldStore.Capacity(database, world.TileAtIndex(thing.TileIndex)) > 0)
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 }

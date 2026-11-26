@@ -45,7 +45,11 @@ public sealed partial class TempleSacrificeState
 
     internal SacrificeIngredient Newest(int offset)
     {
-        if ((uint)offset >= (uint)Count) throw new ArgumentOutOfRangeException(nameof(offset));
+        if ((uint)offset >= (uint)Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset));
+        }
+
         int index = (NextInsertionIndex - 1 - offset + Capacity * 2) % Capacity;
         return _entries[index];
     }
@@ -54,7 +58,10 @@ public sealed partial class TempleSacrificeState
     {
         _entries[NextInsertionIndex] = ingredient;
         NextInsertionIndex = (NextInsertionIndex + 1) % Capacity;
-        if (Count < Capacity) Count++;
+        if (Count < Capacity)
+        {
+            Count++;
+        }
     }
 
     internal void Clear()
@@ -67,7 +74,9 @@ public sealed partial class TempleSacrificeState
     internal void Restore(int count, int nextInsertionIndex, SacrificeIngredient[] entries)
     {
         if ((uint)count > Capacity || (uint)nextInsertionIndex >= Capacity || entries.Length != Capacity)
+        {
             throw new InvalidDataException("Invalid Temple sacrifice history in snapshot.");
+        }
 
         Count = count;
         NextInsertionIndex = nextInsertionIndex;
@@ -80,6 +89,9 @@ public sealed partial class TempleSacrificeState
         hash.Add(OwnerPlayerId);
         hash.Add(Count);
         hash.Add(NextInsertionIndex);
-        foreach (SacrificeIngredient entry in _entries) entry.HashInto(ref hash);
+        foreach (SacrificeIngredient entry in _entries)
+        {
+            entry.HashInto(ref hash);
+        }
     }
 }

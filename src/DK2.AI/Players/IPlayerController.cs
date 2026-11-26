@@ -31,15 +31,35 @@ public sealed class PlayerDecision
 
     public PlayerDecision(IEnumerable<PlayerAction> actions, int advanceTicks, string reason)
     {
-        if (actions is null) throw new ArgumentNullException(nameof(actions));
+        if (actions is null)
+        {
+            throw new ArgumentNullException(nameof(actions));
+        }
+
         if (advanceTicks <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(advanceTicks), advanceTicks, "A decision advances at least one tick.");
-        if (reason is null) throw new ArgumentNullException(nameof(reason));
+        }
+
+        if (reason is null)
+        {
+            throw new ArgumentNullException(nameof(reason));
+        }
+
         if (reason.Length > MaxReasonLength)
+        {
             throw new ArgumentException($"A reason has at most {MaxReasonLength} characters.", nameof(reason));
+        }
+
         PlayerAction[] copy = actions.ToArray();
         foreach (PlayerAction action in copy)
-            if (action is null) throw new ArgumentException("A decision cannot hold a null action.", nameof(actions));
+        {
+            if (action is null)
+            {
+                throw new ArgumentException("A decision cannot hold a null action.", nameof(actions));
+            }
+        }
+
         Actions = Array.AsReadOnly(copy);
         AdvanceTicks = advanceTicks;
         Reason = reason;

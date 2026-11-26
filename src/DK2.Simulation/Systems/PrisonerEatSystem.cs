@@ -42,16 +42,42 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (creature.Possessed) continue;
-            if (!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) continue;
-            if (TortureRules.IsBeingTortured(creature)) continue;   // on a device, not in a cell
-            if (JailBreakRules.IsEscaping(creature)) continue;      // walking out, in 121 (ADR-0229)
-            if (creature.Dk2StateId == PrisonRules.ReturningState) continue;   // 126 asks no hunger (ADR-0400)
-            if (SlapRules.IsReaction(creature.Dk2StateId)) continue;          // 120's reaction (ADR-0401)
+            if (creature.Possessed)
+            {
+                continue;
+            }
+
+            if (!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature))
+            {
+                continue;
+            }
+
+            if (TortureRules.IsBeingTortured(creature))
+            {
+                continue;   // on a device, not in a cell
+            }
+
+            if (JailBreakRules.IsEscaping(creature))
+            {
+                continue;      // walking out, in 121 (ADR-0229)
+            }
+
+            if (creature.Dk2StateId == PrisonRules.ReturningState)
+            {
+                continue;   // 126 asks no hunger (ADR-0400)
+            }
+
+            if (SlapRules.IsReaction(creature.Dk2StateId))
+            {
+                continue;          // 120's reaction (ADR-0401)
+            }
 
             // In the keeper's hand it is out of the dungeon (ADR-0062); down,
             // it is not walking anywhere and PrisonSystem owns its second.
-            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Down)) continue;
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Down))
+            {
+                continue;
+            }
 
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
             if (!CreatureHealthRules.CanGetHungry(definition))
@@ -70,7 +96,11 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             // 119 holds action 26's first cycle, then searches again in 117.
             if (creature.Dk2StateId == PrisonRules.AfterEatingState)
             {
-                if (context.Tick.Value < creature.ActionUntilTick) continue;
+                if (context.Tick.Value < creature.ActionUntilTick)
+                {
+                    continue;
+                }
+
                 creature.ActionUntilTick = 0;
                 To(context, creature, PrisonRules.SeekingFoodState);
                 continue;
@@ -88,14 +118,21 @@ public sealed class PrisonerEatSystem : ISimulationSystem
             // same entry test the general needs routine uses, and it is asked
             // before the wander - which is why this system is registered above
             // PrisonerWanderSystem.
-            if (!EatingRules.IsHungry(database, definition, creature)) continue;
+            if (!EatingRules.IsHungry(database, definition, creature))
+            {
+                continue;
+            }
 
             // At most one attempt a game second. The general path has the 4 as a
             // literal; the prison reads TimeBetweenReattemptingHungerSeconds,
             // which is 4, and four DK2 ticks is one game second (Q1/Q132). So
             // the number to use is one game second and not the variable's own
             // value read as seconds, which would be four times too slow.
-            if (context.Tick.Value < creature.LastFoodAttemptTick + EatingRules.RetryTicks) continue;
+            if (context.Tick.Value < creature.LastFoodAttemptTick + EatingRules.RetryTicks)
+            {
+                continue;
+            }
+
             creature.LastFoodAttemptTick = context.Tick.Value;
 
             Search(context, creature, definition);
@@ -119,12 +156,23 @@ public sealed class PrisonerEatSystem : ISimulationSystem
 
         // Standing on something that has stopped being a room. PrisonSystem
         // frees it on the same second; there is nothing to search.
-        if (cell is null) return;
+        if (cell is null)
+        {
+            return;
+        }
 
         // 115 decides it is hungry and moves to 117 (ADR-0191); a captive 118 sent
         // back is in 117 already.
-        if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
-        if (creature.Dk2StateId != PrisonRules.SeekingFoodState) To(context, creature, PrisonRules.DecidingState);
+        if (StateShadow.IsTravelling(creature))
+        {
+            StateShadow.Arrive(context, SystemName, creature);
+        }
+
+        if (creature.Dk2StateId != PrisonRules.SeekingFoodState)
+        {
+            To(context, creature, PrisonRules.DecidingState);
+        }
+
         To(context, creature, PrisonRules.SeekingFoodState);
 
         ObjectState? food = EatingRules.NearestFoodIn(world, database, cell, creature.Tile);
@@ -164,7 +212,9 @@ public sealed class PrisonerEatSystem : ISimulationSystem
 
         context.Navigation.TryRoute(creature, new TilePos(x, y), Navigation.MoveOptions.CaptiveSpot);
         if (CreatureStateMachine.HasState(creature))
+        {
             CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, PrisonRules.EatingState);
+        }
 
         context.Emit(SystemName, "prisoner_food_chosen",
             $"creature={creature.Id} type={definition.Name} " +
@@ -200,7 +250,10 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         {
             // Still walking. A route that ran out short of the bird is a failed
             // approach and the search starts again from where it stands.
-            if (creature.HasRoute) return;
+            if (creature.HasRoute)
+            {
+                return;
+            }
 
             BackToTheSearch(context, creature);
             return;
@@ -215,8 +268,14 @@ public sealed class PrisonerEatSystem : ISimulationSystem
     {
         // At the bird: 118, straight from 117 when it was already within reach.
         if (creature.Dk2StateId == PrisonRules.SeekingFoodState)
+        {
             CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, PrisonRules.EatingState);
-        if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
+        }
+
+        if (StateShadow.IsTravelling(creature))
+        {
+            StateShadow.Arrive(context, SystemName, creature);
+        }
 
         // On the food, before it eats, 118 wipes the hunger grievance (0x00486F80(1)).
         CreatureAngerRules.Forget(context.World, definition, creature, AngerBucket.Hunger);
@@ -265,14 +324,22 @@ public sealed class PrisonerEatSystem : ISimulationSystem
         creature.TargetObjectId = EatingRules.NoChicken;
         creature.StopMoving();
 
-        if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
+        if (StateShadow.IsTravelling(creature))
+        {
+            StateShadow.Arrive(context, SystemName, creature);
+        }
+
         To(context, creature, PrisonRules.SeekingFoodState);
     }
 
     /// <summary>A captive state change, for a captive on state ids; a repeat is no move.</summary>
     private static void To(SimulationContext context, CreatureState creature, int state)
     {
-        if (!CreatureStateMachine.HasState(creature) || creature.Dk2StateId == state) return;
+        if (!CreatureStateMachine.HasState(creature) || creature.Dk2StateId == state)
+        {
+            return;
+        }
+
         StateShadow.Move(context, SystemName, creature, state);
     }
 }

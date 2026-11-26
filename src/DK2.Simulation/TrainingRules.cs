@@ -43,12 +43,19 @@ public static class TrainingRules
     /// whether or not 108 is taken); anywhere else 0, idle.</summary>
     internal static bool Return(SimulationContext context, string system, CreatureState creature)
     {
-        if (context.Tick.Value - creature.StateEnteredTick <= 1) return true;
+        if (context.Tick.Value - creature.StateEnteredTick <= 1)
+        {
+            return true;
+        }
+
         WorldState world = context.World;
         if (!world.Contains(creature.Tile)
             || RoomIndex.RoomAt(world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X) is not { } room
             || room.Definition.TypeId != RoomTypeId.TrainingRoom || room.OwnerPlayerId != creature.OwnerPlayerId)
+        {
             return false;
+        }
+
         Systems.StateShadow.TryMove(context, system, creature, WalkToMachineState);
         return true;
     }
@@ -66,10 +73,16 @@ public static class TrainingRules
     public static int ExperiencePerOriginalTick(
         GameDatabase database, CreatureDef creature, CreatureState state)
     {
-        if (!BelowCap(database, state)) return 0;
+        if (!BelowCap(database, state))
+        {
+            return 0;
+        }
 
         int perTick = SimulationTiming.LoaderRatePerTick(creature.ExpPerSecondTraining);
-        if (perTick == 0) return 0;
+        if (perTick == 0)
+        {
+            return 0;
+        }
 
         return CreatureLevelRules.Scale(
             perTick,
@@ -109,9 +122,17 @@ public static class TrainingRules
     /// award truncation of 0x004858B0 before entering the experience adder.</summary>
     internal static void ApplyNonTrainingExperienceLoss(in StateHookContext hooks, CreatureState state)
     {
-        if (NeedRules.ResolvedCategory(state) == CreatureStateCategory.Training) return;
+        if (NeedRules.ResolvedCategory(state) == CreatureStateCategory.Training)
+        {
+            return;
+        }
+
         int amount = -ExperienceLostPerTickWhileNotTraining(hooks.Database);
-        if (amount == 0) return;
+        if (amount == 0)
+        {
+            return;
+        }
+
         CreatureDef definition = hooks.Database.CreatureById(state.CreatureTypeId);
         if (amount > 0)
         {

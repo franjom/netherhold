@@ -43,8 +43,16 @@ public sealed class Dk2Lcg : IRandomAlgorithm
     /// </summary>
     public int NextInt(int exclusiveMax)
     {
-        if (exclusiveMax < 0) throw new ArgumentOutOfRangeException(nameof(exclusiveMax));
-        if (exclusiveMax == 0) return 0;
+        if (exclusiveMax < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(exclusiveMax));
+        }
+
+        if (exclusiveMax == 0)
+        {
+            return 0;
+        }
+
         Seed = Step(Seed);
         uint rotated = (Seed >> 13) | (Seed << 19);
         return (int)(rotated % (uint)exclusiveMax);
@@ -65,7 +73,11 @@ public sealed class Dk2Lcg : IRandomAlgorithm
         uint s = from;
         for (int i = 0; i <= maxSteps; i++)
         {
-            if (s == to) return i;
+            if (s == to)
+            {
+                return i;
+            }
+
             s = Step(s);
         }
         return -1;

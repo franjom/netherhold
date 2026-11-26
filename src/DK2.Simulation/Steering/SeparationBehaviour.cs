@@ -31,13 +31,18 @@ public static class SeparationBehaviour
     {
         if (body.SeparatesUntilArrival && (body.OnLastPoint || body.PathFinished)
             && (body.Pos - body.CurrentPoint).Octile() <= body.Radius + ArrivalSlack)
+        {
             return Fixed16Vector.Zero;
+        }
 
         Scratch.Clear();
         world.CollectNeighbours(body.Pos, Fixed16.Mul(QueryRadii, body.Radius), Scratch);
 
         Fixed16Vector force = Fixed16Vector.Zero;
-        foreach (SteeringNeighbour n in Scratch) force += Push(body, mover.SizeClass, n.Body, n.SizeClass);
+        foreach (SteeringNeighbour n in Scratch)
+        {
+            force += Push(body, mover.SizeClass, n.Body, n.SizeClass);
+        }
 
         SteeringBody? other = world.RelatedBody(mover, out int reachTiles);
         return other == null ? force : force + KeepAway(body, other, reachTiles);
@@ -46,7 +51,10 @@ public static class SeparationBehaviour
     /// <summary>The callback <c>0x004D2B80</c>: one neighbour's contribution to the pusher.</summary>
     public static Fixed16Vector Push(SteeringBody pusher, int pusherSize, SteeringBody neighbour, int neighbourSize)
     {
-        if (ReferenceEquals(pusher, neighbour) || pusher.IsBlocker) return Fixed16Vector.Zero;
+        if (ReferenceEquals(pusher, neighbour) || pusher.IsBlocker)
+        {
+            return Fixed16Vector.Zero;
+        }
 
         Fixed16Vector v = pusher.Pos - neighbour.Pos;
         int distance = v.Octile();
@@ -70,10 +78,16 @@ public static class SeparationBehaviour
     {
         Fixed16Vector v = body.Pos - other.Pos;
         int distance = v.Octile();
-        if (distance == 0) return Fixed16Vector.Zero;
+        if (distance == 0)
+        {
+            return Fixed16Vector.Zero;
+        }
 
         int reach = (reachTiles << 16) + body.Radius;
-        if (distance > reach) return Fixed16Vector.Zero;
+        if (distance > reach)
+        {
+            return Fixed16Vector.Zero;
+        }
 
         int ratio = Fixed16.Div(distance, reach);
         int magnitude = ratio <= SeparationRules.SaturationRatio ? body.MaxForce : SeparationRules.Reciprocal(ratio);

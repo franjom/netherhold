@@ -44,7 +44,11 @@ public sealed class RoomLog
 
     public static RoomLog Read(string path, long lag = 1, long origin = 1)
     {
-        if (path is null) throw new ArgumentNullException(nameof(path));
+        if (path is null)
+        {
+            throw new ArgumentNullException(nameof(path));
+        }
+
         using StreamReader reader = File.OpenText(path);
         return Read(reader, path, lag, origin);
     }
@@ -56,11 +60,16 @@ public sealed class RoomLog
     /// </summary>
     public static RoomLog Read(TextReader reader, string name, long lag = 1, long origin = 1)
     {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
+        if (reader is null)
+        {
+            throw new ArgumentNullException(nameof(reader));
+        }
 
         string? line = reader.ReadLine();
         if (line != Header)
+        {
             throw new InvalidDataException($"'{name}' does not have the room probe's header.");
+        }
 
         var pending = new SortedDictionary<long, List<PlayerCommand>>();
         var placed = new Dictionary<int, HashSet<TilePos>>();
@@ -68,18 +77,32 @@ public sealed class RoomLog
 
         for (int number = 2; (line = reader.ReadLine()) is not null; number++)
         {
-            if (line.Length == 0) continue;
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
             string[] cells = line.Split(',');
             if (cells.Length != 14)
+            {
                 throw new InvalidDataException(
                     $"'{name}' line {number} has {cells.Length} columns; expected 14.");
+            }
 
             var row = Row.Parse(cells, name, number);
             tally.Rows++;
-            if (row.Disowned) tally.Disowned++;
+            if (row.Disowned)
+            {
+                tally.Disowned++;
+            }
+
             long turn = row.Stamp - lag - origin + 1;
             PlayerCommand? command = Translate(row, placed, tally);
-            if (command is null) continue;
+            if (command is null)
+            {
+                continue;
+            }
+
             if (turn < 1)
             {
                 tally.Before++;
@@ -87,7 +110,10 @@ public sealed class RoomLog
             }
 
             if (!pending.TryGetValue(turn, out List<PlayerCommand>? list))
+            {
                 pending[turn] = list = [];
+            }
+
             list.Add(command);
         }
 
@@ -113,12 +139,19 @@ public sealed class RoomLog
     private static PlayerCommand? Translate(
         in Row row, Dictionary<int, HashSet<TilePos>> placed, Counters tally)
     {
-        if (!placed.TryGetValue(row.Room, out HashSet<TilePos>? have)) have = [];
+        if (!placed.TryGetValue(row.Room, out HashSet<TilePos>? have))
+        {
+            have = [];
+        }
 
         if (row.Event == "gone")
         {
             placed.Remove(row.Room);
-            if (have.Count > 0) return new SellRoomCommand(row.Player, Sorted(have));
+            if (have.Count > 0)
+            {
+                return new SellRoomCommand(row.Player, Sorted(have));
+            }
+
             tally.Unsettled++;
             return null;
         }
@@ -137,8 +170,16 @@ public sealed class RoomLog
         TilePos[] lost = [.. have.Where(t => !want.Contains(t))];
         placed[row.Room] = want;
 
-        if (gained.Length > 0) return new BuildRoomCommand(row.Player, (RoomTypeId)row.Type, Sorted(gained));
-        if (lost.Length > 0) return new SellRoomCommand(row.Player, Sorted(lost));
+        if (gained.Length > 0)
+        {
+            return new BuildRoomCommand(row.Player, (RoomTypeId)row.Type, Sorted(gained));
+        }
+
+        if (lost.Length > 0)
+        {
+            return new SellRoomCommand(row.Player, Sorted(lost));
+        }
+
         tally.Unsettled++;
         return null;
     }
@@ -162,8 +203,10 @@ public sealed class RoomLog
                         $"'{name}' line {number} has '{c[i]}' where a number was expected.");
 
             if (c[3] is not ("build" or "grow" or "shrink" or "gone"))
+            {
                 throw new InvalidDataException(
                     $"'{name}' line {number} has event '{c[3]}'; expected build, grow, shrink or gone.");
+            }
 
             return new Row(
                 N(1), (byte)N(13), c[3], (int)N(4), (byte)N(5), (int)N(8),
@@ -187,8 +230,13 @@ public sealed class RoomLog
         {
             var tiles = new List<TilePos>();
             for (int y = Math.Min(Y0, Y1); y <= Math.Max(Y0, Y1); y++)
+            {
                 for (int x = Math.Min(X0, X1); x <= Math.Max(X0, X1); x++)
+                {
                     tiles.Add(new TilePos(x, y));
+                }
+            }
+
             return [.. tiles];
         }
     }

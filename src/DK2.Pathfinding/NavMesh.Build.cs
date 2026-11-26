@@ -16,7 +16,11 @@ public sealed partial class NavMesh
     /// partial-rebuild flag (`0x004CEC10`), and a whole-map rebuild never reaches it.</summary>
     public static NavMesh Build(INavByteGrid grid)
     {
-        if (grid is null) throw new ArgumentNullException(nameof(grid));
+        if (grid is null)
+        {
+            throw new ArgumentNullException(nameof(grid));
+        }
+
         var mesh = new NavMesh();
         mesh.Reset(CanvasMin, CanvasMin, CanvasMax, CanvasMax);
         mesh.InsertRectangle(0, 0, grid.Width, grid.Height, NavBytes.Floor);
@@ -42,20 +46,38 @@ public sealed partial class NavMesh
         {
             for (int rx = x0; rx < x1; rx++)
             {
-                if (covered[(ry * w) + rx]) continue;
+                if (covered[(ry * w) + rx])
+                {
+                    continue;
+                }
+
                 byte nav = grid.NavByte(rx, ry);
 
                 int ex = rx;
-                while (ex + 1 < x1 && !covered[(ry * w) + ex + 1] && grid.NavByte(ex + 1, ry) == nav) ex++;
+                while (ex + 1 < x1 && !covered[(ry * w) + ex + 1] && grid.NavByte(ex + 1, ry) == nav)
+                {
+                    ex++;
+                }
 
                 int ey = ry;
-                while (ey + 1 < y1 && RowMatches(grid, covered, rx, ex, ey + 1, nav)) ey++;
+                while (ey + 1 < y1 && RowMatches(grid, covered, rx, ex, ey + 1, nav))
+                {
+                    ey++;
+                }
 
                 for (int y = ry; y <= ey; y++)
+                {
                     for (int x = rx; x <= ex; x++)
+                    {
                         covered[(y * w) + x] = true;
+                    }
+                }
 
-                if (skipFloor && nav == NavBytes.Floor) continue;
+                if (skipFloor && nav == NavBytes.Floor)
+                {
+                    continue;
+                }
+
                 InsertRectangle(rx, ry, ex + 1, ey + 1, nav);
                 CoarsenRectangle(rx, ry, ex + 1, ey + 1);
             }
@@ -65,7 +87,13 @@ public sealed partial class NavMesh
     private static bool RowMatches(INavByteGrid grid, bool[] covered, int x0, int x1, int y, byte nav)
     {
         for (int x = x0; x <= x1; x++)
-            if (covered[(y * grid.Width) + x] || grid.NavByte(x, y) != nav) return false;
+        {
+            if (covered[(y * grid.Width) + x] || grid.NavByte(x, y) != nav)
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -89,11 +117,20 @@ public sealed partial class NavMesh
         // a triangle with a vertex outside. A scan of every slot stamps the same set.
         int start = -1;
         foreach (int t in Fan(a))
+        {
             if (AllInside(t, x0, y0, x1, y1)) { start = t; break; }
+        }
+
         if (start < 0)
         {
             for (int t = 0; t < _triCount; t++)
-                if (IsTriangleLive(t) && AllInside(t, x0, y0, x1, y1)) Stamp(t, nav);
+            {
+                if (IsTriangleLive(t) && AllInside(t, x0, y0, x1, y1))
+                {
+                    Stamp(t, nav);
+                }
+            }
+
             return;
         }
 
@@ -102,7 +139,11 @@ public sealed partial class NavMesh
             Array.Clear(_filled, 0, _filled.Length);
             _fillGeneration = 1;
         }
-        if (_filled.Length < _triCount) Array.Resize(ref _filled, _nav.Length);
+        if (_filled.Length < _triCount)
+        {
+            Array.Resize(ref _filled, _nav.Length);
+        }
+
         _fill.Clear();
         _fill.Add(start);
         _filled[start] = _fillGeneration;
@@ -114,7 +155,11 @@ public sealed partial class NavMesh
             for (int i = 0; i < 3; i++)
             {
                 int n = Neighbour(t, i);
-                if (n == NoNeighbour || _filled[n] == _fillGeneration || !AllInside(n, x0, y0, x1, y1)) continue;
+                if (n == NoNeighbour || _filled[n] == _fillGeneration || !AllInside(n, x0, y0, x1, y1))
+                {
+                    continue;
+                }
+
                 _filled[n] = _fillGeneration;
                 _fill.Add(n);
             }
@@ -144,31 +189,61 @@ public sealed partial class NavMesh
     /// the partial rebuild's side marker sets them (§2.2). Both ends must be vertices.</summary>
     public void InsertConstraint(int pa, int pb)
     {
-        if (pa == pb) return;
+        if (pa == pb)
+        {
+            return;
+        }
+
         InsertConstraint(_px[pa], _py[pa], _px[pb], _py[pb]);
     }
 
     private void InsertConstraint(int ax, int ay, int bx, int by)
     {
-        if (ax == bx && ay == by) return;
+        if (ax == bx && ay == by)
+        {
+            return;
+        }
+
         int cx = ax, cy = ay, tx = bx, ty = by;
-        if (!TryLocateVertex(tx, ty, out int tri, out int ourSlot)) return;
+        if (!TryLocateVertex(tx, ty, out int tri, out int ourSlot))
+        {
+            return;
+        }
+
         int s = DkV(ourSlot);
         for (int pass = 0; ; pass++)
         {
-            if (pass > 64) throw new InvalidOperationException($"constraint ({ax},{ay})-({bx},{by}) never became an edge");
-            if (!TryLocateVertex(cx, cy, out _, out _)) return;
+            if (pass > 64)
+            {
+                throw new InvalidOperationException($"constraint ({ax},{ay})-({bx},{by}) never became an edge");
+            }
+
+            if (!TryLocateVertex(cx, cy, out _, out _))
+            {
+                return;
+            }
 
             int cur = tri, k = DkV(s);
-            if (!TurnFan(ref cur, ref k, (long)cx * UnitsPerTile, (long)cy * UnitsPerTile)) return;
+            if (!TurnFan(ref cur, ref k, (long)cx * UnitsPerTile, (long)cy * UnitsPerTile))
+            {
+                return;
+            }
+
             int ds = DkV(k);
             int e = Next(ds);
             int tw = cur;
             int across = DkVertex(cur, e);
-            if (_px[across] == cx && _py[across] == cy) return;
+            if (_px[across] == cx && _py[across] == cy)
+            {
+                return;
+            }
 
             int u = DkNeighbour(cur, ds);
-            if (u == NoNeighbour) return;
+            if (u == NoNeighbour)
+            {
+                return;
+            }
+
             int bu = DkBack(u, cur);
             int far = DkVertex(u, bu);
             if (Orient(tx, ty, cx, cy, _px[far], _py[far]) == 0)
@@ -182,9 +257,17 @@ public sealed partial class NavMesh
             int guard = 0;
             do
             {
-                if (++guard > (4 * _triCount) + 64) throw new InvalidOperationException($"constraint ({ax},{ay})-({bx},{by}) walks without end");
+                if (++guard > (4 * _triCount) + 64)
+                {
+                    throw new InvalidOperationException($"constraint ({ax},{ay})-({bx},{by}) walks without end");
+                }
+
                 int v = DkNeighbour(tw, e);
-                if (v == NoNeighbour) return;
+                if (v == NoNeighbour)
+                {
+                    return;
+                }
+
                 int bv = DkBack(v, tw);
                 e = Next(bv);
                 int apex = DkVertex(v, Prev(bv));
@@ -193,7 +276,11 @@ public sealed partial class NavMesh
                 if (Orient(tx, ty, cx, cy, apexX, apexY) >= 0)
                 {
                     int beyond = DkNeighbour(v, e);
-                    if (beyond == NoNeighbour) return;
+                    if (beyond == NoNeighbour)
+                    {
+                        return;
+                    }
+
                     int bb = DkBack(beyond, v);
                     int p1 = DkVertex(beyond, bb);
                     int v2 = DkVertex(u, Next(bu)), v1 = DkVertex(u, bu);
@@ -209,7 +296,11 @@ public sealed partial class NavMesh
                 tw = v;
             } while (apexX != cx || apexY != cy);
 
-            if (!TryLocateVertex(cx, cy, out tri, out ourSlot)) return;
+            if (!TryLocateVertex(cx, cy, out tri, out ourSlot))
+            {
+                return;
+            }
+
             s = DkV(ourSlot);
             (cx, cy, tx, ty) = (tx, ty, cx, cy);
         }
@@ -223,30 +314,53 @@ public sealed partial class NavMesh
     private bool FlipSweep(int t, int s, int target)
     {
         int n = DkNeighbour(t, s);
-        if (n == NoNeighbour) return false;
+        if (n == NoNeighbour)
+        {
+            return false;
+        }
+
         for (int round = 0; ; round++)
         {
-            if (round > 64) throw new InvalidOperationException("the constraint flip sweep did not settle");
+            if (round > 64)
+            {
+                throw new InvalidOperationException("the constraint flip sweep did not settle");
+            }
+
             int b = DkBack(n, t);
             int e = Next(b);
             int fails = 0, flips = 0, cur = n;
             for (int guard = 0; DkNeighbour(cur, e) != target; guard++)
             {
-                if (guard > (4 * _triCount) + 64) throw new InvalidOperationException("the constraint flip sweep walks without end");
+                if (guard > (4 * _triCount) + 64)
+                {
+                    throw new InvalidOperationException("the constraint flip sweep walks without end");
+                }
+
                 if (TryFlip(cur, DkE(e)))
                 {
                     flips++;
                     continue;
                 }
                 int m = DkNeighbour(cur, e);
-                if (m == NoNeighbour || m == t) return false;
+                if (m == NoNeighbour || m == t)
+                {
+                    return false;
+                }
+
                 e = Next(DkBack(m, cur));
                 fails++;
                 cur = m;
             }
-            if (fails == 0 || flips == 0) return true;
+            if (fails == 0 || flips == 0)
+            {
+                return true;
+            }
+
             n = DkNeighbour(t, s);
-            if (n == NoNeighbour) return false;
+            if (n == NoNeighbour)
+            {
+                return false;
+            }
         }
     }
 
@@ -266,9 +380,16 @@ public sealed partial class NavMesh
     {
         c = d = -1;
         int u = Neighbour(t, k);
-        if (u == NoNeighbour || IsConstraint(t, k)) return false;
+        if (u == NoNeighbour || IsConstraint(t, k))
+        {
+            return false;
+        }
+
         int j = SlotToward(u, t);
-        if (IsConstraint(u, j)) return false;
+        if (IsConstraint(u, j))
+        {
+            return false;
+        }
 
         // The original clears each triangle's next edge (its diagonal to be) and moves the other
         // outer edge's bit onto the shared slot; its next edges are our previous ones.
@@ -282,7 +403,10 @@ public sealed partial class NavMesh
         c = Vertex(t, Prev(k));
         d = Vertex(u, Prev(j));
         if (Orient(_px[c], _py[c], _px[d], _py[d], _px[a], _py[a]) *
-            Orient(_px[c], _py[c], _px[d], _py[d], _px[b], _py[b]) >= 0) return false;
+            Orient(_px[c], _py[c], _px[d], _py[d], _px[b], _py[b]) >= 0)
+        {
+            return false;
+        }
 
         // t becomes (d, b, c): its slot k holds the segment d-b that was u's previous edge, its
         // previous slot the new diagonal (c, d). u becomes (c, a, d): its slot j holds c-a, which was
@@ -291,10 +415,18 @@ public sealed partial class NavMesh
         SetVertex(t, k, d);
         SetVertex(u, j, c);
         _n[(3 * t) + k] = nDb;
-        if (nDb != NoNeighbour) _n[(3 * nDb) + SlotToward(nDb, u)] = t;
+        if (nDb != NoNeighbour)
+        {
+            _n[(3 * nDb) + SlotToward(nDb, u)] = t;
+        }
+
         _n[(3 * t) + Prev(k)] = u;
         _n[(3 * u) + j] = nCa;
-        if (nCa != NoNeighbour) _n[(3 * nCa) + SlotToward(nCa, t)] = u;
+        if (nCa != NoNeighbour)
+        {
+            _n[(3 * nCa) + SlotToward(nCa, t)] = u;
+        }
+
         _n[(3 * u) + Prev(j)] = t;
         _pointTri[b] = t; _pointTri[c] = t; _pointTri[a] = u; _pointTri[d] = u;
         return true;
@@ -315,7 +447,11 @@ public sealed partial class NavMesh
     /// the stack holds about 996 entries, keeping the flip just made. Returns the hit count.</summary>
     public int CoarsenRectangle(int x0, int y0, int x1, int y1)
     {
-        if (_floodStamp.Length < _nav.Length) Array.Resize(ref _floodStamp, _nav.Length);
+        if (_floodStamp.Length < _nav.Length)
+        {
+            Array.Resize(ref _floodStamp, _nav.Length);
+        }
+
         if (++_floodGeneration == int.MaxValue)
         {
             Array.Clear(_floodStamp, 0, _floodStamp.Length);
@@ -336,11 +472,22 @@ public sealed partial class NavMesh
             _flood.RemoveAt(_flood.Count - 1);
             for (int k = 2; k >= 0; k--)
             {
-                if (!ShouldFlip(t, k)) continue;
+                if (!ShouldFlip(t, k))
+                {
+                    continue;
+                }
+
                 hits++;
                 TryFlip(t, k);
-                if (_flood.Count + 4 > 999) return hits;
-                for (int i = 2; i >= 0; i--) PushFlood(Neighbour(t, i));
+                if (_flood.Count + 4 > 999)
+                {
+                    return hits;
+                }
+
+                for (int i = 2; i >= 0; i--)
+                {
+                    PushFlood(Neighbour(t, i));
+                }
             }
         }
         return hits;
@@ -348,7 +495,11 @@ public sealed partial class NavMesh
 
     private void PushFlood(int t)
     {
-        if (t == NoNeighbour || !IsTriangleLive(t) || _floodStamp[t] == _floodGeneration || NavBytes.IsSolid(_nav[t])) return;
+        if (t == NoNeighbour || !IsTriangleLive(t) || _floodStamp[t] == _floodGeneration || NavBytes.IsSolid(_nav[t]))
+        {
+            return;
+        }
+
         _floodStamp[t] = _floodGeneration;
         _flood.Add(t);
     }
@@ -357,17 +508,33 @@ public sealed partial class NavMesh
     private void Seed(int x, int y)
     {
         int t = Locate(x * UnitsPerTile, y * UnitsPerTile);
-        if (t < 0) return;
+        if (t < 0)
+        {
+            return;
+        }
+
         PushFlood(t);
-        for (int i = 2; i >= 0; i--) PushFlood(Neighbour(t, i));
-        if (!TryLocateVertex(x, y, out int start, out int slot)) return;
+        for (int i = 2; i >= 0; i--)
+        {
+            PushFlood(Neighbour(t, i));
+        }
+
+        if (!TryLocateVertex(x, y, out int start, out int slot))
+        {
+            return;
+        }
+
         int prev = start;
         int nb = Neighbour(start, EdgeLeaving(slot));
         while (nb != NoNeighbour)
         {
             int back = SlotToward(nb, prev);
             PushFlood(nb);
-            if (nb == start) return;
+            if (nb == start)
+            {
+                return;
+            }
+
             prev = nb;
             nb = Neighbour(nb, EdgeLeaving(back));
         }
@@ -383,13 +550,19 @@ public sealed partial class NavMesh
     private bool ShouldFlip(int t, int edge)
     {
         int u = Neighbour(t, edge);
-        if (u == NoNeighbour || _nav[u] != _nav[t]) return false;
+        if (u == NoNeighbour || _nav[u] != _nav[t])
+        {
+            return false;
+        }
 
         int a = Vertex(t, edge), b = Vertex(t, (edge + 1) % 3);
         int c = Vertex(t, (edge + 2) % 3);
         int d = Vertex(u, Prev(SlotToward(u, t)));
         if (Orient(_px[c], _py[c], _px[d], _py[d], _px[a], _py[a]) *
-            Orient(_px[c], _py[c], _px[d], _py[d], _px[b], _py[b]) >= 0) return false;
+            Orient(_px[c], _py[c], _px[d], _py[d], _px[b], _py[b]) >= 0)
+        {
+            return false;
+        }
 
         long nx = _px[d] - _px[c], ny = _py[d] - _py[c];
         long ox = _px[b] - _px[a], oy = _py[b] - _py[a];
@@ -405,7 +578,14 @@ public sealed partial class NavMesh
 
     private int IndexOf(int t, int p)
     {
-        for (int i = 0; i < 3; i++) if (Vertex(t, i) == p) return i;
+        for (int i = 0; i < 3; i++)
+        {
+            if (Vertex(t, i) == p)
+            {
+                return i;
+            }
+        }
+
         return -1;
     }
 }

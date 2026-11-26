@@ -24,7 +24,11 @@ public sealed class TrapSystem : ISimulationSystem
     {
         WorldState world = context.World;
         TrapRules.RelinkCreatures(world);
-        if (world.Traps.Count == 0) return;
+        if (world.Traps.Count == 0)
+        {
+            return;
+        }
+
         context.Navigation.Refresh();
         if (!ReferenceEquals(_sightWorld, world))
         {
@@ -37,7 +41,9 @@ public sealed class TrapSystem : ISimulationSystem
         {
             TrapState trap = traps[i];
             if (context.Database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition))
+            {
                 TrapRules.Update(context, _sight!, trap, definition, _rooms);
+            }
         }
     }
 }
@@ -54,6 +60,11 @@ public sealed class TrapRemovalSystem : ISimulationSystem
     {
         IReadOnlyList<TrapState> traps = context.World.Traps;
         for (int i = traps.Count - 1; i >= 0; i--)
-            if (TrapRules.IsDead(traps[i])) TrapRules.Remove(context, traps[i]);
+        {
+            if (TrapRules.IsDead(traps[i]))
+            {
+                TrapRules.Remove(context, traps[i]);
+            }
+        }
     }
 }

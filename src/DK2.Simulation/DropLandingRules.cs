@@ -62,8 +62,16 @@ public static class DropLandingRules
         var target = new TilePos(x >> 12, y >> 12);
         WorldState world = context.World;
         if (!world.Contains(target) || !world.Contains(creature.Tile)
-            || (context.Database.TerrainById(world.Tile(target).TerrainId).Flags & TerrainFlags.Solid) != 0) return;
-        if (FloorSlot(context, creature.Tile) != FloorSlot(context, target)) return;
+            || (context.Database.TerrainById(world.Tile(target).TerrainId).Flags & TerrainFlags.Solid) != 0)
+        {
+            return;
+        }
+
+        if (FloorSlot(context, creature.Tile) != FloorSlot(context, target))
+        {
+            return;
+        }
+
         creature.PosX = creature.LastPosX = x;
         creature.PosY = creature.LastPosY = y;
         creature.LastPosZ = creature.PosZ;
@@ -120,9 +128,16 @@ public static class DropLandingRules
             if (type is RoomTypeId.Portal or RoomTypeId.HeroPortal)
             {
                 StateShadow.ToIdle(context, system, creature);
-                if (creature.CasinoBigWinnerTicks != 0) return;
+                if (creature.CasinoBigWinnerTicks != 0)
+                {
+                    return;
+                }
+
                 if (StateShadow.TryMove(context, system, creature, LeavingRules.PortalDropState))
+                {
                     creature.DroppedToDoJob = JobType.None;
+                }
+
                 return;
             }
             // The Combat Pit's drop state, 137: through 1, and on the rim 138 then makes a spectator.
@@ -130,7 +145,10 @@ public static class DropLandingRules
             {
                 StateShadow.ToIdle(context, system, creature);
                 if (CombatPitSystem.Move(context, creature, CombatPitRules.ArrivingState))
+                {
                     context.Emit(system, "dropped_to_job", $"creature={creature.Id} job=CombatPit at=({creature.Tile.X},{creature.Tile.Y})");
+                }
+
                 return;
             }
 
@@ -208,7 +226,11 @@ public static class DropLandingRules
         }
         if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
         {
-            if (!StateShadow.TryMove(context, system, creature, PaydayRules.ArrivingState)) StateShadow.ToIdle(context, system, creature);
+            if (!StateShadow.TryMove(context, system, creature, PaydayRules.ArrivingState))
+            {
+                StateShadow.ToIdle(context, system, creature);
+            }
+
             return;
         }
 
@@ -221,7 +243,10 @@ public static class DropLandingRules
             // A refused 11 falls through to 188 (0x0045928E), as a non-worker's would.
             if (!StateShadow.TryMove(context, system, creature, WorkerAfterDropState)
                 && !StateShadow.TryMove(context, system, creature, PaydayRules.ArrivingState))
+            {
                 StateShadow.ToIdle(context, system, creature);
+            }
+
             return;
         }
 
@@ -238,7 +263,11 @@ public static class DropLandingRules
     /// Returns the amount credited before the clamp, or 0 for an owner with no player.</summary>
     public static int CreditWorkerGivenBack(WorldState world, GameDatabase database, PlayerId owner)
     {
-        if (!world.HasPlayer(owner)) return 0;
+        if (!world.HasPlayer(owner))
+        {
+            return 0;
+        }
+
         int refund = database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost;
         ref PlayerState player = ref world.Player(owner);
         player.Mana = Math.Min(player.Mana + refund, ManaRules.Threshold(database));

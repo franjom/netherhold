@@ -36,8 +36,17 @@ public static class WalkerResetRules
         // Chosen first: a kick runs the leave and enter hooks, which must not edit the list being walked.
         List<CreatureState>? walkers = null;
         foreach (CreatureState creature in world.OwnedCreatures(player))
-            if (Resets(creature)) (walkers ??= []).Add(creature);
-        if (walkers is null) return;
+        {
+            if (Resets(creature))
+            {
+                (walkers ??= []).Add(creature);
+            }
+        }
+
+        if (walkers is null)
+        {
+            return;
+        }
 
         foreach (CreatureState creature in walkers)
         {

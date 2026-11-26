@@ -28,10 +28,17 @@ public sealed class BlueprintSystem : ISimulationSystem
                     BlueprintPlacementRules.PlaceTrap(context.World, context.Database, trap.Tile, trap.PlayerId, trap.TrapId)),
                 _ => ("", default, (byte)0, BlueprintPlacementRules.Verdict.NoSuchType),
             };
-            if (kind.Length == 0) continue;
+            if (kind.Length == 0)
+            {
+                continue;
+            }
+
             context.Emit(SystemName, verdict == BlueprintPlacementRules.Verdict.Allowed ? "blueprint_placed" : "blueprint_refused",
                 $"player={command.PlayerId} kind={kind} type={type} at=({at.X},{at.Y}) reason={verdict}");
-            if (verdict != BlueprintPlacementRules.Verdict.Allowed) continue;
+            if (verdict != BlueprintPlacementRules.Verdict.Allowed)
+            {
+                continue;
+            }
             // The price just paid floats up from the tile's centre at height 0 (0x004C3519, 0x004C3918).
             int price = command is PlaceDoorCommand ? context.Database.Doors[type].GoldCost : context.Database.Traps[type].GoldCost;
             CostNumberRules.Show(context, SystemName, command.PlayerId, CostNumberRules.TileCentre(at, 0), price);

@@ -41,14 +41,35 @@ public sealed class KeeperReadiness
         foreach (KeeperCreatureView creature in NonWorkers())
         {
             total++;
-            if (LevelOf(creature) < skill) below++;
+            if (LevelOf(creature) < skill)
+            {
+                below++;
+            }
         }
-        if (total <= _p.IAMinimumCreatures) return false;
+        if (total <= _p.IAMinimumCreatures)
+        {
+            return false;
+        }
+
         if (below <= skill && below < total)
+        {
             foreach (KeeperCreatureView creature in NonWorkers())
-                if (LevelOf(creature) < skill) Grant(creature);
+            {
+                if (LevelOf(creature) < skill)
+                {
+                    Grant(creature);
+                }
+            }
+        }
+
         foreach (KeeperCreatureView creature in NonWorkers())
-            if (LevelOf(creature) < skill) return false;
+        {
+            if (LevelOf(creature) < skill)
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -60,7 +81,11 @@ public sealed class KeeperReadiness
     private void Grant(KeeperCreatureView creature)
     {
         int level = LevelOf(creature);
-        if (level >= CreatureLevelRules.MaxLevel || creature.Health <= 0) return;
+        if (level >= CreatureLevelRules.MaxLevel || creature.Health <= 0)
+        {
+            return;
+        }
+
         _commands.Add(new GrantCreatureLevelCommand(_view.PlayerId, creature.Id));
         _granted[creature.Id] = level + 1;
     }

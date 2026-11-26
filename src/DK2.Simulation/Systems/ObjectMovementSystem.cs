@@ -13,18 +13,32 @@ public sealed class ObjectMovementSystem : ISimulationSystem
     public string Name => "ObjectMovement";
     public void Execute(SimulationContext context)
     {
-        if (context.World.Objects.Any(o => o.ObjectTypeId == RatRules.RatObjectId)) context.Navigation.Refresh();
+        if (context.World.Objects.Any(o => o.ObjectTypeId == RatRules.RatObjectId))
+        {
+            context.Navigation.Refresh();
+        }
+
         for (int i = context.World.Objects.Count - 1; i >= 0; i--)
         {
             ObjectState thing = context.World.Objects[i];
             // State 18 (0x004A13F0) is an object process like the others, dispatched by state whatever the type
             // and run in the same pass in thing order (0x0049BD20): its first random(2) falls among the birds' draws (Q803).
             if (thing.ProcessState == ObjectReactionRules.StruckProcess && !thing.InHand && thing.CarriedByCreatureId < 0)
+            {
                 ObjectReactionRules.Step(context, thing);
-            else if (thing.ObjectTypeId == RatRules.RatObjectId) RatRules.Tick(context, thing);
-            else if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId) ChickenMovementRules.Tick(context, thing);
+            }
+            else if (thing.ObjectTypeId == RatRules.RatObjectId)
+            {
+                RatRules.Tick(context, thing);
+            }
+            else if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId)
+            {
+                ChickenMovementRules.Tick(context, thing);
+            }
             else if (thing.ObjectTypeId is HatcheryRules.EggObjectId or HatcheryRules.CoopObjectId)
+            {
                 HatcherySystem.StepObject(context, thing);
+            }
         }
     }
 }

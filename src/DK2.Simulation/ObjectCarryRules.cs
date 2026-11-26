@@ -32,10 +32,26 @@ public static class ObjectCarryRules
     /// carried what DK2 leaves alone and never carried what DK2 carries.</remarks>
     public static RoomTypeId? HomeRoomFor(GameDatabase database, byte objectTypeId)
     {
-        if (database.ObjectById(objectTypeId) is not { } definition) return null;
-        if (((definition.Flags & ObjectFlags.TypeSpellBook) == ObjectFlags.TypeSpellBook)) return RoomTypeId.Library;
-        if (((definition.Flags & ObjectFlags.TypeSpecial) == ObjectFlags.TypeSpecial)) return RoomTypeId.Library;
-        if (((definition.Flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate)) return RoomTypeId.Workshop;
+        if (database.ObjectById(objectTypeId) is not { } definition)
+        {
+            return null;
+        }
+
+        if (((definition.Flags & ObjectFlags.TypeSpellBook) == ObjectFlags.TypeSpellBook))
+        {
+            return RoomTypeId.Library;
+        }
+
+        if (((definition.Flags & ObjectFlags.TypeSpecial) == ObjectFlags.TypeSpecial))
+        {
+            return RoomTypeId.Library;
+        }
+
+        if (((definition.Flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate))
+        {
+            return RoomTypeId.Workshop;
+        }
+
         return null;
     }
 
@@ -61,12 +77,35 @@ public static class ObjectCarryRules
     public static bool CanCarry(
         GameDatabase database, CreatureDef definition, CreatureState worker, ObjectState thing)
     {
-        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return false;
-        if (worker.CarriedObjectId >= 0) return false;
-        if (worker.CarriedCreatureId >= 0) return false;
-        if (worker.GoldHeld > 0) return false;
-        if (HandRules.IsHeld(worker) || CreatureDeathRules.IsDown(worker)) return false;
-        if (PrisonRules.IsImprisoned(worker)) return false;
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+        {
+            return false;
+        }
+
+        if (worker.CarriedObjectId >= 0)
+        {
+            return false;
+        }
+
+        if (worker.CarriedCreatureId >= 0)
+        {
+            return false;
+        }
+
+        if (worker.GoldHeld > 0)
+        {
+            return false;
+        }
+
+        if (HandRules.IsHeld(worker) || CreatureDeathRules.IsDown(worker))
+        {
+            return false;
+        }
+
+        if (PrisonRules.IsImprisoned(worker))
+        {
+            return false;
+        }
 
         return IsLoose(database, thing);
     }
@@ -85,17 +124,30 @@ public static class ObjectCarryRules
 
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.OwnerPlayerId != playerId) continue;
-            if (room.Definition.TypeId != type) continue;
+            if (room.OwnerPlayerId != playerId)
+            {
+                continue;
+            }
+
+            if (room.Definition.TypeId != type)
+            {
+                continue;
+            }
 
             foreach (int tileIndex in room.TileIndices)
             {
-                if (ObjectOn(world, tileIndex) is not null) continue;
+                if (ObjectOn(world, tileIndex) is not null)
+                {
+                    continue;
+                }
 
                 long dx = (tileIndex % world.Width) - from.X;
                 long dy = (tileIndex / world.Width) - from.Y;
                 long distance = (dx * dx) + (dy * dy);
-                if (distance >= bestDistance) continue;
+                if (distance >= bestDistance)
+                {
+                    continue;
+                }
 
                 bestDistance = distance;
                 best = tileIndex;
@@ -111,10 +163,20 @@ public static class ObjectCarryRules
         ObjectState? best = null;
         foreach (ObjectState thing in world.Objects)
         {
-            if (thing.TileIndex != tileIndex) continue;
+            if (thing.TileIndex != tileIndex)
+            {
+                continue;
+            }
             // A held object is unlinked from its tile in DK2 (0x004B4F60), so it occupies none.
-            if (thing.CarriedByCreatureId >= 0 || thing.InHand) continue;
-            if (best is null || thing.Id < best.Id) best = thing;
+            if (thing.CarriedByCreatureId >= 0 || thing.InHand)
+            {
+                continue;
+            }
+
+            if (best is null || thing.Id < best.Id)
+            {
+                best = thing;
+            }
         }
         return best;
     }
@@ -125,9 +187,20 @@ public static class ObjectCarryRules
     public static int TryDestinationFor(
         WorldState world, GameDatabase database, CreatureState worker, ObjectState thing)
     {
-        if (HomeRoomFor(database, thing.ObjectTypeId) is not { } type) return -1;
-        if (type != RoomTypeId.Workshop) return FreeTileFor(world, database, worker.OwnerPlayerId, type, worker.Tile);
-        if (WorkshopFor(world, database, worker) is not { } workshop) return -1;
+        if (HomeRoomFor(database, thing.ObjectTypeId) is not { } type)
+        {
+            return -1;
+        }
+
+        if (type != RoomTypeId.Workshop)
+        {
+            return FreeTileFor(world, database, worker.OwnerPlayerId, type, worker.Tile);
+        }
+
+        if (WorkshopFor(world, database, worker) is not { } workshop)
+        {
+            return -1;
+        }
 
         var tiles = new List<int>();
         CrateRules.CrateTiles(world, database, workshop, tiles);
@@ -144,10 +217,22 @@ public static class ObjectCarryRules
         long bestDistance = long.MaxValue;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.OwnerPlayerId != worker.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.Workshop) continue;
-            if (room.TileIndices.Count == 0 || !RoomCapacityRules.HasRoom(world, database, room, units: 0)) continue;
+            if (room.OwnerPlayerId != worker.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.Workshop)
+            {
+                continue;
+            }
+
+            if (room.TileIndices.Count == 0 || !RoomCapacityRules.HasRoom(world, database, room, units: 0))
+            {
+                continue;
+            }
+
             long distance = EatingRules.DistanceSquared(world, worker.Tile, room.TileIndices[0]);
-            if (distance >= bestDistance) continue;
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+
             best = room;
             bestDistance = distance;
         }
@@ -248,7 +333,10 @@ public static class ObjectCarryRules
     public static bool DropWhatever(WorldState world, CreatureState worker)
     {
         worker.TargetObjectId = -1;
-        if (worker.CarriedObjectId < 0) return false;
+        if (worker.CarriedObjectId < 0)
+        {
+            return false;
+        }
 
         ObjectState? thing = world.ObjectById(worker.CarriedObjectId);
         if (thing is null)

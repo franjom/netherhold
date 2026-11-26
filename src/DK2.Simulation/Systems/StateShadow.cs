@@ -28,7 +28,11 @@ internal static class StateShadow
     public static bool TryMove(SimulationContext context, string system, CreatureState creature, int state)
     {
         bool byRule = CreatureStateMachine.Classify(creature, state) == StateTransition.Refused;
-        if (CreatureStateMachine.TrySetState(context.Hooks, creature, state, context.Tick.Value)) return true;
+        if (CreatureStateMachine.TrySetState(context.Hooks, creature, state, context.Tick.Value))
+        {
+            return true;
+        }
+
         Refused(context, system, creature, state, byRule);
         return false;
     }
@@ -38,7 +42,11 @@ internal static class StateShadow
     public static void MoveOrViaIdle(
         SimulationContext context, string system, CreatureState creature, int state)
     {
-        if (CreatureStateMachine.TrySetState(context.Hooks, creature, state, context.Tick.Value)) return;
+        if (CreatureStateMachine.TrySetState(context.Hooks, creature, state, context.Tick.Value))
+        {
+            return;
+        }
+
         CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
         Move(context, system, creature, state);
     }
@@ -47,10 +55,18 @@ internal static class StateShadow
     /// refused.</summary>
     public static bool Arrive(SimulationContext context, string system, CreatureState creature)
     {
-        if (!IsTravelling(creature)) return true;
+        if (!IsTravelling(creature))
+        {
+            return true;
+        }
+
         int to = creature.UtilityNewState;
         bool byRule = CreatureStateMachine.Classify(creature, to) == StateTransition.Refused;
-        if (CreatureStateMachine.Arrive(context.Hooks, creature, context.Tick.Value)) return true;
+        if (CreatureStateMachine.Arrive(context.Hooks, creature, context.Tick.Value))
+        {
+            return true;
+        }
+
         Refused(context, system, creature, to, byRule);
         return false;
     }
@@ -58,7 +74,11 @@ internal static class StateShadow
     /// <summary>A handler that returns failure: DK2 drops the creature to state 1.</summary>
     public static void ToIdle(SimulationContext context, string system, CreatureState creature)
     {
-        if (!CreatureStateMachine.HasState(creature)) return;
+        if (!CreatureStateMachine.HasState(creature))
+        {
+            return;
+        }
+
         Move(context, system, creature, CreatureStateMachine.Idle);
     }
 

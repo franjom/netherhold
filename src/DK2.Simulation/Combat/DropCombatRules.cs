@@ -22,25 +22,41 @@ internal sealed class DropCombatRules
     internal bool TryAcquire(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Combat
-            || !CombatRules.MayLookForAFight(context.World, context.Database, creature, force: false)) return false;
+            || !CombatRules.MayLookForAFight(context.World, context.Database, creature, force: false))
+        {
+            return false;
+        }
 
         context.Navigation.Refresh();
         _sight ??= new WorldSight(context.Navigation, context.World, context.Database);
         _hearts.Refresh(context.World, context.Database);
         CombatTargetRules.SelectAVictim(context, _sight, _hearts, _rooms, creature, definition, _scratch);
-        if (NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Combat) return true;
+        if (NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Combat)
+        {
+            return true;
+        }
 
         TilePos origin = creature.Tile;
         foreach (TilePos offset in Neighbours)
         {
             var at = new TilePos(origin.X + offset.X, origin.Y + offset.Y);
-            if (!context.World.Contains(at)) continue;
+            if (!context.World.Contains(at))
+            {
+                continue;
+            }
+
             DoorState? door = context.World.DoorAt(at.X, at.Y);
             if (door is null || door.UnderConstruction
-                || (door.PlayerId != PlayerIds.Neutral && context.World.AreAllied(creature.OwnerPlayerId, door.PlayerId))) continue;
+                || (door.PlayerId != PlayerIds.Neutral && context.World.AreAllied(creature.OwnerPlayerId, door.PlayerId)))
+            {
+                continue;
+            }
 
             if (creature.AttackingId != CombatRules.NoTarget)
+            {
                 CombatPitRules.ClearForcedTarget(context.World, creature);
+            }
+
             creature.AttackAbnormalTargets = true;
             creature.AttackingId = door.Id;
             creature.AttackingKind = FightTargetKind.Door;

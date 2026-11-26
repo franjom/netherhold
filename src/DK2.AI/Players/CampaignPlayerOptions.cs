@@ -21,7 +21,11 @@ public sealed record CampaignPlayerOptions
 
     public CampaignPlayerOptions(PlayerRunId runId, PlayerId player, IEnumerable<CreatureTypeId> workerTypes)
     {
-        if (!runId.IsValid) throw new ArgumentException("The player needs a run id.", nameof(runId));
+        if (!runId.IsValid)
+        {
+            throw new ArgumentException("The player needs a run id.", nameof(runId));
+        }
+
         RunId = runId;
         Player = player;
         _workers = new HashSet<CreatureTypeId>(workerTypes ?? throw new ArgumentNullException(nameof(workerTypes)));
@@ -155,17 +159,47 @@ public sealed record CampaignPlayerOptions
         Positive(MaxOutstandingTags, nameof(MaxOutstandingTags));
         Positive(StallWindowTicks, nameof(StallWindowTicks));
         Positive(MaxActionsPerDecision, nameof(MaxActionsPerDecision));
-        if (DropCooldownTicks < 0) throw new ArgumentOutOfRangeException(nameof(DropCooldownTicks));
-        if (EngagedTiles < 0) throw new ArgumentOutOfRangeException(nameof(EngagedTiles));
-        if (RecoveryAttempts < 0) throw new ArgumentOutOfRangeException(nameof(RecoveryAttempts));
-        if (Rooms is null) throw new ArgumentNullException(nameof(Rooms));
-        if (GoldPerTreasuryTile is <= 0) throw new ArgumentOutOfRangeException(nameof(GoldPerTreasuryTile));
-        if (HeartGold is < 0) throw new ArgumentOutOfRangeException(nameof(HeartGold));
-        if (Knowledge is null) throw new ArgumentNullException(nameof(Knowledge));
+        if (DropCooldownTicks < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(DropCooldownTicks));
+        }
+
+        if (EngagedTiles < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(EngagedTiles));
+        }
+
+        if (RecoveryAttempts < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(RecoveryAttempts));
+        }
+
+        if (Rooms is null)
+        {
+            throw new ArgumentNullException(nameof(Rooms));
+        }
+
+        if (GoldPerTreasuryTile is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(GoldPerTreasuryTile));
+        }
+
+        if (HeartGold is < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(HeartGold));
+        }
+
+        if (Knowledge is null)
+        {
+            throw new ArgumentNullException(nameof(Knowledge));
+        }
 
         static void Positive(int value, string name)
         {
-            if (value <= 0) throw new ArgumentOutOfRangeException(name, value, "Must be positive.");
+            if (value <= 0)
+            {
+                throw new ArgumentOutOfRangeException(name, value, "Must be positive.");
+            }
         }
     }
 }

@@ -29,9 +29,13 @@ public static class SlapRules
         {
             world.Messages.Post(world, winner.OwnerPlayerId, PlayerMessageKind.JackpotWinnerSlapped, 0, 0);
             foreach (CreatureState other in world.OwnedCreatures(winner.OwnerPlayerId))
+            {
                 if (other != winner)
+                {
                     CreatureAngerRules.Apply(world, database.CreatureById(other.CreatureTypeId), other,
                         AngerBucket.Treatment, 5000, AngerComplaint.Slapped);
+                }
+            }
         }
         // The second cap is against the already debited purse; see the binary's ordered effects.
         int amount = Math.Min(quarter, winner.GoldHeld);
@@ -88,8 +92,15 @@ public static class SlapRules
             _ => ReactionState,
         };
         // 0x0048B9BC and 0x0048B9D4 end the running action before the move; 77's reaction does at age 1 (0x0046F20D).
-        if (target != ReactionState) CreatureStateMachine.EndAction(creature);
-        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, target, context.Tick.Value)) return false;
+        if (target != ReactionState)
+        {
+            CreatureStateMachine.EndAction(creature);
+        }
+
+        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, target, context.Tick.Value))
+        {
+            return false;
+        }
         // DK2 moves only a walking state and the reaction zeroes the velocity, so the walk ends here;
         // ours' mover would carry on along a loaded route (CasinoJackpotRules.Kick does the same).
         creature.StopMoving();
@@ -105,7 +116,11 @@ public static class SlapRules
     {
         long now = context.Tick.Value;
         long age = now - creature.StateEnteredTick;
-        if (age == 0) return;
+        if (age == 0)
+        {
+            return;
+        }
+
         if (age == 1)
         {
             CreatureStateMachine.EndAction(creature);   // 0x0046F20D
@@ -113,7 +128,10 @@ public static class SlapRules
             context.Emit(system, "slap_reaction", $"creature={creature.Id} state={creature.Dk2StateId} until={creature.ActionUntilTick}");
             return;
         }
-        if (now < creature.ActionUntilTick) return;
+        if (now < creature.ActionUntilTick)
+        {
+            return;
+        }
 
         WorldState world = context.World;
         RoomInstance? room = creature.HeldPlace.IsHeld ? RoomIndex.RoomAt(world, context.Database, creature.HeldPlace.TileIndex) : null;
@@ -126,11 +144,17 @@ public static class SlapRules
         };
         if (back is int state)
         {
-            if (!StateShadow.TryMove(context, system, creature, state)) StateShadow.ToIdle(context, system, creature);
+            if (!StateShadow.TryMove(context, system, creature, state))
+            {
+                StateShadow.ToIdle(context, system, creature);
+            }
+
             return;
         }
         if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
             || !CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.TaskSelection, now))
+        {
             StateShadow.ToIdle(context, system, creature);
+        }
     }
 }

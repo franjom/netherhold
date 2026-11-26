@@ -39,7 +39,11 @@ public static class ReinforcementActionRules
     // The common poll precedes ProcessFight (00488930 at00489A68), independent of the current job.
     internal static void Poll(SimulationContext context, CreatureState creature)
     {
-        if (!context.ReinforcementActionsPolledThisTick.Add(creature) || !creature.ReinforcementAction.Active) return;
+        if (!context.ReinforcementActionsPolledThisTick.Add(creature) || !creature.ReinforcementAction.Active)
+        {
+            return;
+        }
+
         if (!creature.ActionHandlerDone)
         {
             TilePos target = creature.ReinforcementAction.Target;
@@ -49,7 +53,10 @@ public static class ReinforcementActionRules
                     TileWorkKind.Reinforce, creature.OwnerPlayerId, creature.Id));
                 Work.Execute(context);
             }
-            if (Workable(context, creature, target)) creature.ActionHandlerDone = true;
+            if (Workable(context, creature, target))
+            {
+                creature.ActionHandlerDone = true;
+            }
             else
             {
                 bool onCycle = (creature.ActionAnimationFlags & Cycle) != 0;
@@ -58,7 +65,10 @@ public static class ReinforcementActionRules
             }
         }
         PollAnimation(creature);
-        if (creature.ActionHandlerDone && creature.ReinforcementAction.AnimationComplete) Cancel(creature);
+        if (creature.ActionHandlerDone && creature.ReinforcementAction.AnimationComplete)
+        {
+            Cancel(creature);
+        }
     }
 
     private static bool Workable(SimulationContext context, CreatureState creature, TilePos target) =>
@@ -69,34 +79,72 @@ public static class ReinforcementActionRules
     // 00496AA0 mode3: completion is sticky; a nonzero count is not an immediate end.
     private static void PollAnimation(CreatureState creature)
     {
-        if (creature.ReinforcementAction.AnimationComplete) return;
-        if (creature.ActionAnimationRate == 0) creature.ReinforcementAction.AnimationComplete = true;
-        if ((creature.ActionAnimationFlags & Cycle) == 0) return;
-        if (creature.ActionCount == 0) creature.ReinforcementAction.AnimationComplete = true;
+        if (creature.ReinforcementAction.AnimationComplete)
+        {
+            return;
+        }
+
+        if (creature.ActionAnimationRate == 0)
+        {
+            creature.ReinforcementAction.AnimationComplete = true;
+        }
+
+        if ((creature.ActionAnimationFlags & Cycle) == 0)
+        {
+            return;
+        }
+
+        if (creature.ActionCount == 0)
+        {
+            creature.ReinforcementAction.AnimationComplete = true;
+        }
         else if (creature.ActionCount == 1)
         {
-            if ((creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0) creature.ActionCount = byte.MaxValue;
+            if ((creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0)
+            {
+                creature.ActionCount = byte.MaxValue;
+            }
         }
         else
         {
             creature.ActionCount--;
-            if (creature.ActionCount == 1) creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
-            else creature.ActionAnimationFlags &= ~Cycle;
+            if (creature.ActionCount == 1)
+            {
+                creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
+            }
+            else
+            {
+                creature.ActionAnimationFlags &= ~Cycle;
+            }
         }
     }
 
     internal static void Advance(CreatureState creature, CreatureDef definition)
     {
         if (creature.ActionArtSlot != ArtSlot
-            || (!creature.ReinforcementAction.Active && !((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))) return;
-        if (!creature.ReinforcementAction.Active) ActionAnimationClock.Clear(creature);
-        else if (!StatusEffectRules.IsFrozen(creature)) ActionAnimationClock.Advance(creature, definition);
+            || (!creature.ReinforcementAction.Active && !((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)))
+        {
+            return;
+        }
+
+        if (!creature.ReinforcementAction.Active)
+        {
+            ActionAnimationClock.Clear(creature);
+        }
+        else if (!StatusEffectRules.IsFrozen(creature))
+        {
+            ActionAnimationClock.Advance(creature, definition);
+        }
     }
 
     // 00496D20 clears the action block, leaving the animation object for the later chooser.
     internal static void Cancel(CreatureState creature)
     {
-        if (!creature.ReinforcementAction.Active) return;
+        if (!creature.ReinforcementAction.Active)
+        {
+            return;
+        }
+
         creature.ReinforcementAction = default;
         creature.ActionHandlerDone = false;
         creature.ActionCount = 0;

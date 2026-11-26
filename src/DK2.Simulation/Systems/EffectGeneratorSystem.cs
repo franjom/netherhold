@@ -16,8 +16,15 @@ public sealed class EffectGeneratorSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         IReadOnlyList<EffectGeneratorState> generators = context.World.EffectGenerators;
-        if (generators.Count == 0) return;
+        if (generators.Count == 0)
+        {
+            return;
+        }
+
         context.Navigation.Refresh();
-        for (int i = generators.Count - 1; i >= 0; i--) EffectGeneratorRules.Tick(context, generators[i]);
+        for (int i = generators.Count - 1; i >= 0; i--)
+        {
+            EffectGeneratorRules.Tick(context, generators[i]);
+        }
     }
 }

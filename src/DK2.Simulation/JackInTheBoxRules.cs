@@ -36,25 +36,51 @@ public static class JackInTheBoxRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (!ShotRules.Passable(world, context.Navigation, shot.PosX, shot.PosY)) return;
+        if (!ShotRules.Passable(world, context.Navigation, shot.PosX, shot.PosY))
+        {
+            return;
+        }
         // An untargeted shot keeps the definition's word, which DK2 reads as thing slot 2: no creature here.
-        if (shot.TargetKind != FightTargetKind.Creature || shot.Data2 == 0) return;
-        if (world.CreatureById(shot.Data2) is not { } victim || !world.HasPlayer(victim.OwnerPlayerId)) return;
-        if (!CombatRules.IsHostile(world, shot.OwnerPlayerId, victim.OwnerPlayerId)) return;
+        if (shot.TargetKind != FightTargetKind.Creature || shot.Data2 == 0)
+        {
+            return;
+        }
+
+        if (world.CreatureById(shot.Data2) is not { } victim || !world.HasPlayer(victim.OwnerPlayerId))
+        {
+            return;
+        }
+
+        if (!CombatRules.IsHostile(world, shot.OwnerPlayerId, victim.OwnerPlayerId))
+        {
+            return;
+        }
 
         CreatureDef victimDef = database.CreatureById(victim.CreatureTypeId);
         int landed = StatusEffectRules.Hurt(world, database, victimDef, victim, shot.Data1, shot.OwnerPlayerId); // 0x004B039A: the shot's owner
         byte heartOf = victim.OwnerPlayerId;
 
         int tx = shot.PosX >> 12, ty = shot.PosY >> 12;
-        if (!database.Creatures.ContainsKey(JackCreatureId)) return;
+        if (!database.Creatures.ContainsKey(JackCreatureId))
+        {
+            return;
+        }
+
         CreatureState? jack = world.TrySpawnCreature(database, JackCreatureId, shot.OwnerPlayerId, new TilePos(tx, ty));
-        if (jack is null) return;
+        if (jack is null)
+        {
+            return;
+        }
+
         jack.PosX = shot.PosX;
         jack.PosY = shot.PosY;
         foreach (TrapState trap in world.Traps)
         {
-            if (trap.X != tx || trap.Y != ty) continue;
+            if (trap.X != tx || trap.Y != ty)
+            {
+                continue;
+            }
+
             trap.Health = 0;
             break;
         }
@@ -99,7 +125,11 @@ public static class JackInTheBoxRules
     /// of its owner, with the definition's data words. Once: ours removes the dead Jack later than DK2.</summary>
     public static void Explode(SimulationContext context, CreatureState jack)
     {
-        if (jack.DeathShotFired || !context.Database.Shots.TryGetValue(ExplosionShotId, out ShotDef? definition)) return;
+        if (jack.DeathShotFired || !context.Database.Shots.TryGetValue(ExplosionShotId, out ShotDef? definition))
+        {
+            return;
+        }
+
         jack.DeathShotFired = true;
         ShotState shot = ShotRules.Spawn(context.World, definition, jack.OwnerPlayerId, jack.PosX, jack.PosY,
             (int)definition.Unknown_0098, (int)definition.Unknown_009C, 0, FightTargetKind.None, CombatRules.NoTarget, 0, -1, jack.PosX, jack.PosY);

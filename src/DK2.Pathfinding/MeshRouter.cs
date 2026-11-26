@@ -49,19 +49,36 @@ public sealed class MeshRouter
     /// midpoints for movement (navigation-mesh-and-search.md).</summary>
     public bool TryRoute(NavPoint from, NavPoint to, MoverProfile mover, List<NavPoint> waypoints, RoutePointKind pointKind)
     {
-        if (waypoints is null) throw new ArgumentNullException(nameof(waypoints));
+        if (waypoints is null)
+        {
+            throw new ArgumentNullException(nameof(waypoints));
+        }
+
         if (pointKind != RoutePointKind.GateMidpoints && pointKind != RoutePointKind.FunnelCorners)
+        {
             throw new ArgumentOutOfRangeException(nameof(pointKind));
+        }
+
         waypoints.Clear();
 
         int fromTri = _mesh.LocateEndpoint(from.X, from.Y);
         int toTri = _mesh.LocateEndpoint(to.X, to.Y);
-        if (fromTri < 0 || toTri < 0) return false;
+        if (fromTri < 0 || toTri < 0)
+        {
+            return false;
+        }
 
         // Forward: seeded at the destination, drawn toward the mover, so the predecessor chain
         // already reads mover -> destination.
-        if (!TrySearch(toTri, fromTri, from, mover, _corridorA, seededAtDestination: true)) return false;
-        if (!TrySearch(fromTri, toTri, to, mover, _corridorB, seededAtDestination: false)) return false;
+        if (!TrySearch(toTri, fromTri, from, mover, _corridorA, seededAtDestination: true))
+        {
+            return false;
+        }
+
+        if (!TrySearch(fromTri, toTri, to, mover, _corridorB, seededAtDestination: false))
+        {
+            return false;
+        }
 
         _pathA.Clear();
         _pathB.Clear();
@@ -74,7 +91,11 @@ public sealed class MeshRouter
             // The backward corridor runs destination -> mover; `Bak reverse choice` copies its
             // triangles reversed over the forward one before the funnel runs again.
             _route.Clear();
-            for (int i = _corridorB.Count - 1; i >= 0; i--) _route.Add(_corridorB[i]);
+            for (int i = _corridorB.Count - 1; i >= 0; i--)
+            {
+                _route.Add(_corridorB[i]);
+            }
+
             route = _route;
         }
 
@@ -105,31 +126,55 @@ public sealed class MeshRouter
         _pred[seed] = seed;
         _stamp[seed] = _generation;
         _heapCount = 0;
-        if (!Push(seed)) return false;
+        if (!Push(seed))
+        {
+            return false;
+        }
 
         // Two pops a round (`0x004CD15A`–`0x004CD1C4`): the root and then, if the new root is
         // not the goal, the next one; both are expanded before the root is tested again.
         while (_heapCount > 0)
         {
-            if (_heap[1] == target) break;
+            if (_heap[1] == target)
+            {
+                break;
+            }
+
             int first = Pop();
             int second = -1;
             if (_heapCount > 0)
             {
-                if (_heap[1] == target) break;
+                if (_heap[1] == target)
+                {
+                    break;
+                }
+
                 second = Pop();
             }
 
-            if (!Expand(first, gx, gy, mover, seededAtDestination)) return false;
-            if (second >= 0 && !Expand(second, gx, gy, mover, seededAtDestination)) return false;
+            if (!Expand(first, gx, gy, mover, seededAtDestination))
+            {
+                return false;
+            }
+
+            if (second >= 0 && !Expand(second, gx, gy, mover, seededAtDestination))
+            {
+                return false;
+            }
         }
 
-        if (_heapCount == 0 || _heap[1] != target) return false;
+        if (_heapCount == 0 || _heap[1] != target)
+        {
+            return false;
+        }
 
         for (int t = target; ; t = _pred[t])
         {
             corridor.Add(t);
-            if (t == seed) break;
+            if (t == seed)
+            {
+                break;
+            }
         }
         return true;
     }
@@ -141,22 +186,44 @@ public sealed class MeshRouter
     /// mover's option bits decide which doors stop it (<see cref="DoorPassable"/>).</summary>
     public static int TransitionCost(byte to, byte from, MoverProfile mover)
     {
-        if (NavBytes.IsSolid(to)) return 0;
+        if (NavBytes.IsSolid(to))
+        {
+            return 0;
+        }
+
         int cost = NavBytes.Category(to) + 1;
         if (NavBytes.IsDoor(to))
         {
             bool foreign = NavBytes.Owner(to) != mover.Owner;
-            if (foreign && (to & NavBytes.DoorTagged) != 0) return 0;
+            if (foreign && (to & NavBytes.DoorTagged) != 0)
+            {
+                return 0;
+            }
+
             return DoorPassable(to, foreign, mover) ? cost : 0;
         }
 
         if (NavBytes.IsDoor(from))
+        {
             return DoorPassable(from, NavBytes.Owner(from) != mover.Owner, mover) ? cost : 0;
+        }
 
         int tc = NavBytes.Category(to), fc = NavBytes.Category(from);
-        if (tc == 3 && fc != 3 && !mover.CanWalkOnLava) return 0;
-        if (tc == 1 && fc != 1 && !mover.CanWalkOnWater) return 0;
-        if (!mover.EntersPortalHole && ((to ^ from) & NavBytes.PortalHole) != 0) return 0;
+        if (tc == 3 && fc != 3 && !mover.CanWalkOnLava)
+        {
+            return 0;
+        }
+
+        if (tc == 1 && fc != 1 && !mover.CanWalkOnWater)
+        {
+            return 0;
+        }
+
+        if (!mover.EntersPortalHole && ((to ^ from) & NavBytes.PortalHole) != 0)
+        {
+            return 0;
+        }
+
         return cost;
     }
 
@@ -166,15 +233,27 @@ public sealed class MeshRouter
     private static bool DoorPassable(byte door, bool foreign, MoverProfile mover)
     {
         bool locked = (door & NavBytes.DoorLocked) != 0;
-        if (mover.RespectDoors) return !foreign && !locked;
-        if (mover.PassOwnLockedDoors) return true;
+        if (mover.RespectDoors)
+        {
+            return !foreign && !locked;
+        }
+
+        if (mover.PassOwnLockedDoors)
+        {
+            return true;
+        }
+
         return foreign || !locked;
     }
 
     private void EnsureScratch()
     {
         int slots = _mesh.TriangleSlots;
-        if (_stamp.Length >= slots) return;
+        if (_stamp.Length >= slots)
+        {
+            return;
+        }
+
         int size = Math.Max(slots, 64);
         Array.Resize(ref _stamp, size);
         Array.Resize(ref _pred, size);
@@ -184,7 +263,11 @@ public sealed class MeshRouter
     private void NextGeneration()
     {
         _generation++;
-        if (_generation != 0) return;
+        if (_generation != 0)
+        {
+            return;
+        }
+
         Array.Clear(_stamp, 0, _stamp.Length);
         _generation = 1;
     }
@@ -198,13 +281,19 @@ public sealed class MeshRouter
         for (int slot = 2; slot >= 0; slot--)
         {
             int n = _mesh.Neighbour(current, slot);
-            if (n == NavMesh.NoNeighbour || _stamp[n] == _generation) continue;
+            if (n == NavMesh.NoNeighbour || _stamp[n] == _generation)
+            {
+                continue;
+            }
 
             // The tile walked into is judged: seeded at the destination the walk runs n -> current
             // (`0x004CD000` pushes current second), from the mover it runs current -> n (`0x004CD490`).
             byte nNav = _mesh.NavByte(n);
             int cost = seededAtDestination ? TransitionCost(currentNav, nNav, mover) : TransitionCost(nNav, currentNav, mover);
-            if (cost == 0) continue;
+            if (cost == 0)
+            {
+                continue;
+            }
 
             int best = int.MaxValue;
             for (int i = 0; i < 3; i++)
@@ -212,13 +301,19 @@ public sealed class MeshRouter
                 int p = _mesh.Vertex(n, i);
                 int dx = gx - _mesh.PointX(p), dy = gy - _mesh.PointY(p);
                 int d2 = (dx * dx) + (dy * dy);
-                if (d2 < best) best = d2;
+                if (d2 < best)
+                {
+                    best = d2;
+                }
             }
 
             _key[n] = best << ((2 * cost) - 2);
             _stamp[n] = _generation;
             _pred[n] = current;
-            if (!Push(n)) return false;
+            if (!Push(n))
+            {
+                return false;
+            }
         }
         return true;
     }
@@ -227,12 +322,20 @@ public sealed class MeshRouter
     /// greater than the parent's — so a newcomer rises past parents with an equal key.</summary>
     private bool Push(int t)
     {
-        if (_heapCount >= HeapCapacity) return false;
+        if (_heapCount >= HeapCapacity)
+        {
+            return false;
+        }
+
         int i = ++_heapCount;
         while (i > 1)
         {
             int parent = i >> 1;
-            if (_key[t] > _key[_heap[parent]]) break;
+            if (_key[t] > _key[_heap[parent]])
+            {
+                break;
+            }
+
             _heap[i] = _heap[parent];
             i = parent;
         }
@@ -251,9 +354,17 @@ public sealed class MeshRouter
         while (true)
         {
             int l = i << 1, r = l + 1, child;
-            if (l > _heapCount) break;
+            if (l > _heapCount)
+            {
+                break;
+            }
+
             child = (r <= _heapCount && _key[_heap[r]] < _key[_heap[l]]) ? r : l;
-            if (_key[t] < _key[_heap[child]]) break;
+            if (_key[t] < _key[_heap[child]])
+            {
+                break;
+            }
+
             _heap[i] = _heap[child];
             i = child;
         }

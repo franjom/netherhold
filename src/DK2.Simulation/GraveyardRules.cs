@@ -21,7 +21,11 @@ public static class GraveyardRules
         var current = new HashSet<(int Anchor, byte Owner)>();
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.Definition.TypeId != RoomTypeId.Graveyard) continue;
+            if (room.Definition.TypeId != RoomTypeId.Graveyard)
+            {
+                continue;
+            }
+
             current.Add((room.TileIndices[0], room.OwnerPlayerId));
         }
 
@@ -51,11 +55,16 @@ public static class GraveyardRules
 
         if (!HasRoomForAnother(context, graveyard.OwnerPlayerId)
             || (uint)state.DecomposeValue < (uint)database[VariableTypeId.DecomposeValueNeededForVampire])
+        {
             return new GraveyardBurialResult(state.DecomposeValue, -1, 0);
+        }
 
         state.Zero();
         byte creatureTypeId = graveyard.Definition.CreatedCreatureId;
-        if (creatureTypeId == 0) return new GraveyardBurialResult(state.DecomposeValue, -1, 0);
+        if (creatureTypeId == 0)
+        {
+            return new GraveyardBurialResult(state.DecomposeValue, -1, 0);
+        }
         // 0x004DD820: with crypts, random(count) and the last on the room's newest-first list,
         // which is the first placed, whatever the draw; with none, a random tile of the chain.
         List<ObjectState> crypts = [.. world.Objects
@@ -75,7 +84,11 @@ public static class GraveyardRules
 
         CreatureState? creature = world.TrySpawnCreature(
             database, creatureTypeId, graveyard.OwnerPlayerId, new(tile % world.Width, tile / world.Width));
-        if (creature is null) return new GraveyardBurialResult(state.DecomposeValue, -1, 0);
+        if (creature is null)
+        {
+            return new GraveyardBurialResult(state.DecomposeValue, -1, 0);
+        }
+
         return new GraveyardBurialResult(state.DecomposeValue, creature.Id, creatureTypeId);
     }
 
@@ -95,14 +108,22 @@ public static class GraveyardRules
             .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == RoomTypeId.Graveyard).ToList();
         if (graveyards.Count == 0)
         {
-            if (available) RoomNeedRules.Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Graveyard);
+            if (available)
+            {
+                RoomNeedRules.Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Graveyard);
+            }
+
             return -1;
         }
 
         int placed = graveyards.Count(g => HasPlace(world, g));
         if (placed == 0)
         {
-            if (search || available) RoomNeedRules.Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Graveyard);
+            if (search || available)
+            {
+                RoomNeedRules.Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Graveyard);
+            }
+
             return -1;
         }
 
@@ -120,7 +141,13 @@ public static class GraveyardRules
     {
         int count = 0;
         foreach (CreatureState c in world.Creatures)
-            if (c.GraveyardSlot >= 0 && graveyard.Contains(c.GraveyardSlot)) count++;
+        {
+            if (c.GraveyardSlot >= 0 && graveyard.Contains(c.GraveyardSlot))
+            {
+                count++;
+            }
+        }
+
         return count;
     }
 
@@ -134,7 +161,10 @@ public static class GraveyardRules
         for (int k = 0; k < chain.Length; k++)
         {
             int tile = chain[(start + k) % chain.Length];
-            if (slots.Contains(tile) && !HoldsACorpse(world, tile)) return tile;
+            if (slots.Contains(tile) && !HoldsACorpse(world, tile))
+            {
+                return tile;
+            }
         }
 
         return null;
@@ -144,7 +174,13 @@ public static class GraveyardRules
     {
         int w = world.Width;
         foreach (CreatureState c in world.Creatures)
-            if (CreatureDeathRules.IsCorpse(c) && c.CarriedByCreatureId < 0 && (c.Tile.Y * w) + c.Tile.X == tile) return true;
+        {
+            if (CreatureDeathRules.IsCorpse(c) && c.CarriedByCreatureId < 0 && (c.Tile.Y * w) + c.Tile.X == tile)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -154,9 +190,14 @@ public static class GraveyardRules
     public static int CorpseDestination(SimulationContext context, PlayerId owner)
     {
         foreach (RoomInstance room in RoomIndex.Build(context.World, context.Database))
+        {
             if (room.OwnerPlayerId == owner && room.Definition.TypeId == RoomTypeId.Graveyard
                 && HasPlace(context.World, room) && CorpsePoint(context.World, room, context.Rng) is int point)
+            {
                 return point;
+            }
+        }
+
         return -1;
     }
 
@@ -172,19 +213,37 @@ public static class GraveyardRules
         var places = new List<RoomInstance>();
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (room.OwnerPlayerId != worker.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.Graveyard || !HasPlace(world, room)) continue;
+            if (room.OwnerPlayerId != worker.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.Graveyard || !HasPlace(world, room))
+            {
+                continue;
+            }
+
             places.Add(room);
             TilePos at = RoomNeedRules.Position(world, room);
             long dx = (long)CreatureState.CentreOf(at.X) - worker.PosX, dy = (long)CreatureState.CentreOf(at.Y) - worker.PosY;
             long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);
-            if (distance >= best || !ChickenRules.Reachable(context, worker, definition, at, scratch)) continue;
+            if (distance >= best || !ChickenRules.Reachable(context, worker, definition, at, scratch))
+            {
+                continue;
+            }
+
             (nearest, best) = (room, distance);
         }
 
-        if (nearest is not null && CorpsePoint(world, nearest, context.Rng) is int point) return point;
+        if (nearest is not null && CorpsePoint(world, nearest, context.Rng) is int point)
+        {
+            return point;
+        }
+
         int found = -1;
         foreach (RoomInstance room in places)
-            if (CorpsePoint(world, room, context.Rng) is int p) found = p;
+        {
+            if (CorpsePoint(world, room, context.Rng) is int p)
+            {
+                found = p;
+            }
+        }
+
         return found;
     }
 
@@ -199,7 +258,9 @@ public static class GraveyardRules
         WorldState world = context.World;
         foreach (ObjectState crypt in world.Objects
                      .Where(o => o.ObjectTypeId == AutoFurnitureRules.CryptObjectId && graveyard.Contains(o.TileIndex)).ToList())
+        {
             world.RemoveObject(crypt.Id);
+        }
 
         int[] chain = SlabChain.Order(world, graveyard);
         for (int i = 0; i < graveyard.TileCount / 10; i++)
@@ -207,10 +268,24 @@ public static class GraveyardRules
             HashSet<int> slots = AutoFurnitureRules.FloorSlotSet(world, graveyard);
             var candidates = new List<int>();
             foreach (int tile in chain)
-                if (slots.Contains(tile) && SurroundedBySlots(world, slots, tile)) candidates.Add(tile);
-            if (candidates.Count == 0) continue;
+            {
+                if (slots.Contains(tile) && SurroundedBySlots(world, slots, tile))
+                {
+                    candidates.Add(tile);
+                }
+            }
+
+            if (candidates.Count == 0)
+            {
+                continue;
+            }
+
             int at = candidates[context.Rng.NextInt(candidates.Count)];
-            if (context.Database.ObjectById(AutoFurnitureRules.CryptObjectId) is null) continue;
+            if (context.Database.ObjectById(AutoFurnitureRules.CryptObjectId) is null)
+            {
+                continue;
+            }
+
             world.SpawnObject(context.Database, AutoFurnitureRules.CryptObjectId, graveyard.OwnerPlayerId, at).AutoPlaced = true;
         }
     }
@@ -219,9 +294,16 @@ public static class GraveyardRules
     {
         int x = tile % world.Width, y = tile / world.Width;
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
+            {
                 if ((dx != 0 || dy != 0) && (!world.Contains(x + dx, y + dy) || !slots.Contains(((y + dy) * world.Width) + x + dx)))
+                {
                     return false;
+                }
+            }
+        }
+
         return true;
     }
 
@@ -240,11 +322,23 @@ public static class GraveyardRules
         WorldState world = context.World;
         foreach (CreatureState c in world.Creatures)
         {
-            if (!CreatureDeathRules.IsCorpse(c) || c.BodyOwnerPlayerId == graveyard.OwnerPlayerId) continue;
+            if (!CreatureDeathRules.IsCorpse(c) || c.BodyOwnerPlayerId == graveyard.OwnerPlayerId)
+            {
+                continue;
+            }
+
             int tile = (c.Tile.Y * world.Width) + c.Tile.X;
-            if (!graveyard.Contains(tile)) continue;
+            if (!graveyard.Contains(tile))
+            {
+                continue;
+            }
+
             c.BodyOwnerPlayerId = graveyard.OwnerPlayerId;
-            if (c.GraveyardSlot >= 0 || c.CarriedByCreatureId >= 0 || !HasPlace(world, graveyard)) continue;
+            if (c.GraveyardSlot >= 0 || c.CarriedByCreatureId >= 0 || !HasPlace(world, graveyard))
+            {
+                continue;
+            }
+
             c.GraveyardSlot = tile;
         }
     }
@@ -260,9 +354,14 @@ public static class GraveyardRules
     public static bool HasTombStone(WorldState world, int tile)
     {
         foreach (ObjectState thing in world.Objects)
+        {
             if (thing.TileIndex == tile && !thing.InHand && thing.CarriedByCreatureId < 0
                 && thing.ObjectTypeId is >= FirstTombStoneId and <= LastTombStoneId)
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -277,9 +376,18 @@ public static class GraveyardRules
         if (RoomIndex.RoomAt(world, database, tile) is not { Definition.TypeId: RoomTypeId.Graveyard } room
             || !HasPlace(world, room) || !AutoFurnitureRules.FloorSlotSet(world, room).Contains(tile)
             || !HasTombStone(world, tile))
+        {
             return false;
+        }
+
         foreach (CreatureState c in world.Creatures)
-            if (c.GraveyardSlot == tile) return false;
+        {
+            if (c.GraveyardSlot == tile)
+            {
+                return false;
+            }
+        }
+
         corpse.GraveyardSlot = tile;
         corpse.BodyOwnerPlayerId = room.OwnerPlayerId;   // Room_AddCorpse's +0x24
         corpse.PosX = CreatureState.CentreOf(tile % world.Width);
@@ -291,7 +399,12 @@ public static class GraveyardRules
     public static void Unlink(WorldState world, ICollection<int> tiles)
     {
         foreach (CreatureState c in world.Creatures)
-            if (c.GraveyardSlot >= 0 && tiles.Contains(c.GraveyardSlot)) c.GraveyardSlot = -1;
+        {
+            if (c.GraveyardSlot >= 0 && tiles.Contains(c.GraveyardSlot))
+            {
+                c.GraveyardSlot = -1;
+            }
+        }
     }
 
     /// <summary>A lying corpse's end (<c>0x004B1070</c> from the thing sweep's removal pass, its
@@ -301,7 +414,10 @@ public static class GraveyardRules
     {
         if (corpse.GraveyardSlot < 0
             || RoomIndex.RoomAt(context.World, context.Database, corpse.GraveyardSlot) is not { Definition.TypeId: RoomTypeId.Graveyard } room)
+        {
             return null;
+        }
+
         corpse.GraveyardSlot = -1;
         return Bury(context, room, context.Database.CreatureById(corpse.CreatureTypeId), corpse.Level);
     }
@@ -317,20 +433,36 @@ public static class GraveyardRules
         bool any = false;
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (room.OwnerPlayerId != owner || room.Definition.TypeId != RoomTypeId.Graveyard) continue;
+            if (room.OwnerPlayerId != owner || room.Definition.TypeId != RoomTypeId.Graveyard)
+            {
+                continue;
+            }
+
             any = true;
             capacity += AutoFurnitureRules.FloorSlotCount(world, room);
         }
 
         int resurrectable = 0;
         foreach (CreatureState creature in world.Creatures)
+        {
             if (creature.OwnerPlayerId == owner && creature.Health >= 1
                 && creature.Dk2StateId != CreatureStateMachine.NoState
                 && CreatureDeathRules.CanBeResurrected(context.Database.CreatureById(creature.CreatureTypeId)))
+            {
                 resurrectable++;
+            }
+        }
 
-        if (resurrectable < capacity) return true;
-        if (any) RoomNeedRules.Post(context, owner, PlayerMessageKind.RoomFull, RoomTypeId.Graveyard);
+        if (resurrectable < capacity)
+        {
+            return true;
+        }
+
+        if (any)
+        {
+            RoomNeedRules.Post(context, owner, PlayerMessageKind.RoomFull, RoomTypeId.Graveyard);
+        }
+
         return false;
     }
 

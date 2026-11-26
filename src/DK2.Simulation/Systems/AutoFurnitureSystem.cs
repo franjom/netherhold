@@ -36,11 +36,13 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
         List<RoomInstance> rebuilt = _rebuilt;
         rebuilt.Clear();
         foreach (RoomInstance room in rooms)
+        {
             if (room.Definition.TypeId == RoomTypeId.Graveyard && SlabChain.SizeChangedTick(world, room) == now)
             {
                 GraveyardRules.PlaceCrypts(context, room);
                 rebuilt.Add(room);
             }
+        }
 
         foreach (RoomInstance room in rooms)
         {
@@ -48,7 +50,10 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
             foreach ((int tile, byte type) in roomFurniture)
             {
                 (byte OwnerPlayerId, int tile, byte type) key = (room.OwnerPlayerId, tile, type);
-                if (unmatched.Add(key)) desired.Add(key);
+                if (unmatched.Add(key))
+                {
+                    desired.Add(key);
+                }
             }
         }
 
@@ -58,27 +63,58 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
         {
             // Held objects retain their old TileIndex. Shipped furniture cannot
             // reach this state (Q196), but no held object may satisfy a room slot.
-            if (thing.InHand) continue;
+            if (thing.InHand)
+            {
+                continue;
+            }
 
             (byte OwnerPlayerId, int TileIndex, byte ObjectTypeId) key = (thing.OwnerPlayerId, thing.TileIndex, thing.ObjectTypeId);
-            if (unmatched.Remove(key)) continue;
+            if (unmatched.Remove(key))
+            {
+                continue;
+            }
             // A Hatchery's coops are deleted and placed by its rebuild (HatcheryRules.RebuildCoops, ADR-0672).
-            if (thing.AutoPlaced && thing.ObjectTypeId != HatcheryRules.CoopObjectId) remove.Add(thing.Id);
+            if (thing.AutoPlaced && thing.ObjectTypeId != HatcheryRules.CoopObjectId)
+            {
+                remove.Add(thing.Id);
+            }
         }
 
-        foreach (int id in remove) world.RemoveObject(id);
+        foreach (int id in remove)
+        {
+            world.RemoveObject(id);
+        }
+
         foreach ((PlayerId owner, int tile, byte type) in desired)
         {
-            if (!unmatched.Contains((owner, tile, type))) continue;
-            if (type == HatcheryRules.CoopObjectId) continue;
-            if (context.Database.ObjectById(type) is null) continue;
+            if (!unmatched.Contains((owner, tile, type)))
+            {
+                continue;
+            }
+
+            if (type == HatcheryRules.CoopObjectId)
+            {
+                continue;
+            }
+
+            if (context.Database.ObjectById(type) is null)
+            {
+                continue;
+            }
+
             world.SpawnObject(context.Database, type, owner, tile).AutoPlaced = true;
         }
 
         // Then its tile-change slot takes in the corpses lying on it (0x004DD750). Not at the level's
         // start: Level_InitTriggersAndStart rebuilds the map's rooms without Room_OnTilesChanged.
         if (now > 0)
-            foreach (RoomInstance room in rebuilt) GraveyardRules.AdoptCorpses(context, room);
+        {
+            foreach (RoomInstance room in rebuilt)
+            {
+                GraveyardRules.AdoptCorpses(context, room);
+            }
+        }
+
         LevelPlacedCreatureRules.Land(context);
     }
 }

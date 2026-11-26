@@ -26,8 +26,13 @@ public readonly record struct RoomReference(RoomListPosition Position, TilePos T
     public RoomInstance? Resolve(WorldState world, GameDatabase database, PlayerId owner, RoomTypeId type)
     {
         foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
             if (room.OwnerPlayerId == owner && room.Definition.TypeId == type && RefersTo(world, room))
+            {
                 return room;
+            }
+        }
+
         return null;
     }
 }

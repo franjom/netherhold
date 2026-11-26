@@ -20,7 +20,13 @@ public sealed partial class TileHighlightState
         get
         {
             foreach (TileHighlightSlot slot in _slots)
-                if (slot.ActionPoint != ActionPointId.None) return true;
+            {
+                if (slot.ActionPoint != ActionPointId.None)
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
     }
@@ -31,7 +37,11 @@ public sealed partial class TileHighlightState
         {
             TileHighlightSlot slot = _slots[i];
             if (durationTicks == 0 ? slot.ActionPoint != actionPoint
-                : slot.ActionPoint != ActionPointId.None && slot.ActionPoint != actionPoint) continue;
+                : slot.ActionPoint != ActionPointId.None && slot.ActionPoint != actionPoint)
+            {
+                continue;
+            }
+
             ActionPointState? point = durationTicks != 0 ? world.ActionPoints.FirstOrDefault(p => p.Id == actionPoint.Value) : null;
             _slots[i] = new(durationTicks == 0 ? ActionPointId.None : actionPoint, durationTicks,
                 point is null ? slot.Min : new TilePos(point.StartX, point.StartY),
@@ -45,7 +55,11 @@ public sealed partial class TileHighlightState
         for (int i = 0; i < Capacity; i++)
         {
             TileHighlightSlot slot = _slots[i];
-            if (slot.RemainingTicks <= 0) continue;
+            if (slot.RemainingTicks <= 0)
+            {
+                continue;
+            }
+
             short remaining = (short)(slot.RemainingTicks - 1);
             _slots[i] = slot with { RemainingTicks = remaining,
                 ActionPoint = remaining == 0 ? ActionPointId.None : slot.ActionPoint };
@@ -55,8 +69,14 @@ public sealed partial class TileHighlightState
     public bool Contains(TilePos tile)
     {
         foreach (TileHighlightSlot slot in _slots)
+        {
             if (slot.ActionPoint != ActionPointId.None && tile.X >= slot.Min.X && tile.X <= slot.Max.X
-                && tile.Y >= slot.Min.Y && tile.Y <= slot.Max.Y) return true;
+                && tile.Y >= slot.Min.Y && tile.Y <= slot.Max.Y)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -81,7 +101,9 @@ public sealed partial class TileHighlightState
     internal void Read(BinaryReader reader)
     {
         for (int i = 0; i < Capacity; i++)
+        {
             _slots[i] = new(new ActionPointId(reader.ReadByte()), reader.ReadInt16(),
                 new TilePos(reader.ReadInt32(), reader.ReadInt32()), new TilePos(reader.ReadInt32(), reader.ReadInt32()));
+        }
     }
 }

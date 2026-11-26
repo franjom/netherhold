@@ -27,7 +27,10 @@ public static class HeroLairRules
     /// object definition makes <c>Object_Create</c> fail after the first draw, so only the heading draw is lost.</summary>
     internal static void InitializeLevelStart(WorldState world, GameDatabase database, SimRandom rng)
     {
-        if (!database.Terrain.TryGetValue(HeroLairTerrainId, out TerrainDef? terrain) || !HasPlainMask(terrain)) return;
+        if (!database.Terrain.TryGetValue(HeroLairTerrainId, out TerrainDef? terrain) || !HasPlainMask(terrain))
+        {
+            return;
+        }
 
         HashSet<int>? trestles = null;
         for (int y = 1; y < world.Height - 1; y++)
@@ -35,10 +38,22 @@ public static class HeroLairRules
             for (int x = 1; x < world.Width - 1; x++)
             {
                 int index = (y * world.Width) + x;
-                if (world.TileAtIndex(index).TerrainId != HeroLairTerrainId || !IsInterior(world, x, y)) continue;
+                if (world.TileAtIndex(index).TerrainId != HeroLairTerrainId || !IsInterior(world, x, y))
+                {
+                    continue;
+                }
+
                 trestles ??= TrestleTiles(world);
-                if (TrestleBeside(world, trestles, index)) continue;
-                if (rng.NextInt(4) != 0 || database.ObjectById(TrestleObjectId) is null) continue;
+                if (TrestleBeside(world, trestles, index))
+                {
+                    continue;
+                }
+
+                if (rng.NextInt(4) != 0 || database.ObjectById(TrestleObjectId) is null)
+                {
+                    continue;
+                }
+
                 ObjectState trestle = world.SpawnObject(database, TrestleObjectId, new PlayerId(PlayerIds.Good), index);
                 trestles.Add(index);
                 trestle.Heading = rng.NextInt(0x800) & 0x7FF;
@@ -53,8 +68,16 @@ public static class HeroLairRules
     private static bool IsInterior(WorldState world, int x, int y)
     {
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
-                if ((dx != 0 || dy != 0) && world.Tile(x + dx, y + dy).TerrainId != HeroLairTerrainId) return false;
+            {
+                if ((dx != 0 || dy != 0) && world.Tile(x + dx, y + dy).TerrainId != HeroLairTerrainId)
+                {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 
@@ -65,7 +88,13 @@ public static class HeroLairRules
     {
         var tiles = new HashSet<int>();
         foreach (ObjectState thing in world.Objects)
-            if (thing.ObjectTypeId == TrestleObjectId) tiles.Add(thing.TileIndex);
+        {
+            if (thing.ObjectTypeId == TrestleObjectId)
+            {
+                tiles.Add(thing.TileIndex);
+            }
+        }
+
         return tiles;
     }
 
@@ -74,8 +103,16 @@ public static class HeroLairRules
     private static bool TrestleBeside(WorldState world, HashSet<int> trestles, int index)
     {
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
-                if ((dx != 0 || dy != 0) && trestles.Contains(index + (dy * world.Width) + dx)) return true;
+            {
+                if ((dx != 0 || dy != 0) && trestles.Contains(index + (dy * world.Width) + dx))
+                {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 }

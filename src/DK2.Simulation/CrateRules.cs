@@ -64,9 +64,21 @@ public static class CrateRules
     public static byte? KindOf(GameDatabase database, byte objectTypeId)
     {
         foreach (DoorDef door in database.Doors.Values)
-            if (door.CrateObjectId == objectTypeId) return DoorKind;
+        {
+            if (door.CrateObjectId == objectTypeId)
+            {
+                return DoorKind;
+            }
+        }
+
         foreach (TrapDef trap in database.Traps.Values)
-            if (trap.CrateObjectId == objectTypeId) return TrapKind;
+        {
+            if (trap.CrateObjectId == objectTypeId)
+            {
+                return TrapKind;
+            }
+        }
+
         return null;
     }
 
@@ -74,7 +86,10 @@ public static class CrateRules
     public static byte CrateFor(GameDatabase database, WorldState world, BlueprintRef blueprint)
     {
         if (blueprint.Kind == DoorKind)
+        {
             return world.DoorById(blueprint.Id) is { } door && database.Doors.TryGetValue(door.DoorId, out DoorDef? def) ? def.CrateObjectId : (byte)0;
+        }
+
         return world.TrapById(blueprint.Id) is { } trap && database.Traps.TryGetValue(trap.TrapId, out TrapDef? tdef) ? tdef.CrateObjectId : (byte)0;
     }
 
@@ -88,7 +103,10 @@ public static class CrateRules
     public static int TileOf(WorldState world, BlueprintRef blueprint)
     {
         if (blueprint.Kind == DoorKind)
+        {
             return world.DoorById(blueprint.Id) is { } door ? (door.Y * world.Width) + door.X : -1;
+        }
+
         return world.TrapById(blueprint.Id) is { } trap ? (trap.Y * world.Width) + trap.X : -1;
     }
 
@@ -101,16 +119,27 @@ public static class CrateRules
     /// <summary><c>0x00505680</c>: appends a blueprint unless it is already there or the list is full.</summary>
     public static void Register(WorldState world, PlayerId playerId, BlueprintRef blueprint)
     {
-        if (!PlayerIds.IsKeeper(playerId.Value) || !world.HasPlayer(playerId)) return;
+        if (!PlayerIds.IsKeeper(playerId.Value) || !world.HasPlayer(playerId))
+        {
+            return;
+        }
+
         List<BlueprintRef> list = world.Player(playerId).Blueprints;
-        if (list.Contains(blueprint) || list.Count >= BlueprintCapacity) return;
+        if (list.Contains(blueprint) || list.Count >= BlueprintCapacity)
+        {
+            return;
+        }
+
         list.Add(blueprint);
     }
 
     /// <summary><c>0x005056E0</c>: takes a blueprint out of its keeper's list, closing the gap.</summary>
     public static void Unregister(WorldState world, PlayerId playerId, BlueprintRef blueprint)
     {
-        if (world.HasPlayer(playerId)) world.Player(playerId).Blueprints.Remove(blueprint);
+        if (world.HasPlayer(playerId))
+        {
+            world.Player(playerId).Blueprints.Remove(blueprint);
+        }
     }
 
     /// <summary>The blueprint of <paramref name="kind"/> on <paramref name="tileIndex"/> owned by
@@ -123,8 +152,16 @@ public static class CrateRules
         for (int i = 0; i < count; i++)
         {
             var candidate = new BlueprintRef(kind, kind == DoorKind ? world.Doors[i].Id : world.Traps[i].Id);
-            if (OwnerOf(world, candidate) != playerId || !IsBlueprint(world, candidate)) continue;
-            if (TileOf(world, candidate) != tileIndex || CrateFor(database, world, candidate) != crateObjectId) continue;
+            if (OwnerOf(world, candidate) != playerId || !IsBlueprint(world, candidate))
+            {
+                continue;
+            }
+
+            if (TileOf(world, candidate) != tileIndex || CrateFor(database, world, candidate) != crateObjectId)
+            {
+                continue;
+            }
+
             return candidate;
         }
 
@@ -145,10 +182,16 @@ public static class CrateRules
             {
                 door.UnderConstruction = false;
                 if (((database.Doors.GetValueOrDefault(door.DoorId)?.Flags & DoorFlags.Secret) == DoorFlags.Secret) == true)
+                {
                     world.Tile(door.X, door.Y).SecretDoor = true;
+                }
             }
         }
-        else if (world.TrapById(blueprint.Id) is { } trap) TrapRules.Complete(world, database, trap);
+        else if (world.TrapById(blueprint.Id) is { } trap)
+        {
+            TrapRules.Complete(world, database, trap);
+        }
+
         Unregister(world, owner, blueprint);
     }
 
@@ -164,7 +207,13 @@ public static class CrateRules
     {
         into.Clear();
         foreach (ObjectState thing in world.Objects)
-            if (IsListedIn(world, database, workshop, thing)) into.Add(thing);
+        {
+            if (IsListedIn(world, database, workshop, thing))
+            {
+                into.Add(thing);
+            }
+        }
+
         into.Sort((a, b) => b.Id.CompareTo(a.Id));
     }
 
@@ -176,9 +225,20 @@ public static class CrateRules
         ObjectState? newest = null;
         foreach (ObjectState thing in world.Objects)
         {
-            if (thing.ObjectTypeId != crateObjectId || !IsListedIn(world, database, workshop, thing)) continue;
-            if (KindOf(database, thing.ObjectTypeId) != kind) continue;
-            if (newest is null || thing.Id > newest.Id) newest = thing;
+            if (thing.ObjectTypeId != crateObjectId || !IsListedIn(world, database, workshop, thing))
+            {
+                continue;
+            }
+
+            if (KindOf(database, thing.ObjectTypeId) != kind)
+            {
+                continue;
+            }
+
+            if (newest is null || thing.Id > newest.Id)
+            {
+                newest = thing;
+            }
         }
 
         return newest;
@@ -194,10 +254,20 @@ public static class CrateRules
         int furniture = 0, crates = 0;
         foreach (ObjectState thing in world.Objects)
         {
-            if (!workshop.Contains(thing.TileIndex)) continue;
+            if (!workshop.Contains(thing.TileIndex))
+            {
+                continue;
+            }
+
             if (thing.AutoPlaced && !thing.InHand && thing.OwnerPlayerId == workshop.OwnerPlayerId
-                && IsFurnitureObject(workshop.Definition, thing.ObjectTypeId)) furniture++;
-            else if (IsListedIn(world, database, workshop, thing)) crates++;
+                && IsFurnitureObject(workshop.Definition, thing.ObjectTypeId))
+            {
+                furniture++;
+            }
+            else if (IsListedIn(world, database, workshop, thing))
+            {
+                crates++;
+            }
         }
 
         return crates / CratesPerTile < workshop.TileCount - furniture;
@@ -207,8 +277,15 @@ public static class CrateRules
     {
         foreach (byte id in definition.ObjectIds)
         {
-            if (id == 0) return false;
-            if (id == objectTypeId) return true;
+            if (id == 0)
+            {
+                return false;
+            }
+
+            if (id == objectTypeId)
+            {
+                return true;
+            }
         }
 
         return false;
@@ -228,8 +305,15 @@ public static class CrateRules
         if (!RoomCapacityRules.HasRoom(world, database, workshop, units: units))
         {
             CreatureState? worker = RoomCapacityRules.FirstOccupant(world, workshop);
-            if (worker != null) CreatureStateMachine.TrySetState(hooks, worker, CreatureStateMachine.Idle);
-            if (!RoomCapacityRules.HasRoom(world, database, workshop, units: units)) return false;
+            if (worker != null)
+            {
+                CreatureStateMachine.TrySetState(hooks, worker, CreatureStateMachine.Idle);
+            }
+
+            if (!RoomCapacityRules.HasRoom(world, database, workshop, units: units))
+            {
+                return false;
+            }
         }
 
         crate.OwnerPlayerId = workshop.OwnerPlayerId;
@@ -256,14 +340,21 @@ public static class CrateRules
     {
         var crates = new List<ObjectState>();
         CratesIn(world, database, workshop, crates);
-        if (crates.Count == 0) return;
+        if (crates.Count == 0)
+        {
+            return;
+        }
 
         var slots = new HashSet<int>();
         AutoFurnitureRules.FurnitureSlots(world, database, workshop, slots);
         int next = 0;
         foreach (int tile in SlabChain.Order(world, workshop))
         {
-            if (slots.Contains(tile)) continue;
+            if (slots.Contains(tile))
+            {
+                continue;
+            }
+
             for (int k = 0; k < CratesPerTile && next < crates.Count; k++)
             {
                 ObjectState crate = crates[next++];
@@ -273,7 +364,10 @@ public static class CrateRules
                 crate.Heading = 0;
             }
 
-            if (next == crates.Count) return;
+            if (next == crates.Count)
+            {
+                return;
+            }
         }
     }
 
@@ -285,6 +379,11 @@ public static class CrateRules
         var slots = new HashSet<int>();
         AutoFurnitureRules.FurnitureSlots(world, database, workshop, slots);
         foreach (int tile in SlabChain.Order(world, workshop))
-            if (!slots.Contains(tile)) into.Add(tile);
+        {
+            if (!slots.Contains(tile))
+            {
+                into.Add(tile);
+            }
+        }
     }
 }

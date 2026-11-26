@@ -12,7 +12,10 @@ public static class SaveReader
     public static long Remaining(BinaryReader reader)
     {
         if (!reader.BaseStream.CanSeek)
+        {
             throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "A save requires a seekable stream.");
+        }
+
         return reader.BaseStream.Length - reader.BaseStream.Position;
     }
 
@@ -23,9 +26,15 @@ public static class SaveReader
         int minBytesPerElement, int maximum = int.MaxValue)
     {
         if (count < 0 || count > maximum)
+        {
             throw Error(reader, SaveIncompatibleReason.OutOfRange, $"Invalid {collection} count {count}");
+        }
+
         if ((long)count * minBytesPerElement > Remaining(reader))
+        {
             throw Error(reader, SaveIncompatibleReason.Truncated, $"Not enough bytes for {collection} count {count}");
+        }
+
         return count;
     }
 
@@ -34,7 +43,10 @@ public static class SaveReader
         CheckCount(reader, length, collection, 1);
         byte[] bytes = reader.ReadBytes(length);
         if (bytes.Length != length)
+        {
             throw Error(reader, SaveIncompatibleReason.Truncated, $"Truncated {collection}");
+        }
+
         return bytes;
     }
 
@@ -45,10 +57,15 @@ public static class SaveReader
         {
             byte part = reader.ReadByte();
             if (shift == 28 && part > 7)
+            {
                 throw Error(reader, SaveIncompatibleReason.OutOfRange, "Invalid string byte length");
+            }
+
             length |= (uint)(part & 0x7F) << shift;
             if ((part & 0x80) == 0)
+            {
                 return new UTF8Encoding(false, true).GetString(Bytes(reader, (int)length, "string"));
+            }
         }
         throw Error(reader, SaveIncompatibleReason.Corrupt, "Invalid string length prefix");
     }

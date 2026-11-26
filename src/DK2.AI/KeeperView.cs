@@ -41,11 +41,13 @@ public sealed class KeeperView : INavByteGrid
         _tiles = new KeeperTileView[world.TileCount];
         _availability = world.Player(playerId).Availabilities.ToArray();
         foreach (byte id in world.PlayerIds)
+        {
             if (id < _statuses.Length)
             {
                 _statuses[id] = world.Player(id).Status;
                 _heartRuined[id] = world.Player(id).HeartRuined;
             }
+        }
 
         byte[] navigation = WorldSteering.CaptureNavigationBytes(database, world);
         int owned = 0;
@@ -53,7 +55,10 @@ public sealed class KeeperView : INavByteGrid
         {
             TileState tile = world.TileAtIndex(i);
             _tiles[i] = new KeeperTileView(tile.TerrainId, tile.OwnerPlayerId, tile.TaggedBy, navigation[i]);
-            if (_tiles[i].OwnerPlayerId == playerId) owned++;
+            if (_tiles[i].OwnerPlayerId == playerId)
+            {
+                owned++;
+            }
         }
         OwnedTiles = owned;
 
@@ -71,13 +76,22 @@ public sealed class KeeperView : INavByteGrid
             : null;
         foreach (RoomInstance room in rooms)
         {
-            if (room.OwnerPlayerId != playerId) continue;
+            if (room.OwnerPlayerId != playerId)
+            {
+                continue;
+            }
+
             foreach (int index in room.TileIndices)
             {
                 if (callToArms is not null && !KeeperSpellRules.PlaceAllowedInRoom(world, database, this, playerId, callToArms, FromIndex(index), room))
+                {
                     _callRefusedTiles.Add(index);
+                }
+
                 if (sight is not null && !KeeperSpellRules.PlaceAllowedInRoom(world, database, this, playerId, sight, FromIndex(index), room))
+                {
                     _sightRefusedTiles.Add(index);
+                }
             }
         }
         // Each owner's acquisition-ordered list, the order DK2's keeper walks (ADR-0273).
@@ -85,7 +99,10 @@ public sealed class KeeperView : INavByteGrid
         foreach (PlayerId owner in world.PlayerIds)
         {
             int rank = 0;
-            foreach (CreatureState listed in world.OwnedCreatures(owner)) ranks[listed.Id] = rank++;
+            foreach (CreatureState listed in world.OwnedCreatures(owner))
+            {
+                ranks[listed.Id] = rank++;
+            }
         }
         List<HandItem> hand = world.Player(playerId).Hand;
         HandItems = hand.ToArray();
@@ -153,7 +170,11 @@ public sealed class KeeperView : INavByteGrid
         var specials = new List<KeeperSpecialView>();
         foreach (ObjectState o in world.Objects)
         {
-            if (o.OwnerPlayerId != playerId.Value || database.ObjectById(o.ObjectTypeId)?.IsSpecial != true) continue;
+            if (o.OwnerPlayerId != playerId.Value || database.ObjectById(o.ObjectTypeId)?.IsSpecial != true)
+            {
+                continue;
+            }
+
             TilePos at = FromIndex(o.TileIndex);
             specials.Add(new KeeperSpecialView(o.Id, o.ObjectTypeId, at.X, at.Y, o.CarriedByCreatureId >= 0));
         }
@@ -165,7 +186,11 @@ public sealed class KeeperView : INavByteGrid
     /// while it lives, the heart's, door's or trap's owner for a thing, 0 with no target.</summary>
     private static byte FightTargetOwner(WorldState world, CreatureState creature)
     {
-        if (!CreatureStateMachine.HasState(creature)) return 0;
+        if (!CreatureStateMachine.HasState(creature))
+        {
+            return 0;
+        }
+
         switch (creature.FightTargetKind)
         {
             case DK2.Simulation.Combat.FightTargetKind.Creature:
@@ -199,16 +224,32 @@ public sealed class KeeperView : INavByteGrid
         KeeperDoorView[]? doors = null, KeeperSpecialView[]? specials = null)
     {
         HandItems = hand ?? [];
-        if (sightRefusedTiles is not null) _sightRefusedTiles.UnionWith(sightRefusedTiles);
+        if (sightRefusedTiles is not null)
+        {
+            _sightRefusedTiles.UnionWith(sightRefusedTiles);
+        }
+
         CallToArms = callToArms;
         Database = database;
         PlayerId = playerId;
         Tick = tick;
         Status = status;
         AlliedWith = alliedWith;
-        if (statuses is not null) Array.Copy(statuses, _statuses, Math.Min(statuses.Length, _statuses.Length));
-        if (heartRuined is not null) Array.Copy(heartRuined, _heartRuined, Math.Min(heartRuined.Length, _heartRuined.Length));
-        if (callRefusedTiles is not null) _callRefusedTiles.UnionWith(callRefusedTiles);
+        if (statuses is not null)
+        {
+            Array.Copy(statuses, _statuses, Math.Min(statuses.Length, _statuses.Length));
+        }
+
+        if (heartRuined is not null)
+        {
+            Array.Copy(heartRuined, _heartRuined, Math.Min(heartRuined.Length, _heartRuined.Length));
+        }
+
+        if (callRefusedTiles is not null)
+        {
+            _callRefusedTiles.UnionWith(callRefusedTiles);
+        }
+
         PlayerOrder = Array.AsReadOnly(playerIds);
         Width = width;
         Height = height;
@@ -247,8 +288,13 @@ public sealed class KeeperView : INavByteGrid
     public TilePos? HeartOf(PlayerId playerId)
     {
         foreach (KeeperRoomView room in AllRooms)
+        {
             if (room.OwnerPlayerId == playerId && room.Definition.RoomId == (byte)RoomTypeId.DungeonHeart)
+            {
                 return Centre(room);
+            }
+        }
+
         return null;
     }
 
@@ -270,11 +316,19 @@ public sealed class KeeperView : INavByteGrid
             case (byte)RoomTypeId.DungeonHeart: return new TilePos(first.X + 3, first.Y + 3);
             case >= (byte)RoomTypeId.HeroGateFinal and <= (byte)RoomTypeId.MercenaryGate: return first;
         }
-        if (room.TileIndices.Count == 0) return first;
+        if (room.TileIndices.Count == 0)
+        {
+            return first;
+        }
+
         int sumX = 0, sumY = 0;
         foreach (int index in room.TileIndices) { sumX += index % Width; sumY += index / Width; }
         var centroid = new TilePos(sumX / room.TileIndices.Count, sumY / room.TileIndices.Count);
-        if (room.TileIndices.Contains(IndexOf(centroid))) return centroid;
+        if (room.TileIndices.Contains(IndexOf(centroid)))
+        {
+            return centroid;
+        }
+
         return FirstRoomTileSpirallingOutFrom(centroid, room);
     }
 
@@ -291,7 +345,10 @@ public sealed class KeeperView : INavByteGrid
             for (int walked = 0; walked < sideLength; walked++)
             {
                 point += step;
-                if (InBounds(point) && room.TileIndices.Contains(IndexOf(point))) return point;
+                if (InBounds(point) && room.TileIndices.Contains(IndexOf(point)))
+                {
+                    return point;
+                }
             }
         }
     }
@@ -318,8 +375,16 @@ public sealed class KeeperView : INavByteGrid
     public bool EnemyLandAround(TilePos at)
     {
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
-                if (IsEnemyLand(new TilePos(at.X + dx, at.Y + dy))) return true;
+            {
+                if (IsEnemyLand(new TilePos(at.X + dx, at.Y + dy)))
+                {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
@@ -333,9 +398,18 @@ public sealed class KeeperView : INavByteGrid
         _router ??= RouteCache?.RouterFor(this) ?? new MeshRouter(NavMesh.Build(this));
         _waypoints.Clear();
         if (!_router.TryRoute(new NavPoint(fromX >> 4, fromY >> 4), new NavPoint(toX >> 4, toY >> 4), mover, _waypoints))
+        {
             return false;
+        }
+
         if (points is not null)
-            foreach (NavPoint p in _waypoints) points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));
+        {
+            foreach (NavPoint p in _waypoints)
+            {
+                points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));
+            }
+        }
+
         return true;
     }
 
@@ -396,7 +470,13 @@ public sealed class KeeperView : INavByteGrid
     public AvailabilityState? AvailabilityRow(AvailabilityKind kind, int typeId)
     {
         foreach (AvailabilityState entry in _availability)
-            if (entry.Kind == kind && entry.TypeId == typeId) return entry;
+        {
+            if (entry.Kind == kind && entry.TypeId == typeId)
+            {
+                return entry;
+            }
+        }
+
         return null;
     }
 
@@ -410,21 +490,37 @@ public sealed class KeeperView : INavByteGrid
 
     public KeeperTileView Tile(TilePos p)
     {
-        if (!InBounds(p)) throw new ArgumentOutOfRangeException(nameof(p));
+        if (!InBounds(p))
+        {
+            throw new ArgumentOutOfRangeException(nameof(p));
+        }
+
         return _tiles[IndexOf(p)];
     }
 
     public int Availability(AvailabilityKind kind, int typeId)
     {
         foreach (AvailabilityState entry in _availability)
-            if (entry.Kind == kind && entry.TypeId == typeId) return entry.Value;
+        {
+            if (entry.Kind == kind && entry.TypeId == typeId)
+            {
+                return entry.Value;
+            }
+        }
+
         return 1;
     }
 
     public bool IsUpgraded(AvailabilityKind kind, int typeId)
     {
         foreach (AvailabilityState entry in _availability)
-            if (entry.Kind == kind && entry.TypeId == typeId) return entry.Upgraded;
+        {
+            if (entry.Kind == kind && entry.TypeId == typeId)
+            {
+                return entry.Upgraded;
+            }
+        }
+
         return false;
     }
 
@@ -433,7 +529,11 @@ public sealed class KeeperView : INavByteGrid
     /// <summary>The simulation's placement verdict, predicted over the captured tiles.</summary>
     public RoomPlacement CanBuild(TilePos p, RoomDef room)
     {
-        if (!InBounds(p)) return RoomPlacement.OffMap;
+        if (!InBounds(p))
+        {
+            return RoomPlacement.OffMap;
+        }
+
         TerrainDef terrain = Terrain(p);
         bool touches = (terrain.IsWater || terrain.IsLava) && TouchesOwnFloor(p);
         return RoomRules.CanBuild(Database, Tile(p).ToTileState(), room, PlayerId, touches);
@@ -446,9 +546,16 @@ public sealed class KeeperView : INavByteGrid
         for (int i = 0; i < dx.Length; i++)
         {
             var n = new TilePos(p.X + dx[i], p.Y + dy[i]);
-            if (!InBounds(n)) continue;
+            if (!InBounds(n))
+            {
+                continue;
+            }
+
             KeeperTileView t = Tile(n);
-            if (OwnFloorRules.IsOwnFloor(Database.TerrainById(t.TerrainId), t.OwnerPlayerId, PlayerId)) return true;
+            if (OwnFloorRules.IsOwnFloor(Database.TerrainById(t.TerrainId), t.OwnerPlayerId, PlayerId))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -456,7 +563,11 @@ public sealed class KeeperView : INavByteGrid
     /// <summary>Solid and not impenetrable: rock an imp can dig (the original's tile predicate, §5.2).</summary>
     public bool IsDiggable(TilePos p)
     {
-        if (!InBounds(p)) return false;
+        if (!InBounds(p))
+        {
+            return false;
+        }
+
         TerrainDef t = Terrain(p);
         return t.IsSolid && !t.IsImpenetrable;
     }
@@ -470,7 +581,11 @@ public sealed class KeeperView : INavByteGrid
     /// <summary>Open ground a creature walks on: not solid, not water, not lava.</summary>
     public bool IsPassable(TilePos p)
     {
-        if (!InBounds(p)) return false;
+        if (!InBounds(p))
+        {
+            return false;
+        }
+
         TerrainDef t = Terrain(p);
         return !t.IsSolid && !t.IsWater && !t.IsLava;
     }
@@ -487,14 +602,38 @@ public sealed class KeeperView : INavByteGrid
     /// tiles, things and the <paramref name="pending"/> ones this tick has placed.</summary>
     public bool CanPlaceTrap(TilePos p, IReadOnlyCollection<TilePos>? pending = null)
     {
-        if (!InBounds(p) || Tile(p).OwnerPlayerId != PlayerId) return false;
+        if (!InBounds(p) || Tile(p).OwnerPlayerId != PlayerId)
+        {
+            return false;
+        }
+
         TerrainDef terrain = Terrain(p);
-        if (terrain.IsSolid || Database.RoomByTerrain(terrain.TerrainId) is not null) return false;
-        if (pending is not null && pending.Contains(p)) return false;
+        if (terrain.IsSolid || Database.RoomByTerrain(terrain.TerrainId) is not null)
+        {
+            return false;
+        }
+
+        if (pending is not null && pending.Contains(p))
+        {
+            return false;
+        }
+
         foreach (KeeperDoorView d in Doors)
-            if (d.X == p.X && d.Y == p.Y) return false;
+        {
+            if (d.X == p.X && d.Y == p.Y)
+            {
+                return false;
+            }
+        }
+
         foreach (KeeperTrapView t in Traps)
-            if (t.X == p.X && t.Y == p.Y) return false;
+        {
+            if (t.X == p.X && t.Y == p.Y)
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -502,8 +641,16 @@ public sealed class KeeperView : INavByteGrid
     /// and, unless a Barricade, solid tiles on both sides north and south or east and west.</summary>
     public bool CanPlaceDoor(TilePos p, DoorDef door, IReadOnlyCollection<TilePos>? pending = null)
     {
-        if (!CanPlaceTrap(p, pending)) return false;
-        if (((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) return true;
+        if (!CanPlaceTrap(p, pending))
+        {
+            return false;
+        }
+
+        if (((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade))
+        {
+            return true;
+        }
+
         return (IsSolid(new TilePos(p.X, p.Y - 1)) && IsSolid(new TilePos(p.X, p.Y + 1)))
             || (IsSolid(new TilePos(p.X + 1, p.Y)) && IsSolid(new TilePos(p.X - 1, p.Y)));
     }
@@ -515,7 +662,11 @@ public sealed class KeeperView : INavByteGrid
     /// <summary>Solid rock that yields gold when dug.</summary>
     public bool IsGoldRock(TilePos p)
     {
-        if (!InBounds(p)) return false;
+        if (!InBounds(p))
+        {
+            return false;
+        }
+
         TerrainDef t = Terrain(p);
         return t.IsSolid && t.GoldValue > 0;
     }
@@ -536,7 +687,13 @@ public sealed class KeeperView : INavByteGrid
     public KeeperRoomView? OwnRoomOfType(byte roomId)
     {
         foreach (KeeperRoomView r in OwnRooms)
-            if (r.Definition.RoomId == roomId) return r;
+        {
+            if (r.Definition.RoomId == roomId)
+            {
+                return r;
+            }
+        }
+
         return null;
     }
 
@@ -544,7 +701,12 @@ public sealed class KeeperView : INavByteGrid
     public IEnumerable<KeeperRoomView> RoomsOf(PlayerId player)
     {
         for (int i = AllRooms.Count - 1; i >= 0; i--)
-            if (AllRooms[i].OwnerPlayerId == player) yield return AllRooms[i];
+        {
+            if (AllRooms[i].OwnerPlayerId == player)
+            {
+                yield return AllRooms[i];
+            }
+        }
     }
 
     /// <summary><c>0x004C6460</c>: a room drawn uniformly among the player's rooms of one type whose
@@ -561,7 +723,11 @@ public sealed class KeeperView : INavByteGrid
     public KeeperRoomView? RandomNonBridgeRoom(PlayerId player, SimRandom rng)
     {
         var rooms = RoomsOf(player).ToList();
-        if (rooms.Count == 0) return null;
+        if (rooms.Count == 0)
+        {
+            return null;
+        }
+
         KeeperRoomView drawn = rooms[rng.NextInt(rooms.Count)];
         return BridgeRules.IsBridge(drawn.Definition) ? null : drawn;
     }
@@ -587,7 +753,11 @@ public sealed class KeeperView : INavByteGrid
         int bestDist = int.MaxValue;
         foreach (KeeperRoomView r in OwnRooms)
         {
-            if (avoidBridges && BridgeRules.IsBridge(r.Definition)) continue;
+            if (avoidBridges && BridgeRules.IsBridge(r.Definition))
+            {
+                continue;
+            }
+
             int d = DistanceSquared(Centre(r), to);
             if (d < bestDist)
             {

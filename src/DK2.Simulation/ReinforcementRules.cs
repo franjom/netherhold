@@ -20,10 +20,22 @@ public static class ReinforcementRules
     {
         ref TileState tile = ref world.Tile(at);
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
-        if (!terrain.IsSolid || terrain.IsImpenetrable || terrain.GoldValue != 0) return false;
+        if (!terrain.IsSolid || terrain.IsImpenetrable || terrain.GoldValue != 0)
+        {
+            return false;
+        }
+
         bool belowHalf = tile.Health < (terrain.MaxHealth >> 1);
-        if (tile.OwnerPlayerId == keeper) return terrain.IsOwnable && belowHalf;
-        if (tile.OwnerPlayerId != PlayerIds.Neutral) return false;
+        if (tile.OwnerPlayerId == keeper)
+        {
+            return terrain.IsOwnable && belowHalf;
+        }
+
+        if (tile.OwnerPlayerId != PlayerIds.Neutral)
+        {
+            return false;
+        }
+
         return terrain.IsOwnable
             ? belowHalf && OwnFloorRules.Touches(database, world, at, keeper)
             : tile.Health != terrain.MaxHealth;
@@ -39,11 +51,19 @@ public static class ReinforcementRules
     public static void FillCorners(SimulationContext context, TilePos at, PlayerId owner)
     {
         WorldState world = context.World;
-        if (!world.Contains(at) || !IsFinished(context.Database, world.Tile(at))) return;
+        if (!world.Contains(at) || !IsFinished(context.Database, world.Tile(at)))
+        {
+            return;
+        }
+
         foreach (TilePos offset in Diagonals)
         {
             var diagonal = new TilePos(at.X + offset.X, at.Y + offset.Y);
-            if (!world.Contains(diagonal) || !IsFinished(context.Database, world.Tile(diagonal))) continue;
+            if (!world.Contains(diagonal) || !IsFinished(context.Database, world.Tile(diagonal)))
+            {
+                continue;
+            }
+
             var vertical = new TilePos(at.X, diagonal.Y);
             var horizontal = new TilePos(diagonal.X, at.Y);
             if (offset.X == 1 && offset.Y == 1)
@@ -63,17 +83,31 @@ public static class ReinforcementRules
             ref TileState tile = ref world.Tile(wall);
             TerrainDef terrain = context.Database.TerrainById(tile.TerrainId);
             if (tile.OwnerPlayerId != PlayerIds.Neutral || !terrain.IsSolid || terrain.IsImpenetrable
-                || terrain.GoldValue != 0 || tile.Health == terrain.MaxHealth) return;
+                || terrain.GoldValue != 0 || tile.Health == terrain.MaxHealth)
+            {
+                return;
+            }
+
             context.Navigation.Refresh();
-            if (NavBytes.IsSolid(context.Navigation.NavByte(open.X, open.Y))) return;
+            if (NavBytes.IsSolid(context.Navigation.NavByte(open.X, open.Y)))
+            {
+                return;
+            }
+
             byte before = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
             bool changed = TileWorkRules.CompleteWall(context.World, context.Database, ref tile, owner);
             SlabChain.Changed(world, context.Database, wall.Y * world.Width + wall.X, before, ownerBefore, context.Rng, context);
             // The fill is the applier at its maximum (0x00466552, 0x004665C1), whose neighbour refresh
             // (0x004533C0) rebuilds a Hatchery beside the wall (ADR-0672).
             if (tile.TerrainId != before)
+            {
                 HatcheryRules.AfterNeighbourWork(world, context.Database, wall.Y * world.Width + wall.X, context.Rng);
-            if (changed) TileWorkSystem.RequestCompletionEffect(context, before, wall, owner);
+            }
+
+            if (changed)
+            {
+                TileWorkSystem.RequestCompletionEffect(context, before, wall, owner);
+            }
         }
     }
 }

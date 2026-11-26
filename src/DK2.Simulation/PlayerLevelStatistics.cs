@@ -61,7 +61,10 @@ public struct PlayerLevelStatistics
         hash.Add(CreaturesCommanded); hash.Add(CreatureTraining); hash.Add(LevelWon ? (byte)1 : (byte)0);
         hash.Add(EndTurn);
         AtVerdict.HashInto(ref hash);
-        for (int i = 0; i < KillTally.Length; i++) hash.Add(KillsByVictimOwner[i]);
+        for (int i = 0; i < KillTally.Length; i++)
+        {
+            hash.Add(KillsByVictimOwner[i]);
+        }
     }
 
     public readonly void Write(BinaryWriter w)
@@ -72,13 +75,20 @@ public struct PlayerLevelStatistics
         w.Write(Sampled); w.Write(LandOwned); w.Write(ManaStored);
         w.Write(CreaturesCommanded); w.Write(CreatureTraining); w.Write(LevelWon); w.Write(EndTurn);
         AtVerdict.Write(w);
-        for (int i = 0; i < KillTally.Length; i++) w.Write(KillsByVictimOwner[i]);
+        for (int i = 0; i < KillTally.Length; i++)
+        {
+            w.Write(KillsByVictimOwner[i]);
+        }
     }
 
     public static PlayerLevelStatistics Read(BinaryReader r)
     {
         PlayerLevelStatistics stats = ReadCounters(r);
-        for (int i = 0; i < KillTally.Length; i++) stats.KillsByVictimOwner[i] = r.ReadUInt16();
+        for (int i = 0; i < KillTally.Length; i++)
+        {
+            stats.KillsByVictimOwner[i] = r.ReadUInt16();
+        }
+
         return stats;
     }
 
@@ -135,8 +145,16 @@ public struct LevelCounters
         RoomExtraPoints, GoldMined, ItemsManufactured, CreaturesConverted, OwnCreaturesKilled, MoneySpent, ThingsResearched,
         SpecialsFound];
 
-    public readonly void HashInto(ref Hash64 hash) { foreach (int value in Values()) hash.Add(value); }
-    public readonly void Write(BinaryWriter w) { foreach (int value in Values()) w.Write(value); }
+    public readonly void HashInto(ref Hash64 hash) { foreach (int value in Values())
+        {
+            hash.Add(value);
+        }
+    }
+    public readonly void Write(BinaryWriter w) { foreach (int value in Values())
+        {
+            w.Write(value);
+        }
+    }
 
     public static LevelCounters Read(BinaryReader r) => new()
     {

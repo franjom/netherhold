@@ -56,8 +56,15 @@ public sealed class StructureBlocks
     /// and heart tiles only. Compute once and share it: <see cref="Navigation.WorldSteering.Refresh"/> reads it once per refresh.</summary>
     public static StructureBlocks For(WorldState world, GameDatabase database)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
 
         // The terrain ids up front, from the ROOMS records' own terrain column, so the per-tile
         // test is a byte compare and not a dictionary lookup.
@@ -66,12 +73,24 @@ public sealed class StructureBlocks
         byte heartTerrain = 0;
         foreach (RoomDef room in database.Rooms.Values)
         {
-            if (room.TypeId == RoomTypeId.Portal) portalTerrain = room.TerrainId;
-            else if (room.TypeId == RoomTypeId.HeroPortal) heroPortalTerrain = room.TerrainId;
-            else if (room.TypeId == RoomTypeId.DungeonHeart) heartTerrain = room.TerrainId;
+            if (room.TypeId == RoomTypeId.Portal)
+            {
+                portalTerrain = room.TerrainId;
+            }
+            else if (room.TypeId == RoomTypeId.HeroPortal)
+            {
+                heroPortalTerrain = room.TerrainId;
+            }
+            else if (room.TypeId == RoomTypeId.DungeonHeart)
+            {
+                heartTerrain = room.TerrainId;
+            }
         }
 
-        if (portalTerrain == 0 && heroPortalTerrain == 0 && heartTerrain == 0) return Empty;
+        if (portalTerrain == 0 && heroPortalTerrain == 0 && heartTerrain == 0)
+        {
+            return Empty;
+        }
 
         // The mask is a function of the structure tiles alone: which tiles carry one of the three
         // terrains, with what owner, since a fill crosses only tiles of its seed's terrain and
@@ -82,15 +101,25 @@ public sealed class StructureBlocks
         // No change to any tile's terrain, owner or ruin bit since the last scan leaves the list the same.
         long writes = TileState.KeyWriteCount;
         if (cache.Blocks is not null && ReferenceEquals(cache.Database, database) && cache.KeyWrites == writes)
+        {
             return cache.Blocks;
+        }
+
         List<long> seeds = cache.Scratch;
         seeds.Clear();
         for (int i = 0; i < world.TileCount; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
             byte terrainId = tile.TerrainId;
-            if (terrainId == 0) continue;
-            if (terrainId != portalTerrain && terrainId != heroPortalTerrain && terrainId != heartTerrain) continue;
+            if (terrainId == 0)
+            {
+                continue;
+            }
+
+            if (terrainId != portalTerrain && terrainId != heroPortalTerrain && terrainId != heartTerrain)
+            {
+                continue;
+            }
 
             long ruined = terrainId == heartTerrain && tile.RoomRuined ? 1L << 40 : 0;
             seeds.Add(ruined | ((long)i << 16) | ((long)terrainId << 8) | tile.OwnerPlayerId);
@@ -122,15 +151,28 @@ public sealed class StructureBlocks
 
     private static bool SameSeeds(List<long> a, List<long> b)
     {
-        if (a.Count != b.Count) return false;
+        if (a.Count != b.Count)
+        {
+            return false;
+        }
+
         for (int i = 0; i < a.Count; i++)
-            if (a[i] != b[i]) return false;
+        {
+            if (a[i] != b[i])
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 
     private static StructureBlocks Compute(WorldState world, GameDatabase database, List<long> seedKeys)
     {
-        if (seedKeys.Count == 0) return Empty;
+        if (seedKeys.Count == 0)
+        {
+            return Empty;
+        }
 
         var blocked = new HashSet<int>();
         var portalCentres = new HashSet<int>();
@@ -140,7 +182,10 @@ public sealed class StructureBlocks
         foreach (long key in seedKeys)
         {
             int seed = (int)((key >> 16) & 0xFFFFFF);
-            if (seen.Contains(seed)) continue;
+            if (seen.Contains(seed))
+            {
+                continue;
+            }
 
             RoomInstance? room = RoomIndex.RoomAt(world, database, seed);
             if (room is null)
@@ -149,7 +194,11 @@ public sealed class StructureBlocks
                 continue;
             }
 
-            foreach (int index in room.TileIndices) seen.Add(index);
+            foreach (int index in room.TileIndices)
+            {
+                seen.Add(index);
+            }
+
             Add(world, room, blocked, portalCentres, heartCentres);
         }
 
@@ -178,7 +227,10 @@ public sealed class StructureBlocks
                 break;
 
             case RoomTypeId.DungeonHeart:
-                if (RoomRules.IsRuined(world, room)) break;
+                if (RoomRules.IsRuined(world, room))
+                {
+                    break;
+                }
                 // The middle nine, the raised platform Q52's 16000 pinned. IsCentrePlatform answers
                 // false for a room narrower than 3, so a half-destroyed heart blocks nothing and
                 // does not trap the creatures standing in it.
@@ -190,7 +242,10 @@ public sealed class StructureBlocks
                     if (room.IsCentrePlatform(x, y)) { blocked.Add(index); platform = true; }
                 }
                 if (platform)
+                {
                     heartCentres.Add((((room.MinY + room.MaxY) / 2) * world.Width) + ((room.MinX + room.MaxX) / 2));
+                }
+
                 break;
         }
     }

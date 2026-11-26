@@ -45,14 +45,22 @@ public static class DefeatRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (ImpSupplyRules.HeartTileOf(world, database, playerId) < 0) return;
+        if (ImpSupplyRules.HeartTileOf(world, database, playerId) < 0)
+        {
+            return;
+        }
+
         byte heartTerrain = ManaRules.DungeonHeartTerrainId(database)!.Value;
 
         int gold = 0, piles = 0;
         for (int i = 0; i < world.TileCount; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
-            if (tile.OwnerPlayerId != playerId || tile.TerrainId != heartTerrain || tile.GoldHeld <= 0) continue;
+            if (tile.OwnerPlayerId != playerId || tile.TerrainId != heartTerrain || tile.GoldHeld <= 0)
+            {
+                continue;
+            }
+
             int amount = tile.GoldHeld;
             tile.GoldHeld = 0;
             tile.StoreGoldLinkOrder = 0;
@@ -64,7 +72,11 @@ public static class DefeatRules
         int rooms = 0;
         foreach (RoomInstance room in RoomLists.Of(world, database, playerId))
         {
-            if (room.OwnerPlayerId != playerId || IsKept(room.Definition)) continue;
+            if (room.OwnerPlayerId != playerId || IsKept(room.Definition))
+            {
+                continue;
+            }
+
             RoomHealthRules.PostTransfer(world, room, playerId, PlayerIds.Neutral);
             LevelStatisticsRules.CreditRoomTakeover(world, room.Definition, room.TileCount, PlayerIds.Neutral);
             RoomLists.Set(world, room.TileIndices, RoomLists.Next(world));
@@ -73,7 +85,10 @@ public static class DefeatRules
                 ref TileState tile = ref world.TileAtIndex(index);
                 ManaRules.SetOwner(world, database, ref tile, PlayerIds.Neutral);
                 tile.KeptManaGain = 0;
-                if (PortalRules.IsPortalTerrain(database, tile.TerrainId)) PortalRules.OnOwnerChanged(ref tile);
+                if (PortalRules.IsPortalTerrain(database, tile.TerrainId))
+                {
+                    PortalRules.OnOwnerChanged(ref tile);
+                }
             }
             HatcheryRules.ReownCoops(world, room, PlayerIds.Neutral);   // its auto-placed objects (ADR-0672)
             SlabChain.Kick(world, room);   // Room_TransferOwnership's slot +0x0D (ADR-0406)
@@ -85,14 +100,26 @@ public static class DefeatRules
         for (int i = 0; i < world.TileCount; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
-            if (tile.OwnerPlayerId != playerId) continue;
+            if (tile.OwnerPlayerId != playerId)
+            {
+                continue;
+            }
+
             TerrainDef terrain = database.TerrainById(tile.TerrainId);
-            if (terrain.IsRoom) continue;
+            if (terrain.IsRoom)
+            {
+                continue;
+            }
+
             TerrainDef next = database.TerrainById(terrain.DestroyedTypeTerrainId);
             ManaRules.SetTerrain(world, database, ref tile, terrain.DestroyedTypeTerrainId);
             tile.Health = next.StartingHealth;
             tile.BurnTicksRemaining = 0;
-            if (!next.IsTaggable) tile.TaggedBy = PlayerMask.None;
+            if (!next.IsTaggable)
+            {
+                tile.TaggedBy = PlayerMask.None;
+            }
+
             ManaRules.SetOwner(world, database, ref tile, PlayerIds.Neutral);
             tile.KeptManaGain = 0;
             SlabChain.KickNeighbours(world, database, i);   // Tile_SetTerrain's 0x004E44E0 (ADR-0406)
@@ -116,8 +143,16 @@ public static class DefeatRules
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState state = world.Creatures[i];
-            if (state.OwnerPlayerId != playerId) continue;
-            if (CreatureDeathRules.IsDown(state) || HandRules.IsHeld(state) || PrisonRules.IsImprisoned(state)) continue;
+            if (state.OwnerPlayerId != playerId)
+            {
+                continue;
+            }
+
+            if (CreatureDeathRules.IsDown(state) || HandRules.IsHeld(state) || PrisonRules.IsImprisoned(state))
+            {
+                continue;
+            }
+
             CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
             if (((creature.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
@@ -131,7 +166,11 @@ public static class DefeatRules
             if (state.Activity != CreatureActivity.Leaving)
             {
                 CombatRules.Disengage(context.Hooks, state);
-                if (!LeavingRules.Start(context, state, SystemName)) continue;
+                if (!LeavingRules.Start(context, state, SystemName))
+                {
+                    continue;
+                }
+
                 state.ClearJob();
                 LairRules.ReleaseBed(world, database, state);
                 context.Emit(SystemName, "creature_leaving", $"creature={state.Id} type={creature.Name} player={playerId}");

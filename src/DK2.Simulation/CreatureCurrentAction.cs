@@ -30,24 +30,66 @@ public static class CreatureCurrentAction
     /// or free-aimed cast in progress, 17 for a melee swing in its hold, 16 for a cast in its hold; 0 for none or one ours does not tell apart.</summary>
     public static int IndexOf(CreatureState creature, CreatureDef definition, GameTick tick)
     {
-        if (creature.PossessedMelee.Active) return CreatureActionTable.MeleeSwing;
-        if (creature.PossessedExcavation.Kind != PossessedExcavationKind.None) return (int)creature.PossessedExcavation.Kind;
-        if (creature.ClaimAction.Kind != ClaimActionKind.None) return (int)creature.ClaimAction.Kind;
-        if (creature.IdleAction != IdleActionId.None) return (int)creature.IdleAction;
-        if (creature.CombatPitAction != CombatPitActionId.None) return (int)creature.CombatPitAction;
+        if (creature.PossessedMelee.Active)
+        {
+            return CreatureActionTable.MeleeSwing;
+        }
+
+        if (creature.PossessedExcavation.Kind != PossessedExcavationKind.None)
+        {
+            return (int)creature.PossessedExcavation.Kind;
+        }
+
+        if (creature.ClaimAction.Kind != ClaimActionKind.None)
+        {
+            return (int)creature.ClaimAction.Kind;
+        }
+
+        if (creature.IdleAction != IdleActionId.None)
+        {
+            return (int)creature.IdleAction;
+        }
+
+        if (creature.CombatPitAction != CombatPitActionId.None)
+        {
+            return (int)creature.CombatPitAction;
+        }
+
         if (creature.TrainingActionId != 0)
+        {
             return creature.TrainingActionId == (byte)TrainingActionKind.Spell ? CreatureActionTable.TrainSpell : CreatureActionTable.TrainMelee;
-        if (WorkLoopIndex(creature) is var work and not 0) return work;
-        if (creature.Tunnel.Digging) return creature.Tunnel.Action;
+        }
+
+        if (WorkLoopIndex(creature) is var work and not 0)
+        {
+            return work;
+        }
+
+        if (creature.Tunnel.Digging)
+        {
+            return creature.Tunnel.Action;
+        }
+
         if (creature.SwingInProgress)
+        {
             return creature.SwingKind switch
             {
                 SpellRules.SpellCast => CreatureActionTable.SpellCast,
                 SpellRules.FreeAimCast => CreatureActionTable.FreeAimCast,
                 _ => CreatureActionTable.MeleeSwing,
             };
-        if (FightRules.MeleeActionIsRunning(creature, definition, tick)) return CreatureActionTable.MeleeSwing;
-        if (creature.SwingKind == SpellRules.SpellCast && tick.Value < creature.ActionUntilTick) return CreatureActionTable.SpellCast;
+        }
+
+        if (FightRules.MeleeActionIsRunning(creature, definition, tick))
+        {
+            return CreatureActionTable.MeleeSwing;
+        }
+
+        if (creature.SwingKind == SpellRules.SpellCast && tick.Value < creature.ActionUntilTick)
+        {
+            return CreatureActionTable.SpellCast;
+        }
+
         return 0;
     }
 

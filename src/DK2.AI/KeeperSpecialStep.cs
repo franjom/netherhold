@@ -26,10 +26,15 @@ public static class KeeperSpecialStep
         for (int i = specials.Count - 1; i >= 0; i--)
         {
             KeeperSpecialView s = specials[i];
-            if (view.IsMine(new TilePos(s.X, s.Y)) && !s.Carried) kept = s;
+            if (view.IsMine(new TilePos(s.X, s.Y)) && !s.Carried)
+            {
+                kept = s;
+            }
         }
         if (kept is { } chosen && Usable(chosen.ObjectTypeId))
+        {
             commands.Add(new ActivateSpecialCommand(view.PlayerId, chosen.ObjectId));
+        }
     }
 
     /// <summary>The switch at <c>0x005005C2</c>: 8 (the Torture Wheel, which carries no

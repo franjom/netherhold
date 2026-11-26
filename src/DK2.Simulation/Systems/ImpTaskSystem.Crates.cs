@@ -32,7 +32,11 @@ public sealed partial class ImpTaskSystem
     /// room list.</remarks>
     private bool TryTakeBlueprint(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        if (!CanTakeACrate(creature) || !context.World.HasPlayer(creature.OwnerPlayerId)) return false;
+        if (!CanTakeACrate(creature) || !context.World.HasPlayer(creature.OwnerPlayerId))
+        {
+            return false;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
         List<BlueprintRef> list = world.Player(creature.OwnerPlayerId).Blueprints;
@@ -54,9 +58,21 @@ public sealed partial class ImpTaskSystem
                 byte crateObject = CrateRules.CrateFor(database, world, blueprint);
                 foreach (RoomInstance room in rooms)
                 {
-                    if (room.OwnerPlayerId != creature.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.Workshop) continue;
-                    if (CrateRules.CrateIn(world, database, room, blueprint.Kind, crateObject) is not { } crate) continue;
-                    if (!Reachable(grid, creature, CrateRules.TileOf(world, blueprint)) || !Reachable(grid, creature, crate.TileIndex)) continue;
+                    if (room.OwnerPlayerId != creature.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.Workshop)
+                    {
+                        continue;
+                    }
+
+                    if (CrateRules.CrateIn(world, database, room, blueprint.Kind, crateObject) is not { } crate)
+                    {
+                        continue;
+                    }
+
+                    if (!Reachable(grid, creature, CrateRules.TileOf(world, blueprint)) || !Reachable(grid, creature, crate.TileIndex))
+                    {
+                        continue;
+                    }
+
                     return CommitCrateFetch(context, creature, blueprint, crate, "blueprint_list");
                 }
             }
@@ -74,7 +90,11 @@ public sealed partial class ImpTaskSystem
     /// <remarks>Ours measures to the room's first tile rather than its position word.</remarks>
     private bool TryTakeBlueprintNear(SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        if (!CanTakeACrate(creature)) return false;
+        if (!CanTakeACrate(creature))
+        {
+            return false;
+        }
+
         WorldState world = context.World;
         IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, context.Database);
         (BlueprintRef Blueprint, ObjectState Crate)? job = null;
@@ -86,7 +106,10 @@ public sealed partial class ImpTaskSystem
         if (_only is TilePos only)
         {
             found = Reaches(grid, creature, only) && (job = BlueprintJobAt(context, creature, grid, rooms, only)) != null;
-            if (!found) _route.Clear();
+            if (!found)
+            {
+                _route.Clear();
+            }
         }
         else
         {
@@ -95,7 +118,11 @@ public sealed partial class ImpTaskSystem
                 at => InScanRange(at) && (job = BlueprintJobAt(context, creature, grid, rooms, at)) != null,
                 _route);
         }
-        if (!found || job is not { } taken) return false;
+        if (!found || job is not { } taken)
+        {
+            return false;
+        }
+
         return CommitCrateFetch(context, creature, taken.Blueprint, taken.Crate, "dropped");
     }
 
@@ -105,7 +132,10 @@ public sealed partial class ImpTaskSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int tile = (at.Y * world.Width) + at.X;
-        if (world.TileAtIndex(tile).OwnerPlayerId != creature.OwnerPlayerId) return null;
+        if (world.TileAtIndex(tile).OwnerPlayerId != creature.OwnerPlayerId)
+        {
+            return null;
+        }
 
         foreach (byte kind in (ReadOnlySpan<byte>)[CrateRules.TrapKind, CrateRules.DoorKind])
         {
@@ -113,8 +143,15 @@ public sealed partial class ImpTaskSystem
             for (int i = 0; i < count; i++)
             {
                 var blueprint = new BlueprintRef(kind, kind == CrateRules.DoorKind ? world.Doors[i].Id : world.Traps[i].Id);
-                if (CrateRules.TileOf(world, blueprint) != tile || !CrateRules.IsBlueprint(world, blueprint)) continue;
-                if (CrateRules.OwnerOf(world, blueprint) != creature.OwnerPlayerId || IsHeld(world, creature, blueprint)) continue;
+                if (CrateRules.TileOf(world, blueprint) != tile || !CrateRules.IsBlueprint(world, blueprint))
+                {
+                    continue;
+                }
+
+                if (CrateRules.OwnerOf(world, blueprint) != creature.OwnerPlayerId || IsHeld(world, creature, blueprint))
+                {
+                    continue;
+                }
 
                 byte crateObject = CrateRules.CrateFor(database, world, blueprint);
                 ObjectState? best = null;
@@ -122,16 +159,35 @@ public sealed partial class ImpTaskSystem
                 TilePos from = kind == CrateRules.TrapKind ? creature.Tile : at;
                 foreach (RoomInstance room in rooms)
                 {
-                    if (room.OwnerPlayerId != creature.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.Workshop) continue;
+                    if (room.OwnerPlayerId != creature.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.Workshop)
+                    {
+                        continue;
+                    }
+
                     long distance = EatingRules.DistanceSquared(world, from, room.TileIndices[0]);
-                    if (distance >= bestDistance) continue;
-                    if (CrateRules.CrateIn(world, database, room, kind, crateObject) is not { } crate) continue;
-                    if (!Reachable(grid, creature, crate.TileIndex)) continue;
+                    if (distance >= bestDistance)
+                    {
+                        continue;
+                    }
+
+                    if (CrateRules.CrateIn(world, database, room, kind, crateObject) is not { } crate)
+                    {
+                        continue;
+                    }
+
+                    if (!Reachable(grid, creature, crate.TileIndex))
+                    {
+                        continue;
+                    }
+
                     best = crate;
                     bestDistance = distance;
                 }
 
-                if (best != null) return (blueprint, best);
+                if (best != null)
+                {
+                    return (blueprint, best);
+                }
             }
         }
 
@@ -147,7 +203,10 @@ public sealed partial class ImpTaskSystem
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (CrateRules.KindOf(database, crate.ObjectTypeId) is not { } kind) return null;
+        if (CrateRules.KindOf(database, crate.ObjectTypeId) is not { } kind)
+        {
+            return null;
+        }
 
         int count = kind == CrateRules.DoorKind ? world.Doors.Count : world.Traps.Count;
         BlueprintRef? best = null;
@@ -155,12 +214,23 @@ public sealed partial class ImpTaskSystem
         for (int i = 0; i < count; i++)
         {
             var blueprint = new BlueprintRef(kind, kind == CrateRules.DoorKind ? world.Doors[i].Id : world.Traps[i].Id);
-            if (CrateRules.OwnerOf(world, blueprint) != creature.OwnerPlayerId || !CrateRules.IsBlueprint(world, blueprint)) continue;
-            if (CrateRules.CrateFor(database, world, blueprint) != crate.ObjectTypeId) continue;
+            if (CrateRules.OwnerOf(world, blueprint) != creature.OwnerPlayerId || !CrateRules.IsBlueprint(world, blueprint))
+            {
+                continue;
+            }
+
+            if (CrateRules.CrateFor(database, world, blueprint) != crate.ObjectTypeId)
+            {
+                continue;
+            }
 
             int tile = CrateRules.TileOf(world, blueprint);
             long distance = EatingRules.DistanceSquared(world, creature.Tile, tile);
-            if (distance >= bestDistance || IsHeld(world, creature, blueprint) || !Reachable(grid, creature, tile)) continue;
+            if (distance >= bestDistance || IsHeld(world, creature, blueprint) || !Reachable(grid, creature, tile))
+            {
+                continue;
+            }
+
             best = blueprint;
             bestDistance = distance;
         }
@@ -175,7 +245,10 @@ public sealed partial class ImpTaskSystem
     {
         WorldState world = context.World;
         var at = new TilePos(crate.TileIndex % world.Width, crate.TileIndex / world.Width);
-        if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot)) return false;
+        if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.ExactSpot))
+        {
+            return false;
+        }
 
         creature.TargetTileIndex = CrateRules.TileOf(world, blueprint);
         creature.TargetWork = default;
@@ -201,7 +274,9 @@ public sealed partial class ImpTaskSystem
         WorldState world = context.World;
         int to = carrying ? blueprintTile : crate.TileIndex;
         if (!context.Navigation.TryRoute(creature, new TilePos(to % world.Width, to / world.Width), Navigation.MoveOptions.ExactSpot))
+        {
             return false;
+        }
 
         creature.TargetTileIndex = blueprintTile;
         creature.TargetWork = default;
@@ -227,7 +302,11 @@ public sealed partial class ImpTaskSystem
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return;
+            if (creature.HasRoute)
+            {
+                return;
+            }
+
             StateShadow.Arrive(context, SystemName, creature);
         }
 
@@ -236,12 +315,26 @@ public sealed partial class ImpTaskSystem
         var to = new TilePos(creature.TargetTileIndex % world.Width, creature.TargetTileIndex / world.Width);
         foreach (ObjectState crate in world.Objects)
         {
-            if (crate.TileIndex != here || crate.CarriedByCreatureId >= 0 || crate.InHand) continue;
-            if (crate.ObjectTypeId != crateObject || CrateRules.KindOf(database, crate.ObjectTypeId) != kind) continue;
-            if (!RouteTo(context, creature, grid, creature.TargetTileIndex)) continue;
+            if (crate.TileIndex != here || crate.CarriedByCreatureId >= 0 || crate.InHand)
+            {
+                continue;
+            }
+
+            if (crate.ObjectTypeId != crateObject || CrateRules.KindOf(database, crate.ObjectTypeId) != kind)
+            {
+                continue;
+            }
+
+            if (!RouteTo(context, creature, grid, creature.TargetTileIndex))
+            {
+                continue;
+            }
 
             if (RoomIndex.RoomAt(world, database, here) is { } room && CrateRules.IsListedIn(world, database, room, crate))
+            {
                 CrateRules.Unlist(world, database, room, crate);
+            }
+
             creature.TargetObjectId = -1;
             ObjectCarryRules.TakeHold(creature, crate);
             BeginTaskWalk(context, creature, InstallStateOf(kind));
@@ -275,7 +368,10 @@ public sealed partial class ImpTaskSystem
         }
 
         ObjectCarryRules.FollowCarrier(world, creature, crate);
-        if (creature.HasRoute) return;
+        if (creature.HasRoute)
+        {
+            return;
+        }
 
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (here != creature.TargetTileIndex)
@@ -289,7 +385,11 @@ public sealed partial class ImpTaskSystem
             return;
         }
 
-        if (StateShadow.IsTravelling(creature)) StateShadow.Arrive(context, SystemName, creature);
+        if (StateShadow.IsTravelling(creature))
+        {
+            StateShadow.Arrive(context, SystemName, creature);
+        }
+
         byte kind = KindOfState(creature.Dk2StateId);
         ObjectCarryRules.Drop(world, creature, crate);
 
@@ -361,9 +461,16 @@ public sealed partial class ImpTaskSystem
         foreach (CreatureState other in world.Creatures)
         {
             if (other.Id == asking.Id || other.OwnerPlayerId != asking.OwnerPlayerId
-                || other.TargetTileIndex != tile) continue;
+                || other.TargetTileIndex != tile)
+            {
+                continue;
+            }
+
             int state = StateShadow.IsTravelling(other) ? other.UtilityNewState : other.Dk2StateId;
-            if (state == fetch || state == install) return true;
+            if (state == fetch || state == install)
+            {
+                return true;
+            }
         }
 
         return false;
@@ -386,7 +493,11 @@ public sealed partial class ImpTaskSystem
     /// furniture slot takes, as the destination helper's <c>0x004E8430</c> picks, or -1.</summary>
     private int CrateHome(SimulationContext context, CreatureState creature)
     {
-        if (ObjectCarryRules.WorkshopFor(context.World, context.Database, creature) is not { } workshop) return -1;
+        if (ObjectCarryRules.WorkshopFor(context.World, context.Database, creature) is not { } workshop)
+        {
+            return -1;
+        }
+
         CrateRules.CrateTiles(context.World, context.Database, workshop, _crateTiles);
         return _crateTiles.Count == 0 ? -1 : _crateTiles[context.Rng.NextInt(_crateTiles.Count)];
     }

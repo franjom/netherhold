@@ -51,10 +51,22 @@ public static class CombatPitSpectatorRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];
-            if (!CreatureStateMachine.HasState(c) || !CombatPitRules.IsOnTheMap(c)) continue;
-            if (!CombatPitRules.IsFloor(pit, (c.Tile.Y * world.Width) + c.Tile.X)) continue;
+            if (!CreatureStateMachine.HasState(c) || !CombatPitRules.IsOnTheMap(c))
+            {
+                continue;
+            }
+
+            if (!CombatPitRules.IsFloor(pit, (c.Tile.Y * world.Width) + c.Tile.X))
+            {
+                continue;
+            }
+
             int state = StateShadow.IsTravelling(c) ? c.UtilityNewState : c.Dk2StateId;
-            if (CreatureStateTable.Get(state).Category != CreatureStateCategory.Combat) continue;
+            if (CreatureStateTable.Get(state).Category != CreatureStateCategory.Combat)
+            {
+                continue;
+            }
+
             world.TileAtIndex(pit.TileIndices[0]).PitFightSeenTick = context.Tick.Value;
             return true;
         }
@@ -82,11 +94,25 @@ public static class CombatPitSpectatorRules
             && !CombatPitRules.IsFloor(pit, here)
             && (FightOn(context, pit) || SinceTheFight(context, pit) < QuietLimitTicks(context))
             && Enter(context, system, creature))
+        {
             return true;
+        }
 
-        if (Finder(context, creature) is not { } room) return false;
-        if (!StealGoldRules.ToRoom(context, system, creature, room, ChoosingState, Navigation.MoveOptions.Loose)) return false;
-        if (creature.Dk2StateId == ChoosingState) Entered(context, creature);
+        if (Finder(context, creature) is not { } room)
+        {
+            return false;
+        }
+
+        if (!StealGoldRules.ToRoom(context, system, creature, room, ChoosingState, Navigation.MoveOptions.Loose))
+        {
+            return false;
+        }
+
+        if (creature.Dk2StateId == ChoosingState)
+        {
+            Entered(context, creature);
+        }
+
         return true;
     }
 
@@ -105,10 +131,25 @@ public static class CombatPitSpectatorRules
         List<Steering.Fixed16Vector>? scratch = null;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.OwnerPlayerId != creature.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.CombatPit) continue;
-            if (!FightOn(context, room)) continue;
-            if (!Reachable(context, creature, definition, room, scratch ??= [])) continue;
-            if (!RoomCapacityRules.HasRoom(world, database, room, creature.Id)) continue;
+            if (room.OwnerPlayerId != creature.OwnerPlayerId || room.Definition.TypeId != RoomTypeId.CombatPit)
+            {
+                continue;
+            }
+
+            if (!FightOn(context, room))
+            {
+                continue;
+            }
+
+            if (!Reachable(context, creature, definition, room, scratch ??= []))
+            {
+                continue;
+            }
+
+            if (!RoomCapacityRules.HasRoom(world, database, room, creature.Id))
+            {
+                continue;
+            }
 
             int first = SlabChain.FirstSlab(world, room);
             long dx = Math.Abs((long)CreatureState.CentreOf(first % world.Width) - creature.PosX);
@@ -136,7 +177,11 @@ public static class CombatPitSpectatorRules
         foreach (int tile in SlabChain.Order(context.World, room))
         {
             if (CombatPitRules.IsFloor(room, tile)
-                || CasinoStep.NavClass(context.Database, context.World.TileAtIndex(tile)) != 0) continue;
+                || CasinoStep.NavClass(context.Database, context.World.TileAtIndex(tile)) != 0)
+            {
+                continue;
+            }
+
             return CombatTargetRules.CanReach(context.Navigation, creature, definition,
                 CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), int.MaxValue, scratch);
         }
@@ -152,8 +197,15 @@ public static class CombatPitSpectatorRules
         CreatureFlags against = ((seeker.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood) ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
         foreach (CreatureState c in world.Creatures)
         {
-            if (!c.HeldPlace.In(room)) continue;
-            if (((database.CreatureById(c.CreatureTypeId).Flags & against) == against)) return true;
+            if (!c.HeldPlace.In(room))
+            {
+                continue;
+            }
+
+            if (((database.CreatureById(c.CreatureTypeId).Flags & against) == against))
+            {
+                return true;
+            }
         }
 
         return false;
@@ -164,8 +216,16 @@ public static class CombatPitSpectatorRules
     /// returns 0, as DK2's does (<c>combat-pit-spectators.md</c> §1).</summary>
     public static bool FromPlacing(SimulationContext context, string system, CreatureState creature, RoomInstance pit)
     {
-        if (pit.OwnerPlayerId != creature.OwnerPlayerId) return false;
-        if (!Enter(context, system, creature)) return false;
+        if (pit.OwnerPlayerId != creature.OwnerPlayerId)
+        {
+            return false;
+        }
+
+        if (!Enter(context, system, creature))
+        {
+            return false;
+        }
+
         creature.CurrentJob = JobType.CombatPitSpectate;
         creature.JobTileIndex = (creature.Tile.Y * context.World.Width) + creature.Tile.X;
         return true;
@@ -173,7 +233,11 @@ public static class CombatPitSpectatorRules
 
     private static bool Enter(SimulationContext context, string system, CreatureState creature)
     {
-        if (!StateShadow.TryMove(context, system, creature, ChoosingState)) return false;
+        if (!StateShadow.TryMove(context, system, creature, ChoosingState))
+        {
+            return false;
+        }
+
         Entered(context, creature);
         return true;
     }
@@ -185,7 +249,9 @@ public static class CombatPitSpectatorRules
         creature.PitStateEnteredTick = context.Tick.Value;
         WorldState world = context.World;
         if (CombatPitRules.PitAt(world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X) != null)
+        {
             creature.CombatPitFighter = false;
+        }
     }
 
     /// <summary>One original turn of a spectator. False when it drops to idle, which ends the job.
@@ -194,14 +260,22 @@ public static class CombatPitSpectatorRules
     {
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return true;
+            if (creature.HasRoute)
+            {
+                return true;
+            }
+
             creature.StopMoving();
             StateShadow.Arrive(context, system, creature);
             creature.PitStateEnteredTick = context.Tick.Value;
             return true;
         }
 
-        if (creature.PitStateEnteredTick == context.Tick.Value) return true;
+        if (creature.PitStateEnteredTick == context.Tick.Value)
+        {
+            return true;
+        }
+
         return creature.Dk2StateId switch
         {
             ChoosingState => Choose(context, system, creature),
@@ -271,7 +345,10 @@ public static class CombatPitSpectatorRules
             int left = Steering.Bearing.TurnToward(ref heading,
                 Steering.Bearing.Of(CreatureState.CentreOf(cx) - creature.PosX, CreatureState.CentreOf(cy) - creature.PosY), rate);
             creature.Heading = heading;
-            if (left != 0) return true;
+            if (left != 0)
+            {
+                return true;
+            }
         }
 
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
@@ -283,7 +360,11 @@ public static class CombatPitSpectatorRules
             CombatPitSystem.BeginCheerAction(context, system, creature, action, cycles);
             context.Emit(system, "spectator_cheer", $"creature={creature.Id} action={(int)action}");
         }
-        if (CreatureStateMachine.TrySetState(context.Hooks, creature, CheeringState)) creature.PitStateEnteredTick = context.Tick.Value;
+        if (CreatureStateMachine.TrySetState(context.Hooks, creature, CheeringState))
+        {
+            creature.PitStateEnteredTick = context.Tick.Value;
+        }
+
         return true;
     }
 
@@ -305,19 +386,29 @@ public static class CombatPitSpectatorRules
 
         creature.SpectatorPosX = creature.PosX;
         creature.SpectatorPosY = creature.PosY;
-        if (CreatureCurrentAction.IsRunning(creature, context.Tick)) return true;
+        if (CreatureCurrentAction.IsRunning(creature, context.Tick))
+        {
+            return true;
+        }
 
         WorldState world = context.World;
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (RoomIndex.RoomAt(world, context.Database, here) is { } room
             && !FightOn(context, room) && SinceTheFight(context, room) > QuietLimitTicks(context))
+        {
             return false;
+        }
+
         return Choosing(context, creature);
     }
 
     private static bool Choosing(SimulationContext context, CreatureState creature)
     {
-        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, ChoosingState)) return false;
+        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, ChoosingState))
+        {
+            return false;
+        }
+
         creature.PitStateEnteredTick = context.Tick.Value;
         return true;
     }

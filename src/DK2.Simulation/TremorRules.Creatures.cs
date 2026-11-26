@@ -24,8 +24,16 @@ public static partial class TremorRules
     /// <see cref="Systems.TremorCreatureSystem"/> clears the tick's finished set first.</summary>
     public static void RunRecovery(SimulationContext context, CreatureState creature)
     {
-        if (creature.Possessed) return;
-        if (!IsRecovering(creature)) return;
+        if (creature.Possessed)
+        {
+            return;
+        }
+
+        if (!IsRecovering(creature))
+        {
+            return;
+        }
+
         creature.TremorRoutePaused = true;
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         switch (creature.Dk2StateId)
@@ -38,7 +46,11 @@ public static partial class TremorRules
                 CreatureStateMachine.TrySetState(context.Hooks, creature, WaitingState, context.Tick.Value);
                 break;
             case WaitingState:
-                if (context.Tick.Value < creature.ActionUntilTick) break;
+                if (context.Tick.Value < creature.ActionUntilTick)
+                {
+                    break;
+                }
+
                 if (creature.ShouldDelayGetUp)
                 {
                     creature.ShouldDelayGetUp = false;
@@ -46,10 +58,17 @@ public static partial class TremorRules
                 }
                 creature.ActionUntilTick = context.Tick.Value + AnimationTimingRules.GetUpHoldTicks(definition);
                 if (!CreatureStateMachine.TrySetState(context.Hooks, creature, GettingUpState, context.Tick.Value))
+                {
                     FinishRecovery(context, creature);
+                }
+
                 break;
             case GettingUpState:
-                if (context.Tick.Value >= creature.ActionUntilTick) FinishRecovery(context, creature);
+                if (context.Tick.Value >= creature.ActionUntilTick)
+                {
+                    FinishRecovery(context, creature);
+                }
+
                 break;
         }
     }
@@ -62,14 +81,28 @@ public static partial class TremorRules
 
     public static bool Respond(SimulationContext context, CreatureState creature, TilePos centre, Fp32 radius)
     {
-        if (!CombatRules.IsAttackableOnMap(creature) || creature.PrisonOwnerPlayerId != PrisonRules.NoPrison) return false;
+        if (!CombatRules.IsAttackableOnMap(creature) || creature.PrisonOwnerPlayerId != PrisonRules.NoPrison)
+        {
+            return false;
+        }
         // Unmapped legacy activities cannot satisfy the original state-table gates.
-        if (!CreatureStateMachine.HasState(creature)) return false;
+        if (!CreatureStateMachine.HasState(creature))
+        {
+            return false;
+        }
+
         CreatureStateDef state = CreatureStateTable.Get(creature.Dk2StateId);
-        if (state.Category == CreatureStateCategory.Movement || state.Group == 1) return false;
+        if (state.Category == CreatureStateCategory.Movement || state.Group == 1)
+        {
+            return false;
+        }
+
         if (!creature.Fleeing)
         {
-            if (IsRecovering(creature)) return true;
+            if (IsRecovering(creature))
+            {
+                return true;
+            }
         }
         else if (context.Rng.NextInt(100) < 5)
         {
@@ -98,15 +131,24 @@ public static partial class TremorRules
         }
         bool hasOwnedFloor = false;
         for (int y = lowY; y <= highY && !hasOwnedFloor; y++)
+        {
             for (int x = lowX; x < highX; x++)
+            {
                 if (OwnedFloor(context, creature, new TilePos(x, y))) { hasOwnedFloor = true; break; }
+            }
+        }
+
         if (hasOwnedFloor)
         {
             int rejected = 0;
             while (rejected < 25)
             {
                 var at = new TilePos(lowX + context.Rng.NextInt(5), lowY + context.Rng.NextInt(5));
-                if (!context.World.Contains(at)) continue;
+                if (!context.World.Contains(at))
+                {
+                    continue;
+                }
+
                 if (OwnedFloor(context, creature, at)
                     && Route(context, creature, new EscapePoint(new Fp32(CreatureState.CentreOf(at.X)),
                         new Fp32(CreatureState.CentreOf(at.Y)))))
@@ -119,15 +161,31 @@ public static partial class TremorRules
             return false;
         }
         int awayX = centre.X - position.X, awayY = centre.Y - position.Y;
-        if (awayX == 0) awayX = context.Rng.NextInt(2) == 0 ? -1 : 1;
-        if (awayY == 0) awayY = context.Rng.NextInt(2) == 0 ? -1 : 1;
+        if (awayX == 0)
+        {
+            awayX = context.Rng.NextInt(2) == 0 ? -1 : 1;
+        }
+
+        if (awayY == 0)
+        {
+            awayY = context.Rng.NextInt(2) == 0 ? -1 : 1;
+        }
+
         var sight = new WorldSight(context.Navigation, context.World, context.Database);
         for (int attempt = 0; attempt < 25; attempt++)
         {
             int stepX = context.Rng.NextInt(Math.Abs(unchecked(awayX * 4))) << 12;
             int stepY = context.Rng.NextInt(Math.Abs(unchecked(awayY * 4))) << 12;
-            if (awayX > 0) stepX = unchecked(-stepX);
-            if (awayY > 0) stepY = unchecked(-stepY);
+            if (awayX > 0)
+            {
+                stepX = unchecked(-stepX);
+            }
+
+            if (awayY > 0)
+            {
+                stepY = unchecked(-stepY);
+            }
+
             var target = new EscapePoint(new Fp32(unchecked(creature.PosX + stepX)),
                 new Fp32(unchecked(creature.PosY + stepY)));
             if (context.World.Contains(target.Tile)

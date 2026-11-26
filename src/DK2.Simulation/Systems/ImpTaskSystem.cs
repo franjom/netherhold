@@ -73,9 +73,17 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         public int CompareTo(ExcavationCandidate other)
         {
             int byDistance = DistanceSquared.CompareTo(other.DistanceSquared);
-            if (byDistance != 0) return byDistance;
+            if (byDistance != 0)
+            {
+                return byDistance;
+            }
+
             int byKind = Seam.CompareTo(other.Seam); // false (wall) sorts before true (seam)
-            if (byKind != 0) return byKind;
+            if (byKind != 0)
+            {
+                return byKind;
+            }
+
             int byOrder = other.TagOrder.CompareTo(TagOrder); // newest first
             return byOrder != 0 ? byOrder : TileIndex.CompareTo(other.TileIndex);
         }
@@ -168,14 +176,28 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
             (CreatureActivity.CarryingBody, (context, creature, _, grid) => UpdateCarryingBody(context, creature, grid)),
             (CreatureActivity.FetchingObject, (context, creature, _, grid) =>
             {
-                if (IsCrateJob(creature)) UpdateFetchingCrate(context, creature, grid);
-                else UpdateFetchingObject(context, creature, grid);
-            }),
+                if (IsCrateJob(creature))
+                {
+                    UpdateFetchingCrate(context, creature, grid);
+                }
+                else
+                {
+                    UpdateFetchingObject(context, creature, grid);
+                }
+            }
+        ),
             (CreatureActivity.CarryingObject, (context, creature, _, grid) =>
             {
-                if (IsCrateJob(creature)) UpdateCarryingCrate(context, creature);
-                else UpdateCarryingObject(context, creature, grid);
-            }));
+                if (IsCrateJob(creature))
+                {
+                    UpdateCarryingCrate(context, creature);
+                }
+                else
+                {
+                    UpdateCarryingObject(context, creature, grid);
+                }
+            }
+        ));
         _jobs = StepTable(
             (CreatureActivity.Idle, (context, creature, definition, grid) => UpdateIdle(context, creature, definition, grid)),
             (CreatureActivity.MovingToJob, (context, creature, definition, grid) => UpdateMoving(context, creature, definition, grid)),
@@ -185,7 +207,11 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
     private static ActivityStep?[] StepTable(params (CreatureActivity Activity, ActivityStep Step)[] steps)
     {
         var table = new ActivityStep?[ActivityCount];
-        foreach ((CreatureActivity activity, ActivityStep step) in steps) table[(int)activity] = step;
+        foreach ((CreatureActivity activity, ActivityStep step) in steps)
+        {
+            table[(int)activity] = step;
+        }
+
         return table;
     }
 
@@ -217,27 +243,55 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
 
     private void UpdateWorker(SimulationContext context, CreatureState creature)
     {
-        if (creature.Possessed) return;
-        if (Combat.ThreatFleeRules.IsFleeing(creature)) return;   // the combat states' (ADR-0678)
-        if (context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
+        if (creature.Possessed)
+        {
+            return;
+        }
+
+        if (Combat.ThreatFleeRules.IsFleeing(creature))
+        {
+            return;   // the combat states' (ADR-0678)
+        }
+
+        if (context.TremorRecoveryCompletedThisTick.Contains(creature))
+        {
+            return;
+        }
+
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return;
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+        {
+            return;
+        }
 
         // A hero worker is HeroSystem's: DK2's state 1 sends a hero to 90 before it tests the
         // worker flag (ADR-0216).
-        if (HeroJobRules.IsHero(creature)) return;
-        if (creature.Dk2StateId == DropLandingRules.HeartDropState) return;   // the stun recovery step's (Q759)
+        if (HeroJobRules.IsHero(creature))
+        {
+            return;
+        }
+
+        if (creature.Dk2StateId == DropLandingRules.HeartDropState)
+        {
+            return;   // the stun recovery step's (Q759)
+        }
 
         // Held: out of the dungeon until put down (ADR-0062). Down: its job was cleared when it
         // dropped, so this only stops it taking a new one (ADR-0051). A prisoner as a rule, not a
         // gap: its wandering is PrisonerWanderSystem's and its health PrisonSystem's (ADR-0073);
         // still a stated narrowing, the other half of Q172 (racing for a chicken dropped among them).
         if (CreatureEligibility.IsExcluded(creature,
-            CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) return;
+            CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied))
+        {
+            return;
+        }
 
         if (creature.ReinforcementAction.Active || ReinforcementActionRules.UsesClock(creature, definition)
             || creature.ClaimAction.Kind != ClaimActionKind.None || ClaimActionRules.UsesClock(creature, definition))
+        {
             RunWorkerPrelude(context, creature, definition);
+        }
+
         ReinforcementActionRules.Poll(context, creature);
         RepairStrikeRules.Poll(context, creature);
         ClaimActionRules.Poll(context, creature);
@@ -247,7 +301,10 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         _tileWork.Execute(context);
         // State 26 asks its checks on the call that begins its next action (0x00465870); one that
         // sends the miner off begins none.
-        if (MinersActionBegins(context, creature, definition)) TryLeaveTheSeam(context, creature, definition);
+        if (MinersActionBegins(context, creature, definition))
+        {
+            TryLeaveTheSeam(context, creature, definition);
+        }
         // The animation advances last in the creature's update (0x0048BE50).
         StepWorkAnimation(context, creature, definition, struck: !handlerWasDone && creature.ActionHandlerDone);
     }
@@ -259,7 +316,10 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
             ImpCreationRules.Step(context, creature);
             return;
         }
-        if (PossessionRules.FollowerTurn(context, SystemName, creature)) return;
+        if (PossessionRules.FollowerTurn(context, SystemName, creature))
+        {
+            return;
+        }
 
         // One grid for the whole of this creature's tick. Every question below
         // that depends on what this worker can stand on — where it may route,
@@ -269,17 +329,38 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         var grid = new WorldPathGrid(context.Database, context.World, definition);
 
         ISimulationProfiler profiler = context.Profiler;
-        if (RunWorkerPrelude(context, creature, definition, grid)) return;
-        if (creature.Dk2StateId == 22 && FightRules.ActionIsRunning(creature, definition, context.Tick)) return;
+        if (RunWorkerPrelude(context, creature, definition, grid))
+        {
+            return;
+        }
+
+        if (creature.Dk2StateId == 22 && FightRules.ActionIsRunning(creature, definition, context.Tick))
+        {
+            return;
+        }
+
         if (creature.Dk2StateId is 16 or 18 or 20
             && (FightRules.ActionIsRunning(creature, definition, context.Tick)
-                || CreatureCurrentAction.IsRunning(creature, context.Tick))) return;
+                || CreatureCurrentAction.IsRunning(creature, context.Tick)))
+        {
+            return;
+        }
         // A combat handler set 1 this turn: 1's handler is next turn's (0x00476FC0).
-        if (context.IdleHandlerWaits(creature)) return;
+        if (context.IdleHandlerWaits(creature))
+        {
+            return;
+        }
+
         bool wandered;
         using (profiler.Scope(SimulationMarkers.ImpWander))
+        {
             wandered = UpdateWander(context, creature, definition);
-        if (wandered) return;
+        }
+
+        if (wandered)
+        {
+            return;
+        }
 
         if (creature.TargetTileIndex >= 0 && creature.SecretDoorTask && IsSecretDoorState(creature))
         {
@@ -290,7 +371,10 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         if (StepFor(_carrying, creature) is { } carry)
         {
             using (profiler.Scope(SimulationMarkers.ImpCarry))
+            {
                 carry(context, creature, definition, grid);
+            }
+
             return;
         }
 
@@ -301,15 +385,24 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
             // action ends (0x004655D0 returns at once while 0x00496D00 reports one running).
             if (creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work
                 && !WorkActionEnded(context, creature, definition))
+            {
                 return;
-            if (TryClaimWhatWasAttacked(context, creature)) return;
+            }
+
+            if (TryClaimWhatWasAttacked(context, creature))
+            {
+                return;
+            }
             // State 26 checks task and hands after its action (0x00465870): a task that outlived
             // the seam lets full hands take the store walk rather than the claim (mining-finish.md).
             if (creature.TargetWork == TileWorkKind.MineGold
                 && creature.Dk2StateId == ImpStates.For(TileWorkKind.MineGold).Work
                 && context.World.TileAtIndex(creature.TargetTileIndex).DigTaskOutlivesWallFor.Contains(creature.OwnerPlayerId)
                 && HandsFull(context, creature, definition) && TryDepositTheLoad(context, creature))
+            {
                 return;
+            }
+
             context.Emit(SystemName, "job_abandoned",
                 $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
                 $"{creature.TargetWork} reason=gone");
@@ -317,14 +410,21 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
             if (atWork && creature.TargetWork == TileWorkKind.Reinforce
                 && !DigMarkCancelsWallWork(context.Database,
                     context.World.TileAtIndex(creature.TargetTileIndex), creature.OwnerPlayerId))
+            {
                 ReinforcementRules.FillCorners(context,
                     new TilePos(creature.TargetTileIndex % context.World.Width,
                         creature.TargetTileIndex / context.World.Width), creature.OwnerPlayerId);
+            }
+
             int dug = creature.TargetTileIndex;
             TileWorkKind work = creature.TargetWork;
             WorkEnded(context, creature);
             GoIdle(creature);
-            if (atWork && IsExcavation(work)) RaiseClaimOfWhatWasDug(context, creature.OwnerPlayerId, dug, work);
+            if (atWork && IsExcavation(work))
+            {
+                RaiseClaimOfWhatWasDug(context, creature.OwnerPlayerId, dug, work);
+            }
+
             return;
         }
 
@@ -334,9 +434,14 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         if (StepFor(_jobs, creature) is { } job)
         {
             using (profiler.Scope(SimulationMarkers.ImpJob))
+            {
                 job(context, creature, definition, grid);
+            }
         }
-        else GoIdle(creature);
+        else
+        {
+            GoIdle(creature);
+        }
     }
 
     /// <summary>Whether a worker whose job has gone keeps on anyway, because its state does not look
@@ -347,7 +452,11 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
     /// (imp-claim-path.md, ADR-0516).</summary>
     private static bool HoldsCourse(SimulationContext context, CreatureState creature)
     {
-        if (StateShadow.IsTravelling(creature)) return true;
+        if (StateShadow.IsTravelling(creature))
+        {
+            return true;
+        }
+
         return creature.Dk2StateId == ImpStates.For(TileWorkKind.Dig).Entry
             && creature.TargetWork is TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall
             && context.World.TileAtIndex(creature.TargetTileIndex).DigTaskOutlivesWallFor.Contains(creature.OwnerPlayerId);
@@ -387,7 +496,10 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
         BeginTaskWalk(context,
             creature, ImpStates.For(kind).Entry);
-        if (!routed) AtWork(context, creature);
+        if (!routed)
+        {
+            AtWork(context, creature);
+        }
     }
 
     /// <summary>An attacked floor tile that has gone neutral is claimed by its attacker under the
@@ -398,10 +510,15 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
     {
         if (creature.TargetWork != TileWorkKind.AttackTile
             || creature.Dk2StateId != ImpStates.For(TileWorkKind.AttackTile).Work)
+        {
             return false;
+        }
+
         ref TileState tile = ref context.World.TileAtIndex(creature.TargetTileIndex);
         if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, creature.OwnerPlayerId))
+        {
             return false;
+        }
 
         creature.TargetWork = TileWorkKind.Claim;
         StateShadow.Move(context, SystemName, creature, ImpStates.For(TileWorkKind.Claim).Entry);
@@ -435,7 +552,11 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
     /// sets 10.</summary>
     private static void WorkEnded(SimulationContext context, CreatureState creature)
     {
-        if (!CreatureStateMachine.HasState(creature)) return;
+        if (!CreatureStateMachine.HasState(creature))
+        {
+            return;
+        }
+
         StateShadow.Arrive(context, SystemName, creature);
         StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
     }
@@ -474,7 +595,9 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         if (!_reach.IsFor(grid, creature.Tile))
         {
             using (_pathfinder.Profiler.Scope(SimulationMarkers.GridFlood))
+            {
                 _reach.Flood(grid, creature.Tile);
+            }
         }
         return _reach;
     }

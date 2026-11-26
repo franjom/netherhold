@@ -54,7 +54,10 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
             _sight = new WorldSight(steering, context.World, context.Database);
             _sightWorld = context.World;
         }
-        if (context.World.Doors.Count > 0) _hearts.Refresh(context.World, context.Database);
+        if (context.World.Doors.Count > 0)
+        {
+            _hearts.Refresh(context.World, context.Database);
+        }
 
         // Every body on its creature first, so a neighbour read by Separation or the crowd probe is
         // where the creature is and as big as it is. A body still on its entity keeps the 16.16
@@ -78,14 +81,30 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         CreaturePhysicsRules.Step(context, creature);
         Sync(context, creature);
 
-        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) return;
+        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined))
+        {
+            return;
+        }
+
         PartyArrivalRules.StepHeight(context, creature);
-        if (creature.Dk2StateId == PartyArrivalRules.WaitingState) return;
-        if (TremorRules.IsRecovering(creature) || context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
+        if (creature.Dk2StateId == PartyArrivalRules.WaitingState)
+        {
+            return;
+        }
+
+        if (TremorRules.IsRecovering(creature) || context.TremorRecoveryCompletedThisTick.Contains(creature))
+        {
+            return;
+        }
+
         if (creature.TremorRoutePaused)
         {
             if (!CreatureStateMachine.HasState(creature)
-                || (CreatureStateTable.Get(creature.Dk2StateId).Flags & CreatureStateFlags.Unread0) == 0) return;
+                || (CreatureStateTable.Get(creature.Dk2StateId).Flags & CreatureStateFlags.Unread0) == 0)
+            {
+                return;
+            }
+
             creature.TremorRoutePaused = false;
         }
 
@@ -94,12 +113,18 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         // gate 0x004739C0, and a zero speed skips only integration (0x004D5A40), not the whole block.
         if (creature.CreatureTypeId != ImpTypeId
             && (creature.Body.MaxSpeed == 0 || !CreatureStateMachine.HasState(creature)
-                || (CreatureStateTable.Get(creature.Dk2StateId).Flags & CreatureStateFlags.Unread0) == 0)) return;
+                || (CreatureStateTable.Get(creature.Dk2StateId).Flags & CreatureStateFlags.Unread0) == 0))
+        {
+            return;
+        }
 
         // Ours' Imp adapter keeps a route gate; fight states 199/200 and the approach (8) steer
         // without one (combat-spacing.md, ADR-0483).
         if (creature.CreatureTypeId == ImpTypeId && creature.Body.PathTotalCount == 0
-            && creature.Dk2StateId is not (CombatStates.Engaging or 200 or CombatStates.Approaching)) return;
+            && creature.Dk2StateId is not (CombatStates.Engaging or 200 or CombatStates.Approaching))
+        {
+            return;
+        }
 
         if (creature.CreatureTypeId == ImpTypeId)
         {
@@ -107,12 +132,18 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
             // id 1 at 0x0048A202; state 6 integrates it itself), so a kicked or working imp stands
             // (imp-task-objects-and-walks.md §3). Ours routes imps in states of its own too, so the
             // gate names the ones DK2 is read to hold still: selection 10–12 and the work 13–26.
-            if (creature.Dk2StateId is >= 10 and <= 26) return;
+            if (creature.Dk2StateId is >= 10 and <= 26)
+            {
+                return;
+            }
             // State 6's handler is the imp's step, and the dispatcher ran the state the update
             // began in: an imp sent walking during this update takes its first step next turn
             // (walk-start-timing-2026-10-27: a native imp stepped on the tick it entered 6 in 22 of 3,891 starts).
             if (creature.Dk2StateId == StateShadow.TravelToPoint
-                && context.UpdateStartStateId != StateShadow.TravelToPoint) return;
+                && context.UpdateStartStateId != StateShadow.TravelToPoint)
+            {
+                return;
+            }
         }
 
         Advance(context, context.Navigation, creature, context.Database.CreatureById(creature.CreatureTypeId));
@@ -124,8 +155,14 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
             && FollowPathRules.Progress(creature.Body) == Fixed16.One)
         {
             creature.StopMoving();
-            if (creature.UtilityNewState == Combat.CombatStates.Withdrawn) Combat.FearRules.Withdrawing(context, creature);
-            else Combat.CombatStates.Arrive(context, creature);
+            if (creature.UtilityNewState == Combat.CombatStates.Withdrawn)
+            {
+                Combat.FearRules.Withdrawing(context, creature);
+            }
+            else
+            {
+                Combat.CombatStates.Arrive(context, creature);
+            }
         }
     }
 
@@ -144,14 +181,22 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
             creature.Body.IgnoreBlocker = true;
         }
         // A party's shared pace holds until the creature runs (ADR-0216).
-        if (creature.SpeedMode != CreatureSpeedMode.Walk) creature.PartySpeedRaw = 0;
+        if (creature.SpeedMode != CreatureSpeedMode.Walk)
+        {
+            creature.PartySpeedRaw = 0;
+        }
+
         int cap = creature.PartySpeedRaw > 0
             ? Math.Min(SimulationTiming.LoaderRatePerTick(creature.PartySpeedRaw), MaxSpeedPerTick) << 4
             : MaxSpeedOf(definition, creature.SpeedMode);
         creature.Body.MaxSpeed = StatusEffectRules.SpeedCap(context.Database, definition, creature, cap);
         // The update's modifiers ran before the handler that set this turn's speed (0x004887D0), so the
         // move is at the speed it wrote; they act again from the next turn.
-        if (creature.SpeedSetTick == context.Tick.Value) return;
+        if (creature.SpeedSetTick == context.Tick.Value)
+        {
+            return;
+        }
+
         creature.Body.MaxSpeed = LowHealthSpeedRules.SpeedCap(context.Database, definition, creature, creature.Body.MaxSpeed);
         TerrainDef terrain = context.Database.TerrainById(context.World.Tile(creature.Tile).TerrainId);
         creature.Body.MaxSpeed = WaterSpeedRules.SpeedCap(terrain, definition, creature, creature.Body.MaxSpeed);
@@ -168,9 +213,15 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
     /// place (Level 5, a Wizard's body 74 turns stale and a Warlock pushed off it on turn 1740).</summary>
     private static void SyncMovedBody(CreatureState creature)
     {
-        if (creature.Dk2StateId == CreatureDeathRules.DyingState) return;
+        if (creature.Dk2StateId == CreatureDeathRules.DyingState)
+        {
+            return;
+        }
+
         if (creature.Body.Pos.X >> 4 != creature.PosX || creature.Body.Pos.Y >> 4 != creature.PosY)
+        {
             WorldSteering.SyncBody(creature);
+        }
     }
 
     /// <summary>The body's speed cap in 16.16 tiles a tick: the definition's speed divided by the
@@ -233,7 +284,9 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
             // The commit is the position setter (0x0048A457 -> 0x004B5020): a higher floor raises the
             // creature at once; a lower one leaves it for the next physical pass to drop (Q795).
             if (CreaturePhysicsRules.OwnsHeight(creature))
+            {
                 CreaturePhysicsRules.SetHeight(context.World, database, creature, creature.PosZ);
+            }
         }
         else
         {
@@ -256,13 +309,32 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
     private bool DoorContact(SimulationContext context, CreatureState creature, CreatureDef definition, int tileX, int tileY)
     {
         WorldState world = context.World;
-        if (world.Doors.Count == 0 || world.DoorAt(tileX, tileY) is not { UnderConstruction: false } door) return false;
-        bool hostile = !world.AreAllied(creature.OwnerPlayerId, door.PlayerId);
-        if (!hostile && !(creature.RebelActive && !door.Open)) return false;
-        if (creature.OwnerPlayerId == PlayerIds.Neutral) return false;
-        if (!CombatRules.MayLookForAFight(world, context.Database, creature, force: true)) return false;
+        if (world.Doors.Count == 0 || world.DoorAt(tileX, tileY) is not { UnderConstruction: false } door)
+        {
+            return false;
+        }
 
-        if (CombatRules.InCombat(creature)) CombatRules.Disengage(context.Hooks, creature);
+        bool hostile = !world.AreAllied(creature.OwnerPlayerId, door.PlayerId);
+        if (!hostile && !(creature.RebelActive && !door.Open))
+        {
+            return false;
+        }
+
+        if (creature.OwnerPlayerId == PlayerIds.Neutral)
+        {
+            return false;
+        }
+
+        if (!CombatRules.MayLookForAFight(world, context.Database, creature, force: true))
+        {
+            return false;
+        }
+
+        if (CombatRules.InCombat(creature))
+        {
+            CombatRules.Disengage(context.Hooks, creature);
+        }
+
         CombatPitRules.ForceTarget(world, creature, door.Id, FightTargetKind.Door);
         creature.StopMoving();
         context.Emit(SystemName, "meets_door", $"creature={creature.Id} door={door.Id} player={creature.OwnerPlayerId} door_player={door.PlayerId}");

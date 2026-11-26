@@ -33,7 +33,11 @@ internal static class PossessedExcavationRules
     {
         // Other diggers and definitions without timing retain their prior queued-work adapter.
         if (creature.CreatureTypeId != CombatRules.ImpCreatureTypeId
-            || !ActionAnimationClock.CanPlay(definition, ArtSlot)) return false;
+            || !ActionAnimationClock.CanPlay(definition, ArtSlot))
+        {
+            return false;
+        }
+
         bool fresh = creature.ActionArtSlot != ArtSlot
             || ((creature.ActionAnimationFlags & (ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped)) != 0
                 && (creature.ActionAnimationFlags & ActionAnimationFlags.Loop) == 0);
@@ -42,7 +46,11 @@ internal static class PossessedExcavationRules
         ActionAnimationClock.Begin(creature, definition, ArtSlot, context.Rng);
         creature.PossessedExcavation = new PossessedExcavationState { Kind = kind, Target = target, OwnsClip = true };
         creature.ActionHandlerDone = false;
-        if (fresh) CreatureActionSounds.Begin(context, "possession", creature, (int)kind);
+        if (fresh)
+        {
+            CreatureActionSounds.Begin(context, "possession", creature, (int)kind);
+        }
+
         context.Emit("possession", kind == PossessedExcavationKind.Mine ? "possessed_mine" : "possessed_dig",
             $"creature={creature.Id} tile={target.Y * context.World.Width + target.X}");
         return true;
@@ -51,7 +59,11 @@ internal static class PossessedExcavationRules
     internal static void Poll(SimulationContext context, CreatureState creature)
     {
         if (creature.PossessedExcavation.Kind == PossessedExcavationKind.None
-            || !context.PossessedExcavationsPolledThisTick.Add(creature)) return;
+            || !context.PossessedExcavationsPolledThisTick.Add(creature))
+        {
+            return;
+        }
+
         if (!creature.ActionHandlerDone)
         {
             PossessedExcavationState action = creature.PossessedExcavation;
@@ -67,7 +79,10 @@ internal static class PossessedExcavationRules
                     work, creature.OwnerPlayerId, creature.Id, multiplier, strike));
                 Work.Execute(context);
             }
-            if (Workable(context, action)) creature.ActionHandlerDone = true;
+            if (Workable(context, action))
+            {
+                creature.ActionHandlerDone = true;
+            }
             else
             {
                 creature.ActionAnimationFlags |= ActionAnimationFlags.Stop;
@@ -88,19 +103,33 @@ internal static class PossessedExcavationRules
 
     internal static void Advance(SimulationContext context, CreatureState creature)
     {
-        if (!creature.PossessedExcavation.OwnsClip || !context.PossessedExcavationsAdvancedThisTick.Add(creature)) return;
+        if (!creature.PossessedExcavation.OwnsClip || !context.PossessedExcavationsAdvancedThisTick.Add(creature))
+        {
+            return;
+        }
+
         if (creature.PossessedExcavation.Kind == PossessedExcavationKind.None)
         {
-            if (creature.ActionArtSlot == ArtSlot) ActionAnimationClock.Clear(creature);
+            if (creature.ActionArtSlot == ArtSlot)
+            {
+                ActionAnimationClock.Clear(creature);
+            }
+
             creature.PossessedExcavation = default;
         }
         else if (!StatusEffectRules.IsFrozen(creature))
+        {
             ActionAnimationClock.Advance(creature, context.Database.CreatureById(creature.CreatureTypeId));
+        }
     }
 
     internal static void Cancel(CreatureState creature)
     {
-        if (!creature.PossessedExcavation.OwnsClip) return;
+        if (!creature.PossessedExcavation.OwnsClip)
+        {
+            return;
+        }
+
         creature.PossessedExcavation = new PossessedExcavationState { OwnsClip = true };
         creature.ActionHandlerDone = false;
         creature.ActionCount = 0;

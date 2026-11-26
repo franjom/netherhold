@@ -13,6 +13,8 @@ public static class ChickenSizeRules
     public static void Initialize(ObjectState thing, SimRandom rng)
     {
         if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId)
+        {
             thing.ChickenScale = new Fp32(Fp32.One + rng.NextInt(0x800));
+        }
     }
 }

@@ -41,11 +41,22 @@ public sealed class PlayerTileGrid
     /// <summary>Copies <paramref name="tiles"/>, so the caller may reuse its buffer.</summary>
     public PlayerTileGrid(int width, int height, ReadOnlySpan<PlayerTile> tiles)
     {
-        if (width < 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height < 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (width < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (height < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
         long count = (long)width * height;
         if (tiles.Length != count)
+        {
             throw new ArgumentException($"Expected {count} tiles, got {tiles.Length}.", nameof(tiles));
+        }
+
         Width = width;
         Height = height;
         _tiles = tiles.ToArray();
@@ -118,11 +129,21 @@ public readonly record struct PlayerVisibleThing
     public PlayerVisibleThing(PlayerThingHandle handle, PlayerThingKind kind, TilePos tile, PlayerId owner,
         PlayerThingActions actions, CreatureTypeId? creatureType = null, ObjectTypeId? objectType = null)
     {
-        if (!handle.IsValid) throw new ArgumentException("A visible thing needs a handle.", nameof(handle));
+        if (!handle.IsValid)
+        {
+            throw new ArgumentException("A visible thing needs a handle.", nameof(handle));
+        }
+
         if ((kind == PlayerThingKind.Creature) != creatureType.HasValue)
+        {
             throw new ArgumentException("Exactly the creatures carry a creature type.", nameof(creatureType));
+        }
+
         if ((kind is PlayerThingKind.Object or PlayerThingKind.Special) != objectType.HasValue)
+        {
             throw new ArgumentException("Exactly the objects and specials carry an object type.", nameof(objectType));
+        }
+
         Handle = handle;
         Kind = kind;
         Tile = tile;
@@ -268,10 +289,22 @@ internal static class ReadOnly
 
     public static IReadOnlyList<T> Copy<T>(IReadOnlyList<T> source)
     {
-        if (source is null) throw new ArgumentNullException(nameof(source));
-        if (source.Count == 0) return EmptyOf<T>.Value;
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
+        if (source.Count == 0)
+        {
+            return EmptyOf<T>.Value;
+        }
+
         var copy = new T[source.Count];
-        for (int i = 0; i < copy.Length; i++) copy[i] = source[i];
+        for (int i = 0; i < copy.Length; i++)
+        {
+            copy[i] = source[i];
+        }
+
         return new ReadOnlyCollection<T>(copy);
     }
 

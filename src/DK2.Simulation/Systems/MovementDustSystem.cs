@@ -44,7 +44,11 @@ public sealed class MovementDustSystem : ICreatureUpdateStep
         int tile = world.TileIndex(creature.Tile);
         bool crossed = creature.LastDustTile >= 0 && creature.LastDustTile != tile;
         creature.LastDustTile = tile;
-        if (!crossed || world.TileAtIndex(tile).TerrainId != DirtPathTerrainId) return;
+        if (!crossed || world.TileAtIndex(tile).TerrainId != DirtPathTerrainId)
+        {
+            return;
+        }
+
         context.RequestEffect(Name, new ViewEffectRequest(new EffectId(FootDustEffectId),
             new PlayerId(creature.OwnerPlayerId),
             new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(RequestHeight)),

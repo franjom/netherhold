@@ -22,10 +22,21 @@ public static class PartyArrivalRules
 
     internal static bool Update(SimulationContext context, CreatureState creature)
     {
-        if (creature.Dk2StateId != WaitingState) return false;
-        if (creature.Possessed || HandRules.IsHeld(creature)) return true;
+        if (creature.Dk2StateId != WaitingState)
+        {
+            return false;
+        }
+
+        if (creature.Possessed || HandRules.IsHeld(creature))
+        {
+            return true;
+        }
+
         creature.TremorRoutePaused = true;
-        if (++creature.ReaperStateAgeTicks != 8) return true;
+        if (++creature.ReaperStateAgeTicks != 8)
+        {
+            return true;
+        }
         // Native Z0x2000 is one tile above floor0x1000; ours uses floor0.
         creature.PosZ = creature.LastPosZ = Fp32.One;
         creature.ReaperHidden = false;
@@ -36,7 +47,11 @@ public static class PartyArrivalRules
 
     internal static void StepHeight(SimulationContext context, CreatureState creature)
     {
-        if (!creature.ArrivalHeightActive) return;
+        if (!creature.ArrivalHeightActive)
+        {
+            return;
+        }
+
         creature.LastPosZ = creature.PosZ;
         if (creature.PosZ <= 0)
         {
@@ -47,10 +62,17 @@ public static class PartyArrivalRules
         if (creature.PosZ > 0)
         {
             if (!WaterSpeedRules.IsFlying(context.Database.CreatureById(creature.CreatureTypeId), creature))
+            {
                 creature.CreationVelocityZ -= unchecked((byte)context.Database[VariableTypeId.GravityConstant]) * 0x100;
+            }
+
             creature.PosZ += creature.CreationVelocityZ / 16;
         }
-        if (creature.PosZ > 0) return;
+        if (creature.PosZ > 0)
+        {
+            return;
+        }
+
         creature.PosZ = creature.CreationVelocityZ = 0;
     }
 }

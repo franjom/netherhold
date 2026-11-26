@@ -38,7 +38,10 @@ public sealed class HeartDefenceSystem : IRoomTickStep
     {
         // DK2's turn is ours' tick plus one (ADR-0119).
         _dispatches = (context.Tick.Value + 1 + RoomIdPhase) % PeriodTurns == 0;
-        if (!_dispatches) return;
+        if (!_dispatches)
+        {
+            return;
+        }
         // A table without the two radii (a test fixture) has no dispatch.
         GlobalVariables variables = context.Database.Variables;
         _dispatches = variables.TryGet(VariableTypeId.DungeonHeartReportingDistanceTiles, out _reporting)
@@ -56,7 +59,10 @@ public sealed class HeartDefenceSystem : IRoomTickStep
         PlayerId ownerId = new(room.OwnerPlayerId);
         int x = CreatureState.CentreOf(room.CentreFieldX), y = CreatureState.CentreOf(room.CentreFieldY);
         CreatureState? intruder = Intruder(world, ownerId, x, y, _reporting * _reporting * Fp32.One);
-        if (intruder is not null) Gather(context, ownerId, x, y, _gathering * _gathering * Fp32.One, intruder);
+        if (intruder is not null)
+        {
+            Gather(context, ownerId, x, y, _gathering * _gathering * Fp32.One, intruder);
+        }
     }
 
     /// <summary>The first attackable creature of an enemy of the owner within the radius, players
@@ -66,10 +72,18 @@ public sealed class HeartDefenceSystem : IRoomTickStep
         for (int p = 0; p < world.PlayerCount; p++)
         {
             PlayerId other = world.PlayerAtIndex(p).PlayerId;
-            if (other == owner || !CombatRules.IsHostile(world, owner.Value, other.Value)) continue;
+            if (other == owner || !CombatRules.IsHostile(world, owner.Value, other.Value))
+            {
+                continue;
+            }
+
             foreach (CreatureState c in world.OwnedCreatures(other))
+            {
                 if (CombatRules.DistanceSquared(x, y, c.PosX, c.PosY) < limit && CombatRules.IsAttackableOnMap(c))
+                {
                     return c;
+                }
+            }
         }
         return null;
     }
@@ -84,18 +98,49 @@ public sealed class HeartDefenceSystem : IRoomTickStep
         GameDatabase database = context.Database;
         context.Navigation.Refresh();
         // 0x0047189E -> 0x004B35C0: test the raw destination before routing.
-        if ((context.Navigation.NavByte(intruder.PosX >> 12, intruder.PosY >> 12) & 0x08) != 0) return;
+        if ((context.Navigation.NavByte(intruder.PosX >> 12, intruder.PosY >> 12) & 0x08) != 0)
+        {
+            return;
+        }
+
         int sent = 0;
         foreach (CreatureState c in world.OwnedCreatures(owner))
         {
-            if (!CreatureStateMachine.HasState(c) || CombatRules.DistanceSquared(x, y, c.PosX, c.PosY) >= limit) continue;
+            if (!CreatureStateMachine.HasState(c) || CombatRules.DistanceSquared(x, y, c.PosX, c.PosY) >= limit)
+            {
+                continue;
+            }
+
             CreatureDef def = database.CreatureById(c.CreatureTypeId);
-            if (((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) || CallToArmsRules.IsUnderCallToArms(world, c)) continue;
-            if (NeedRules.ResolvedCategory(c) == CreatureStateCategory.Combat) continue;
-            if (!CombatRules.MayLookForAFight(world, database, c, force: false)) continue;
-            if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4) continue;
-            if (CreatureStateTable.Get(c.Dk2StateId).Group == 3 || c.DroppedToDoJob != JobType.None) continue;
-            if (c.Dk2StateId == StateShadow.TravelToPoint && c.UtilityNewState == CombatStates.ReportingDanger) continue;
+            if (((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) || CallToArmsRules.IsUnderCallToArms(world, c))
+            {
+                continue;
+            }
+
+            if (NeedRules.ResolvedCategory(c) == CreatureStateCategory.Combat)
+            {
+                continue;
+            }
+
+            if (!CombatRules.MayLookForAFight(world, database, c, force: false))
+            {
+                continue;
+            }
+
+            if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4)
+            {
+                continue;
+            }
+
+            if (CreatureStateTable.Get(c.Dk2StateId).Group == 3 || c.DroppedToDoJob != JobType.None)
+            {
+                continue;
+            }
+
+            if (c.Dk2StateId == StateShadow.TravelToPoint && c.UtilityNewState == CombatStates.ReportingDanger)
+            {
+                continue;
+            }
 
             // The Imp with 0x80, everyone else with 0 (0x004D99A4, 0x004D99F6).
             MoveOptions options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
@@ -103,12 +148,22 @@ public sealed class HeartDefenceSystem : IRoomTickStep
             // so a worker that cannot reach the intruder keeps its own walk (0x004D99C9). Only then
             // the travel routes the body; retain the point using ADR-0388's tile approximation of
             // 0x004CF490's triangle case.
-            if (!CanRoute(context, c, def, intruder, options)) continue;
+            if (!CanRoute(context, c, def, intruder, options))
+            {
+                continue;
+            }
             // 0x004D99D2-0x004D99F7: release a willing torturee after the probe, before travel.
             if (c.TortureVoluntary
                 && CreatureStateMachine.TrySetState(context.Hooks, c, TortureRules.VoluntaryLeaveState, context.Tick.Value))
+            {
                 c.TortureRoll = 0;
-            if (!context.Navigation.TryRouteToStance(c, intruder.PosX, intruder.PosY, options)) continue;
+            }
+
+            if (!context.Navigation.TryRouteToStance(c, intruder.PosX, intruder.PosY, options))
+            {
+                continue;
+            }
+
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;
             c.Running = true;
@@ -118,8 +173,10 @@ public sealed class HeartDefenceSystem : IRoomTickStep
             sent++;
         }
         if (sent > 0)
+        {
             context.Emit(Name, "gathered",
                 $"player={owner} intruder={intruder.Id} at={intruder.PosX / Fp32.One},{intruder.PosY / Fp32.One} sent={sent}");
+        }
     }
 
     /// <summary><c>0x004D0E60</c>: whether the creature can route from its position to the
@@ -127,7 +184,11 @@ public sealed class HeartDefenceSystem : IRoomTickStep
     /// passes, as the travel's own one-point route there does.</summary>
     private static bool CanRoute(SimulationContext context, CreatureState c, CreatureDef def, CreatureState intruder, MoveOptions options)
     {
-        if (c.Tile == intruder.Tile) return true;
+        if (c.Tile == intruder.Tile)
+        {
+            return true;
+        }
+
         List<Steering.Fixed16Vector> points = _routeScratch ??= [];
         points.Clear();
         // The found word is the route's point count (0x004D0F4B), as the travel's own test

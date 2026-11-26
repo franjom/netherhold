@@ -44,7 +44,11 @@ public static class ExploreRules
         {
             int x = context.Rng.NextInt(world.Width);
             int y = context.Rng.NextInt(world.Height);
-            if (!Accept(context, creature, x, y, PlayerIds.Neutral, scratch)) continue;
+            if (!Accept(context, creature, x, y, PlayerIds.Neutral, scratch))
+            {
+                continue;
+            }
+
             creature.ExploreStepsLeft = Steps;
             return Walk(context, creature, x, y);
         }
@@ -54,7 +58,11 @@ public static class ExploreRules
     /// <summary>State 225's handler, <c>0x0045A3E0</c>. False sends the creature to idle.</summary>
     public static bool Step(SimulationContext context, CreatureState creature)
     {
-        if (creature.ExploreStepsLeft == 0) return false;
+        if (creature.ExploreStepsLeft == 0)
+        {
+            return false;
+        }
+
         creature.ExploreStepsLeft--;
         context.Navigation.Refresh();
         TilePos at = creature.Tile;
@@ -63,7 +71,10 @@ public static class ExploreRules
         {
             int x = context.Rng.NextInt(5) + at.X - 2;
             int y = context.Rng.NextInt(5) + at.Y - 2;
-            if (Accept(context, creature, x, y, PlayerIds.Unowned, scratch)) return Walk(context, creature, x, y);
+            if (Accept(context, creature, x, y, PlayerIds.Unowned, scratch))
+            {
+                return Walk(context, creature, x, y);
+            }
         }
         return false;
     }
@@ -73,13 +84,25 @@ public static class ExploreRules
     {
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.UtilityNewState != ExploringState) return false;
-            if (creature.HasRoute) return true;
+            if (creature.UtilityNewState != ExploringState)
+            {
+                return false;
+            }
+
+            if (creature.HasRoute)
+            {
+                return true;
+            }
+
             creature.StopMoving();
             StateShadow.Arrive(context, system, creature);
             return true;
         }
-        if (creature.Dk2StateId != ExploringState) return false;
+        if (creature.Dk2StateId != ExploringState)
+        {
+            return false;
+        }
+
         if (!Step(context, creature))
         {
             creature.CurrentJob = JobType.None;
@@ -91,9 +114,21 @@ public static class ExploreRules
     private static bool Accept(SimulationContext context, CreatureState creature, int x, int y, byte owner, List<Fixed16Vector> scratch)
     {
         WorldState world = context.World;
-        if (!world.Contains(new TilePos(x, y))) return false;                    // slot +0x1FC
-        if ((context.Navigation.NavByte(x, y) & NavBytes.Solid) != 0) return false;   // slot +0x208
-        if (world.Tile(new TilePos(x, y)).OwnerPlayerId != owner) return false;
+        if (!world.Contains(new TilePos(x, y)))
+        {
+            return false;                    // slot +0x1FC
+        }
+
+        if ((context.Navigation.NavByte(x, y) & NavBytes.Solid) != 0)
+        {
+            return false;   // slot +0x208
+        }
+
+        if (world.Tile(new TilePos(x, y)).OwnerPlayerId != owner)
+        {
+            return false;
+        }
+
         return Combat.CombatTargetRules.CanReach(context.Navigation, creature, context.Database.CreatureById(creature.CreatureTypeId),
             CreatureState.CentreOf(x), CreatureState.CentreOf(y), int.MaxValue, scratch, RouteOptions);
     }
@@ -102,7 +137,10 @@ public static class ExploreRules
     private static bool Walk(SimulationContext context, CreatureState creature, int x, int y)
     {
         if (!context.Navigation.TryRouteTo(creature, CreatureState.CentreOf(x), CreatureState.CentreOf(y), RouteOptions))
+        {
             return false;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, ExploringState);
         return true;
     }

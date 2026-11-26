@@ -19,42 +19,78 @@ public static class VerdictRules
     /// player list (<see cref="WorldState.ActivePlayerOrder"/>), keepers only.</summary>
     public static bool End(WorldState world, GameDatabase database, PlayerId playerId, byte status, Action<PlayerId, byte>? ended = null)
     {
-        if (!world.EndGame(database, playerId, status)) return false;
+        if (!world.EndGame(database, playerId, status))
+        {
+            return false;
+        }
+
         ended?.Invoke(playerId, status);
-        if (world.GameMode is not (GameMode.Skirmish or GameMode.Multiplayer)) return true;
+        if (world.GameMode is not (GameMode.Skirmish or GameMode.Multiplayer))
+        {
+            return true;
+        }
 
         // 0x004BEFE1: a winner ends every keeper that is not its mutual ally; allies play on.
         if (status == PlayerStatus.Won)
         {
             foreach (PlayerId other in world.ActivePlayerOrder)
+            {
                 if (PlayerIds.IsKeeper(other.Value) && other != playerId && !MutualAllies(world, playerId, other))
+                {
                     End(world, database, other, PlayerStatus.Lost, ended);
+                }
+            }
+
             return true;
         }
 
         // 0x004BEF40: a lost or conquered keeper, unless the time limit ran out (+0x72A1 bit 3).
-        if (world.Triggers.LevelTimeUp) return true;
+        if (world.Triggers.LevelTimeUp)
+        {
+            return true;
+        }
+
         int remaining = 0;
         PlayerId last = default;
         foreach (PlayerId other in world.ActivePlayerOrder)
+        {
             if (StillIn(world, other) && other != playerId) { remaining++; last = other; }
+        }
 
         if (remaining == 1)
         {
-            if (world.Player(last).Status == PlayerStatus.Playing) End(world, database, last, PlayerStatus.Won, ended);
+            if (world.Player(last).Status == PlayerStatus.Playing)
+            {
+                End(world, database, last, PlayerStatus.Won, ended);
+            }
+
             return true;
         }
-        if (remaining < 2) return true;
+        if (remaining < 2)
+        {
+            return true;
+        }
 
         // 0x004BF0AE: the last one met wins only when every other one left is its mutual ally,
         // then (0x004BF172) each ally still playing wins with it.
         foreach (PlayerId other in world.ActivePlayerOrder)
-            if (StillIn(world, other) && other != last && !MutualAllies(world, last, other)) return true;
+        {
+            if (StillIn(world, other) && other != last && !MutualAllies(world, last, other))
+            {
+                return true;
+            }
+        }
+
         End(world, database, last, PlayerStatus.Won, ended);
         foreach (PlayerId other in world.ActivePlayerOrder)
+        {
             if (PlayerIds.IsKeeper(other.Value) && other != last
                 && world.Player(other).Status == PlayerStatus.Playing && MutualAllies(world, last, other))
+            {
                 End(world, database, other, PlayerStatus.Won, ended);
+            }
+        }
+
         return true;
     }
 

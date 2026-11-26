@@ -22,7 +22,11 @@ public sealed class FogOfWarSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         WorldState world = context.World;
-        if (!world.FogOfWarEnabled) return;
+        if (!world.FogOfWarEnabled)
+        {
+            return;
+        }
+
         context.Navigation.Refresh();
         var blockers = new WorldSight(context.Navigation, world, context.Database);
         Span<bool> visible = stackalloc bool[225];
@@ -32,21 +36,37 @@ public sealed class FogOfWarSystem : ISimulationSystem
             if (creature.InHand ||
                 creature.PrisonOwnerPlayerId != PrisonRules.NoPrison ||
                 creature.Activity is CreatureActivity.Dying or CreatureActivity.Dead)
+            {
                 continue;
+            }
 
             TilePos sourceTile = creature.Tile;
             TortureSightPass(world, context.Database, blockers, creature, visible);
-            if (creature.OwnerPlayerId > TileState.MaxTaggingPlayerId) continue;
-            if (world.DoorAt(sourceTile.X, sourceTile.Y) is { Open: false }) continue;
+            if (creature.OwnerPlayerId > TileState.MaxTaggingPlayerId)
+            {
+                continue;
+            }
+
+            if (world.DoorAt(sourceTile.X, sourceTile.Y) is { Open: false })
+            {
+                continue;
+            }
 
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             int sightRadius = Math.Max(2, Math.Min(7, definition.DistanceCanSee.Raw >> 12));
             DiscoverySight.Fill(blockers, sourceTile, world.Width, world.Height, visible);
             for (int dy = -sightRadius; dy <= sightRadius; dy++)
+            {
                 for (int dx = -sightRadius; dx <= sightRadius; dx++)
+                {
                     if (visible[(dy + 7) * 15 + dx + 7])
+                    {
                         DiscoveryRules.SetExplored(world, context.Database,
                             new TilePos(sourceTile.X + dx, sourceTile.Y + dy), creature.OwnerPlayerId);
+                    }
+                }
+            }
+
             Scan(world, context.Database, creature.OwnerPlayerId,
                 new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)),
                 definition.PerceptionRange);
@@ -63,19 +83,37 @@ public sealed class FogOfWarSystem : ISimulationSystem
     private static void TortureSightPass(
         WorldState world, GameDatabase database, WorldSight blockers, CreatureState creature, Span<bool> visible)
     {
-        if (creature.TortureSightPasses == 0 || creature.TortureSightPlayerId == creature.OwnerPlayerId) return;
+        if (creature.TortureSightPasses == 0 || creature.TortureSightPlayerId == creature.OwnerPlayerId)
+        {
+            return;
+        }
+
         int here = world.TileIndex(creature.Tile);
-        if (here == creature.TortureSightTileIndex) return;
+        if (here == creature.TortureSightTileIndex)
+        {
+            return;
+        }
+
         creature.TortureSightTileIndex = here;
         creature.TortureSightPasses--;
         TilePos source = creature.Tile;
-        if (world.DoorAt(source.X, source.Y) is { Open: false }) return;
+        if (world.DoorAt(source.X, source.Y) is { Open: false })
+        {
+            return;
+        }
+
         DiscoverySight.Fill(blockers, source, world.Width, world.Height, visible);
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
+            {
                 if (visible[(dy + 7) * 15 + dx + 7])
+                {
                     DiscoveryRules.SetExplored(world, database,
                         new TilePos(source.X + dx, source.Y + dy), creature.TortureSightPlayerId);
+                }
+            }
+        }
     }
 
     private static void Scan(
@@ -86,7 +124,10 @@ public sealed class FogOfWarSystem : ISimulationSystem
         Fp32 range)
     {
         int centreX = position.X.Raw, centreY = position.Y.Raw, radius = range.Raw;
-        if (radius <= 0 || playerId > TileState.MaxTaggingPlayerId) return;
+        if (radius <= 0 || playerId > TileState.MaxTaggingPlayerId)
+        {
+            return;
+        }
 
         int minX = Math.Max(0, (centreX - radius) / Fp32.One);
         int minY = Math.Max(0, (centreY - radius) / Fp32.One);
@@ -101,10 +142,15 @@ public sealed class FogOfWarSystem : ISimulationSystem
             {
                 long dx = CreatureState.CentreOf(x) - (long)centreX;
                 if (((dx * dx) >> 12) + ((dy * dy) >> 12) >= radiusSquared)
+                {
                     continue;
+                }
 
                 ref TileState tile = ref world.Tile(x, y);
-                if (tile.IsDiscoveredBy(playerId)) continue;
+                if (tile.IsDiscoveredBy(playerId))
+                {
+                    continue;
+                }
 
                 tile.SetDiscoveredBy(playerId);
 
@@ -112,7 +158,9 @@ public sealed class FogOfWarSystem : ISimulationSystem
                 // can itself be tagged. This covers both outcomes observed in
                 // DK2: room ground and impenetrable rock discard the mark.
                 if (!database.TerrainById(tile.TerrainId).IsTaggable)
+                {
                     tile.SetTaggedBy(playerId, false);
+                }
             }
         }
     }

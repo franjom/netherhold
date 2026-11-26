@@ -37,7 +37,11 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
 
         public void Update(SimulationContext context, CreatureState creature)
         {
-            if (CreatureDeathRules.IsCorpse(creature)) return;
+            if (CreatureDeathRules.IsCorpse(creature))
+            {
+                return;
+            }
+
             WorldState world = context.World;
             GameDatabase database = context.Database;
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
@@ -50,7 +54,10 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
             if (creature.Dk2StateId == DropLandingRules.HeartDropState)
             {
                 if (context.Tick.Value > creature.StateEnteredTick)
+                {
                     DropLandingRules.RunHeartDrop(context, SystemName, creature, definition);
+                }
+
                 return;
             }
             if (creature.Activity == CreatureActivity.Stunned && !TremorRules.IsRecovering(creature))
@@ -82,7 +89,11 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
                 }
                 else
                 {
-                    if (creature.StunTicks > 0) creature.StunTicks--;
+                    if (creature.StunTicks > 0)
+                    {
+                        creature.StunTicks--;
+                    }
+
                     if (creature.StunTicks == 0)
                     {
                         // The stun's end: action 53 (getting up) and SetState(257). 255's end arm then clears
@@ -91,13 +102,18 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
                         bool from255 = creature.Dk2StateId is Combat.CombatStates.Stunned or 256;
                         Combat.CombatStates.Enter(context, creature, Combat.CombatStates.GettingUp);
                         if (from255 && creature.Dk2StateId == Combat.CombatStates.GettingUp)
+                        {
                             creature.PrisonOwnerPlayerId = PrisonRules.NoPrison;
+                        }
+
                         creature.ActionUntilTick = context.Tick.Value + DropLandingRules.GetUpTicks(definition);
                         context.Emit(SystemName, "getting_up", $"creature={creature.Id} until={creature.ActionUntilTick}");
                     }
                     else if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256
                         && context.Tick.Value - creature.StateEnteredTick == 1)
+                    {
                         Combat.StatusEffectRules.RequestDazedEffect(context, creature);
+                    }
                 }
             }
         }
@@ -106,7 +122,11 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
     public void Update(SimulationContext context, CreatureState creature)
     {
         // Native corpses are class6, outside Creature_Update and its timed effects.
-        if (CreatureDeathRules.IsCorpse(creature)) return;
+        if (CreatureDeathRules.IsCorpse(creature))
+        {
+            return;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
@@ -117,18 +137,47 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
         FinaleRules.HornyAmbience(context, SystemName, creature, definition);
 
         // 67, 77 and 120, the slap's reaction (0x0046F1F0, ADR-0401), for every creature.
-        if (creature.Activity == CreatureActivity.Slapped) SlapRules.React(context, SystemName, creature, definition);
+        if (creature.Activity == CreatureActivity.Slapped)
+        {
+            SlapRules.React(context, SystemName, creature, definition);
+        }
 
         PossessionAbilityRules.BeginPrayer(context, creature);
-        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return;
+        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+        {
+            return;
+        }
 
-        if (creature.ArmourTicks > 0) creature.ArmourTicks--;
-        if (creature.InvulnerableTicks > 0) creature.InvulnerableTicks--;
-        if (creature.InvisibleTicks > 0) creature.InvisibleTicks--;
-        if (creature.TurncoatTicks > 0) creature.TurncoatTicks--;
+        if (creature.ArmourTicks > 0)
+        {
+            creature.ArmourTicks--;
+        }
+
+        if (creature.InvulnerableTicks > 0)
+        {
+            creature.InvulnerableTicks--;
+        }
+
+        if (creature.InvisibleTicks > 0)
+        {
+            creature.InvisibleTicks--;
+        }
+
+        if (creature.TurncoatTicks > 0)
+        {
+            creature.TurncoatTicks--;
+        }
+
         if (creature.FrozenTicks > 0 && --creature.FrozenTicks == 0)
+        {
             creature.NotifyPossessionColour(PossessionColourEvent.Thawed);
-        if (creature.ChickenTicks > 0 && --creature.ChickenTicks == 0) ChickenRules.TimerEnded(context, creature);
+        }
+
+        if (creature.ChickenTicks > 0 && --creature.ChickenTicks == 0)
+        {
+            ChickenRules.TimerEnded(context, creature);
+        }
+
         if (creature.Activity == CreatureActivity.Frozen && creature.FrozenTicks == 0)
         {
             Combat.CombatStates.Idle(context.Hooks, creature);

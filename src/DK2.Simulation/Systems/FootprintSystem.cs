@@ -20,14 +20,22 @@ public sealed class FootprintSystem : ISimulationSystem
         WorldState world = context.World;
         _corpseTiles.Clear();
         foreach (CreatureState corpse in world.Creatures)
+        {
             if (CreatureDeathRules.IsCorpse(corpse) && !HandRules.IsHeld(corpse)
                 && corpse.CarriedByCreatureId < 0 && world.Contains(corpse.Tile))
+            {
                 _corpseTiles.Add(corpse.Tile);
+            }
+        }
 
         foreach (CreatureState creature in world.Creatures)
         {
             if (HandRules.IsHeld(creature) || CreatureDeathRules.IsCorpse(creature)
-                || !world.Contains(creature.Tile)) continue;
+                || !world.Contains(creature.Tile))
+            {
+                continue;
+            }
+
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             bool grounded = creature.PosZ <= 0 && !WaterSpeedRules.IsFlying(definition, creature);
             if (!grounded)
@@ -59,7 +67,11 @@ public sealed class FootprintSystem : ISimulationSystem
                 effect = 100;
                 creature.WaterFootprintTicks--;
             }
-            else continue;
+            else
+            {
+                continue;
+            }
+
             context.RequestEffect(Name, new ViewEffectRequest(new EffectId(effect),
                 new PlayerId(creature.OwnerPlayerId),
                 new FpPosition3(new(creature.PosX), new(creature.PosY), new(creature.PosZ)),

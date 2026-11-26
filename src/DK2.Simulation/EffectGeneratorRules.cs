@@ -43,14 +43,26 @@ public static class EffectGeneratorRules
     internal static void Tick(SimulationContext context, EffectGeneratorState generator)
     {
         uint turn = unchecked((uint)(context.Tick.Value + 1));
-        if (generator.NextDueTurn >= turn) return;
+        if (generator.NextDueTurn >= turn)
+        {
+            return;
+        }
+
         int slot = context.Rng.NextInt(SlotCount);
         ushort effect = slot < generator.EffectIds.Count ? generator.EffectIds[slot] : (ushort)0;
-        if (effect == 0) return;
+        if (effect == 0)
+        {
+            return;
+        }
+
         int x = generator.PosX + context.Rng.NextInt(generator.Unknown_0010 << 12);
         int y = generator.PosY + context.Rng.NextInt(generator.Unknown_0012 << 12);
         var tile = new TilePos(x >> 12, y >> 12);
-        if (!context.World.Contains(tile) || NavBytes.IsSolid(context.Navigation.NavByte(tile.X, tile.Y))) return;
+        if (!context.World.Contains(tile) || NavBytes.IsSolid(context.Navigation.NavByte(tile.X, tile.Y)))
+        {
+            return;
+        }
+
         var heading = new Dk2Angle((ushort)context.Rng.NextInt(0x800));
         context.RequestEffect("effect generator", new ViewEffectRequest(new EffectId(effect),
             new PlayerId(PlayerIds.Neutral), new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(generator.PosZ)), heading));

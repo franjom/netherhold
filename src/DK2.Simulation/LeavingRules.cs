@@ -31,7 +31,11 @@ public static class LeavingRules
 
     public static bool IsDropCentre(WorldState world, GameDatabase database, TilePos tile, PlayerId owner)
     {
-        if (!world.Contains(tile)) return false;
+        if (!world.Contains(tile))
+        {
+            return false;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(world, database, world.TileIndex(tile));
         return room is not null && room.OwnerPlayerId == owner
             && room.Definition.TypeId is RoomTypeId.Portal or RoomTypeId.HeroPortal
@@ -41,8 +45,15 @@ public static class LeavingRules
 
     public static bool PortalDrop(SimulationContext context, CreatureState state, string system)
     {
-        if (context.Tick.Value - state.StateEnteredTick == 1) state.StopMoving();
-        if (!IsDropCentre(context.World, context.Database, state.Tile, state.OwnerPlayerId)) return false;
+        if (context.Tick.Value - state.StateEnteredTick == 1)
+        {
+            state.StopMoving();
+        }
+
+        if (!IsDropCentre(context.World, context.Database, state.Tile, state.OwnerPlayerId))
+        {
+            return false;
+        }
         // DK2 fires 63 and 61 here (0x00459DB2, 0x00459DC3) and then calls 196's handler directly
         // (0x00459DCA), which fires both again: a creature thrown in is sacked twice in its trees. Kept.
         context.FireCreatureEvent(state, CreatureTriggerEvent.Sacked);
@@ -70,11 +81,19 @@ public static class LeavingRules
         long bestDistance = long.MaxValue;
         for (int i = 0; i < world.TileCount; i++)
         {
-            if (!PortalRules.IsPortalTerrain(database, world.TileAtIndex(i).TerrainId)) continue;
+            if (!PortalRules.IsPortalTerrain(database, world.TileAtIndex(i).TerrainId))
+            {
+                continue;
+            }
+
             long dx = CreatureState.CentreOf(i % world.Width) - state.PosX;
             long dy = CreatureState.CentreOf(i / world.Width) - state.PosY;
             long distance = (dx * dx) + (dy * dy);
-            if (distance >= bestDistance) continue;
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+
             bestDistance = distance;
             best = i;
         }
@@ -90,7 +109,10 @@ public static class LeavingRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         target = state.Tile;
-        if (state.Dk2StateId == PortalDropState) return true;
+        if (state.Dk2StateId == PortalDropState)
+        {
+            return true;
+        }
 
         if (IsExitTile(world, database, state.Tile))
         {
@@ -99,16 +121,33 @@ public static class LeavingRules
         }
 
         if (state.HasRoute && state.Dk2StateId == Systems.StateShadow.TravelToPoint
-            && state.UtilityNewState == AtTheEntranceState) return true;
-        if (state.HasRoute) state.StopMoving();
+            && state.UtilityNewState == AtTheEntranceState)
+        {
+            return true;
+        }
+
+        if (state.HasRoute)
+        {
+            state.StopMoving();
+        }
 
         int exit = NearestExitTile(world, database, state);
-        if (exit < 0) return false;
+        if (exit < 0)
+        {
+            return false;
+        }
+
         target = new TilePos(exit % world.Width, exit / world.Width);
-        if (!context.Navigation.TryRoute(state, target, Navigation.MoveOptions.Leaving)) return false;
+        if (!context.Navigation.TryRoute(state, target, Navigation.MoveOptions.Leaving))
+        {
+            return false;
+        }
         // A failed route leaves it in 194 to try again, as DK2's option 8 does.
         if (!Systems.StateShadow.IsTravelling(state))
+        {
             CreatureStateMachine.BeginTravel(context.Hooks, state, Systems.StateShadow.TravelToPoint, AtTheEntranceState);
+        }
+
         return true;
     }
 
@@ -130,15 +169,26 @@ public static class LeavingRules
         ref PlayerState player = ref context.World.Player(state.OwnerPlayerId);
         player.LastSackedCreatureTypeId = state.CreatureTypeId;
         for (int i = 0; i < player.EntranceInfo.Count; i++)
+        {
             if (player.EntranceInfo[i].CreatureTypeId == state.CreatureTypeId)
+            {
                 player.EntranceInfo[i] = player.EntranceInfo[i] with { Block = PortalChoiceRules.Fresh };
+            }
+        }
+
         ThingSoundRules.Request(context, systemName, state, ThingSoundEvent.Sacked);
         if (state.CreatureTypeId != 45)
+        {
             context.World.Messages.Post(context.World, state.OwnerPlayerId, PlayerMessageKind.CreatureLeft, state.CreatureTypeId, 0);
+        }
+
         ushort effect = context.Database.Room(RoomTypeId.Portal).CreatedObjectEffectId;
         if (effect != 0)
+        {
             context.RequestEffect(systemName, new ViewEffectRequest(new EffectId(effect), state.OwnerPlayerId,
                 new(new Fp32(state.PosX), new Fp32(state.PosY), new Fp32(state.PosZ)), new Dk2Angle((ushort)state.Heading)));
+        }
+
         int gold = PurseRules.Spend(state, state.GoldHeld);
         context.Emit(systemName, "creature_left",
             $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} " +

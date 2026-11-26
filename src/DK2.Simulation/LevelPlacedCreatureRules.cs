@@ -15,16 +15,28 @@ public static class LevelPlacedCreatureRules
 
     internal static void Land(SimulationContext context)
     {
-        if (context.Tick.Value != 0) return;
+        if (context.Tick.Value != 0)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         foreach (CreatureState creature in world.Creatures)
         {
             if ((creature.Flags & PlacedAsDropped) == 0 || creature.Dk2StateId != DropLandingRules.LandingState
-                || HandRules.IsHeld(creature) || !world.Contains(creature.Tile)) continue;
+                || HandRules.IsHeld(creature) || !world.Contains(creature.Tile))
+            {
+                continue;
+            }
+
             int here = creature.Tile.Y * world.Width + creature.Tile.X;
             RoomInstance? room = RoomIndex.RoomAt(world, context.Database, here);
             CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
-            if (CreatureDeathRules.IsDown(creature)) continue;
+            if (CreatureDeathRules.IsDown(creature))
+            {
+                continue;
+            }
+
             creature.DroppedOnARoom = room is not null;
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             bool enemyRoom = room is not null && room.OwnerPlayerId != creature.OwnerPlayerId
@@ -41,13 +53,24 @@ public static class LevelPlacedCreatureRules
             else if ((!keeperWorker || enemyRoom) && room?.Definition.TypeId == RoomTypeId.TortureChamber
                 && (room.OwnerPlayerId == creature.OwnerPlayerId
                     ? TortureRules.TryStrapOwn(context.Hooks, creature, here)
-                    : TortureRules.TryStrap(context.Hooks, creature, room.OwnerPlayerId, here))) continue;
+                    : TortureRules.TryStrap(context.Hooks, creature, room.OwnerPlayerId, here)))
+            {
+                continue;
+            }
             else
             {
-                if (keeperWorker && context.DropCombat.TryAcquire(context, creature, definition)) continue;
+                if (keeperWorker && context.DropCombat.TryAcquire(context, creature, definition))
+                {
+                    continue;
+                }
+
                 if (keeperWorker && room?.Definition.TypeId == RoomTypeId.TortureChamber
                     && room.OwnerPlayerId == creature.OwnerPlayerId
-                    && TortureRules.TryStrapOwn(context.Hooks, creature, here)) continue;
+                    && TortureRules.TryStrapOwn(context.Hooks, creature, here))
+                {
+                    continue;
+                }
+
                 if (!keeperWorker && room?.Definition.TypeId == RoomTypeId.Portal
                     && LeavingRules.IsDropCentre(world, context.Database, creature.Tile, creature.OwnerPlayerId))
                 {
@@ -61,9 +84,13 @@ public static class LevelPlacedCreatureRules
                     continue;
                 }
                 if (keeperWorker)
+                {
                     CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.AfterDrop);
+                }
                 else if (!Combat.StatusEffectRules.StunOnLanding(context, creature, definition))
+                {
                     DropLandingRules.AfterGettingUp(context, "LevelStart", creature, definition);
+                }
             }
         }
     }

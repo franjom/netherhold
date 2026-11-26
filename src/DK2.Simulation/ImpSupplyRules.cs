@@ -40,9 +40,15 @@ public static class ImpSupplyRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (creature.OwnerPlayerId != playerId) continue;
+            if (creature.OwnerPlayerId != playerId)
+            {
+                continue;
+            }
+
             if (((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+            {
                 count++;
+            }
         }
         return count;
     }
@@ -73,13 +79,18 @@ public static class ImpSupplyRules
     public static int HeartTileOf(WorldState world, GameDatabase database, PlayerId playerId)
     {
         byte? heartTerrain = ManaRules.DungeonHeartTerrainId(database);
-        if (heartTerrain is null) return -1;
+        if (heartTerrain is null)
+        {
+            return -1;
+        }
 
         for (int i = 0; i < world.TileCount; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
             if (tile.OwnerPlayerId == playerId && tile.TerrainId == heartTerrain.Value)
+            {
                 return i;
+            }
         }
         return -1;
     }

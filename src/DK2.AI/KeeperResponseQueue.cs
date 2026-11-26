@@ -20,7 +20,11 @@ public sealed class KeeperResponseQueue
     /// Evaluation may reroll imprisonment; the full-queue gate must precede it.</summary>
     public bool TryReceive(Func<KeeperThreatResponse?> evaluate)
     {
-        if (Count == _slots.Length) return false;
+        if (Count == _slots.Length)
+        {
+            return false;
+        }
+
         KeeperThreatResponse? response = evaluate();
         if (response.HasValue)
         {
@@ -34,7 +38,11 @@ public sealed class KeeperResponseQueue
     /// attempt and supplies the interaction outcome, including any replacement target.</summary>
     public byte Dispatch(byte allowance, Func<KeeperThreatResponse, KeeperResponseAttempt> attempt)
     {
-        if (Count == 0 || allowance == 0) return allowance;
+        if (Count == 0 || allowance == 0)
+        {
+            return allowance;
+        }
+
         bool withdrawing = _slots[_head].RemainingThreat < 0;
         while (allowance > 0)
         {

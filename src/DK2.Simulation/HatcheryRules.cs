@@ -35,7 +35,11 @@ public static class HatcheryRules
     {
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.Definition.TypeId != RoomTypeId.Hatchery) continue;
+            if (room.Definition.TypeId != RoomTypeId.Hatchery)
+            {
+                continue;
+            }
+
             ref TileState clock = ref world.TileAtIndex(room.TileIndices[0]);
             clock.HatcheryLastGeneratedTick = world.CurrentTick.Value;
             clock.HatcheryStartupIntervalTicks = SimulationTiming.TicksFromSeconds(StartupIntervalSeconds(room.TileCount));
@@ -44,9 +48,15 @@ public static class HatcheryRules
         // Level_InitTriggersAndStart then rebuilds, per active player and down its room list, each room
         // whose definition is Buildable (+0x43D bit 0x80, 0x0050BC7A): a Hatchery places its coops (ADR-0672).
         foreach (PlayerId player in world.ActivePlayerOrder)
+        {
             foreach (RoomInstance room in RoomLists.Of(world, database, player))
+            {
                 if (room.Definition.TypeId == RoomTypeId.Hatchery && ((room.Definition.Flags & RoomFlags.Buildable) == RoomFlags.Buildable))
+                {
                     RebuildCoops(world, database, room, rng);
+                }
+            }
+        }
     }
 
     public static int GenerationIntervalTicks(WorldState world, GameDatabase database, RoomInstance room)
@@ -57,9 +67,17 @@ public static class HatcheryRules
 
     internal static void OnCaptureMerge(WorldState world, GameDatabase database, RoomInstance captured)
     {
-        if (captured.Definition.TypeId != RoomTypeId.Hatchery) return;
+        if (captured.Definition.TypeId != RoomTypeId.Hatchery)
+        {
+            return;
+        }
+
         RoomInstance? merged = RoomIndex.RoomAt(world, database, captured.TileIndices[0]);
-        if (merged is null || merged.TileCount == captured.TileCount) return;
+        if (merged is null || merged.TileCount == captured.TileCount)
+        {
+            return;
+        }
+
         long stamp = world.TileAtIndex(captured.TileIndices[0]).HatcheryLastGeneratedTick;
         foreach (int tile in merged.TileIndices)
         {
@@ -140,8 +158,16 @@ public static class HatcheryRules
         {
             ObjectState bird = objects[i];
             // A bird in the room's list is never in the hand (the lift unlinks it, 0x004C0CB0) nor carried.
-            if (bird.ObjectTypeId != ChickenObjectId) continue;
-            if (bird.HatcheryRoomAnchorTileIndex < 0 || !hatchery.Contains(bird.HatcheryRoomAnchorTileIndex)) continue;
+            if (bird.ObjectTypeId != ChickenObjectId)
+            {
+                continue;
+            }
+
+            if (bird.HatcheryRoomAnchorTileIndex < 0 || !hatchery.Contains(bird.HatcheryRoomAnchorTileIndex))
+            {
+                continue;
+            }
+
             count++;
         }
         return count;
@@ -158,8 +184,16 @@ public static class HatcheryRules
         for (int i = 0; i < objects.Count; i++)
         {
             byte type = objects[i].ObjectTypeId;
-            if (type != ChickenObjectId && type != EggObjectId) continue;
-            if (!BelongsToHatchery(objects[i], hatchery)) continue;
+            if (type != ChickenObjectId && type != EggObjectId)
+            {
+                continue;
+            }
+
+            if (!BelongsToHatchery(objects[i], hatchery))
+            {
+                continue;
+            }
+
             count++;
         }
         return count;
@@ -198,17 +232,28 @@ public static class HatcheryRules
     /// <see cref="RebuildCoops"/> places them and makes the per-coop draw.</para></summary>
     public static void CoopTiles(WorldState world, RoomInstance hatchery, List<int> into)
     {
-        if (into is null) throw new ArgumentNullException(nameof(into));
+        if (into is null)
+        {
+            throw new ArgumentNullException(nameof(into));
+        }
+
         into.Clear();
 
         int wanted = CoopCount(hatchery);
-        if (wanted == 0) return;
+        if (wanted == 0)
+        {
+            return;
+        }
 
         int width = world.Width;
         HashSet<int> slots = AutoFurnitureRules.FloorSlotSet(world, hatchery);
         foreach (int index in SlabChain.Order(world, hatchery))
         {
-            if (!slots.Contains(index) || HasOwnCoop(world, index)) continue;
+            if (!slots.Contains(index) || HasOwnCoop(world, index))
+            {
+                continue;
+            }
+
             int x = index % width;
             int y = index / width;
 
@@ -224,24 +269,42 @@ public static class HatcheryRules
                 }
             }
 
-            if (tooClose) continue;
+            if (tooClose)
+            {
+                continue;
+            }
 
             into.Add(index);
-            if (into.Count == wanted) return;
+            if (into.Count == wanted)
+            {
+                return;
+            }
         }
     }
 
     /// <summary>The coops standing in this room, in placement order.</summary>
     public static void Coops(WorldState world, RoomInstance hatchery, List<ObjectState> into)
     {
-        if (into is null) throw new ArgumentNullException(nameof(into));
+        if (into is null)
+        {
+            throw new ArgumentNullException(nameof(into));
+        }
+
         into.Clear();
 
         EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
         {
-            if (objects[i].ObjectTypeId != CoopObjectId) continue;
-            if (!hatchery.TileIndices.Contains(objects[i].TileIndex)) continue;
+            if (objects[i].ObjectTypeId != CoopObjectId)
+            {
+                continue;
+            }
+
+            if (!hatchery.TileIndices.Contains(objects[i].TileIndex))
+            {
+                continue;
+            }
+
             into.Add(objects[i]);
         }
     }
@@ -259,7 +322,11 @@ public static class HatcheryRules
         int added = 0;
         foreach (int index in wanted)
         {
-            if (HasCoop(world, index)) continue;
+            if (HasCoop(world, index))
+            {
+                continue;
+            }
+
             world.SpawnObject(database, CoopObjectId, hatchery.OwnerPlayerId, index).AutoPlaced = true;
             added++;
         }
@@ -297,14 +364,31 @@ public static class HatcheryRules
         ReadOnlySpan<(int Dx, int Dy)> sides = [(0, -1), (1, 0), (0, 1), (-1, 0)];
         foreach ((int dx, int dy) in sides)
         {
-            if (!world.Contains(x + dx, y + dy)) continue;
+            if (!world.Contains(x + dx, y + dy))
+            {
+                continue;
+            }
+
             int neighbour = ((y + dy) * world.Width) + x + dx;
             RoomTypeId? type = database.RoomByTerrain(world.TileAtIndex(neighbour).TerrainId)?.TypeId;
-            if (type is not (RoomTypeId.Hatchery or RoomTypeId.TrainingRoom)) continue;
-            if (RoomIndex.RoomAt(world, database, neighbour) is not { } room) continue;
-            if (type == RoomTypeId.Hatchery) RebuildCoops(world, database, room, rng);
+            if (type is not (RoomTypeId.Hatchery or RoomTypeId.TrainingRoom))
+            {
+                continue;
+            }
+
+            if (RoomIndex.RoomAt(world, database, neighbour) is not { } room)
+            {
+                continue;
+            }
+
+            if (type == RoomTypeId.Hatchery)
+            {
+                RebuildCoops(world, database, room, rng);
+            }
             else if ((room.Definition.Flags & RoomFlags.SpecialWalls) != 0)
+            {
                 TrainingFurnitureRules.Rebuild(world, database, room, rng);
+            }
         }
     }
 
@@ -314,8 +398,12 @@ public static class HatcheryRules
     internal static void ReownCoops(WorldState world, RoomInstance room, PlayerId owner)
     {
         foreach (ObjectState thing in world.Objects)
+        {
             if (thing.ObjectTypeId == CoopObjectId && thing.AutoPlaced && room.Contains(thing.TileIndex))
+            {
                 thing.OwnerPlayerId = owner.Value;
+            }
+        }
     }
 
     /// <summary><c>Room_DeleteAutoPlacedObjects</c> (<c>0x004E6BC0</c>) and <c>Room_OnFreed</c>
@@ -327,7 +415,9 @@ public static class HatcheryRules
         {
             ObjectState thing = world.Objects[i];
             if (thing.ObjectTypeId == CoopObjectId && thing.AutoPlaced && set.Contains(thing.TileIndex))
+            {
                 world.RemoveObject(thing.Id);
+            }
         }
     }
 
@@ -338,8 +428,13 @@ public static class HatcheryRules
     {
         EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
+        {
             if (objects[i].TileIndex == tileIndex && objects[i].ObjectTypeId == CoopObjectId && !objects[i].AutoPlaced)
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -348,8 +443,13 @@ public static class HatcheryRules
     {
         EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
+        {
             if (objects[i].TileIndex == tileIndex && objects[i].ObjectTypeId == CoopObjectId)
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -362,16 +462,27 @@ public static class HatcheryRules
     public static ObjectState? TryLayEgg(
         WorldState world, GameDatabase database, RoomInstance hatchery, SimRandom rng)
     {
-        if (rng is null) throw new ArgumentNullException(nameof(rng));
+        if (rng is null)
+        {
+            throw new ArgumentNullException(nameof(rng));
+        }
 
         if (FlockIsFull(world, database, hatchery))
         {
             int freeRange = world.Objects.Count(o => o.ObjectTypeId == ChickenObjectId
                 && o.OwnerPlayerId == hatchery.OwnerPlayerId && o.ChickenCanEscape);
-            if (freeRange >= FreeRangeCap(database)) return null;
+            if (freeRange >= FreeRangeCap(database))
+            {
+                return null;
+            }
+
             ObjectState[] coops = world.Objects.Where(o => o.ObjectTypeId == CoopObjectId && o.AutoPlaced
                 && !o.InHand && o.CarriedByCreatureId < 0 && hatchery.Contains(o.TileIndex)).Reverse().ToArray();
-            if (coops.Length == 0) return null;
+            if (coops.Length == 0)
+            {
+                return null;
+            }
+
             ObjectState coop = coops[rng.NextInt(coops.Length)];
             ObjectState launched = Lay(world, database, hatchery, coop.TileIndex);
             launched.ProcessState = 24;
@@ -393,9 +504,16 @@ public static class HatcheryRules
             bool hasOtherPillar = world.Objects.Any(o => o.TileIndex == index && !o.InHand && o.CarriedByCreatureId < 0
                 && database.ObjectById(o.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.Pillar) == ObjectFlags.Pillar));
             if (!hasPillar && (hasOtherPillar || !AutoFurnitureRules.RoomPillarCorners(world, hatchery,
-                new TilePos(index % world.Width, index / world.Width)).Any())) candidates.Add(index);
+                new TilePos(index % world.Width, index / world.Width)).Any()))
+            {
+                candidates.Add(index);
+            }
         }
-        if (candidates.Count == 0) return null;
+        if (candidates.Count == 0)
+        {
+            return null;
+        }
+
         int chosen = candidates[rng.NextInt(candidates.Count)];
         ObjectState egg = Lay(world, database, hatchery, chosen);
         // 0x004DE863-0x004DE896 installs #0 fresh and does not advance it. The room pass runs after the thing
@@ -431,10 +549,16 @@ public static class HatcheryRules
     public static ObjectState Hatch(
         WorldState world, GameDatabase database, ObjectState egg)
     {
-        if (egg is null) throw new ArgumentNullException(nameof(egg));
+        if (egg is null)
+        {
+            throw new ArgumentNullException(nameof(egg));
+        }
+
         if (egg.ObjectTypeId != EggObjectId)
+        {
             throw new ArgumentException(
                 $"Object {egg.Id} is type {egg.ObjectTypeId}, not an egg.", nameof(egg));
+        }
 
         int tile = egg.TileIndex;
         PlayerId owner = egg.OwnerPlayerId;
@@ -445,9 +569,14 @@ public static class HatcheryRules
         chicken.PosY = egg.PosY;
         if (world.TileAtIndex(tile).OwnerPlayerId == owner.Value
             && database.RoomByTerrain(world.TileAtIndex(tile).TerrainId)?.TypeId == RoomTypeId.Hatchery)
+        {
             chicken.ProcessState = (byte)ChickenProcess.Hatchery;
+        }
         else if (world.ObjectCreationRandom is { } random)
+        {
             chicken.Heading = random.NextInt(0x800);
+        }
+
         return chicken;
     }
 
@@ -456,7 +585,13 @@ public static class HatcheryRules
     {
         EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
-            if (objects[i].TileIndex == tileIndex) return true;
+        {
+            if (objects[i].TileIndex == tileIndex)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 

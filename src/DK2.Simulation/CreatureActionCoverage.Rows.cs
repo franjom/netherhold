@@ -89,7 +89,11 @@ public static partial class CreatureActionCoverage
         rows.Add(Built(68, typeof(CasinoStep), "OnTheFloor", "states 148, 150"));
         rows.Add(Built(69, typeof(CombatPitSpectatorRules), "Face", "state 143"));
         rows.Add(Built(70, typeof(CombatPitSpectatorRules), "Face", "state 143"));
-        for (int id = 71; id <= 75; id++) rows.Add(Unbuilt(id, "state 272", "state 272 not read"));
+        for (int id = 71; id <= 75; id++)
+        {
+            rows.Add(Unbuilt(id, "state 272", "state 272 not read"));
+        }
+
         rows.Add(Unbuilt(76, "states 272, 276", "272 not read; 276 is a Crypt state, dead code (Q375)"));
         rows.Add(Unbuilt(77, "state 272", "state 272 not read"));
         rows.Add(Unbuilt(78, "state 272", "state 272 not read"));

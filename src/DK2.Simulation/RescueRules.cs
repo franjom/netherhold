@@ -48,15 +48,37 @@ public static class RescueRules
     /// (<see cref="JailBreakRules.StartsABreakOut"/>, ADR-0229), or null.</summary>
     public static int? StateFor(WorldState world, GameDatabase database, CreatureState creature, int tileIndex)
     {
-        if ((creature.Flags & FreesFriendsFlag) == 0) return null;
-        if ((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) != 0) return null;
+        if ((creature.Flags & FreesFriendsFlag) == 0)
+        {
+            return null;
+        }
+
+        if ((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) != 0)
+        {
+            return null;
+        }
 
         RoomInstance? room = RoomIndex.RoomAt(world, database, tileIndex);
-        if (room is null) return null;
+        if (room is null)
+        {
+            return null;
+        }
+
         if (room.Definition.TypeId == RoomTypeId.Prison)
+        {
             return JailBreakRules.StartsABreakOut(world, database, creature, room) ? JailBreakRules.BreakingOutState : null;
-        if (room.Definition.TypeId != RoomTypeId.TortureChamber) return null;
-        if (world.AreAllied(creature.OwnerPlayerId, room.OwnerPlayerId)) return null;
+        }
+
+        if (room.Definition.TypeId != RoomTypeId.TortureChamber)
+        {
+            return null;
+        }
+
+        if (world.AreAllied(creature.OwnerPlayerId, room.OwnerPlayerId))
+        {
+            return null;
+        }
+
         return AlliedVictims(world, database, creature, room).Any() ? RescuingState : null;
     }
 
@@ -67,11 +89,30 @@ public static class RescueRules
     {
         foreach (CreatureState victim in world.Creatures)
         {
-            if (victim.Id == rescuer.Id || !TortureRules.IsBeingTortured(victim) || HandRules.IsHeld(victim)) continue;
-            if (CreatureDeathRules.IsDown(victim) || victim.Dk2StateId == FreedState) continue;
-            if (TortureRules.KeeperOf(victim) != room.OwnerPlayerId) continue;
-            if (!EatingRules.Contains(room, (victim.Tile.Y * world.Width) + victim.Tile.X)) continue;
-            if (world.AreAllied(rescuer.OwnerPlayerId, victim.OwnerPlayerId)) yield return victim;
+            if (victim.Id == rescuer.Id || !TortureRules.IsBeingTortured(victim) || HandRules.IsHeld(victim))
+            {
+                continue;
+            }
+
+            if (CreatureDeathRules.IsDown(victim) || victim.Dk2StateId == FreedState)
+            {
+                continue;
+            }
+
+            if (TortureRules.KeeperOf(victim) != room.OwnerPlayerId)
+            {
+                continue;
+            }
+
+            if (!EatingRules.Contains(room, (victim.Tile.Y * world.Width) + victim.Tile.X))
+            {
+                continue;
+            }
+
+            if (world.AreAllied(rescuer.OwnerPlayerId, victim.OwnerPlayerId))
+            {
+                yield return victim;
+            }
         }
     }
 }

@@ -45,7 +45,10 @@ public sealed class HandSystem : ISimulationSystem
     /// <summary>A drop due this turn lands at the start of the creature's own update.</summary>
     internal static void LandDue(SimulationContext context, CreatureState creature)
     {
-        if (context.LandingDueThisTick.Remove(creature) && creature.LandingPending) Land(context, creature);
+        if (context.LandingDueThisTick.Remove(creature) && creature.LandingPending)
+        {
+            Land(context, creature);
+        }
     }
 
     public void Execute(SimulationContext context)
@@ -60,11 +63,23 @@ public sealed class HandSystem : ISimulationSystem
         // creature's slot; a host without the creature sweep lands them here, in creature order.
         _landing.Clear();
         foreach (CreatureState creature in context.World.Creatures)
-            if (creature.LandingPending) _landing.Add(creature);
+        {
+            if (creature.LandingPending)
+            {
+                _landing.Add(creature);
+            }
+        }
+
         foreach (CreatureState creature in _landing)
         {
-            if (LandsInCreatureUpdate) context.LandingDueThisTick.Add(creature);
-            else Land(context, creature);
+            if (LandsInCreatureUpdate)
+            {
+                context.LandingDueThisTick.Add(creature);
+            }
+            else
+            {
+                Land(context, creature);
+            }
         }
 
         // Hand state 1 lasts one turn: last turn's keeper frame (0x004C0AA0), after the creatures, took
@@ -74,7 +89,9 @@ public sealed class HandSystem : ISimulationSystem
         {
             ref PlayerState keeper = ref context.World.PlayerAtIndex(i);
             if (keeper.PendingLiftCreatureId != 0 && now - keeper.PendingLiftTick >= 2)
+            {
                 CompleteLift(context, keeper.PlayerId, now - 1);
+            }
         }
 
         foreach (PlayerCommand command in context.Input.All)
@@ -97,12 +114,28 @@ public sealed class HandSystem : ISimulationSystem
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (!world.HasPlayer(command.PlayerId) || command.Amount.Value <= 0) return;
+        if (!world.HasPlayer(command.PlayerId) || command.Amount.Value <= 0)
+        {
+            return;
+        }
+
         List<HandItem> hand = world.Player(command.PlayerId).Hand;
-        if (hand.Count >= HandRules.Capacity(database)) return;
-        if (!database.Objects.ContainsKey(FloorGold.TreasuryPileObjectId)) return;
+        if (hand.Count >= HandRules.Capacity(database))
+        {
+            return;
+        }
+
+        if (!database.Objects.ContainsKey(FloorGold.TreasuryPileObjectId))
+        {
+            return;
+        }
+
         int taken = GoldStore.Spend(world, database, command.PlayerId, command.Amount.Value);
-        if (taken <= 0) return;
+        if (taken <= 0)
+        {
+            return;
+        }
+
         ObjectState pile = world.SpawnObject(database, FloorGold.TreasuryPileObjectId, PlayerIds.Neutral, 0);
         pile.GoldHeld = taken;
         LeaveHandState(context, command.PlayerId);   // 0x00513D85, once the pile exists
@@ -157,7 +190,10 @@ public sealed class HandSystem : ISimulationSystem
     {
         WorldState world = context.World;
         CreatureState? creature = world.CreatureById(creatureId);
-        if (creature is null || !world.HasPlayer(playerId)) return;
+        if (creature is null || !world.HasPlayer(playerId))
+        {
+            return;
+        }
         // Command 57's clear precedes hand admission (0x00513480).
         // Direct keeper preparation/insertion does not execute that wrapper.
         if (stored && !direct && CreatureStateMachine.HasState(creature))
@@ -194,7 +230,11 @@ public sealed class HandSystem : ISimulationSystem
             prepared = CreatureStateMachine.TrySetState(context.Hooks, creature, HandRules.PreparationState, context.Tick.Value);
         }
         // 0x004BFBD0 ends a running action once 75 is taken (0x004BFC44), a melee hold included.
-        if (prepared && !alreadyPrepared) CreatureStateMachine.EndAction(creature);
+        if (prepared && !alreadyPrepared)
+        {
+            CreatureStateMachine.EndAction(creature);
+        }
+
         bool lifted = prepared || creature.Activity == CreatureActivity.BeingLifted;
         var liftedAt = new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
         // Leaving its state lets go of the job and the load, and the creature stops where it stands
@@ -220,12 +260,16 @@ public sealed class HandSystem : ISimulationSystem
             context.FireCreatureEvent(creature, CreatureTriggerEvent.PickedUp);
         }
         if (lifted)
+        {
             ThingSoundRules.RequestUnvoiced(context, SystemName, creature, ThingSoundEvent.PickedUp, liftedAt);
+        }
         // 0x004C0BE0 requests the human callback's dust after preparation, before stopping the body.
         if (prepared && !direct)
+        {
             context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(MovementDustSystem.FootDustEffectId), playerId,
                 new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0x1000)),
                 new Dk2Angle(unchecked((ushort)creature.Heading))) { SourceCreatureId = new(creature.Id) });
+        }
         // The hand callback (0x004C0BE0) stops the creature after the prepare step (0x004C0C82).
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
         // Hand state 1 is entered; its exit callback (0x004C0EA0) is the insert.
@@ -233,7 +277,10 @@ public sealed class HandSystem : ISimulationSystem
         keeper.PendingLiftCreatureId = creature.Id;
         keeper.PendingLiftTick = context.Tick.Value;
         context.Emit(SystemName, "lift_prepared", $"player={command.PlayerId} creature={creature.Id}");
-        if (direct) CompleteLift(context, playerId, context.Tick.Value);
+        if (direct)
+        {
+            CompleteLift(context, playerId, context.Tick.Value);
+        }
     }
 
     /// <summary>Entering a hand state leaves the current one first (<c>0x004C09F0</c>, <c>0x004C0B50</c>):
@@ -250,11 +297,19 @@ public sealed class HandSystem : ISimulationSystem
         WorldState world = context.World;
         ref PlayerState keeper = ref world.Player(playerId);
         int id = keeper.PendingLiftCreatureId;
-        if (id == 0) return;
+        if (id == 0)
+        {
+            return;
+        }
+
         keeper.PendingLiftCreatureId = 0;
         keeper.PendingLiftTick = 0;
         CreatureState? creature = world.CreatureById(id);
-        if (creature is null) return;
+        if (creature is null)
+        {
+            return;
+        }
+
         var command = new PickUpCreatureCommand(playerId, id);
         if (!HandRules.StoredPickupAccepts(creature))
         {
@@ -309,7 +364,11 @@ public sealed class HandSystem : ISimulationSystem
     {
         WorldState world = context.World;
         ObjectState? thing = world.ObjectById(command.ObjectId);
-        if (thing is null || !world.HasPlayer(command.PlayerId)) return;
+        if (thing is null || !world.HasPlayer(command.PlayerId))
+        {
+            return;
+        }
+
         LeaveHandState(context, command.PlayerId);
 
         if (!HandRules.CanPickUpObject(world, context.Database, thing, command.PlayerId))
@@ -320,12 +379,18 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId) ChickenMovementRules.UnlinkHatchery(thing);
+        if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId)
+        {
+            ChickenMovementRules.UnlinkHatchery(thing);
+        }
         // A gold object floats its whole amount where it lay (0x004C0DDA): definition +0xF4 bit 0x40, the
         // object not already in the hand (0x004BCAE0), before it joins it. DK2 passes the object's stored height;
         // ours the floor's (ThingSoundRules.PointOf).
         if (((context.Database.ObjectById(thing.ObjectTypeId)?.Flags & ObjectFlags.TypeGold) == ObjectFlags.TypeGold) == true)
+        {
             CostNumberRules.Show(context, SystemName, command.PlayerId, ThingSoundRules.PointOf(context, thing), thing.GoldHeld);
+        }
+
         thing.InHand = true;
         world.Player(command.PlayerId).Hand.Add(HandItem.Of(thing));
         ThingSoundRules.Request(context, SystemName, thing, ThingSoundEvent.PickedUp);   // 0x004C0E01
@@ -350,7 +415,10 @@ public sealed class HandSystem : ISimulationSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
         if (world.HasPlayer(command.PlayerId) && world.Contains(command.Tile) && world.Tile(command.Tile.X, command.Tile.Y).GoldHeld > 0)
+        {
             LeaveHandState(context, command.PlayerId);
+        }
+
         if (!HandRules.CanPickUpStoreGold(world, database, command.Tile, command.PlayerId))
         {
             context.Emit(SystemName, "store_gold_pickup_refused",
@@ -390,7 +458,10 @@ public sealed class HandSystem : ISimulationSystem
                 "reason=carrier_picked_up");
         }
 
-        if (creature.CarriedCreatureId < 0) return;
+        if (creature.CarriedCreatureId < 0)
+        {
+            return;
+        }
 
         CreatureState? body = world.CreatureById(creature.CarriedCreatureId);
         if (body is null)
@@ -419,7 +490,11 @@ public sealed class HandSystem : ISimulationSystem
         List<HandItem> hand = world.Player(command.PlayerId).Hand;
         // The drop action tests the hand's count before it enters its state (0x00513661): with only a
         // lift pending it does nothing, and the keeper's frame takes the creature.
-        if (hand.Count == 0) return;
+        if (hand.Count == 0)
+        {
+            return;
+        }
+
         LeaveHandState(context, command.PlayerId);
 
         if (command.Position is FpPosition2 position && position.Tile != command.Tile)
@@ -521,8 +596,11 @@ public sealed class HandSystem : ISimulationSystem
         {
             int heading = angle.Value;
             if (creature.CreatureTypeId != Combat.CombatRules.ImpCreatureTypeId)
+            {
                 Steering.Bearing.TurnToward(ref heading, 0,
                     SimulationTiming.TurnRatePerTick(context.Database.CreatureById(creature.CreatureTypeId)));
+            }
+
             creature.Heading = heading;
         }
 
@@ -543,10 +621,22 @@ public sealed class HandSystem : ISimulationSystem
         var player = new PlayerId(creature.LandingDropperPlayerId);
         creature.LandingPending = false;
         // Lifted again before it landed, or dying: 76 sends a dying creature to its death fall instead.
-        if (creature.InHand) return;
+        if (creature.InHand)
+        {
+            return;
+        }
+
         creature.PosZ = creature.LastPosZ = 0;
-        if (CreatureDeathRules.IsDown(creature) || creature.Health < 1) return;
-        if (!world.Contains(creature.Tile) || !world.HasPlayer(player)) return;
+        if (CreatureDeathRules.IsDown(creature) || creature.Health < 1)
+        {
+            return;
+        }
+
+        if (!world.Contains(creature.Tile) || !world.HasPlayer(player))
+        {
+            return;
+        }
+
         var command = new DropCommand(player, creature.Tile);
         List<HandItem> hand = world.Player(player).Hand;
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
@@ -560,7 +650,10 @@ public sealed class HandSystem : ISimulationSystem
             if ((definition.Flags & CreatureFlags.IsWorker) != 0 && PlayerIds.IsKeeper(creature.OwnerPlayerId))
             {
                 StateShadow.ToIdle(context, SystemName, creature);
-                if (context.DropCombat.TryAcquire(context, creature, definition)) return;
+                if (context.DropCombat.TryAcquire(context, creature, definition))
+                {
+                    return;
+                }
             }
             if (LeavingRules.IsDropCentre(world, context.Database, command.Tile, creature.OwnerPlayerId))
             {
@@ -626,7 +719,10 @@ public sealed class HandSystem : ISimulationSystem
                 return;
             }
 
-            if (DropIntoACell(context, command, creature)) return;
+            if (DropIntoACell(context, command, creature))
+            {
+                return;
+            }
 
             context.Emit(SystemName, "prisoner_freed",
                 $"player={command.PlayerId} creature={creature.Id} " +
@@ -639,14 +735,20 @@ public sealed class HandSystem : ISimulationSystem
             // (owner, 2026-11-01). One 76 does not stun is released at once (ours; DK2 clears the word
             // in idle, 0x00477482).
             freed = true;
-            if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.BeingTortured) creature.ClearJob();
+            if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.BeingTortured)
+            {
+                creature.ClearJob();
+            }
             // Out of the captive states as the hand's 78 and 76 take it in DK2; the word stays.
             CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
         }
         if ((definition.Flags & CreatureFlags.IsWorker) != 0 && PlayerIds.IsKeeper(creature.OwnerPlayerId))
         {
             StateShadow.ToIdle(context, SystemName, creature);
-            if (context.DropCombat.TryAcquire(context, creature, definition)) return;
+            if (context.DropCombat.TryAcquire(context, creature, definition))
+            {
+                return;
+            }
         }
         if (creature.OwnerPlayerId == command.PlayerId
             && TortureRules.TryStrapOwn(context.Hooks, creature, landingTileIndex))
@@ -687,7 +789,10 @@ public sealed class HandSystem : ISimulationSystem
                 $"tile={command.Tile.X},{command.Tile.Y} ticks={creature.StunTicks} held={hand.Count}");
             return;
         }
-        if (freed) PrisonRules.Release(context.Hooks, creature);
+        if (freed)
+        {
+            PrisonRules.Release(context.Hooks, creature);
+        }
 
         // A one-shot ticket: the next look spends it around the landing tile, and the
         // 12.5% bonus turns on only if that look finds something (ADR-0069). The timer
@@ -721,11 +826,17 @@ public sealed class HandSystem : ISimulationSystem
 
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (!PrisonRules.IsPrisonOf(room, command.PlayerId)) continue;
+            if (!PrisonRules.IsPrisonOf(room, command.PlayerId))
+            {
+                continue;
+            }
             // Only a floor slot takes it back: 0x004E8DA0's Prison arm 0x004E8E82 asks
             // Room_IsFloorSlot 0x00454110, an interior tile for a Prison. On the rim it is stunned
             // and loose, its jailer word kept until 255 ends, as off the Prison (ADR-0775).
-            if (!room.TileIndices.Contains(here) || !room.IsInterior(here)) continue;
+            if (!room.TileIndices.Contains(here) || !room.IsInterior(here))
+            {
+                continue;
+            }
 
             PrisonRules.Imprison(context.Hooks, creature, command.PlayerId, here, dropped: true);
 
@@ -755,7 +866,10 @@ public sealed class HandSystem : ISimulationSystem
     private static FpPosition3 DropPoint(WorldState world, DropCommand command)
     {
         if (world.CreatureById(command.TargetCreatureId) is { } under)
+        {
             return new(new Fp32(under.PosX), new Fp32(under.PosY), new Fp32(DropLandingRules.DropHeight));
+        }
+
         FpPosition2 at = command.Position ?? new FpPosition2(
             new Fp32(CreatureState.CentreOf(command.Tile.X)), new Fp32(CreatureState.CentreOf(command.Tile.Y)));
         return new(at.X, at.Y, new Fp32(DropLandingRules.DropHeight));
@@ -832,8 +946,16 @@ public sealed class HandSystem : ISimulationSystem
         if (DropDeliveryRules.RecipientOf(world, context.Database, thing, command.TargetCreatureId)
             is not { } recipient)
         {
-            if (FloorGoldLandingRules.Handles(thing)) FloorGoldLandingRules.Land(context, thing);
-            if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId) ChickenMovementRules.Land(context, thing);
+            if (FloorGoldLandingRules.Handles(thing))
+            {
+                FloorGoldLandingRules.Land(context, thing);
+            }
+
+            if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId)
+            {
+                ChickenMovementRules.Land(context, thing);
+            }
+
             return;
         }
 
@@ -851,7 +973,10 @@ public sealed class HandSystem : ISimulationSystem
     {
         // 0x004F1780 kicks the creature it made to 106 (temple-states.md §6, ADR-0403).
         if (result.RewardKind == SacrificeRewardKind.Creature && context.World.CreatureById(result.SpawnedThingId) is { } summoned)
+        {
             TempleStep.Summon(context, SystemName, summoned);
+        }
+
         string kind = result.SpeechId == TempleSacrificeRules.GoldSpeechId
             ? "sacrifice_gold"
             : result.Matched ? "sacrifice_reward" : "sacrifice_failed";
@@ -868,8 +993,15 @@ public sealed class HandSystem : ISimulationSystem
     {
         WorldState world = context.World;
         CreatureState? creature = world.CreatureById(command.CreatureId);
-        if (creature is null) return;
-        if (world.HasPlayer(command.PlayerId)) LeaveHandState(context, command.PlayerId);
+        if (creature is null)
+        {
+            return;
+        }
+
+        if (world.HasPlayer(command.PlayerId))
+        {
+            LeaveHandState(context, command.PlayerId);
+        }
 
         if (!HandRules.CanSlap(context.Database, creature, command.PlayerId))
         {
@@ -890,7 +1022,10 @@ public sealed class HandSystem : ISimulationSystem
         }
         // The main path's state move (0x0048BA00): refused, the slap does nothing more (ADR-0401).
         if (outcome == SlapOutcome.Full && !SlapRules.Move(context, creature, room))
+        {
             outcome = SlapOutcome.Nothing;
+        }
+
         if (outcome == SlapOutcome.Nothing)
         {
             context.Emit(SystemName, "slap_ignored",
@@ -920,14 +1055,26 @@ public sealed class HandSystem : ISimulationSystem
             hurt = CreatureHealthRules.Apply(context.Database, definition, creature, -definition.SlapDamage, command.PlayerId.Value);
             CollapseInTheDamageCall(context, creature, definition);
             if (outcome == SlapOutcome.Full)
+            {
                 StatusEffectRules.ModifySpeed(context, creature, SlapRules.SpeedPercent, SlapRules.SpeedSeconds);
+            }
             // Creature event 5 on the slapped creature, then player event 60 to its owner: the main
             // path after its count (0x0048BCAA, 0x0048BCB2), the short path before it (0x0048BD08,
             // count 0x0048BD77). Both run the trees at once, so a tree sees the count accordingly.
-            if (outcome == SlapOutcome.Short) FireSlapped(context, creature);
+            if (outcome == SlapOutcome.Short)
+            {
+                FireSlapped(context, creature);
+            }
+
             if (world.HasPlayer(creature.OwnerPlayerId))
+            {
                 world.Player(creature.OwnerPlayerId).SlapCount++;
-            if (outcome == SlapOutcome.Full) FireSlapped(context, creature);
+            }
+
+            if (outcome == SlapOutcome.Full)
+            {
+                FireSlapped(context, creature);
+            }
         }
 
         context.Emit(SystemName, "slapped",
@@ -949,7 +1096,9 @@ public sealed class HandSystem : ISimulationSystem
     private static void CollapseInTheDamageCall(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (creature.CollapseDue && CreatureDeathRules.HasDyingState(context.World, context.Database, definition, creature))
+        {
             CollapseSystem.Now(context, creature);
+        }
     }
 
     /// <summary>What <c>Hand_SlapCreature</c> (<c>0x0048B8A0</c>) does with a slap.</summary>
@@ -981,16 +1130,39 @@ public sealed class HandSystem : ISimulationSystem
         WorldState world, GameDatabase database, CreatureDef definition, CreatureState creature, byte slapper, out RoomInstance? room)
     {
         room = null;
-        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return SlapOutcome.Dismissed;
-        if (creature.LandingPending || creature.Dk2StateId is 76 or 101 or 193) return SlapOutcome.Nothing;
-        if (creature.Dk2StateId is 209 or 255) return SlapOutcome.Short;
+        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+        {
+            return SlapOutcome.Dismissed;
+        }
+
+        if (creature.LandingPending || creature.Dk2StateId is 76 or 101 or 193)
+        {
+            return SlapOutcome.Nothing;
+        }
+
+        if (creature.Dk2StateId is 209 or 255)
+        {
+            return SlapOutcome.Short;
+        }
+
         room = creature.HeldPlace.IsHeld
             ? RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex)
             : null;
         if (room is null)
+        {
             return creature.Dk2StateId is 67 or 120 or 132 or 197 ? SlapOutcome.Nothing : SlapOutcome.Full;
-        if (room.OwnerPlayerId != slapper) return SlapOutcome.Nothing;
-        if (room.Definition.TypeId == RoomTypeId.TortureChamber) return SlapOutcome.DamageOnly;
+        }
+
+        if (room.OwnerPlayerId != slapper)
+        {
+            return SlapOutcome.Nothing;
+        }
+
+        if (room.Definition.TypeId == RoomTypeId.TortureChamber)
+        {
+            return SlapOutcome.DamageOnly;
+        }
+
         return SlapOutcome.Full;
     }
 
@@ -1006,12 +1178,21 @@ public sealed class HandSystem : ISimulationSystem
 
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.WorkFasterTicks > 0) creature.WorkFasterTicks--;
+            if (creature.WorkFasterTicks > 0)
+            {
+                creature.WorkFasterTicks--;
+            }
 
-            if (!HandRules.AngerDueThisTick(creature, context.Tick)) continue;
+            if (!HandRules.AngerDueThisTick(creature, context.Tick))
+            {
+                continue;
+            }
 
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-            if (!CreatureAngerRules.CanBeAngered(definition)) continue;
+            if (!CreatureAngerRules.CanBeAngered(definition))
+            {
+                continue;
+            }
 
             CreatureAngerRules.Held(world, definition, creature);
         }

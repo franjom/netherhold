@@ -66,12 +66,17 @@ public static class GoldStore
     public static int Capacity(
         WorldState world, GameDatabase database, int tileIndex, RoomInstance? room)
     {
-        if (room is null) return 0;
+        if (room is null)
+        {
+            return 0;
+        }
 
         // A ruined heart holds nothing: DK2's gold sum skips a heart whose +0x9A bit 0
         // is set, and that bit is the ruin (Q263, win-and-defeat.md §4).
         if (room.Definition.TypeId == RoomTypeId.DungeonHeart && RoomRules.IsRuined(world, room))
+        {
             return 0;
+        }
 
         int perTile = room.Definition.TypeId switch
         {
@@ -80,8 +85,15 @@ public static class GoldStore
             _ => 0,
         };
 
-        if (perTile == 0) return 0;
-        if (room.Definition.TypeId != RoomTypeId.DungeonHeart) return perTile;
+        if (perTile == 0)
+        {
+            return 0;
+        }
+
+        if (room.Definition.TypeId != RoomTypeId.DungeonHeart)
+        {
+            return perTile;
+        }
 
         return room.IsCentrePlatform(tileIndex % world.Width, tileIndex / world.Width)
             ? 0
@@ -116,12 +128,18 @@ public static class GoldStore
     public static int DepositInto(
         WorldState world, GameDatabase database, int tileIndex, int amount)
     {
-        if (amount <= 0) return 0;
+        if (amount <= 0)
+        {
+            return 0;
+        }
 
         int put = Math.Min(SpaceIn(world, database, tileIndex), amount);
         ref TileState destination = ref world.TileAtIndex(tileIndex);
         if (put > 0 && destination.GoldHeld == 0)
+        {
             destination.StoreGoldLinkOrder = ++world.NextTileLinkOrder;
+        }
+
         destination.GoldHeld += put;
         return put;
     }
@@ -133,7 +151,10 @@ public static class GoldStore
         for (int i = 0; i < world.TileCount; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
-            if (tile.OwnerPlayerId == playerId) total += tile.GoldHeld;
+            if (tile.OwnerPlayerId == playerId)
+            {
+                total += tile.GoldHeld;
+            }
         }
         return (int)Math.Min(total, int.MaxValue);
     }
@@ -149,7 +170,9 @@ public static class GoldStore
     {
         long space = 0;
         foreach ((int index, RoomInstance room) in StoreTilesOf(world, database, playerId))
+        {
             space += SpaceIn(world, database, index, room);
+        }
 
         return (int)Math.Min(space, int.MaxValue);
     }
@@ -168,7 +191,11 @@ public static class GoldStore
     {
         int[] chain = SlabChain.Order(world, room);
         int start = Array.IndexOf(chain, startTile);
-        if (start < 0) return -1;
+        if (start < 0)
+        {
+            return -1;
+        }
+
         int cap = database[VariableTypeId.MaxGoldPerTreasuryTile];
         HashSet<int> occupied = ObjectTiles(world, room, chain);
 
@@ -176,7 +203,10 @@ public static class GoldStore
         {
             int tile = chain[(start + step) % chain.Length];
             int held = world.TileAtIndex(tile).GoldHeld;
-            if (held > 0 ? held < cap : !occupied.Contains(tile)) return tile;
+            if (held > 0 ? held < cap : !occupied.Contains(tile))
+            {
+                return tile;
+            }
         }
         return -1;
     }
@@ -187,10 +217,24 @@ public static class GoldStore
     {
         var occupied = new HashSet<int>();
         foreach (ObjectState thing in world.Objects)
-            if (thing.TileLink.IsLinked) occupied.Add(thing.TileLink.TileIndex);
+        {
+            if (thing.TileLink.IsLinked)
+            {
+                occupied.Add(thing.TileLink.TileIndex);
+            }
+        }
+
         if (room.Definition.TypeId == RoomTypeId.DungeonHeart)
+        {
             foreach (int position in HeartBuilderTiles)
-                if (position < chain.Length) occupied.Add(chain[position]);
+            {
+                if (position < chain.Length)
+                {
+                    occupied.Add(chain[position]);
+                }
+            }
+        }
+
         return occupied;
     }
 
@@ -209,7 +253,11 @@ public static class GoldStore
         int left = amount;
         foreach (int tile in SlabChain.Order(world, room))
         {
-            if (left <= 0) break;
+            if (left <= 0)
+            {
+                break;
+            }
+
             left -= PutOn(world, database, room, tile, left, rng);
         }
         return Math.Max(0, left);
@@ -225,7 +273,10 @@ public static class GoldStore
         int start = Math.Max(0, Array.IndexOf(chain, startTile));
         int left = amount;
         for (int step = 0; step < chain.Length && left > 0; step++)
+        {
             left -= PutOn(world, database, room, chain[(start + step) % chain.Length], left, rng, context);
+        }
+
         return Math.Max(0, left);
     }
 
@@ -240,10 +291,17 @@ public static class GoldStore
     public static int DepositFrom(WorldState world, GameDatabase database, RoomInstance room, int tile, int amount,
         SimRandom? rng, SimulationContext? context = null)
     {
-        if (amount <= 0 || !Accepts(world, room)) return 0;
+        if (amount <= 0 || !Accepts(world, room))
+        {
+            return 0;
+        }
+
         int left = FillAlongChainFrom(world, database, room, tile, amount, rng, context);
         if (left > 0 && FloorGold.Drop(world, database, tile, left) is ObjectState pile && rng is not null)
+        {
             pile.Cell = OverflowCells[rng.NextInt(OverflowCells.Length)];
+        }
+
         return amount - left;
     }
 
@@ -260,8 +318,16 @@ public static class GoldStore
     public static void Recapture(WorldState world, GameDatabase database, RoomInstance captured, SimRandom? rng,
         SimulationContext? context = null)
     {
-        if (captured.Definition.TypeId != RoomTypeId.Treasury) return;
-        if (RoomIndex.RoomAt(world, database, captured.TileIndices[0]) is not { } room) return;
+        if (captured.Definition.TypeId != RoomTypeId.Treasury)
+        {
+            return;
+        }
+
+        if (RoomIndex.RoomAt(world, database, captured.TileIndices[0]) is not { } room)
+        {
+            return;
+        }
+
         int[] chain = SlabChain.Order(world, captured);
         int[] stored = new int[chain.Length];
         for (int i = 0; i < chain.Length; i++)
@@ -283,9 +349,21 @@ public static class GoldStore
     public static void BankFloorGold(WorldState world, GameDatabase database, IReadOnlyList<int> tiles,
         IReadOnlyCollection<int>? freed, SimRandom? rng, SimulationContext? context = null)
     {
-        if (tiles.Count == 0) return;
-        if (database.RoomByTerrain(world.TileAtIndex(tiles[0]).TerrainId)?.TypeId != RoomTypeId.Treasury) return;
-        if (RoomIndex.RoomAt(world, database, tiles[0]) is not { } room) return;
+        if (tiles.Count == 0)
+        {
+            return;
+        }
+
+        if (database.RoomByTerrain(world.TileAtIndex(tiles[0]).TerrainId)?.TypeId != RoomTypeId.Treasury)
+        {
+            return;
+        }
+
+        if (RoomIndex.RoomAt(world, database, tiles[0]) is not { } room)
+        {
+            return;
+        }
+
         int[] chain = SlabChain.Order(world, room);
         int[]? emptied = null;
         if (freed is { Count: > 0 })
@@ -293,7 +371,11 @@ public static class GoldStore
             emptied = new int[chain.Length];
             for (int i = 0; i < chain.Length; i++)
             {
-                if (!freed.Contains(chain[i])) continue;
+                if (!freed.Contains(chain[i]))
+                {
+                    continue;
+                }
+
                 ref TileState tile = ref world.TileAtIndex(chain[i]);
                 emptied[i] = tile.GoldHeld;
                 tile.GoldHeld = 0;
@@ -312,16 +394,33 @@ public static class GoldStore
     {
         // One pass over the things: each chain tile's floor piles, oldest first.
         var position = new Dictionary<int, int>(chain.Length);
-        for (int i = 0; i < chain.Length; i++) position[chain[i]] = i;
-        var piles = new List<ObjectState>?[chain.Length];
-        foreach (ObjectState thing in world.Objects)
-            if (thing.ObjectTypeId == FloorGold.FloorGoldObjectId && !thing.InHand && thing.CarriedByCreatureId < 0
-                && position.TryGetValue(thing.TileIndex, out int at))
-                (piles[at] ??= []).Add(thing);
         for (int i = 0; i < chain.Length; i++)
         {
-            if (emptied is not null && emptied[i] > 0) DepositFrom(world, database, room, chain[i], emptied[i], rng, context);
-            if (piles[i] is not { } loose) continue;
+            position[chain[i]] = i;
+        }
+
+        var piles = new List<ObjectState>?[chain.Length];
+        foreach (ObjectState thing in world.Objects)
+        {
+            if (thing.ObjectTypeId == FloorGold.FloorGoldObjectId && !thing.InHand && thing.CarriedByCreatureId < 0
+                && position.TryGetValue(thing.TileIndex, out int at))
+            {
+                (piles[at] ??= []).Add(thing);
+            }
+        }
+
+        for (int i = 0; i < chain.Length; i++)
+        {
+            if (emptied is not null && emptied[i] > 0)
+            {
+                DepositFrom(world, database, room, chain[i], emptied[i], rng, context);
+            }
+
+            if (piles[i] is not { } loose)
+            {
+                continue;
+            }
+
             for (int k = loose.Count - 1; k >= 0; k--)   // newest first, as the tile's list
             {
                 ObjectState pile = loose[k];
@@ -353,7 +452,11 @@ public static class GoldStore
         SimulationContext? context = null)
     {
         int capacity = Capacity(world, database, tile, room);
-        if (capacity == 0) return 0;
+        if (capacity == 0)
+        {
+            return 0;
+        }
+
         ref TileState state = ref world.TileAtIndex(tile);
         if (state.GoldHeld == 0)
         {
@@ -377,19 +480,32 @@ public static class GoldStore
     /// </summary>
     public static int Deposit(WorldState world, GameDatabase database, PlayerId playerId, int amount)
     {
-        if (amount <= 0) return 0;
+        if (amount <= 0)
+        {
+            return 0;
+        }
 
         int remaining = amount;
         foreach ((int index, RoomInstance room) in StoreTilesOf(world, database, playerId))
         {
-            if (remaining <= 0) break;
+            if (remaining <= 0)
+            {
+                break;
+            }
 
             int space = SpaceIn(world, database, index, room);
-            if (space <= 0) continue;
+            if (space <= 0)
+            {
+                continue;
+            }
 
             int put = Math.Min(space, remaining);
             ref TileState tile = ref world.TileAtIndex(index);
-            if (tile.GoldHeld == 0) tile.StoreGoldLinkOrder = ++world.NextTileLinkOrder;
+            if (tile.GoldHeld == 0)
+            {
+                tile.StoreGoldLinkOrder = ++world.NextTileLinkOrder;
+            }
+
             tile.GoldHeld += put;
             remaining -= put;
         }
@@ -412,8 +528,15 @@ public static class GoldStore
 
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.OwnerPlayerId != playerId) continue;
-            foreach (int index in room.TileIndices) result.Add((index, room));
+            if (room.OwnerPlayerId != playerId)
+            {
+                continue;
+            }
+
+            foreach (int index in room.TileIndices)
+            {
+                result.Add((index, room));
+            }
         }
 
         result.Sort((a, b) => a.Item1.CompareTo(b.Item1));
@@ -434,9 +557,20 @@ public static class GoldStore
         int treasuries = 0;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.OwnerPlayerId != playerId) continue;
-            if (room.Definition.TypeId == RoomTypeId.Treasury) treasuries++;
-            else if (room.Definition.TypeId != RoomTypeId.DungeonHeart || RoomRules.IsRuined(world, room)) continue;
+            if (room.OwnerPlayerId != playerId)
+            {
+                continue;
+            }
+
+            if (room.Definition.TypeId == RoomTypeId.Treasury)
+            {
+                treasuries++;
+            }
+            else if (room.Definition.TypeId != RoomTypeId.DungeonHeart || RoomRules.IsRuined(world, room))
+            {
+                continue;
+            }
+
             stores.Add(room);
         }
 
@@ -447,12 +581,19 @@ public static class GoldStore
             foreach (RoomInstance room in stores)
             {
                 int held = 0;
-                foreach (int tile in room.TileIndices) held += world.TileAtIndex(tile).GoldHeld;
+                foreach (int tile in room.TileIndices)
+                {
+                    held += world.TileAtIndex(tile).GoldHeld;
+                }
+
                 int take = Math.Min(share == 0 ? remaining : share, held);
                 TakeAlongChain(world, room, take);
                 remaining -= take; taken += take; pass += take;
             }
-            if (pass == 0) break;
+            if (pass == 0)
+            {
+                break;
+            }
         }
         return taken;
     }
@@ -461,11 +602,19 @@ public static class GoldStore
     {
         foreach (int tile in SlabChain.Order(world, room))
         {
-            if (amount <= 0) return;
+            if (amount <= 0)
+            {
+                return;
+            }
+
             ref TileState state = ref world.TileAtIndex(tile);
             int take = Math.Min(state.GoldHeld, amount);
             state.GoldHeld -= take;
-            if (state.GoldHeld == 0) state.StoreGoldLinkOrder = 0;
+            if (state.GoldHeld == 0)
+            {
+                state.StoreGoldLinkOrder = 0;
+            }
+
             amount -= take;
         }
     }
@@ -479,18 +628,32 @@ public static class GoldStore
     /// </summary>
     public static bool TryWithdraw(WorldState world, PlayerId playerId, int amount)
     {
-        if (amount <= 0) return true;
-        if (Total(world, playerId) < amount) return false;
+        if (amount <= 0)
+        {
+            return true;
+        }
+
+        if (Total(world, playerId) < amount)
+        {
+            return false;
+        }
 
         int remaining = amount;
         for (int i = 0; i < world.TileCount && remaining > 0; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
-            if (tile.OwnerPlayerId != playerId || tile.GoldHeld <= 0) continue;
+            if (tile.OwnerPlayerId != playerId || tile.GoldHeld <= 0)
+            {
+                continue;
+            }
 
             int take = Math.Min(tile.GoldHeld, remaining);
             tile.GoldHeld -= take;
-            if (tile.GoldHeld == 0) tile.StoreGoldLinkOrder = 0;
+            if (tile.GoldHeld == 0)
+            {
+                tile.StoreGoldLinkOrder = 0;
+            }
+
             remaining -= take;
         }
 

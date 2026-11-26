@@ -30,7 +30,10 @@ public sealed partial class GraveyardState
     internal void Restore(int decomposeValue)
     {
         if (decomposeValue < 0)
+        {
             throw new InvalidDataException("Invalid Graveyard decomposition tally in snapshot.");
+        }
+
         DecomposeValue = decomposeValue;
     }
 

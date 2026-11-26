@@ -114,9 +114,17 @@ public sealed partial class TriggerState
     /// (game action <c>0x5C</c>), which a simulation with no window never raises.</summary>
     internal bool CountDownLevelTimeLimit()
     {
-        if (LevelTimeLimit == 0) return false;
+        if (LevelTimeLimit == 0)
+        {
+            return false;
+        }
+
         LevelTimeLimit--;
-        if (LevelTimeLimit != 0) return false;
+        if (LevelTimeLimit != 0)
+        {
+            return false;
+        }
+
         _worldOptions |= 0x08;
         return true;
     }
@@ -141,10 +149,12 @@ public sealed partial class TriggerState
     public int Read(byte flagId)
     {
         if (flagId >= FlagCount)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(flagId), flagId,
                 $"Flag id {flagId} is past the bank; {SpecialFlagId} is the special target, "
                 + "which is read through SpecialValue.");
+        }
 
         return _flags[flagId];
     }
@@ -171,10 +181,12 @@ public sealed partial class TriggerState
         }
 
         if (flagId > SpecialFlagId)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(flagId), flagId,
                 $"Flag id {flagId} is past the bank and past the special target. In DK2 this "
                 + "would write into the timer bank; no shipped level does it (Q230).");
+        }
 
         byte value = unchecked((byte)operand);
         _flags[flagId] = mode switch
@@ -189,15 +201,19 @@ public sealed partial class TriggerState
     private static byte CheckTimer(byte timerId)
     {
         if (timerId == SpecialTimerId)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(timerId), timerId,
                 $"Timer id {SpecialTimerId} is not a timer slot: it names LevelTimeLimit (Q232).");
+        }
 
         if (timerId >= TimerCount)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(timerId), timerId,
                 $"Timer id {timerId} is past the {TimerCount}-slot bank. In DK2 this would "
                 + "index past it into the object's next field; no shipped level does it.");
+        }
 
         return timerId;
     }
@@ -275,9 +291,11 @@ public sealed partial class TriggerState
     internal void InitializeRecords(IEnumerable<DK2.Data.Model.TriggerRecord> records)
     {
         foreach (DK2.Data.Model.TriggerRecord record in records)
+        {
             _records.TryAdd(
                 (record.Tag, record.TriggerId),
                 new TriggerRecordState(record.Tag == 214 || record.RepeatCount != 0, record.RepeatCount));
+        }
     }
 
     internal bool IsRecordActive(DK2.Data.Model.TriggerRecord record) =>
@@ -302,8 +320,16 @@ public sealed partial class TriggerState
 
     public void HashInto(ref Hash64 hash)
     {
-        foreach (byte f in _flags) hash.Add(f);
-        foreach (int t in _timers) hash.Add(t);
+        foreach (byte f in _flags)
+        {
+            hash.Add(f);
+        }
+
+        foreach (int t in _timers)
+        {
+            hash.Add(t);
+        }
+
         hash.Add(SpecialValue);
         hash.Add(SpecialValueWritten ? (byte)1 : (byte)0);
         hash.Add(_worldOptions);

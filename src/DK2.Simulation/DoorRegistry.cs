@@ -20,7 +20,10 @@ internal sealed class DoorRegistry
     internal void CopyFrom(DoorRegistry other)
     {
         NextId = other.NextId;
-        if (StateCopy.Sync(_doors, other._doors)) Version++;
+        if (StateCopy.Sync(_doors, other._doors))
+        {
+            Version++;
+        }
     }
 
     /// <summary>Bumped by every add and removal. Derived, not state: neither hashed nor saved.</summary>
@@ -35,20 +38,35 @@ internal sealed class DoorRegistry
 
     public void Remove(DoorState door)
     {
-        if (_doors.Remove(door)) Version++;
+        if (_doors.Remove(door))
+        {
+            Version++;
+        }
     }
 
     public DoorState? ById(int id)
     {
         foreach (DoorState door in _doors)
-            if (door.Id == id) return door;
+        {
+            if (door.Id == id)
+            {
+                return door;
+            }
+        }
+
         return null;
     }
 
     public DoorState? At(int x, int y)
     {
         foreach (DoorState door in _doors)
-            if (door.X == x && door.Y == y) return door;
+        {
+            if (door.X == x && door.Y == y)
+            {
+                return door;
+            }
+        }
+
         return null;
     }
 }

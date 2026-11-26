@@ -65,8 +65,8 @@ release mismatch persists with either queue schedule, so matching tile results
 does not supply the missing action-completion timing.
 
 The implementation boundaries are `WorkCadence.cs:28` (first gap),
-`ImpTaskSystem.Work.cs:154` and `TileWorkSystem.cs:30` (deferred applications),
-and `ImpTaskSystem.cs:281` / `WorkCadence.cs:53` (six-turn completion gate).
+`ImpTaskSystem.UpdateWorking` and `TileWorkSystem.Execute` (deferred applications),
+and `ImpTaskSystem.UpdateWander` / `WorkCadence.cs:53` (six-turn completion gate).
 This joins the known cadence, visibility and release differences in one
 controlled work sequence. It establishes neither a complete engine replay nor
 a new chooser fix. ADR-0512 integrates the cadence and visibility corrections;

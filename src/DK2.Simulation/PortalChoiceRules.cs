@@ -39,8 +39,15 @@ public static class PortalChoiceRules
         foreach (CreatureDef creature in admitted)
         {
             int at = IndexOf(player.EntranceInfo, creature.CreatureId);
-            if (at >= 0) continue;
-            if (BaseWeight(world, creature, keeperRooms, playerId) <= 0) continue;
+            if (at >= 0)
+            {
+                continue;
+            }
+
+            if (BaseWeight(world, creature, keeperRooms, playerId) <= 0)
+            {
+                continue;
+            }
 
             int boost = world.CurrentTick.Value > 1 && !IsLairAttracted(creature) ? Fresh : 0;
             int insert = ~at;
@@ -53,12 +60,20 @@ public static class PortalChoiceRules
     public static int BaseWeight(
         WorldState world, CreatureDef creature, IReadOnlyList<RoomInstance> keeperRooms, PlayerId playerId)
     {
-        if (IsLairAttracted(creature)) return creature.LairObjectId == GoblinLairObjectId ? 3 * One : One;
+        if (IsLairAttracted(creature))
+        {
+            return creature.LairObjectId == GoblinLairObjectId ? 3 * One : One;
+        }
 
         int roomId = creature.Attractions.Count == 0 ? 0 : creature.Attractions[0].RoomId;
         int weight = 0;
         foreach (RoomInstance room in keeperRooms)
-            if (room.Definition.RoomId == roomId) weight += AttractionBudget.Contribution(world, room) * One;
+        {
+            if (room.Definition.RoomId == roomId)
+            {
+                weight += AttractionBudget.Contribution(world, room) * One;
+            }
+        }
 
         int held = PortalRules.CreatureCountOfType(world, playerId, creature.CreatureId);
         return Math.Max(0, weight - (held * One));
@@ -87,16 +102,27 @@ public static class PortalChoiceRules
         foreach (CreatureDef creature in admitted)
         {
             int weight = BaseWeight(world, creature, keeperRooms, playerId);
-            if (weight <= 0) continue;
+            if (weight <= 0)
+            {
+                continue;
+            }
+
             EntranceInfoState row = player.EntranceInfo[IndexOf(player.EntranceInfo, creature.CreatureId)];
             entries.Add((creature, Weighted(weight, row)));
         }
-        if (entries.Count == 0) return null;
+        if (entries.Count == 0)
+        {
+            return null;
+        }
 
         // Each weight as a share of 100.0, then a running total, and the first entry whose
         // running total reaches the draw.
         long sum = 0;
-        foreach ((_, long w) in entries) sum += w;
+        foreach ((_, long w) in entries)
+        {
+            sum += w;
+        }
+
         CreatureDef? chosen = null;
         if (sum > 0)
         {
@@ -104,14 +130,23 @@ public static class PortalChoiceRules
             long total = 0;
             for (int i = 0; i < entries.Count; i++)
             {
-                if (entries[i].Weight > 0) total += (entries[i].Weight * 100 * One) / sum;
+                if (entries[i].Weight > 0)
+                {
+                    total += (entries[i].Weight * 100 * One) / sum;
+                }
+
                 running[i] = total;
             }
             if (total > 0)
             {
                 long draw = rng.NextInt((int)total);
                 for (int i = 0; i < entries.Count && chosen is null; i++)
-                    if (draw <= running[i]) chosen = entries[i].Creature;
+                {
+                    if (draw <= running[i])
+                    {
+                        chosen = entries[i].Creature;
+                    }
+                }
             }
         }
 
@@ -135,7 +170,11 @@ public static class PortalChoiceRules
         int index = 0;
         for (int id = 0; id <= byte.MaxValue && index < RowCount; id++)
         {
-            if (!database.Creatures.TryGetValue((byte)id, out CreatureDef? definition)) continue;
+            if (!database.Creatures.TryGetValue((byte)id, out CreatureDef? definition))
+            {
+                continue;
+            }
+
             byte type = (definition.Flags & CreatureFlags.IsUnique) != 0 ? definition.UniqueBaseCreatureId : definition.CreatureId;
             DecayRowOf(ref player, type);
             index++;
@@ -146,7 +185,10 @@ public static class PortalChoiceRules
     {
         // A type without a row here was never noticed, and its native row has nothing to take off.
         int at = IndexOf(player.EntranceInfo, type);
-        if (at < 0) return;
+        if (at < 0)
+        {
+            return;
+        }
 
         EntranceInfoState row = player.EntranceInfo[at];
         player.EntranceInfo[at] = row with
@@ -167,9 +209,19 @@ public static class PortalChoiceRules
         {
             int mid = (lo + hi) >>> 1;
             int c = rows[mid].CreatureTypeId.CompareTo(creatureTypeId);
-            if (c == 0) return mid;
-            if (c < 0) lo = mid + 1;
-            else hi = mid - 1;
+            if (c == 0)
+            {
+                return mid;
+            }
+
+            if (c < 0)
+            {
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
         }
         return ~lo;
     }

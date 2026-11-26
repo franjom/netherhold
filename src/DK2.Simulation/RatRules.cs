@@ -20,8 +20,13 @@ public static class RatRules
     {
         int tiles = 0;
         foreach (RoomInstance room in rooms)
+        {
             if (room.OwnerPlayerId == owner.Value && room.Definition.TypeId is RoomTypeId.Prison or RoomTypeId.TortureChamber)
+            {
                 tiles += room.TileCount;
+            }
+        }
+
         return Math.Min(16, tiles / 9);
     }
 
@@ -30,10 +35,24 @@ public static class RatRules
         int limit = PopulationLimit(rooms, owner);
         int population = 0;
         foreach (ObjectState thing in context.World.Objects)
-            if (thing.ObjectTypeId == RatObjectId && thing.OwnerPlayerId == owner.Value) population++;
-        if (population >= limit || context.Rng.NextInt(100) <= 94) return;
+        {
+            if (thing.ObjectTypeId == RatObjectId && thing.OwnerPlayerId == owner.Value)
+            {
+                population++;
+            }
+        }
+
+        if (population >= limit || context.Rng.NextInt(100) <= 94)
+        {
+            return;
+        }
+
         RoomInstance[] prisons = rooms.Where(r => r.OwnerPlayerId == owner.Value && r.Definition.TypeId == RoomTypeId.Prison).Reverse().ToArray();
-        if (prisons.Length == 0) return;
+        if (prisons.Length == 0)
+        {
+            return;
+        }
+
         RoomInstance prison = prisons[context.Rng.NextInt(prisons.Length)];
         int tile = prison.TileIndices[context.Rng.NextInt(prison.TileCount)];
         ObjectState rat = context.World.SpawnObject(context.Database, RatObjectId, owner, tile);
@@ -43,20 +62,41 @@ public static class RatRules
 
     public static void Tick(SimulationContext context, ObjectState rat)
     {
-        if (rat.InHand || rat.CarriedByCreatureId >= 0) return;
+        if (rat.InHand || rat.CarriedByCreatureId >= 0)
+        {
+            return;
+        }
+
         if (rat.ProcessState == 0)
+        {
             ObjectMovementRules.SetProcess(rat, new ObjectProcessId(context.Database.ObjectById(RatObjectId)!.StartState));
+        }
         else
         {
             rat.ProcessAgeTicks = unchecked(rat.ProcessAgeTicks + 1);
             if (rat.ProcessState == ObjectMovementRules.MovingProcess.Value)
+            {
                 ObjectMovementRules.StepMove(context, rat);
+            }
             else if (rat.ProcessState == WanderingProcess.Value && !ChoosePoint(context, rat))
+            {
                 ObjectMovementRules.SetProcess(rat, default);
+            }
         }
-        if (!context.World.Objects.Contains(rat)) return;
-        if (rat.Health > 0) rat.Health--;
-        if (rat.Health <= 0) context.World.RemoveObject(rat.Id);
+        if (!context.World.Objects.Contains(rat))
+        {
+            return;
+        }
+
+        if (rat.Health > 0)
+        {
+            rat.Health--;
+        }
+
+        if (rat.Health <= 0)
+        {
+            context.World.RemoveObject(rat.Id);
+        }
     }
 
     private static bool ChoosePoint(SimulationContext context, ObjectState rat)
@@ -73,14 +113,24 @@ public static class RatRules
             TilePos offset = Directions[(start + i) & 3];
             var target = new TilePos(here.X + offset.X, here.Y + offset.Y);
             if (!context.World.Contains(target) || context.World.Tile(target).OwnerPlayerId != rat.OwnerPlayerId
-                || NavBytes.IsSolid(context.Navigation.NavByte(target.X, target.Y))) continue;
+                || NavBytes.IsSolid(context.Navigation.NavByte(target.X, target.Y)))
+            {
+                continue;
+            }
+
             RoomInstance? room = RoomIndex.RoomAt(context.World, context.Database, target.Y * context.World.Width + target.X);
             if (room?.Definition.Construction == TileConstruction.DoubleQuad
-                && room.IsInterior(target.Y * context.World.Width + target.X)) continue;
+                && room.IsInterior(target.Y * context.World.Width + target.X))
+            {
+                continue;
+            }
+
             var destination = new ObjectMovePoint(new Fp32((target.X << 12) + context.Rng.NextInt(Fp32.One)),
                 new Fp32((target.Y << 12) + context.Rng.NextInt(Fp32.One)));
             if (ObjectMovementRules.StartMove(context, rat, destination, WanderingProcess, default, interruptible: true))
+            {
                 return true;
+            }
         }
         return false;
     }

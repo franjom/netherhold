@@ -29,7 +29,11 @@ internal sealed class TileHeap
         while (child > 0)
         {
             int parent = (child - 1) / 2;
-            if (!Less(child, parent)) break;
+            if (!Less(child, parent))
+            {
+                break;
+            }
+
             Swap(child, parent);
             child = parent;
         }
@@ -49,11 +53,17 @@ internal sealed class TileHeap
         while (true)
         {
             int left = (2 * parent) + 1;
-            if (left >= _tile.Count) break;
+            if (left >= _tile.Count)
+            {
+                break;
+            }
 
             int right = left + 1;
             int best = right < _tile.Count && Less(right, left) ? right : left;
-            if (!Less(best, parent)) break;
+            if (!Less(best, parent))
+            {
+                break;
+            }
 
             Swap(best, parent);
             parent = best;

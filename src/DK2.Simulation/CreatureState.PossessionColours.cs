@@ -12,6 +12,9 @@ public sealed partial class CreatureState
     public event Action<PossessionColourEvent>? PossessionColourChanged;
     internal void NotifyPossessionColour(PossessionColourEvent notification)
     {
-        if (Possessed) PossessionColourChanged?.Invoke(notification);
+        if (Possessed)
+        {
+            PossessionColourChanged?.Invoke(notification);
+        }
     }
 }

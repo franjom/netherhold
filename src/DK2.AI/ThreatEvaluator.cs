@@ -19,7 +19,11 @@ public static class ThreatEvaluator
         var sources = new List<KeeperThreatSource>();
         foreach (KeeperCreatureView creature in view.Creatures)
         {
-            if (creature.Activity == CreatureActivity.Dead) continue;
+            if (creature.Activity == CreatureActivity.Dead)
+            {
+                continue;
+            }
+
             int layer = creature.InHand || creature.CarriedByCreatureId >= 0 ? 2 : 0;
             ushort basis = view.Database.CreatureById(creature.CreatureTypeId).Threat;
             short percent = unchecked((short)view.Database.StatPercent(CreatureStatId.Threat, creature.Level));
@@ -27,9 +31,12 @@ public static class ThreatEvaluator
                 CreatureThreat(basis, (byte)creature.Level, percent), layer));
         }
         foreach (KeeperTrapView trap in view.Traps)
+        {
             sources.Add(new KeeperThreatSource(trap.OwnerPlayerId,
                 CreatureState.CentreOf(trap.X), CreatureState.CentreOf(trap.Y),
                 trap.Threat, 0, true, trap.TrapTypeId));
+        }
+
         return sources.AsReadOnly();
     }
 
@@ -51,9 +58,21 @@ public static class ThreatEvaluator
         int sum = 0;
         foreach (KeeperThreatSource source in sources)
         {
-            if (source.OwnerPlayerId != playerId || source.MapLayer == 2) continue;
-            if (source.IsTrap && (!includeTraps || source.TrapTypeId == 2)) continue;
-            if (!WithinRadius(source.X, source.Y, centreX, centreY, radius)) continue;
+            if (source.OwnerPlayerId != playerId || source.MapLayer == 2)
+            {
+                continue;
+            }
+
+            if (source.IsTrap && (!includeTraps || source.TrapTypeId == 2))
+            {
+                continue;
+            }
+
+            if (!WithinRadius(source.X, source.Y, centreX, centreY, radius))
+            {
+                continue;
+            }
+
             sum = unchecked(sum + source.Threat);
         }
         return sum;
@@ -73,11 +92,17 @@ public static class ThreatEvaluator
             int radius = roomMessage ? 5 : friend ? 4 : 10;
             int strength = LocalStrength(sources, player, x, y, radius * Fp32.One,
                 !roomMessage && trapsStartFights);
-            if (friend) friendly = unchecked(friendly + strength);
+            if (friend)
+            {
+                friendly = unchecked(friendly + strength);
+            }
             else
             {
                 enemy = unchecked(enemy + strength);
-                if (strength != 0) attacker = player.Value;
+                if (strength != 0)
+                {
+                    attacker = player.Value;
+                }
             }
         }
         return new KeeperThreatAssessment(enemy, friendly, attacker);
@@ -93,14 +118,20 @@ public static class ThreatEvaluator
         int bestScore = 0x19000;
         TilePos? best = null;
         for (int y = target.Y - 5; y <= target.Y + 5; y++)
-        for (int x = target.X - 5; x <= target.X + 5; x++)
+        {
+            for (int x = target.X - 5; x <= target.X + 5; x++)
         {
             int dx = target.X - x, dy = target.Y - y;
             int score = unchecked(dx * dx + (roomMessage ? y * target.Y * dy : dy * dy));
             var tile = new TilePos(x, y);
-            if (score >= bestScore || !eligible(tile)) continue;
-            best = tile;
+            if (score >= bestScore || !eligible(tile))
+                {
+                    continue;
+                }
+
+                best = tile;
             bestScore = score;
+        }
         }
         // The original checks the chosen coordinates after the search, not each candidate.
         return best is TilePos p && p.X != 0 && p.Y != 0 ? best : null;
@@ -114,9 +145,15 @@ public static class ThreatEvaluator
         int deficit = unchecked(superiorityPercent * enemyStrength) / 100 - allyStrength;
         TilePos position = dropSite ?? target;
         if (dropSite.HasValue && deficit >= 0)
+        {
             return new KeeperThreatResponse(unchecked((short)deficit), position);
+        }
+
         if (!dropSite.HasValue && removeIfCannotReinforce && allyStrength >= 0 && deficit > 0)
+        {
             return new KeeperThreatResponse(unchecked((short)-allyStrength), position);
+        }
+
         return roomMessage ? new KeeperThreatResponse(0, position) : null;
     }
 }

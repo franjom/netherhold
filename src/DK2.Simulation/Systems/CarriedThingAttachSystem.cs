@@ -24,8 +24,13 @@ public sealed class CarriedThingAttachSystem : ICreatureUpdateStep
         WorldState world = context.World;
         if (creature.CarriedObjectId >= 0 && world.ObjectById(creature.CarriedObjectId) is { } thing
             && ObjectCarryRules.IsAttachable(thing))
+        {
             ObjectCarryRules.FollowCarrier(world, creature, thing);
+        }
+
         if (creature.CarriedCreatureId >= 0 && world.CreatureById(creature.CarriedCreatureId) is { } body)
+        {
             CarryRules.FollowCarrier(creature, body);
+        }
     }
 }

@@ -28,7 +28,11 @@ public static class AutoFurnitureRules
         WorldState world, GameDatabase database, RoomInstance room,
         List<(int TileIndex, byte ObjectTypeId)> into)
     {
-        if (into is null) throw new ArgumentNullException(nameof(into));
+        if (into is null)
+        {
+            throw new ArgumentNullException(nameof(into));
+        }
+
         into.Clear();
 
         if (room.Definition.TypeId == RoomTypeId.Hatchery)
@@ -36,18 +40,29 @@ public static class AutoFurnitureRules
             List<int> coops = s_slots ??= [];
             coops.Clear();
             HatcheryRules.CoopTiles(world, room, coops);
-            foreach (int tile in coops) into.Add((tile, HatcheryRules.CoopObjectId));
+            foreach (int tile in coops)
+            {
+                into.Add((tile, HatcheryRules.CoopObjectId));
+            }
+
             return;
         }
 
         HashSet<int> roomTiles = s_roomTiles ??= [];
         roomTiles.Clear();
-        foreach (int tile in room.Tiles) roomTiles.Add(tile);
+        foreach (int tile in room.Tiles)
+        {
+            roomTiles.Add(tile);
+        }
 
         if (room.Definition.TypeId == RoomTypeId.Temple)
         {
             int handTile = TempleHandTile(world, room, roomTiles);
-            if (handTile >= 0) into.Add((handTile, TempleHandObjectId));
+            if (handTile >= 0)
+            {
+                into.Add((handTile, TempleHandObjectId));
+            }
+
             return;
         }
 
@@ -58,7 +73,12 @@ public static class AutoFurnitureRules
         // The Graveyard's crypts are its own pass's (0x004DD5C0), placed before this one on a rebuild;
         // here they are kept where they stand, and their cells are no floor slots for the stones.
         if (room.Definition.TypeId == RoomTypeId.Graveyard)
-            foreach (int crypt in CryptTiles(world, room)) into.Add((crypt, CryptObjectId));
+        {
+            foreach (int crypt in CryptTiles(world, room))
+            {
+                into.Add((crypt, CryptObjectId));
+            }
+        }
 
         // The Casino's lever takes one of the floor slots, so no table stands on it. Placed
         // whatever the room's furniture list holds: it is the set-up's own object.
@@ -89,7 +109,12 @@ public static class AutoFurnitureRules
         {
             int count = into.Count;
             for (int i = 0; i < count; i++)
-                if (into[i].ObjectTypeId is 62 or 63) into.Add((into[i].TileIndex, TortureRules.WheelObjectId));
+            {
+                if (into[i].ObjectTypeId is 62 or 63)
+                {
+                    into.Add((into[i].TileIndex, TortureRules.WheelObjectId));
+                }
+            }
         }
     }
 
@@ -133,9 +158,20 @@ public static class AutoFurnitureRules
         foreach (ObjectState thing in world.Objects)
         {
             if (!thing.AutoPlaced || thing.InHand || thing.OwnerPlayerId != room.OwnerPlayerId)
+            {
                 continue;
-            if (!roomTiles.Contains(thing.TileIndex)) continue;
-            if (!room.Definition.ObjectIds.Take(6).Contains(thing.ObjectTypeId)) continue;
+            }
+
+            if (!roomTiles.Contains(thing.TileIndex))
+            {
+                continue;
+            }
+
+            if (!room.Definition.ObjectIds.Take(6).Contains(thing.ObjectTypeId))
+            {
+                continue;
+            }
+
             count++;
         }
 
@@ -147,9 +183,15 @@ public static class AutoFurnitureRules
     {
         int count = 0;
         while (count < 4 && count < room.ObjectIds.Count && room.ObjectIds[count] != 0)
+        {
             count++;
+        }
 
-        if (count == 4 && ((room.Flags & RoomFlags.SpecialWalls) == RoomFlags.SpecialWalls)) count = 3;
+        if (count == 4 && ((room.Flags & RoomFlags.SpecialWalls) == RoomFlags.SpecialWalls))
+        {
+            count = 3;
+        }
+
         return count;
     }
 
@@ -158,13 +200,22 @@ public static class AutoFurnitureRules
         HashSet<int> roomTiles,
         List<(int TileIndex, byte ObjectTypeId)> into)
     {
-        if (!((room.Definition.Flags & RoomFlags.SpecialWalls) == RoomFlags.SpecialWalls)) return;
+        if (!((room.Definition.Flags & RoomFlags.SpecialWalls) == RoomFlags.SpecialWalls))
+        {
+            return;
+        }
 
         int choiceCount = 0;
         while (choiceCount < 3 && choiceCount + 3 < room.Definition.ObjectIds.Count
                && room.Definition.ObjectIds[choiceCount + 3] != 0)
+        {
             choiceCount++;
-        if (choiceCount == 0) return;
+        }
+
+        if (choiceCount == 0)
+        {
+            return;
+        }
 
         var slots = new List<int>();
         WallSlots(world, database, room, roomTiles, slots);
@@ -186,7 +237,13 @@ public static class AutoFurnitureRules
     public static int WallSide(WorldState world, GameDatabase database, RoomInstance room, int tileIndex)
     {
         foreach ((int tile, int side) in WallSlotsOf(world, database, room))
-            if (tile == tileIndex) return side;
+        {
+            if (tile == tileIndex)
+            {
+                return side;
+            }
+        }
+
         return -1;
     }
 
@@ -203,7 +260,11 @@ public static class AutoFurnitureRules
         var sides = new List<int>();
         WallSlots(world, database, room, new HashSet<int>(room.TileIndices), slots, sides);
         var result = new (int Tile, int Side)[slots.Count];
-        for (int i = 0; i < result.Length; i++) result[i] = (slots[i], sides[i]);
+        for (int i = 0; i < result.Length; i++)
+        {
+            result[i] = (slots[i], sides[i]);
+        }
+
         return result;
     }
 
@@ -213,7 +274,13 @@ public static class AutoFurnitureRules
         HashSet<int> slots = FloorSlotSet(world, room);
         var ordered = new List<int>(slots.Count);
         foreach (int tile in SlabChain.Order(world, room))
-            if (slots.Contains(tile)) ordered.Add(tile);
+        {
+            if (slots.Contains(tile))
+            {
+                ordered.Add(tile);
+            }
+        }
+
         return [.. ordered];
     }
 
@@ -229,14 +296,20 @@ public static class AutoFurnitureRules
             int y = tile / world.Width;
             for (int direction = 0; direction < 4; direction++)
             {
-                if (!HasStraightWall(world, database, roomTiles, x, y, direction)) continue;
+                if (!HasStraightWall(world, database, roomTiles, x, y, direction))
+                {
+                    continue;
+                }
 
                 int coordinate = direction % 2 == 0 ? x : y;
                 ref int? phase = ref (direction % 2 == 0
                     ? ref horizontalPhase
                     : ref verticalPhase);
                 phase ??= coordinate & 1;
-                if ((coordinate & 1) != phase) continue;
+                if ((coordinate & 1) != phase)
+                {
+                    continue;
+                }
 
                 slots.Add(tile);
                 sides?.Add(direction);
@@ -284,7 +357,11 @@ public static class AutoFurnitureRules
 
     private static bool IsWall(WorldState world, GameDatabase database, int x, int y)
     {
-        if (!world.Contains(x, y)) return false;
+        if (!world.Contains(x, y))
+        {
+            return false;
+        }
+
         TerrainFlags flags = database.TerrainById(world.Tile(x, y).TerrainId).Flags;
         return ((flags & TerrainFlags.Solid) == TerrainFlags.Solid)
             && ((flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls);
@@ -300,24 +377,36 @@ public static class AutoFurnitureRules
     {
         foreach (int tile in room.Tiles)
         {
-            if (!IsSurroundedByRoom(world, roomTiles, tile)) continue;
+            if (!IsSurroundedByRoom(world, roomTiles, tile))
+            {
+                continue;
+            }
 
             int x = tile % world.Width;
             int y = tile / world.Width;
             bool surroundedBySlots = true;
             for (int dy = -1; dy <= 1 && surroundedBySlots; dy++)
-            for (int dx = -1; dx <= 1; dx++)
             {
-                if (dx == 0 && dy == 0) continue;
-                int neighbour = ((y + dy) * world.Width) + x + dx;
+                for (int dx = -1; dx <= 1; dx++)
+            {
+                if (dx == 0 && dy == 0)
+                    {
+                        continue;
+                    }
+
+                    int neighbour = ((y + dy) * world.Width) + x + dx;
                 if (!IsSurroundedByRoom(world, roomTiles, neighbour))
                 {
                     surroundedBySlots = false;
                     break;
                 }
             }
+            }
 
-            if (surroundedBySlots) return tile;
+            if (surroundedBySlots)
+            {
+                return tile;
+            }
         }
         return -1;
     }
@@ -346,7 +435,10 @@ public static class AutoFurnitureRules
     {
         if (room.Definition.TypeId is RoomTypeId.Portal or RoomTypeId.DungeonHeart
             or RoomTypeId.WoodenBridge or RoomTypeId.StoneBridge or RoomTypeId.HeroStoneBridge)
+        {
             return false;
+        }
+
         var slots = new List<int>();
         FloorSlots(world, room, new HashSet<int>(room.TileIndices), slots);
         return slots.Contains(tileIndex);
@@ -363,24 +455,48 @@ public static class AutoFurnitureRules
         WorldState world, RoomInstance room, HashSet<int> roomTiles, List<int> slots)
     {
         foreach (int tile in room.Tiles)
-            if (IsSurroundedByRoom(world, roomTiles, tile)) slots.Add(tile);
+        {
+            if (IsSurroundedByRoom(world, roomTiles, tile))
+            {
+                slots.Add(tile);
+            }
+        }
 
         // The Graveyard arm refuses a cell holding a crypt (0x0045416C).
         if (room.Definition.TypeId == RoomTypeId.Graveyard && slots.Count > 0)
         {
             HashSet<int> crypts = CryptTiles(world, room);
             for (int i = slots.Count - 1; crypts.Count > 0 && i >= 0; i--)
-                if (crypts.Contains(slots[i])) slots.RemoveAt(i);
+            {
+                if (crypts.Contains(slots[i]))
+                {
+                    slots.RemoveAt(i);
+                }
+            }
         }
 
-        if (!UsesCheckerboard(room.Definition.TypeId) || slots.Count == 0) return;
+        if (!UsesCheckerboard(room.Definition.TypeId) || slots.Count == 0)
+        {
+            return;
+        }
 
         int anchor = slots[0];
         foreach (int tile in slots)
-            if ((tile % world.Width) < (anchor % world.Width)) anchor = tile;
+        {
+            if ((tile % world.Width) < (anchor % world.Width))
+            {
+                anchor = tile;
+            }
+        }
+
         int phase = ((anchor % world.Width) + (anchor / world.Width)) & 1;
         for (int i = slots.Count - 1; i >= 0; i--)
-            if ((((slots[i] % world.Width) + (slots[i] / world.Width)) & 1) != phase) slots.RemoveAt(i);
+        {
+            if ((((slots[i] % world.Width) + (slots[i] / world.Width)) & 1) != phase)
+            {
+                slots.RemoveAt(i);
+            }
+        }
     }
 
     /// <summary>Where the Casino's set-up <c>0x004D6ED0</c> puts its lever: the first slab in the
@@ -400,7 +516,9 @@ public static class AutoFurnitureRules
             if (!IsRoom(world, slotSet, x - 1, y - 1)
                 && !IsRoom(world, slotSet, x, y - 1)
                 && !IsRoom(world, slotSet, x + 1, y - 1))
+            {
                 return tile;
+            }
         }
         return -1;
     }
@@ -410,7 +528,13 @@ public static class AutoFurnitureRules
     {
         var tiles = new HashSet<int>();
         foreach (ObjectState thing in world.Objects)
-            if (thing.ObjectTypeId == CryptObjectId && !thing.InHand && room.Contains(thing.TileIndex)) tiles.Add(thing.TileIndex);
+        {
+            if (thing.ObjectTypeId == CryptObjectId && !thing.InHand && room.Contains(thing.TileIndex))
+            {
+                tiles.Add(thing.TileIndex);
+            }
+        }
+
         return tiles;
     }
 
@@ -419,14 +543,27 @@ public static class AutoFurnitureRules
     {
         int x = tile % world.Width;
         int y = tile / world.Width;
-        if (x <= 0 || y <= 0 || x >= world.Width - 1 || y >= world.Height - 1) return false;
+        if (x <= 0 || y <= 0 || x >= world.Width - 1 || y >= world.Height - 1)
+        {
+            return false;
+        }
 
         for (int dy = -1; dy <= 1; dy++)
-        for (int dx = -1; dx <= 1; dx++)
         {
-            if (dx == 0 && dy == 0) continue;
-            if (!roomTiles.Contains(((y + dy) * world.Width) + x + dx)) return false;
+            for (int dx = -1; dx <= 1; dx++)
+        {
+            if (dx == 0 && dy == 0)
+                {
+                    continue;
+                }
+
+                if (!roomTiles.Contains(((y + dy) * world.Width) + x + dx))
+                {
+                    return false;
+                }
+            }
         }
+
         return true;
     }
 
@@ -440,7 +577,11 @@ public static class AutoFurnitureRules
     {
         int x = CreatureState.CentreOf(thing.TileIndex % world.Width);
         int y = CreatureState.CentreOf(thing.TileIndex / world.Width);
-        if (!thing.AutoPlaced || !IsWallFurniture(room.Definition, thing)) return (x, y);
+        if (!thing.AutoPlaced || !IsWallFurniture(room.Definition, thing))
+        {
+            return (x, y);
+        }
+
         int inset = WallInset(thing.ObjectTypeId);
         return WallSide(world, database, room, thing.TileIndex) switch
         {
@@ -455,11 +596,22 @@ public static class AutoFurnitureRules
     /// <summary>Whether this object's type appears in the room's wall-pass list.</summary>
     public static bool IsWallFurniture(RoomDef room, ObjectState thing)
     {
-        if (!((room.Flags & RoomFlags.SpecialWalls) == RoomFlags.SpecialWalls)) return false;
+        if (!((room.Flags & RoomFlags.SpecialWalls) == RoomFlags.SpecialWalls))
+        {
+            return false;
+        }
+
         for (int i = 3; i <= 5 && i < room.ObjectIds.Count; i++)
         {
-            if (room.ObjectIds[i] == 0) break;
-            if (room.ObjectIds[i] == thing.ObjectTypeId) return true;
+            if (room.ObjectIds[i] == 0)
+            {
+                break;
+            }
+
+            if (room.ObjectIds[i] == thing.ObjectTypeId)
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -472,12 +624,24 @@ public static class AutoFurnitureRules
         {
             int dx = corner < 2 ? 1 : -1;
             int dy = corner is 0 or 3 ? -1 : 1;
-            if (InRoom(tile.X - dx, tile.Y) || InRoom(tile.X, tile.Y - dy)) continue;
+            if (InRoom(tile.X - dx, tile.Y) || InRoom(tile.X, tile.Y - dy))
+            {
+                continue;
+            }
+
             bool block = true;
             for (int j = 0; j < 3 && block; j++)
+            {
                 for (int i = 0; i < 3 && block; i++)
+                {
                     block = InRoom(tile.X + i * dx, tile.Y + j * dy);
-            if (block) yield return corner;
+                }
+            }
+
+            if (block)
+            {
+                yield return corner;
+            }
         }
     }
 

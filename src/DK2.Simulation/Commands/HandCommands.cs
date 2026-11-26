@@ -84,9 +84,16 @@ public sealed record DropCommand(PlayerId PlayerId, TilePos Tile, int TargetCrea
         hash.Add(Tile.Y);
         hash.Add(TargetCreatureId);
         hash.Add(Position.HasValue);
-        if (Position is FpPosition2 position) position.HashInto(ref hash);
+        if (Position is FpPosition2 position)
+        {
+            position.HashInto(ref hash);
+        }
+
         hash.Add(Heading.HasValue);
-        if (Heading is Dk2Angle heading) hash.Add(heading.Raw);
+        if (Heading is Dk2Angle heading)
+        {
+            hash.Add(heading.Raw);
+        }
     }
 }
 

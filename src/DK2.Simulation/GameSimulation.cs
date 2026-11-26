@@ -78,7 +78,10 @@ public sealed class GameSimulation
         _systems = systems is null ? [] : [.. systems];
         _scheduledTriggers = ScheduledTriggers(_systems);
         if (_systems.Any(s => s is HandSystem { LandsInCreatureUpdate: true }) && !_systems.Any(s => s is CreatureUpdateSystem))
+        {
             throw new ArgumentException("A hand that lands drops in the creature update needs a CreatureUpdateSystem.", nameof(systems));
+        }
+
         Database = database;
         World = world;
         Rng = rng;
@@ -86,17 +89,33 @@ public sealed class GameSimulation
         // constructor draws open the stream.
         world.RoomConstructionRandom = rng;
         world.ObjectCreationRandom = rng;
-        if (levelStart) WorkshopTimerRules.InitializeLevelStart(world, rng);
+        if (levelStart)
+        {
+            WorkshopTimerRules.InitializeLevelStart(world, rng);
+        }
+
         world.BindCreatureIdentityRandom(rng);
         _systemMarkers = [.. _systems.Select(s => SimulationMarker.Named(s.Name))];
         _context = new SimulationContext(database, world, rng, NullEventSink.Instance);
-        if (levelStart) HatcheryRules.InitializeLevelStart(world, database, rng);
-        if (levelStart) EffectGeneratorRules.InitializeLevelStart(world);
+        if (levelStart)
+        {
+            HatcheryRules.InitializeLevelStart(world, database, rng);
+        }
+
+        if (levelStart)
+        {
+            EffectGeneratorRules.InitializeLevelStart(world);
+        }
+
         _triggers = triggers is null
             ? new TriggerExecutor(world.Triggers)
             : new TriggerExecutor(triggers, world.Triggers, world, database, rng, levelStart);
         // Level_InitTriggersAndStart fires event 3 for each creature before its Hero Lair sweep (0x0050C4B5).
-        if (levelStart) HeroLairRules.InitializeLevelStart(world, database, rng);
+        if (levelStart)
+        {
+            HeroLairRules.InitializeLevelStart(world, database, rng);
+        }
+
         _context.Triggers = _triggers;
         _triggers.EffectRequested = _context.RequestEffect;
         _triggers.Context = _context;
@@ -112,7 +131,10 @@ public sealed class GameSimulation
         world.ObjectRemoving = thing => ObjectSoundRules.Removing(_context, thing);
         world.CreatureSlotReleasing = creature =>
         {
-            if (creature.CombatPitFighter) CombatPitRoomStep.CreatureDestroyed(_context, creature);
+            if (creature.CombatPitFighter)
+            {
+                CombatPitRoomStep.CreatureDestroyed(_context, creature);
+            }
         };
     }
 
@@ -127,8 +149,16 @@ public sealed class GameSimulation
             players |= system is PlayerTriggerSystem;
             creatures |= system is CreatureUpdateSystem;
         }
-        if (!areas && !players) return false;
-        if (areas && players && creatures) return true;
+        if (!areas && !players)
+        {
+            return false;
+        }
+
+        if (areas && players && creatures)
+        {
+            return true;
+        }
+
         string missing = string.Join(", ", new[]
         {
             areas ? null : nameof(ActionPointTriggerSystem),
@@ -230,7 +260,10 @@ public sealed class GameSimulation
         using (profiler.Scope(SimulationMarkers.Messages))
         {
             foreach (Commands.AcknowledgePlayerMessageCommand ack in _context.Commands<Commands.AcknowledgePlayerMessageCommand>())
+            {
                 World.Messages.Acknowledge(ack.PlayerId, ack.MessageId);
+            }
+
             World.Messages.Sweep(World, Database);
         }
 
@@ -239,19 +272,29 @@ public sealed class GameSimulation
         {
             FinaleRules.SkipGlide(ref World.Player(skip.PlayerId), World.CurrentTick);
             if (CameraPathRules.Skip(ref World.Player(skip.PlayerId), World.CurrentTick))
+            {
                 _triggers.ViewRequested?.Invoke(new ScriptedViewRequest(
                     ScriptedViewKind.CameraPathSkipped, skip.PlayerId, 0, default, false));
+            }
         }
         // Actions 134 and 75 after a result, in the order the packet carries them.
         foreach (PlayerCommand command in _context.Input.All)
         {
-            if (command is Commands.ContinueAfterResultCommand go) FinaleRules.Continue(_context, go.PlayerId);
-            else if (command is Commands.RevealMapCommand reveal) FinaleRules.RevealMap(World, reveal.PlayerId);
+            if (command is Commands.ContinueAfterResultCommand go)
+            {
+                FinaleRules.Continue(_context, go.PlayerId);
+            }
+            else if (command is Commands.RevealMapCommand reveal)
+            {
+                FinaleRules.RevealMap(World, reveal.PlayerId);
+            }
         }
         // Action 0x72 (0x00513EB0): a HUD button fires player event 53 with its pair, from the turn's
         // packet, before the walk (ADR-0670).
         foreach (Commands.GuiButtonCommand press in _context.Commands<Commands.GuiButtonCommand>())
+        {
             _context.FirePlayerEvent(press.PlayerId, PlayerTriggerEvent.GuiButtonPressed, (byte)press.Target.Category, press.Target.Id);
+        }
 
         // DK2's first game turn is 1; our next-tick clock starts at 0.
         int dk2Turn = unchecked((int)(World.CurrentTick.Value + 1));
@@ -262,26 +305,47 @@ public sealed class GameSimulation
             _context.Emit(nameof(TriggerExecutor), "level_time_up", $"turn={dk2Turn}");
             // 0x0050A67A: in skirmish and multiplayer every keeper loses, in active-list order.
             if (World.GameMode is GameMode.Skirmish or GameMode.Multiplayer)
+            {
                 foreach (PlayerId keeper in World.ActivePlayerOrder)
+                {
                     if (Data.Model.PlayerIds.IsKeeper(keeper.Value))
+                    {
                         VerdictRules.End(World, Database, keeper, PlayerStatus.Lost);
+                    }
+                }
+            }
         }
         using (profiler.Scope(SimulationMarkers.Triggers))
         {
-            if (_scheduledTriggers) _triggers.BeginTurn(new GameTick(dk2Turn));
-            else LastTriggerRun = _triggers.Run(dk2Turn);
+            if (_scheduledTriggers)
+            {
+                _triggers.BeginTurn(new GameTick(dk2Turn));
+            }
+            else
+            {
+                LastTriggerRun = _triggers.Run(dk2Turn);
+            }
         }
         for (int i = 0; i < _systems.Count; i++)
         {
             using (profiler.Scope(_systemMarkers[i]))
+            {
                 _systems[i].Execute(_context);
+            }
         }
 
-        if (_scheduledTriggers) LastTriggerRun = _triggers.EndTurn();
+        if (_scheduledTriggers)
+        {
+            LastTriggerRun = _triggers.EndTurn();
+        }
+
         foreach (BlockedTrigger done in LastTriggerRun!.CreatureActions)
+        {
             _context.Emit(
                 nameof(TriggerExecutor), "trigger_performed",
                 $"tag={done.Tag} type={done.Type} id={done.TriggerId} context={done.Context}");
+        }
+
         foreach (BlockedTrigger partial in LastTriggerRun.Partial)
         {
             _context.Emit(
@@ -303,7 +367,10 @@ public sealed class GameSimulation
     /// <summary>Runs <paramref name="ticks"/> ticks with no input.</summary>
     public void Run(int ticks)
     {
-        for (int i = 0; i < ticks; i++) Tick();
+        for (int i = 0; i < ticks; i++)
+        {
+            Tick();
+        }
     }
 
     /// <summary>

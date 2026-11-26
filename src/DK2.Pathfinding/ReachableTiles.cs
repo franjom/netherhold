@@ -41,7 +41,10 @@ public sealed class ReachableTiles
     /// route to each. A start outside the grid reaches nothing.</summary>
     public void Flood(IPathGrid grid, TilePos from)
     {
-        if (grid is null) throw new ArgumentNullException(nameof(grid));
+        if (grid is null)
+        {
+            throw new ArgumentNullException(nameof(grid));
+        }
 
         Grid = grid;
         From = from;
@@ -58,7 +61,10 @@ public sealed class ReachableTiles
         _generation++;
         _heap.Clear();
 
-        if (!InBounds(grid, from.X, from.Y)) return;
+        if (!InBounds(grid, from.X, from.Y))
+        {
+            return;
+        }
 
         int start = (from.Y * _width) + from.X;
         _stamp[start] = _generation;
@@ -79,12 +85,22 @@ public sealed class ReachableTiles
             {
                 int nx = cx + dx[i];
                 int ny = cy + dy[i];
-                if (!InBounds(grid, nx, ny) || !grid.IsWalkable(nx, ny)) continue;
-                if (i >= 4 && GridPathfinder.CornerOnly(grid, cx, cy, i)) continue;
+                if (!InBounds(grid, nx, ny) || !grid.IsWalkable(nx, ny))
+                {
+                    continue;
+                }
+
+                if (i >= 4 && GridPathfinder.CornerOnly(grid, cx, cy, i))
+                {
+                    continue;
+                }
 
                 int nextCost = _cost[current] + stepCost[i];
                 int n = (ny * _width) + nx;
-                if (_stamp[n] == _generation && _cost[n] <= nextCost) continue;
+                if (_stamp[n] == _generation && _cost[n] <= nextCost)
+                {
+                    continue;
+                }
 
                 _stamp[n] = _generation;
                 _cameFrom[n] = current;
@@ -113,15 +129,30 @@ public sealed class ReachableTiles
     /// predicate must be pure, as the search's must; a candidate given twice is asked once.</summary>
     public bool TryNearest(List<TilePos> candidates, Func<TilePos, bool> isGoal, List<TilePos> path)
     {
-        if (candidates is null) throw new ArgumentNullException(nameof(candidates));
-        if (isGoal is null) throw new ArgumentNullException(nameof(isGoal));
-        if (path is null) throw new ArgumentNullException(nameof(path));
+        if (candidates is null)
+        {
+            throw new ArgumentNullException(nameof(candidates));
+        }
+
+        if (isGoal is null)
+        {
+            throw new ArgumentNullException(nameof(isGoal));
+        }
+
+        if (path is null)
+        {
+            throw new ArgumentNullException(nameof(path));
+        }
 
         _order.Clear();
         foreach (TilePos candidate in candidates)
         {
             int cost = CostTo(candidate);
-            if (cost < 0) continue;
+            if (cost < 0)
+            {
+                continue;
+            }
+
             _order.Add(((long)cost << 32) | (uint)((candidate.Y * _width) + candidate.X));
         }
         _order.Sort();
@@ -129,10 +160,17 @@ public sealed class ReachableTiles
         for (int i = 0; i < _order.Count; i++)
         {
             long key = _order[i];
-            if (i > 0 && key == _order[i - 1]) continue;
+            if (i > 0 && key == _order[i - 1])
+            {
+                continue;
+            }
+
             int index = (int)(uint)key;
             var at = new TilePos(index % _width, index / _width);
-            if (isGoal(at)) return TryPathTo(at, path);
+            if (isGoal(at))
+            {
+                return TryPathTo(at, path);
+            }
         }
 
         path.Clear();
@@ -145,13 +183,21 @@ public sealed class ReachableTiles
     /// <c>true</c>. <c>false</c>, and an empty route, when the flood did not reach it.</summary>
     public bool TryPathTo(TilePos to, List<TilePos> path)
     {
-        if (path is null) throw new ArgumentNullException(nameof(path));
+        if (path is null)
+        {
+            throw new ArgumentNullException(nameof(path));
+        }
 
         path.Clear();
-        if (!Reaches(to)) return false;
+        if (!Reaches(to))
+        {
+            return false;
+        }
 
         for (int at = (to.Y * _width) + to.X; at >= 0 && _cameFrom[at] >= 0; at = _cameFrom[at])
+        {
             path.Add(new TilePos(at % _width, at / _width));
+        }
 
         path.Reverse();
         return true;

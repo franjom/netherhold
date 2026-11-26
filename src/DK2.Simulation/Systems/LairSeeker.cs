@@ -32,12 +32,28 @@ public sealed class LairSeeker
         WorldState world, GameDatabase database,
         CreatureState creature, CreatureDef definition)
     {
-        if (!LairRules.NeedsBed(definition)) return false;
-        if (creature.UtilityNewState == LairRules.MakingAHomeState) return false;
+        if (!LairRules.NeedsBed(definition))
+        {
+            return false;
+        }
+
+        if (creature.UtilityNewState == LairRules.MakingAHomeState)
+        {
+            return false;
+        }
+
         if (CreatureEligibility.IsExcluded(creature,
-            CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) return false;
+            CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied))
+        {
+            return false;
+        }
+
         if (creature.Activity is CreatureActivity.SeekingLair
-            or CreatureActivity.Leaving) return false;
+            or CreatureActivity.Leaving)
+        {
+            return false;
+        }
+
         return !LairRules.HasBed(world, database, creature);
     }
 
@@ -50,7 +66,9 @@ public sealed class LairSeeker
         CreatureState creature, CreatureDef definition)
     {
         if (!CanAttempt(context.World, context.Database, creature, definition))
+        {
             return false;
+        }
 
         return TrySetOutForALair(context, systemName, creature, definition);
     }
@@ -77,11 +95,23 @@ public sealed class LairSeeker
         int lairs = 0;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.OwnerPlayerId != creature.OwnerPlayerId) continue;
-            if (!LairRules.IsLairRoom(database, room)) continue;
+            if (room.OwnerPlayerId != creature.OwnerPlayerId)
+            {
+                continue;
+            }
+
+            if (!LairRules.IsLairRoom(database, room))
+            {
+                continue;
+            }
+
             lairs++;
 
-            if (!LairRules.HasFreeSlot(world, database, room)) continue;
+            if (!LairRules.HasFreeSlot(world, database, room))
+            {
+                continue;
+            }
+
             candidates.Add((
                 LairRules.DistanceToCentreSquared(room, creature), room.TileIndices[0], room));
         }
@@ -101,7 +131,11 @@ public sealed class LairSeeker
         {
             int arrival = LairRules.ArrivalTile(world, room);
             var at = new TilePos(arrival % world.Width, arrival / world.Width);
-            if (!_pathfinder.TryFindPath(grid, creature.Tile, at, _route)) continue;
+            if (!_pathfinder.TryFindPath(grid, creature.Tile, at, _route))
+            {
+                continue;
+            }
+
             reachable++;
 
             if (!LairRules.HoldsBedOfOtherAlignment(world, database, room, definition))
@@ -152,10 +186,17 @@ public sealed class LairSeeker
         else
         {
             // 0046F422 supplies E8; 00471AE8 obtains one random room point through 004E4C10.
-            if (RoomWalkRules.ArrivalTile(context, chosen) is not int point) return false;
+            if (RoomWalkRules.ArrivalTile(context, chosen) is not int point)
+            {
+                return false;
+            }
+
             target = point;
             if (!context.Navigation.TryRoute(creature, new TilePos(target % world.Width, target / world.Width), Navigation.MoveOptions.ExactSpot))
+            {
                 return false;
+            }
+
             creature.TimerTicks = 0;
             CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToRoom, LairRules.MakingAHomeState);
             accepted = true;

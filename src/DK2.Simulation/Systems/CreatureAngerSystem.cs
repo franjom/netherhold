@@ -53,15 +53,34 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
     /// and before its state handler (<c>0x00476FC0</c>).</summary>
     public void Update(SimulationContext context, CreatureState state)
     {
-        if (state.Dk2StateId == LeavingRules.PortalDropState) return;
-        if (!_onTheSecond) return;
+        if (state.Dk2StateId == LeavingRules.PortalDropState)
+        {
+            return;
+        }
+
+        if (!_onTheSecond)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (state.Possessed) return;
+        if (state.Possessed)
+        {
+            return;
+        }
+
         CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
-        if (CreatureEligibility.IsExcluded(state, CreatureGuards.Down | CreatureGuards.Preoccupied)) return;
-        if (!CreatureAngerRules.CanBeAngered(creature)) return;
+        if (CreatureEligibility.IsExcluded(state, CreatureGuards.Down | CreatureGuards.Preoccupied))
+        {
+            return;
+        }
+
+        if (!CreatureAngerRules.CanBeAngered(creature))
+        {
+            return;
+        }
 
         // The band this creature was last reported in, not the one it is in
         // at the top of this step. Anger reaches a creature from four places
@@ -159,7 +178,11 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
         {
             for (int i = 0; i < _ranges.Count; i++)
             {
-                if (_ranges[i].Job == JobType.None) continue;
+                if (_ranges[i].Job == JobType.None)
+                {
+                    continue;
+                }
+
                 picked = i;
                 break;
             }
@@ -169,7 +192,10 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
         // stamped and the creature is free to try again next second — which
         // costs nothing, since the answer will be the same until its record
         // changes.
-        if (picked < 0) return;
+        if (picked < 0)
+        {
+            return;
+        }
 
         JobType chosen = _ranges[picked].Job;
         state.LastAngryChoiceTick = now;
@@ -186,8 +212,14 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
         // unhappy chooser runs (ADR-0223). The event above reports them as
         // unbuilt and the creature stays in the dungeon, angry, until its gate
         // opens and it rolls again.
-        if (chosen == JobType.Leave) Leave(context, creature, state);
-        else if (chosen == JobType.Rebel) Rebel(context, creature, state);
+        if (chosen == JobType.Leave)
+        {
+            Leave(context, creature, state);
+        }
+        else if (chosen == JobType.Rebel)
+        {
+            Rebel(context, creature, state);
+        }
     }
 
     /// <summary>Angry job 16. The Portal first, and turning Good only when there is no
@@ -201,14 +233,25 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
     private bool Rebel(
         SimulationContext context, CreatureDef creature, CreatureState state, bool deferLeavingHandler = false)
     {
-        if (!RebellionRules.CanRebel(state)) return false;
-        if (RebellionRules.IsDefecting(state)) return false;
+        if (!RebellionRules.CanRebel(state))
+        {
+            return false;
+        }
+
+        if (RebellionRules.IsDefecting(state))
+        {
+            return false;
+        }
 
         // Ours, not DK2's: a creature already on the side it would defect to has
         // nowhere to go, and running the countdown again would overwrite the keeper it
         // rebelled against with itself. DK2 has no such guard - it also has no angry
         // hero creatures to need one.
-        if (state.OwnerPlayerId == RebellionRules.DefectsTo) return false;
+        if (state.OwnerPlayerId == RebellionRules.DefectsTo)
+        {
+            return false;
+        }
+
         state.RebelActive = true;
 
         // The same walk job 10 takes, into the same state: DK2 routes a rebel to the
@@ -222,7 +265,10 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
                 StartLeaveSelection(context, state);
                 return true;
             }
-            if (Leave(context, creature, state)) return true;
+            if (Leave(context, creature, state))
+            {
+                return true;
+            }
         }
 
         CreatureStateMachine.TrySetState(context.Hooks, state, CreatureStateMachine.Idle);
@@ -242,10 +288,16 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
         {
             bool accepted = Rebel(context, definition, creature, deferLeavingHandler: true);
             if (accepted && creature.RebelCountdownTicks > 0)
+            {
                 context.TremorRebellionStartedThisTick.Add(creature);
+            }
+
             return accepted;
         }
-        if (job != JobType.Leave) return false;
+        if (job != JobType.Leave)
+        {
+            return false;
+        }
         // Job 10 accepts before states 194–196 try to find an exit.
         StartLeaveSelection(context, creature);
         return true;
@@ -255,7 +307,9 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
     {
         CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
         if (LeavingRules.Start(context, creature, SystemName))
+        {
             LairRules.ReleaseBed(context.World, context.Database, creature);
+        }
     }
 
     /// <summary>Is there a Portal of this creature's own keeper it can walk to?
@@ -267,7 +321,10 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
-        if (PortalRules.IsExitTile(world, database, state.Tile, state.OwnerPlayerId)) return true;
+        if (PortalRules.IsExitTile(world, database, state.Tile, state.OwnerPlayerId))
+        {
+            return true;
+        }
 
         var grid = new WorldPathGrid(database, world, creature);
         return _pathfinder.TryFindNearest(
@@ -288,8 +345,15 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
         for (int i = context.World.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState state = context.World.Creatures[i];
-            if (context.TremorRebellionStartedThisTick.Contains(state)) continue;
-            if (state.RebelCountdownTicks <= 0) continue;
+            if (context.TremorRebellionStartedThisTick.Contains(state))
+            {
+                continue;
+            }
+
+            if (state.RebelCountdownTicks <= 0)
+            {
+                continue;
+            }
 
             if (CreatureDeathRules.IsDown(state))
             {
@@ -297,7 +361,10 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
                 continue;
             }
 
-            if (--state.RebelCountdownTicks > 0) continue;
+            if (--state.RebelCountdownTicks > 0)
+            {
+                continue;
+            }
 
             // DK2 reads the hero id from a global that always names a player. A world
             // built without the hero side has nobody to defect to, so the creature
@@ -347,22 +414,31 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
         bool decidingNow = state.Activity != CreatureActivity.Leaving;
         if (decidingNow)
         {
-            if (!LeavingRules.Start(context, state, SystemName)) return false;
+            if (!LeavingRules.Start(context, state, SystemName))
+            {
+                return false;
+            }
+
             LairRules.ReleaseBed(context.World, context.Database, state);
         }
 
         // The walk itself is DK2's states 194-196 — the nearest entrance of anyone —
         // shared with a fallen keeper's creatures (LeavingRules, creature-leaving.md).
         bool leaving = LeavingRules.Step(context, creature, state, SystemName, out TilePos exit);
-        if (!decidingNow) return leaving;
+        if (!decidingNow)
+        {
+            return leaving;
+        }
 
         if (leaving)
         {
             if (world.CreatureById(state.Id) is not null)
+            {
                 context.Emit(SystemName, "creature_leaving",
                     $"creature={state.Id} type={creature.Name} " +
                     $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
                     $"anger={state.Anger} portal=({exit.X},{exit.Y})");
+            }
         }
         else
         {

@@ -47,13 +47,21 @@ public sealed class KeeperPrisonerStep
     {
         // 0x004C6460(11), then the occupant list's head (room +0x0A); empty, nothing is spent.
         KeeperRoomView? prison = _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Prison, _rng);
-        if (prison is null || Select(prison) is not KeeperCreatureView occupant) return allowance;
+        if (prison is null || Select(prison) is not KeeperCreatureView occupant)
+        {
+            return allowance;
+        }
+
         allowance--;
 
         if (!IsEnemy(occupant))
         {
             KeeperRoomView? lair = _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Lair, _rng);
-            if (lair is not null && Movable(occupant)) Move(occupant, _view.PositionOf(lair));
+            if (lair is not null && Movable(occupant))
+            {
+                Move(occupant, _view.PositionOf(lair));
+            }
+
             return allowance;
         }
         RoomTypeId? destination = (_p.ImprisonedCreatureAction & 3) switch
@@ -63,9 +71,17 @@ public sealed class KeeperPrisonerStep
             3 => RoomTypeId.Temple,
             _ => null,
         };
-        if (destination is not RoomTypeId type) return allowance;
+        if (destination is not RoomTypeId type)
+        {
+            return allowance;
+        }
+
         KeeperRoomView? room = _view.RandomRoomOfType(_view.PlayerId, type, _rng);
-        if (room is null || !Movable(occupant)) return allowance;
+        if (room is null || !Movable(occupant))
+        {
+            return allowance;
+        }
+
         if (type != RoomTypeId.TortureChamber)
         {
             Move(occupant, _view.PositionOf(room));
@@ -73,10 +89,17 @@ public sealed class KeeperPrisonerStep
         }
         // 0x004E8210(1, 1): a floor or wall slot, then no creature on a torture device on its tile.
         var slots = room.FurnitureSlots().ToList();
-        if (slots.Count == 0) return allowance;
+        if (slots.Count == 0)
+        {
+            return allowance;
+        }
+
         TilePos slot = _view.FromIndex(slots[_rng.NextInt(slots.Count)]);
         if (_view.Creatures.Any(c => c.OnTortureDevice && c.PosX >> 12 == slot.X && c.PosY >> 12 == slot.Y))
+        {
             return allowance;
+        }
+
         Move(occupant, slot);
         return allowance;
     }
@@ -90,8 +113,15 @@ public sealed class KeeperPrisonerStep
             .Where(c => c.PlaceTile >= 0 && cells.Contains(c.PlaceTile))
             .OrderByDescending(c => c.PlaceSerial))
         {
-            if (!IsEnemy(occupant)) return occupant;
-            if (_rng.NextInt(100) < EnemySelectPercent) return occupant;
+            if (!IsEnemy(occupant))
+            {
+                return occupant;
+            }
+
+            if (_rng.NextInt(100) < EnemySelectPercent)
+            {
+                return occupant;
+            }
         }
         return null;
     }
@@ -104,10 +134,22 @@ public sealed class KeeperPrisonerStep
     private bool Movable(KeeperCreatureView creature)
     {
         if (creature.LastDroppedCounter <= KeeperThreatResponder.DroppedGraceTurns
-            && _turn > KeeperThreatResponder.DroppedGraceTurns) return false;
-        if (creature.InMyHand) return false;
+            && _turn > KeeperThreatResponder.DroppedGraceTurns)
+        {
+            return false;
+        }
+
+        if (creature.InMyHand)
+        {
+            return false;
+        }
+
         int state = StateOf(creature);
-        if (state == DropLandingRules.LandingState || KeeperThreatResponder.IsStunned(state)) return false;
+        if (state == DropLandingRules.LandingState || KeeperThreatResponder.IsStunned(state))
+        {
+            return false;
+        }
+
         return creature.PickupPermitted;
     }
 
@@ -123,6 +165,9 @@ public sealed class KeeperPrisonerStep
     {
         _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
         _prepared.Add(creature.Id);
-        if (creature.CanPickUp) _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, at));
+        if (creature.CanPickUp)
+        {
+            _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, at));
+        }
     }
 }

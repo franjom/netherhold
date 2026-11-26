@@ -167,8 +167,10 @@ public sealed class TriggerTree
                 _ => throw new ArgumentException($"Unsupported trigger tag {record.Tag}.", nameof(records)),
             };
             if (!index.TryAdd(record.TriggerId, record))
+            {
                 throw new ArgumentException(
                     $"Duplicate tag {record.Tag} trigger id {record.TriggerId}.", nameof(records));
+            }
         }
 
         FirstCondition = Records.FirstOrDefault(r => r.Tag == 213);
@@ -232,15 +234,19 @@ public sealed class TriggerTree
             // world's next fields. Shipped ids reach 19. Refuse rather than model where
             // an overrun would land.
             if (party.PartyId >= PartySlotCount)
+            {
                 throw new ArgumentOutOfRangeException(
                     nameof(parties), party.PartyId,
                     $"Party id {party.PartyId} is past the {PartySlotCount} world slots. In "
                     + "DK2 action type 14 would index past the array; no shipped level does it.");
+            }
 
             if (taken[party.PartyId])
+            {
                 throw new ArgumentException(
                     $"Two parties claim slot {party.PartyId}; no shipped level does.",
                     nameof(parties));
+            }
 
             taken[party.PartyId] = true;
             slots[party.PartyId] = new TriggerPartySlot(
@@ -255,9 +261,17 @@ public sealed class TriggerTree
 
     internal TriggerRecord? Resolve(short id)
     {
-        if (id == 0) return null;
+        if (id == 0)
+        {
+            return null;
+        }
+
         ushort raw = unchecked((ushort)id);
-        if (id > 0) return _conditions.GetValueOrDefault(raw) ?? FirstCondition;
+        if (id > 0)
+        {
+            return _conditions.GetValueOrDefault(raw) ?? FirstCondition;
+        }
+
         return _actions.GetValueOrDefault(raw) ?? FirstAction;
     }
 }
@@ -398,15 +412,26 @@ public sealed class TriggerExecutor
         // since (an armed party, a repeat taken mid-play, a flag written after). DK2's restore
         // holds world +0x7239 bit 0x40 across 0x0050B5B0, which skips the sweep (0x0050C280) and
         // event 3 (0x0050BCC4).
-        if (levelStart) DisablePartySubtrees();
+        if (levelStart)
+        {
+            DisablePartySubtrees();
+        }
+
         if (world is not null && database is not null)
         {
             _areaRoots = BuildAreaRoots(world);
-            if (levelStart) AttachCreatureRoots(world);
+            if (levelStart)
+            {
+                AttachCreatureRoots(world);
+            }
             // The level initialiser 0x0050B5B0 fires event 3 for every creature it places.
             if (levelStart)
+            {
                 foreach (CreatureState creature in world.Creatures.ToArray())
+                {
                     FireCreatureEvent(creature, CreatureTriggerEvent.Created, currentTick: 0);
+                }
+            }
         }
     }
 
@@ -418,7 +443,11 @@ public sealed class TriggerExecutor
     /// (<c>0x00508640</c>) is never reached; nothing is decremented here either.</summary>
     public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type, int currentTick)
     {
-        if (_tree is null || creature.TriggerId == 0) return;
+        if (_tree is null || creature.TriggerId == 0)
+        {
+            return;
+        }
+
         var run = new TriggerRun(currentTick) { Creature = creature, Player = creature.OwnerPlayerId };
         FireEvent(unchecked((short)creature.TriggerId), (byte)type, TriggerContext.Creature, run, null);
     }
@@ -429,10 +458,18 @@ public sealed class TriggerExecutor
     public void FirePlayerEvent(
         PlayerId playerId, PlayerTriggerEvent type, int currentTick, byte targetType = 0, byte targetId = 0)
     {
-        if (_tree is null) return;
+        if (_tree is null)
+        {
+            return;
+        }
+
         foreach (TriggerPlayerRoot root in _tree.PlayerRoots)
         {
-            if (root.PlayerId != playerId || root.TriggerId == 0) continue;
+            if (root.PlayerId != playerId || root.TriggerId == 0)
+            {
+                continue;
+            }
+
             var run = new TriggerRun(currentTick) { Player = playerId };
             (byte, byte)? pair = type == PlayerTriggerEvent.GuiButtonPressed ? (targetType, targetId) : null;
             FireEvent(unchecked((short)root.TriggerId), (byte)type, TriggerContext.Player, run, pair);
@@ -447,7 +484,10 @@ public sealed class TriggerExecutor
             TriggerRecord record = _tree!.Resolve(id)
                 ?? throw new InvalidDataException("No tag 213 trigger records exist.");
             if (record.Type == type && _state.IsRecordActive(record) && PairMatches(record, pair))
+            {
                 Walk(unchecked((short)record.ChildTriggerId), _state.RecordRepeat(record), context, run);
+            }
+
             id = unchecked((short)record.NextTriggerId);
         }
     }
@@ -477,7 +517,11 @@ public sealed class TriggerExecutor
     {
         BeginTurn(new GameTick(currentTick));
         CreatureState[] creatures = _world?.Creatures.ToArray() ?? [];
-        for (int i = creatures.Length - 1; i >= 0; i--) RunCreature(creatures[i]);
+        for (int i = creatures.Length - 1; i >= 0; i--)
+        {
+            RunCreature(creatures[i]);
+        }
+
         RunAreas();
         RunPlayers();
         return EndTurn();
@@ -491,17 +535,29 @@ public sealed class TriggerExecutor
             Unsatisfied = TrackReach ? [] : null,
         };
         _turnRun = run;
-        if (_tree is null) return;
+        if (_tree is null)
+        {
+            return;
+        }
+
         Walk(unchecked((short)_tree.RootTriggerId), _tree.RootRepeat, TriggerContext.World, run);
         foreach (TriggerPartySlot slot in _tree.Parties)
+        {
             if (slot.TriggerId != 0)
+            {
                 Walk(unchecked((short)slot.TriggerId), 1, TriggerContext.World, run);
+            }
+        }
     }
 
     internal void RunCreature(CreatureState creature)
     {
         if (_tree is null || _turnRun is not { } run
-            || creature.TriggerId == 0 || creature.Dk2StateId == CreatureStateMachine.NoState) return;
+            || creature.TriggerId == 0 || creature.Dk2StateId == CreatureStateMachine.NoState)
+        {
+            return;
+        }
+
         run.Rooms = null;
         run.Creature = creature;
         run.Player = creature.OwnerPlayerId;
@@ -512,7 +568,11 @@ public sealed class TriggerExecutor
 
     internal void RunAreas()
     {
-        if (_tree is null || _turnRun is not { } run) return;
+        if (_tree is null || _turnRun is not { } run)
+        {
+            return;
+        }
+
         run.Rooms = null;
         for (int i = _areaRoots.Length - 1; i >= 0; i--)
         {
@@ -525,7 +585,11 @@ public sealed class TriggerExecutor
 
     internal void RunPlayers()
     {
-        if (_tree is null || _turnRun is not { } run) return;
+        if (_tree is null || _turnRun is not { } run)
+        {
+            return;
+        }
+
         run.Rooms = null;
         foreach (TriggerPlayerRoot root in _tree.PlayerRoots)
         {
@@ -559,8 +623,11 @@ public sealed class TriggerExecutor
     public void SetActive(short triggerId, bool active)
     {
         if (triggerId == 0)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(triggerId), triggerId, "Trigger id zero has no record.");
+        }
+
         SetSubtreeActive(triggerId, active);
     }
 
@@ -579,7 +646,11 @@ public sealed class TriggerExecutor
     {
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.TriggerId == 0) continue;
+            if (creature.TriggerId == 0)
+            {
+                continue;
+            }
+
             creature.TriggerRepeat = _tree!.ResolveCondition(creature.TriggerId)?.RepeatCount ?? 0;
         }
     }
@@ -590,7 +661,9 @@ public sealed class TriggerExecutor
     {
         creature.TriggerId = triggerId;
         if (triggerId != 0 && _tree?.ResolveCondition(triggerId) is { } record)
+        {
             creature.TriggerRepeat = _state.RecordRepeat(record);
+        }
     }
 
     private void SetSubtreeActive(ushort triggerId, bool active) =>
@@ -598,12 +671,19 @@ public sealed class TriggerExecutor
 
     private void SetSubtreeActive(short id, bool active)
     {
-        if (id == 0) return;
+        if (id == 0)
+        {
+            return;
+        }
+
         TriggerRecord record = _tree!.Resolve(id)
             ?? throw new InvalidDataException($"No tag {(id > 0 ? 213 : 214)} trigger records exist.");
 
         if (record.Tag == 213)
+        {
             SetSubtreeActive(unchecked((short)record.ChildTriggerId), active);
+        }
+
         SetSubtreeActive(unchecked((short)record.NextTriggerId), active);
 
         _state.SetRecordActive(
@@ -626,7 +706,10 @@ public sealed class TriggerExecutor
         foreach (TriggerPartySlot slot in _tree!.Parties)
         {
             foreach (TriggerPartyMember member in slot.Members)
+            {
                 SetSubtreeActive(member.TriggerId, active: false);
+            }
+
             SetSubtreeActive(slot.TriggerId, active: false);
         }
     }
@@ -647,8 +730,10 @@ public sealed class TriggerExecutor
                 {
                     TriggerConditionResult result = EvaluateCondition(record, context, run);
                     if (result == TriggerConditionResult.NotEvaluated)
+                    {
                         run.Blocked.Add(
                             new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
+                    }
                     else if (result == TriggerConditionResult.Satisfied)
                     {
                         descend = true;
@@ -663,12 +748,17 @@ public sealed class TriggerExecutor
                 {
                     descend = true;
                     if (inheritedRepeat == 1)
+                    {
                         _state.SetRecordActive(record, active: false, repeat: null);
+                    }
                 }
             }
 
             if (descend)
+            {
                 Walk(unchecked((short)record.ChildTriggerId), childRepeat, context, run);
+            }
+
             id = unchecked((short)record.NextTriggerId);
         }
     }
@@ -685,55 +775,79 @@ public sealed class TriggerExecutor
         TriggerRecord record, TriggerContext context, TriggerRun run)
     {
         if (context == TriggerContext.Area && TriggerAreaConditions.Owns(record.Type))
+        {
             return TriggerAreaConditions.Evaluate(record, run.Area!, _world!, _database!);
+        }
 
         if (context == TriggerContext.Creature && CreatureOwnsCondition(record.Type))
+        {
             return EvaluateCreatureCondition(record, run.Creature!, _database!);
+        }
 
         // A world arm every context reaches by delegation; it needs the creatures, so it is
         // answered here rather than by the bank-only evaluator.
         if (record.Type == 64 && _world is not null)
+        {
             return Result(TriggerState.Compare(
                 Byte(record.Parameters, "Comparison"),
                 PartyMembersMissing(_world, Byte(record.Parameters, "PartyId")),
                 unchecked((int)record.Parameters["Value"])));
+        }
 
         bool reachesPlayer = context is TriggerContext.Player or TriggerContext.Creature;
         if (!reachesPlayer || !PlayerOwnsCondition(record.Type))
+        {
             return TriggerConditionEvaluator.Evaluate(record, _state, run.CurrentTick);
+        }
 
         if (PlayerConditionIsConstantFalse(record.Type))
+        {
             return TriggerConditionResult.Unsatisfied;
+        }
 
         // Answered whole, not measured: types 29 and 47 read no Comparison and no Value, so
         // neither can go through the shared compare path below.
         if (record.Type == 47 && _world is not null)
+        {
             return Result(KilledBy(record.Parameters, _world, run.Player!.Value));
+        }
 
         if (record.Type == 29 && _world is not null)
+        {
             return Result(SpellAvailable(record.Parameters, _world, run.Player!.Value));
+        }
 
         if (record.Type == 73 && _world is not null)
+        {
             return Possessing(_world, run.Player!.Value)
                 ? TriggerConditionResult.NotEvaluated
                 : TriggerConditionResult.Unsatisfied;
+        }
 
         if (_world is not null && _database is not null
             && PlayerCounter(
                 record.Type, record.Parameters, _world, _database, run.Player!.Value, run) is int measured)
+        {
             return Result(TriggerState.Compare(
                 Byte(record.Parameters, "Comparison"),
                 measured,
                 unchecked((int)record.Parameters["Value"])));
+        }
 
-        if (record.Type != 72) return TriggerConditionResult.NotEvaluated;
+        if (record.Type != 72)
+        {
+            return TriggerConditionResult.NotEvaluated;
+        }
 
         // 0x004C84B8: false while the camera is on a path (mode 0x12) or in one of its timed
         // moves. The path is modelled (ADR-0496); the moves are not, so a still answer stays
         // an assumption.
         if (_world is not null && _world.HasPlayer(run.Player!.Value)
             && CameraPathRules.Playing(_world.Player(run.Player.Value), _world.CurrentTick))
+        {
             return TriggerConditionResult.Unsatisfied;
+        }
+
         run.Assumed.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
         return TriggerConditionResult.Satisfied;
     }
@@ -743,7 +857,9 @@ public sealed class TriggerExecutor
         TriggerRecord record, CreatureState creature, GameDatabase database)
     {
         if (CreatureConditionIsConstantFalse(record.Type))
+        {
             return TriggerConditionResult.Unsatisfied;
+        }
 
         int measured = record.Type switch
         {
@@ -803,8 +919,16 @@ public sealed class TriggerExecutor
     /// (its <c>+0x19E</c> word at my number). A selector naming no player reads 0.</summary>
     private static int CreaturesKilledBy(WorldState world, PlayerId playerId, byte by)
     {
-        if (by == 0) return world.Player(playerId).Statistics.OwnCreaturesKilled;
-        if (!world.HasPlayer(by) || playerId.Value >= KillTally.Length) return 0;
+        if (by == 0)
+        {
+            return world.Player(playerId).Statistics.OwnCreaturesKilled;
+        }
+
+        if (!world.HasPlayer(by) || playerId.Value >= KillTally.Length)
+        {
+            return 0;
+        }
+
         return world.Player(by).Statistics.KillsByVictimOwner[playerId.Value];
     }
 
@@ -814,7 +938,11 @@ public sealed class TriggerExecutor
     private static int KillsOf(WorldState world, PlayerId playerId, byte of)
     {
         ref PlayerLevelStatistics stats = ref world.Player(playerId).Statistics;
-        if (of == 0) return stats.EnemyCreaturesKilled;
+        if (of == 0)
+        {
+            return stats.EnemyCreaturesKilled;
+        }
+
         return of < KillTally.Length ? stats.KillsByVictimOwner[of] : 0;
     }
 
@@ -823,8 +951,16 @@ public sealed class TriggerExecutor
     {
         byte flags = Byte(parameters, "Flag");
         IEnumerable<DoorState> owned = world.Doors.Where(door => door.PlayerId == playerId);
-        if ((flags & 0x08) != 0) return owned.Count(door => door.UnderConstruction);
-        if ((flags & 0x10) != 0) return owned.Count(door => !door.UnderConstruction);
+        if ((flags & 0x08) != 0)
+        {
+            return owned.Count(door => door.UnderConstruction);
+        }
+
+        if ((flags & 0x10) != 0)
+        {
+            return owned.Count(door => !door.UnderConstruction);
+        }
+
         byte wanted = Byte(parameters, "TargetId");
         return owned.Count(door => wanted == 0 || door.DoorId == wanted);
     }
@@ -845,8 +981,15 @@ public sealed class TriggerExecutor
     {
         byte flags = Byte(parameters, "Flag");
         IEnumerable<TrapState> owned = world.Traps.Where(trap => trap.PlayerId == playerId);
-        if ((flags & 0x08) != 0) return owned.Count(trap => trap.UnderConstruction);
-        if ((flags & 0x10) != 0) return owned.Count(trap => !trap.UnderConstruction);
+        if ((flags & 0x08) != 0)
+        {
+            return owned.Count(trap => trap.UnderConstruction);
+        }
+
+        if ((flags & 0x10) != 0)
+        {
+            return owned.Count(trap => !trap.UnderConstruction);
+        }
 
         byte wanted = Byte(parameters, "TargetId");
         int count = owned.Count(trap => wanted == 0 || trap.TrapId == wanted);
@@ -872,17 +1015,35 @@ public sealed class TriggerExecutor
         int templates = 0;
         foreach (HeroPartyState party in world.HeroParties)
         {
-            if (party.PartyId != partyId) continue;
+            if (party.PartyId != partyId)
+            {
+                continue;
+            }
+
             foreach (HeroPartyMemberState member in party.Members)
-                if (member.CreatureId != 0) templates++;
+            {
+                if (member.CreatureId != 0)
+                {
+                    templates++;
+                }
+            }
+
             break;
         }
 
         int active = 0;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.PartyId != partyId) continue;
-            if (CreatureDeathRules.IsDying(creature) || CreatureDeathRules.IsCorpse(creature)) continue;
+            if (creature.PartyId != partyId)
+            {
+                continue;
+            }
+
+            if (CreatureDeathRules.IsDying(creature) || CreatureDeathRules.IsCorpse(creature))
+            {
+                continue;
+            }
+
             active++;
         }
         return templates - active;
@@ -898,7 +1059,11 @@ public sealed class TriggerExecutor
         IReadOnlyDictionary<string, long> parameters, WorldState world, PlayerId playerId)
     {
         byte killer = world.Player(playerId).KilledByPlayerId;
-        if (killer == 0) return false;
+        if (killer == 0)
+        {
+            return false;
+        }
+
         byte wanted = Byte(parameters, "PlayerId");
         return wanted == 0 || killer == wanted;
     }
@@ -942,9 +1107,21 @@ public sealed class TriggerExecutor
         int count = 0;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.OwnerPlayerId != playerId) continue;
-            if (IsWorker(database, creature.CreatureTypeId)) continue;
-            if (creature.Level < level) continue;
+            if (creature.OwnerPlayerId != playerId)
+            {
+                continue;
+            }
+
+            if (IsWorker(database, creature.CreatureTypeId))
+            {
+                continue;
+            }
+
+            if (creature.Level < level)
+            {
+                continue;
+            }
+
             count++;
         }
 
@@ -982,10 +1159,17 @@ public sealed class TriggerExecutor
         int count = 0;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.OwnerPlayerId != playerId) continue;
+            if (creature.OwnerPlayerId != playerId)
+            {
+                continue;
+            }
+
             if (wanted != 0)
             {
-                if (creature.CreatureTypeId != wanted) continue;
+                if (creature.CreatureTypeId != wanted)
+                {
+                    continue;
+                }
             }
             else if (IsWorker(database, creature.CreatureTypeId))
             {
@@ -1010,11 +1194,26 @@ public sealed class TriggerExecutor
         int count = 0;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.OwnerPlayerId != playerId || creature.Dk2StateId == CreatureStateMachine.NoState) continue;
-            if (wanted != 0 && creature.CreatureTypeId != wanted) continue;
+            if (creature.OwnerPlayerId != playerId || creature.Dk2StateId == CreatureStateMachine.NoState)
+            {
+                continue;
+            }
+
+            if (wanted != 0 && creature.CreatureTypeId != wanted)
+            {
+                continue;
+            }
+
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) continue;
-            if (CreatureAngerRules.MoodOf(definition, creature) == mood) count++;
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+            {
+                continue;
+            }
+
+            if (CreatureAngerRules.MoodOf(definition, creature) == mood)
+            {
+                count++;
+            }
         }
         return count;
     }
@@ -1076,7 +1275,10 @@ public sealed class TriggerExecutor
         if (record.Type is 10 or 11 or 24 or 26 or 28 or 31 or 37 or 38 or 50)
         {
             if (context is TriggerContext.Player or TriggerContext.Creature)
+            {
                 return ExecuteAction(record, context, run);
+            }
+
             run.Unhandled.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
             return false;
         }
@@ -1086,13 +1288,21 @@ public sealed class TriggerExecutor
             run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
             // The objective is a state move, whose hooks need the world: an executor built without
             // one (a trigger-only test) cannot perform it, as with actions 6 and 28.
-            if (_world is null || _database is null) return Unperformed(record, context, run.Partial);
+            if (_world is null || _database is null)
+            {
+                return Unperformed(record, context, run.Partial);
+            }
+
             return SetHeroObjective(new StateHookContext(_world, _database, this, EffectRequested, SoundRequested) { Rng = _rng }, record.Parameters, run.Creature);
         }
         if (context == TriggerContext.Creature && record.Type == 20 && run.Creature is not null)
         {
             run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
-            if (_world is null || _database is null) return Unperformed(record, context, run.Partial);
+            if (_world is null || _database is null)
+            {
+                return Unperformed(record, context, run.Partial);
+            }
+
             GivePortalGem(_world, _database, run.Creature);
             return true;
         }
@@ -1126,7 +1336,11 @@ public sealed class TriggerExecutor
         {
             run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
             byte kind = Byte(record.Parameters, "DeathKind");
-            if (kind == 1) return Unperformed(record, context, run.Partial);
+            if (kind == 1)
+            {
+                return Unperformed(record, context, run.Partial);
+            }
+
             if (kind == 0)
             {
                 run.Creature.CorpseSuppressed = true;
@@ -1138,7 +1352,11 @@ public sealed class TriggerExecutor
         if (context == TriggerContext.Creature && record.Type == 42 && run.Creature is not null)
         {
             run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
-            if (_world is null) return Unperformed(record, context, run.Partial);
+            if (_world is null)
+            {
+                return Unperformed(record, context, run.Partial);
+            }
+
             HeroSlotRules.Mark(_world.HeroSlotArray, run.Creature.Id, unchecked((byte)record.Parameters["TargetId"]));
             return true;
         }
@@ -1153,14 +1371,29 @@ public sealed class TriggerExecutor
             return true;
         }
         if (context == TriggerContext.Creature && CreatureOwnsAction(record.Type))
+        {
             return Unperformed(record, context, run.Partial);
+        }
+
         if (context == TriggerContext.Creature && PlayerOwnsAction(record.Type))
+        {
             return Unperformed(record, context, run.Partial);
+        }
+
         if (context == TriggerContext.Player && PlayerOwnsAction(record.Type))
+        {
             return Unperformed(record, context, run.Partial);
+        }
+
         if (Performs(record.Type))
+        {
             return ExecuteAction(record, context, run);
-        if (WorldActionSucceeds(record.Type)) return Unperformed(record, context, run.Partial);
+        }
+
+        if (WorldActionSucceeds(record.Type))
+        {
+            return Unperformed(record, context, run.Partial);
+        }
 
         run.Unhandled.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
         return false;
@@ -1175,9 +1408,16 @@ public sealed class TriggerExecutor
     {
         if (creature.OwnerPlayerId != PlayerIds.Good || PrisonRules.HasKeeperBinding(creature)
             || CreatureDeathRules.IsDying(creature))
+        {
             return true;
+        }
+
         byte objective = Byte(p, "ObjectiveType");
-        if (objective is not (22 or 23)) creature.GoodJobPlayerId = Byte(p, "PlayerId");
+        if (objective is not (22 or 23))
+        {
+            creature.GoodJobPlayerId = Byte(p, "PlayerId");
+        }
+
         creature.GoodJob = (JobType)objective;
         creature.GoodJobActionPointId = unchecked((int)p["ActionPointId"]);
         CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
@@ -1194,18 +1434,28 @@ public sealed class TriggerExecutor
     {
         IReadOnlyDictionary<string, long> p = record.Parameters;
         if (_world is null || _database is null || run.Player is not PlayerId player || !_world.HasPlayer(player))
+        {
             return Unperformed(record, context, run.Partial);
+        }
+
         ref PlayerState keeper = ref _world.Player(player);
         switch (record.Type)
         {
             case 31:
             {
                 ActionPointState? point = _world.ActionPoints.FirstOrDefault(a => a.Id == Byte(p, "ActionPointId"));
-                if (point is null) return true;
-                int pathId = Byte(p, "PathId");
+                if (point is null)
+                    {
+                        return true;
+                    }
+
+                    int pathId = Byte(p, "PathId");
                 if (!CameraPathRules.TryStart(_database, ref keeper, Possessing(_world, player), pathId, _world.CurrentTick))
-                    return true;
-                var centre = new TilePos((point.StartX + point.EndX) / 2, (point.StartY + point.EndY) / 2);
+                    {
+                        return true;
+                    }
+
+                    var centre = new TilePos((point.StartX + point.EndX) / 2, (point.StartY + point.EndY) / 2);
                 ViewRequested?.Invoke(new ScriptedViewRequest(
                     ScriptedViewKind.CameraPath, player, pathId, centre, Byte(p, "Available") != 0,
                     _world.CurrentTick.Value));
@@ -1217,9 +1467,12 @@ public sealed class TriggerExecutor
                 // 72 also waits for and which is not modelled here (camera-paths.md section 8).
                 ActionPointState? point = _world.ActionPoints.FirstOrDefault(a => a.Id == Byte(p, "ActionPointId"));
                 if (point is not null)
-                    ViewRequested?.Invoke(new ScriptedViewRequest(ScriptedViewKind.CameraMove, player, 0,
+                    {
+                        ViewRequested?.Invoke(new ScriptedViewRequest(ScriptedViewKind.CameraMove, player, 0,
                         new TilePos((point.StartX + point.EndX) / 2, (point.StartY + point.EndY) / 2), false));
-                return true;
+                    }
+
+                    return true;
             }
             case 38:
                 ViewRequested?.Invoke(new ScriptedViewRequest(
@@ -1231,8 +1484,11 @@ public sealed class TriggerExecutor
                 if (keeper.Status == 0)
                 {
                     if (Byte(p, "SpeakOnly") == 0)
+                    {
                         _world.Messages.Post(_world, player.Value, PlayerMessageKind.ScriptedSpeech,
                             unchecked((int)p["SpeechId"]), 0);
+                    }
+
                     ViewRequested?.Invoke(new ScriptedViewRequest(
                         ScriptedViewKind.Speech, player, unchecked((int)p["SpeechId"]), default, false));
                 }
@@ -1257,7 +1513,11 @@ public sealed class TriggerExecutor
         gem.PosX = creature.PosX;
         gem.PosY = creature.PosY;
         gem.PosZ = creature.PosZ;
-        if (creature.CarriedObjectId < 0) ObjectCarryRules.PickUp(creature, gem);
+        if (creature.CarriedObjectId < 0)
+        {
+            ObjectCarryRules.PickUp(creature, gem);
+        }
+
         creature.GemCarrier = true;
     }
 
@@ -1342,7 +1602,11 @@ public sealed class TriggerExecutor
         }
         if (record.Type == 16)
         {
-            if (_world is null) return Unperformed(record, context, partial);
+            if (_world is null)
+            {
+                return Unperformed(record, context, partial);
+            }
+
             short durationTicks = Byte(p, "Available") == 0 ? (short)0
                 : unchecked((short)p["Value"]) == 0 ? (short)-1 : unchecked((short)p["Value"]);
             _world.TileHighlights.Set(_world, new ActionPointId(Byte(p, "ActionPointId")), durationTicks);
@@ -1350,39 +1614,62 @@ public sealed class TriggerExecutor
         }
         if (record.Type == 17)
         {
-            if (_world is null || _database is null) return Unperformed(record, context, partial);
+            if (_world is null || _database is null)
+            {
+                return Unperformed(record, context, partial);
+            }
+
             ActionPointState? point = _world.ActionPoints.FirstOrDefault(a => a.Id == Byte(p, "ActionPointId"));
             if (point is not null)
+            {
                 DiscoveryRules.Rectangle(_world, _database, point, explored: Byte(p, "Available") == 0);
+            }
+
             return true;
         }
         if (record.Type == 28)
         {
             if (_world is null || _database is null || run.Player is not PlayerId player)
+            {
                 return Unperformed(record, context, partial);
+            }
+
             PortalRules.CreateScriptedArrival(new StateHookContext(_world, _database, this, EffectRequested, SoundRequested) { Rng = _rng }, player,
                 Byte(p, "CreatureId"), Byte(p, "Level"));
             return true;
         }
         if (record.Type is 24 or 26 or 31 or 38)
+        {
             return RequestView(record, context, run);
+        }
+
         if (record.Type == 37)
         {
             // 0x004C892D: body byte 0 zero clears PortalsOpen (player +0x76 bit 10), anything
             // else sets it. Level 2 closes its portals for the scripted Warlock (ADR-0314).
             if (_world is null || run.Player is not PlayerId player)
+            {
                 return Unperformed(record, context, partial);
+            }
+
             _world.Player(player).PortalsClosed = Byte(p, "Available") == 0;
             return true;
         }
         if (record.Type == 6)
         {
-            if (_world is null) return Unperformed(record, context, partial);
+            if (_world is null)
+            {
+                return Unperformed(record, context, partial);
+            }
+
             byte kind = Byte(p, "AvailabilityKind");
             if (kind is >= 1 and <= 5)
+            {
                 _world.SetAvailability(
                     Byte(p, "PlayerId"), (AvailabilityKind)kind, Byte(p, "TypeId"),
                     Byte(p, "Available") == 0 ? 1 : 3);
+            }
+
             return true;
         }
         if (record.Type == 8)
@@ -1393,7 +1680,10 @@ public sealed class TriggerExecutor
         if (record.Type is 10 or 11)
         {
             if (_world is null || run.Player is not PlayerId player)
+            {
                 return Unperformed(record, context, partial);
+            }
+
             VerdictRules.End(_world, _database!, player, record.Type == 10 ? PlayerStatus.Won : PlayerStatus.Lost);
             return true;
         }
@@ -1418,9 +1708,17 @@ public sealed class TriggerExecutor
                 _state.SpecialInfoPlayerId = 0;
                 return true;
             }
-            if (_world is null) return Unperformed(record, context, partial);
+            if (_world is null)
+            {
+                return Unperformed(record, context, partial);
+            }
+
             int x = unchecked((int)p["PosX"]) - 1, y = unchecked((int)p["PosY"]) - 1;
-            if (!_world.Contains(x, y)) return false;
+            if (!_world.Contains(x, y))
+            {
+                return false;
+            }
+
             _state.SpecialInfoPlayerId = _world.Tile(x, y).OwnerPlayerId;
             return true;
         }
@@ -1453,26 +1751,61 @@ public sealed class TriggerExecutor
             // alliance; both players' bytes at +0x1AE are written and the action succeeds. Level
             // 11A allies Raksha with the other three keepers on its first turn. A player the level
             // lacks is written nowhere here; what DK2's arithmetic hits then is unread.
-            if (_world is null) return Unperformed(record, context, partial);
+            if (_world is null)
+            {
+                return Unperformed(record, context, partial);
+            }
+
             var one = new PlayerId(Byte(p, "PlayerOneId"));
             byte two = Byte(p, "PlayerTwoId");
             if (one.Value < 8 && two < 8 && _world.HasPlayer(one) && _world.HasPlayer(new PlayerId(two)))
+            {
                 _world.SetAllied(one, two, Byte(p, "Available") == 0);
+            }
+
             return true;
         }
-        if (record.Type == 1) return CreateCreature(record, context, p, run);
-        if (record.Type == 2) return CreateObject(record, context, p, partial);
-        if (record.Type == 49) return ChangeRoomOwner(record, context, p, run);
-        if (record.Type == 14) return CreateParty(record, context, p, run);
-        if (record.Type == 22) return AlterTerrain(record, context, p, run);
-        if (record.Type == 32) return CollapseGate(record, context, p, run);
+        if (record.Type == 1)
+        {
+            return CreateCreature(record, context, p, run);
+        }
+
+        if (record.Type == 2)
+        {
+            return CreateObject(record, context, p, partial);
+        }
+
+        if (record.Type == 49)
+        {
+            return ChangeRoomOwner(record, context, p, run);
+        }
+
+        if (record.Type == 14)
+        {
+            return CreateParty(record, context, p, run);
+        }
+
+        if (record.Type == 22)
+        {
+            return AlterTerrain(record, context, p, run);
+        }
+
+        if (record.Type == 32)
+        {
+            return CollapseGate(record, context, p, run);
+        }
+
         if (record.Type != 7)
+        {
             throw new ArgumentException($"Action type {record.Type} has no arm here.", nameof(record));
+        }
 
         byte modeByte = checked((byte)p["Flag"]);
         int operand = unchecked((int)(uint)p["Value"]);
         if ((modeByte & 0x02) == 0)
+        {
             operand = _state.Read(unchecked((byte)operand));
+        }
 
         FlagWriteMode mode = (modeByte & 0x08) != 0
             ? FlagWriteMode.Assign
@@ -1490,12 +1823,24 @@ public sealed class TriggerExecutor
     private bool ChangeRoomOwner(
         TriggerRecord record, TriggerContext context, IReadOnlyDictionary<string, long> p, TriggerRun run)
     {
-        if (_world is null || _database is null) return Unperformed(record, context, run.Partial);
+        if (_world is null || _database is null)
+        {
+            return Unperformed(record, context, run.Partial);
+        }
+
         int x = unchecked((ushort)p["PosX"]) - 1, y = unchecked((ushort)p["PosY"]) - 1;
         var player = new PlayerId(Byte(p, "PlayerId"));
-        if (!_world.Contains(x, y) || !_world.HasPlayer(player)) return true;
+        if (!_world.Contains(x, y) || !_world.HasPlayer(player))
+        {
+            return true;
+        }
+
         if (RoomIndex.RoomAt(_world, _database, (y * _world.Width) + x) is not { } room
-            || room.OwnerPlayerId == player) return true;
+            || room.OwnerPlayerId == player)
+        {
+            return true;
+        }
+
         RoomHealthRules.TransferOwnership(_world, _database, room, player, Context);
         run.Rooms = null;
         return true;
@@ -1509,10 +1854,18 @@ public sealed class TriggerExecutor
     private bool CreateObject(
         TriggerRecord record, TriggerContext context, IReadOnlyDictionary<string, long> p, List<BlockedTrigger> partial)
     {
-        if (_world is null || _database is null) return Unperformed(record, context, partial);
+        if (_world is null || _database is null)
+        {
+            return Unperformed(record, context, partial);
+        }
+
         int x = unchecked((ushort)p["PosX"]), y = unchecked((ushort)p["PosY"]);
         byte objectTypeId = Byte(p, "ObjectId");
-        if (!_world.Contains(x, y) || _database.ObjectById(objectTypeId) is null) return true;
+        if (!_world.Contains(x, y) || _database.ObjectById(objectTypeId) is null)
+        {
+            return true;
+        }
+
         ObjectState thing = _world.SpawnObject(_database, objectTypeId, new PlayerId(Byte(p, "PlayerId")), (y * _world.Width) + x);
         thing.PosX = CreatureState.CentreOf(x);
         thing.PosY = CreatureState.CentreOf(y);
@@ -1536,18 +1889,29 @@ public sealed class TriggerExecutor
         IReadOnlyDictionary<string, long> p, TriggerRun run)
     {
         if (_world is null || _database is null)
+        {
             return Unperformed(record, context, run.Partial);
+        }
 
         var at = new TilePos(checked((int)p["PosX"]), checked((int)p["PosY"]));
-        if (!_world.Contains(at)) return Unperformed(record, context, run.Partial);
+        if (!_world.Contains(at))
+        {
+            return Unperformed(record, context, run.Partial);
+        }
 
         byte creatureTypeId = checked((byte)p["CreatureId"]);
         PlayerId playerId = checked((byte)p["PlayerId"]);
         // 0x00519B20's gate step-off, for a hero made on a gate (HeroPartyRules.StepOff).
         if (HeroPartyRules.StepOff(_world, _database, _rng, playerId, ref at, out _) == HeroPartyRules.StepOffResult.Refused)
+        {
             return Unperformed(record, context, run.Partial);
+        }
+
         CreatureState? creature = _world.TrySpawnCreature(_database, creatureTypeId, playerId, at);
-        if (creature is null) return Unperformed(record, context, run.Partial);
+        if (creature is null)
+        {
+            return Unperformed(record, context, run.Partial);
+        }
 
         // The player byte selects the record at index PlayerId - 1 and the creature is
         // created with the word at its +0x04, TagId. Passed through as the id itself
@@ -1580,26 +1944,41 @@ public sealed class TriggerExecutor
         IReadOnlyDictionary<string, long> p, TriggerRun run)
     {
         if (_world is null || _database is null)
+        {
             return Unperformed(record, context, run.Partial);
+        }
 
         var at = new TilePos(
             checked((int)p["PosX"]) - 1, checked((int)p["PosY"]) - 1);
-        if (!_world.Contains(at)) return true;
+        if (!_world.Contains(at))
+        {
+            return true;
+        }
 
         byte terrainId = checked((byte)p["TerrainId"]);
         ref TileState tile = ref _world.Tile(at);
-        if (tile.TerrainId == terrainId) return true;
+        if (tile.TerrainId == terrainId)
+        {
+            return true;
+        }
 
         TerrainDef next = _database.TerrainById(terrainId);
         RoomDef? room = next.IsRoom ? _database.RoomByTerrain(terrainId) : null;
-        if (next.IsRoom && room is null) return Unperformed(record, context, run.Partial);
+        if (next.IsRoom && room is null)
+        {
+            return Unperformed(record, context, run.Partial);
+        }
+
         PlayerId player = checked((byte)p["PlayerId"]);
         int index = (at.Y * _world.Width) + at.X;
 
         if (_database.TerrainById(tile.TerrainId).IsRoom)
         {
             if (RoomIndex.RoomAt(_world, _database, index) is { Definition.TypeId: RoomTypeId.Graveyard } graveyard)
+            {
                 GraveyardRules.Forget(_world, graveyard);
+            }
+
             byte soldTerrain = tile.TerrainId, soldOwner = tile.OwnerPlayerId;
             int displaced = RoomRules.Unmake(_world, _database, ref tile);
             SlabChain.Changed(_world, _database, index, soldTerrain, soldOwner, _rng);
@@ -1615,7 +1994,11 @@ public sealed class TriggerExecutor
         {
             TerrainDef? under = room.PlaceableOnWater ? _database.WaterTerrain
                 : room.PlaceableOnLava ? _database.LavaTerrain : null;
-            if (under is not null) SetTerrain(ref tile, under, PlayerIds.Neutral);
+            if (under is not null)
+            {
+                SetTerrain(ref tile, under, PlayerIds.Neutral);
+            }
+
             byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
             RoomRules.Place(_world, _database, ref tile, room, player);
             SlabChain.Changed(_world, _database, index, terrainBefore, ownerBefore, _rng);
@@ -1634,7 +2017,10 @@ public sealed class TriggerExecutor
         ManaRules.SetTerrain(_world!, _database!, ref tile, terrain.TerrainId);
         tile.Health = terrain.StartingHealth;
         ManaRules.SetOwner(_world!, _database!, ref tile, owner);
-        if (!terrain.IsTaggable) tile.TaggedBy = PlayerMask.None;
+        if (!terrain.IsTaggable)
+        {
+            tile.TaggedBy = PlayerMask.None;
+        }
     }
 
     /// <summary>Action type 32, COLLAPSE_HERO_GATE (<c>0x005196BB</c>): the room on the one-based
@@ -1650,18 +2036,32 @@ public sealed class TriggerExecutor
         IReadOnlyDictionary<string, long> p, TriggerRun run)
     {
         if (_world is null || _database is null)
+        {
             return Unperformed(record, context, run.Partial);
+        }
 
         var at = new TilePos(checked((int)p["PosX"]) - 1, checked((int)p["PosY"]) - 1);
-        if (!_world.Contains(at)) return true;
+        if (!_world.Contains(at))
+        {
+            return true;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(_world, _database, (at.Y * _world.Width) + at.X);
-        if (room is null) return true;
+        if (room is null)
+        {
+            return true;
+        }
+
         switch ((RoomTypeId)room.Definition.RoomId)
         {
             case RoomTypeId.DungeonHeart:
                 return Unperformed(record, context, run.Partial);
             case RoomTypeId.HeroGateFinal or RoomTypeId.HeroGate2By2 or RoomTypeId.HeroGate3By1:
-                foreach (int tile in room.TileIndices) _world.TileAtIndex(tile).RoomRuined = true;
+                foreach (int tile in room.TileIndices)
+                {
+                    _world.TileAtIndex(tile).RoomRuined = true;
+                }
+
                 return true;
             default:
                 return true;
@@ -1682,32 +2082,48 @@ public sealed class TriggerExecutor
         List<BlockedTrigger> partial = run.Partial;
         int partyId = checked((byte)p["PartyId"]);
         if (partyId >= TriggerTree.PartySlotCount)
+        {
             throw new InvalidDataException(
                 $"Action {record.TriggerId} names party {partyId}, past the "
                 + $"{TriggerTree.PartySlotCount} world slots. DK2 masks the byte and indexes "
                 + "without a bound check; no shipped level does it.");
+        }
 
         HeroPartyState? party = null;
         foreach (HeroPartyState candidate in _world?.HeroParties ?? [])
         {
-            if (candidate.PartyId != partyId) continue;
+            if (candidate.PartyId != partyId)
+            {
+                continue;
+            }
+
             party = candidate;
             break;
         }
 
         if (party is not null && _world is not null && _database is not null)
+        {
             return HeroPartyRules.Spawn(
                 new StateHookContext(_world, _database, this, EffectRequested, SoundRequested) { Rng = _rng }, _rng, _tree!, party,
                 Byte(p, "ActionPointId"), Byte(p, "PartyType"),
                 id => SetSubtreeActive(id, active: true),
                 created => FireCreatureEvent(created, CreatureTriggerEvent.Created, run.CurrentTick));
+        }
 
         TriggerPartySlot slot = _tree!.Parties[partyId];
-        if (ReferenceEquals(slot, TriggerPartySlot.Empty)) return true;
+        if (ReferenceEquals(slot, TriggerPartySlot.Empty))
+        {
+            return true;
+        }
+
         SetSubtreeActive(slot.TriggerId, active: true);
         foreach (TriggerPartyMember member in slot.Members)
         {
-            if (!member.HasCreature) continue;
+            if (!member.HasCreature)
+            {
+                continue;
+            }
+
             SetSubtreeActive(member.TriggerId, active: true);
         }
         partial.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));

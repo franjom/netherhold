@@ -30,8 +30,15 @@ public static class CommandCodec
             case CreateImpCommand c:
                 Head(w, 4, c);
                 w.Write(c.Position.HasValue);
-                if (c.Position is FpPosition2 p) Position(w, p);
-                else { w.Write(c.At.HasValue); if (c.At is TilePos at) Tile(w, at); }
+                if (c.Position is FpPosition2 p)
+                {
+                    Position(w, p);
+                }
+                else { w.Write(c.At.HasValue); if (c.At is TilePos at)
+                    {
+                        Tile(w, at);
+                    }
+                }
                 break;
             case PickUpCreatureCommand c: Head(w, 5, c); w.Write(c.CreatureId); break;
             case TakeCreatureCommand c: Head(w, 36, c); w.Write(c.CreatureId); break;
@@ -39,8 +46,17 @@ public static class CommandCodec
             case PickUpStoreGoldCommand c: Head(w, 7, c); Tile(w, c.Tile); break;
             case DropCommand c:
                 Head(w, 8, c); Tile(w, c.Tile); w.Write(c.TargetCreatureId);
-                w.Write(c.Position.HasValue); if (c.Position is FpPosition2 dp) Position(w, dp);
-                w.Write(c.Heading.HasValue); if (c.Heading is Dk2Angle dh) w.Write(dh.Raw); break;
+                w.Write(c.Position.HasValue); if (c.Position is FpPosition2 dp)
+                {
+                    Position(w, dp);
+                }
+
+                w.Write(c.Heading.HasValue); if (c.Heading is Dk2Angle dh)
+                {
+                    w.Write(dh.Raw);
+                }
+
+                break;
             case SlapCreatureCommand c: Head(w, 9, c); w.Write(c.CreatureId); break;
             case MintWageCommand c: Head(w, 10, c); w.Write(c.CreatureId); break;
             case CastSpellAtPlaceCommand c:
@@ -175,7 +191,10 @@ public static class CommandCodec
         // Each side is checked before the product, which could otherwise wrap a long.
         long width = Math.Abs((long)a.X - b.X) + 1, height = Math.Abs((long)a.Y - b.Y) + 1;
         if (width > MaxTiles || height > MaxTiles || width * height > MaxTiles)
+        {
             throw new InvalidDataException($"A {width}x{height} sell wave exceeds the codec limit {MaxTiles}.");
+        }
+
         return SellRoomCommand.Rect(player, a.X, a.Y, b.X, b.Y);
     }
 
@@ -191,20 +210,32 @@ public static class CommandCodec
     private static void Tiles(BinaryWriter w, IReadOnlyList<TilePos> tiles)
     {
         w.Write(tiles.Count);
-        foreach (TilePos t in tiles) Tile(w, t);
+        foreach (TilePos t in tiles)
+        {
+            Tile(w, t);
+        }
     }
 
     private static TilePos[] ReadTiles(BinaryReader r)
     {
         int count = r.ReadInt32();
         if (count is < 0 or > MaxTiles)
+        {
             throw new InvalidDataException($"A tile count of {count} is outside 0..{MaxTiles}.");
+        }
         // The count is untrusted: allocate only what the input can still hold.
         Stream s = r.BaseStream;
         if (s.CanSeek && (long)count * TileBytes > s.Length - s.Position)
+        {
             throw new EndOfStreamException($"A command's {count} tiles run past the end of the input.");
+        }
+
         var tiles = new TilePos[count];
-        for (int i = 0; i < tiles.Length; i++) tiles[i] = ReadTile(r);
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            tiles[i] = ReadTile(r);
+        }
+
         return tiles;
     }
 

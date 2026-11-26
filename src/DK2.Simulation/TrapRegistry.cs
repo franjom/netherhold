@@ -36,14 +36,26 @@ internal sealed class TrapRegistry
     public TrapState? ById(int id)
     {
         foreach (TrapState trap in _traps)
-            if (trap.Id == id) return trap;
+        {
+            if (trap.Id == id)
+            {
+                return trap;
+            }
+        }
+
         return null;
     }
 
     public TrapState? At(int x, int y, PlayerId owner)
     {
         foreach (TrapState trap in _traps)
-            if (trap.X == x && trap.Y == y && trap.PlayerId == owner) return trap;
+        {
+            if (trap.X == x && trap.Y == y && trap.PlayerId == owner)
+            {
+                return trap;
+            }
+        }
+
         return null;
     }
 }

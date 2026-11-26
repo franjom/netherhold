@@ -51,9 +51,16 @@ public sealed class PortalSystem : IRoomTickStep
         portalsHeld = 0;
         foreach (RoomInstance room in RoomIndex.Build(context.World, context.Database))
         {
-            if (Owner(context.World, room) != playerId) continue;
+            if (Owner(context.World, room) != playerId)
+            {
+                continue;
+            }
+
             owned.Add(room);
-            if (PortalRules.IsEntrance(room.Definition)) portalsHeld++;
+            if (PortalRules.IsEntrance(room.Definition))
+            {
+                portalsHeld++;
+            }
         }
 
         return owned;
@@ -86,15 +93,21 @@ public sealed class PortalSystem : IRoomTickStep
                 && portal.Definition.RoomEffect425Id != 0)
             {
                 List<RoomInstance> previewRooms = OwnedRooms(context, playerId, out int previewPortals);
-                if (PortalRules.CreatureCount(world, playerId) >= PortalRules.CreatureCapacity(database, previewPortals)) return;
+                if (PortalRules.CreatureCount(world, playerId) >= PortalRules.CreatureCapacity(database, previewPortals))
+                {
+                    return;
+                }
+
                 List<CreatureDef> preview = Candidates(context, previewRooms, playerId,
                     portal.Definition, out _);
                 // The native preview counts base-weight candidates without noticing,
                 // drawing, or decaying entrance modifiers, even when portals are closed.
                 if (preview.Any(c => PortalChoiceRules.BaseWeight(world, c, previewRooms, playerId) > 0))
+                {
                     context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
                         new EffectId(portal.Definition.RoomEffect425Id), playerId,
                         world.TilePosition(entranceTile), new Fp32(0)));
+                }
             }
             return;
         }
@@ -108,7 +121,10 @@ public sealed class PortalSystem : IRoomTickStep
         List<RoomInstance> owned = OwnedRooms(context, playerId, out int portalsHeld);
         int held = PortalRules.CreatureCount(world, playerId);
         int capacity = PortalRules.CreatureCapacity(database, portalsHeld);
-        if (held >= capacity) return;
+        if (held >= capacity)
+        {
+            return;
+        }
 
         // The portal is passed in because the flag gate depends on the room
         // type: a Hero Portal admits a different nine creatures, and a
@@ -119,14 +135,23 @@ public sealed class PortalSystem : IRoomTickStep
             $"player={playerId} portal_tile={entranceTile} held={held} capacity={capacity} " +
             $"generated={centre.EntranceCreaturesGenerated} open={open} candidates=[{candidates}] " +
             $"chosen={arriving?.Name ?? "-"}");
-        if (arriving is null) return;
+        if (arriving is null)
+        {
+            return;
+        }
 
         // Closed portals still draw and decay the boosts; the creator 0x004DC9A0
         // then refuses (PortalsOpen clear), so neither tally nor creature moves.
-        if (!open) return;
+        if (!open)
+        {
+            return;
+        }
 
         CreatureState? spawned = PortalRules.CreateArrival(context.Hooks, portal, arriving.CreatureId);
-        if (spawned is null) return;
+        if (spawned is null)
+        {
+            return;
+        }
 
         context.Emit(SystemName, "creature_entered",
             $"player={playerId} creature={spawned.Id} type={arriving.Name} " +
@@ -179,14 +204,24 @@ public sealed class PortalSystem : IRoomTickStep
             // type: the gates, including the Unique skip (+0x686 bit 0x8000000), read the unflagged
             // base definition, so every Unique definition adds a second entry of its base type at
             // its own index. A likely original defect, built faithfully (ADR-0783).
-            if (definitionIndex++ >= PortalChoiceRules.RowCount) break;
+            if (definitionIndex++ >= PortalChoiceRules.RowCount)
+            {
+                break;
+            }
+
             bool uniqueIndex = (definition.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique;
             CreatureDef creature = definition;
-            if (uniqueIndex && !database.Creatures.TryGetValue(definition.UniqueBaseCreatureId, out creature!)) continue;
+            if (uniqueIndex && !database.Creatures.TryGetValue(definition.UniqueBaseCreatureId, out creature!))
+            {
+                continue;
+            }
 
             // Cheapest gate and the most fundamental: two creature flags, and
             // the only one of the four that does not consult the level at all.
-            if (!PortalRules.CanComeFromPortal(creature, portal)) continue;
+            if (!PortalRules.CanComeFromPortal(creature, portal))
+            {
+                continue;
+            }
 
             // No availability test: 0x004DBF90 reads the pool (0x00506400), the two flags, the
             // attraction and the capacity, never the creature table. Level 3 makes the Firefly,
@@ -195,13 +230,21 @@ public sealed class PortalSystem : IRoomTickStep
             int limit = PortalRules.PoolLimit(database, playerId, creature.CreatureId);
             if (limit <= PortalRules.CreatureCountOfType(world, playerId, creature.CreatureId))
             {
-                if (!uniqueIndex) rejected.Add($"{creature.Name}:pool");
+                if (!uniqueIndex)
+                {
+                    rejected.Add($"{creature.Name}:pool");
+                }
+
                 continue;
             }
 
             if (!PortalRules.IsAttracted(creature, ownedRooms, money, mana))
             {
-                if (!uniqueIndex) rejected.Add($"{creature.Name}:room");
+                if (!uniqueIndex)
+                {
+                    rejected.Add($"{creature.Name}:room");
+                }
+
                 continue;
             }
 
@@ -209,7 +252,11 @@ public sealed class PortalSystem : IRoomTickStep
             // contribution less one per creature of the type already held.
             if (!AttractionBudget.Admits(world, creature, ownedRooms, playerId))
             {
-                if (!uniqueIndex) rejected.Add($"{creature.Name}:budget");
+                if (!uniqueIndex)
+                {
+                    rejected.Add($"{creature.Name}:budget");
+                }
+
                 continue;
             }
 
@@ -217,7 +264,10 @@ public sealed class PortalSystem : IRoomTickStep
         }
 
         candidateNames = string.Join(",", candidates.Select(c => c.Name));
-        if (rejected.Count > 0) candidateNames += " rejected=" + string.Join(",", rejected);
+        if (rejected.Count > 0)
+        {
+            candidateNames += " rejected=" + string.Join(",", rejected);
+        }
 
         return candidates;
     }

@@ -27,7 +27,9 @@ public struct Fnv1a64
     public void Add(ulong v)
     {
         for (int i = 0; i < 8; i++)
+        {
             Add((byte)(v >> (i * 8)));
+        }
     }
 
     public void Add(long v) => Add(unchecked((ulong)v));
@@ -44,6 +46,9 @@ public struct Fnv1a64
     {
         if (s is null) { Add((byte)0xFF); return; }
         Add(s.Length);
-        foreach (char c in s) Add((ushort)c);
+        foreach (char c in s)
+        {
+            Add((ushort)c);
+        }
     }
 }

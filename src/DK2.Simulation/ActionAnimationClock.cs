@@ -58,7 +58,11 @@ public static class ActionAnimationClock
         bool finished = (flags & (ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped)) != 0
             && (flags & ActionAnimationFlags.Loop) == 0;
         creature.ActionCount = 0;
-        if (creature.ActionArtSlot == slot && !finished) return;
+        if (creature.ActionArtSlot == slot && !finished)
+        {
+            return;
+        }
+
         Install(creature, definition, slot, rng);
     }
 
@@ -69,7 +73,10 @@ public static class ActionAnimationClock
     {
         Begin(creature, definition, slot, rng);
         creature.ActionCount = unchecked((byte)(plays + 1));
-        if (unchecked((sbyte)plays) < 2) creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
+        if (unchecked((sbyte)plays) < 2)
+        {
+            creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
+        }
     }
 
     /// <summary>The shared null-handler poll (<c>0x00496AA0</c>, modes 0 and 3): it ends
@@ -77,18 +84,39 @@ public static class ActionAnimationClock
     /// or completed clip updates the count and cycle flags using the runner's 0/1/other branches.</summary>
     public static bool CountedActionEnded(CreatureState creature)
     {
-        if (creature.ActionAnimationRate == 0) return true;
-        if ((creature.ActionAnimationFlags & (ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped)) == 0) return false;
-        if (creature.ActionCount == 0) return true;
+        if (creature.ActionAnimationRate == 0)
+        {
+            return true;
+        }
+
+        if ((creature.ActionAnimationFlags & (ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped)) == 0)
+        {
+            return false;
+        }
+
+        if (creature.ActionCount == 0)
+        {
+            return true;
+        }
+
         if (creature.ActionCount == 1)
         {
-            if ((creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0) creature.ActionCount = byte.MaxValue;
+            if ((creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0)
+            {
+                creature.ActionCount = byte.MaxValue;
+            }
         }
         else
         {
             creature.ActionCount--;
-            if (creature.ActionCount == 1) creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
-            else creature.ActionAnimationFlags &= ~(ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped);
+            if (creature.ActionCount == 1)
+            {
+                creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
+            }
+            else
+            {
+                creature.ActionAnimationFlags &= ~(ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped);
+            }
         }
         return false;
     }
@@ -126,7 +154,11 @@ public static class ActionAnimationClock
     /// <summary>One turn of <c>0x004B3C10</c>.</summary>
     public static void Advance(CreatureState creature, CreatureDef definition)
     {
-        if (creature.ActionArtSlot == 0) return;
+        if (creature.ActionArtSlot == 0)
+        {
+            return;
+        }
+
         CreatureAnimationTiming art = creature.ActionAnimationRate == 0
             || (creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0
             ? default : ArtOf(creature, definition);
@@ -142,7 +174,10 @@ public static class ActionAnimationClock
             creature.ActionAnimationRate = 0;
             return;
         }
-        if (creature.ActionAnimationRate == 0) return;
+        if (creature.ActionAnimationRate == 0)
+        {
+            return;
+        }
 
         int phase = creature.ActionAnimationPhase + creature.ActionAnimationRate;
         if (phase < One)

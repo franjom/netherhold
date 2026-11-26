@@ -21,9 +21,17 @@ public static class DiscoverySight
 
     public static void Fill(ISightBlocker blockers, TilePos source, int width, int height, Span<bool> visible)
     {
-        if (visible.Length < 225) throw new ArgumentException("A discovery grid has 225 cells.", nameof(visible));
+        if (visible.Length < 225)
+        {
+            throw new ArgumentException("A discovery grid has 225 cells.", nameof(visible));
+        }
+
         visible.Clear();
-        if (source.X < 0 || source.Y < 0 || source.X >= width || source.Y >= height) return;
+        if (source.X < 0 || source.Y < 0 || source.X >= width || source.Y >= height)
+        {
+            return;
+        }
+
         Span<bool> open = stackalloc bool[256];
         open.Fill(true);
         visible[112] = true;
@@ -36,14 +44,28 @@ public static class DiscoverySight
             for (int slot = entry.First; ; slot = (slot + 1) & 255)
             {
                 seen |= open[slot];
-                if (slot == entry.Last) break;
+                if (slot == entry.Last)
+                {
+                    break;
+                }
             }
-            if (inMap && seen) visible[(entry.Y + 7) * 15 + entry.X + 7] = true;
-            if (inMap && !blockers.Blocks(x, y)) continue;
+            if (inMap && seen)
+            {
+                visible[(entry.Y + 7) * 15 + entry.X + 7] = true;
+            }
+
+            if (inMap && !blockers.Blocks(x, y))
+            {
+                continue;
+            }
+
             for (int slot = entry.First; ; slot = (slot + 1) & 255)
             {
                 open[slot] = false;
-                if (slot == entry.Last) break;
+                if (slot == entry.Last)
+                {
+                    break;
+                }
             }
         }
     }
@@ -53,11 +75,13 @@ public static class DiscoverySight
         var entries = new Entry[225];
         int index = 0;
         for (int y = 7; y >= -7; y--)
+        {
             for (int x = -7; x <= 7; x++)
             {
                 int centre = Bearing.Of(2 * x, -2 * y), first = 0, last = 0;
                 int min = int.MaxValue, max = int.MinValue;
                 for (int cy = -1; cy <= 1; cy += 2)
+                {
                     for (int cx = -1; cx <= 1; cx += 2)
                     {
                         int angle = Bearing.Of(2 * x + cx, -2 * y + cy);
@@ -65,13 +89,23 @@ public static class DiscoverySight
                         if (difference < min) { min = difference; first = angle >> 3; }
                         if (difference > max) { max = difference; last = angle >> 3; }
                     }
+                }
+
                 entries[index++] = new Entry(x, y, first, last);
             }
+        }
         // Native compare-exchange order is significant among equal-distance cells.
         for (int end = 224; end > 0; end--)
+        {
             for (int previous = end - 1; previous >= 0; previous--)
+            {
                 if (entries[end].DistanceSquared < entries[previous].DistanceSquared)
+                {
                     (entries[end], entries[previous]) = (entries[previous], entries[end]);
+                }
+            }
+        }
+
         return entries;
     }
 }

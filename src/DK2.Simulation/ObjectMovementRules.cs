@@ -25,7 +25,11 @@ public static class ObjectMovementRules
     public static bool StartMove(SimulationContext context, ObjectState thing, ObjectMovePoint destination,
         ObjectProcessId resume, Fp32 extraSpeed, bool interruptible)
     {
-        if (!context.World.Contains(new TilePos(destination.X.Raw >> 12, destination.Y.Raw >> 12))) return false;
+        if (!context.World.Contains(new TilePos(destination.X.Raw >> 12, destination.Y.Raw >> 12)))
+        {
+            return false;
+        }
+
         SetProcess(thing, MovingProcess);
         thing.MoveResumeState = resume.Value;
         thing.MoveDestinationX = destination.X.Raw;
@@ -34,14 +38,22 @@ public static class ObjectMovementRules
             | (interruptible ? ObjectMoveFlags.Interruptible : ObjectMoveFlags.None);
         ObjectDef definition = context.Database.ObjectById(thing.ObjectTypeId)!;
         int speed = unchecked((short)(RuntimeSpeed(definition) + extraSpeed.Raw));
-        if (speed == 0) return false;
+        if (speed == 0)
+        {
+            return false;
+        }
+
         int dx = unchecked(destination.X.Raw - thing.PosX), dy = unchecked(destination.Y.Raw - thing.PosY);
         int heading = Bearing.Of(dx, dy);
         thing.MoveVelocityX = unchecked(TrapRules.Sine(heading) * speed) >> 16;
         thing.MoveVelocityY = unchecked(-TrapRules.Cosine(heading) * speed) >> 16;
         uint distanceSquare = unchecked((uint)((int)(((long)dx * dx) >> 12) + (int)(((long)dy * dy) >> 12)));
         uint speedSquare = unchecked((uint)((long)speed * speed >> 12));
-        if (speedSquare == 0) throw new DivideByZeroException("Object movement speed has zero fixed-point square.");
+        if (speedSquare == 0)
+        {
+            throw new DivideByZeroException("Object movement speed has zero fixed-point square.");
+        }
+
         int count = Math.Max(1, IntegerMath.SquareRoot(distanceSquare / speedSquare) - 1)
             + (distanceSquare % speedSquare != 0 ? 1 : 0);
         thing.MoveTicksRemaining = unchecked((ushort)count);
@@ -60,14 +72,21 @@ public static class ObjectMovementRules
         // 0x0049FA66: first, before the turn: a chicken whose step count is 1 offers its sound, on every call it stays 1
         // (the turn holds the count). The listener keeps DK2's global alternator, 0x006E4FD4.
         if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId && thing.MoveTicksRemaining == 1)
+        {
             ThingSoundRules.Request(context, "ObjectMovement", thing, ThingSoundEvent.ChickenStep, alternating: true);
+        }
+
         if ((thing.MoveFlags & ObjectMoveFlags.Turning) != 0)
         {
             int heading = thing.Heading;
             int target = Bearing.Of(thing.MoveDestinationX - thing.PosX, thing.MoveDestinationY - thing.PosY);
             int remaining = Bearing.TurnToward(ref heading, target, TurnRate);
             thing.Heading = heading;
-            if (remaining != 0) return;
+            if (remaining != 0)
+            {
+                return;
+            }
+
             thing.MoveFlags &= ~ObjectMoveFlags.Turning;
         }
         thing.MoveTicksRemaining = unchecked((ushort)(thing.MoveTicksRemaining - 1));
@@ -79,7 +98,10 @@ public static class ObjectMovementRules
         else
         {
             SetPosition(context.World, thing, new ObjectMovePoint(new Fp32(thing.PosX + thing.MoveVelocityX), new Fp32(thing.PosY + thing.MoveVelocityY)));
-            if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId) ChickenMovementRules.TryAvoidCreature(context, thing);
+            if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId)
+            {
+                ChickenMovementRules.TryAvoidCreature(context, thing);
+            }
         }
     }
 

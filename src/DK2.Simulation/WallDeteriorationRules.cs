@@ -26,7 +26,11 @@ public static class WallDeteriorationRules
     {
         GameDatabase database = context.Database;
         int picks = (byte)database[VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond];
-        if (picks == 0) return;
+        if (picks == 0)
+        {
+            return;
+        }
+
         int delta = (sbyte)database[VariableTypeId.WallDeteriorationDamage];
         WorldState world = context.World;
 
@@ -34,13 +38,23 @@ public static class WallDeteriorationRules
         {
             int x = context.Rng.NextInt(world.Width + 1) + 1;   // 0x004BB70F
             int y = context.Rng.NextInt(world.Height + 1) + 1;  // 0x004BB73B
-            if (x >= world.Width || y >= world.Height) continue;
+            if (x >= world.Width || y >= world.Height)
+            {
+                continue;
+            }
 
             var at = new TilePos(x, y);
             ref TileState tile = ref world.Tile(at);
             TerrainDef terrain = database.TerrainById(tile.TerrainId);
-            if (!terrain.IsSolid || terrain.IsImpenetrable || terrain.GoldValue != 0) continue;
-            if (tile.OwnerPlayerId != keeper || !OwnFloorRules.Touches(database, world, at, keeper)) continue;
+            if (!terrain.IsSolid || terrain.IsImpenetrable || terrain.GoldValue != 0)
+            {
+                continue;
+            }
+
+            if (tile.OwnerPlayerId != keeper || !OwnFloorRules.Touches(database, world, at, keeper))
+            {
+                continue;
+            }
 
             context.Emit(SystemName, "wall_deteriorated", $"player={keeper} at=({x},{y}) delta={delta}");
             SpecialSystem.Work(context, (y * world.Width) + x, delta, keeper);

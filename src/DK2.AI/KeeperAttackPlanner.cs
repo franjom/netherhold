@@ -60,7 +60,11 @@ public sealed class KeeperAttackPlanner
     /// writes happen even when a later choice fails, as DK2's do.</summary>
     public bool Plan()
     {
-        if (_p.NeverAttack || _state.CannotAttackCounter != 0 || _state.CallToArmsInUse) return false;
+        if (_p.NeverAttack || _state.CannotAttackCounter != 0 || _state.CallToArmsInUse)
+        {
+            return false;
+        }
+
         bool ordinary = false;
         byte attacker = 0;
         int superiority = 0;
@@ -70,10 +74,17 @@ public sealed class KeeperAttackPlanner
             if ((_p.IAAllSpellsResearched & 1) != 0 && KeeperResearchStep.ResearchableSpellRemains(_view))
             {
                 // 0x004C6460(6) draws a random own Library; with one, 0x004FA8D0 makes room for a researcher.
-                if (RandomRoomOfType(_view.PlayerId, RoomTypeId.Library) is not null) _researcher.Run();
+                if (RandomRoomOfType(_view.PlayerId, RoomTypeId.Library) is not null)
+                {
+                    _researcher.Run();
+                }
+
                 return false;
             }
-            if (!_p.IAOnlyAttackAttackers) ordinary = true;
+            if (!_p.IAOnlyAttackAttackers)
+            {
+                ordinary = true;
+            }
             else if (_state.HaveBeenAttacked)
             {
                 attacker = _state.AttackingPlayerId;
@@ -82,7 +93,11 @@ public sealed class KeeperAttackPlanner
             }
             superiority = _p.IAThreatSuperiority;
         }
-        if (!ordinary) return attacker != 0 && AttackTheAttacker(attacker, superiority);
+        if (!ordinary)
+        {
+            return attacker != 0 && AttackTheAttacker(attacker, superiority);
+        }
+
         return AttackTheNearest(superiority);
     }
 
@@ -91,7 +106,11 @@ public sealed class KeeperAttackPlanner
     /// nearest the own heart is the end and the own non-bridge room nearest that the start.</summary>
     private bool AttackTheAttacker(byte attacker, int superiority)
     {
-        if (attacker >= _state.Breaches.Length) return false;
+        if (attacker >= _state.Breaches.Length)
+        {
+            return false;
+        }
+
         KeeperBreachState breach = _state.Breaches[attacker];
         if (breach.TunnelsLeft == 0)
         {
@@ -100,9 +119,17 @@ public sealed class KeeperAttackPlanner
         }
         _state.PlayersAttackedFlags |= (ushort)(1 << attacker);
         int own = TotalStrength(_view.PlayerId), enemy = TotalStrength(attacker);
-        if (own < unchecked(enemy * superiority) / 100) return false;
+        if (own < unchecked(enemy * superiority) / 100)
+        {
+            return false;
+        }
+
         KeeperRoomView? end = NearestNonBridgeRoom(attacker, PointOf(HeartPosition(_view.PlayerId)));
-        if (end is null) return false;
+        if (end is null)
+        {
+            return false;
+        }
+
         BeginTunnel();
         TilePos endSlab = FirstSlab(end);
         _state.DigRoomAt = endSlab;
@@ -111,7 +138,11 @@ public sealed class KeeperAttackPlanner
         _state.DigRoomAtCurrent = Position(start);
         breach.TunnelsLeft--;
         _state.AttackTarget = attacker;
-        if (_p.CallToArmsUsage != 0 || breach.TunnelsLeft != 0 || _state.CallToArmsInUse) return true;
+        if (_p.CallToArmsUsage != 0 || breach.TunnelsLeft != 0 || _state.CallToArmsInUse)
+        {
+            return true;
+        }
+
         StageTheCall(start);
         return true;
     }
@@ -126,16 +157,36 @@ public sealed class KeeperAttackPlanner
         TilePos ownHeart = HeartPosition(_view.PlayerId);
         foreach (PlayerId player in _view.PlayerOrder)
         {
-            if (_view.StatusOf(player) is PlayerStatus.Conquered or PlayerStatus.Lost) continue;
-            if (player.Value is PlayerIds.Good or PlayerIds.Neutral || _view.AreAllied(player.Value)) continue;
-            if (player.Value >= _state.Breaches.Length) continue;
+            if (_view.StatusOf(player) is PlayerStatus.Conquered or PlayerStatus.Lost)
+            {
+                continue;
+            }
+
+            if (player.Value is PlayerIds.Good or PlayerIds.Neutral || _view.AreAllied(player.Value))
+            {
+                continue;
+            }
+
+            if (player.Value >= _state.Breaches.Length)
+            {
+                continue;
+            }
+
             if (_state.Breaches[player.Value].TunnelsLeft == 0)
             {
                 _state.AttackTarget = 0;
-                if (ResumeStoredTunnel(player, withWait: true)) return true;
+                if (ResumeStoredTunnel(player, withWait: true))
+                {
+                    return true;
+                }
+
                 continue;
             }
-            if (unchecked(TotalStrength(player) * superiority) / 100 > own) continue;
+            if (unchecked(TotalStrength(player) * superiority) / 100 > own)
+            {
+                continue;
+            }
+
             TilePos heart = HeartPosition(player);
             int distance = KeeperThreatResponder.ShiftedDistance(
                 CreatureState.CentreOf(heart.X), CreatureState.CentreOf(heart.Y),
@@ -146,7 +197,10 @@ public sealed class KeeperAttackPlanner
                 best = player.Value;
             }
         }
-        if (best == 0) return false;
+        if (best == 0)
+        {
+            return false;
+        }
 
         ushort bit = (ushort)(1 << best);
         _state.PlayersAttackedFlags |= bit;
@@ -161,7 +215,11 @@ public sealed class KeeperAttackPlanner
                 2 => RoomByOwnStrength(best, weakest: true),
                 _ => RoomByOwnStrength(best, weakest: false),
             };
-            if (end is null) return false;
+            if (end is null)
+            {
+                return false;
+            }
+
             start = (_p.IAFirstStart & 3) switch
             {
                 0 => FurthestOwnRoomFromHeart(),
@@ -175,7 +233,10 @@ public sealed class KeeperAttackPlanner
             start = RandomNonBridgeRoom(_view.PlayerId);
             end = RandomNonBridgeRoom(best);
         }
-        if (start is null || end is null) return false;
+        if (start is null || end is null)
+        {
+            return false;
+        }
 
         BeginTunnel();
         _state.DigRoomAt = Position(end);
@@ -183,7 +244,11 @@ public sealed class KeeperAttackPlanner
         KeeperBreachState breach = _state.Breaches[best];
         breach.TunnelsLeft--;
         _state.AttackTarget = best;
-        if (_p.CallToArmsUsage == 0 && breach.TunnelsLeft == 0 && !_state.CallToArmsInUse) StageTheCall(start);
+        if (_p.CallToArmsUsage == 0 && breach.TunnelsLeft == 0 && !_state.CallToArmsInUse)
+        {
+            StageTheCall(start);
+        }
+
         return true;
     }
 
@@ -202,7 +267,11 @@ public sealed class KeeperAttackPlanner
         KeeperBreachState breach = _state.Breaches[player.Value];
         for (int i = 0; i < KeeperBreachState.Slots; i++)
         {
-            if (breach.Start[i].X == 0) continue;
+            if (breach.Start[i].X == 0)
+            {
+                continue;
+            }
+
             BeginTunnel();
             _state.DigRoomAt = breach.End[i];
             _state.DigRoomAtCurrent = breach.Start[i];
@@ -210,7 +279,10 @@ public sealed class KeeperAttackPlanner
             if (withWait)
             {
                 _state.CannotAttackCounter = _p.WaitBeforeAttackingAgain << 2;
-                if (breach.HasStoredTunnel) _state.CannotAttackCounter = 0;
+                if (breach.HasStoredTunnel)
+                {
+                    _state.CannotAttackCounter = 0;
+                }
             }
             return true;
         }
@@ -226,7 +298,11 @@ public sealed class KeeperAttackPlanner
             KeeperBreachState breach = state.Breaches[state.AttackTarget];
             for (int i = 0; i < KeeperBreachState.Slots; i++)
             {
-                if (breach.Start[i].X != 0) continue;
+                if (breach.Start[i].X != 0)
+                {
+                    continue;
+                }
+
                 breach.End[i] = state.DigRoomAt;
                 breach.Start[i] = state.DigRoomAtCurrent;
                 break;
@@ -243,13 +319,24 @@ public sealed class KeeperAttackPlanner
         TilePos heart = HeartPosition(_view.PlayerId);
         SetCall(new TilePos(heart.X + 2, heart.Y + 2));
         KeeperCreatureView? walker = RouteTester();
-        if (walker is not KeeperCreatureView creature || !Routes(creature, _state.CallToArmsX, _state.CallToArmsY)) return;
+        if (walker is not KeeperCreatureView creature || !Routes(creature, _state.CallToArmsX, _state.CallToArmsY))
+        {
+            return;
+        }
+
         SetCall(_state.DigRoomAtCurrent);
-        if (Routes(creature, _state.CallToArmsX, _state.CallToArmsY)) return;
+        if (Routes(creature, _state.CallToArmsX, _state.CallToArmsY))
+        {
+            return;
+        }
+
         foreach (int index in start.TileIndices)
         {
             SetCall(_view.FromIndex(index));
-            if (Routes(creature, _state.CallToArmsX, _state.CallToArmsY)) return;
+            if (Routes(creature, _state.CallToArmsX, _state.CallToArmsY))
+            {
+                return;
+            }
         }
     }
 
@@ -272,8 +359,16 @@ public sealed class KeeperAttackPlanner
             _battle.TestRemoval();
             return allowance;
         }
-        if (_state.CannotAttackCounter != 0 || !FindFront()) return allowance;
-        if (_view.Availability(AvailabilityKind.Spell, CallToArmsRules.SpellId) == 3) TryCastTheCall();
+        if (_state.CannotAttackCounter != 0 || !FindFront())
+        {
+            return allowance;
+        }
+
+        if (_view.Availability(AvailabilityKind.Spell, CallToArmsRules.SpellId) == 3)
+        {
+            TryCastTheCall();
+        }
+
         return allowance - 1;
     }
 
@@ -282,17 +377,32 @@ public sealed class KeeperAttackPlanner
     private void TryCastTheCall()
     {
         KeeperSpellDef? spell = _view.Database.KeeperSpellById(CallToArmsRules.SpellId);
-        if (spell is null || !KeeperBattleStep.Ready(_view, spell) || spell.ManaCost > _view.Mana) return;
+        if (spell is null || !KeeperBattleStep.Ready(_view, spell) || spell.ManaCost > _view.Mana)
+        {
+            return;
+        }
+
         var tile = new TilePos(_state.CallToArmsX >> 12, _state.CallToArmsY >> 12);
-        if (!_view.CallToArmsPlaceAllowed(tile)) return;
+        if (!_view.CallToArmsPlaceAllowed(tile))
+        {
+            return;
+        }
+
         _commands.Add(new CastSpellAtPlaceCommand(_view.PlayerId, CallToArmsRules.SpellId, _state.CallToArmsX, _state.CallToArmsY));
         _state.CallToArmsCounter = _p.RemoveCallToArmsAfter;
         _state.CallToArmsInUse = true;
         _state.CallToArmsCastTurn = _turn;
-        if ((_p.CallToArmsUsage & 3) != 1 || _state.Responses.Count >= 3) return;
+        if ((_p.CallToArmsUsage & 3) != 1 || _state.Responses.Count >= 3)
+        {
+            return;
+        }
         // The room reader's own score, on owned navigation-open tiles within five (0x004FECE0).
         TilePos? site = ThreatEvaluator.DropSite(tile, roomMessage: true, _view.IsThreatDropCandidate);
-        if (site is not TilePos drop) return;
+        if (site is not TilePos drop)
+        {
+            return;
+        }
+
         short half = unchecked((short)(TotalStrength(_view.PlayerId) / 2));
         _state.Responses.TryReceive(() => new KeeperThreatResponse(half, drop));
     }
@@ -303,34 +413,59 @@ public sealed class KeeperAttackPlanner
     /// midpoint toward the point once the army has gathered.</summary>
     public bool FindFront()
     {
-        if (_state.PlayersAttackedFlags == 0) return false;
+        if (_state.PlayersAttackedFlags == 0)
+        {
+            return false;
+        }
+
         for (int player = 0; player < 16; player++)
         {
             ushort bit = (ushort)(1 << player);
-            if ((_state.PlayersAttackedFlags & bit) == 0) continue;
+            if ((_state.PlayersAttackedFlags & bit) == 0)
+            {
+                continue;
+            }
             // DK2 tests the player slot's address, never null, so an attacked bit is never
             // cleared; a player the world lacks simply has no Heart room to draw.
             KeeperRoomView? heart = RandomRoomOfType((byte)player, RoomTypeId.DungeonHeart);
-            if (heart is null) continue;
+            if (heart is null)
+            {
+                continue;
+            }
+
             int rx = _rng.NextInt(2), ry = _rng.NextInt(2);
             TilePos position = Position(heart);
             int targetX = CreatureState.CentreOf(position.X + (rx != 0 ? -2 : 2));
             int targetY = CreatureState.CentreOf(position.Y + (ry != 0 ? -2 : 2));
-            if (RouteTester() is not KeeperCreatureView walker || !Routes(walker, targetX, targetY)) continue;
+            if (RouteTester() is not KeeperCreatureView walker || !Routes(walker, targetX, targetY))
+            {
+                continue;
+            }
+
             if (_p.CallToArmsUsage != 0)
             {
                 _state.CallToArmsX = targetX;
                 _state.CallToArmsY = targetY;
                 return true;
             }
-            if (!_state.CallToArmsInUse) return true;
+            if (!_state.CallToArmsInUse)
+            {
+                return true;
+            }
+
             int total = 0, nearby = 0;
             foreach (KeeperCreatureView creature in Owned(_view.PlayerId))
             {
-                if (IsWorker(creature)) continue;
+                if (IsWorker(creature))
+                {
+                    continue;
+                }
+
                 total++;
                 if ((uint)KeeperThreatResponder.ShiftedDistance(creature.PosX, creature.PosY, _state.CallToArmsX, _state.CallToArmsY) < CreepRadiusSquared)
+                {
                     nearby++;
+                }
             }
             var points = new List<Fixed16Vector>();
             bool routed = _view.CanRoute(_state.CallToArmsX, _state.CallToArmsY, targetX, targetY,
@@ -356,7 +491,10 @@ public sealed class KeeperAttackPlanner
         {
             head ??= creature;
             CreatureFlags flags = _view.Database.CreatureById(creature.CreatureTypeId).Flags;
-            if (!((flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater) || !((flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava)) return creature;
+            if (!((flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater) || !((flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava))
+            {
+                return creature;
+            }
         }
         return head;
     }
@@ -407,7 +545,11 @@ public sealed class KeeperAttackPlanner
         uint bestDistance = uint.MaxValue;
         foreach (KeeperRoomView room in RoomsOf(player))
         {
-            if (BridgeRules.IsBridge(room.Definition)) continue;
+            if (BridgeRules.IsBridge(room.Definition))
+            {
+                continue;
+            }
+
             TilePos slab = FirstSlab(room);
             uint distance = (uint)KeeperThreatResponder.ShiftedDistance(
                 CreatureState.CentreOf(slab.X), CreatureState.CentreOf(slab.Y), point.X, point.Y);

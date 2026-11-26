@@ -21,10 +21,22 @@ public static class HeartSoundRules
     public static bool Damage(SimulationContext context, string system, PlayerId owner, int amount, PlayerId attacker)
     {
         WorldState world = context.World;
-        if (world.Player(owner).HeartHealth <= 0) return false;
-        if (amount > 0) Request(context, system, owner, ThingSoundEvent.HeartDamaged, voiced: true, height: null);
+        if (world.Player(owner).HeartHealth <= 0)
+        {
+            return false;
+        }
+
+        if (amount > 0)
+        {
+            Request(context, system, owner, ThingSoundEvent.HeartDamaged, voiced: true, height: null);
+        }
+
         bool killed = world.DamageHeart(owner, amount, attacker);
-        if (killed) Request(context, system, owner, ThingSoundEvent.HeartDestroyed, voiced: true, height: null);
+        if (killed)
+        {
+            Request(context, system, owner, ThingSoundEvent.HeartDestroyed, voiced: true, height: null);
+        }
+
         return killed;
     }
 
@@ -44,9 +56,16 @@ public static class HeartSoundRules
         bool voiced, int? height, PlayerId? viewerOnlyFor = null, bool player = false)
     {
         GameDatabase database = context.Database;
-        if (ManaRules.DungeonHeartTerrainId(database) is not byte terrain) return;
+        if (ManaRules.DungeonHeartTerrainId(database) is not byte terrain)
+        {
+            return;
+        }
         // A heart with no tile has no position (the collapse is guarded the same way): no sound.
-        if (Combat.HeartSites.PositionOf(context.World, database, owner) < 0) return;
+        if (Combat.HeartSites.PositionOf(context.World, database, owner) < 0)
+        {
+            return;
+        }
+
         (ushort x, ushort y) = ManaRemovalLifecycle.HeartTile(context.World, database, owner);
         int index = (y * context.World.Width) + x;
         ThingSoundRules.RequestTile(context, system, terrain, index, sound,

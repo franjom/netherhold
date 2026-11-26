@@ -16,6 +16,8 @@ public sealed class ManufactureDecaySystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0)
+        {
             ManufactureRules.Decay(context.World, context.Database);
+        }
     }
 }

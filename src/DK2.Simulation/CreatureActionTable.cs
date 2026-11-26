@@ -61,7 +61,11 @@ public static class CreatureActionSounds
     public static void Begin(SimulationContext context, string system, CreatureState creature, int action)
     {
         ushort word = CreatureActionTable.SoundWord(action);
-        if (word == 0) return;
+        if (word == 0)
+        {
+            return;
+        }
+
         ThingSoundRules.Request(context, system, creature, (ThingSoundEvent)word);
     }
 }

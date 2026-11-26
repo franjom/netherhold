@@ -59,16 +59,28 @@ public static class ResearchStep
     /// <summary>One turn of a researcher. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
     {
-        if (RoomEvictRules.Evict(context, system, creature, RoomTypeId.Library)) return true;
+        if (RoomEvictRules.Evict(context, system, creature, RoomTypeId.Library))
+        {
+            return true;
+        }
+
         if (StateShadow.IsTravelling(creature))
         {
-            if (FollowPathRules.Progress(creature.Body) != Fixed16.One) return true;
+            if (FollowPathRules.Progress(creature.Body) != Fixed16.One)
+            {
+                return true;
+            }
+
             creature.StopMoving();
             return StateShadow.Arrive(context, system, creature);
         }
 
         long age = context.Tick.Value - creature.StateEnteredTick;
-        if (age == 0) return true;
+        if (age == 0)
+        {
+            return true;
+        }
+
         return creature.Dk2StateId switch
         {
             ChoosingState => Choose(context, system, creature, age),
@@ -89,7 +101,11 @@ public static class ResearchStep
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];
-            if (!c.HeldPlace.In(library) || c.Dk2StateId == CelebratingState) continue;
+            if (!c.HeldPlace.In(library) || c.Dk2StateId == CelebratingState)
+            {
+                continue;
+            }
+
             c.StopMoving();
             // DK2's dispatcher counts a state's Age (+0x1C) up before each handler call (0x00477029) and
             // SetState zeroes it (0x00476F98), so a place-holder the sweep has yet to reach this tick
@@ -97,7 +113,9 @@ public static class ResearchStep
             // state after the hook (0x0047727F) and so runs 60 at Age 0, which ours skips; with an
             // action running that call returns 1 and draws nothing, as Level 5's 2145 shows.
             if (StateShadow.TryMove(context, system, c, CelebratingState) && !context.CreaturesUpdatedThisTick.Contains(c))
+            {
                 c.StateEnteredTick = context.Tick.Value - 1;
+            }
         }
     }
 
@@ -110,10 +128,22 @@ public static class ResearchStep
     private static bool Celebrate(SimulationContext context, string system, CreatureState creature, long age)
     {
         long now = context.Tick.Value;
-        if (age == 1) creature.ActionUntilTick = 0;
+        if (age == 1)
+        {
+            creature.ActionUntilTick = 0;
+        }
+
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-        if (!AnimationTimingRules.ResolvesPresent(definition, CelebrationArtSlot)) return false;
-        if (now < creature.ActionUntilTick) return true;
+        if (!AnimationTimingRules.ResolvesPresent(definition, CelebrationArtSlot))
+        {
+            return false;
+        }
+
+        if (now < creature.ActionUntilTick)
+        {
+            return true;
+        }
+
         int plays = context.Rng.NextInt(2) + 1;
         creature.ActionUntilTick = now + AnimationTimingRules.CountedHoldTicks(definition, CelebrationArtSlot, plays);
         context.Emit(system, "research_cheer", $"creature={creature.Id} plays={plays} until={creature.ActionUntilTick}");
@@ -127,29 +157,48 @@ public static class ResearchStep
         WorldState world = context.World;
         GameDatabase database = context.Database;
         long now = context.Tick.Value;
-        if (age == 1) creature.StopMoving();
+        if (age == 1)
+        {
+            creature.StopMoving();
+        }
+
         if (world.Player(creature.OwnerPlayerId).ResearchTarget == 0)
         {
             // Nothing to research: action 43 once (art 20), then 0.
             if (age == 1)
+            {
                 creature.ActionUntilTick = now + AnimationTimingRules.CountedHoldTicks(database.CreatureById(creature.CreatureTypeId), 20, 0);
+            }
+
             return now < creature.ActionUntilTick;
         }
 
-        if (OwnLibraryUnder(world, database, creature) is null) return true;
-        if (!creature.HeldPlace.IsHeld || RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex) is not { } held)
+        if (OwnLibraryUnder(world, database, creature) is null)
+        {
             return true;
+        }
+
+        if (!creature.HeldPlace.IsHeld || RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex) is not { } held)
+        {
+            return true;
+        }
 
         if (Find(context, held, creature, out ObjectState? found, out (int X, int Y) point))
         {
             (int x, int y) = StandPoint(context, world, database, held, creature, found!);
             if (Walk(context, system, creature, x, y, AtTheShelfState))
+            {
                 (creature.StateTargetX, creature.StateTargetY) = AutoFurnitureRules.FurniturePosition(world, database, held, found!);
+            }
+
             return true;
         }
 
         if (Walk(context, system, creature, point.X, point.Y, AtTheShelfState))
+        {
             (creature.StateTargetX, creature.StateTargetY) = point;
+        }
+
         return true;
     }
 
@@ -169,7 +218,11 @@ public static class ResearchStep
         }
 
         int angle = Angle(world, thing);
-        if (Variant(world, thing) == 2 && context.Rng.NextInt(2) != 0) angle = (angle - 0x400) & Bearing.Mask;
+        if (Variant(world, thing) == 2 && context.Rng.NextInt(2) != 0)
+        {
+            angle = (angle - 0x400) & Bearing.Mask;
+        }
+
         int r = StandOff(database, creature, thing);
         return (x + (int)(((long)TrapRules.Sine(angle) * r) >> 16), y + (int)(-((long)TrapRules.Cosine(angle) * r) >> 16));
     }
@@ -192,17 +245,35 @@ public static class ResearchStep
         foreach (ObjectState thing in world.Objects)
         {
             if (thing.InHand || thing.ObjectTypeId is not (BookObjectId or BookCaseObjectId) || !EatingRules.Contains(room, thing.TileIndex))
+            {
                 continue;
+            }
+
             (int x, int y) = AutoFurnitureRules.FurniturePosition(world, database, room, thing);
             uint distance = Distance(creature.PosX - x, creature.PosY - y);
-            if (distance >= best) continue;
-            if (Targeted(world, room, x, y)) continue;   // the seeker's own last target counts too
-            if (thing.ObjectTypeId == BookCaseObjectId && SomeoneOnTheSpot(world, database, creature, thing)) continue;
+            if (distance >= best)
+            {
+                continue;
+            }
+
+            if (Targeted(world, room, x, y))
+            {
+                continue;   // the seeker's own last target counts too
+            }
+
+            if (thing.ObjectTypeId == BookCaseObjectId && SomeoneOnTheSpot(world, database, creature, thing))
+            {
+                continue;
+            }
+
             found = thing;
             best = distance;
         }
 
-        if (found is not null) return true;
+        if (found is not null)
+        {
+            return true;
+        }
 
         // No object: a free bare tile of the held room, chosen by its rank along the chain.
         RoomInstance? held = creature.HeldPlace.IsHeld ? RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex) : null;
@@ -213,7 +284,13 @@ public static class ResearchStep
             AutoFurnitureRules.FurnitureSlots(world, database, held, slots);   // once a search, not once a tile
             var free = new List<int>();
             foreach (int tile in chain)
-                if (!slots.Contains(tile) && !TileTargeted(world, room, tile)) free.Add(tile);
+            {
+                if (!slots.Contains(tile) && !TileTargeted(world, room, tile))
+                {
+                    free.Add(tile);
+                }
+            }
+
             if (free.Count > 0)
             {
                 int pick = free[context.Rng.NextInt(free.Count)];
@@ -232,17 +309,27 @@ public static class ResearchStep
     private static bool Targeted(WorldState world, RoomInstance room, int x, int y)
     {
         foreach (CreatureState c in world.Creatures)
+        {
             if (c.HeldPlace.In(room) && HasTarget(world, c) && c.StateTargetX == x && c.StateTargetY == y)
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
     private static bool TileTargeted(WorldState world, RoomInstance room, int tile)
     {
         foreach (CreatureState c in world.Creatures)
+        {
             if (c.HeldPlace.In(room) && HasTarget(world, c)
                 && (c.StateTargetY >> 12) * world.Width + (c.StateTargetX >> 12) == tile)
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -256,13 +343,23 @@ public static class ResearchStep
     {
         int angle = Angle(world, thing);
         int x = thing.TileIndex % world.Width, y = thing.TileIndex / world.Width;
-        if (Variant(world, thing) == 2 && AutoFurnitureRules.Choice(x, y, 2) != 0) angle = (angle - 0x400) & Bearing.Mask;
+        if (Variant(world, thing) == 2 && AutoFurnitureRules.Choice(x, y, 2) != 0)
+        {
+            angle = (angle - 0x400) & Bearing.Mask;
+        }
+
         int r = StandOff(database, seeker, thing);
         int sx = CentreX(world, thing) + (int)(((long)TrapRules.Sine(angle) * r) >> 16);
         int sy = CentreY(world, thing) + (int)(-((long)TrapRules.Cosine(angle) * r) >> 16);
         var spot = new TilePos(sx >> 12, sy >> 12);
         foreach (CreatureState c in world.Creatures)
-            if (c.Tile == spot && !CreatureDeathRules.IsCorpse(c)) return true;
+        {
+            if (c.Tile == spot && !CreatureDeathRules.IsCorpse(c))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -286,12 +383,17 @@ public static class ResearchStep
         ObjectState? thing = OnTile(world, tile, BookCaseObjectId) ?? OnTile(world, tile, BookObjectId);
         if (thing is null)
         {
-            if (!Enter(context, system, creature, ChoosingState)) return false;
+            if (!Enter(context, system, creature, ChoosingState))
+            {
+                return false;
+            }
         }
         else if (RoomIndex.RoomAt(world, database, tile) is { } at
                  && CasinoStep.TurnTo(context, creature, AutoFurnitureRules.FurniturePosition(world, database, at, thing).X,
                      AutoFurnitureRules.FurniturePosition(world, database, at, thing).Y) != 0)
+        {
             return true;
+        }
 
         RoomInstance? room = world.Contains(new TilePos(tile % world.Width, tile / world.Width))
             ? RoomIndex.RoomAt(world, database, tile) : null;
@@ -313,7 +415,11 @@ public static class ResearchStep
         long now = context.Tick.Value;
         CasinoStep.TurnTo(context, creature, creature.StateTargetX, creature.StateTargetY);
         bool moved = creature.WaitPosX != creature.PosX || creature.WaitPosY != creature.PosY;
-        if (age > 1 && moved && now < creature.ActionUntilTick) creature.ActionUntilTick = 0;
+        if (age > 1 && moved && now < creature.ActionUntilTick)
+        {
+            creature.ActionUntilTick = 0;
+        }
+
         (creature.WaitPosX, creature.WaitPosY) = (creature.PosX, creature.PosY);
         RoomInstance? held = creature.HeldPlace.IsHeld ? RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex) : null;
 
@@ -321,14 +427,20 @@ public static class ResearchStep
         {
             if (creature.Dk2StateId == ReadingShortState && held is not null && Find(context, held, creature, out _, out _)
                 && Enter(context, system, creature, ChoosingState))
+            {
                 creature.ActionUntilTick = 0;
+            }
+
             return true;
         }
 
         if (held is not null && ObjectsToARoomMate(world, database, held, creature)
             && RoomCapacityRules.FindRoomWithPlace(context, RoomTypeId.Library, creature) is { } other
             && other.TileIndices[0] != held.TileIndices[0])
+        {
             return false;
+        }
+
         return Enter(context, system, creature, ChoosingState);
     }
 
@@ -339,9 +451,14 @@ public static class ResearchStep
         CreatureFlags against = ((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood)
             ? CreatureFlags.IsEvil : CreatureFlags.IsGood;
         foreach (CreatureState c in world.Creatures)
+        {
             if (c.HeldPlace.In(room) && c.CreatureTypeId != creature.CreatureTypeId
                 && ((database.CreatureById(c.CreatureTypeId).Flags & against) == against))
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -353,22 +470,45 @@ public static class ResearchStep
     /// <c>AngerNoWork</c>.</summary>
     public static void Disturb(SimulationContext context, string system, RoomInstance room, CreatureState intruder)
     {
-        if ((context.Tick.Value + 1) % SimulationTiming.OriginalTicksPerGameSecond != 0) return;   // DK2's turn is our tick + 1
+        if ((context.Tick.Value + 1) % SimulationTiming.OriginalTicksPerGameSecond != 0)
+        {
+            return;   // DK2's turn is our tick + 1
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
         foreach (CreatureState c in world.Creatures)
         {
-            if (!c.HeldPlace.In(room)) continue;
+            if (!c.HeldPlace.In(room))
+            {
+                continue;
+            }
+
             CreatureDef definition = database.CreatureById(c.CreatureTypeId);
-            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) continue;
-            if (Distance(c.PosX - intruder.PosX, c.PosY - intruder.PosY) >= DisturbReach) continue;
-            if (c.Dk2StateId != ReadingLongState) continue;
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+            {
+                continue;
+            }
+
+            if (Distance(c.PosX - intruder.PosX, c.PosY - intruder.PosY) >= DisturbReach)
+            {
+                continue;
+            }
+
+            if (c.Dk2StateId != ReadingLongState)
+            {
+                continue;
+            }
+
             if (c.Anger[AngerBucket.Treatment] > CreatureAngerRules.UnhappyAt(definition) * 10 / 100)
             {
                 StateShadow.TryMove(context, system, c, DisturbedState);
                 context.Emit(system, "research_disturbed", $"creature={c.Id} intruder={intruder.Id}");
             }
-            else ChargeNoWork(world, definition, c);
+            else
+            {
+                ChargeNoWork(world, definition, c);
+            }
         }
     }
 
@@ -381,7 +521,10 @@ public static class ResearchStep
         GameDatabase database = context.Database;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         ChargeNoWork(world, definition, creature);
-        if (Watch(context, world, database, creature, definition, age)) return true;
+        if (Watch(context, world, database, creature, definition, age))
+        {
+            return true;
+        }
 
         if (creature.HeldPlace.IsHeld && RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex) is { } held)
         {
@@ -400,16 +543,27 @@ public static class ResearchStep
         long now = context.Tick.Value;
         if (age == 1)
         {
-            if (!world.Contains(creature.Tile)) return false;
+            if (!world.Contains(creature.Tile))
+            {
+                return false;
+            }
+
             int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
             if (RoomIndex.RoomAt(world, database, here) is not { } room || Intruder(world, database, room, creature) is not { } intruder)
+            {
                 return false;
+            }
+
             creature.WatchedCreatureId = intruder.Id;
             creature.ActionUntilTick = now + AnimationTimingRules.CountedHoldTicks(definition, 5, 0);
             return true;
         }
 
-        if (world.CreatureById(creature.WatchedCreatureId) is not { } watched || CreatureDeathRules.IsCorpse(watched)) return false;
+        if (world.CreatureById(creature.WatchedCreatureId) is not { } watched || CreatureDeathRules.IsCorpse(watched))
+        {
+            return false;
+        }
+
         int left = CasinoStep.TurnTo(context, creature, watched.PosX, watched.PosY);
         if (left < 0x80 && age == 2)
         {
@@ -434,13 +588,25 @@ public static class ResearchStep
         uint bestDistance = uint.MaxValue;
         foreach (CreatureState c in world.Creatures)
         {
-            if (CreatureDeathRules.IsCorpse(c) || !world.Contains(c.Tile) || !room.Contains((c.Tile.Y * world.Width) + c.Tile.X)) continue;
+            if (CreatureDeathRules.IsCorpse(c) || !world.Contains(c.Tile) || !room.Contains((c.Tile.Y * world.Width) + c.Tile.X))
+            {
+                continue;
+            }
+
             bool counts = !c.HeldPlace.IsHeld
                 || (!c.HeldPlace.In(room) && RoomIndex.RoomAt(world, database, c.HeldPlace.TileIndex) is { } r
                     && r.Definition.TypeId == RoomTypeId.Library && ResolvedCategory(c) != CreatureStateCategory.Research);
-            if (!counts) continue;
+            if (!counts)
+            {
+                continue;
+            }
+
             uint distance = Distance(c.PosX - watcher.PosX, c.PosY - watcher.PosY);
-            if (distance >= bestDistance) continue;
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+
             best = c;
             bestDistance = distance;
         }
@@ -456,14 +622,22 @@ public static class ResearchStep
 
     public static CreatureStateCategory? ResolvedCategory(CreatureState creature)
     {
-        if (!CreatureStateMachine.HasState(creature)) return null;
+        if (!CreatureStateMachine.HasState(creature))
+        {
+            return null;
+        }
+
         int state = StateShadow.IsTravelling(creature) ? creature.UtilityNewState : creature.Dk2StateId;
         return CreatureStateTable.Get(state).Category;
     }
 
     private static RoomInstance? OwnLibraryUnder(WorldState world, GameDatabase database, CreatureState creature)
     {
-        if (!world.Contains(creature.Tile)) return null;
+        if (!world.Contains(creature.Tile))
+        {
+            return null;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(world, database, (creature.Tile.Y * world.Width) + creature.Tile.X);
         return room is not null && room.Definition.TypeId == RoomTypeId.Library && room.OwnerPlayerId == creature.OwnerPlayerId
             ? room : null;
@@ -472,7 +646,13 @@ public static class ResearchStep
     private static ObjectState? OnTile(WorldState world, int tile, byte type)
     {
         foreach (ObjectState thing in world.Objects)
-            if (!thing.InHand && thing.TileIndex == tile && thing.ObjectTypeId == type) return thing;
+        {
+            if (!thing.InHand && thing.TileIndex == tile && thing.ObjectTypeId == type)
+            {
+                return thing;
+            }
+        }
+
         return null;
     }
 
@@ -495,7 +675,11 @@ public static class ResearchStep
 
     private static bool Walk(SimulationContext context, string system, CreatureState creature, int x, int y, int resume)
     {
-        if (!context.Navigation.TryRouteTo(creature, x, y, MoveOptions.Loose)) return false;
+        if (!context.Navigation.TryRouteTo(creature, x, y, MoveOptions.Loose))
+        {
+            return false;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         context.Emit(system, "research_walk", $"creature={creature.Id} to=({x >> 12},{y >> 12}) resume={resume}");
         return true;

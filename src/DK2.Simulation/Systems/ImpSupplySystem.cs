@@ -48,12 +48,25 @@ public sealed class ImpSupplySystem : ISimulationSystem
             // heart would have staffed it. The deadline is deliberately NOT
             // cleared for anyone declined, which is what makes a full-strength
             // keeper's next replacement immediate.
-            if (!PlayerIds.IsKeeper(playerId.Value)) continue;
-            if (player.KilledByPlayerId != 0) continue;
+            if (!PlayerIds.IsKeeper(playerId.Value))
+            {
+                continue;
+            }
 
-            if (ImpSupplyRules.ImpCount(world, database, playerId) >= minimum) continue;
+            if (player.KilledByPlayerId != 0)
+            {
+                continue;
+            }
 
-            if (now <= player.NextFreeImpTick) continue;
+            if (ImpSupplyRules.ImpCount(world, database, playerId) >= minimum)
+            {
+                continue;
+            }
+
+            if (now <= player.NextFreeImpTick)
+            {
+                continue;
+            }
 
             player.NextFreeImpTick = new GameTick(unchecked((uint)(now.Value + interval)));
 
@@ -69,8 +82,15 @@ public sealed class ImpSupplySystem : ISimulationSystem
             var point = new FpPosition2(
                 new Fp32(CreatureState.CentreOf(originX) + ((TrapRules.Sine(angle) * 0x2000) >> 16)),
                 new Fp32(CreatureState.CentreOf(originY) - ((TrapRules.Cosine(angle) * 0x2000) >> 16)));
-            if (point.X.Raw < 0 || point.Y.Raw < 0 || !world.Contains(point.Tile)) continue;
-            if (Cast(context, playerId, point, free: true) is not { } shot) continue;
+            if (point.X.Raw < 0 || point.Y.Raw < 0 || !world.Contains(point.Tile))
+            {
+                continue;
+            }
+
+            if (Cast(context, playerId, point, free: true) is not { } shot)
+            {
+                continue;
+            }
 
             context.Emit(SystemName, "imp_generated",
                 $"player={playerId} shot={shot.Id} at=({point.Tile.X},{point.Tile.Y}) " +
@@ -171,14 +191,25 @@ public sealed class ImpSupplySystem : ISimulationSystem
     {
         WorldState world = context.World;
         TilePos tile;
-        if (create.At is { } cast) tile = cast;
+        if (create.At is { } cast)
+        {
+            tile = cast;
+        }
         else
         {
             int heart = ImpSupplyRules.HeartTileOf(world, context.Database, playerId);
-            if (heart < 0) return null;
+            if (heart < 0)
+            {
+                return null;
+            }
+
             tile = new TilePos(heart % world.Width, heart / world.Width);
         }
-        if (!world.Contains(tile)) return null;
+        if (!world.Contains(tile))
+        {
+            return null;
+        }
+
         return create.Position ?? new FpPosition2(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)));
     }
 
@@ -190,14 +221,25 @@ public sealed class ImpSupplySystem : ISimulationSystem
     /// it. Null for a database without the spell or shot.</summary>
     private static ShotState? Cast(SimulationContext context, PlayerId playerId, FpPosition2 point, bool free)
     {
-        if (context.Database.KeeperSpell(KeeperSpellName.CreateImp) is not { } spell) return null;
+        if (context.Database.KeeperSpell(KeeperSpellName.CreateImp) is not { } spell)
+        {
+            return null;
+        }
+
         (byte ShotTypeId, int Data1, int Data2) effect = spell.Shot(IsUpgraded(context, playerId, spell));
-        if (!context.Database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? definition)) return null;
+        if (!context.Database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? definition))
+        {
+            return null;
+        }
+
         ShotState shot = ShotRules.Spawn(context.World, definition, playerId, point.X.Raw, point.Y.Raw, effect.Data1, effect.Data2,
             0, FightTargetKind.None, -1, playerId, -1, point.X.Raw, point.Y.Raw);
         // The constructor's 0xEF and 0xF2 (shot 2 has no category, so none), then 0x004BBEBD's cast sound in KEEPER_SPELL_CREATE_IMP.
         // No trail is requested: the process makes no effect (ADR-0635). Nothing below runs unless something listens.
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return shot;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return shot;
+        }
         // The constructor places the shot on the floor (0x004AAD53), so its sounds are at the floor's height. The cast's own position carries
         // the caller's z: the free cast (0x004BB4C7) passes 0, the bought cast (action 54, 0x005132FB) the terrain's height from world vtable
         // +0x204, which ours takes as the floor's (STRONGLY INFERRED: the lookup was not read).

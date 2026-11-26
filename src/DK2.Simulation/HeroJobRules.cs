@@ -64,9 +64,18 @@ public static class HeroJobRules
             byte id = world.PlayerAtIndex(p).PlayerId.Value;
             int sum = 0;
             foreach (CreatureState c in world.Creatures)
+            {
                 if (c.OwnerPlayerId == id && CreatureStateMachine.HasState(c))
+                {
                     sum += database.CreatureById(c.CreatureTypeId).Unknown_0F4C;
-            if (sum <= bestSum) continue;
+                }
+            }
+
+            if (sum <= bestSum)
+            {
+                continue;
+            }
+
             bestSum = sum;
             best = id;
         }
@@ -77,8 +86,16 @@ public static class HeroJobRules
     /// (the arms of jobs 18 and 19). Ours holds the player id where DK2 holds its tag.</summary>
     public static PlayerId? TargetPlayer(WorldState world, GameDatabase database, CreatureState creature)
     {
-        if (creature.GoodJobPlayerId != 0) return creature.GoodJobPlayerId;
-        if (StrongestPlayer(world, database) is not byte chosen) return null;
+        if (creature.GoodJobPlayerId != 0)
+        {
+            return creature.GoodJobPlayerId;
+        }
+
+        if (StrongestPlayer(world, database) is not byte chosen)
+        {
+            return null;
+        }
+
         creature.GoodJobPlayerId = chosen;
         return chosen;
     }
@@ -96,7 +113,11 @@ public static class HeroJobRules
             JobType.StealGold => StealGoldRules.Arm(context, system, creature),
             _ => false,
         };
-        if (took) creature.CurrentJob = creature.GoodJob;
+        if (took)
+        {
+            creature.CurrentJob = creature.GoodJob;
+        }
+
         return took;
     }
 
@@ -105,7 +126,11 @@ public static class HeroJobRules
     public static bool Wait(SimulationContext context, CreatureState creature)
     {
         long now = context.Tick.Value;
-        if (now < creature.ActionUntilTick) return true;
+        if (now < creature.ActionUntilTick)
+        {
+            return true;
+        }
+
         if (now <= creature.StateDeadlineTick)
         {
             // State 176's action 43 survives a failed standing job and holds state 4 (0x00486CF0).
@@ -118,7 +143,11 @@ public static class HeroJobRules
         creature.StateDeadlineTick = now + 50 + context.Rng.NextInt(35);
         int x = (creature.PosX & ~0xFFF) | ox;
         int y = (creature.PosY & ~0xFFF) | oy;
-        if (!context.Navigation.TryRouteToStance(creature, x, y, Navigation.MoveOptions.Loose)) return false;
+        if (!context.Navigation.TryRouteToStance(creature, x, y, Navigation.MoveOptions.Loose))
+        {
+            return false;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, Systems.StateShadow.TravelToPoint, WaitingState);
         return true;
     }
@@ -131,7 +160,11 @@ public static class HeroJobRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         byte id = unchecked((byte)creature.GoodJobActionPointId);
-        if (id == 0 || PointById(world, id) is not { } point) return false;
+        if (id == 0 || PointById(world, id) is not { } point)
+        {
+            return false;
+        }
+
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
         for (int attempt = 0; attempt < 4; attempt++)
@@ -140,9 +173,15 @@ public static class HeroJobRules
             int spanY = point.EndY - point.StartY;
             int y = spanY != 0 ? point.StartY + context.Rng.NextInt(Math.Abs(spanY)) * Math.Sign(spanY) : point.StartY;
             int x = spanX != 0 ? point.StartX + context.Rng.NextInt(Math.Abs(spanX)) * Math.Sign(spanX) : point.StartX;
-            if (!world.Contains(x, y) || !MayStand(world, database, definition, creature, point, x, y)) continue;
+            if (!world.Contains(x, y) || !MayStand(world, database, definition, creature, point, x, y))
+            {
+                continue;
+            }
+
             if (Walk(context, creature, CreatureState.CentreOf(x), CreatureState.CentreOf(y), AtThePointState, TunnelOption))
+            {
                 return true;
+            }
         }
         return false;
     }
@@ -152,7 +191,11 @@ public static class HeroJobRules
     public static bool AtThePoint(SimulationContext context, string system, CreatureState creature)
     {
         byte id = unchecked((byte)creature.GoodJobActionPointId);
-        if (id == 0 || PointById(context.World, id) is not { } point) return false;
+        if (id == 0 || PointById(context.World, id) is not { } point)
+        {
+            return false;
+        }
+
         creature.GoodJobActionPointId = point.NextWaypointId;
         creature.WaypointDeadlineTick = context.Tick.Value + point.WaitTimerTicks;
         return Systems.StateShadow.TryMove(context, system, creature, RoamingState);
@@ -163,7 +206,10 @@ public static class HeroJobRules
     public static bool Roam(SimulationContext context, string system, CreatureState creature)
     {
         if (context.Tick.Value > creature.WaypointDeadlineTick)
+        {
             return Systems.StateShadow.TryMove(context, system, creature, ToThePointState);
+        }
+
         var grid = new WorldPathGrid(context.Database, context.World, context.Database.CreatureById(creature.CreatureTypeId));
         int start = context.Rng.NextInt(4);
         TilePos at = creature.Tile;
@@ -171,10 +217,16 @@ public static class HeroJobRules
         {
             (int dx, int dy) = Neighbours[(start + k) & 3];
             int tx = at.X + dx, ty = at.Y + dy;
-            if (!grid.IsWalkable(tx, ty)) continue;
+            if (!grid.IsWalkable(tx, ty))
+            {
+                continue;
+            }
+
             (int ox, int oy) = SubTile[context.Rng.NextInt(SubTile.Length)];
             if (Walk(context, creature, (tx << 12) | ox, (ty << 12) | oy, RoamingState, Navigation.MoveOptions.Plain))
+            {
                 return true;
+            }
         }
         return false;
     }
@@ -187,14 +239,25 @@ public static class HeroJobRules
     private static bool HuntFirst(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
-        if (TargetPlayer(world, context.Database, creature) is not PlayerId player) return false;
+        if (TargetPlayer(world, context.Database, creature) is not PlayerId player)
+        {
+            return false;
+        }
+
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         var scratch = new List<Steering.Fixed16Vector>();
         foreach (CreatureState prey in world.Creatures)
         {
-            if (prey.OwnerPlayerId != player || !CreatureStateMachine.HasState(prey)) continue;
-            if (!Combat.CombatTargetRules.CanReach(context.Navigation, creature, definition, prey.PosX, prey.PosY, int.MaxValue, scratch))
+            if (prey.OwnerPlayerId != player || !CreatureStateMachine.HasState(prey))
+            {
                 continue;
+            }
+
+            if (!Combat.CombatTargetRules.CanReach(context.Navigation, creature, definition, prey.PosX, prey.PosY, int.MaxValue, scratch))
+            {
+                continue;
+            }
+
             return prey.Id != creature.Id && Walk(context, creature, prey.PosX, prey.PosY, HuntingState, (Navigation.MoveOptions)0x41);
         }
         return false;
@@ -208,13 +271,21 @@ public static class HeroJobRules
         PlayerId player = creature.GoodJobPlayerId;
         var theirs = new List<CreatureState>();
         foreach (CreatureState c in world.Creatures)
-            if (c.OwnerPlayerId == player && CreatureStateMachine.HasState(c)) theirs.Add(c);
+        {
+            if (c.OwnerPlayerId == player && CreatureStateMachine.HasState(c))
+            {
+                theirs.Add(c);
+            }
+        }
+
         if (theirs.Count > 0)
         {
             CreatureState prey = theirs[context.Rng.NextInt(theirs.Count)];
             if (prey.Id != creature.Id
                 && Walk(context, creature, prey.PosX, prey.PosY, HuntingState, Navigation.MoveOptions.Plain))
+            {
                 return true;
+            }
         }
         return HeartPositionWalk(context, creature, player);
     }
@@ -223,7 +294,11 @@ public static class HeroJobRules
     /// handler returns 0 — so the hero idles there and runs the job again.</summary>
     private static bool ToTheHeart(SimulationContext context, CreatureState creature, JobType _)
     {
-        if (TargetPlayer(context.World, context.Database, creature) is not PlayerId player) return false;
+        if (TargetPlayer(context.World, context.Database, creature) is not PlayerId player)
+        {
+            return false;
+        }
+
         return HeartWalk(context, creature, player, TunnelOption);
     }
 
@@ -237,7 +312,11 @@ public static class HeroJobRules
     {
         WorldState world = context.World;
         int position = Combat.HeartSites.PositionOf(world, context.Database, player);
-        if (position < 0 || RoomIndex.RoomAt(world, context.Database, position) is not { } room) return false;
+        if (position < 0 || RoomIndex.RoomAt(world, context.Database, position) is not { } room)
+        {
+            return false;
+        }
+
         int tile = SlabChain.Order(world, room)[context.Rng.NextInt(room.TileCount)];
         int w = world.Width;
         return Walk(context, creature, CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), AtTheHeartState, options);
@@ -248,7 +327,11 @@ public static class HeroJobRules
     private static bool HeartPositionWalk(SimulationContext context, CreatureState creature, PlayerId player)
     {
         int position = Combat.HeartSites.PositionOf(context.World, context.Database, player);
-        if (position < 0) return false;
+        if (position < 0)
+        {
+            return false;
+        }
+
         int w = context.World.Width;
         return Walk(context, creature, CreatureState.CentreOf(position % w), CreatureState.CentreOf(position / w), AtTheHeartState, Navigation.MoveOptions.Plain);
     }
@@ -259,14 +342,21 @@ public static class HeroJobRules
     /// random sub-tile point there. Always succeeds, routed or not.</summary>
     public static bool Follow(SimulationContext context, CreatureState creature)
     {
-        if (context.World.CreatureById(creature.LeaderId) is not { } leader) return true;
+        if (context.World.CreatureById(creature.LeaderId) is not { } leader)
+        {
+            return true;
+        }
+
         CasinoStep.TurnTo(context, creature, leader.PosX, leader.PosY);
         (int x, int y) = FollowTile(context.World, context.Database, creature, leader);
         (int ox, int oy) = SubTile[context.Rng.NextInt(SubTile.Length)];
         if (context.World.Contains(new TilePos(x, y))
             && !context.Database.TerrainById(context.World.Tile(x, y).TerrainId).IsSolid
             && context.Navigation.TryRouteToStance(creature, (x << 12) | ox, (y << 12) | oy, Navigation.MoveOptions.Loose))
+        {
             CreatureStateMachine.BeginTravel(context.Hooks, creature, Systems.StateShadow.TravelToPoint, FollowingState);
+        }
+
         return true;
     }
 
@@ -324,19 +414,44 @@ public static class HeroJobRules
     {
         ref TileState tile = ref world.Tile(x, y);
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
-        if ((point.Flags & 0x40) != 0 && terrain.IsSolid) return false;
+        if ((point.Flags & 0x40) != 0 && terrain.IsSolid)
+        {
+            return false;
+        }
         // A finished wall of its own player (0x00453CC0 at 0x00472080), not a room: a Hero Gate is no bar (Q525).
-        if (ReinforcementRules.IsFinished(database, tile) && tile.OwnerPlayerId == creature.OwnerPlayerId) return false;
-        if (terrain.IsImpenetrable && tile.OwnerPlayerId == creature.OwnerPlayerId) return false;
-        if (terrain.IsWater && ((definition.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater)) return true;
-        if (terrain.IsLava && ((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava)) return true;
+        if (ReinforcementRules.IsFinished(database, tile) && tile.OwnerPlayerId == creature.OwnerPlayerId)
+        {
+            return false;
+        }
+
+        if (terrain.IsImpenetrable && tile.OwnerPlayerId == creature.OwnerPlayerId)
+        {
+            return false;
+        }
+
+        if (terrain.IsWater && ((definition.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater))
+        {
+            return true;
+        }
+
+        if (terrain.IsLava && ((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava))
+        {
+            return true;
+        }
+
         return !terrain.IsImpenetrable;
     }
 
     private static ActionPointState? PointById(WorldState world, byte id)
     {
         foreach (ActionPointState p in world.ActionPoints)
-            if (p.Id == id) return p;
+        {
+            if (p.Id == id)
+            {
+                return p;
+            }
+        }
+
         return null;
     }
 

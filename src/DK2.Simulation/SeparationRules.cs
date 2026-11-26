@@ -63,9 +63,15 @@ public static class SeparationRules
     /// through <see cref="IntegerSquareRoot"/>, which softens how fast it falls away.</summary>
     public static int Magnitude(int ratio, int maxForce, bool neighbourBlocks, bool ignoresBlockers)
     {
-        if (ratio <= SaturationRatio) return maxForce;
+        if (ratio <= SaturationRatio)
+        {
+            return maxForce;
+        }
 
-        if (neighbourBlocks && !ignoresBlockers) return Reciprocal(ratio);
+        if (neighbourBlocks && !ignoresBlockers)
+        {
+            return Reciprocal(ratio);
+        }
 
         int root = IntegerSquareRoot(ratio);
         return root == 0 ? maxForce : Reciprocal(root);

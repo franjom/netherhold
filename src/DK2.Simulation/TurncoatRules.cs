@@ -28,12 +28,19 @@ public static class TurncoatRules
 
     public static void Strike(SimulationContext context, ShotState shot, CreatureState target, CreatureDef definition)
     {
-        if (!CreatureStateMachine.HasState(target) || ((definition.Flags & CreatureFlags.IsImmuneToTurncoat) == CreatureFlags.IsImmuneToTurncoat)) return;
+        if (!CreatureStateMachine.HasState(target) || ((definition.Flags & CreatureFlags.IsImmuneToTurncoat) == CreatureFlags.IsImmuneToTurncoat))
+        {
+            return;
+        }
+
         target.TurncoatTicks = unchecked((ushort)(shot.Data1 * SimulationTiming.OriginalTicksPerGameSecond));
         target.TurncoatPlayerId = shot.OwnerPlayerId;
         if (NeedRules.ResolvedCategory(target) == CreatureStateCategory.Combat
             && CreatureStateMachine.TrySetState(context.Hooks, target, CreatureStateMachine.Idle, context.Tick.Value))
+        {
             target.StopMoving();
+        }
+
         context.Emit("turncoat", "applied", $"creature={target.Id} player={shot.OwnerPlayerId} ticks={target.TurncoatTicks}");
     }
 }

@@ -29,7 +29,11 @@ public struct TileState
         readonly get => _terrainId;
         set
         {
-            if (_terrainId == value) return;
+            if (_terrainId == value)
+            {
+                return;
+            }
+
             _terrainId = value;
             NoteKeyWrite();
         }
@@ -41,7 +45,11 @@ public struct TileState
         readonly get => _ownerPlayerId;
         set
         {
-            if (_ownerPlayerId == value) return;
+            if (_ownerPlayerId == value)
+            {
+                return;
+            }
+
             _ownerPlayerId = value;
             NoteKeyWrite();
         }
@@ -108,7 +116,11 @@ public struct TileState
         readonly get => _secretDoor;
         set
         {
-            if (_secretDoor == value) return;
+            if (_secretDoor == value)
+            {
+                return;
+            }
+
             _secretDoor = value;
             NoteKeyWrite();
         }
@@ -286,7 +298,11 @@ public struct TileState
         readonly get => _roomRuined;
         set
         {
-            if (_roomRuined == value) return;
+            if (_roomRuined == value)
+            {
+                return;
+            }
+
             _roomRuined = value;
             NoteKeyWrite();
         }
@@ -321,9 +337,11 @@ public struct TileState
     public void SetDiscoveredBy(PlayerId playerId)
     {
         if (playerId > MaxTaggingPlayerId)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(playerId), playerId,
                 $"Tile discovery only tracks player ids 0..{MaxTaggingPlayerId}.");
+        }
 
         DiscoveredBy = DiscoveredBy.With(playerId);
     }
@@ -331,9 +349,11 @@ public struct TileState
     public void SetTaggedBy(PlayerId playerId, bool tagged)
     {
         if (playerId > MaxTaggingPlayerId)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(playerId), playerId,
                 $"Tile tags only track player ids 0..{MaxTaggingPlayerId}.");
+        }
 
         TaggedBy = tagged ? TaggedBy.With(playerId) : TaggedBy.Without(playerId);
     }
@@ -689,13 +709,23 @@ public struct PlayerState
         hash.Add(GraveyardWantedPosted ? (byte)1 : (byte)0);
         hash.Add(Availabilities.Count);
         foreach (AvailabilityState availability in Availabilities)
+        {
             availability.HashInto(ref hash);
+        }
+
         hash.Add(LastSackedCreatureTypeId);
         hash.Add(EntranceInfo.Count);
         foreach (EntranceInfoState entrance in EntranceInfo)
+        {
             entrance.HashInto(ref hash);
+        }
+
         hash.Add(IntroducedCreatureTypes.Count);
-        foreach (byte creatureType in IntroducedCreatureTypes) hash.Add(creatureType);
+        foreach (byte creatureType in IntroducedCreatureTypes)
+        {
+            hash.Add(creatureType);
+        }
+
         hash.Add(ManufacturePoints);
         hash.Add(ManufacturingCreatures);
         hash.Add(InformationGiven);
@@ -703,11 +733,19 @@ public struct PlayerState
         Statistics.HashInto(ref hash);
         Finale.HashInto(ref hash);
         hash.Add(ManufactureQueue.Count);
-        foreach (ManufactureOrder order in ManufactureQueue) order.HashInto(ref hash);
+        foreach (ManufactureOrder order in ManufactureQueue)
+        {
+            order.HashInto(ref hash);
+        }
+
         hash.Add(ManufactureRingTail);
         hash.Add(ManufactureSlotZeroCost);
         hash.Add(Blueprints.Count);
-        foreach (BlueprintRef blueprint in Blueprints) blueprint.HashInto(ref hash);
+        foreach (BlueprintRef blueprint in Blueprints)
+        {
+            blueprint.HashInto(ref hash);
+        }
+
         hash.Add(Hand.Count);
         foreach (HandItem held in Hand)
         {
@@ -885,9 +923,17 @@ public sealed partial class WorldState
 
     internal void NotifyRoomTilesChanged(IReadOnlyList<int> chain)
     {
-        if (RoomTilesChanged is not { } observer) return;
+        if (RoomTilesChanged is not { } observer)
+        {
+            return;
+        }
+
         var tiles = new TilePos[chain.Count];
-        for (int i = 0; i < tiles.Length; i++) tiles[i] = TilePosition(chain[i]);
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            tiles[i] = TilePosition(chain[i]);
+        }
+
         observer(tiles);
     }
 
@@ -895,8 +941,16 @@ public sealed partial class WorldState
 
     public ref TileState Tile(int x, int y)
     {
-        if ((uint)x >= (uint)Width) throw new ArgumentOutOfRangeException(nameof(x));
-        if ((uint)y >= (uint)Height) throw new ArgumentOutOfRangeException(nameof(y));
+        if ((uint)x >= (uint)Width)
+        {
+            throw new ArgumentOutOfRangeException(nameof(x));
+        }
+
+        if ((uint)y >= (uint)Height)
+        {
+            throw new ArgumentOutOfRangeException(nameof(y));
+        }
+
         return ref _tiles[(y * Width) + x];
     }
 
@@ -922,24 +976,39 @@ public sealed partial class WorldState
     internal ref RoomBuildWaveState? RoomBuildWave(PlayerId playerId, RoomBuildSlot slot)
     {
         for (int i = 0; i < _players.Length; i++)
+        {
             if (_players[i].PlayerId == playerId)
+            {
                 return ref RoomBuildWaveSlots[i * RoomBuildWaveRules.SlotsPerPlayer + (int)slot];
+            }
+        }
+
         throw new KeyNotFoundException($"No player with id {playerId} in this world.");
     }
 
     internal ref RoomSellWaveState? RoomSellWave(PlayerId playerId, int slot)
     {
         for (int i = 0; i < _players.Length; i++)
+        {
             if (_players[i].PlayerId == playerId)
+            {
                 return ref RoomSellWaveSlots[i * RoomSellWaveRules.SlotsPerPlayer + slot];
+            }
+        }
+
         throw new KeyNotFoundException($"No player with id {playerId} in this world.");
     }
 
     public ref PlayerState Player(PlayerId playerId)
     {
         for (int i = 0; i < _players.Length; i++)
+        {
             if (_players[i].PlayerId == playerId)
+            {
                 return ref _players[i];
+            }
+        }
+
         throw new KeyNotFoundException($"No player with id {playerId} in this world.");
     }
 
@@ -947,8 +1016,13 @@ public sealed partial class WorldState
     public int Availability(PlayerId playerId, AvailabilityKind kind, int typeId)
     {
         foreach (AvailabilityState entry in Player(playerId).Availabilities)
+        {
             if (entry.Kind == kind && entry.TypeId == typeId)
+            {
                 return entry.Value;
+            }
+        }
+
         return 1;
     }
 
@@ -959,7 +1033,11 @@ public sealed partial class WorldState
         for (int i = 0; i < player.Availabilities.Count; i++)
         {
             AvailabilityState entry = player.Availabilities[i];
-            if (entry.Kind != kind || entry.TypeId != typeId) continue;
+            if (entry.Kind != kind || entry.TypeId != typeId)
+            {
+                continue;
+            }
+
             player.Availabilities[i] = entry with { Value = value };
             return;
         }
@@ -970,8 +1048,13 @@ public sealed partial class WorldState
     public bool IsUpgraded(PlayerId playerId, AvailabilityKind kind, int typeId)
     {
         foreach (AvailabilityState entry in Player(playerId).Availabilities)
+        {
             if (entry.Kind == kind && entry.TypeId == typeId)
+            {
                 return entry.Upgraded;
+            }
+        }
+
         return false;
     }
 
@@ -983,7 +1066,11 @@ public sealed partial class WorldState
         for (int i = 0; i < player.Availabilities.Count; i++)
         {
             AvailabilityState entry = player.Availabilities[i];
-            if (entry.Kind != kind || entry.TypeId != typeId) continue;
+            if (entry.Kind != kind || entry.TypeId != typeId)
+            {
+                continue;
+            }
+
             player.Availabilities[i] = entry with { Upgraded = upgraded };
             return;
         }
@@ -999,7 +1086,11 @@ public sealed partial class WorldState
     public bool EndGame(GameDatabase database, PlayerId playerId, byte status)
     {
         ref PlayerState player = ref Player(playerId);
-        if (PlayerStatus.HasEnded(player.Status)) return false;
+        if (PlayerStatus.HasEnded(player.Status))
+        {
+            return false;
+        }
+
         player.Status = status;
         player.StatusTick = CurrentTick;
         LevelStatisticsRules.Sample(this, database, playerId, status);
@@ -1017,11 +1108,18 @@ public sealed partial class WorldState
     public bool DamageHeart(PlayerId playerId, int amount, PlayerId attackerPlayerId)
     {
         ref PlayerState player = ref Player(playerId);
-        if (player.HeartHealth <= 0) return false;
+        if (player.HeartHealth <= 0)
+        {
+            return false;
+        }
+
         player.HeartLastAttackerPlayerId = attackerPlayerId.Value;
         player.HeartHealth -= amount;
         HeartHealthChanged?.Invoke(new HeartHealthChange(playerId, player.HeartHealth));
-        if (player.HeartHealth > 0) return false;
+        if (player.HeartHealth > 0)
+        {
+            return false;
+        }
 
         player.HeartHealth = 0;
         player.KilledByPlayerId = attackerPlayerId.Value;
@@ -1057,16 +1155,29 @@ public sealed partial class WorldState
     /// writes them, so a one-sided alliance is a state DK2 cannot reach.</summary>
     public void SetAllied(PlayerId playerId, byte otherId, bool allied)
     {
-        if (playerId == otherId) return;
+        if (playerId == otherId)
+        {
+            return;
+        }
+
         if (playerId >= 8 || otherId >= 8)
+        {
             throw new ArgumentOutOfRangeException(nameof(playerId), "The alliance array holds eight players.");
+        }
+
         Write(ref Player(playerId), otherId, allied);
         Write(ref Player(otherId), playerId.Value, allied);
 
         static void Write(ref PlayerState player, byte other, bool allied)
         {
-            if (allied) player.AlliedWith |= (byte)(1 << other);
-            else player.AlliedWith &= (byte)~(1 << other);
+            if (allied)
+            {
+                player.AlliedWith |= (byte)(1 << other);
+            }
+            else
+            {
+                player.AlliedWith &= (byte)~(1 << other);
+            }
         }
     }
 
@@ -1092,15 +1203,21 @@ public sealed partial class WorldState
     public void QueueWork(TileWorkOrder order)
     {
         if ((uint)order.TileIndex >= (uint)_tiles.Length)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(order), order.TileIndex, "Work order references a tile outside the map.");
+        }
+
         _pendingWork.Add(order);
     }
 
     public void QueueWork(int x, int y, TileWorkKind kind, PlayerId playerId)
     {
         if (!Contains(x, y))
+        {
             throw new ArgumentOutOfRangeException(nameof(x), $"({x},{y}) is outside the map.");
+        }
+
         _pendingWork.Add(new TileWorkOrder((y * Width) + x, kind, playerId));
     }
 
@@ -1120,16 +1237,27 @@ public sealed partial class WorldState
     public IEnumerable<CreatureState> OwnedCreatures(PlayerId playerId)
     {
         foreach (CreatureState creature in _creaturesByOwnership)
+        {
             if (creature.OwnerPlayerId == playerId && CreatureStateMachine.HasState(creature))
+            {
                 yield return creature;
+            }
+        }
     }
 
     /// <summary>Changes the owner and places the creature first in its new owner's list.</summary>
     public void ChangeCreatureOwner(CreatureState creature, PlayerId playerId)
     {
         if (!_creatures.Contains(creature))
+        {
             throw new ArgumentException("Creature does not belong to this world.", nameof(creature));
-        if (creature.OwnerPlayerId == playerId) return;
+        }
+
+        if (creature.OwnerPlayerId == playerId)
+        {
+            return;
+        }
+
         creature.OwnerPlayerId = playerId.Value;
         _creaturesByOwnership.Remove(creature);
         _creaturesByOwnership.Insert(0, creature);
@@ -1148,11 +1276,17 @@ public sealed partial class WorldState
     internal void RestoreCreatureOwnershipOrder(IReadOnlyList<int> ids)
     {
         if (ids.Count != _creatures.Count || ids.Distinct().Count() != ids.Count)
+        {
             throw new InvalidDataException("Invalid creature ownership order.");
+        }
+
         var ordered = new List<CreatureState>(ids.Count);
         foreach (int id in ids)
+        {
             ordered.Add(CreatureById(id)
                 ?? throw new InvalidDataException("Ownership order names a missing creature."));
+        }
+
         _creaturesByOwnership.Clear();
         _creaturesByOwnership.AddRange(ordered);
     }
@@ -1168,7 +1302,9 @@ public sealed partial class WorldState
         GameDatabase database, byte creatureTypeId, PlayerId ownerPlayerId, TilePos at)
     {
         if (!Contains(at))
+        {
             throw new ArgumentOutOfRangeException(nameof(at), at, "Spawn tile is outside the map.");
+        }
 
         NativeCreatureTag slot = CreatureSlots.Take();
         long stamp = NeedRules.SpawnStamp(CurrentTick.Value, slot.Value);
@@ -1210,7 +1346,9 @@ public sealed partial class WorldState
         _creatures.Add(creature);
         _creaturesByOwnership.Insert(0, creature);
         if (_creatureIdentityRandom is not null)
+        {
             CreatureIdentityRules.Initialize(this, creature, _creatureIdentityRandom);
+        }
         // After GetPaid and identity assignment, as in the original constructor.
         PaydayRules.ArmOnGain(this, database, creature);
         creature.LinkWorld = this;
@@ -1235,7 +1373,9 @@ public sealed partial class WorldState
     {
         _creatureIdentityRandom = random;
         foreach (CreatureState creature in _creatures)
+        {
             CreatureIdentityRules.Initialize(this, creature, random);
+        }
     }
 
     /// <summary>
@@ -1252,13 +1392,19 @@ public sealed partial class WorldState
     {
         for (int i = 0; i < _creatures.Count; i++)
         {
-            if (_creatures[i].Id != id) continue;
+            if (_creatures[i].Id != id)
+            {
+                continue;
+            }
             // The death bookkeeping runs for every freed creature (0x004B7A36), so a follower that
             // leaves, is sacrificed or is removed any other way lowers its leader's count.
             PossessionRules.CreatureFreed(this, _creatures[i]);
             // Creature_DeathBookkeeping clears the first world slot holding it (0x00488396..0x004883CC).
             for (int s = 0; s < HeroSlotCount; s++)
+            {
                 if (HeroSlotArray[s].CreatureId == id) { HeroSlotArray[s] = default; break; }
+            }
+
             ReleaseCreatureSlot(_creatures[i]);
             _creaturesByOwnership.Remove(_creatures[i]);
             _creatures[i].LinkWorld = null;
@@ -1266,7 +1412,11 @@ public sealed partial class WorldState
             _creatures.RemoveAt(i);
             // DK2's death handler unlinks the dead from every engagement list it was on; a
             // creature that was fighting it notices the empty target on its next fight process.
-            foreach (CreatureState other in _creatures) Combat.CombatRules.Unregister(other, id);
+            foreach (CreatureState other in _creatures)
+            {
+                Combat.CombatRules.Unregister(other, id);
+            }
+
             return true;
         }
         return false;
@@ -1274,7 +1424,11 @@ public sealed partial class WorldState
 
     internal void ReleaseCreatureSlot(CreatureState creature)
     {
-        if (creature.NativeSlotTag == 0) return;
+        if (creature.NativeSlotTag == 0)
+        {
+            return;
+        }
+
         CreatureSlotReleasing?.Invoke(creature);
         CreatureSlots.Return(new NativeCreatureTag(creature.NativeSlotTag));
         creature.NativeSlotTag = 0;
@@ -1283,7 +1437,13 @@ public sealed partial class WorldState
     public CreatureState? CreatureById(int id)
     {
         foreach (CreatureState c in _creatures)
-            if (c.Id == id) return c;
+        {
+            if (c.Id == id)
+            {
+                return c;
+            }
+        }
+
         return null;
     }
 
@@ -1308,15 +1468,19 @@ public sealed partial class WorldState
         GameDatabase database, byte objectTypeId, PlayerId ownerPlayerId, int tileIndex)
     {
         if ((uint)tileIndex >= (uint)_tiles.Length)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(tileIndex), tileIndex, "Object tile is outside the map.");
+        }
 
         // Refused rather than placed: an unknown object would answer "not a bed,
         // not gold, not food" to every rule that asks a type flag, which is a
         // silent wrong answer rather than a loud one.
         if (database.ObjectById(objectTypeId) is null)
+        {
             throw new KeyNotFoundException(
                 $"No object definition with id {objectTypeId}.");
+        }
 
         var instance = new ObjectState
         {
@@ -1336,8 +1500,15 @@ public sealed partial class WorldState
         }
 
         if (objectTypeId == HatcheryRules.ChickenObjectId)
+        {
             instance.ChickenScale = new Fp32(Fp32.One);
-        if (ObjectCreationRandom is { } random) ChickenSizeRules.Initialize(instance, random);
+        }
+
+        if (ObjectCreationRandom is { } random)
+        {
+            ChickenSizeRules.Initialize(instance, random);
+        }
+
         _objects.Add(instance);
         instance.LinkWorld = this;
         Relink(instance);
@@ -1353,7 +1524,11 @@ public sealed partial class WorldState
     {
         for (int i = 0; i < _objects.Count; i++)
         {
-            if (_objects[i].Id != id) continue;
+            if (_objects[i].Id != id)
+            {
+                continue;
+            }
+
             ObjectRemoving?.Invoke(_objects[i]);
             _objects[i].LinkWorld = null;
             _objects[i].TileLink = ThingTileLink.None;
@@ -1366,7 +1541,13 @@ public sealed partial class WorldState
     public ObjectState? ObjectById(int id)
     {
         foreach (ObjectState o in _objects)
-            if (o.Id == id) return o;
+        {
+            if (o.Id == id)
+            {
+                return o;
+            }
+        }
+
         return null;
     }
 
@@ -1421,7 +1602,10 @@ public sealed partial class WorldState
     internal SecretDoorTaskEntry SecretDoorEntry(PlayerId player, TilePos tile)
     {
         if (!SecretDoorEntries.TryGetValue((player, tile), out SecretDoorTaskEntry? entry))
+        {
             SecretDoorEntries.Add((player, tile), entry = new SecretDoorTaskEntry { Order = NextTagOrder++ });
+        }
+
         return entry;
     }
 
@@ -1438,7 +1622,10 @@ public sealed partial class WorldState
     internal RepairTaskEntry RepairEntry(PlayerId player, TilePos tile)
     {
         if (!RepairTaskEntries.TryGetValue((player, tile), out RepairTaskEntry? entry))
+        {
             RepairTaskEntries.Add((player, tile), entry = new RepairTaskEntry());
+        }
+
         return entry;
     }
 
@@ -1452,7 +1639,13 @@ public sealed partial class WorldState
     public ShotState? ShotById(int id)
     {
         foreach (ShotState s in _shots)
-            if (s.Id == id) return s;
+        {
+            if (s.Id == id)
+            {
+                return s;
+            }
+        }
+
         return null;
     }
 
@@ -1470,7 +1663,11 @@ public sealed partial class WorldState
     {
         for (int i = 0; i < _shots.Count; i++)
         {
-            if (_shots[i].Id != id) continue;
+            if (_shots[i].Id != id)
+            {
+                continue;
+            }
+
             _shots[i].LinkWorld = null;
             _shots[i].TileLink = ThingTileLink.None;
             _shots.RemoveAt(i);
@@ -1513,7 +1710,12 @@ public sealed partial class WorldState
     {
         // Runs every turn: an index loop, not RemoveAll, so a standing stamp allocates nothing.
         for (int i = _navStamps.Count - 1; i >= 0; i--)
-            if (_tiles[_navStamps[i].Tile].TerrainId != _navStamps[i].TerrainId) _navStamps.RemoveAt(i);
+        {
+            if (_tiles[_navStamps[i].Tile].TerrainId != _navStamps[i].TerrainId)
+            {
+                _navStamps.RemoveAt(i);
+            }
+        }
     }
 
     /// <summary>Bumped by every add and removal, so a per-tile cache of doors knows when to
@@ -1568,17 +1770,26 @@ public sealed partial class WorldState
     /// values; the chain's relative order is unaffected.</summary>
     internal void Relink(CreatureState creature)
     {
-        if (ReferenceEquals(creature.LinkWorld, this)) creature.TileLink = Moved(creature.TileLink, ChainTileOf(creature));
+        if (ReferenceEquals(creature.LinkWorld, this))
+        {
+            creature.TileLink = Moved(creature.TileLink, ChainTileOf(creature));
+        }
     }
 
     internal void Relink(ObjectState thing)
     {
-        if (ReferenceEquals(thing.LinkWorld, this)) thing.TileLink = Moved(thing.TileLink, ChainTileOf(thing));
+        if (ReferenceEquals(thing.LinkWorld, this))
+        {
+            thing.TileLink = Moved(thing.TileLink, ChainTileOf(thing));
+        }
     }
 
     internal void Relink(ShotState shot)
     {
-        if (ReferenceEquals(shot.LinkWorld, this)) shot.TileLink = Moved(shot.TileLink, TileIndexAt(shot.PosX, shot.PosY));
+        if (ReferenceEquals(shot.LinkWorld, this))
+        {
+            shot.TileLink = Moved(shot.TileLink, TileIndexAt(shot.PosX, shot.PosY));
+        }
     }
 
     /// <summary>A creature that dies leaves the chain (<c>0x0048846F</c>) and its body is a new thing
@@ -1586,7 +1797,10 @@ public sealed partial class WorldState
     /// it is linked afresh at the head of its tile.</summary>
     internal void RelinkAsBody(CreatureState creature)
     {
-        if (ReferenceEquals(creature.LinkWorld, this)) creature.TileLink = NewLink(ChainTileOf(creature));
+        if (ReferenceEquals(creature.LinkWorld, this))
+        {
+            creature.TileLink = NewLink(ChainTileOf(creature));
+        }
     }
 
     /// <summary>Restores a loaded thing's ownership without relinking: its link was saved.</summary>
@@ -1620,14 +1834,19 @@ public sealed partial class WorldState
         int index = 0;
         while (index < _templeSacrifices.Count
                && _templeSacrifices[index].AnchorTileIndex < anchorTileIndex)
+        {
             index++;
+        }
 
         if (index < _templeSacrifices.Count
             && _templeSacrifices[index].AnchorTileIndex == anchorTileIndex)
         {
             TempleSacrificeState existing = _templeSacrifices[index];
             if (existing.OwnerPlayerId != ownerPlayerId)
+            {
                 throw new InvalidOperationException("A Temple anchor cannot belong to two players.");
+            }
+
             return existing;
         }
 
@@ -1643,13 +1862,18 @@ public sealed partial class WorldState
     {
         int index = 0;
         while (index < _graveyards.Count && _graveyards[index].AnchorTileIndex < anchorTileIndex)
+        {
             index++;
+        }
 
         if (index < _graveyards.Count && _graveyards[index].AnchorTileIndex == anchorTileIndex)
         {
             GraveyardState existing = _graveyards[index];
             if (existing.OwnerPlayerId != ownerPlayerId)
+            {
                 throw new InvalidOperationException("A Graveyard anchor cannot belong to two players.");
+            }
+
             return existing;
         }
 
@@ -1661,7 +1885,13 @@ public sealed partial class WorldState
     public bool HasPlayer(PlayerId playerId)
     {
         foreach (PlayerState p in _players)
-            if (p.PlayerId == playerId) return true;
+        {
+            if (p.PlayerId == playerId)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -1730,21 +1960,35 @@ public sealed partial class WorldState
         // neutral with the heroes (Q576). DK2 holds all seven player records whether or not the
         // level activates them; a pair naming a player this world lacks has nobody to affect.
         foreach (AllianceEntry pact in database.Variables.Alliances)
+        {
             if (pact.PlayerId is > 0 and < 8 && pact.OtherPlayerId is > 0 and < 8
                 && world.HasPlayer((byte)pact.PlayerId) && world.HasPlayer((byte)pact.OtherPlayerId))
+            {
                 world.SetAllied((byte)pact.PlayerId, (byte)pact.OtherPlayerId, allied: true);
+            }
+        }
 
         // The terrain loader explores a tile for its owner, independently of sight.
         foreach (PlayerState player in players)
+        {
             for (int i = 0; i < tiles.Length; i++)
+            {
                 if (tiles[i].OwnerPlayerId == player.PlayerId)
+                {
                     tiles[i].SetExploredBy(player.PlayerId);
+                }
+            }
+        }
 
         // The loader inserts a map room's tiles one by one (0x004C5C30), so the Prison's slot +0x09
         // sees it at one tile and turns Activation on (0x004E2B30, SlabChain).
         foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
             if (room.Definition.TypeId == RoomTypeId.Prison)
+            {
                 JailBreakRules.DoorOf(world, room) |= JailBreakRules.Activated;
+            }
+        }
 
         return world;
     }
@@ -1790,13 +2034,33 @@ public sealed partial class WorldState
         hash.Add(FogOfWarEnabled ? (byte)1 : (byte)0);
         hash.Add((byte)GameMode);
         hash.Add(ActivePlayerOrderSlots.Length);
-        foreach (PlayerId id in ActivePlayerOrderSlots) hash.Add(id.Value);
-        foreach (TremorState tremor in TremorSlots) tremor.HashInto(ref hash);
-        foreach (HeroSlot slot in HeroSlotArray) slot.HashInto(ref hash);
+        foreach (PlayerId id in ActivePlayerOrderSlots)
+        {
+            hash.Add(id.Value);
+        }
+
+        foreach (TremorState tremor in TremorSlots)
+        {
+            tremor.HashInto(ref hash);
+        }
+
+        foreach (HeroSlot slot in HeroSlotArray)
+        {
+            slot.HashInto(ref hash);
+        }
+
         hash.Add(RoomBorderCursorList.Count);
-        foreach (RoomBorderCursor cursor in RoomBorderCursorList) cursor.HashInto(ref hash);
+        foreach (RoomBorderCursor cursor in RoomBorderCursorList)
+        {
+            cursor.HashInto(ref hash);
+        }
+
         hash.Add(_tiles.Length);
-        foreach (TileState t in _tiles) t.HashInto(ref hash);
+        foreach (TileState t in _tiles)
+        {
+            t.HashInto(ref hash);
+        }
+
         hash.Add(NextSlabOrder);
         hash.Add(NextRoomListPosition);
         hash.Add(NextPlaceClaim);
@@ -1811,7 +2075,10 @@ public sealed partial class WorldState
             hash.Add(pair.Key.Tile.X);
             hash.Add(pair.Key.Tile.Y);
             hash.Add(pair.Value.Order);
-            foreach (int holder in pair.Value.Holders) hash.Add(holder);
+            foreach (int holder in pair.Value.Holders)
+            {
+                hash.Add(holder);
+            }
         }
         hash.Add(RepairTaskEntries.Count);
         foreach (KeyValuePair<(PlayerId Player, TilePos Tile), RepairTaskEntry> pair in RepairTaskEntries.OrderBy(e => e.Key.Player.Value)
@@ -1820,46 +2087,83 @@ public sealed partial class WorldState
             hash.Add(pair.Key.Player.Value);
             hash.Add(pair.Key.Tile.X);
             hash.Add(pair.Key.Tile.Y);
-            foreach (int holder in pair.Value.Holders) hash.Add(holder);
+            foreach (int holder in pair.Value.Holders)
+            {
+                hash.Add(holder);
+            }
         }
         hash.Add(_players.Length);
-        foreach (PlayerState p in _players) p.HashInto(ref hash);
+        foreach (PlayerState p in _players)
+        {
+            p.HashInto(ref hash);
+        }
+
         foreach (RoomBuildWaveState? wave in RoomBuildWaveSlots)
         {
             hash.Add(wave.HasValue ? (byte)1 : (byte)0);
-            if (wave is RoomBuildWaveState active) active.HashInto(ref hash);
+            if (wave is RoomBuildWaveState active)
+            {
+                active.HashInto(ref hash);
+            }
         }
         foreach (RoomSellWaveState? wave in RoomSellWaveSlots)
         {
             hash.Add(wave.HasValue ? (byte)1 : (byte)0);
-            if (wave is RoomSellWaveState active) active.HashInto(ref hash);
+            if (wave is RoomSellWaveState active)
+            {
+                active.HashInto(ref hash);
+            }
         }
         hash.Add(_pendingWork.Count);
-        foreach (TileWorkOrder o in _pendingWork) o.HashInto(ref hash);
+        foreach (TileWorkOrder o in _pendingWork)
+        {
+            o.HashInto(ref hash);
+        }
 
         // The id counter is hashed too: two worlds holding identical creatures but
         // disagreeing about the next id diverge the moment either one spawns.
         hash.Add(_creatures.Count);
         hash.Add(_nextCreatureId);
         CreatureSlots.HashInto(ref hash);
-        foreach (CreatureState c in _creatures) c.HashInto(ref hash);
-        foreach (CreatureState c in _creaturesByOwnership) hash.Add(c.Id);
+        foreach (CreatureState c in _creatures)
+        {
+            c.HashInto(ref hash);
+        }
+
+        foreach (CreatureState c in _creaturesByOwnership)
+        {
+            hash.Add(c.Id);
+        }
 
         hash.Add(_objects.Count);
         hash.Add(_nextObjectId);
-        foreach (ObjectState o in _objects) o.HashInto(ref hash);
+        foreach (ObjectState o in _objects)
+        {
+            o.HashInto(ref hash);
+        }
 
         hash.Add(_shots.Count);
         hash.Add(_nextShotId);
-        foreach (ShotState s in _shots) s.HashInto(ref hash);
+        foreach (ShotState s in _shots)
+        {
+            s.HashInto(ref hash);
+        }
 
         hash.Add(_actionPoints.Count);
-        foreach (ActionPointState actionPoint in _actionPoints) actionPoint.HashInto(ref hash);
+        foreach (ActionPointState actionPoint in _actionPoints)
+        {
+            actionPoint.HashInto(ref hash);
+        }
+
         TileHighlights.HashInto(ref hash);
 
         hash.Add(_doors.All.Count);
         hash.Add(_doors.NextId);
-        foreach (DoorState door in _doors.All) door.HashInto(ref hash);
+        foreach (DoorState door in _doors.All)
+        {
+            door.HashInto(ref hash);
+        }
+
         hash.Add(_navStamps.Count);
         foreach (NavStamp stamp in _navStamps)
         {
@@ -1872,19 +2176,34 @@ public sealed partial class WorldState
         hash.Add(_traps.NextId);
         hash.Add(_nextChainOrder);
         hash.Add(_nextTileLinkOrder);
-        foreach (TrapState trap in _traps.All) trap.HashInto(ref hash);
+        foreach (TrapState trap in _traps.All)
+        {
+            trap.HashInto(ref hash);
+        }
 
         hash.Add(_heroParties.Count);
-        foreach (HeroPartyState party in _heroParties) party.HashInto(ref hash);
+        foreach (HeroPartyState party in _heroParties)
+        {
+            party.HashInto(ref hash);
+        }
 
         hash.Add(_effectGenerators.Count);
-        foreach (EffectGeneratorState generator in _effectGenerators) generator.HashInto(ref hash);
+        foreach (EffectGeneratorState generator in _effectGenerators)
+        {
+            generator.HashInto(ref hash);
+        }
 
         hash.Add(_templeSacrifices.Count);
-        foreach (TempleSacrificeState temple in _templeSacrifices) temple.HashInto(ref hash);
+        foreach (TempleSacrificeState temple in _templeSacrifices)
+        {
+            temple.HashInto(ref hash);
+        }
 
         hash.Add(_graveyards.Count);
-        foreach (GraveyardState graveyard in _graveyards) graveyard.HashInto(ref hash);
+        foreach (GraveyardState graveyard in _graveyards)
+        {
+            graveyard.HashInto(ref hash);
+        }
 
         // The trigger banks are level state, not level data: an action record
         // writes a flag and a later condition reads it, so two worlds that

@@ -28,15 +28,25 @@ public static class ResearchRules
         GameDatabase database, CreatureDef creature, CreatureState state)
     {
         int perTick = SimulationTiming.LoaderRatePerTick(creature.ResearchPerSecond);
-        if (perTick == 0) return 0;
+        if (perTick == 0)
+        {
+            return 0;
+        }
 
         int level = CreatureLevelRules.Clamp(state.Level);
-        if (level == CreatureLevelRules.FirstLevel) return perTick;
+        if (level == CreatureLevelRules.FirstLevel)
+        {
+            return perTick;
+        }
 
         int scaled = CreatureLevelRules.Scale(
             perTick, CreatureLevelRules.Percent(database, CreatureStatId.ResearchPerSecond, level));
 
-        if (scaled < 0) return 0;
+        if (scaled < 0)
+        {
+            return 0;
+        }
+
         return scaled > MaxCredit ? MaxCredit : scaled;
     }
 
@@ -65,10 +75,16 @@ public static class ResearchRules
     public static int SlapBonus(
         GameDatabase database, CreatureState state, int perTickAmount, long now)
     {
-        if (perTickAmount <= 0 || state.LastSlapTick == 0) return 0;
+        if (perTickAmount <= 0 || state.LastSlapTick == 0)
+        {
+            return 0;
+        }
 
         long window = (long)SimulationTiming.OriginalTicksPerGameSecond * SlapBonusSeconds(database);
-        if (window <= 0 || now - state.LastSlapTick >= window) return 0;
+        if (window <= 0 || now - state.LastSlapTick >= window)
+        {
+            return 0;
+        }
 
         return SimulationTiming.OriginalTicksPerGameSecond
              * database[VariableTypeId.IncreasedWorkRatePecentageFromSlapping]

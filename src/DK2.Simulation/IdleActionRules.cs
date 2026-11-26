@@ -23,8 +23,16 @@ internal static class IdleActionRules
             _ => throw new ArgumentOutOfRangeException(nameof(action)),
         };
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-        if (!AnimationTimingRules.ResolvesPresent(definition, slot)) return false;
-        if (creature.IdleAction == IdleActionId.None) CreatureStateMachine.EndAction(creature);
+        if (!AnimationTimingRules.ResolvesPresent(definition, slot))
+        {
+            return false;
+        }
+
+        if (creature.IdleAction == IdleActionId.None)
+        {
+            CreatureStateMachine.EndAction(creature);
+        }
+
         creature.ActionUntilTick = 0;
         ActionAnimationClock.BeginCounted(creature, definition,
             (byte)slot, 1, context.Rng);
@@ -36,20 +44,35 @@ internal static class IdleActionRules
 
     internal static void Poll(SimulationContext context, CreatureState creature)
     {
-        if (creature.IdleAction == IdleActionId.None || !context.IdleActionsPolledThisTick.Add(creature)) return;
+        if (creature.IdleAction == IdleActionId.None || !context.IdleActionsPolledThisTick.Add(creature))
+        {
+            return;
+        }
+
         creature.ActionHandlerDone = true;
-        if (creature.InHand || ActionAnimationClock.CountedActionEnded(creature)) Cancel(creature);
+        if (creature.InHand || ActionAnimationClock.CountedActionEnded(creature))
+        {
+            Cancel(creature);
+        }
     }
 
     internal static void Advance(SimulationContext context, CreatureState creature)
     {
-        if (creature.IdleAction == IdleActionId.None || !context.IdleActionsAdvancedThisTick.Add(creature)) return;
+        if (creature.IdleAction == IdleActionId.None || !context.IdleActionsAdvancedThisTick.Add(creature))
+        {
+            return;
+        }
+
         ActionAnimationClock.Advance(creature, context.Database.CreatureById(creature.CreatureTypeId));
     }
 
     internal static void Cancel(CreatureState creature)
     {
-        if (creature.IdleAction == IdleActionId.None) return;
+        if (creature.IdleAction == IdleActionId.None)
+        {
+            return;
+        }
+
         creature.IdleAction = IdleActionId.None;
         ActionAnimationClock.Clear(creature);
     }

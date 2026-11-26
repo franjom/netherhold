@@ -69,7 +69,10 @@ public static class AvoidWallsRules
     {
         var corner = new Fixed16Vector(cornerX << 16, cornerY << 16);
         int t = RayCircle.Distance(body.Pos, dir, corner, body.Radius);
-        if (t == RayCircle.Miss || t <= 0 || t > len) return Fixed16Vector.Zero;
+        if (t == RayCircle.Miss || t <= 0 || t > len)
+        {
+            return Fixed16Vector.Zero;
+        }
 
         Fixed16Vector hit = body.Pos + dir.Scale(t);
         Fixed16Vector normal = (hit - corner).Over(body.Radius);
@@ -81,8 +84,14 @@ public static class AvoidWallsRules
     {
         Fixed16Vector v = (body.CurrentPoint - body.Pos) + body.Vel;
         int sx = 0, sy = 0;
-        if (Fixed16.Abs(v.X) > Fixed16.Abs(v.Y)) sx = v.X < 0 ? -1 : 1;
-        else sy = v.Y < 0 ? -1 : 1;
+        if (Fixed16.Abs(v.X) > Fixed16.Abs(v.Y))
+        {
+            sx = v.X < 0 ? -1 : 1;
+        }
+        else
+        {
+            sy = v.Y < 0 ? -1 : 1;
+        }
 
         int px = sy, py = -sx;
         bool pSide = Open(world, own, tx + px, ty + py, mover) && Open(world, own, tx + sx + px, ty + sy + py, mover);
@@ -117,7 +126,10 @@ public static class RayCircle
         int b = (Fixed16.Mul(dir.X, m.X) + Fixed16.Mul(dir.Y, m.Y)) << 1;
         int c = Fixed16.Mul(m.Y, m.Y) - Fixed16.Mul(radius, radius) + Fixed16.Mul(m.X, m.X);
         int discriminant = (Fixed16.Mul(b, b) - Fixed16.Mul(a, c)) << 2;
-        if (discriminant <= 0) return Miss;
+        if (discriminant <= 0)
+        {
+            return Miss;
+        }
 
         int root = IntegerMath.SquareRoot(discriminant);
         int first = -(root + b);

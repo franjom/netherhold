@@ -48,9 +48,17 @@ public static class BoulderRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (!ShotRules.Passable(world, context.Navigation, shot.PosX, shot.PosY)) return;
+        if (!ShotRules.Passable(world, context.Navigation, shot.PosX, shot.PosY))
+        {
+            return;
+        }
+
         int tx = shot.PosX >> 12, ty = shot.PosY >> 12;
-        if (database.ObjectById(ObjectId) is not { } definition) return;
+        if (database.ObjectById(ObjectId) is not { } definition)
+        {
+            return;
+        }
+
         ObjectState boulder = world.SpawnObject(database, ObjectId, shot.OwnerPlayerId, (ty * world.Width) + tx);
         boulder.ProcessState = definition.StartState;
         boulder.PosX = shot.PosX;
@@ -58,7 +66,11 @@ public static class BoulderRules
 
         foreach (TrapState trap in world.Traps)
         {
-            if (trap.X != tx || trap.Y != ty) continue;
+            if (trap.X != tx || trap.Y != ty)
+            {
+                continue;
+            }
+
             trap.Health = 0;
             break;
         }
@@ -88,7 +100,11 @@ public static class BoulderRules
         // and reaches the destruction block.
         Roll(context, sight, boulder);
         Wear(context, boulder);
-        if (boulder.Health > boulder.Wear) return false;
+        if (boulder.Health > boulder.Wear)
+        {
+            return false;
+        }
+
         ThingSoundRules.Request(context, SystemName, boulder, ThingSoundEvent.BoulderBroke);   // 0x004A1390, after the destruction call
         context.Emit(SystemName, "boulder_broken", $"boulder={boulder.Id} at={boulder.PosX >> 12},{boulder.PosY >> 12} wear={boulder.Wear}");
         return true;
@@ -114,25 +130,54 @@ public static class BoulderRules
         foreach ((int ox, int oy) in StrikeOffsets)
         {
             int x = bx + ox, y = by + oy;
-            if (!world.Contains(x, y)) continue;
+            if (!world.Contains(x, y))
+            {
+                continue;
+            }
+
             int tile = (y * world.Width) + x;
 
             onTile.Clear();
             foreach (CreatureState c in world.Creatures)
-                if (c.Tile.X == x && c.Tile.Y == y && !CreatureDeathRules.IsCorpse(c) && CombatPitRules.IsOnTheMap(c)) onTile.Add(c);
+            {
+                if (c.Tile.X == x && c.Tile.Y == y && !CreatureDeathRules.IsCorpse(c) && CombatPitRules.IsOnTheMap(c))
+                {
+                    onTile.Add(c);
+                }
+            }
+
             onTile.Sort((a, b) => b.ChainOrder.CompareTo(a.ChainOrder));
-            foreach (CreatureState creature in onTile) StrikeCreature(context, boulder, half, creature);
+            foreach (CreatureState creature in onTile)
+            {
+                StrikeCreature(context, boulder, half, creature);
+            }
 
             for (int i = world.Objects.Count - 1; i >= 0; i--)
             {
                 ObjectState other = world.Objects[i];
-                if (other == boulder || other.TileIndex != tile || other.InHand || other.CarriedByCreatureId >= 0 || destroyed.Contains(other)) continue;
-                if (database.ObjectById(other.ObjectTypeId) is not { } otherDef) continue;
+                if (other == boulder || other.TileIndex != tile || other.InHand || other.CarriedByCreatureId >= 0 || destroyed.Contains(other))
+                {
+                    continue;
+                }
+
+                if (database.ObjectById(other.ObjectTypeId) is not { } otherDef)
+                {
+                    continue;
+                }
+
                 int reach = half + ((ushort)otherDef.Width.Raw >> 1);
                 (int px, int py) = other.PosX != 0 || other.PosY != 0
                     ? (other.PosX, other.PosY) : (CreatureState.CentreOf(x), CreatureState.CentreOf(y));
-                if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, px, py) >= (uint)(reach * reach) >> 12) continue;
-                if (!((otherDef.Flags & ObjectFlags.BoulderDestroys) == ObjectFlags.BoulderDestroys)) continue;
+                if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, px, py) >= (uint)(reach * reach) >> 12)
+                {
+                    continue;
+                }
+
+                if (!((otherDef.Flags & ObjectFlags.BoulderDestroys) == ObjectFlags.BoulderDestroys))
+                {
+                    continue;
+                }
+
                 int damage = Capped(boulder, otherDef.Hp);
                 int landed;
                 if (damage < other.Health)
@@ -154,10 +199,26 @@ public static class BoulderRules
 
             foreach (TrapState trap in world.Traps)
             {
-                if (trap.X != x || trap.Y != y || trap.UnderConstruction || TrapRules.IsDead(trap)) continue; // DK2 destroyed it already
-                if (!database.Traps.TryGetValue(trap.TrapId, out TrapDef? trapDef)) continue;
-                if (trapDef.TriggerType == TrapRules.TriggerSelector && trap.PlayerId == boulder.OwnerPlayerId) continue;
-                if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, trap.PosX, trap.PosY) >= ownReach) continue;
+                if (trap.X != x || trap.Y != y || trap.UnderConstruction || TrapRules.IsDead(trap))
+                {
+                    continue; // DK2 destroyed it already
+                }
+
+                if (!database.Traps.TryGetValue(trap.TrapId, out TrapDef? trapDef))
+                {
+                    continue;
+                }
+
+                if (trapDef.TriggerType == TrapRules.TriggerSelector && trap.PlayerId == boulder.OwnerPlayerId)
+                {
+                    continue;
+                }
+
+                if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, trap.PosX, trap.PosY) >= ownReach)
+                {
+                    continue;
+                }
+
                 TrapRules.AttemptAt(context, trap, trapDef, boulder.PosX, boulder.PosY);
                 int damage = Capped(boulder, trapDef.Health >> 2);
                 int landed = damage < trap.Health ? damage : trap.Health;
@@ -190,10 +251,17 @@ public static class BoulderRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (creature.LandingPending || creature.Dk2StateId is LandingState or StunnedState || CreatureDeathRules.IsDown(creature)) return;
+        if (creature.LandingPending || creature.Dk2StateId is LandingState or StunnedState || CreatureDeathRules.IsDown(creature))
+        {
+            return;
+        }
+
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         int reach = half + ((ushort)definition.FootprintRadius.Raw >> 1);
-        if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, creature.PosX, creature.PosY) >= (uint)(reach * reach) >> 12) return;
+        if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, creature.PosX, creature.PosY) >= (uint)(reach * reach) >> 12)
+        {
+            return;
+        }
 
         uint maximum = (uint)CreatureLevelRules.MaxHealth(database, definition, creature.Level);
         uint percent = (uint)(byte)database[VariableTypeId.BoulderToCreatureDamagePercentage];
@@ -205,7 +273,9 @@ public static class BoulderRules
         if (!CreatureDeathRules.IsDown(creature)
             && CreatureStateTable.Get(creature.Dk2StateId).Group != UnknockedGroup
             && !CreatureDeathRules.IsPossessed(world, creature))
+        {
             knocked = StatusEffectRules.StunInto(context, creature, definition, StunnedState, "boulder");
+        }
         // 0x004A0D87, 0x004A0DBD, called at 0x004A0DD5: after the stun, 0x14E for a creature the blow left dying (+0x3E6 bit 0x200000), else 0x14D.
         ThingSoundRules.Request(context, SystemName, boulder,
             CreatureDeathRules.IsDown(creature) ? ThingSoundEvent.BoulderHitDownedCreature : ThingSoundEvent.BoulderHitCreature);
@@ -222,13 +292,33 @@ public static class BoulderRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         PlayerId owner = world.Tile(x, y).OwnerPlayerId;
-        if (!world.HasPlayer(owner) || !DisposalRules.IsHeartCentreTile(world, database, new TilePos(x, y), owner)) return;
-        if (database.ObjectById(Navigation.WorldSteering.DungeonHeartObjectId) is not { } heartDef) return;
-        if (!((heartDef.Flags & ObjectFlags.BoulderDestroys) == ObjectFlags.BoulderDestroys)) return;
+        if (!world.HasPlayer(owner) || !DisposalRules.IsHeartCentreTile(world, database, new TilePos(x, y), owner))
+        {
+            return;
+        }
+
+        if (database.ObjectById(Navigation.WorldSteering.DungeonHeartObjectId) is not { } heartDef)
+        {
+            return;
+        }
+
+        if (!((heartDef.Flags & ObjectFlags.BoulderDestroys) == ObjectFlags.BoulderDestroys))
+        {
+            return;
+        }
+
         ref PlayerState player = ref world.Player(owner);
-        if (player.HeartHealth <= 0) return;
+        if (player.HeartHealth <= 0)
+        {
+            return;
+        }
+
         int reach = half + ((ushort)heartDef.Width.Raw >> 1);
-        if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, CreatureState.CentreOf(x), CreatureState.CentreOf(y)) >= (uint)(reach * reach) >> 12) return;
+        if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, CreatureState.CentreOf(x), CreatureState.CentreOf(y)) >= (uint)(reach * reach) >> 12)
+        {
+            return;
+        }
+
         int damage = Capped(boulder, heartDef.Hp);
         int landed = damage < player.HeartHealth ? damage : player.HeartHealth;
         bool killed = HeartSoundRules.Damage(context, SystemName, owner, landed, boulder.OwnerPlayerId);
@@ -258,7 +348,11 @@ public static class BoulderRules
     /// over the definition's, within <c>BoulderFearRange</c> tiles. False when it has no health and is gone.</summary>
     private static bool Roll(SimulationContext context, ISightBlocker sight, ObjectState boulder)
     {
-        if (boulder.Health == 0) return false;
+        if (boulder.Health == 0)
+        {
+            return false;
+        }
+
         ThingSoundRules.Request(context, SystemName, boulder, ThingSoundEvent.BoulderRolling);   // 0x004A0E30, before the move
         GameDatabase database = context.Database;
         int s = boulder.RollSpeed;
@@ -270,21 +364,45 @@ public static class BoulderRules
         int startX = boulder.PosX, startY = boulder.PosY;
         if ((startY & 0xFFF) == Centre)
         {
-            if (boulder.RollY < 0) Turn(context, boulder, Direction.North);
-            else if (boulder.RollY > 0) Turn(context, boulder, Direction.South);
+            if (boulder.RollY < 0)
+            {
+                Turn(context, boulder, Direction.North);
+            }
+            else if (boulder.RollY > 0)
+            {
+                Turn(context, boulder, Direction.South);
+            }
         }
         if ((startX & 0xFFF) == Centre)
         {
-            if (boulder.RollX < 0) Turn(context, boulder, Direction.West);
-            else if (boulder.RollX > 0) Turn(context, boulder, Direction.East);
+            if (boulder.RollX < 0)
+            {
+                Turn(context, boulder, Direction.West);
+            }
+            else if (boulder.RollX > 0)
+            {
+                Turn(context, boulder, Direction.East);
+            }
         }
 
         int dx = unchecked(speed * boulder.RollX) >> 12, dy = unchecked(speed * boulder.RollY) >> 12;
         while (dx != 0 || dy != 0)
         {
-            if (!Step(context.World, boulder, ref dx, ref dy, out Direction crossed)) continue;
-            if (!Turn(context, boulder, crossed)) continue;
-            if (boulder.Wear >= boulder.Health) continue;
+            if (!Step(context.World, boulder, ref dx, ref dy, out Direction crossed))
+            {
+                continue;
+            }
+
+            if (!Turn(context, boulder, crossed))
+            {
+                continue;
+            }
+
+            if (boulder.Wear >= boulder.Health)
+            {
+                continue;
+            }
+
             ThingSoundRules.Request(context, SystemName, boulder, ThingSoundEvent.BoulderTurned);   // 0x004A101F
             break;
         }
@@ -333,7 +451,11 @@ public static class BoulderRules
         boulder.PosX = nx;
         boulder.PosY = ny;
         int tx = nx >> 12, ty = ny >> 12;
-        if (world.Contains(tx, ty)) boulder.TileIndex = (ty * world.Width) + tx;
+        if (world.Contains(tx, ty))
+        {
+            boulder.TileIndex = (ty * world.Width) + tx;
+        }
+
         return stopped;
     }
 
@@ -349,19 +471,35 @@ public static class BoulderRules
         int x = boulder.PosX >> 12, y = boulder.PosY >> 12;
         bool vertical = going is Direction.North or Direction.South;
         int ahead = going switch { Direction.North => -1, Direction.South => 1, Direction.West => -1, _ => 1 };
-        if (!(vertical ? Blocked(context.World, context.Database, x, y + ahead) : Blocked(context.World, context.Database, x + ahead, y))) return false;
+        if (!(vertical ? Blocked(context.World, context.Database, x, y + ahead) : Blocked(context.World, context.Database, x + ahead, y)))
+        {
+            return false;
+        }
 
         bool lowBlocked = vertical ? Blocked(context.World, context.Database, x - 1, y) : Blocked(context.World, context.Database, x, y - 1);
         bool highBlocked = vertical ? Blocked(context.World, context.Database, x + 1, y) : Blocked(context.World, context.Database, x, y + 1);
         int across;
         if (lowBlocked && highBlocked)
         {
-            if (vertical) boulder.RollY = -ahead * Unit;
-            else boulder.RollX = -ahead * Unit;
+            if (vertical)
+            {
+                boulder.RollY = -ahead * Unit;
+            }
+            else
+            {
+                boulder.RollX = -ahead * Unit;
+            }
+
             across = int.MinValue;
         }
-        else if (lowBlocked) across = Unit;
-        else if (highBlocked) across = -Unit;
+        else if (lowBlocked)
+        {
+            across = Unit;
+        }
+        else if (highBlocked)
+        {
+            across = -Unit;
+        }
         else
         {
             sbyte sign = vertical ? boulder.RollSignX : boulder.RollSignY;
@@ -389,18 +527,40 @@ public static class BoulderRules
     /// a 2×2 Hero Gate, or an object on the tile without <c>BoulderCanRollThrough</c>.</summary>
     public static bool Blocked(WorldState world, GameDatabase database, int x, int y)
     {
-        if (!world.Contains(x, y)) return true;
-        if (database.TerrainById(world.Tile(x, y).TerrainId).IsSolid) return true;
+        if (!world.Contains(x, y))
+        {
+            return true;
+        }
+
+        if (database.TerrainById(world.Tile(x, y).TerrainId).IsSolid)
+        {
+            return true;
+        }
+
         int index = (y * world.Width) + x;
         if (RoomIndex.RoomAt(world, database, index) is { } room)
         {
-            if (room.Definition.TypeId == RoomTypeId.Prison && room.IsInterior(index)) return true;
-            if (room.Definition.TypeId == RoomTypeId.HeroGate2By2) return true;
+            if (room.Definition.TypeId == RoomTypeId.Prison && room.IsInterior(index))
+            {
+                return true;
+            }
+
+            if (room.Definition.TypeId == RoomTypeId.HeroGate2By2)
+            {
+                return true;
+            }
         }
         foreach (ObjectState thing in world.Objects)
         {
-            if (thing.TileIndex != index || thing.InHand || thing.CarriedByCreatureId >= 0) continue;
-            if (database.ObjectById(thing.ObjectTypeId) is { } def && !((def.Flags & ObjectFlags.BoulderCanRollThrough) == ObjectFlags.BoulderCanRollThrough)) return true;
+            if (thing.TileIndex != index || thing.InHand || thing.CarriedByCreatureId >= 0)
+            {
+                continue;
+            }
+
+            if (database.ObjectById(thing.ObjectTypeId) is { } def && !((def.Flags & ObjectFlags.BoulderCanRollThrough) == ObjectFlags.BoulderCanRollThrough))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -415,18 +575,33 @@ public static class BoulderRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int x = boulder.PosX >> 12, y = boulder.PosY >> 12;
-        if (!world.Contains(x, y)) return;
+        if (!world.Contains(x, y))
+        {
+            return;
+        }
+
         TerrainDef terrain = database.TerrainById(world.Tile(x, y).TerrainId);
         uint health = unchecked((uint)boulder.Health);
         uint share;
         ThingSoundEvent? sound = null;
         if (terrain.IsLava) { share = health / 6; sound = ThingSoundEvent.BoulderInLava; }
         else if (terrain.IsWater) { share = health / 10; sound = ThingSoundEvent.BoulderInWater; }
-        else if (Sunken(world, database, x, y)) share = health / 3;
-        else return;
+        else if (Sunken(world, database, x, y))
+        {
+            share = health / 3;
+        }
+        else
+        {
+            return;
+        }
+
         uint worn = unchecked((uint)boulder.Wear + share);
         boulder.Wear = (int)(health < worn ? health : worn);
-        if (sound is { } wornSound) ThingSoundRules.Request(context, SystemName, boulder, wornSound);   // water and lava only (Boulder_TerrainWear)
+        if (sound is { } wornSound)
+        {
+            ThingSoundRules.Request(context, SystemName, boulder, wornSound);   // water and lava only (Boulder_TerrainWear)
+        }
+
         context.Emit(SystemName, "boulder_worn", $"boulder={boulder.Id} at={x},{y} wear={boulder.Wear}");
     }
 
@@ -435,7 +610,11 @@ public static class BoulderRules
     private static bool Sunken(WorldState world, GameDatabase database, int x, int y)
     {
         int index = (y * world.Width) + x;
-        if (RoomIndex.RoomAt(world, database, index) is not { } room) return false;
+        if (RoomIndex.RoomAt(world, database, index) is not { } room)
+        {
+            return false;
+        }
+
         return room.Definition.TypeId switch
         {
             RoomTypeId.Portal => room.Width >= 3 && room.Height >= 3 && PortalRules.EntranceTileIndex(world, room) == index,

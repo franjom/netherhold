@@ -17,11 +17,17 @@ internal static class WorkerPickupRules
     /// (<see cref="DropHeld"/>), then releases by the state it leaves.</summary>
     public static void OnTaskReleased(in StateHookContext hooks, CreatureState creature)
     {
-        if (creature.ClaimAction.Kind != ClaimActionKind.None) CreatureStateMachine.EndAction(creature);
+        if (creature.ClaimAction.Kind != ClaimActionKind.None)
+        {
+            CreatureStateMachine.EndAction(creature);
+        }
         // The dispatcher chooses the hook from the saved caller, but this hook reads the resume.
         int state = creature.Dk2StateId is 6 or 7 ? creature.UtilityNewState : creature.Dk2StateId;
         DropHeld(in hooks, creature);
-        if (state is 43 or 44 or 46 or 49) SetEnabled(creature, true);
+        if (state is 43 or 44 or 46 or 49)
+        {
+            SetEnabled(creature, true);
+        }
     }
 
     /// <summary>The drop-first arm of <c>0x004647D0</c>, before its release switch: a non-zero <c>+0x3C3</c> calls
@@ -45,14 +51,21 @@ internal static class WorkerPickupRules
             creature.TargetTileIndex = -1;
         }
 
-        if (creature.CarriedCreatureId < 0) return;
+        if (creature.CarriedCreatureId < 0)
+        {
+            return;
+        }
+
         if (world.CreatureById(creature.CarriedCreatureId) is { } body)
         {
             CarryRules.DropWhatever(world, creature);
             hooks.Emit("ImpTaskSystem", "body_dropped",
                 $"imp={creature.Id} body={body.Id} at=({creature.Tile.X},{creature.Tile.Y}) reason=left_worker_job");
         }
-        else creature.CarriedCreatureId = -1;
+        else
+        {
+            creature.CarriedCreatureId = -1;
+        }
 
         creature.TargetBodyId = -1;
         creature.TargetTileIndex = -1;

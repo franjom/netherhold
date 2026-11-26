@@ -38,11 +38,19 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (creature.Possessed) return;
+        if (creature.Possessed)
+        {
+            return;
+        }
+
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         if (creature.Dk2StateId == LairRules.MistressBedExitState)
         {
-            if (!HandRules.IsHeld(creature)) ExitMistressBed(context, creature);
+            if (!HandRules.IsHeld(creature))
+            {
+                ExitMistressBed(context, creature);
+            }
+
             return;
         }
 
@@ -52,8 +60,15 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
         bool directed = creature.Dk2StateId is >= LairRules.SelectingBedState and <= LairRules.SleepingState
             || (StateShadow.IsTravelling(creature)
                 && creature.UtilityNewState is >= LairRules.MakingAHomeState and <= LairRules.SleepingState);
-        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && !directed) return;
-        if (!LairRules.NeedsBed(definition) && !directed) return;
+        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && !directed)
+        {
+            return;
+        }
+
+        if (!LairRules.NeedsBed(definition) && !directed)
+        {
+            return;
+        }
 
         // A bed on a tile that has stopped being this keeper's lair is not a
         // bed. Sold, dug out or taken by a rival while its owner was away.
@@ -75,21 +90,30 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
 
         // A creature in the keeper's hand is out of the dungeon: it does
         // not act until it is put down (HandRules.IsHeld, ADR-0062).
-        if (HandRules.IsHeld(creature)) return;
+        if (HandRules.IsHeld(creature))
+        {
+            return;
+        }
 
         NeedRules.UpdateSleepClock(definition, creature, context.Tick);
 
         // A prisoner's cell IS what it does: it wanders (PrisonerWanderSystem,
         // every tick), eats what is dropped among it (PrisonerEatSystem) and
         // its health is the prison's (PrisonSystem, every second). ADR-0073.
-        if (PrisonRules.IsImprisoned(creature)) return;
+        if (PrisonRules.IsImprisoned(creature))
+        {
+            return;
+        }
         // A collapsed creature does nothing at all (ADR-0051), and where this
         // line sits is the rule. After the bed-validity check above, because
         // a tile that stopped being a lair stopped existing whatever its
         // owner is doing and a leftover bed object would make BedTaken lie;
         // before an autonomous attempt. A rescued state-83 sleeper at zero
         // health still runs its sleep hook and handler while waiting for healing.
-        if (CreatureDeathRules.IsDown(creature) && creature.Dk2StateId != LairRules.SleepingState) return;
+        if (CreatureDeathRules.IsDown(creature) && creature.Dk2StateId != LairRules.SleepingState)
+        {
+            return;
+        }
 
         // A creature walking out of the dungeon does not stop for a nap,
         // and above all does not go for a bed on its way past the lair —
@@ -97,8 +121,15 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
         // (CreatureAngerSystem.Leave). Without this line a deserter takes
         // the last free tile out from under a creature that intends to
         // stay, and then leaves with it.
-        if (creature.Activity == CreatureActivity.Leaving) return;
-        if (Combat.CombatRules.Preoccupied(creature)) return;
+        if (creature.Activity == CreatureActivity.Leaving)
+        {
+            return;
+        }
+
+        if (Combat.CombatRules.Preoccupied(creature))
+        {
+            return;
+        }
 
         switch (creature.Activity)
         {
@@ -113,27 +144,61 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
             case CreatureActivity.SeekingLair:
                 bool homeHandler = creature.Dk2StateId == LairRules.MakingAHomeState;
                 if (creature.Dk2StateId == LairRules.SelectingBedState)
+                {
                     SelectingBed(context, creature, definition);
-                else Seeking(context, creature, definition);
+                }
+                else
+                {
+                    Seeking(context, creature, definition);
+                }
+
                 if (homeHandler && creature.Dk2StateId == CreatureStateMachine.Idle)
+                {
                     context.IdledByLairHandlerThisTick.Add(creature);
+                }
+
                 break;
 
             default:
-                if (!NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping)) break;
+                if (!NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping))
+                {
+                    break;
+                }
+
                 bool tired = LairRules.WantsToSleep(database, definition, creature);
                 bool wounded = CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature);
                 // Job_Sleep routes a bedded creature only with debt; its bedless arm can also
                 // serve the wound attempt. Ordinary acquisition is state89's, not this need's.
-                if (!tired && (bedIndex >= 0 || !wounded)) break;
+                if (!tired && (bedIndex >= 0 || !wounded))
+                {
+                    break;
+                }
+
                 bool retryDue = context.Tick >= creature.NextSleepTryTick;
                 if (tired && retryDue)
+                {
                     creature.NextSleepTryTick = new GameTick(context.Tick.Value
                         + NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks);
-                else if (!wounded) break;
-                if (NeedRules.IsBusy(context.World, creature, context.Tick.Value)) break;
-                if (bedIndex >= 0) SetOff(context, creature, definition);
-                else _seeker.TryGoForALair(context, SystemName, creature, definition);
+                }
+                else if (!wounded)
+                {
+                    break;
+                }
+
+                if (NeedRules.IsBusy(context.World, creature, context.Tick.Value))
+                {
+                    break;
+                }
+
+                if (bedIndex >= 0)
+                {
+                    SetOff(context, creature, definition);
+                }
+                else
+                {
+                    _seeker.TryGoForALair(context, SystemName, creature, definition);
+                }
+
                 break;
         }
     }
@@ -163,7 +228,10 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
             return;
         }
         if (LairRules.BedOf(world, database, creature) is not null)
+        {
             LairRules.ReleaseBed(world, database, creature);
+        }
+
         int angle = context.Rng.NextInt(2048);
         var target = new TilePos(found % world.Width, found / world.Width);
         long x = CreatureState.CentreOf(target.X) + (1365L * TrapRules.Cosine(angle) >> 16);
@@ -182,15 +250,26 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
     {
         if (StateShadow.IsTravelling(creature))
         {
-            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One) return;
+            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One)
+            {
+                return;
+            }
+
             creature.StopMoving();
             StateShadow.Arrive(context, SystemName, creature);
             return;
         }
         // State 80 stops on its first handler update and waits for tile-centre facing.
-        if (context.Tick.Value - creature.StateEnteredTick == 1) creature.StopMoving();
+        if (context.Tick.Value - creature.StateEnteredTick == 1)
+        {
+            creature.StopMoving();
+        }
+
         if (CasinoStep.TurnTo(context, creature, CreatureState.CentreOf(creature.Tile.X),
-                CreatureState.CentreOf(creature.Tile.Y)) != 0) return;
+                CreatureState.CentreOf(creature.Tile.Y)) != 0)
+        {
+            return;
+        }
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -236,7 +315,11 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
         }
 
         // This room has nothing for it. Another lair, if there is one.
-        if (_seeker.TrySetOutForALair(context, SystemName, creature, definition)) return;
+        if (_seeker.TrySetOutForALair(context, SystemName, creature, definition))
+        {
+            return;
+        }
+
         GiveUp(context, creature);
     }
 
@@ -307,13 +390,22 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
     {
         WorldState world = context.World;
         int index = LairRules.BedTileIndex(world, context.Database, creature);
-        if (index < 0) return false;
+        if (index < 0)
+        {
+            return false;
+        }
 
         var bed = new TilePos(index % world.Width, index / world.Width);
 
-        if (!context.Navigation.TryRoute(creature, bed, Navigation.MoveOptions.ExactSpot)) return false;
+        if (!context.Navigation.TryRoute(creature, bed, Navigation.MoveOptions.ExactSpot))
+        {
+            return false;
+        }
 
-        if (NeedRules.IsAtAJob(creature)) NeedRules.EndJob(creature);
+        if (NeedRules.IsAtAJob(creature))
+        {
+            NeedRules.EndJob(creature);
+        }
 
         // The Sleep job calls the room helper with 81 (0x0046F4B0), from whatever state the
         // need interrupted; already in the bed's room is 1, 81, and 81's own walk to the bed.
@@ -357,7 +449,11 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
             // Still walking. If the path has run out without arriving — the
             // route was blocked mid-walk — fall back to standing up, so a
             // creature cannot be stuck in GoingToSleep forever.
-            if (creature.HasRoute) return;
+            if (creature.HasRoute)
+            {
+                return;
+            }
+
             Wake(context, creature);
             return;
         }
@@ -368,7 +464,11 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
     /// <summary>State 81 walks to the bed in state 6, resuming in 82 (0x0046F8EC).</summary>
     private static void WalkToTheBed(SimulationContext context, CreatureState creature)
     {
-        if (creature.Dk2StateId != LairRules.GoingToBedState) return;
+        if (creature.Dk2StateId != LairRules.GoingToBedState)
+        {
+            return;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, LairRules.LyingDownState);
     }
 
@@ -379,10 +479,16 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int bed = LairRules.BedTileIndex(world, database, creature);
-        if (bed < 0 || !world.Contains(creature.Tile)) return false;
+        if (bed < 0 || !world.Contains(creature.Tile))
+        {
+            return false;
+        }
 
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
-        if (!LairRules.IsLairTileOf(world, database, here, creature.OwnerPlayerId)) return false;
+        if (!LairRules.IsLairTileOf(world, database, here, creature.OwnerPlayerId))
+        {
+            return false;
+        }
 
         RoomInstance? room = RoomIndex.RoomAt(world, database, here);
         return room is not null && EatingRules.Contains(room, bed);
@@ -401,7 +507,10 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
             if (LairRules.BedOf(context.World, context.Database, creature) is { } bed)
             {
                 creature.Heading = bed.Heading;
-                if (bed.ObjectTypeId != LairRules.MistressBedObjectId) PlaceOnBed(context.World, creature, bed);
+                if (bed.ObjectTypeId != LairRules.MistressBedObjectId)
+                {
+                    PlaceOnBed(context.World, creature, bed);
+                }
             }
             StateShadow.MoveOrViaIdle(context, SystemName, creature, LairRules.SleepingState);
         }
@@ -420,7 +529,10 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (creature.SleepTicks == 0 && LairRules.BedOf(context.World, context.Database, creature) is { ObjectTypeId: LairRules.MistressBedObjectId } bed)
+        {
             PlaceOnBed(context.World, creature, bed);
+        }
+
         if (creature.Dk2StateId == LairRules.SleepingState)
         {
             creature.SleepDebtTicks = Math.Max(0, creature.SleepDebtTicks - 1);
@@ -441,8 +553,13 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
             $"health={creature.Health}/{definition.Hp}");
 
         if (LairRules.BedOf(context.World, context.Database, creature) is { ObjectTypeId: LairRules.MistressBedObjectId })
+        {
             StateShadow.Move(context, SystemName, creature, LairRules.MistressBedExitState);
-        else Wake(context, creature);
+        }
+        else
+        {
+            Wake(context, creature);
+        }
     }
 
     /// <summary>A sleeper asks for the Lair's own effect (67 in the shipped data, the snore) at
@@ -454,11 +571,21 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
     /// counts the same ticks.</para></summary>
     private static void Snore(SimulationContext context, CreatureState creature)
     {
-        if (creature.Dk2StateId != LairRules.SleepingState) return;
-        if (creature.SleepTicks % SnoreIntervalTicks != 0) return;
+        if (creature.Dk2StateId != LairRules.SleepingState)
+        {
+            return;
+        }
+
+        if (creature.SleepTicks % SnoreIntervalTicks != 0)
+        {
+            return;
+        }
 
         ushort lairEffect = context.Database.Room(RoomTypeId.Lair).RoomEffect425Id;
-        if (lairEffect == 0) return;
+        if (lairEffect == 0)
+        {
+            return;
+        }
 
         var atTheSleeper = new FpPosition3(new(creature.PosX), new(creature.PosY), new(creature.PosZ));
         context.RequestEffect(SystemName, new ViewEffectRequest(
@@ -470,9 +597,17 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
     private static void ExitMistressBed(SimulationContext context, CreatureState creature)
     {
         ObjectState? bed = LairRules.BedOf(context.World, context.Database, creature);
-        if (bed is null) return;
+        if (bed is null)
+        {
+            return;
+        }
+
         int hold = AnimationTimingRules.FirstCycleHoldTicks(context.Database.ObjectById(bed.ObjectTypeId)!.ArtSlot(7));
-        if (context.Tick.Value - creature.StateEnteredTick <= hold) return;
+        if (context.Tick.Value - creature.StateEnteredTick <= hold)
+        {
+            return;
+        }
+
         CreatureStateMachine.EndAction(creature);
         PlaceOnBed(context.World, creature, bed);
         creature.PosZ = bed.PosZ;

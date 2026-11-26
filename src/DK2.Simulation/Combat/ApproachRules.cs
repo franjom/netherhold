@@ -48,7 +48,9 @@ public static class ApproachRules
     {
         if (!context.Navigation.TryRouteToStance(me, targetX, targetY, EntryOptions)
             && !(me.FightTargetKind == FightTargetKind.Door && BesideDoor(context, me, targetX, targetY)))
+        {
             return false;
+        }
         // SetState(8), then 199 into the resume slot: a walk from 199 back to 199, so no hook runs.
         CreatureStateMachine.BeginTravel(context.Hooks, me, CombatStates.Approaching, CombatStates.Engaging);
         me.RouteRefreshCountdown = RefreshCalls;
@@ -65,7 +67,10 @@ public static class ApproachRules
         {
             int x = doorX + (dx * Fp32.One), y = doorY + (dy * Fp32.One);
             Scratch.Clear();
-            if (!navigation.Route(from, new Fixed16Vector(x << 4, y << 4), profile, Scratch)) continue;
+            if (!navigation.Route(from, new Fixed16Vector(x << 4, y << 4), profile, Scratch))
+            {
+                continue;
+            }
             // The original enters the state whatever this last request answers.
             navigation.TryRouteToStance(me, x - (dx * Fp32.One / 4), y - (dy * Fp32.One / 4), MoveOptions.Plain);
             return true;
@@ -81,7 +86,11 @@ public static class ApproachRules
     public static void End(CreatureState me, string reason, SimulationContext context)
     {
         me.StopMoving();
-        if (Systems.StateShadow.IsTravelling(me)) CombatStates.Arrive(context, me);
+        if (Systems.StateShadow.IsTravelling(me))
+        {
+            CombatStates.Arrive(context, me);
+        }
+
         context.Emit(SystemName, "approach_ends", $"creature={me.Id} reason={reason}");
     }
 
@@ -142,7 +151,11 @@ public static class ApproachRules
         if (!FearRules.Cornered(context, me, mine, scratch) && FearRules.OverThreat(world, database, me, mine))
         {
             // A follower holds on and keeps its leader (0x00470F0A).
-            if (me.FollowLeaderId != 0) return true;
+            if (me.FollowLeaderId != 0)
+            {
+                return true;
+            }
+
             FearRules.EnterFlee(context, me, mine, fromApproach: true);
             return false;
         }
@@ -165,7 +178,10 @@ public static class ApproachRules
                     return false;
                 }
             }
-            else me.ChaseTicks = 0;
+            else
+            {
+                me.ChaseTicks = 0;
+            }
         }
 
         // 5. Strictly in reach with line of sight: spFighting swings next tick.
@@ -189,7 +205,11 @@ public static class ApproachRules
 
         // §3. The ten-call refresh, then state 6's progress test (0x004713B6 calls 0x00470C80 after it),
         // so a whole progress ends the walk only when no re-route was made (Q724, ADR-0632).
-        if (--me.RouteRefreshCountdown > 0) return !WholeProgress(context, me);
+        if (--me.RouteRefreshCountdown > 0)
+        {
+            return !WholeProgress(context, me);
+        }
+
         Destination(context, me, mine, target, x, y, out int destX, out int destY);
         if (!ShotRules.Passable(world, context.Navigation, destX, destY))
         {
@@ -215,7 +235,11 @@ public static class ApproachRules
     /// walk ends, as <see cref="Systems.TravelArrivalSystem"/> ends 6, 7 and 9 ahead of the handlers.</summary>
     private static bool WholeProgress(SimulationContext context, CreatureState me)
     {
-        if (Steering.FollowPathRules.Progress(me.Body) != Steering.Fixed16.One) return false;
+        if (Steering.FollowPathRules.Progress(me.Body) != Steering.Fixed16.One)
+        {
+            return false;
+        }
+
         End(me, "arrived", context);
         return true;
     }
@@ -238,11 +262,19 @@ public static class ApproachRules
     {
         x = targetX;
         y = targetY;
-        if (mine.FightStyle != FightStyle.Flanker || target is null) return;
+        if (mine.FightStyle != FightStyle.Flanker || target is null)
+        {
+            return;
+        }
+
         long offset = me.AttackType == CombatRules.AttackMode.SpellAtCreature ? FlankerSpellOffset : FlankerMeleeOffset;
         int bx = (int)(targetX - ((offset * TrapRules.Sine(target.Heading)) >> 16));
         int by = (int)(targetY + ((offset * TrapRules.Cosine(target.Heading)) >> 16));
-        if (!ShotRules.Passable(context.World, context.Navigation, bx, by)) return;
+        if (!ShotRules.Passable(context.World, context.Navigation, bx, by))
+        {
+            return;
+        }
+
         x = bx;
         y = by;
     }

@@ -61,8 +61,15 @@ public sealed class KeeperTrapDoorStep
     /// <summary><c>0x005000A0</c>: returns the allowance left.</summary>
     public int Run(int allowance)
     {
-        if (_view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Workshop, _rng) is null) return allowance;
-        if ((uint)_rng.NextInt(100) >= _p.TrapAndDoorUsage) return allowance;
+        if (_view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Workshop, _rng) is null)
+        {
+            return allowance;
+        }
+
+        if ((uint)_rng.NextInt(100) >= _p.TrapAndDoorUsage)
+        {
+            return allowance;
+        }
 
         // The rooms' stored positions (+0x27): two 16-bit words, so the signed compares cannot go negative.
         int minX = int.MaxValue, minY = int.MaxValue, maxX = 0, maxY = 0;
@@ -78,21 +85,68 @@ public sealed class KeeperTrapDoorStep
         minX -= margin; minY -= margin; maxX += margin; maxY += margin;
         // The clamps in 0x005000A0's order.
         int w = _view.Width, h = _view.Height;
-        if (minX < 1) minX = 1;
-        if (minY < 1) minY = 1;
-        if (maxX >= w - 1) maxX = w - 2;
-        if (maxY >= h - 1) maxY = h - 2;
-        if (maxX < 1) maxX = 1;
-        if (maxY < 1) maxY = 1;
-        if (minX >= w - 1) minX = w - 2;
-        if (minY >= h - 1) minY = h - 2;
+        if (minX < 1)
+        {
+            minX = 1;
+        }
+
+        if (minY < 1)
+        {
+            minY = 1;
+        }
+
+        if (maxX >= w - 1)
+        {
+            maxX = w - 2;
+        }
+
+        if (maxY >= h - 1)
+        {
+            maxY = h - 2;
+        }
+
+        if (maxX < 1)
+        {
+            maxX = 1;
+        }
+
+        if (maxY < 1)
+        {
+            maxY = 1;
+        }
+
+        if (minX >= w - 1)
+        {
+            minX = w - 2;
+        }
+
+        if (minY >= h - 1)
+        {
+            minY = h - 2;
+        }
 
         // West tests only its first tile (0x0050025F compares with the same minimum); then east,
         // north and south in full, each while allowance remains.
-        if (allowance > 0) allowance = Try(allowance, minX, minY);
-        for (int y = minY; y <= maxY && allowance > 0; y++) allowance = Try(allowance, maxX, y);
-        for (int x = minX; x <= maxX && allowance > 0; x++) allowance = Try(allowance, x, minY);
-        for (int x = minX; x <= maxX && allowance > 0; x++) allowance = Try(allowance, x, maxY);
+        if (allowance > 0)
+        {
+            allowance = Try(allowance, minX, minY);
+        }
+
+        for (int y = minY; y <= maxY && allowance > 0; y++)
+        {
+            allowance = Try(allowance, maxX, y);
+        }
+
+        for (int x = minX; x <= maxX && allowance > 0; x++)
+        {
+            allowance = Try(allowance, x, minY);
+        }
+
+        for (int x = minX; x <= maxX && allowance > 0; x++)
+        {
+            allowance = Try(allowance, x, maxY);
+        }
+
         return allowance;
     }
 
@@ -103,12 +157,26 @@ public sealed class KeeperTrapDoorStep
     /// failing that north and south), neither of which this keeper has tagged.</summary>
     public bool ValidSite(int x, int y)
     {
-        if (x <= 0 || y <= 0 || x >= _view.Width - 1 || y >= _view.Height - 1) return false;
-        if (_view.IsNavSolid(new TilePos(x, y))) return false;
+        if (x <= 0 || y <= 0 || x >= _view.Width - 1 || y >= _view.Height - 1)
+        {
+            return false;
+        }
+
+        if (_view.IsNavSolid(new TilePos(x, y)))
+        {
+            return false;
+        }
+
         if (_view.IsNavSolid(new TilePos(x - 1, y)) && _view.IsNavSolid(new TilePos(x + 1, y)))
+        {
             return !_view.IsTaggedByMe(new TilePos(x - 1, y)) && !_view.IsTaggedByMe(new TilePos(x + 1, y));
+        }
+
         if (_view.IsNavSolid(new TilePos(x, y - 1)) && _view.IsNavSolid(new TilePos(x, y + 1)))
+        {
             return !_view.IsTaggedByMe(new TilePos(x, y - 1)) && !_view.IsTaggedByMe(new TilePos(x, y + 1));
+        }
+
         return false;
     }
 
@@ -117,13 +185,37 @@ public sealed class KeeperTrapDoorStep
     {
         const int limit = SpacingTiles * SpacingTiles;
         foreach (KeeperDoorView d in _view.Doors)
-            if (d.OwnerPlayerId == _view.PlayerId.Value && Near(d.X, d.Y)) return false;
+        {
+            if (d.OwnerPlayerId == _view.PlayerId.Value && Near(d.X, d.Y))
+            {
+                return false;
+            }
+        }
+
         foreach (TilePos d in _pendingDoors)
-            if (Near(d.X, d.Y)) return false;
+        {
+            if (Near(d.X, d.Y))
+            {
+                return false;
+            }
+        }
+
         foreach (KeeperTrapView t in _view.Traps)
-            if (t.OwnerPlayerId == _view.PlayerId.Value && Near(t.X, t.Y)) return false;
+        {
+            if (t.OwnerPlayerId == _view.PlayerId.Value && Near(t.X, t.Y))
+            {
+                return false;
+            }
+        }
+
         foreach (TilePos t in _pendingTraps)
-            if (Near(t.X, t.Y)) return false;
+        {
+            if (Near(t.X, t.Y))
+            {
+                return false;
+            }
+        }
+
         return true;
 
         bool Near(int tx, int ty) => ((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) < limit;
@@ -132,7 +224,11 @@ public sealed class KeeperTrapDoorStep
     /// <summary><c>0x004FFD80</c>: <c>random(4) &lt; TrapVsDoorPreference</c> makes it a door.</summary>
     private int Place(int allowance, TilePos at)
     {
-        if ((uint)_rng.NextInt(4) < (_p.TrapVsDoorPreference & 7u)) return PlaceDoor(allowance, at);
+        if ((uint)_rng.NextInt(4) < (_p.TrapVsDoorPreference & 7u))
+        {
+            return PlaceDoor(allowance, at);
+        }
+
         return PlaceTrap(allowance, at);
     }
 
@@ -146,13 +242,32 @@ public sealed class KeeperTrapDoorStep
         int count = _view.Database.Doors.Count == 0 ? 0 : _view.Database.Doors.Keys.Max();
         for (int id = 1; id <= count; id++)
         {
-            if (!_view.Database.Doors.TryGetValue((byte)id, out DoorDef? door)) continue;
-            if (((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) continue;
-            if (_view.Availability(AvailabilityKind.Door, id) != 3) continue;
+            if (!_view.Database.Doors.TryGetValue((byte)id, out DoorDef? door))
+            {
+                continue;
+            }
+
+            if (((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade))
+            {
+                continue;
+            }
+
+            if (_view.Availability(AvailabilityKind.Door, id) != 3)
+            {
+                continue;
+            }
+
             chosen = door;
-            if ((uint)_rng.NextInt(100) <= stop * 50) break;
+            if ((uint)_rng.NextInt(100) <= stop * 50)
+            {
+                break;
+            }
         }
-        if (chosen is null || !_view.CanPlaceDoor(at, chosen, _pendingAll)) return allowance;
+        if (chosen is null || !_view.CanPlaceDoor(at, chosen, _pendingAll))
+        {
+            return allowance;
+        }
+
         _commands.Add(new PlaceDoorCommand(_view.PlayerId, at, chosen.DoorId));
         if (chosen.GoldCost <= _gold)
         {
@@ -174,31 +289,56 @@ public sealed class KeeperTrapDoorStep
         int count = _view.Database.Traps.Count == 0 ? 0 : _view.Database.Traps.Keys.Max();
         for (int id = 1; id <= count; id++)
         {
-            if (_view.Availability(AvailabilityKind.Trap, id) != 3) continue;
-            if (!_view.Database.Traps.TryGetValue((byte)id, out TrapDef? trap)) continue;
+            if (_view.Availability(AvailabilityKind.Trap, id) != 3)
+            {
+                continue;
+            }
+
+            if (!_view.Database.Traps.TryGetValue((byte)id, out TrapDef? trap))
+            {
+                continue;
+            }
+
             if (id == boulder)
             {
                 if (_p.BoulderTrapsOnLongCorridors)
                 {
-                    if (!LongCorridor(at)) continue;
+                    if (!LongCorridor(at))
+                    {
+                        continue;
+                    }
+
                     chosen = trap;
                     break;
                 }
                 chosen = trap;
-                if ((uint)_rng.NextInt(4) > preference) break;
+                if ((uint)_rng.NextInt(4) > preference)
+                {
+                    break;
+                }
             }
             else if (trap.TriggerType == OppositeTriggerType)
             {
                 chosen = trap;
-                if ((uint)_rng.NextInt(5) > preference) break;
+                if ((uint)_rng.NextInt(5) > preference)
+                {
+                    break;
+                }
             }
             else
             {
                 chosen = trap;
-                if ((uint)_rng.NextInt(5) < preference) break;
+                if ((uint)_rng.NextInt(5) < preference)
+                {
+                    break;
+                }
             }
         }
-        if (chosen is null || !_view.CanPlaceTrap(at, _pendingAll)) return allowance;
+        if (chosen is null || !_view.CanPlaceTrap(at, _pendingAll))
+        {
+            return allowance;
+        }
+
         _commands.Add(new PlaceTrapCommand(_view.PlayerId, at, chosen.TrapId));
         if (chosen.GoldCost <= _gold)
         {
@@ -215,8 +355,15 @@ public sealed class KeeperTrapDoorStep
         foreach ((int dx, int dy) in Sides)
         {
             int run = 0;
-            while (run < LongCorridorTiles && ValidSite(at.X + (dx * (run + 1)), at.Y + (dy * (run + 1)))) run++;
-            if (run == LongCorridorTiles) return true;
+            while (run < LongCorridorTiles && ValidSite(at.X + (dx * (run + 1)), at.Y + (dy * (run + 1))))
+            {
+                run++;
+            }
+
+            if (run == LongCorridorTiles)
+            {
+                return true;
+            }
         }
         return false;
     }

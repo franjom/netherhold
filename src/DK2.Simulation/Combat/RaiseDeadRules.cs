@@ -27,16 +27,31 @@ public static class RaiseDeadRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (shot.TargetX < 0 || shot.TargetY < 0) return;
+        if (shot.TargetX < 0 || shot.TargetY < 0)
+        {
+            return;
+        }
+
         var tile = new TilePos(shot.TargetX >> 12, shot.TargetY >> 12);
-        if (!world.Contains(tile)) return;
+        if (!world.Contains(tile))
+        {
+            return;
+        }
 
         // Gather first: removing a body and adding a creature both change the list.
         List<CreatureState>? bodies = null;
         foreach (CreatureState thing in world.Creatures)
+        {
             if (CreatureDeathRules.IsCorpse(thing) && thing.CarriedByCreatureId < 0 && thing.Tile == tile)
+            {
                 (bodies ??= []).Add(thing);
-        if (bodies is null) return;
+            }
+        }
+
+        if (bodies is null)
+        {
+            return;
+        }
 
         var owner = new PlayerId(shot.OwnerPlayerId);
         foreach (CreatureState body in bodies)

@@ -58,8 +58,14 @@ public static partial class PossessionRules
     public static void Act(SimulationContext context, ISightBlocker sight, PossessionCombat combat, CreatureState me, ActPossessedCreatureCommand command)
     {
         CreatureDef mine = context.Database.CreatureById(me.CreatureTypeId);
-        if (command.Melee) Melee(context, sight, combat, me, mine, command.Aim);
-        else UseSlot(context, sight, combat, command.PlayerId.Value, me, mine, command.Aim, command.Slot.Value);
+        if (command.Melee)
+        {
+            Melee(context, sight, combat, me, mine, command.Aim);
+        }
+        else
+        {
+            UseSlot(context, sight, combat, command.PlayerId.Value, me, mine, command.Aim, command.Slot.Value);
+        }
     }
 
     // ------------------------------------------------------------------ the aim
@@ -76,7 +82,11 @@ public static partial class PossessionRules
     {
         int sum = unchecked((v.X * v.X >> 12) + (v.Y * v.Y >> 12) + (v.Z * v.Z >> 12));
         int length = (int)((uint)IntegerMath.SquareRoot(unchecked((uint)(sum * 16))) >> 4);
-        if (length == 0) return v;
+        if (length == 0)
+        {
+            return v;
+        }
+
         return new(unchecked(v.X * 16) / length, unchecked(v.Y * 16) / length, unchecked(v.Z * 16) / length);
     }
 
@@ -87,8 +97,16 @@ public static partial class PossessionRules
     internal static bool InAimCone(int yaw, Vec3 pose, Vec3 point)
     {
         int bearing = Bearing.Of(unchecked(point.X - pose.X), unchecked(point.Y - pose.Y)) & Bearing.Mask;
-        if (yaw - bearing > Bearing.HalfTurn) bearing += Bearing.Turn;
-        if (bearing - yaw > Bearing.HalfTurn) bearing -= Bearing.Turn;
+        if (yaw - bearing > Bearing.HalfTurn)
+        {
+            bearing += Bearing.Turn;
+        }
+
+        if (bearing - yaw > Bearing.HalfTurn)
+        {
+            bearing -= Bearing.Turn;
+        }
+
         return yaw - AimConeHalfWidth < bearing && bearing < yaw + AimConeHalfWidth;
     }
 
@@ -97,9 +115,17 @@ public static partial class PossessionRules
     /// truncated toward zero. Order-dependent, not a nearest test.</summary>
     internal static bool Replaces(Vec3 candidate, Vec3? best, Vec3 pose, Vec3 aim)
     {
-        if (best is not { } held) return true;
+        if (best is not { } held)
+        {
+            return true;
+        }
+
         if (TrapRules.DistanceSquared(candidate.X, candidate.Y, pose.X, pose.Y)
-            >= TrapRules.DistanceSquared(held.X, held.Y, pose.X, pose.Y)) return false;
+            >= TrapRules.DistanceSquared(held.X, held.Y, pose.X, pose.Y))
+        {
+            return false;
+        }
+
         int scaled = unchecked(Dot(Normalised(candidate - pose), aim) * 300);
         return Dot(Normalised(held - pose), aim) < scaled / 256;
     }
@@ -111,7 +137,11 @@ public static partial class PossessionRules
     private static void Melee(SimulationContext context, ISightBlocker sight, PossessionCombat combat, CreatureState me, CreatureDef mine, PossessionAim aim)
     {
         long now = context.Tick.Value;
-        if (!CombatRules.SwingMayBegin(context.Database, me, mine, now)) return;
+        if (!CombatRules.SwingMayBegin(context.Database, me, mine, now))
+        {
+            return;
+        }
+
         me.TimeLastUsedMelee = now;
         me.MeleeStampDelay = 0;
         ChainThing? picked = PickMeleeTarget(context.World, context.Database, me, mine, aim, combat.Hearts);
@@ -127,7 +157,11 @@ public static partial class PossessionRules
         {
             case CreatureState creature when target.Class == ChainClass.Creature:
                 // A creature on a torture device (state 131) is stamped, not struck.
-                if (creature.Dk2StateId == TortureRules.TorturedState) break;
+                if (creature.Dk2StateId == TortureRules.TorturedState)
+                {
+                    break;
+                }
+
                 FightRules.BeginPossessedAction(context, me, SpellRules.MeleeSwing, 0, FightTargetKind.Creature, creature.Id);
                 Command(context, sight, combat, me, creature);
                 Record(me, FightTargetKind.Creature, creature.Id, now);
@@ -210,10 +244,22 @@ public static partial class PossessionRules
         PossessionAim aim)
     {
         int lacks = CreatureLevelRules.MaxGoldHeld(context.Database, mine, me.Level) - me.GoldHeld;
-        if (lacks == 0) return;
+        if (lacks == 0)
+        {
+            return;
+        }
+
         int take = unchecked(lacks * 2);
-        if ((uint)pile.GoldHeld < (uint)take) take = pile.GoldHeld;
-        if (take > 99) take = 100;
+        if ((uint)pile.GoldHeld < (uint)take)
+        {
+            take = pile.GoldHeld;
+        }
+
+        if (take > 99)
+        {
+            take = 100;
+        }
+
         FloorGold.Take(context.World, context.Database, pile, take);
         int landed = PurseRules.Receive(context.Database, mine, me, take / 2);
         (int px, int py, int pz) = aim.PacketOrigin;
@@ -236,13 +282,28 @@ public static partial class PossessionRules
         foreach ((int dx, int dy) in MeleeTiles)
         {
             int x = (px >> 12) + dx, y = (py >> 12) + dy;
-            if (!world.Contains(x, y)) continue;
+            if (!world.Contains(x, y))
+            {
+                continue;
+            }
+
             ThingsOnTile(world, (y * world.Width) + x, onTile, hearts);
             foreach (ChainThing thing in onTile)
             {
-                if (ReferenceEquals(thing.Thing, me) || !Pickable(database, me, mine, thing)) continue;
-                if (!InAimCone(aim.Yaw.Value, pose, thing.At)) continue;
-                if (Replaces(thing.At, best?.At, pose, aimVector)) best = thing;
+                if (ReferenceEquals(thing.Thing, me) || !Pickable(database, me, mine, thing))
+                {
+                    continue;
+                }
+
+                if (!InAimCone(aim.Yaw.Value, pose, thing.At))
+                {
+                    continue;
+                }
+
+                if (Replaces(thing.At, best?.At, pose, aimVector))
+                {
+                    best = thing;
+                }
             }
         }
         return best;
@@ -259,27 +320,57 @@ public static partial class PossessionRules
     {
         into.Clear();
         foreach (CreatureState c in world.Creatures)
+        {
             if (c.TileLink.TileIndex == tile)
+            {
                 into.Add(CreatureDeathRules.IsCorpse(c)
                     // 0x004B0F20 constructs a body owned by the neutral player (0x004B0FAA); a Graveyard
                     // that takes it makes it its owner's (0x004B1700).
                     ? new(ChainClass.Body, c, new(c.PosX, c.PosY, FloorHeight + c.PosZ), (byte)c.BodyOwnerPlayerId, c.TileLink.Order)
                     : new(ChainClass.Creature, c, new(c.PosX, c.PosY, FloorHeight + c.PosZ), c.OwnerPlayerId, c.TileLink.Order));
+            }
+        }
+
         foreach (ObjectState o in world.Objects)
+        {
             if (o.TileLink.TileIndex == tile)
+            {
                 into.Add(new(ChainClass.Object, o, ObjectPosition(world, o), o.OwnerPlayerId, o.TileLink.Order));
+            }
+        }
+
         foreach (TrapState t in world.Traps)
+        {
             if (t.TileLink.TileIndex == tile)
+            {
                 into.Add(new(ChainClass.Trap, t, new(t.PosX, t.PosY, FloorHeight), t.PlayerId, t.TileLink.Order));
+            }
+        }
+
         foreach (DoorState d in world.Doors)
+        {
             if (d.TileLink.TileIndex == tile)
+            {
                 into.Add(new(ChainClass.Door, d, new(CreatureState.CentreOf(d.X), CreatureState.CentreOf(d.Y), FloorHeight), d.PlayerId, d.TileLink.Order));
+            }
+        }
+
         foreach (ShotState s in world.Shots)
+        {
             if (s.TileLink.TileIndex == tile)
+            {
                 into.Add(new(ChainClass.Shot, s, new(s.PosX, s.PosY, FloorHeight + s.PosZ), s.OwnerPlayerId, s.TileLink.Order));
+            }
+        }
+
         foreach (PillarThing p in Pillars(world, hearts))
+        {
             if (p.Target.Tile.Y * world.Width + p.Target.Tile.X == tile)
+            {
                 into.Add(new(ChainClass.Object, p, new(p.Target.X.Raw, p.Target.Y.Raw, FloorHeight), p.Owner, int.MinValue));
+            }
+        }
+
         into.Sort((a, b) => b.Order.CompareTo(a.Order));
     }
 
@@ -299,8 +390,16 @@ public static partial class PossessionRules
         switch (thing.Thing)
         {
             case ObjectState o:
-                if (!sameOwner && database.ObjectById(o.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.DoorKey) == ObjectFlags.DoorKey)) return false;
-                if (!InReach(me, mine, thing.At)) return false;
+                if (!sameOwner && database.ObjectById(o.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.DoorKey) == ObjectFlags.DoorKey))
+                {
+                    return false;
+                }
+
+                if (!InReach(me, mine, thing.At))
+                {
+                    return false;
+                }
+
                 return o.ObjectTypeId switch
                 {
                     FloorGold.FloorGoldObjectId or GoldBagObjectId or FloorGold.TreasuryPileObjectId =>
@@ -311,13 +410,33 @@ public static partial class PossessionRules
                 };
             case PillarThing:
                 // Type 94: another owner's only, its definition's DoorKey bit tested as any object's.
-                if (sameOwner) return false;
-                if (database.ObjectById(HeartPillarRules.ArchPillarObjectId) is { } pillarDef && ((pillarDef.Flags & ObjectFlags.DoorKey) == ObjectFlags.DoorKey)) return false;
+                if (sameOwner)
+                {
+                    return false;
+                }
+
+                if (database.ObjectById(HeartPillarRules.ArchPillarObjectId) is { } pillarDef && ((pillarDef.Flags & ObjectFlags.DoorKey) == ObjectFlags.DoorKey))
+                {
+                    return false;
+                }
+
                 return InReach(me, mine, thing.At);
             default:
-                if (sameOwner) return false;
-                if (thing.Thing is TrapState trap) return !trap.Hidden;
-                if (thing.Class == ChainClass.Creature) return !CreatureDeathRules.IsDown((CreatureState)thing.Thing);
+                if (sameOwner)
+                {
+                    return false;
+                }
+
+                if (thing.Thing is TrapState trap)
+                {
+                    return !trap.Hidden;
+                }
+
+                if (thing.Class == ChainClass.Creature)
+                {
+                    return !CreatureDeathRules.IsDown((CreatureState)thing.Thing);
+                }
+
                 return true;
         }
     }
@@ -329,7 +448,11 @@ public static partial class PossessionRules
     {
         int bearing = Bearing.Of(unchecked(at.X - me.PosX), unchecked(at.Y - me.PosY)) & Bearing.Mask;
         int heading = (ushort)me.Heading;
-        if ((ushort)(Math.Max(bearing, heading) - Math.Min(bearing, heading)) >= 0x80) return false;
+        if ((ushort)(Math.Max(bearing, heading) - Math.Min(bearing, heading)) >= 0x80)
+        {
+            return false;
+        }
+
         uint bound = (uint)(((ulong)(uint)mine.FootprintRadius.Raw * 0x4CCCCCCCDUL) >> 34);
         return TrapRules.DistanceSquared(me.PosX, me.PosY, at.X, at.Y) <= bound;
     }
@@ -347,16 +470,32 @@ public static partial class PossessionRules
             Recruit(context, sight, me, aim);
             return;
         }
-        if (!SpellRules.CanCast(database, me, mine, slot, now)) return;
+        if (!SpellRules.CanCast(database, me, mine, slot, now))
+        {
+            return;
+        }
+
         CreatureSpellDef spell = SpellRules.SpellOf(database, mine, slot)!;
 
         SpellTarget target = PickSpellTarget(context.World, database, sight, me, aim, SpellRules.IsFriendly(spell), combat.Hearts);
-        if (SpellRules.IsSelfOnly(spell)) target = new(FightTargetKind.Creature, me.Id, 0);
-        if (TargetOwner(context.World, target) is { } owner) UnmaskAgainst(context.World, me, owner);
+        if (SpellRules.IsSelfOnly(spell))
+        {
+            target = new(FightTargetKind.Creature, me.Id, 0);
+        }
 
-        if ((spell.Flags & TeleportSpellFlag) != 0) TeleportHome(context, keeper, me);
+        if (TargetOwner(context.World, target) is { } owner)
+        {
+            UnmaskAgainst(context.World, me, owner);
+        }
+
+        if ((spell.Flags & TeleportSpellFlag) != 0)
+        {
+            TeleportHome(context, keeper, me);
+        }
         else if ((spell.Flags & SpeedSpellFlag) != 0)
+        {
             StatusEffectRules.ModifySpeed(context, me, unchecked((int)spell.ShotData1), unchecked((int)spell.ShotData2));
+        }
         else if (target.Kind == FightTargetKind.None)
         {
             if (spell.ShotTypeId != HomingShotTypeId)
@@ -368,8 +507,10 @@ public static partial class PossessionRules
             }
         }
         else
+        {
             // At a pillar the shot aims at its position (an object has no lead) and hits the heart.
             FightRules.BeginPossessedAction(context, me, SpellRules.SpellCast, slot, target.Kind, target.Id, target.Player);
+        }
 
         me.SpellStamps[slot] = now;
     }
@@ -379,7 +520,11 @@ public static partial class PossessionRules
     private static void TeleportHome(SimulationContext context, byte keeper, CreatureState me)
     {
         RoomInstance? heart = StealGoldRules.NearestRoomOfType(context, keeper, RoomTypeId.DungeonHeart, me);
-        if (heart is null) return;
+        if (heart is null)
+        {
+            return;
+        }
+
         int anchor = heart.TileIndices[0], width = context.World.Width;
         var centre = new FpPosition3(new(CreatureState.CentreOf(anchor % width)), new(CreatureState.CentreOf(anchor / width)), new(0));
         Move(context, me, new PossessionPose(centre, new(0)));
@@ -426,10 +571,22 @@ public static partial class PossessionRules
         bool Scores(Vec3 at, Vec3 sightAt, uint limit, out int score, Vec3? direction = null)
         {
             score = 0;
-            if (TrapRules.DistanceSquared(me.PosX, me.PosY, at.X, at.Y) >= limit) return false;
-            if (!InAimCone(yaw, pose, at)) return false;
+            if (TrapRules.DistanceSquared(me.PosX, me.PosY, at.X, at.Y) >= limit)
+            {
+                return false;
+            }
+
+            if (!InAimCone(yaw, pose, at))
+            {
+                return false;
+            }
+
             Vec3 d = direction ?? Normalised(at - pose);
-            if (!LineOfSight.Clear(sight, me.PosX, me.PosY, sightAt.X, sightAt.Y)) return false;
+            if (!LineOfSight.Clear(sight, me.PosX, me.PosY, sightAt.X, sightAt.Y))
+            {
+                return false;
+            }
+
             score = 4096 - Dot(d, aimVector);
             return score < best;
         }
@@ -438,23 +595,46 @@ public static partial class PossessionRules
         {
             PlayerId player = world.PlayerAtIndex(i).PlayerId;
             bool qualifies = CombatRules.IsHostile(world, me.OwnerPlayerId, player.Value);
-            if (friendly) qualifies = !qualifies;
-            if (!qualifies) continue;
+            if (friendly)
+            {
+                qualifies = !qualifies;
+            }
+
+            if (!qualifies)
+            {
+                continue;
+            }
 
             foreach (CreatureState c in world.OwnedCreatures(player))
             {
-                if (CreatureDeathRules.IsDown(c)) continue;
+                if (CreatureDeathRules.IsDown(c))
+                {
+                    continue;
+                }
+
                 var at = new Vec3(c.PosX, c.PosY, FloorHeight + c.PosZ);
-                if (!Scores(at, at, CreatureAndObjectScanLimit, out int score)) continue;
+                if (!Scores(at, at, CreatureAndObjectScanLimit, out int score))
+                {
+                    continue;
+                }
+
                 best = score;
                 chosen = new(FightTargetKind.Creature, c.Id, 0);
             }
             for (int t = world.Traps.Count - 1; t >= 0; t--)
             {
                 TrapState trap = world.Traps[t];
-                if (trap.PlayerId != player || trap.Hidden || trap.UnderConstruction) continue;
+                if (trap.PlayerId != player || trap.Hidden || trap.UnderConstruction)
+                {
+                    continue;
+                }
+
                 var at = new Vec3(trap.PosX, trap.PosY, FloorHeight);
-                if (!Scores(at, at, TrapAndDoorScanLimit, out int score)) continue;
+                if (!Scores(at, at, TrapAndDoorScanLimit, out int score))
+                {
+                    continue;
+                }
+
                 best = score;
                 chosen = new(FightTargetKind.Trap, trap.Id, 0);
             }
@@ -462,24 +642,42 @@ public static partial class PossessionRules
             {
                 DoorState door = world.Doors[d];
                 // The cell's secret-door bit (+0xB bit 0) is not represented (Q288).
-                if (door.PlayerId != player || door.UnderConstruction) continue;
+                if (door.PlayerId != player || door.UnderConstruction)
+                {
+                    continue;
+                }
+
                 var at = new Vec3(CreatureState.CentreOf(door.X), CreatureState.CentreOf(door.Y), FloorHeight);
-                if (TrapRules.DistanceSquared(me.PosX, me.PosY, at.X, at.Y) >= TrapAndDoorScanLimit || !InAimCone(yaw, pose, at)) continue;
+                if (TrapRules.DistanceSquared(me.PosX, me.PosY, at.X, at.Y) >= TrapAndDoorScanLimit || !InAimCone(yaw, pose, at))
+                {
+                    continue;
+                }
+
                 Vec3 direction = Normalised(at - pose);
-                if (!Scores(at, at - direction, TrapAndDoorScanLimit, out int score, direction)) continue;
+                if (!Scores(at, at - direction, TrapAndDoorScanLimit, out int score, direction))
+                {
+                    continue;
+                }
+
                 best = score;
                 chosen = new(FightTargetKind.Door, door.Id, 0);
             }
             // The player's type-94 objects newest first: its heart's pillars, the last built first.
             if (hearts?.SiteOf(player) is { Standing: true } site)
+            {
                 for (int k = site.Pillars.Length - 1; k >= 0; k--)
                 {
                     HeartPillarTarget pillar = site.Pillars[k];
                     var at = new Vec3(pillar.X.Raw, pillar.Y.Raw, FloorHeight);
-                    if (!Scores(at, at, CreatureAndObjectScanLimit, out int score)) continue;
+                    if (!Scores(at, at, CreatureAndObjectScanLimit, out int score))
+                    {
+                        continue;
+                    }
+
                     best = score;
                     chosen = new(FightTargetKind.Heart, HeartPillarId.For(world, pillar).Value, site.Owner);
                 }
+            }
         }
         return chosen;
     }

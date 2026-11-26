@@ -20,8 +20,11 @@ public static class ObjectReactionRules
     public static void StartStruck(SimulationContext context, ObjectState target)
     {
         if (target.AutoPlaced && target.ObjectTypeId == TrainingDummyObjectId && target.TimerTicks != 0x200)
+        {
             target.Heading = AutoFurnitureRules.Choice(target.TileIndex % context.World.Width,
                 target.TileIndex / context.World.Width, 0x800);
+        }
+
         target.ProcessState = StruckProcess;
         target.ProcessAgeTicks = 0;
     }
@@ -37,11 +40,16 @@ public static class ObjectReactionRules
             target.ProcessCount = 0;
             // 0x004A14F2, after the effect and the art: the dummy's own sound, and no other object's.
             if (target.ObjectTypeId == TrainingDummyObjectId)
+            {
                 ThingSoundRules.Request(context, SystemName, target, ThingSoundEvent.StruckDummy);
+            }
         }
         ObjectDef? definition = context.Database.ObjectById(target.ObjectTypeId);
         if (definition is not null && target.ProcessAgeTicks > AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(5)))
+        {
             target.ProcessCount = 1;
+        }
+
         int sign = target.ProcessEnding ? 1 : -1;
         int spin = (int)((long)target.TimerTicks * sign * 9 / ((context.Tick.Value + 3 - target.ProcessDeadline) * 3));
         if (Math.Abs(spin) > 0x40)

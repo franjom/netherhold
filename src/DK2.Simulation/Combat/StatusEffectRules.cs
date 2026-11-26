@@ -26,18 +26,32 @@ public static class StatusEffectRules
     public static void IgniteWeakTarget(SimulationContext context, ShotDef shot, CreatureState target,
         ushort durationTicks, PlayerId owner)
     {
-        if (shot.AttackCategory != 4) return;
-        if (context.Database.TerrainById(context.World.Tile(target.Tile).TerrainId).IsWater) return;
+        if (shot.AttackCategory != 4)
+        {
+            return;
+        }
+
+        if (context.Database.TerrainById(context.World.Tile(target.Tile).TerrainId).IsWater)
+        {
+            return;
+        }
+
         CreatureDef definition = context.Database.CreatureById(target.CreatureTypeId);
         uint max = (uint)CreatureHealthRules.MaxHealth(context.Database, definition, target);
         if (max != 0 && unchecked((uint)(target.Health * 100)) / max <= 20)
+        {
             SetBurning(target, durationTicks, owner);
+        }
     }
 
     /// <summary>0x0048E160's last status arm: nine simulation draws, including the expiry tick.</summary>
     public static void UpdateBurning(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.BurningTicks == 0) return;
+        if (creature.BurningTicks == 0)
+        {
+            return;
+        }
+
         creature.BurningTicks--;
         // 0x0048E4F1: the fire's sound each tick it burns, the last included; the stop below ends it (0x0048E62E).
         ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.Burning);
@@ -90,10 +104,26 @@ public static class StatusEffectRules
     public static int DamageMultiplier(WorldState world, GameDatabase database, CreatureState target)
     {
         int m = Base;
-        if (IsFrozen(target)) m += FrozenBonus;
-        if (IsArmoured(target) || CreatureDeathRules.IsPossessed(world, target)) m -= ArmourDiscount;
-        if (IsStunned(target)) m += StunnedBonus;
-        if (target.CombatPitFighter) m += database[VariableTypeId.PitPercentageDamageTakenOfNormalCombat] - Base;
+        if (IsFrozen(target))
+        {
+            m += FrozenBonus;
+        }
+
+        if (IsArmoured(target) || CreatureDeathRules.IsPossessed(world, target))
+        {
+            m -= ArmourDiscount;
+        }
+
+        if (IsStunned(target))
+        {
+            m += StunnedBonus;
+        }
+
+        if (target.CombatPitFighter)
+        {
+            m += database[VariableTypeId.PitPercentageDamageTakenOfNormalCombat] - Base;
+        }
+
         return Math.Max(0, m);
     }
 
@@ -106,14 +136,38 @@ public static class StatusEffectRules
     public static int Hurt(WorldState world, GameDatabase database, CreatureDef definition, CreatureState target, int damage, byte source)
     {
         target.HealthSourcePlayerId = source;
-        if (damage <= 0) return 0;
-        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) || ((definition.Flags & CreatureFlags.OnlyAttackableByHorny) == CreatureFlags.OnlyAttackableByHorny)) return 0;
-        if (target.InHand) return 0;   // the flag, which a drop clears: a falling creature can be hurt
+        if (damage <= 0)
+        {
+            return 0;
+        }
+
+        if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) || ((definition.Flags & CreatureFlags.OnlyAttackableByHorny) == CreatureFlags.OnlyAttackableByHorny))
+        {
+            return 0;
+        }
+
+        if (target.InHand)
+        {
+            return 0;   // the flag, which a drop clears: a falling creature can be hurt
+        }
+
         int scaled = (int)((long)damage * DamageMultiplier(world, database, target) / Base);
-        if (scaled == 0) CreatureHealthRules.NotifyPossessionDamage(definition, target);
-        if (IsStunned(target) && FearRules.NonImpAmongAttackers(world, target)) LengthenStun(database, definition, target);
+        if (scaled == 0)
+        {
+            CreatureHealthRules.NotifyPossessionDamage(definition, target);
+        }
+
+        if (IsStunned(target) && FearRules.NonImpAmongAttackers(world, target))
+        {
+            LengthenStun(database, definition, target);
+        }
+
         int landed = CreatureHealthRules.Apply(database, definition, target, -scaled, source);
-        if (target.Health <= 0) target.CollapseDue = true;
+        if (target.Health <= 0)
+        {
+            target.CollapseDue = true;
+        }
+
         return landed;
     }
 
@@ -125,7 +179,11 @@ public static class StatusEffectRules
     /// same test in DK2, but neither handler reads the start turn, so only 255 and 256 change (ADR-0348).</summary>
     public static void LengthenStun(GameDatabase database, CreatureDef definition, CreatureState target)
     {
-        if (target.Dk2StateId is not (CombatStates.Stunned or 256) || target.StunTicks <= 0) return;
+        if (target.Dk2StateId is not (CombatStates.Stunned or 256) || target.StunTicks <= 0)
+        {
+            return;
+        }
+
         int full = CombatRules.TicksOf(definition.StunDuration);
         int left = target.StunTicks;
         int more = left * database[VariableTypeId.StunTimePercentageIncreaseWhenHit] / 100;
@@ -137,7 +195,11 @@ public static class StatusEffectRules
     /// the percent and applied by the movement cap each tick (<see cref="SpeedCap"/>).</summary>
     public static bool ModifySpeed(SimulationContext context, CreatureState creature, int percent, int seconds)
     {
-        if (creature.SpeedEffectTicks > 0) return false;
+        if (creature.SpeedEffectTicks > 0)
+        {
+            return false;
+        }
+
         creature.SpeedEffectTicks = seconds * SimulationTiming.OriginalTicksPerGameSecond;
         creature.SpeedPercent = percent;
         context.Emit(SystemName, "speed_changed", $"creature={creature.Id} percent={percent} ticks={creature.SpeedEffectTicks}");
@@ -150,7 +212,11 @@ public static class StatusEffectRules
     /// in 16.16 tiles a tick, as <see cref="Systems.CreatureMovementSystem.MaxSpeedOf(CreatureDef, bool)"/> gives it.</summary>
     public static int SpeedCap(GameDatabase database, CreatureDef definition, CreatureState creature, int cap)
     {
-        if (creature.SpeedEffectTicks <= 0) return cap;
+        if (creature.SpeedEffectTicks <= 0)
+        {
+            return cap;
+        }
+
         int perTick = cap >> 4;
         int walk = SimulationTiming.LoaderRatePerTick(definition.Speed.Raw);
         int modified = Math.Clamp(perTick * creature.SpeedPercent / 100, walk / 4, SimulationTiming.OriginalTicksPerGameSecond << 12);
@@ -161,8 +227,16 @@ public static class StatusEffectRules
     /// current action ends and the creature stands in the frozen state while the word runs.</summary>
     public static bool Freeze(SimulationContext context, CreatureState creature, CreatureDef definition, int ticks)
     {
-        if (ticks <= 0 || IsFrozen(creature) || ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return false;
-        if (CreatureDeathRules.IsDown(creature)) return false;
+        if (ticks <= 0 || IsFrozen(creature) || ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+        {
+            return false;
+        }
+
+        if (CreatureDeathRules.IsDown(creature))
+        {
+            return false;
+        }
+
         creature.FrozenTicks = ticks;
         CreatureStateMachine.EndAction(creature);
         Stand(context, creature, CombatStates.Frozen);
@@ -177,10 +251,21 @@ public static class StatusEffectRules
     public static bool Stun(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         WorldState world = context.World;
-        if (HandRules.IsHeld(creature) || ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return false;
-        if (CreatureDeathRules.IsPossessed(world, creature) || CreatureDeathRules.IsDown(creature)) return false;
+        if (HandRules.IsHeld(creature) || ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+        {
+            return false;
+        }
+
+        if (CreatureDeathRules.IsPossessed(world, creature) || CreatureDeathRules.IsDown(creature))
+        {
+            return false;
+        }
         // 0x00491840: a refused SetState(255) is no stun at all, so a frozen creature is not stunned.
-        if (CreatureStateMachine.Classify(creature, CombatStates.Stunned) == StateTransition.Refused) return false;
+        if (CreatureStateMachine.Classify(creature, CombatStates.Stunned) == StateTransition.Refused)
+        {
+            return false;
+        }
+
         creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
         Stand(context, creature, CombatStates.Stunned);
         CreatureStateMachine.EndAction(creature);
@@ -220,7 +305,11 @@ public static class StatusEffectRules
     /// <c>StunDuration</c> and gets up in 257 the same way.</summary>
     public static bool StunInto(SimulationContext context, CreatureState creature, CreatureDef definition, int state, string by)
     {
-        if (CreatureStateMachine.Classify(creature, state) == StateTransition.Refused) return false;
+        if (CreatureStateMachine.Classify(creature, state) == StateTransition.Refused)
+        {
+            return false;
+        }
+
         creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
         Stand(context, creature, state);
         CreatureStateMachine.EndAction(creature);
@@ -238,7 +327,11 @@ public static class StatusEffectRules
     /// creature in 209 to try again), and its position write (<c>0x0048F690</c>).</summary>
     public static bool StunFromStarter(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.InHand || CreatureStateMachine.Classify(creature, StunStarterState) == StateTransition.Refused) return false;
+        if (creature.InHand || CreatureStateMachine.Classify(creature, StunStarterState) == StateTransition.Refused)
+        {
+            return false;
+        }
+
         creature.StunTicks = CombatRules.TicksOf(definition.StunDuration);
         Stand(context, creature, CombatStates.Stunned);
         CreatureStateMachine.EndAction(creature);
@@ -254,7 +347,11 @@ public static class StatusEffectRules
     /// while the word runs.</summary>
     public static void MakeInvisible(SimulationContext context, CreatureState creature, int ticks)
     {
-        if (ticks <= 0) return;
+        if (ticks <= 0)
+        {
+            return;
+        }
+
         creature.InvisibleTicks = ticks;
         DropAttackers(context.World, creature);
         context.Emit(SystemName, "invisible", $"creature={creature.Id} ticks={ticks}");
@@ -276,9 +373,17 @@ public static class StatusEffectRules
 
     private static void Drop(WorldState world, CreatureState me, int attackerId)
     {
-        if (attackerId == CombatRules.NoTarget) return;
+        if (attackerId == CombatRules.NoTarget)
+        {
+            return;
+        }
+
         CreatureState? attacker = world.CreatureById(attackerId);
-        if (attacker is null || attacker.FightTargetKind != FightTargetKind.Creature || attacker.FightTargetId != me.Id) return;
+        if (attacker is null || attacker.FightTargetKind != FightTargetKind.Creature || attacker.FightTargetId != me.Id)
+        {
+            return;
+        }
+
         attacker.FightTargetId = CombatRules.NoTarget;
         attacker.FightTargetKind = FightTargetKind.None;
     }
@@ -288,7 +393,11 @@ public static class StatusEffectRules
     /// on a creature already down.</summary>
     public static bool Poison(SimulationContext context, CreatureState creature, int ticks, int amount, PlayerId owner)
     {
-        if (ticks <= 0 || amount <= 0 || CreatureDeathRules.IsDown(creature)) return false;
+        if (ticks <= 0 || amount <= 0 || CreatureDeathRules.IsDown(creature))
+        {
+            return false;
+        }
+
         creature.PoisonTicks = ticks;
         creature.PoisonAmount = amount;
         creature.PoisonOwner = owner.Value;
@@ -301,16 +410,26 @@ public static class StatusEffectRules
     /// routine, and the same amount reaches the caster. Nothing on a target already down.</summary>
     public static void Drain(SimulationContext context, CreatureState target, CreatureDef targetDef, CreatureState? caster, int percent, byte source)
     {
-        if (percent <= 0 || CreatureDeathRules.IsDown(target)) return;
+        if (percent <= 0 || CreatureDeathRules.IsDown(target))
+        {
+            return;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int amount = Math.Min(target.Health, CreatureHealthRules.MaxHealth(database, targetDef, target) * percent / 100);
-        if (amount <= 0) return;
+        if (amount <= 0)
+        {
+            return;
+        }
         // 0x004AFE29/0x004AFE38: both calls pass the shot's owner (+0x28) as the source.
         int landed = Hurt(world, database, targetDef, target, amount, source);
         int gained = 0;
         if (caster != null && !CreatureDeathRules.IsDown(caster))
+        {
             gained = CreatureHealthRules.Apply(database, database.CreatureById(caster.CreatureTypeId), caster, amount, source);
+        }
+
         context.Emit(SystemName, "drained", $"target={target.Id} amount={amount} landed={landed} caster={caster?.Id ?? 0} gained={gained}");
     }
 
@@ -318,7 +437,11 @@ public static class StatusEffectRules
     /// word, doubled on a water tile, through the health routine; then the stun.</summary>
     public static void Lightning(SimulationContext context, CreatureState target, CreatureDef targetDef, int damage, int casterId, byte source)
     {
-        if (CreatureDeathRules.IsDown(target) || (targetDef.Flags2 & LightningImmune) != 0) return;
+        if (CreatureDeathRules.IsDown(target) || (targetDef.Flags2 & LightningImmune) != 0)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
         TilePos at = target.Tile;
@@ -331,7 +454,11 @@ public static class StatusEffectRules
             ElectrifiedCreature = new CreatureId(target.Id),
         });
         if (target.PrisonOwnerPlayerId != PrisonRules.NoPrison
-            || NeedRules.ResolvedCategory(target) == CreatureStateCategory.Dying) return;
+            || NeedRules.ResolvedCategory(target) == CreatureStateCategory.Dying)
+        {
+            return;
+        }
+
         Stun(context, target, targetDef);
     }
 

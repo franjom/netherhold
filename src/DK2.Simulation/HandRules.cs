@@ -78,19 +78,47 @@ public static class HandRules
         // Permission also covers original states whose simulation activity is not implemented.
         if (CreatureDeathRules.HasCollapsed(creature) || creature.InHand
             || creature.Dk2StateId is CreatureDeathRules.FallingState
-                or CreatureDeathRules.DyingState or CreatureStateMachine.NoState) return false;
+                or CreatureDeathRules.DyingState or CreatureStateMachine.NoState)
+        {
+            return false;
+        }
         // A nonzero removal stamp refuses any creature, an imp or not (0x0048E6A0, ADR-0277).
-        if (creature.ManaRemovalStamp != 0) return false;
-        if (!((definition.Flags & CreatureFlags.CanBePickedUp) == CreatureFlags.CanBePickedUp)) return false;
-        if (creature.LandingPending || creature.Dk2StateId is 76 or 193) return false;
+        if (creature.ManaRemovalStamp != 0)
+        {
+            return false;
+        }
+
+        if (!((definition.Flags & CreatureFlags.CanBePickedUp) == CreatureFlags.CanBePickedUp))
+        {
+            return false;
+        }
+
+        if (creature.LandingPending || creature.Dk2StateId is 76 or 193)
+        {
+            return false;
+        }
+
         if (creature.OwnerPlayerId != playerId)
+        {
             return creature.IsTool || (creature.SneakingAs != 0 && creature.SneakingAs == playerId.Value)
                 || creature.PrisonOwnerPlayerId == playerId.Value;
+        }
+
         if (creature.CombatPitFighter)
+        {
             return world.Contains(creature.Tile)
                 && world.Tile(creature.Tile.X, creature.Tile.Y).OwnerPlayerId == playerId;
-        if (creature.Dk2StateId is 51 or 52 || TurncoatRules.IsActive(creature)) return false;
-        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && (creature.Flags & 9) == 0) return false;
+        }
+
+        if (creature.Dk2StateId is 51 or 52 || TurncoatRules.IsActive(creature))
+        {
+            return false;
+        }
+
+        if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && (creature.Flags & 9) == 0)
+        {
+            return false;
+        }
         // The stored room must be nobody's or the owner's. A Prison writes that membership on
         // entry (0x0047B740 calls 0x004E5A70), so an own creature in another keeper's cells is
         // refused; other rooms' membership is not stored here (creature-pickup.md).
@@ -111,9 +139,21 @@ public static class HandRules
         WorldState world, GameDatabase database, ObjectState thing, PlayerId playerId)
     {
         ObjectDef? definition = database.ObjectById(thing.ObjectTypeId);
-        if (definition is null || !definition.CanBePickedUp) return false;
-        if (thing.InHand) return false;
-        if (thing.CarriedByCreatureId >= 0) return false;
+        if (definition is null || !definition.CanBePickedUp)
+        {
+            return false;
+        }
+
+        if (thing.InHand)
+        {
+            return false;
+        }
+
+        if (thing.CarriedByCreatureId >= 0)
+        {
+            return false;
+        }
+
         return world.Player(playerId).Hand.Count < Capacity(database);
     }
 
@@ -131,9 +171,21 @@ public static class HandRules
     /// that is the cursor's (<see cref="MayReachStoreGold"/>).</summary>
     public static bool CanPickUpStoreGold(WorldState world, GameDatabase database, TilePos tile, PlayerId playerId)
     {
-        if (!world.Contains(tile) || world.Tile(tile).GoldHeld <= 0) return false;
-        if (database.ObjectById(FloorGold.TreasuryPileObjectId) is not { CanBePickedUp: true }) return false;
-        if (world.Player(playerId).Hand.Count >= Capacity(database)) return false;
+        if (!world.Contains(tile) || world.Tile(tile).GoldHeld <= 0)
+        {
+            return false;
+        }
+
+        if (database.ObjectById(FloorGold.TreasuryPileObjectId) is not { CanBePickedUp: true })
+        {
+            return false;
+        }
+
+        if (world.Player(playerId).Hand.Count >= Capacity(database))
+        {
+            return false;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(world, database, world.TileIndex(tile));
         return room?.Definition.TypeId is RoomTypeId.Treasury or RoomTypeId.DungeonHeart;
     }
@@ -150,8 +202,16 @@ public static class HandRules
     public static bool DropLands(
         WorldState world, GameDatabase database, PlayerId playerId, HandItem item, TilePos tile)
     {
-        if (!CanDrop(world, database, playerId, item, tile)) return false;
-        if (item.IsObject) return true;
+        if (!CanDrop(world, database, playerId, item, tile))
+        {
+            return false;
+        }
+
+        if (item.IsObject)
+        {
+            return true;
+        }
+
         CreatureState creature = world.CreatureById(item.Id)!;
         return CreatureLands(world, database, playerId, creature, tile, out _);
     }
@@ -179,7 +239,11 @@ public static class HandRules
     {
         if (!world.Contains(tile)
             || database.RoomByTerrain(world.Tile(tile.X, tile.Y).TerrainId)?.TypeId != RoomTypeId.DungeonHeart
-            || RoomIndex.RoomAt(world, database, world.TileIndex(tile)) is not { } heart) return false;
+            || RoomIndex.RoomAt(world, database, world.TileIndex(tile)) is not { } heart)
+        {
+            return false;
+        }
+
         int dx = tile.X - heart.MinX, dy = tile.Y - heart.MinY;
         return dx is >= 1 and <= 3 && dy is >= 1 and <= 3 && !(dx == 2 && dy == 2);
     }
@@ -193,9 +257,16 @@ public static class HandRules
     public static bool CanDrop(
         WorldState world, GameDatabase database, PlayerId playerId, HandItem item, TilePos tile)
     {
-        if (!world.Contains(tile)) return false;
+        if (!world.Contains(tile))
+        {
+            return false;
+        }
+
         if (item.IsObject)
+        {
             return world.ObjectById(item.Id) is { } thing && MapAllowsObject(world, database, playerId, thing.ObjectTypeId, tile);
+        }
+
         return world.CreatureById(item.Id) is { } creature && CreatureMayDrop(world, database, playerId, creature, tile);
     }
 
@@ -210,11 +281,26 @@ public static class HandRules
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         bool tool = creature.IsTool && !HasBeenKnockedOut(creature);
         if (!MapAllowsCreature(world, database, playerId, definition, tile))
+        {
             return tool && world.Tile(tile.X, tile.Y).TerrainId == HeroLairTerrainId;
-        if (creature.OwnerPlayerId != playerId && IsPortalCentre(world, database, tile, heroPortalToo: false)) return false;
-        if (!tool) return true;
+        }
+
+        if (creature.OwnerPlayerId != playerId && IsPortalCentre(world, database, tile, heroPortalToo: false))
+        {
+            return false;
+        }
+
+        if (!tool)
+        {
+            return true;
+        }
+
         RoomTypeId? room = database.RoomByTerrain(world.Tile(tile.X, tile.Y).TerrainId)?.TypeId;
-        if (room is RoomTypeId.Prison or RoomTypeId.Temple or RoomTypeId.CombatPit) return !IsFloorSlot(world, tile);
+        if (room is RoomTypeId.Prison or RoomTypeId.Temple or RoomTypeId.CombatPit)
+        {
+            return !IsFloorSlot(world, tile);
+        }
+
         return room != RoomTypeId.TortureChamber;
     }
 
@@ -231,7 +317,11 @@ public static class HandRules
     private static bool MapAllowsCreature(
         WorldState world, GameDatabase database, PlayerId playerId, CreatureDef definition, TilePos tile)
     {
-        if (IsSolidOrDoor(world, database, tile)) return false;
+        if (IsSolidOrDoor(world, database, tile))
+        {
+            return false;
+        }
+
         ref TileState cell = ref world.Tile(tile.X, tile.Y);
         RoomTypeId? room = database.RoomByTerrain(cell.TerrainId)?.TypeId;
         bool own = cell.OwnerPlayerId == playerId;
@@ -242,20 +332,55 @@ public static class HandRules
         if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
         {
             bool evil = ((definition.Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil);
-            if (room == RoomTypeId.CombatPit && IsFloorSlot(world, tile)) return false;
-            if (room == RoomTypeId.DungeonHeart && !own && IsHeartInner(world, database, tile)) return false;
-            if (evil && room is (RoomTypeId.Portal or RoomTypeId.HeroPortal) && IsPortalCentre(world, database, tile, heroPortalToo: true)) return false;
-            if (!evil && room == RoomTypeId.DungeonHeart && IsHeartInner(world, database, tile)) return false;
-            if (evil && room == RoomTypeId.Prison && IsFloorSlot(world, tile)) return false;
-            if (allied) return true;
+            if (room == RoomTypeId.CombatPit && IsFloorSlot(world, tile))
+            {
+                return false;
+            }
+
+            if (room == RoomTypeId.DungeonHeart && !own && IsHeartInner(world, database, tile))
+            {
+                return false;
+            }
+
+            if (evil && room is (RoomTypeId.Portal or RoomTypeId.HeroPortal) && IsPortalCentre(world, database, tile, heroPortalToo: true))
+            {
+                return false;
+            }
+
+            if (!evil && room == RoomTypeId.DungeonHeart && IsHeartInner(world, database, tile))
+            {
+                return false;
+            }
+
+            if (evil && room == RoomTypeId.Prison && IsFloorSlot(world, tile))
+            {
+                return false;
+            }
+
+            if (allied)
+            {
+                return true;
+            }
+
             TerrainDef terrain = database.TerrainById(cell.TerrainId);
             return neutral && !terrain.IsWater && !terrain.IsLava && room is null;
         }
 
-        if (!allied) return false;
+        if (!allied)
+        {
+            return false;
+        }
+
         if (room == RoomTypeId.CombatPit && IsFloorSlot(world, tile))
+        {
             return own && CombatPitRules.PitAt(world, database, world.TileIndex(tile)) is { } pit && RoomNeedRules.DropTest(world, pit);
-        if (room == RoomTypeId.DungeonHeart) return !IsHeartInner(world, database, tile);
+        }
+
+        if (room == RoomTypeId.DungeonHeart)
+        {
+            return !IsHeartInner(world, database, tile);
+        }
+
         return !(room == RoomTypeId.Portal && !own && IsPortalCentre(world, database, tile, heroPortalToo: false));
     }
 
@@ -265,14 +390,26 @@ public static class HandRules
     private static bool MapAllowsObject(
         WorldState world, GameDatabase database, PlayerId playerId, byte objectTypeId, TilePos tile)
     {
-        if (IsSolidOrDoor(world, database, tile)) return false;
+        if (IsSolidOrDoor(world, database, tile))
+        {
+            return false;
+        }
+
         ref TileState cell = ref world.Tile(tile.X, tile.Y);
         bool neutral = cell.OwnerPlayerId == PlayerIds.Neutral;
         bool allowed = ((database.ObjectById(objectTypeId)?.Flags & ObjectFlags.CanBeDroppedOnAnyLand) == ObjectFlags.CanBeDroppedOnAnyLand) == true
             || (!neutral && world.AreAllied(playerId, cell.OwnerPlayerId));
-        if (objectTypeId is not (HatcheryRules.ChickenObjectId or CallToArmsRules.ObjectTypeId)) return allowed;
+        if (objectTypeId is not (HatcheryRules.ChickenObjectId or CallToArmsRules.ObjectTypeId))
+        {
+            return allowed;
+        }
+
         RoomTypeId? room = database.RoomByTerrain(cell.TerrainId)?.TypeId;
-        if (room == RoomTypeId.Portal && IsPortalCentre(world, database, tile, heroPortalToo: false)) return false;
+        if (room == RoomTypeId.Portal && IsPortalCentre(world, database, tile, heroPortalToo: false))
+        {
+            return false;
+        }
+
         return allowed && !(room == RoomTypeId.DungeonHeart && IsHeartInner(world, database, tile));
     }
 
@@ -281,7 +418,11 @@ public static class HandRules
     /// terrain, and a closed, completed door; an open one leaves floor.</summary>
     private static bool IsSolidOrDoor(WorldState world, GameDatabase database, TilePos tile)
     {
-        if (database.TerrainById(world.Tile(tile.X, tile.Y).TerrainId).IsSolid) return true;
+        if (database.TerrainById(world.Tile(tile.X, tile.Y).TerrainId).IsSolid)
+        {
+            return true;
+        }
+
         return world.DoorAt(tile.X, tile.Y) is { UnderConstruction: false, Open: false } door && (door.PlayerId & 0xF) != 0;
     }
 
@@ -296,8 +437,16 @@ public static class HandRules
     {
         ref TileState cell = ref world.Tile(tile.X, tile.Y);
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
-                if ((dx | dy) != 0 && !SameRoom(world, cell, tile.X + dx, tile.Y + dy)) return false;
+            {
+                if ((dx | dy) != 0 && !SameRoom(world, cell, tile.X + dx, tile.Y + dy))
+                {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 
@@ -308,7 +457,11 @@ public static class HandRules
     {
         ref TileState cell = ref world.Tile(tile.X, tile.Y);
         RoomTypeId? room = database.RoomByTerrain(cell.TerrainId)?.TypeId;
-        if (room != RoomTypeId.Portal && !(heroPortalToo && room == RoomTypeId.HeroPortal)) return false;
+        if (room != RoomTypeId.Portal && !(heroPortalToo && room == RoomTypeId.HeroPortal))
+        {
+            return false;
+        }
+
         return SameRoom(world, cell, tile.X - 1, tile.Y) && SameRoom(world, cell, tile.X + 1, tile.Y)
             && SameRoom(world, cell, tile.X, tile.Y - 1) && SameRoom(world, cell, tile.X, tile.Y + 1);
     }
@@ -317,7 +470,11 @@ public static class HandRules
     /// each axis (ours the bounding box's corner, as <see cref="DropLandingRules"/> reads it).</summary>
     private static bool IsHeartInner(WorldState world, GameDatabase database, TilePos tile)
     {
-        if (RoomIndex.RoomAt(world, database, world.TileIndex(tile)) is not { } heart) return false;
+        if (RoomIndex.RoomAt(world, database, world.TileIndex(tile)) is not { } heart)
+        {
+            return false;
+        }
+
         int dx = tile.X - heart.MinX, dy = tile.Y - heart.MinY;
         return dx is >= 1 and <= 3 && dy is >= 1 and <= 3;
     }
@@ -333,20 +490,35 @@ public static class HandRules
         GameDatabase database, CreatureState creature, PlayerId playerId)
     {
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-        if (!((definition.Flags & CreatureFlags.CanBeSlapped) == CreatureFlags.CanBeSlapped)) return false;
+        if (!((definition.Flags & CreatureFlags.CanBeSlapped) == CreatureFlags.CanBeSlapped))
+        {
+            return false;
+        }
         // 0x004918B0 refuses state 76 (0x4C) for everyone; ours tests it in the slap's outcome, which a Horny skips.
         if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
-            && (!creature.ReaperCanAcquireFight || creature.Dk2StateId == 76)) return false;
-        if (creature.InHand) return false;
+            && (!creature.ReaperCanAcquireFight || creature.Dk2StateId == 76))
+        {
+            return false;
+        }
+
+        if (creature.InHand)
+        {
+            return false;
+        }
 
         // A prisoner answers to its jailer and to nobody else, its own keeper included:
         // "a keeper can't slap its own creature in someone else's dungeon" (owner,
         // 2026-09-11, ADR-0140). Anything at liberty is its owner's as before.
         if (PrisonRules.HasKeeperBinding(creature))
+        {
             return creature.PrisonOwnerPlayerId == playerId.Value
                    && !CreatureDeathRules.IsDown(creature);
+        }
 
-        if (creature.OwnerPlayerId != playerId) return false;
+        if (creature.OwnerPlayerId != playerId)
+        {
+            return false;
+        }
 
         return !CreatureDeathRules.IsDown(creature);
     }
@@ -357,8 +529,15 @@ public static class HandRules
     /// anger ladder already runs on (ADR-0017), so this rides the same clock.</summary>
     public static bool AngerDueThisTick(CreatureState creature, GameTick now)
     {
-        if (!creature.InHand) return false;
-        if (now.Value - creature.PickupTick <= AngerGraceTicks) return false;
+        if (!creature.InHand)
+        {
+            return false;
+        }
+
+        if (now.Value - creature.PickupTick <= AngerGraceTicks)
+        {
+            return false;
+        }
 
         return (now.Value + 1) % SimulationTiming.TicksPerSecond == 0;
     }

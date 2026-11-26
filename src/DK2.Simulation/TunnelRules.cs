@@ -45,7 +45,11 @@ public static class TunnelRules
     public static bool Wander(SimulationContext context, CreatureState creature)
     {
         ref TunnelRecord t = ref creature.Tunnel;
-        if (unchecked((uint)t.DigY) <= unchecked((ulong)context.Tick.Value)) return false;
+        if (unchecked((uint)t.DigY) <= unchecked((ulong)context.Tick.Value))
+        {
+            return false;
+        }
+
         int start = context.Rng.NextInt(4);
         int x0 = creature.PosX >> 12, y0 = creature.PosY >> 12;
         for (int i = 0; i < 4; i++)
@@ -53,10 +57,21 @@ public static class TunnelRules
             (int dx, int dy) = Dirs[(start + i) & 3];
             int nx = x0 + dx, ny = y0 + dy;
             int far = Math.Max(Math.Abs(nx - t.StandX), Math.Abs(t.StandY - ny));
-            if (unchecked((uint)far) > unchecked((uint)t.DigX)) continue;
-            if (!context.World.Contains(new TilePos(nx, ny)) || IsSolid(context, nx, ny)) continue;
+            if (unchecked((uint)far) > unchecked((uint)t.DigX))
+            {
+                continue;
+            }
+
+            if (!context.World.Contains(new TilePos(nx, ny)) || IsSolid(context, nx, ny))
+            {
+                continue;
+            }
+
             (int px, int py) = WanderPoints[context.Rng.NextInt(WanderPoints.Length)];
-            if (Walk(context, creature, (nx << 12) | px, (ny << 12) | py, WanderState, Navigation.MoveOptions.Loose)) return true;
+            if (Walk(context, creature, (nx << 12) | px, (ny << 12) | py, WanderState, Navigation.MoveOptions.Loose))
+            {
+                return true;
+            }
         }
 
         return false;
@@ -87,7 +102,11 @@ public static class TunnelRules
             CreatureStateMachine.BeginTravel(context.Hooks, creature, travelState, resume);
             return true;
         }
-        if (((int)options & 0x01) == 0) return false;
+        if (((int)options & 0x01) == 0)
+        {
+            return false;
+        }
+
         return Fallback(context, system, creature, tunnelX, tunnelY, resume);
     }
 
@@ -98,14 +117,32 @@ public static class TunnelRules
     {
         if (IsWorker(context, creature) && HeroJobRules.IsHero(creature)
             && Start(context, system, creature, tunnelX, tunnelY, resume))
+        {
             return true;
+        }
+
         if (creature.PartyId == HeroPartyRules.NoParty || (creature.Flags & 0x02) == 0 || creature.PositionInParty == 0)
+        {
             return false;
+        }
+
         foreach (CreatureState c in context.World.Creatures)
         {
-            if (c.OwnerPlayerId != creature.OwnerPlayerId || c.PartyId != creature.PartyId) continue;
-            if (!HeroJobRules.IsFollower(c) || !IsWorker(context, c)) continue;
-            if (!Start(context, system, c, tunnelX, tunnelY, HandBackState)) continue;
+            if (c.OwnerPlayerId != creature.OwnerPlayerId || c.PartyId != creature.PartyId)
+            {
+                continue;
+            }
+
+            if (!HeroJobRules.IsFollower(c) || !IsWorker(context, c))
+            {
+                continue;
+            }
+
+            if (!Start(context, system, c, tunnelX, tunnelY, HandBackState))
+            {
+                continue;
+            }
+
             creature.LeaderId = c.Id;
             StateShadow.Move(context, system, creature, AdvancingState);
             return true;
@@ -117,13 +154,25 @@ public static class TunnelRules
     /// hero worker, or a leader with a worker follower, could tunnel there.</summary>
     public static bool CouldTunnel(SimulationContext context, CreatureState creature)
     {
-        if (IsWorker(context, creature) && HeroJobRules.IsHero(creature)) return true;
+        if (IsWorker(context, creature) && HeroJobRules.IsHero(creature))
+        {
+            return true;
+        }
+
         if (creature.PartyId == HeroPartyRules.NoParty || (creature.Flags & 0x02) == 0 || creature.PositionInParty == 0)
+        {
             return false;
+        }
+
         foreach (CreatureState c in context.World.Creatures)
+        {
             if (c.OwnerPlayerId == creature.OwnerPlayerId && c.PartyId == creature.PartyId
                 && HeroJobRules.IsFollower(c) && IsWorker(context, c))
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -131,7 +180,11 @@ public static class TunnelRules
     /// target tile, dig and stand points at the creature, the resume, phase 0.</summary>
     public static bool Start(SimulationContext context, string system, CreatureState creature, int tileX, int tileY, int resume)
     {
-        if (!StateShadow.TryMove(context, system, creature, TunnellingState)) return false;
+        if (!StateShadow.TryMove(context, system, creature, TunnellingState))
+        {
+            return false;
+        }
+
         creature.StopMoving();
         creature.Tunnel = new TunnelRecord
         {
@@ -151,30 +204,53 @@ public static class TunnelRules
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         // A slot-5 clip with no dig running is stale: an update with no action puts the standing or
         // walking clip on (0x0048BE50), so the next swing installs slot 5 afresh.
-        if (!creature.Tunnel.Digging) ClearDigClip(creature);
+        if (!creature.Tunnel.Digging)
+        {
+            ClearDigClip(creature);
+        }
+
         bool result = TunnelStep(context, system, creature, definition);
-        if (!creature.Tunnel.Digging) ClearDigClip(creature);
+        if (!creature.Tunnel.Digging)
+        {
+            ClearDigClip(creature);
+        }
+
         return result;
     }
 
     private static void ClearDigClip(CreatureState creature)
     {
-        if (creature.ActionArtSlot == DigArtSlot) ActionAnimationClock.Clear(creature);
+        if (creature.ActionArtSlot == DigArtSlot)
+        {
+            ActionAnimationClock.Clear(creature);
+        }
     }
 
     private static bool TunnelStep(SimulationContext context, string system, CreatureState creature, CreatureDef definition)
     {
         ref TunnelRecord t = ref creature.Tunnel;
         // 0x00485C10 waits while an action runs (0x00496D00); the runner polls it first.
-        if (t.Digging && !PollDig(context, creature, definition)) return true;
+        if (t.Digging && !PollDig(context, creature, definition))
+        {
+            return true;
+        }
+
         int dx = t.DigX >> 12, dy = t.DigY >> 12;
 
         if (!IsSolid(context, dx, dy))
         {
-            if (Walk(context, creature, Centre(t.TargetX), Centre(t.TargetY), t.Resume, 0)) return true;
+            if (Walk(context, creature, Centre(t.TargetX), Centre(t.TargetY), t.Resume, 0))
+            {
+                return true;
+            }
+
             if (NextDig(context, creature))
             {
-                if (Stand(context, creature) && Walk(context, creature, t.StandX, t.StandY, TunnellingState, 0)) return true;
+                if (Stand(context, creature) && Walk(context, creature, t.StandX, t.StandY, TunnellingState, 0))
+                {
+                    return true;
+                }
+
                 StateShadow.Move(context, system, creature, HeroJobRules.WaitFailedState);
                 return false;
             }
@@ -188,12 +264,17 @@ public static class TunnelRules
         }
 
         if (Math.Abs(t.StandX - creature.PosX) > StandRange || Math.Abs(t.StandY - creature.PosY) > StandRange)
+        {
             return Stand(context, creature) && Walk(context, creature, t.StandX, t.StandY, TunnellingState, 0);
+        }
 
         int heading = creature.Heading;
         int left = Steering.Bearing.TurnToward(ref heading, Steering.Bearing.Of(t.DigX - creature.PosX, t.DigY - creature.PosY), SimulationTiming.TurnRatePerTick(definition));
         creature.Heading = heading;
-        if (left != 0) return true;
+        if (left != 0)
+        {
+            return true;
+        }
 
         return Dig(context, creature, definition, dx, dy);
     }
@@ -236,11 +317,20 @@ public static class TunnelRules
     private static bool Dig(SimulationContext context, CreatureState creature, CreatureDef definition, int x, int y)
     {
         TileWorkKind? kind = StrikeKind(context, creature, context.World.TileAtIndex((y * context.World.Width) + x));
-        if (kind is null) return false;
+        if (kind is null)
+        {
+            return false;
+        }
         // Ours: with no slot-5 art there is no clip, and the action ends at its strike.
         if (ActionAnimationClock.CanPlay(definition, DigArtSlot))
+        {
             ActionAnimationClock.Begin(creature, definition, DigArtSlot, context.Rng);
-        else ActionAnimationClock.Clear(creature);
+        }
+        else
+        {
+            ActionAnimationClock.Clear(creature);
+        }
+
         creature.ActionHandlerDone = false;
         creature.Tunnel.Digging = true;
         creature.Tunnel.Action = (byte)(kind == TileWorkKind.MineGold ? CreatureActionTable.Mine : CreatureActionTable.Dig);
@@ -289,7 +379,10 @@ public static class TunnelRules
                     TileWorkSystem.EfficiencyOf(context, creature.Id), strike: strike);
                 standing = StrikeKind(context, creature, tile) is not null;
             }
-            if (standing) creature.ActionHandlerDone = true;
+            if (standing)
+            {
+                creature.ActionHandlerDone = true;
+            }
             else
             {
                 creature.ActionAnimationFlags |= ActionAnimationFlags.Stop;
@@ -327,7 +420,11 @@ public static class TunnelRules
             {
                 t.DigX = Centre(x);
                 t.DigY = Centre(y);
-                if (x == t.TargetX && y == t.TargetY) return false;
+                if (x == t.TargetX && y == t.TargetY)
+                {
+                    return false;
+                }
+
                 if (Math.Abs(y - t.TargetY) < Math.Abs(x - t.TargetX))
                 {
                     stepX = t.TargetX < x ? -1 : 1;
@@ -339,10 +436,18 @@ public static class TunnelRules
                     y += t.TargetY < y ? -1 : 1;
                 }
                 blocked = IsSolid(context, x, y);
-                if (blocked || Terrain(context, x, y).IsLava) break;
+                if (blocked || Terrain(context, x, y).IsLava)
+                {
+                    break;
+                }
+
                 if (!asked)
                 {
-                    if (Reachable(context, creature, Centre(t.TargetX), Centre(t.TargetY))) return false;
+                    if (Reachable(context, creature, Centre(t.TargetX), Centre(t.TargetY)))
+                    {
+                        return false;
+                    }
+
                     asked = true;
                 }
             }
@@ -362,13 +467,27 @@ public static class TunnelRules
             int ex = hx, ey = hy;
             for (int n = 1; ; n++)
             {
-                if (Math.Abs(ey - t.TargetY) < Math.Abs(ex - t.TargetX)) ex += t.TargetX < ex ? -1 : 1;
-                else ey += t.TargetY < ey ? -1 : 1;
+                if (Math.Abs(ey - t.TargetY) < Math.Abs(ex - t.TargetX))
+                {
+                    ex += t.TargetX < ex ? -1 : 1;
+                }
+                else
+                {
+                    ey += t.TargetY < ey ? -1 : 1;
+                }
+
                 TerrainDef f = Terrain(context, ex, ey);
                 bool impenetrable = f.IsSolid && f.IsImpenetrable;
                 bool own = f.IsSolid && Owner(context, ex, ey) == me;
-                if (!impenetrable && !own && !f.IsLava) break;
-                if (n > ExitSearchLimit) return false;
+                if (!impenetrable && !own && !f.IsLava)
+                {
+                    break;
+                }
+
+                if (n > ExitSearchLimit)
+                {
+                    return false;
+                }
             }
             t.ExitX = ex;
             t.ExitY = ey;
@@ -377,7 +496,10 @@ public static class TunnelRules
             t.Hand = Hand(context, creature, hx, hy, ex, ey, t.Facing);
             t.Facing = (t.Facing + (t.Hand ? 1 : -1)) & 3;
         }
-        if (t.Phase != 1) return true;
+        if (t.Phase != 1)
+        {
+            return true;
+        }
 
         int dir = t.Facing;
         int leftward = (dir - 1) & 3, rightward = (dir + 1) & 3;
@@ -403,7 +525,11 @@ public static class TunnelRules
                     t.Facing = d;
                     return true;
                 }
-                if (Terrain(context, cx, cy).IsSolid || Terrain(context, cx, cy).IsLava) break;
+                if (Terrain(context, cx, cy).IsSolid || Terrain(context, cx, cy).IsLava)
+                {
+                    break;
+                }
+
                 px = cx;
                 py = cy;
                 leftward = (d - 1) & 3;
@@ -420,7 +546,11 @@ public static class TunnelRules
             for (int k = 0; k < 4; k++)
             {
                 int cx = px + Dirs[dir].X, cy = py + Dirs[dir].Y;
-                if (IsDiggable(context, cx, cy) && Owner(context, cx, cy) != me && !Terrain(context, cx, cy).IsLava) break;
+                if (IsDiggable(context, cx, cy) && Owner(context, cx, cy) != me && !Terrain(context, cx, cy).IsLava)
+                {
+                    break;
+                }
+
                 if (!Terrain(context, cx, cy).IsSolid && !Terrain(context, cx, cy).IsLava) { walk = true; break; }
                 dir = (dir + (t.Hand ? 1 : -1)) & 3;
             }
@@ -452,8 +582,15 @@ public static class TunnelRules
         int ax = sx, ay = sy, bx = sx, by = sy, laps = 0;
         while (true)
         {
-            if (ax == sx && ay == sy && ++laps == 4) return false;
-            if (ax == ex && ay == ey) return true;
+            if (ax == sx && ay == sy && ++laps == 4)
+            {
+                return false;
+            }
+
+            if (ax == ex && ay == ey)
+            {
+                return true;
+            }
 
             if (Passable(context, creature, ax + Dirs[aSide].X, ay + Dirs[aSide].Y))
             {
@@ -472,7 +609,11 @@ public static class TunnelRules
                 }
             }
 
-            if (bx == ex && by == ey) return false;
+            if (bx == ex && by == ey)
+            {
+                return false;
+            }
+
             if (Passable(context, creature, bx + Dirs[bSide].X, by + Dirs[bSide].Y))
             {
                 bx += Dirs[bSide].X;
@@ -503,7 +644,11 @@ public static class TunnelRules
         ReadOnlySpan<(int X, int Y)> sides = [(dx - sx, dy), (dx, dy - sy), (dx + sx, dy), (dx, dy + sy)];
         foreach ((int x, int y) in sides)
         {
-            if (IsSolid(context, x, y) || !Reachable(context, creature, Centre(x), Centre(y))) continue;
+            if (IsSolid(context, x, y) || !Reachable(context, creature, Centre(x), Centre(y)))
+            {
+                continue;
+            }
+
             t.StandX = Centre(x);
             t.StandY = Centre(y);
             return true;
@@ -518,8 +663,16 @@ public static class TunnelRules
     /// its tile's centre re-planning the same walk every period without moving (ADR-0459).</summary>
     private static bool Walk(SimulationContext context, CreatureState creature, int x, int y, int resume, Navigation.MoveOptions options)
     {
-        if (!context.World.Contains(new TilePos(x >> 12, y >> 12)) || IsSolid(context, x >> 12, y >> 12)) return false;
-        if (!context.Navigation.TryRouteToStance(creature, x, y, options)) return false;
+        if (!context.World.Contains(new TilePos(x >> 12, y >> 12)) || IsSolid(context, x >> 12, y >> 12))
+        {
+            return false;
+        }
+
+        if (!context.Navigation.TryRouteToStance(creature, x, y, options))
+        {
+            return false;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         return true;
     }
@@ -544,9 +697,17 @@ public static class TunnelRules
     /// of the walker's own player (<c>0x00453CC0</c>).</summary>
     private static bool Passable(SimulationContext context, CreatureState creature, int x, int y)
     {
-        if (!context.World.Contains(new TilePos(x, y))) return false;
+        if (!context.World.Contains(new TilePos(x, y)))
+        {
+            return false;
+        }
+
         TerrainDef f = Terrain(context, x, y);
-        if ((f.IsSolid && f.IsImpenetrable) || f.IsLava) return false;
+        if ((f.IsSolid && f.IsImpenetrable) || f.IsLava)
+        {
+            return false;
+        }
+
         ref TileState tile = ref context.World.Tile(x, y);
         bool fullWall = tile.OwnerPlayerId != PlayerIds.Neutral && f.IsSolid && f.GoldValue == 0 && tile.Health == f.MaxHealth;
         return !fullWall || tile.OwnerPlayerId != creature.OwnerPlayerId;
@@ -557,7 +718,11 @@ public static class TunnelRules
 
     private static TerrainDef Terrain(SimulationContext context, int x, int y)
     {
-        if (!context.World.Contains(new TilePos(x, y))) return BorderTerrain(context);
+        if (!context.World.Contains(new TilePos(x, y)))
+        {
+            return BorderTerrain(context);
+        }
+
         return context.Database.TerrainById(context.World.Tile(x, y).TerrainId);
     }
 
@@ -565,7 +730,13 @@ public static class TunnelRules
     private static TerrainDef BorderTerrain(SimulationContext context)
     {
         foreach (TerrainDef f in context.Database.Terrain.Values)
-            if (f.IsSolid && f.IsImpenetrable) return f;
+        {
+            if (f.IsSolid && f.IsImpenetrable)
+            {
+                return f;
+            }
+        }
+
         throw new InvalidOperationException("No impenetrable terrain in the database.");
     }
 

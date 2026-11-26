@@ -33,7 +33,11 @@ public static class CreaturePhysicsRules
 
     public static void Step(SimulationContext context, CreatureState creature)
     {
-        if (!creature.TileLink.IsLinked) return;
+        if (!creature.TileLink.IsLinked)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
@@ -47,16 +51,29 @@ public static class CreaturePhysicsRules
                 : FloorHeightRules.RelativeAt(world, database, creature.PosX, creature.PosY);
             // Native raises a creature onto a higher floor when its position is set; ours' other position
             // writers do not ask the floor, so the pass catches it up first.
-            if (!creature.IsPitTransporting && creature.PosZ < floor) SetHeight(world, database, creature, creature.PosZ);
+            if (!creature.IsPitTransporting && creature.PosZ < floor)
+            {
+                SetHeight(world, database, creature, creature.PosZ);
+            }
+
             if (creature.PosZ > floor && !WaterSpeedRules.IsFlying(definition, creature))
+            {
                 creature.CreationVelocityZ -= unchecked((byte)database[VariableTypeId.GravityConstant]) * 0x100;
+            }
             // 0x004B2740: on or below the floor the vertical vector is spent.
-            if (creature.PosZ <= floor) creature.CreationVelocityZ = 0;
+            if (creature.PosZ <= floor)
+            {
+                creature.CreationVelocityZ = 0;
+            }
+
             velocityZ = creature.CreationVelocityZ;
         }
 
         int velocityX = creature.PhysicalVelocityX, velocityY = creature.PhysicalVelocityY;
-        if (velocityX == 0 && velocityY == 0 && velocityZ == 0) return;
+        if (velocityX == 0 && velocityY == 0 && velocityZ == 0)
+        {
+            return;
+        }
 
         WorldSteering navigation = context.Navigation;
         int startX = creature.PosX, startY = creature.PosY, z = creature.PosZ;
@@ -119,11 +136,19 @@ public static class CreaturePhysicsRules
         if (ownsHeight)
         {
             // 0x004B267C: a sixteenth that truncates to no change moves the height by the whole vector.
-            if (lastZ == z) lastZ = z + velocityZ;
+            if (lastZ == z)
+            {
+                lastZ = z + velocityZ;
+            }
+
             SetHeight(world, database, creature, lastZ);
         }
         int friction = 0x1000 - (ushort)definition.AirFriction;
-        if (friction < 0) friction = 0x800;
+        if (friction < 0)
+        {
+            friction = 0x800;
+        }
+
         creature.PhysicalVelocityX = creature.PhysicalVelocityX * friction / 0x1000;
         creature.PhysicalVelocityY = creature.PhysicalVelocityY * friction / 0x1000;
         // The pass writes the body's position from the entity's (+0x1A8/+0x1AC, 0x004B2702).
@@ -136,7 +161,10 @@ public static class CreaturePhysicsRules
     {
         int floor = FloorHeightRules.RelativeAt(world, database, creature.PosX, creature.PosY);
         if (creature.IsPitTransporting)
+        {
             creature.PitTransportFloorHeight = new Fp32(floor + FloorHeightRules.Ordinary);
+        }
+
         if (z < floor)
         {
             z = floor;
@@ -164,8 +192,15 @@ public static class CreaturePhysicsRules
     {
         WorldState world = context.World;
         int tileX = x >> 12, tileY = y >> 12;
-        if (!world.Contains(tileX, tileY)) return true;
-        if (startNav != PortalHole && navigation.NavByte(tileX, tileY) == PortalHole) return true;
+        if (!world.Contains(tileX, tileY))
+        {
+            return true;
+        }
+
+        if (startNav != PortalHole && navigation.NavByte(tileX, tileY) == PortalHole)
+        {
+            return true;
+        }
 
         bool solid = context.Database.TerrainById(world.Tile(tileX, tileY).TerrainId).IsSolid;
         if (!DoorRules.BlocksAt(context, x, y, z, out DoorState? door))
@@ -175,7 +210,11 @@ public static class CreaturePhysicsRules
         }
 
         if (context.Database.Doors.TryGetValue(door!.DoorId, out DoorDef? definition)
-            && ((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) return false;
+            && ((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade))
+        {
+            return false;
+        }
+
         return !insideDoor || solid;
     }
 
@@ -192,8 +231,16 @@ public static class CreaturePhysicsRules
     {
         bool flies = WaterSpeedRules.IsFlying(definition, creature);
         MoverProfile profile = WorldSteering.ProfileOf(definition, creature.OwnerPlayerId, (MoveOptions)((int)creature.RouteOptions & 0x80));
-        if (flies) profile = profile with { CanWalkOnWater = true, CanWalkOnLava = true };
-        if (MeshRouter.TransitionCost(startNav, startNav, profile) == 0) return true;
+        if (flies)
+        {
+            profile = profile with { CanWalkOnWater = true, CanWalkOnLava = true };
+        }
+
+        if (MeshRouter.TransitionCost(startNav, startNav, profile) == 0)
+        {
+            return true;
+        }
+
         return MeshRouter.TransitionCost(navigation.NavByte(x >> 12, y >> 12), startNav, profile) != 0;
     }
 }

@@ -16,6 +16,8 @@ public sealed class RoomSellWaveSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         for (int playerIndex = 0; playerIndex < context.World.PlayerCount; playerIndex++)
+        {
             RoomSellSystem.Drain(context, context.World.PlayerAtIndex(playerIndex).PlayerId);
+        }
     }
 }

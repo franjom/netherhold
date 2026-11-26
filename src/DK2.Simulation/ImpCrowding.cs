@@ -58,15 +58,40 @@ public static class ImpCrowding
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (creature.Id == askingCreatureId) continue;
-            if (creature.TargetTileIndex != targetTileIndex) continue;
-            if (!TaskStealing.InPool(pool, creature)) continue;
-            if (!SharesSlots(kind, creature.TargetWork)) continue;
-            if (FaceOf(world, creature) != faceIndex) continue;
-            if (!((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+            if (creature.Id == askingCreatureId)
+            {
                 continue;
+            }
 
-            if (++count >= limit) return true;
+            if (creature.TargetTileIndex != targetTileIndex)
+            {
+                continue;
+            }
+
+            if (!TaskStealing.InPool(pool, creature))
+            {
+                continue;
+            }
+
+            if (!SharesSlots(kind, creature.TargetWork))
+            {
+                continue;
+            }
+
+            if (FaceOf(world, creature) != faceIndex)
+            {
+                continue;
+            }
+
+            if (!((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+            {
+                continue;
+            }
+
+            if (++count >= limit)
+            {
+                return true;
+            }
         }
 
         return false;

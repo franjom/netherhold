@@ -21,6 +21,8 @@ public sealed class CreateImpCastSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         foreach (CreateImpCommand create in context.Commands<CreateImpCommand>())
+        {
             ImpSupplySystem.Buy(context, create);
+        }
     }
 }

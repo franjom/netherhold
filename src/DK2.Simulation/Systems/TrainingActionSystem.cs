@@ -18,7 +18,9 @@ public sealed class TrainingActionSystem : ISimulationSystem
         {
             CreatureState trainee = context.World.Creatures[i];
             if (!trainee.Possessed && trainee.TrainingActionId != 0)
+            {
                 TrainingStep.PollAction(context, trainee);
+            }
         }
     }
 }

@@ -22,26 +22,45 @@ public sealed class RoomBuildSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         foreach (BuildRoomCommand build in context.Commands<BuildRoomCommand>())
-            if (build.Mode == RoomBuildMode.PlayerWave) Queue(context, build);
-            else Apply(context, build);
+        {
+            if (build.Mode == RoomBuildMode.PlayerWave)
+            {
+                Queue(context, build);
+            }
+            else
+            {
+                Apply(context, build);
+            }
+        }
     }
 
     private static void Queue(SimulationContext context, BuildRoomCommand command)
     {
         WorldState world = context.World;
         if (!world.HasPlayer(command.PlayerId) || !context.Database.Rooms.TryGetValue(command.RoomId, out RoomDef? room))
+        {
             return;
+        }
+
         HashSet<TilePos>? spans = BridgeRules.IsBridge(room)
             ? RoomRules.SpannableTiles(context.Database, world, command.Tiles, room, command.PlayerId) : null;
         int placeable = command.Tiles.Count(pos => world.Contains(pos)
             && Verdict(context, world, spans, pos, room, command.PlayerId) == RoomPlacement.Allowed);
         int cost = placeable * RoomRules.CostPerTile(room);
         bool prechecked = placeable != 0 && cost <= GoldStore.Total(world, command.PlayerId);
-        if (prechecked) RequestAcceptedSound(context, command, room);
+        if (prechecked)
+        {
+            RequestAcceptedSound(context, command, room);
+        }
+
         for (int slotIndex = 0; slotIndex < RoomBuildWaveRules.SlotsPerPlayer; slotIndex++)
         {
             ref RoomBuildWaveState? slot = ref world.RoomBuildWave(command.PlayerId, (RoomBuildSlot)slotIndex);
-            if (slot.HasValue) continue;
+            if (slot.HasValue)
+            {
+                continue;
+            }
+
             if (!prechecked)
             {
                 context.Emit(SystemName, "build_refused", $"player={command.PlayerId} room={room.Name} drag_cost={cost}");
@@ -69,11 +88,19 @@ public sealed class RoomBuildSystem : ISimulationSystem
     internal static void Drain(SimulationContext context, PlayerId playerId)
     {
         WorldState world = context.World;
-        if (!playerId.IsKeeper || world.Player(playerId).KilledByPlayerId != 0) return;
+        if (!playerId.IsKeeper || world.Player(playerId).KilledByPlayerId != 0)
+        {
+            return;
+        }
+
         for (int slotIndex = 0; slotIndex < RoomBuildWaveRules.SlotsPerPlayer; slotIndex++)
         {
             ref RoomBuildWaveState? slot = ref world.RoomBuildWave(playerId, (RoomBuildSlot)slotIndex);
-            if (slot is not RoomBuildWaveState wave) continue;
+            if (slot is not RoomBuildWaveState wave)
+            {
+                continue;
+            }
+
             RoomDef room = context.Database.Room(wave.RoomId);
             int cost = RoomRules.CostPerTile(room);
             bool bridge = BridgeRules.IsBridge(room);
@@ -82,7 +109,10 @@ public sealed class RoomBuildSystem : ISimulationSystem
             TilePos press = RoomBuildWaveRules.ClampPress(wave.Press);
             foreach (TilePos pos in RoomBuildWaveRules.Diagonal(wave, context.Tick, world))
             {
-                if (!world.Contains(pos)) continue;
+                if (!world.Contains(pos))
+                {
+                    continue;
+                }
                 // The bridge arm tests money before its span map; ordinary rooms test placement first.
                 if (bridge && GoldStore.Total(world, playerId) < cost)
                 {
@@ -131,7 +161,11 @@ public sealed class RoomBuildSystem : ISimulationSystem
     /// at the press corner's centre at height 0, in gold (floating-cost-numbers.md section 2).</summary>
     private static void ShowSum(SimulationContext context, PlayerId playerId, TilePos press, RoomBuildWaveState wave)
     {
-        if (wave.AccumulatedCost == 0) return;
+        if (wave.AccumulatedCost == 0)
+        {
+            return;
+        }
+
         CostNumberRules.Show(context, SystemName, playerId, CostNumberRules.TileCentre(press, 0), wave.AccumulatedCost);
     }
 
@@ -141,15 +175,22 @@ public sealed class RoomBuildSystem : ISimulationSystem
     private static bool PlacePaidTile(SimulationContext context, PlayerId playerId, TilePos pos, RoomDef room,
         bool announce)
     {
-        if (!GoldStore.TryWithdraw(context.World, playerId, RoomRules.CostPerTile(room))) return false;
+        if (!GoldStore.TryWithdraw(context.World, playerId, RoomRules.CostPerTile(room)))
+        {
+            return false;
+        }
+
         context.World.Player(playerId).Statistics.MoneySpent += RoomRules.CostPerTile(room); // 0x004C5D0A
         ref TileState tile = ref context.World.Tile(pos);
         byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
         RoomRules.Place(context.World, context.Database, ref tile, room, playerId);
         SlabChain.Changed(context.World, context.Database, pos.Y * context.World.Width + pos.X, terrainBefore, ownerBefore, context.Rng, context);
         if (announce)
+        {
             ThingSoundRules.RequestTile(context, SystemName, room.TerrainId, pos.Y * context.World.Width + pos.X,
                 ThingSoundEvent.RoomTileBuilt, kind: SoundSourceKind.Room);
+        }
+
         return true;
     }
 
@@ -188,9 +229,15 @@ public sealed class RoomBuildSystem : ISimulationSystem
         int placeable = 0;
         foreach (TilePos pos in command.Tiles)
         {
-            if (!world.Contains(pos)) continue;
+            if (!world.Contains(pos))
+            {
+                continue;
+            }
+
             if (Verdict(context, world, spans, pos, room, command.PlayerId) == RoomPlacement.Allowed)
+            {
                 placeable++;
+            }
         }
 
         if (placeable > 0 && cost * placeable > GoldStore.Total(world, command.PlayerId))
@@ -227,7 +274,11 @@ public sealed class RoomBuildSystem : ISimulationSystem
                 continue;
             }
 
-            if (built++ == 0) first = pos;
+            if (built++ == 0)
+            {
+                first = pos;
+            }
+
             spent += cost;
         }
 

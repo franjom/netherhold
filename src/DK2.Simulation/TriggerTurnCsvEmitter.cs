@@ -33,9 +33,15 @@ public sealed class TriggerTurnCsvEmitter
     {
         var values = new List<string>(150) { string.Empty, dk2Turn.ToString(CultureInfo.InvariantCulture) };
         for (byte i = 0; i < TriggerState.TimerCount; i++)
+        {
             values.Add(state.ReadTimer(i).ToString(CultureInfo.InvariantCulture));
+        }
+
         for (byte i = 0; i < TriggerState.FlagCount; i++)
+        {
             values.Add(state.Read(i).ToString(CultureInfo.InvariantCulture));
+        }
+
         values.Add(state.SpecialValue.ToString(CultureInfo.InvariantCulture));
         values.Add(state.SpecialValueWritten ? "1" : "0");
         values.Add(tree is null ? string.Empty : tree.RootTriggerId.ToString(CultureInfo.InvariantCulture));

@@ -26,7 +26,9 @@ public static partial class PossessionRules
     {
         if (player.PossessedCreatureId == 0 || ((database.Level?.Flags ?? 0) & UpkeepLevelFlag) == 0
             || world.CreatureById(player.PossessedCreatureId) is not { } creature)
+        {
             return 0;
+        }
 
         uint cost = unchecked((ushort)database.CreatureById(creature.CreatureTypeId).PossessionManaCost);
         if (creature.Level != 1)
@@ -36,7 +38,10 @@ public static partial class PossessionRules
         }
 
         if (player.Availabilities.Exists(a => a.Kind == AvailabilityKind.Spell && a.TypeId == SpellId && a.Upgraded))
+        {
             cost = (uint)(byte)database[VariableTypeId.UpgradedPossessionCostPercentage] * cost / 100;
+        }
+
         return (int)cost;
     }
 
@@ -49,9 +54,16 @@ public static partial class PossessionRules
         // A zero charge (an Imp) still compares: mana below the imp and trap upkeep ends it.
         if (player.PossessedCreatureId == 0 || ((context.Database.Level?.Flags ?? 0) & UpkeepLevelFlag) == 0
             || context.World.CreatureById(player.PossessedCreatureId) is null)
+        {
             return false;
+        }
+
         int upkeep = UpkeepPerSecond(context.World, context.Database, player);
-        if (player.Mana - impAndTrapUpkeep >= upkeep) return false;
+        if (player.Mana - impAndTrapUpkeep >= upkeep)
+        {
+            return false;
+        }
+
         int creatureId = player.PossessedCreatureId;
         Leave(context, ref player);
         context.World.Messages.Post(context.World, player.PlayerId.Value, PlayerMessageKind.ManaShortfall, PossessionEndedSubtype, 0);

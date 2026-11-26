@@ -43,10 +43,17 @@ public static class PortalRules
         // ascending tile index. Do not silently try a later portal (0x004DC8F0).
         RoomInstance? portal = RoomIndex.Build(world, database).FirstOrDefault(r =>
             r.OwnerPlayerId == playerId && IsKeeperPortal(r.Definition));
-        if (portal is null) return null;
+        if (portal is null)
+        {
+            return null;
+        }
 
         CreatureState? creature = CreateArrival(hooks, portal, creatureTypeId);
-        if (creature is null) return null;
+        if (creature is null)
+        {
+            return null;
+        }
+
         CreatureDef definition = database.CreatureById(creatureTypeId);
         while (creature.Level < level && CreatureLevelRules.LevelUp(hooks, definition, creature)) { }
         return creature;
@@ -62,7 +69,10 @@ public static class PortalRules
         int entrance = EntranceTileIndex(world, portal);
         CreatureState? creature = world.TrySpawnCreature(database, creatureTypeId, portal.OwnerPlayerId,
             new TilePos(entrance % world.Width, entrance / world.Width));
-        if (creature is null) return null;
+        if (creature is null)
+        {
+            return null;
+        }
         // 0x004DC9D6-0x004DC9E1 zeroes the point, so the creature is made at height 0 and its position set raises
         // it to the floor only where that is higher: a portal centre's floor is 0 (Q800; capture: 437 at z 0).
         creature.PosZ = Math.Max(-FloorHeightRules.Ordinary,
@@ -74,10 +84,15 @@ public static class PortalRules
         creature.PortalEntranceTile = entrance;
         NotifyArrival(hooks, creature);
         if (EntranceEffect(database, portal, creature) is { } entranceEffect)
+        {
             hooks.RequestEffect("Portal", entranceEffect);
+        }
         // A keeper portal's creature enters 193 (a Hero Portal's enters 278, not built).
         if (IsKeeperPortal(portal.Definition))
+        {
             CreatureStateMachine.TrySetState(hooks, creature, JoiningState, world.CurrentTick.Value);
+        }
+
         return creature;
     }
 
@@ -88,23 +103,34 @@ public static class PortalRules
         var playerId = new PlayerId(creature.OwnerPlayerId);
         List<byte> introduced = hooks.World.Player(playerId).IntroducedCreatureTypes;
         int index = introduced.BinarySearch(creature.CreatureTypeId);
-        if (index >= 0) return;
+        if (index >= 0)
+        {
+            return;
+        }
+
         introduced.Insert(~index, creature.CreatureTypeId);
         LevelDef? level = hooks.Database.Level;
         int speechId = 0;
         bool hasOverride = false;
         if (level is not null)
+        {
             for (int i = 0; i < level.IntroductionOverrideObjects.Length; i++)
+            {
                 if (level.IntroductionOverrideObjects.Span[i] == creature.CreatureTypeId)
                 {
                     hasOverride = true;
                     speechId = level.IntroductionOverrideTextIds[i];
                     break;
                 }
+            }
+        }
+
         PlayerMessageKind kind = hasOverride ? PlayerMessageKind.CreatureIntroduction : PlayerMessageKind.CreatureArrived;
         PlayerMessage? message = hooks.World.Messages.Post(hooks.World, playerId.Value, kind, creature.Id, speechId);
         if (message is not null && kind == PlayerMessageKind.CreatureIntroduction)
+        {
             hooks.Triggers?.ViewRequested?.Invoke(new ScriptedViewRequest(ScriptedViewKind.Speech, playerId, speechId, default, true));
+        }
     }
 
     /// <summary>The effect <c>Portal_CreateArrival</c> asks for right after creating the creature
@@ -114,7 +140,10 @@ public static class PortalRules
     public static ViewEffectRequest? EntranceEffect(GameDatabase database, RoomInstance portal, CreatureState creature)
     {
         ushort effectId = database.CreatureById(creature.CreatureTypeId)?.EntranceEffectId ?? 0;
-        if (effectId == 0) return null;
+        if (effectId == 0)
+        {
+            return null;
+        }
         // The spawn point is the portal's centre on its floor, which Tile_FloorHeight gives as 0.
         return new ViewEffectRequest(new EffectId(effectId), portal.OwnerPlayerId,
             new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0)));
@@ -125,9 +154,16 @@ public static class PortalRules
     /// that stamped it, never below zero, with no test that the room is still a portal (Q508).</summary>
     public static void ArrivalDied(WorldState world, CreatureState creature)
     {
-        if (creature.PortalEntranceTile < 0) return;
+        if (creature.PortalEntranceTile < 0)
+        {
+            return;
+        }
+
         ref TileState tile = ref world.TileAtIndex(creature.PortalEntranceTile);
-        if (tile.EntranceCreaturesGenerated > 0) tile.EntranceCreaturesGenerated--;
+        if (tile.EntranceCreaturesGenerated > 0)
+        {
+            tile.EntranceCreaturesGenerated--;
+        }
     }
 
     /// <summary>State 193, joining your Dungeon (<c>0x00459C20</c>).</summary>
@@ -149,7 +185,10 @@ public static class PortalRules
     /// tick after the animation ends: 21 ticks for a Warlock, 28 for a Goblin, in Level 2.</remarks>
     public static bool StillJoining(WorldState world, CreatureState creature, CreatureDef definition)
     {
-        if (world.CurrentTick.Value - creature.StateEnteredTick <= JoiningTicks(definition)) return true;
+        if (world.CurrentTick.Value - creature.StateEnteredTick <= JoiningTicks(definition))
+        {
+            return true;
+        }
 
         creature.PosX = Math.Clamp(creature.PosX + definition.EntranceOffsetX, 0, (world.Width * Fp32.One) - 1);
         creature.PosY = Math.Clamp(creature.PosY + definition.EntranceOffsetY, 0, (world.Height * Fp32.One) - 1);
@@ -179,10 +218,16 @@ public static class PortalRules
     public static bool IsExitTile(
         WorldState world, GameDatabase database, TilePos at, PlayerId playerId)
     {
-        if (!world.Contains(at)) return false;
+        if (!world.Contains(at))
+        {
+            return false;
+        }
 
         ref TileState tile = ref world.Tile(at.X, at.Y);
-        if (tile.OwnerPlayerId != playerId) return false;
+        if (tile.OwnerPlayerId != playerId)
+        {
+            return false;
+        }
 
         return tile.TerrainId == database.Room(RoomTypeId.Portal).TerrainId;
     }
@@ -196,7 +241,10 @@ public static class PortalRules
     public static bool IsHoleTile(
         WorldState world, GameDatabase database, TilePos at, PlayerId playerId)
     {
-        if (!IsExitTile(world, database, at, playerId)) return false;
+        if (!IsExitTile(world, database, at, playerId))
+        {
+            return false;
+        }
 
         int index = (at.Y * world.Width) + at.X;
         RoomInstance? portal = RoomIndex.RoomAt(world, database, index);
@@ -215,7 +263,10 @@ public static class PortalRules
     {
         foreach (RoomDef room in database.Rooms.Values)
         {
-            if (IsEntrance(room) && room.TerrainId == terrainId) return true;
+            if (IsEntrance(room) && room.TerrainId == terrainId)
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -299,7 +350,10 @@ public static class PortalRules
             CreatureState creature = creatures[i];
             // DK2's corpse is a CDeadBody off the player's list; ours stays in Creatures (ADR-0206).
             if (creature.OwnerPlayerId == playerId && creature.CameThroughPortal
-                && !CreatureDeathRules.IsCorpse(creature)) count++;
+                && !CreatureDeathRules.IsCorpse(creature))
+            {
+                count++;
+            }
         }
         return count;
     }
@@ -317,17 +371,29 @@ public static class PortalRules
     {
         int space = 0;
         foreach (RoomInstance room in keeperRooms)
+        {
             if (LairRules.IsLairRoom(database, room))
+            {
                 space += (ushort)(LairRules.Capacity(room) - LairRules.Occupied(world, database, room));
+            }
+        }
 
         EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
             // DK2's corpse is a CDeadBody off the player's list; ours stays in Creatures (ADR-0206).
-            if (creature.OwnerPlayerId != playerId || CreatureDeathRules.IsCorpse(creature)) continue;
+            if (creature.OwnerPlayerId != playerId || CreatureDeathRules.IsCorpse(creature))
+            {
+                continue;
+            }
+
             byte lairObject = database.CreatureById(creature.CreatureTypeId).LairObjectId;
-            if (lairObject == 0 || LairRules.HasBed(world, database, creature)) continue;
+            if (lairObject == 0 || LairRules.HasBed(world, database, creature))
+            {
+                continue;
+            }
+
             space -= database.ObjectById(lairObject)?.RoomCapacity ?? 0;
         }
         return space;
@@ -342,7 +408,9 @@ public static class PortalRules
         {
             CreatureState creature = creatures[i];
             if (creature.OwnerPlayerId == playerId && creature.CreatureTypeId == creatureTypeId)
+            {
                 count++;
+            }
         }
         return count;
     }
@@ -359,7 +427,10 @@ public static class PortalRules
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/portals.md")]
     public static bool CanComeFromPortal(CreatureDef creature, RoomDef portal)
     {
-        if (((creature.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique)) return false;
+        if (((creature.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique))
+        {
+            return false;
+        }
 
         return portal.RoomId == (byte)RoomTypeId.HeroPortal
             ? ((creature.Flags2 & CreatureFlags2.AvailableViaHeroPortal) == CreatureFlags2.AvailableViaHeroPortal)
@@ -389,7 +460,9 @@ public static class PortalRules
         foreach (CreaturePoolEntry entry in database.Variables.CreaturePool)
         {
             if (entry.PlayerId == playerId.Value && entry.CreatureId == creatureTypeId)
+            {
                 limit = entry.Value;
+            }
         }
         return limit;
     }
@@ -418,20 +491,39 @@ public static class PortalRules
             {
                 case 1:
                     // Present is 0 exactly where RoomId is 0 on all 46 shipped creatures.
-                    if (attraction.RoomId == 0) continue;
+                    if (attraction.RoomId == 0)
+                    {
+                        continue;
+                    }
+
                     int slabs = 0;
                     for (int i = 0; i < keeperRooms.Count; i++)
                     {
                         RoomInstance room = keeperRooms[i];
-                        if (room.Definition.RoomId == attraction.RoomId) slabs += room.TileCount;
+                        if (room.Definition.RoomId == attraction.RoomId)
+                        {
+                            slabs += room.TileCount;
+                        }
                     }
-                    if (slabs < attraction.RoomSize) return false;
+                    if (slabs < attraction.RoomSize)
+                    {
+                        return false;
+                    }
+
                     break;
                 case 2:
-                    if ((uint)money.Value < (uint)packed) return false;
+                    if ((uint)money.Value < (uint)packed)
+                    {
+                        return false;
+                    }
+
                     break;
                 case 3:
-                    if (mana.Value < packed) return false;
+                    if (mana.Value < packed)
+                    {
+                        return false;
+                    }
+
                     break;
             }
         }

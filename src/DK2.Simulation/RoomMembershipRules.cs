@@ -27,9 +27,17 @@ public static class RoomMembershipRules
     /// walk whose saved caller (<c>StateBeforeUtilityState</c>) was.</summary>
     public static bool IsAttached(CreatureState creature)
     {
-        if (!CreatureStateMachine.HasState(creature)) return false;
+        if (!CreatureStateMachine.HasState(creature))
+        {
+            return false;
+        }
+
         ref readonly CreatureStateDef current = ref CreatureStateTable.Get(creature.Dk2StateId);
-        if (IsRoomCategory(current.Category)) return true;
+        if (IsRoomCategory(current.Category))
+        {
+            return true;
+        }
+
         return current.IsUtility && creature.StateBeforeUtilityState >= 0
             && IsRoomCategory(CreatureStateTable.Get(creature.StateBeforeUtilityState).Category);
     }

@@ -82,7 +82,10 @@ public static class WorkshopTimerRules
         foreach (int lowestTile in world.LevelStartWorkshops)
         {
             WorkshopTimers timers = Construct(rng);
-            if (lowestTile >= 0) Place(world, [lowestTile], timers);
+            if (lowestTile >= 0)
+            {
+                Place(world, [lowestTile], timers);
+            }
         }
 
         world.LevelStartWorkshops.Clear();
@@ -98,7 +101,10 @@ public static class WorkshopTimerRules
         RoomDef definition = room.Definition;
 
         // Steam (+0x49), Workshop.cpp:0x39: reload, then, if the room has the effect, one floor slot.
-        if (timers.WorkshopSteamTimer != 0) timers.WorkshopSteamTimer--;
+        if (timers.WorkshopSteamTimer != 0)
+        {
+            timers.WorkshopSteamTimer--;
+        }
         else
         {
             timers.WorkshopSteamTimer = Reload(context.Rng);
@@ -112,7 +118,10 @@ public static class WorkshopTimerRules
 
         // Lava spill (+0x55), :0x5D: reload, then the count of Steel Buckets and a pick among them
         // (:0x6C), which walks the whole furniture list, not the buckets.
-        if (timers.WorkshopLavaSpillTimer != 0) timers.WorkshopLavaSpillTimer--;
+        if (timers.WorkshopLavaSpillTimer != 0)
+        {
+            timers.WorkshopLavaSpillTimer--;
+        }
         else
         {
             timers.WorkshopLavaSpillTimer = Reload(context.Rng);
@@ -137,7 +146,10 @@ public static class WorkshopTimerRules
         }
 
         // Smoke (+0x4D), :0xA0: reload, then, with the effect, one wall slot.
-        if (timers.WorkshopSmokeTimer != 0) timers.WorkshopSmokeTimer--;
+        if (timers.WorkshopSmokeTimer != 0)
+        {
+            timers.WorkshopSmokeTimer--;
+        }
         else
         {
             timers.WorkshopSmokeTimer = Reload(context.Rng) & 0xFFFF;
@@ -152,7 +164,10 @@ public static class WorkshopTimerRules
 
         // Lava bubbling (+0x51), :0xD0: reload, then the bucket count and a pick (:0xE3) among the buckets
         // themselves; the effect (no sound) sits at the bucket.
-        if (timers.WorkshopLavaBubblingTimer != 0) timers.WorkshopLavaBubblingTimer--;
+        if (timers.WorkshopLavaBubblingTimer != 0)
+        {
+            timers.WorkshopLavaBubblingTimer--;
+        }
         else
         {
             timers.WorkshopLavaBubblingTimer = Reload(context.Rng);
@@ -183,8 +198,13 @@ public static class WorkshopTimerRules
     {
         var list = new List<ObjectState>();
         foreach (ObjectState thing in context.World.Objects)
+        {
             if (thing.AutoPlaced && !thing.InHand && room.Contains(thing.TileIndex))
+            {
                 list.Add(thing);
+            }
+        }
+
         list.Sort((a, b) => b.Id.CompareTo(a.Id));
         return list;
     }
@@ -193,7 +213,13 @@ public static class WorkshopTimerRules
     {
         int count = 0;
         foreach (ObjectState thing in furniture)
-            if (thing.ObjectTypeId == SteelBucketObjectId) count++;
+        {
+            if (thing.ObjectTypeId == SteelBucketObjectId)
+            {
+                count++;
+            }
+        }
+
         return count;
     }
 
@@ -221,11 +247,23 @@ public static class WorkshopTimerRules
     /// definition the map answers for the point), at that position. Nothing is asked unless something listens.</summary>
     private static void RequestSound(SimulationContext context, RoomInstance room, ThingSoundEvent sound, int x, int y, int z)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         WorldState world = context.World;
-        if (!world.Contains(x >> 12, y >> 12)) return;
+        if (!world.Contains(x >> 12, y >> 12))
+        {
+            return;
+        }
+
         string category = context.Database.TerrainById(world.TileAtIndex(((y >> 12) * world.Width) + (x >> 12)).TerrainId).SoundCategory;
-        if (category.Length == 0) return;
+        if (category.Length == 0)
+        {
+            return;
+        }
+
         ThingSoundRules.Request(context, SystemName, new SoundSourceId(SoundSourceKind.Room, room.TileIndices[0]), category, sound,
             new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z)));
     }

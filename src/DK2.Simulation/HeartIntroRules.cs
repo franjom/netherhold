@@ -69,7 +69,11 @@ public static class HeartIntroRules
     public static byte DecorationAlpha(uint now, GameDatabase database)
     {
         long fadeStart = StartTurn(database) + FadeInStartSeconds * SimulationTiming.TicksPerSecond;
-        if (now < fadeStart) return 0;
+        if (now < fadeStart)
+        {
+            return 0;
+        }
+
         return (byte)Math.Min(255, (now - fadeStart) * AlphaPerTurn);
     }
 
@@ -81,19 +85,32 @@ public static class HeartIntroRules
         uint start = StartTurn(database);
         if (now < start)
         {
-            if (start > 1) Request(context, owner, PlugStaticLitEffectId);
+            if (start > 1)
+            {
+                Request(context, owner, PlugStaticLitEffectId);
+            }
+
             return;
         }
-        if (SequenceOver(now, database)) return;
+        if (SequenceOver(now, database))
+        {
+            return;
+        }
+
         uint elapsed = now - start;
         if (elapsed == 0)
         {
             Request(context, owner, StartLevelEffectId);
             HeartSoundRules.RequestOpened(context, owner);   // 0x004D9E00, with the effect, local player only
         }
-        else if (elapsed == FadeInStartSeconds * SimulationTiming.TicksPerSecond) Request(context, owner, ArchesFadeInEffectId);
+        else if (elapsed == FadeInStartSeconds * SimulationTiming.TicksPerSecond)
+        {
+            Request(context, owner, ArchesFadeInEffectId);
+        }
         else if (elapsed == SequenceSeconds * SimulationTiming.TicksPerSecond)
+        {
             context.World.Player(owner).NextFreeImpTick = new GameTick(now);
+        }
     }
 
     private static void Request(SimulationContext context, PlayerId owner, ushort effectId)

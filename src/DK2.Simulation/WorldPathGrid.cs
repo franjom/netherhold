@@ -39,7 +39,10 @@ public sealed class WorldPathGrid : IPathGrid
         GameDatabase database, WorldState world, CreatureDef mover,
         StructureBlocks? structures)
     {
-        if (mover is null) throw new ArgumentNullException(nameof(mover));
+        if (mover is null)
+        {
+            throw new ArgumentNullException(nameof(mover));
+        }
 
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _world = world ?? throw new ArgumentNullException(nameof(world));
@@ -65,12 +68,26 @@ public sealed class WorldPathGrid : IPathGrid
     /// Speed evidence: steering-behaviours.md §7.5.</para></remarks>
     public bool IsWalkable(int x, int y)
     {
-        if (!_world.Contains(x, y)) return false;
+        if (!_world.Contains(x, y))
+        {
+            return false;
+        }
 
         TerrainDef terrain = _database.TerrainById(_world.Tile(x, y).TerrainId);
-        if (terrain.IsSolid) return false;
-        if (terrain.IsWater && !_canCrossWater) return false;
-        if (terrain.IsLava && !_canCrossLava) return false;
+        if (terrain.IsSolid)
+        {
+            return false;
+        }
+
+        if (terrain.IsWater && !_canCrossWater)
+        {
+            return false;
+        }
+
+        if (terrain.IsLava && !_canCrossLava)
+        {
+            return false;
+        }
 
         // A hole in a portal and a heart on its platform. Not a terrain flag,
         // because all nine tiles of a portal are one terrain (Q88).

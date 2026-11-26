@@ -38,12 +38,24 @@ public static class CreatureHealthRules
     {
         state.HealthSourcePlayerId = source;
         int before = state.Health;
-        if (delta < 0) NotifyPossessionDamage(creature, state);
+        if (delta < 0)
+        {
+            NotifyPossessionDamage(creature, state);
+        }
+
         int max = MaxHealth(database, creature, state);
         bool floor = CreatureDeathRules.IsDying(state) || CreatureDeathRules.IsCorpse(state);
         state.Health = Math.Min(before + delta, max);
-        if (floor && state.Health < 0) state.Health = 0;
-        if (!floor && delta < 0 && state.Health <= 0) state.CollapseDue = true;
+        if (floor && state.Health < 0)
+        {
+            state.Health = 0;
+        }
+
+        if (!floor && delta < 0 && state.Health <= 0)
+        {
+            state.CollapseDue = true;
+        }
+
         return Math.Max(state.Health, 0) - Math.Max(before, 0);
     }
 
@@ -60,7 +72,11 @@ public static class CreatureHealthRules
     internal static void NotifyPossessionDamage(CreatureDef definition, CreatureState state)
     {
         if ((definition.Flags & (CreatureFlags.IsHorny | CreatureFlags.OnlyAttackableByHorny)) != 0
-            || CreatureDeathRules.IsDying(state) || state.CarriedByCreatureId >= 0 || state.InHand) return;
+            || CreatureDeathRules.IsDying(state) || state.CarriedByCreatureId >= 0 || state.InHand)
+        {
+            return;
+        }
+
         state.NotifyPossessionColour(PossessionColourEvent.Damaged);
     }
 
@@ -96,14 +112,29 @@ public static class CreatureHealthRules
         WorldState world, GameDatabase database, CreatureDef creature, CreatureState state)
     {
         int perTurn = creature.OwnLandHealthIncreasePerSecond / SimulationTiming.OriginalTicksPerGameSecond;
-        if (perTurn == 0 || CreatureDeathRules.IsDying(state) || CreatureDeathRules.IsCorpse(state)) return 0;
-        if (CreatureDeathRules.HasCollapsed(state) && CreatureDeathRules.HasDyingState(world, database, creature, state)) return 0;
+        if (perTurn == 0 || CreatureDeathRules.IsDying(state) || CreatureDeathRules.IsCorpse(state))
+        {
+            return 0;
+        }
+
+        if (CreatureDeathRules.HasCollapsed(state) && CreatureDeathRules.HasDyingState(world, database, creature, state))
+        {
+            return 0;
+        }
+
         TilePos at = state.Tile;
-        if (!world.Contains(at) || world.Tile(at.X, at.Y).OwnerPlayerId != state.OwnerPlayerId) return 0;
+        if (!world.Contains(at) || world.Tile(at.X, at.Y).OwnerPlayerId != state.OwnerPlayerId)
+        {
+            return 0;
+        }
 
         int amount = Math.Min(Math.Max(CreatureLevelRules.Scale(perTurn,
             CreatureLevelRules.Percent(database, CreatureStatId.OwnLandHealthIncreasePerSecond, state.Level)), 0), 0xFFFE);
-        if (amount == 0) return 0;
+        if (amount == 0)
+        {
+            return 0;
+        }
+
         int max = CreatureLevelRules.MaxHealth(database, creature, state.Level);
         return state.Health + amount > max ? max - state.Health : amount;
     }
@@ -119,13 +150,26 @@ public static class CreatureHealthRules
         WorldState world, GameDatabase database, CreatureDef creature, CreatureState state)
     {
         TilePos at = state.Tile;
-        if (!world.Contains(at)) return 0;
+        if (!world.Contains(at))
+        {
+            return 0;
+        }
 
         TerrainDef terrain = database.TerrainById(world.Tile(at.X, at.Y).TerrainId);
-        if (terrain.Damage == 0) return 0;
+        if (terrain.Damage == 0)
+        {
+            return 0;
+        }
 
-        if (terrain.IsWater && ((creature.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater)) return 0;
-        if (terrain.IsLava && ((creature.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava)) return 0;
+        if (terrain.IsWater && ((creature.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater))
+        {
+            return 0;
+        }
+
+        if (terrain.IsLava && ((creature.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava))
+        {
+            return 0;
+        }
 
         return -terrain.Damage;
     }
@@ -153,7 +197,10 @@ public static class CreatureHealthRules
     /// it eats two, and 250 for Jack, whose whole maximum is 240.</summary>
     public static void Eat(GameDatabase database, CreatureDef creature, CreatureState state, long now)
     {
-        if (!EatingRules.StillOwesFood(state)) return;
+        if (!EatingRules.StillOwesFood(state))
+        {
+            return;
+        }
 
         EatingRules.Eat(database, creature, state, now);
     }

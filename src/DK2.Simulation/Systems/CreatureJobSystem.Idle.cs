@@ -37,10 +37,21 @@ public sealed partial class CreatureJobSystem
     /// <summary>89 after its mood chooser: the fallback, then 3.</summary>
     private static void NothingChosen(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.Dk2StateId is not (CreatureStateMachine.Idle or IdleChooserState)) return;
-        if (Fallback(context, creature, definition)) return;
+        if (creature.Dk2StateId is not (CreatureStateMachine.Idle or IdleChooserState))
+        {
+            return;
+        }
+
+        if (Fallback(context, creature, definition))
+        {
+            return;
+        }
         // 0x00478680's only caller is 89 (0x00477A92); a Horny choosing in 1 (238 unbuilt) makes no DK2 draws here.
-        if (creature.Dk2StateId == IdleChooserState) HeartWalkDraws(context, creature);
+        if (creature.Dk2StateId == IdleChooserState)
+        {
+            HeartWalkDraws(context, creature);
+        }
+
         creature.StateDeadlineTick = context.Tick.Value + NothingToDoTicks;
         StateShadow.Move(context, SystemName, creature, DoingNothingState);
     }
@@ -56,10 +67,16 @@ public sealed partial class CreatureJobSystem
         PlayerId owner = creature.OwnerPlayerId;
         if (!((definition.Flags & CreatureFlags.NotTrainWhenIdle) == CreatureFlags.NotTrainWhenIdle) && RoomAvailable(world, owner, RoomTypeId.TrainingRoom)
             && TryTake(context, creature, definition, JobType.Train, roll: -1, "idle", report: false))
+        {
             return true;
+        }
+
         if (RoomAvailable(world, owner, RoomTypeId.CombatPit)
             && TryTake(context, creature, definition, JobType.CombatPitSpectate, roll: -1, "idle", report: false))
+        {
             return true;
+        }
+
         return RoomAvailable(world, owner, RoomTypeId.Casino)
             && TryTake(context, creature, definition, JobType.Drink, roll: -1, "idle", report: false);
     }
@@ -73,9 +90,19 @@ public sealed partial class CreatureJobSystem
         WorldState world = context.World;
         int hearts = 0;
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
+        {
             if (room.OwnerPlayerId == creature.OwnerPlayerId && room.Definition.TypeId == RoomTypeId.DungeonHeart
-                && !RoomRules.IsRuined(world, room)) hearts++;
-        if (hearts == 0) return;
+                && !RoomRules.IsRuined(world, room))
+            {
+                hearts++;
+            }
+        }
+
+        if (hearts == 0)
+        {
+            return;
+        }
+
         context.Rng.NextInt(hearts);
         context.Rng.NextInt(2);
         context.Rng.NextInt(2);
@@ -91,7 +118,11 @@ public sealed partial class CreatureJobSystem
     internal static void DoingNothing(SimulationContext context, CreatureState creature)
     {
         long now = context.Tick.Value;
-        if (now < creature.ActionUntilTick || creature.IdleAction != IdleActionId.None) return;
+        if (now < creature.ActionUntilTick || creature.IdleAction != IdleActionId.None)
+        {
+            return;
+        }
+
         if (creature.StateDeadlineTick <= now)
         {
             StateShadow.ToIdle(context, SystemName, creature);
@@ -133,7 +164,13 @@ public sealed partial class CreatureJobSystem
                 return;
             }
         }
-        if (CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.Wandering)) creature.WanderStamp = now + WanderStampTicks;
-        else StateShadow.ToIdle(context, SystemName, creature);
+        if (CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.Wandering))
+        {
+            creature.WanderStamp = now + WanderStampTicks;
+        }
+        else
+        {
+            StateShadow.ToIdle(context, SystemName, creature);
+        }
     }
 }

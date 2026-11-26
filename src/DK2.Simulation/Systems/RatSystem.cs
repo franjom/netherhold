@@ -12,12 +12,19 @@ public sealed class RatSystem : ISimulationSystem
     public string Name => "Rat";
     public void Execute(SimulationContext context)
     {
-        if (!context.World.Objects.Any(o => o.ObjectTypeId == RatRules.RatObjectId)) return;
+        if (!context.World.Objects.Any(o => o.ObjectTypeId == RatRules.RatObjectId))
+        {
+            return;
+        }
+
         context.Navigation.Refresh();
         for (int i = context.World.Objects.Count - 1; i >= 0; i--)
         {
             ObjectState rat = context.World.Objects[i];
-            if (rat.ObjectTypeId == RatRules.RatObjectId) RatRules.Tick(context, rat);
+            if (rat.ObjectTypeId == RatRules.RatObjectId)
+            {
+                RatRules.Tick(context, rat);
+            }
         }
     }
 }
@@ -28,12 +35,19 @@ public sealed class RatSpawnSystem : ISimulationSystem
     public string Name => "RatSpawn";
     public void Execute(SimulationContext context)
     {
-        if (context.Database.ObjectById(RatRules.RatObjectId) is null) return;
+        if (context.Database.ObjectById(RatRules.RatObjectId) is null)
+        {
+            return;
+        }
+
         IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(context.World, context.Database);
         for (int i = 0; i < context.World.PlayerCount; i++)
         {
             PlayerId owner = context.World.PlayerAtIndex(i).PlayerId;
-            if (PlayerIds.IsKeeper(owner.Value)) RatRules.Spawn(context, rooms, owner);
+            if (PlayerIds.IsKeeper(owner.Value))
+            {
+                RatRules.Spawn(context, rooms, owner);
+            }
         }
     }
 }

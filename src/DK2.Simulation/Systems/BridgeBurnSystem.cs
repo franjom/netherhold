@@ -33,9 +33,15 @@ public sealed class BridgeBurnSystem : ISimulationSystem
         for (int i = 0; i < world.TileCount; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
-            if (tile.BurnTicksRemaining <= 0) continue;
+            if (tile.BurnTicksRemaining <= 0)
+            {
+                continue;
+            }
 
-            if (--tile.BurnTicksRemaining > 0) continue;
+            if (--tile.BurnTicksRemaining > 0)
+            {
+                continue;
+            }
 
             byte was = tile.TerrainId;
             byte becomes = BridgeRules.RevertsTo(context.Database, tile);
@@ -45,11 +51,18 @@ public sealed class BridgeBurnSystem : ISimulationSystem
             ManaRules.SetTerrain(world, context.Database, ref tile, becomes);
             tile.Health = next.StartingHealth;
             tile.Flags = BridgeRules.SpansWater;
-            if (!next.IsTaggable) tile.TaggedBy = PlayerMask.None;
+            if (!next.IsTaggable)
+            {
+                tile.TaggedBy = PlayerMask.None;
+            }
             // The water or lava left behind belongs to the neutral player, as every terrain write
             // read so far gives it through Tile_SetTerrain (0x0044FDBF, ADR-0362). STRONGLY
             // INFERRED: the burn's own writer is unread.
-            if (!next.IsOwnable) ManaRules.SetOwner(world, context.Database, ref tile, PlayerIds.Neutral);
+            if (!next.IsOwnable)
+            {
+                ManaRules.SetOwner(world, context.Database, ref tile, PlayerIds.Neutral);
+            }
+
             SlabChain.Changed(world, context.Database, i, was, ownerBefore, context.Rng, context);
 
             int lostGold = tile.GoldHeld;

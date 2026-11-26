@@ -25,13 +25,25 @@ public static class TrainingStep
     {
         if (StateShadow.IsTravelling(trainee))
         {
-            if (trainee.HasRoute) return true;
+            if (trainee.HasRoute)
+            {
+                return true;
+            }
+
             trainee.StopMoving();
             return StateShadow.Arrive(context, system, trainee);
         }
         long age = context.Tick.Value - trainee.StateEnteredTick;
-        if (age == 0) return true;
-        if (!TrainingRules.BelowCap(context.Database, trainee)) return false;
+        if (age == 0)
+        {
+            return true;
+        }
+
+        if (!TrainingRules.BelowCap(context.Database, trainee))
+        {
+            return false;
+        }
+
         return trainee.Dk2StateId switch
         {
             TrainingRules.WalkToMachineState => Choose(context, trainee),
@@ -45,7 +57,11 @@ public static class TrainingStep
     {
         trainee.StopMoving();
         RoomInstance? room = Room(context, trainee);
-        if (room is null || !TrainingRules.CanAfford(context.World, context.Database, trainee.OwnerPlayerId)) return true;
+        if (room is null || !TrainingRules.CanAfford(context.World, context.Database, trainee.OwnerPlayerId))
+        {
+            return true;
+        }
+
         ObjectState? machine = FindMachine(context, room, trainee);
         int x, y;
         if (machine is not null)
@@ -67,14 +83,21 @@ public static class TrainingStep
         else
         {
             int[] chain = SlabChain.Order(context.World, room);
-            if (chain.Length == 0) return true;
+            if (chain.Length == 0)
+            {
+                return true;
+            }
+
             int tile = chain[context.Rng.NextInt(chain.Length)];
             int angle = context.Rng.NextInt(Bearing.Turn);
             x = CreatureState.CentreOf(tile % context.World.Width) + ((TrapRules.Cosine(angle) << 10) >> 16);
             y = CreatureState.CentreOf(tile / context.World.Width) + ((TrapRules.Sine(angle) << 10) >> 16);
         }
         if (context.Navigation.TryRouteToStance(trainee, x, y, MoveOptions.Loose))
+        {
             CreatureStateMachine.BeginTravel(context.Hooks, trainee, StateShadow.TravelToPoint, AtMachineState);
+        }
+
         return true;
     }
 
@@ -90,15 +113,26 @@ public static class TrainingStep
             for (int i = context.World.Objects.Count - 1; i >= 0; i--)
             {
                 ObjectState candidate = context.World.Objects[i];
-                if (candidate.InHand || candidate.ObjectTypeId != type || !room.Contains(candidate.TileIndex)) continue;
+                if (candidate.InHand || candidate.ObjectTypeId != type || !room.Contains(candidate.TileIndex))
+                {
+                    continue;
+                }
+
                 context.Rng.NextInt(100);
                 (int x, int y) = AutoFurnitureRules.FurniturePosition(context.World, context.Database, room, candidate);
                 uint d = Distance(trainee.PosX - x, trainee.PosY - y);
-                if (d >= distance) continue;
+                if (d >= distance)
+                {
+                    continue;
+                }
+
                 best = candidate;
                 distance = d;
             }
-            if (best is not null) return best;
+            if (best is not null)
+            {
+                return best;
+            }
         }
         return null;
     }
@@ -116,15 +150,31 @@ public static class TrainingStep
             foreach (int tile in SlabChain.Order(context.World, room))
             {
                 if (AutoFurnitureRules.IsFloorSlot(context.World, room, tile)
-                    || AutoFurnitureRules.WallSide(context.World, context.Database, room, tile) >= 0) continue;
+                    || AutoFurnitureRules.WallSide(context.World, context.Database, room, tile) >= 0)
+                {
+                    continue;
+                }
+
                 var point = new TilePos(tile % context.World.Width, tile / context.World.Width);
                 int x = CreatureState.CentreOf(point.X), y = CreatureState.CentreOf(point.Y);
-                if (!LineOfSight.Clear(sight, x, y, targetX, targetY)) continue;
+                if (!LineOfSight.Clear(sight, x, y, targetX, targetY))
+                {
+                    continue;
+                }
+
                 uint d = Distance(trainee.PosX - x, trainee.PosY - y);
-                if (d >= best) continue;
+                if (d >= best)
+                {
+                    continue;
+                }
+
                 candidate = true;
                 int chance = point == trainee.Tile ? 50 : 100;
-                if (context.Rng.NextInt(100) >= chance) continue;
+                if (context.Rng.NextInt(100) >= chance)
+                {
+                    continue;
+                }
+
                 found = point;
                 best = d;
             }
@@ -138,23 +188,47 @@ public static class TrainingStep
         ObjectState? machine = OnTile(context.World, tile, SpellTarget) ?? OnTile(context.World, tile, Dummy);
         if (machine is null)
         {
-            if (!StateShadow.TryMove(context, system, trainee, TrainingRules.WalkToMachineState)) return false;
+            if (!StateShadow.TryMove(context, system, trainee, TrainingRules.WalkToMachineState))
+            {
+                return false;
+            }
+
             Begin(context, system, trainee, TrainingActionKind.Melee, null, 0);
             return true;
         }
-        if (CasinoStep.TurnTo(context, trainee, trainee.StateTargetX, trainee.StateTargetY) != 0) return true;
+        if (CasinoStep.TurnTo(context, trainee, trainee.StateTargetX, trainee.StateTargetY) != 0)
+        {
+            return true;
+        }
+
         CreatureDef definition = context.Database.CreatureById(trainee.CreatureTypeId);
         int slot = TrainingSpell(context, trainee);
         TrainingActionKind action = slot >= 0 && machine.ObjectTypeId == SpellTarget
             ? TrainingActionKind.Spell : TrainingActionKind.Melee;
-        if (action == TrainingActionKind.Melee && machine.ObjectTypeId != Dummy) return false;
+        if (action == TrainingActionKind.Melee && machine.ObjectTypeId != Dummy)
+        {
+            return false;
+        }
+
         int art = action == TrainingActionKind.Spell ? 6 : 5;
-        if (!AnimationTimingRules.ResolvesPresent(definition, art)) return false;
+        if (!AnimationTimingRules.ResolvesPresent(definition, art))
+        {
+            return false;
+        }
+
         Begin(context, system, trainee, action, machine, (byte)Math.Max(0, slot));
-        if (action == TrainingActionKind.Spell) trainee.SpellStamps[slot] = context.Tick.Value;
+        if (action == TrainingActionKind.Spell)
+        {
+            trainee.SpellStamps[slot] = context.Tick.Value;
+        }
+
         bool working = StateShadow.TryMove(context, system, trainee, WorkingState);
         // 0x004857CD: the melee swing asks for its sound after the state is set, whatever that returned.
-        if (action == TrainingActionKind.Melee) ThingSoundRules.Request(context, system, trainee, ThingSoundEvent.Trained);
+        if (action == TrainingActionKind.Melee)
+        {
+            ThingSoundRules.Request(context, system, trainee, ThingSoundEvent.Trained);
+        }
+
         return working;
     }
 
@@ -177,7 +251,11 @@ public static class TrainingStep
 
     public static void PollAction(SimulationContext context, CreatureState trainee)
     {
-        if (trainee.TrainingActionId == 0) return;
+        if (trainee.TrainingActionId == 0)
+        {
+            return;
+        }
+
         if (trainee.InHand || trainee.CurrentJob != JobType.Train
             || CreatureStateMachine.UpdatingCategory(trainee) != CreatureStateCategory.Training)
         {
@@ -199,17 +277,30 @@ public static class TrainingStep
                 ObjectState? target = context.World.ObjectById(trainee.TrainingTargetObjectId);
                 if (target is not null && !target.InHand)
                 {
-                    if (spell) FireTrainingSpell(context, trainee, definition, target);
-                    else ObjectReactionRules.StartStruck(context, target);
+                    if (spell)
+                    {
+                        FireTrainingSpell(context, trainee, definition, target);
+                    }
+                    else
+                    {
+                        ObjectReactionRules.StartStruck(context, target);
+                    }
                 }
             }
         }
-        if (trainee.TrainingActionHitDone && now >= trainee.ActionUntilTick) trainee.TrainingActionId = 0;
+        if (trainee.TrainingActionHitDone && now >= trainee.ActionUntilTick)
+        {
+            trainee.TrainingActionId = 0;
+        }
     }
 
     public static void CancelAction(CreatureState trainee)
     {
-        if (trainee.TrainingActionId == 0) return;
+        if (trainee.TrainingActionId == 0)
+        {
+            return;
+        }
+
         trainee.TrainingActionId = 0;
         trainee.TrainingActionStartedTick = -1;
         trainee.TrainingTargetObjectId = -1;
@@ -221,7 +312,11 @@ public static class TrainingStep
     private static void FireTrainingSpell(SimulationContext context, CreatureState trainee, CreatureDef definition, ObjectState target)
     {
         CreatureSpellDef? spell = SpellRules.SpellOf(context.Database, definition, trainee.TrainingSpellSlot);
-        if (spell is null || !context.Database.Shots.TryGetValue(spell.ShotTypeId, out ShotDef? shotDefinition)) return;
+        if (spell is null || !context.Database.Shots.TryGetValue(spell.ShotTypeId, out ShotDef? shotDefinition))
+        {
+            return;
+        }
+
         RoomInstance? room = Room(context, trainee);
         (int x, int y) = room is not null
             ? AutoFurnitureRules.FurniturePosition(context.World, context.Database, room, target)
@@ -250,9 +345,15 @@ public static class TrainingStep
     {
         CreatureDef definition = context.Database.CreatureById(trainee.CreatureTypeId);
         for (int slot = 0; slot < Math.Min(SpellRules.Slots, definition.Spells.Count); slot++)
+        {
             if (definition.Spells[slot].LevelAvailable <= trainee.Level
                 && SpellRules.SpellOf(context.Database, definition, slot) is { } spell && SpellRules.IsAttack(spell)
-                && SpellRules.CanCast(context.Database, trainee, definition, slot, context.Tick.Value)) return slot;
+                && SpellRules.CanCast(context.Database, trainee, definition, slot, context.Tick.Value))
+            {
+                return slot;
+            }
+        }
+
         return -1;
     }
 

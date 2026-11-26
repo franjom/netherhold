@@ -17,7 +17,9 @@ public sealed class ChickenMovementSystem : ISimulationSystem
         {
             ObjectState chicken = context.World.Objects[i];
             if (chicken.ObjectTypeId == HatcheryRules.ChickenObjectId)
+            {
                 ChickenMovementRules.Tick(context, chicken);
+            }
         }
     }
 }

@@ -47,9 +47,21 @@ public static class StealGoldRules
         byte? target = creature.GoodJobPlayerId != 0
             ? (world.HasPlayer(creature.GoodJobPlayerId) ? creature.GoodJobPlayerId : null)
             : HeroJobRules.StrongestPlayer(world, context.Database);
-        if (target is not byte player || player == creature.OwnerPlayerId) return false;
-        if (NearestTreasury(context, player, creature) is not RoomInstance room) return false;
-        if (FirstStandable(world, context.Database, context.Database.CreatureById(creature.CreatureTypeId), room) is not int tile) return false;
+        if (target is not byte player || player == creature.OwnerPlayerId)
+        {
+            return false;
+        }
+
+        if (NearestTreasury(context, player, creature) is not RoomInstance room)
+        {
+            return false;
+        }
+
+        if (FirstStandable(world, context.Database, context.Database.CreatureById(creature.CreatureTypeId), room) is not int tile)
+        {
+            return false;
+        }
+
         var scratch = new List<Steering.Fixed16Vector>();
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         int w = world.Width;
@@ -59,7 +71,10 @@ public static class StealGoldRules
         if (!Combat.CombatTargetRules.CanReach(context.Navigation, creature, definition,
                 CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), int.MaxValue, scratch, FeasibleOptions)
             && !(((int)FeasibleOptions & 0x01) != 0 && TunnelRules.CouldTunnel(context, creature)))
+        {
             return false;
+        }
+
         return StateShadow.TryMove(context, system, creature, ToTheTreasuryState);
     }
 
@@ -73,8 +88,16 @@ public static class StealGoldRules
     {
         if (StateShadow.IsTravelling(creature))
         {
-            if (!IsStealState(creature.UtilityNewState)) return false;
-            if (creature.HasRoute) return true;
+            if (!IsStealState(creature.UtilityNewState))
+            {
+                return false;
+            }
+
+            if (creature.HasRoute)
+            {
+                return true;
+            }
+
             creature.StopMoving();
             StateShadow.Arrive(context, system, creature);
             return true;
@@ -100,8 +123,16 @@ public static class StealGoldRules
     /// nearest Treasury, resuming 164, options <c>0x69</c>.</summary>
     public static bool ToTheTreasury(SimulationContext context, string system, CreatureState creature)
     {
-        if (creature.OwnerPlayerId == RaidedPlayer) return false;
-        if (NearestTreasury(context, RaidedPlayer, creature) is not RoomInstance room) return false;
+        if (creature.OwnerPlayerId == RaidedPlayer)
+        {
+            return false;
+        }
+
+        if (NearestTreasury(context, RaidedPlayer, creature) is not RoomInstance room)
+        {
+            return false;
+        }
+
         return ToRoom(context, system, creature, room, InTheTreasuryState, TreasuryOptions);
     }
 
@@ -115,23 +146,44 @@ public static class StealGoldRules
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         RoomInstance? room = RoomIndex.RoomAt(world, context.Database, here);
         if (room is null || room.OwnerPlayerId != player || room.Definition.RoomId != (byte)RoomTypeId.Treasury)
+        {
             return false;
+        }
 
         bool walking = false;
         foreach (int tile in room.TileIndices)
         {
-            if (world.TileAtIndex(tile).GoldHeld <= 0) continue;
+            if (world.TileAtIndex(tile).GoldHeld <= 0)
+            {
+                continue;
+            }
+
             if (Walk(context, creature, tile, AtTheGoldState, GoldOptions)) { walking = true; break; }
         }
-        if (!walking) return false;
+        if (!walking)
+        {
+            return false;
+        }
 
-        if ((creature.Flags & 0x02) == 0) return true;
+        if ((creature.Flags & 0x02) == 0)
+        {
+            return true;
+        }
+
         foreach (CreatureState c in world.Creatures)
         {
-            if (c.PartyId != creature.PartyId || !HeroJobRules.IsFollower(c) || !HeroJobRules.IsHero(c)) continue;
+            if (c.PartyId != creature.PartyId || !HeroJobRules.IsFollower(c) || !HeroJobRules.IsHero(c))
+            {
+                continue;
+            }
+
             bool following = c.Dk2StateId == HeroJobRules.FollowingState
                 || (StateShadow.IsTravelling(c) && c.UtilityNewState == HeroJobRules.FollowingState);
-            if (!following) continue;
+            if (!following)
+            {
+                continue;
+            }
+
             c.GoodJob = JobType.StealGold;
             c.GoodJobPlayerId = creature.GoodJobPlayerId;
             c.GoodJobActionPointId = 0;
@@ -160,7 +212,9 @@ public static class StealGoldRules
                 $"creature={creature.Id} player={room.OwnerPlayerId} taken={taken} kept={kept} " +
                 $"at=({creature.Tile.X},{creature.Tile.Y})");
             if (creature.OriginTileIndex >= 0 && Walk(context, creature, creature.OriginTileIndex, EscapingState, 0))
+            {
                 return true;
+            }
         }
         StateShadow.Move(context, system, creature, InTheTreasuryState);
         return false;
@@ -195,12 +249,20 @@ public static class StealGoldRules
         uint bestDistance = uint.MaxValue;
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (room.OwnerPlayerId != player || room.Definition.RoomId != (byte)type) continue;
+            if (room.OwnerPlayerId != player || room.Definition.RoomId != (byte)type)
+            {
+                continue;
+            }
+
             int anchor = room.TileIndices[0];
             long dx = Math.Abs((long)CreatureState.CentreOf(anchor % world.Width) - from.PosX);
             long dy = Math.Abs((long)CreatureState.CentreOf(anchor / world.Width) - from.PosY);
             uint distance = unchecked((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12));
-            if (distance >= bestDistance) continue;
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+
             bestDistance = distance;
             best = room;
         }
@@ -222,7 +284,10 @@ public static class StealGoldRules
         int w = world.Width;
         int first = SlabChain.FirstSlab(world, room);
         if (RoomPoint(context, creature, room) is not int tile)
+        {
             return ((int)options & 0x01) != 0 && TunnelRules.Fallback(context, system, creature, first % w, first / w, resume);
+        }
+
         return TunnelRules.RouteOrTunnel(context, system, creature, CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w),
             StateShadow.TravelToRoom, resume, options, first % w, first / w);
     }
@@ -239,8 +304,15 @@ public static class StealGoldRules
         for (int k = 0; k <= tiles.Count; k++)
         {
             int tile = tiles[(start + k) % tiles.Count];
-            if (room.Definition.TypeId == RoomTypeId.CombatPit && room.IsInterior(tile)) continue;
-            if (grid.IsWalkable(tile % w, tile / w)) return tile;
+            if (room.Definition.TypeId == RoomTypeId.CombatPit && room.IsInterior(tile))
+            {
+                continue;
+            }
+
+            if (grid.IsWalkable(tile % w, tile / w))
+            {
+                return tile;
+            }
         }
         return null;
     }
@@ -253,8 +325,15 @@ public static class StealGoldRules
         int w = world.Width;
         foreach (int tile in SlabChain.Order(world, room))
         {
-            if (room.Definition.TypeId == RoomTypeId.CombatPit && room.IsInterior(tile)) continue;
-            if (grid.IsWalkable(tile % w, tile / w)) return tile;
+            if (room.Definition.TypeId == RoomTypeId.CombatPit && room.IsInterior(tile))
+            {
+                continue;
+            }
+
+            if (grid.IsWalkable(tile % w, tile / w))
+            {
+                return tile;
+            }
         }
         return null;
     }
@@ -263,7 +342,10 @@ public static class StealGoldRules
     {
         int w = context.World.Width;
         if (!context.Navigation.TryRouteTo(creature, CreatureState.CentreOf(tile % w), CreatureState.CentreOf(tile / w), options))
+        {
             return false;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         return true;
     }

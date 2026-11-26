@@ -29,8 +29,15 @@ public static class CreatureStateMachine
     /// judged: it has no state to judge it from.</summary>
     public static StateTransition Classify(CreatureState creature, int targetStateId)
     {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
-        if (!HasState(creature)) return StateTransition.Allowed;
+        if (creature is null)
+        {
+            throw new ArgumentNullException(nameof(creature));
+        }
+
+        if (!HasState(creature))
+        {
+            return StateTransition.Allowed;
+        }
 
         return CreatureStateTransitions.Classify(
             creature.Dk2StateId, targetStateId, creature.UtilityNewState);
@@ -44,12 +51,23 @@ public static class CreatureStateMachine
     public static bool TrySetState(
         in StateHookContext hooks, CreatureState creature, int targetStateId, long currentTick = -1)
     {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (creature is null)
+        {
+            throw new ArgumentNullException(nameof(creature));
+        }
+
         _ = CreatureStateTable.Get(targetStateId);
 
-        if (Classify(creature, targetStateId) == StateTransition.Refused) return false;
+        if (Classify(creature, targetStateId) == StateTransition.Refused)
+        {
+            return false;
+        }
 
-        if (!Enter(in hooks, creature, targetStateId)) return false;
+        if (!Enter(in hooks, creature, targetStateId))
+        {
+            return false;
+        }
+
         creature.StateEnteredTick = currentTick;
         creature.ReaperStateAgeTicks = 0;
         return true;
@@ -66,7 +84,11 @@ public static class CreatureStateMachine
     public static void BeginTravel(
         in StateHookContext hooks, CreatureState creature, int travelStateId, int resumeStateId)
     {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (creature is null)
+        {
+            throw new ArgumentNullException(nameof(creature));
+        }
+
         if (!CreatureStateTable.Get(travelStateId).IsUtility)
         {
             throw new ArgumentOutOfRangeException(
@@ -82,12 +104,16 @@ public static class CreatureStateMachine
         int caller = creature.StateBeforeUtilityState;
         if (caller >= 0 && CreatureStateTable.Get(caller).Category == CreatureStateCategory.Combat
             && CreatureStateTable.Get(resumeStateId).Category != CreatureStateCategory.Combat)
+        {
             Combat.CombatRules.LeaveFight(in hooks, creature);
+        }
 
         // Both helpers end a running action last, whatever SetState returned (travel-states.md 2.1
         // step 7, 2.2 step 7). State 8's entry 0x00471D10 does not.
         if (travelStateId is Systems.StateShadow.TravelToPoint or Systems.StateShadow.TravelToRoom)
+        {
             EndAction(creature);
+        }
     }
 
     /// <summary><c>0x00496D20</c>, reached through <c>0x00496D00</c>: ends whatever action the
@@ -121,7 +147,11 @@ public static class CreatureStateMachine
     /// creature.</remarks>
     public static bool Arrive(in StateHookContext hooks, CreatureState creature, long currentTick = -1)
     {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (creature is null)
+        {
+            throw new ArgumentNullException(nameof(creature));
+        }
+
         if (!CreatureStateTable.Get(creature.Dk2StateId).IsUtility)
         {
             throw new InvalidOperationException(
@@ -139,7 +169,11 @@ public static class CreatureStateMachine
     /// as DK2's death bookkeeping does after its state reset (<c>0x004883F8</c>).</summary>
     public static void Release(CreatureState creature)
     {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (creature is null)
+        {
+            throw new ArgumentNullException(nameof(creature));
+        }
+
         RoomCapacityRules.Release(creature);
         creature.Dk2StateId = NoState;
     }
@@ -152,11 +186,21 @@ public static class CreatureStateMachine
     /// A corpse has no category.</summary>
     public static CreatureStateCategory? UpdatingCategory(CreatureState creature)
     {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
-        if (!HasState(creature)) return null;
+        if (creature is null)
+        {
+            throw new ArgumentNullException(nameof(creature));
+        }
+
+        if (!HasState(creature))
+        {
+            return null;
+        }
 
         CreatureStateCategory current = CreatureStateTable.Get(creature.Dk2StateId).Category;
-        if (current != CreatureStateCategory.Movement) return current;
+        if (current != CreatureStateCategory.Movement)
+        {
+            return current;
+        }
 
         CreatureStateCategory resume = CreatureStateTable.Get(creature.UtilityNewState).Category;
         CreatureStateCategory saved = CreatureStateTable.Get(creature.StateBeforeUtilityState).Category;
@@ -167,7 +211,11 @@ public static class CreatureStateMachine
     /// step 4): the current state's, or the saved caller's while in a walk. Null for a corpse.</summary>
     internal static CreatureStateCategory? LeavingCategory(CreatureState creature)
     {
-        if (!HasState(creature)) return null;
+        if (!HasState(creature))
+        {
+            return null;
+        }
+
         int from = CreatureStateTable.Get(creature.Dk2StateId).IsUtility
             ? creature.StateBeforeUtilityState : creature.Dk2StateId;
         return from < 0 ? null : CreatureStateTable.Get(from).Category;
@@ -182,7 +230,9 @@ public static class CreatureStateMachine
     {
         // Creation-only elevation must not escape into the existing grounded-state model.
         if (creature.Dk2StateId == ImpCreationRules.FallingState && stateId != ImpCreationRules.FallingState)
+        {
             ImpCreationRules.Leave(creature);
+        }
         // Entering a utility state saves the caller; leaving one does NOT clear the save.
         // DK2's own 2-to-2 move recurses through SetState(1) first, so the slot ends up
         // holding 1 rather than the travel state it came from - reproduced here rather
@@ -193,7 +243,9 @@ public static class CreatureStateMachine
             // DK2 asks the rule for that inner move too; travel to 1 is never refused (ADR-0308).
             if (HasState(creature) && CreatureStateTable.Get(creature.Dk2StateId).IsUtility
                 && !Enter(in hooks, creature, Idle))
+            {
                 return false;
+            }
 
             creature.StateBeforeUtilityState = creature.Dk2StateId;
         }
@@ -206,19 +258,30 @@ public static class CreatureStateMachine
             {
                 int caller = CreatureStateTable.Get(creature.Dk2StateId).IsUtility
                     ? creature.StateBeforeUtilityState : creature.Dk2StateId;
-                if (caller >= 0) CategoryHooks.RunLeave(in hooks, CreatureStateTable.Get(caller).Category, creature);
+                if (caller >= 0)
+                {
+                    CategoryHooks.RunLeave(in hooks, CreatureStateTable.Get(caller).Category, creature);
+                }
             }
 
             creature.Dk2StateId = Idle;
             if (!CategoryHooks.RunEnter(in hooks, CreatureStateTable.Get(stateId).Category, creature))
             {
-                if (StateEntryLog.Enabled) StateEntryLog.Record(Idle);
+                if (StateEntryLog.Enabled)
+                {
+                    StateEntryLog.Record(Idle);
+                }
+
                 return false;
             }
         }
 
         creature.Dk2StateId = stateId;
-        if (StateEntryLog.Enabled) StateEntryLog.Record(stateId);
+        if (StateEntryLog.Enabled)
+        {
+            StateEntryLog.Record(stateId);
+        }
+
         return true;
     }
 
@@ -227,10 +290,18 @@ public static class CreatureStateMachine
     /// so a walk between two states of one category runs none.</summary>
     private static bool EntersCategory(CreatureState creature, int stateId)
     {
-        if (!HasState(creature)) return true;
+        if (!HasState(creature))
+        {
+            return true;
+        }
+
         CreatureStateDef current = CreatureStateTable.Get(creature.Dk2StateId);
         int from = current.IsUtility ? creature.StateBeforeUtilityState : creature.Dk2StateId;
-        if (from < 0) return true;
+        if (from < 0)
+        {
+            return true;
+        }
+
         return CreatureStateTable.Get(from).Category != CreatureStateTable.Get(stateId).Category;
     }
 
@@ -245,7 +316,11 @@ public static class CreatureStateMachine
     /// while the creature's <see cref="UpdatingCategory"/> is the hook's.</summary>
     public static bool HookFires(CreatureState creature, int reload)
     {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (creature is null)
+        {
+            throw new ArgumentNullException(nameof(creature));
+        }
+
         if (creature.HookCountdown != 0)
         {
             creature.HookCountdown--;

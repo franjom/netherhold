@@ -32,44 +32,93 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
 
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.Possessed) continue;
-            if (!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature)) continue;
-            if (TortureRules.IsBeingTortured(creature)) continue;   // on a device, not in a cell
-            if (JailBreakRules.IsEscaping(creature)) continue;      // walking out, in 121 (ADR-0229)
+            if (creature.Possessed)
+            {
+                continue;
+            }
+
+            if (!PrisonRules.HasKeeperBinding(creature) || !PrisonRules.IsPrisonInmate(creature))
+            {
+                continue;
+            }
+
+            if (TortureRules.IsBeingTortured(creature))
+            {
+                continue;   // on a device, not in a cell
+            }
+
+            if (JailBreakRules.IsEscaping(creature))
+            {
+                continue;      // walking out, in 121 (ADR-0229)
+            }
 
             // A Prison rebuilt since the claim sends its captives to 126, which waits a turn and
             // goes back in (0x004E2B30, ADR-0400).
-            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held)) continue;
-            if (SimulationTiming.OnOriginalTick(context.Tick.Value) && RoomEvictRules.Evict(context, SystemName, creature, RoomTypeId.Prison)) continue;
-            if (SlapRules.IsReaction(creature.Dk2StateId)) continue;   // 120's reaction (ADR-0401)
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held))
+            {
+                continue;
+            }
+
+            if (SimulationTiming.OnOriginalTick(context.Tick.Value) && RoomEvictRules.Evict(context, SystemName, creature, RoomTypeId.Prison))
+            {
+                continue;
+            }
+
+            if (SlapRules.IsReaction(creature.Dk2StateId))
+            {
+                continue;   // 120's reaction (ADR-0401)
+            }
+
             if (creature.Dk2StateId == PrisonRules.ReturningState)
             {
-                if (SimulationTiming.OnOriginalTick(context.Tick.Value)) PrisonRules.Return(context, SystemName, creature);
+                if (SimulationTiming.OnOriginalTick(context.Tick.Value))
+                {
+                    PrisonRules.Return(context, SystemName, creature);
+                }
+
                 continue;
             }
 
             // In the keeper's hand it is out of the dungeon (ADR-0062); down,
             // it is not walking anywhere.
-            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Down)) continue;
+            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Down))
+            {
+                continue;
+            }
 
             // Already walking. The original rolls in state 116 only once the
             // walk it was given has finished, and this is that condition.
-            if (creature.HasRoute) continue;
+            if (creature.HasRoute)
+            {
+                continue;
+            }
 
             // On its way to a chicken, or standing over one. That is states 117
             // and 118 rather than 116, and they do not roll for a step: the
             // original's decision state asks about hunger FIRST and wanders
             // only when the answer is no (PrisonerEatSystem, ADR-0074).
-            if (creature.TargetObjectId >= 0) continue;
+            if (creature.TargetObjectId >= 0)
+            {
+                continue;
+            }
             // In 75 the hand's preparation holds it: the prison handler does not run.
-            if (creature.Dk2StateId == HandRules.PreparationState) continue;
+            if (creature.Dk2StateId == HandRules.PreparationState)
+            {
+                continue;
+            }
 
             // Searching again in 117, or finishing a meal in 119: neither rolls for a step.
-            if (creature.Dk2StateId is PrisonRules.SeekingFoodState or PrisonRules.AfterEatingState) continue;
+            if (creature.Dk2StateId is PrisonRules.SeekingFoodState or PrisonRules.AfterEatingState)
+            {
+                continue;
+            }
 
             // 116 rolls only once no action runs (0x00496D00): a flourish holds it.
             long now = context.Tick.Value;
-            if (now < creature.ActionUntilTick) continue;
+            if (now < creature.ActionUntilTick)
+            {
+                continue;
+            }
 
             // HasArt(9) draws nothing; the hundred comes first, then the flourish's rand(3).
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
@@ -85,7 +134,10 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
                 continue;
             }
 
-            if (roll >= PrisonRules.WanderPercentPerTick) continue;
+            if (roll >= PrisonRules.WanderPercentPerTick)
+            {
+                continue;
+            }
 
             int start = context.Rng.NextInt(PrisonRules.WanderDirections);
             if (!PrisonRules.TryWanderStep(
@@ -100,7 +152,10 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
                 continue;
             }
 
-            if (!context.Navigation.TryRoute(creature, step, Navigation.MoveOptions.Loose)) continue;
+            if (!context.Navigation.TryRoute(creature, step, Navigation.MoveOptions.Loose))
+            {
+                continue;
+            }
 
             // 116 back to 115, which starts a walk in 6 resuming in 116 and then sets 116 itself
             // without waiting (0x004731F0): the prisoner walks in 116, holding resume 116 and
@@ -108,7 +163,10 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
             if (CreatureStateMachine.HasState(creature))
             {
                 if (creature.Dk2StateId == PrisonRules.InTheCellState)
+                {
                     StateShadow.Move(context, SystemName, creature, PrisonRules.DecidingState);
+                }
+
                 CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, PrisonRules.InTheCellState);
                 StateShadow.Move(context, SystemName, creature, PrisonRules.InTheCellState);
             }

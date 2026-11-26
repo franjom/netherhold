@@ -42,7 +42,10 @@ public static class LineWalker
         if (!s.WallHug)
         {
             WalkStep straight = StraightWalk(view, s);
-            if (straight.Outcome != WalkOutcome.Moved) return straight;
+            if (straight.Outcome != WalkOutcome.Moved)
+            {
+                return straight;
+            }
             // A hug was started; DK2 hugs in the same call.
         }
         return Hug(view, s);
@@ -57,11 +60,22 @@ public static class LineWalker
         while (true)
         {
             // DK2 returns 0 here without moving the cursor.
-            if (pos == target) return new WalkStep(WalkOutcome.Arrived, pos);
+            if (pos == target)
+            {
+                return new WalkStep(WalkOutcome.Arrived, pos);
+            }
+
             (stepDx, stepDy) = Toward(pos, target);
             pos = new TilePos(pos.X + stepDx, pos.Y + stepDy);
-            if (!view.InBounds(pos)) return new WalkStep(WalkOutcome.Failed, pos);
-            if (view.IsSolid(pos) || view.IsWater(pos) || view.IsLava(pos)) break;
+            if (!view.InBounds(pos))
+            {
+                return new WalkStep(WalkOutcome.Failed, pos);
+            }
+
+            if (view.IsSolid(pos) || view.IsWater(pos) || view.IsLava(pos))
+            {
+                break;
+            }
         }
 
         if (view.IsDiggable(pos))
@@ -82,10 +96,17 @@ public static class LineWalker
         int guard = view.Width + view.Height;
         do
         {
-            if (guard-- <= 0) return new WalkStep(WalkOutcome.Failed, exit);
+            if (guard-- <= 0)
+            {
+                return new WalkStep(WalkOutcome.Failed, exit);
+            }
+
             (int ex, int ey) = Toward(exit, target);
             exit = new TilePos(exit.X + ex, exit.Y + ey);
-            if (!view.InBounds(exit)) return new WalkStep(WalkOutcome.Failed, exit);
+            if (!view.InBounds(exit))
+            {
+                return new WalkStep(WalkOutcome.Failed, exit);
+            }
         }
         while (!view.IsDiggable(exit) && view.IsSolid(exit) && !view.IsLava(exit));
 
@@ -109,14 +130,25 @@ public static class LineWalker
 
         while (pos != s.WallHugEnd)
         {
-            if (guard-- <= 0) return new WalkStep(WalkOutcome.Failed, pos);
+            if (guard-- <= 0)
+            {
+                return new WalkStep(WalkOutcome.Failed, pos);
+            }
+
             int d = KeeperView.DistanceSquared(pos, s.DigRoomAt);
-            if (d <= s.WallHugDistance) s.WallHugDistance = d;
+            if (d <= s.WallHugDistance)
+            {
+                s.WallHugDistance = d;
+            }
 
             // Turn toward the wall first.
             int chosen = (heading - rotate) & 3;
             TilePos next = Neighbour(pos, chosen);
-            if (view.IsDiggable(next)) return Dig(s, next, chosen);
+            if (view.IsDiggable(next))
+            {
+                return Dig(s, next, chosen);
+            }
+
             if (!HugOpen(view, next))
             {
                 // Otherwise rotate away from the wall, from the current heading.
@@ -125,7 +157,11 @@ public static class LineWalker
                 for (int i = 0; i < 4; i++)
                 {
                     next = Neighbour(pos, chosen);
-                    if (view.IsDiggable(next)) return Dig(s, next, chosen);
+                    if (view.IsDiggable(next))
+                    {
+                        return Dig(s, next, chosen);
+                    }
+
                     if (HugOpen(view, next))
                     {
                         found = true;
@@ -133,13 +169,19 @@ public static class LineWalker
                     }
                     chosen = (chosen + rotate) & 3;
                 }
-                if (!found) return new WalkStep(WalkOutcome.Failed, pos);
+                if (!found)
+                {
+                    return new WalkStep(WalkOutcome.Failed, pos);
+                }
             }
 
             pos = next;
             heading = chosen;
             // DK2 leaves the cursor where it was and returns 0.
-            if (pos == s.WallHugStart) return new WalkStep(WalkOutcome.Failed, pos);
+            if (pos == s.WallHugStart)
+            {
+                return new WalkStep(WalkOutcome.Failed, pos);
+            }
         }
 
         s.DigRoomAtCurrent = pos;
@@ -168,12 +210,28 @@ public static class LineWalker
         int bound = 50; // 0x32, replaced by the first side's count when it arrives
         int first = Trial(view, start, end, target, distance, heading, plus: true, int.MaxValue,
             out bool firstLooped, out bool firstArrived, out int firstSegments);
-        if (firstLooped) return false;
-        if (firstArrived) bound = firstSegments;
+        if (firstLooped)
+        {
+            return false;
+        }
+
+        if (firstArrived)
+        {
+            bound = firstSegments;
+        }
+
         int second = Trial(view, start, end, target, distance, heading, plus: false, bound,
             out bool secondLooped, out _, out _);
-        if (secondLooped) return true;
-        if (second < 0) return true; // ran past the first side's segment count
+        if (secondLooped)
+        {
+            return true;
+        }
+
+        if (second < 0)
+        {
+            return true; // ran past the first side's segment count
+        }
+
         return first < second;
     }
 
@@ -192,7 +250,11 @@ public static class LineWalker
 
         for (segments = 0; ; )
         {
-            if (segments > bound) return -1;
+            if (segments > bound)
+            {
+                return -1;
+            }
+
             TilePos pos = segmentStart;
             while (true)
             {
@@ -201,9 +263,16 @@ public static class LineWalker
                     arrived = true;
                     return 0;
                 }
-                if (guard-- <= 0) return best;
+                if (guard-- <= 0)
+                {
+                    return best;
+                }
+
                 int d = KeeperView.DistanceSquared(pos, target);
-                if (d <= best) best = d;
+                if (d <= best)
+                {
+                    best = d;
+                }
 
                 int chosen = (h - rotate) & 3;
                 TilePos next = Neighbour(pos, chosen);
@@ -251,7 +320,10 @@ public static class LineWalker
                     return best;
                 }
             }
-            if (++segments >= TrialSegments) return best;
+            if (++segments >= TrialSegments)
+            {
+                return best;
+            }
         }
     }
 
@@ -275,7 +347,11 @@ public static class LineWalker
     private static (int Dx, int Dy) Toward(TilePos from, TilePos to)
     {
         int dx = to.X - from.X, dy = to.Y - from.Y;
-        if (Math.Abs(dy) < Math.Abs(dx)) return (dx < 0 ? -1 : 1, 0);
+        if (Math.Abs(dy) < Math.Abs(dx))
+        {
+            return (dx < 0 ? -1 : 1, 0);
+        }
+
         return (0, dy < 0 ? -1 : 1);
     }
 }

@@ -18,23 +18,41 @@ public static class DyingStateRules
 
     internal static void Update(SimulationContext context, CreatureState creature)
     {
-        if (!context.DyingStatesUpdatedThisTick.Add(creature)) return;
+        if (!context.DyingStatesUpdatedThisTick.Add(creature))
+        {
+            return;
+        }
+
         if (creature.Dk2StateId == CreatureDeathRules.FallingState)
         {
             DeathFallRules.Fall(context, creature, context.Database.CreatureById(creature.CreatureTypeId));
             return;
         }
-        if (creature.Dk2StateId != CreatureDeathRules.DyingState) return;
+        if (creature.Dk2StateId != CreatureDeathRules.DyingState)
+        {
+            return;
+        }
+
         creature.CombatPitFighter = false;
-        if (Transport(context, creature) || creature.CarriedByCreatureId >= 0) return;
+        if (Transport(context, creature) || creature.CarriedByCreatureId >= 0)
+        {
+            return;
+        }
+
         creature.DyingTicks++;
         if (CreatureDeathRules.DyingWindowElapsed(context.Database, creature))
+        {
             CreatureHealthSystem.Die(context, "CreatureHealth", context.Database.CreatureById(creature.CreatureTypeId), creature);
+        }
     }
 
     private static bool Transport(SimulationContext context, CreatureState creature)
     {
-        if (context.Tick.Value <= creature.PitTransportAfter.Value) return false;
+        if (context.Tick.Value <= creature.PitTransportAfter.Value)
+        {
+            return false;
+        }
+
         if (creature.PitTransportPhase == PitTransportPhase.Sinking)
         {
             creature.PosZ -= 0x200;
@@ -65,7 +83,11 @@ public static class DyingStateRules
             }
             return true;
         }
-        if (context.Tick.Value < creature.ActionUntilTick || FloorPit(context, creature) is null) return false;
+        if (context.Tick.Value < creature.ActionUntilTick || FloorPit(context, creature) is null)
+        {
+            return false;
+        }
+
         creature.PitTransportFloorHeight = new Fp32(FloorHeightRules.At(
             context.World, context.Database, creature.PosX, creature.PosY));
         creature.PitTransportPhase = PitTransportPhase.Sinking;
@@ -75,7 +97,11 @@ public static class DyingStateRules
 
     private static RoomInstance? FloorPit(SimulationContext context, CreatureState creature)
     {
-        if (!context.World.Contains(creature.Tile)) return null;
+        if (!context.World.Contains(creature.Tile))
+        {
+            return null;
+        }
+
         int tile = context.World.TileIndex(creature.Tile);
         RoomInstance? pit = CombatPitRules.PitAt(context.World, context.Database, tile);
         return CombatPitRules.IsFloor(pit, tile) ? pit : null;

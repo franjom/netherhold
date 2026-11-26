@@ -42,7 +42,9 @@ public static class SteeringIntegrator
         }
 
         if (!Clamp(body, next, mover, world))
+        {
             body.PathStuckBuffer = (ushort)((body.PathStuckBuffer << 1) | 1);
+        }
 
         // Axes currently feed hashing/snapshots; steering forces do not read them.
         body.LocalXAxis = Fixed16.Normalise(body.Vel);
@@ -62,7 +64,10 @@ public static class SteeringIntegrator
             Fixed16Vector n = body.SolidContacts[i].Normal;
             Fixed16Vector v = body.Vel;
             int inward = Fixed16.Mul(total.X + v.X, n.X) + Fixed16.Mul(total.Y + v.Y, n.Y);
-            if (inward >= SlideThreshold) continue;
+            if (inward >= SlideThreshold)
+            {
+                continue;
+            }
 
             int keepX = Fixed16.One - Fixed16.Mul(n.X, n.X);
             int keepY = Fixed16.One - Fixed16.Mul(n.Y, n.Y);
@@ -76,7 +81,11 @@ public static class SteeringIntegrator
 
             var tangent = new Fixed16Vector(-n.Y, n.X);
             int side = Fixed16.Mul(fx + vx, tangent.X) + Fixed16.Mul(fy + vy, tangent.Y);
-            if (side < 0) tangent = -tangent;
+            if (side < 0)
+            {
+                tangent = -tangent;
+            }
+
             pushes += tangent.Scale(body.MaxForce);
         }
 
@@ -139,7 +148,11 @@ public static class SteeringIntegrator
     {
         int progress = FollowPathRules.Progress(body);
         ushort history = (ushort)(body.PathStuckBuffer << 1);
-        if (progress <= body.PathLastProgress) history |= 1;
+        if (progress <= body.PathLastProgress)
+        {
+            history |= 1;
+        }
+
         body.PathStuckBuffer = history;
         body.PathLastProgress = progress;
     }

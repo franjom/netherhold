@@ -50,16 +50,28 @@ public static class WorkshopStep
     /// <summary>One turn of a manufacturer. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
     {
-        if (RoomEvictRules.Evict(context, system, creature, RoomTypeId.Workshop)) return true;
+        if (RoomEvictRules.Evict(context, system, creature, RoomTypeId.Workshop))
+        {
+            return true;
+        }
+
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return true;
+            if (creature.HasRoute)
+            {
+                return true;
+            }
+
             creature.StopMoving();
             return StateShadow.Arrive(context, system, creature);
         }
 
         long age = context.Tick.Value - creature.StateEnteredTick;
-        if (age == 0) return true;
+        if (age == 0)
+        {
+            return true;
+        }
+
         return creature.Dk2StateId switch
         {
             ChoosingState => Choose(context, system, creature, age),
@@ -79,19 +91,35 @@ public static class WorkshopStep
         WorldState world = context.World;
         GameDatabase database = context.Database;
         long now = context.Tick.Value;
-        if (age == 1) creature.StopMoving();
+        if (age == 1)
+        {
+            creature.StopMoving();
+        }
+
         if (world.Player(creature.OwnerPlayerId).ManufactureQueue.Count == 0)
         {
             if (age == 1)
+            {
                 creature.ActionUntilTick = now + AnimationTimingRules.CountedHoldTicks(database.CreatureById(creature.CreatureTypeId), 20, 0);
+            }
+
             return now < creature.ActionUntilTick;
         }
 
-        if (OwnWorkshopUnder(world, database, creature) is null) return true;
+        if (OwnWorkshopUnder(world, database, creature) is null)
+        {
+            return true;
+        }
+
         if (!creature.HeldPlace.IsHeld || RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex) is not { } held)
+        {
             return true;
+        }
+
         if (Find(world, database, held, creature, out ObjectState? machine, out (int X, int Y) beside) is not { } mode)
+        {
             return true;
+        }
 
         (int mx, int my) = AutoFurnitureRules.FurniturePosition(world, database, held, machine!);
         (int x, int y) = beside;
@@ -107,7 +135,10 @@ public static class WorkshopStep
         }
 
         if (Walk(context, system, creature, x, y, AtTheMachineState))
+        {
             (creature.StateTargetX, creature.StateTargetY) = (mx, my);
+        }
+
         return true;
     }
 
@@ -120,27 +151,44 @@ public static class WorkshopStep
     {
         point = default;
         machine = Nearest(world, database, room, seeker, AtIt);
-        if (machine is not null) return AtIt;
+        if (machine is not null)
+        {
+            return AtIt;
+        }
+
         machine = Nearest(world, database, room, seeker, BesideIt);
-        if (machine is null) return null;
+        if (machine is null)
+        {
+            return null;
+        }
 
         (int mx, int my) = AutoFurnitureRules.FurniturePosition(world, database, room, machine);
         point = (mx, my);
         int r = ResearchStep.StandOff(database, seeker, machine);
         int wall = AutoFurnitureRules.WallSide(world, database, room, machine.TileIndex);
         int? angle = null;
-        if (wall >= 0) angle = ((((wall + 2) & 3) * 0x200) + 0x180) & Bearing.Mask;
+        if (wall >= 0)
+        {
+            angle = ((((wall + 2) & 3) * 0x200) + 0x180) & Bearing.Mask;
+        }
         else
         {
             int x0 = machine.TileIndex % world.Width, y0 = machine.TileIndex / world.Width;
             for (int k = 0; k < Sides.Length && angle is null; k++)
             {
                 var at = new TilePos(x0 + Sides[k].Dx, y0 + Sides[k].Dy);
-                if (world.Contains(at) && !AnyoneOn(world, (at.Y * world.Width) + at.X)) angle = (k & 3) << 9;
+                if (world.Contains(at) && !AnyoneOn(world, (at.Y * world.Width) + at.X))
+                {
+                    angle = (k & 3) << 9;
+                }
             }
         }
 
-        if (angle is int a) point = (mx + ((TrapRules.Sine(a) * r) >> 16), my + (-(TrapRules.Cosine(a) * r) >> 16));
+        if (angle is int a)
+        {
+            point = (mx + ((TrapRules.Sine(a) * r) >> 16), my + (-(TrapRules.Cosine(a) * r) >> 16));
+        }
+
         return BesideIt;
     }
 
@@ -150,10 +198,18 @@ public static class WorkshopStep
         uint best = uint.MaxValue;
         foreach (ObjectState thing in world.Objects)
         {
-            if (thing.InHand || !IsMachine(thing.ObjectTypeId) || !EatingRules.Contains(room, thing.TileIndex)) continue;
+            if (thing.InHand || !IsMachine(thing.ObjectTypeId) || !EatingRules.Contains(room, thing.TileIndex))
+            {
+                continue;
+            }
+
             (int x, int y) = AutoFurnitureRules.FurniturePosition(world, database, room, thing);
             uint distance = Distance(seeker.PosX - x, seeker.PosY - y);
-            if (distance >= best || Worked(world, room, x, y, mode)) continue;
+            if (distance >= best || Worked(world, room, x, y, mode))
+            {
+                continue;
+            }
+
             found = thing;
             best = distance;
         }
@@ -165,9 +221,14 @@ public static class WorkshopStep
     private static bool Worked(WorldState world, RoomInstance room, int x, int y, byte mode)
     {
         foreach (CreatureState c in world.Creatures)
+        {
             if (c.HeldPlace.In(room) && c.MachineMode == mode && c.StateTargetX == x && c.StateTargetY == y
                 && c.StateTargetX >= 0 && c.StateTargetY >= 0 && world.Contains(new TilePos(x >> 12, y >> 12)))
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -183,10 +244,15 @@ public static class WorkshopStep
         ObjectState? machine = OnTile(world, tile, Machine46) ?? OnTile(world, tile, Anvil) ?? OnTile(world, tile, Machine16);
         if (machine is null)
         {
-            if (!StateShadow.TryMove(context, system, creature, ChoosingState)) return false;
+            if (!StateShadow.TryMove(context, system, creature, ChoosingState))
+            {
+                return false;
+            }
         }
         else if (CasinoStep.TurnTo(context, creature, creature.StateTargetX, creature.StateTargetY) != 0)
+        {
             return true;
+        }
 
         int count = context.Rng.NextInt(7) + 6;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
@@ -203,24 +269,47 @@ public static class WorkshopStep
     /// order, DK2 the first in the tile's thing list.</summary>
     private static void AskAnvilSound(SimulationContext context, string system, CreatureState creature, long now)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-        if (now < creature.StateEnteredTick + CombatRules.TicksOf(definition.MeleeHitDelay)) return;
+        if (now < creature.StateEnteredTick + CombatRules.TicksOf(definition.MeleeHitDelay))
+        {
+            return;
+        }
+
         WorldState world = context.World;
         int tile = ((creature.StateTargetY >> 12) * world.Width) + (creature.StateTargetX >> 12);
-        if (OnTile(world, tile, Anvil) is { } anvil) ThingSoundRules.Request(context, system, anvil, ThingSoundEvent.Forged);
+        if (OnTile(world, tile, Anvil) is { } anvil)
+        {
+            ThingSoundRules.Request(context, system, anvil, ThingSoundEvent.Forged);
+        }
     }
 
     /// <summary>65: it turns to the machine; moved, the work ends; while it runs, it waits; then 63.</summary>
     private static bool Work(SimulationContext context, string system, CreatureState creature, long age)
     {
         long now = context.Tick.Value;
-        if (now < creature.ActionUntilTick) AskAnvilSound(context, system, creature, now);
+        if (now < creature.ActionUntilTick)
+        {
+            AskAnvilSound(context, system, creature, now);
+        }
+
         CasinoStep.TurnTo(context, creature, creature.StateTargetX, creature.StateTargetY);
         bool moved = creature.WaitPosX != creature.PosX || creature.WaitPosY != creature.PosY;
-        if (age > 1 && moved && now < creature.ActionUntilTick) creature.ActionUntilTick = 0;
+        if (age > 1 && moved && now < creature.ActionUntilTick)
+        {
+            creature.ActionUntilTick = 0;
+        }
+
         (creature.WaitPosX, creature.WaitPosY) = (creature.PosX, creature.PosY);
-        if (now < creature.ActionUntilTick) return true;
+        if (now < creature.ActionUntilTick)
+        {
+            return true;
+        }
+
         return StateShadow.TryMove(context, system, creature, ChoosingState);
     }
 
@@ -228,7 +317,11 @@ public static class WorkshopStep
 
     private static RoomInstance? OwnWorkshopUnder(WorldState world, GameDatabase database, CreatureState creature)
     {
-        if (!world.Contains(creature.Tile)) return null;
+        if (!world.Contains(creature.Tile))
+        {
+            return null;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(world, database, (creature.Tile.Y * world.Width) + creature.Tile.X);
         return room is not null && room.Definition.TypeId == RoomTypeId.Workshop && room.OwnerPlayerId == creature.OwnerPlayerId
             ? room : null;
@@ -237,15 +330,26 @@ public static class WorkshopStep
     private static ObjectState? OnTile(WorldState world, int tile, byte type)
     {
         foreach (ObjectState thing in world.Objects)
-            if (!thing.InHand && thing.TileIndex == tile && thing.ObjectTypeId == type) return thing;
+        {
+            if (!thing.InHand && thing.TileIndex == tile && thing.ObjectTypeId == type)
+            {
+                return thing;
+            }
+        }
+
         return null;
     }
 
     private static bool AnyoneOn(WorldState world, int tile)
     {
         foreach (CreatureState c in world.Creatures)
+        {
             if (!CreatureDeathRules.IsCorpse(c) && world.Contains(c.Tile) && (c.Tile.Y * world.Width) + c.Tile.X == tile)
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -257,7 +361,11 @@ public static class WorkshopStep
 
     private static bool Walk(SimulationContext context, string system, CreatureState creature, int x, int y, int resume)
     {
-        if (!context.Navigation.TryRouteTo(creature, x, y, MoveOptions.Loose)) return false;
+        if (!context.Navigation.TryRouteTo(creature, x, y, MoveOptions.Loose))
+        {
+            return false;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         context.Emit(system, "workshop_walk", $"creature={creature.Id} to=({x >> 12},{y >> 12}) resume={resume}");
         return true;

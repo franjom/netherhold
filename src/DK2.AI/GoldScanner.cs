@@ -25,9 +25,16 @@ public static class GoldScanner
 
         for (int index = 0; index < view.TileCount; index++)
         {
-            if (seen.Contains(index)) continue;
+            if (seen.Contains(index))
+            {
+                continue;
+            }
+
             TilePos start = view.FromIndex(index);
-            if (view.Terrain(start).GoldValue == 0) continue;
+            if (view.Terrain(start).GoldValue == 0)
+            {
+                continue;
+            }
 
             long sumX = 0, sumY = 0;
             int count = 0, amount = 0;
@@ -43,23 +50,43 @@ public static class GoldScanner
                 foreach ((int dx, int dy) in KeeperDirections.Clockwise)
                 {
                     var n = new TilePos(p.X + dx, p.Y + dy);
-                    if (!view.InBounds(n) || view.Terrain(n).GoldValue == 0) continue;
+                    if (!view.InBounds(n) || view.Terrain(n).GoldValue == 0)
+                    {
+                        continue;
+                    }
+
                     int ni = view.IndexOf(n);
-                    if (!seen.Add(ni)) continue;
+                    if (!seen.Add(ni))
+                    {
+                        continue;
+                    }
+
                     queue.Enqueue(n);
                 }
             }
             var centroid = new TilePos((int)(sumX / count), (int)(sumY / count));
             TilePos centre = CorrectCentroid(view, centroid, (int)sumY);
             int distance = DistanceToOwnRooms(view, centre);
-            if (retained.Count == DepositsKept && distance >= historicalCutoff) continue;
+            if (retained.Count == DepositsKept && distance >= historicalCutoff)
+            {
+                continue;
+            }
+
             historicalCutoff = Math.Max(historicalCutoff, distance);
 
             // Admission remembers evicted distances. A later, farther seam can
             // replace the fourth entry even when that entry was nearer.
-            if (retained.Count == DepositsKept) retained.RemoveAt(DepositsKept - 1);
+            if (retained.Count == DepositsKept)
+            {
+                retained.RemoveAt(DepositsKept - 1);
+            }
+
             int insertion = retained.FindIndex(d => d.Distance > distance);
-            if (insertion < 0) insertion = retained.Count;
+            if (insertion < 0)
+            {
+                insertion = retained.Count;
+            }
+
             retained.Insert(insertion, (new GoldDeposit(centre, amount), distance));
         }
 
@@ -69,7 +96,10 @@ public static class GoldScanner
     private static TilePos CorrectCentroid(KeeperView view, TilePos centre, int sumY)
     {
         bool Accepts(TilePos p) => view.InBounds(p) && !view.Terrain(p).IsImpenetrable;
-        if (Accepts(centre)) return centre;
+        if (Accepts(centre))
+        {
+            return centre;
+        }
 
         var cursor = new TilePos(centre.X + 1, centre.Y);
         int direction = 2, length = 1;
@@ -79,11 +109,23 @@ public static class GoldScanner
             (int dx, int dy) = KeeperDirections.Clockwise[direction];
             for (int step = 0; step < length; step++)
             {
-                if (Accepts(cursor)) return cursor;
+                if (Accepts(cursor))
+                {
+                    return cursor;
+                }
+
                 cursor = new TilePos(cursor.X + dx, cursor.Y + dy);
             }
-            if ((direction & 1) != 0 && length >= limit) break;
-            if ((direction & 1) == 0) length++;
+            if ((direction & 1) != 0 && length >= limit)
+            {
+                break;
+            }
+
+            if ((direction & 1) == 0)
+            {
+                length++;
+            }
+
             direction = (direction + 1) & 3;
         }
         return new TilePos(0, unchecked((ushort)sumY));
@@ -93,9 +135,15 @@ public static class GoldScanner
     {
         int best = int.MaxValue;
         foreach (KeeperRoomView r in view.OwnRooms)
+        {
             best = Math.Min(best, KeeperView.DistanceSquared(KeeperView.Centre(r), p));
+        }
+
         if (best == int.MaxValue && view.Heart is TilePos heart)
+        {
             best = KeeperView.DistanceSquared(heart, p);
+        }
+
         return best;
     }
 }

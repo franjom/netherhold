@@ -38,7 +38,11 @@ public static class HeroSlotRules
     {
         for (int i = 0; i < slots.Length; i++)
         {
-            if (value != 0 ? !slots[i].IsFree : slots[i].CreatureId != creatureId) continue;
+            if (value != 0 ? !slots[i].IsFree : slots[i].CreatureId != creatureId)
+            {
+                continue;
+            }
+
             slots[i] = value != 0 ? new HeroSlot { CreatureId = creatureId, Value = value } : default;
             return;
         }

@@ -68,7 +68,11 @@ public static class RoomBorderRules
     public static RoomBorderCursor Advance(RoomBorderCursor cursor, WorldState world, RoomInstance room)
     {
         cursor.Phase += PhaseStep;
-        if (cursor.Phase <= 0xFFF) return cursor;
+        if (cursor.Phase <= 0xFFF)
+        {
+            return cursor;
+        }
+
         cursor.Phase -= 0x1000;
         ReadOnlySpan<sbyte> walk = Walk;
         bool edge;

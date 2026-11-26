@@ -25,7 +25,11 @@ public sealed partial class ShotState
         get => _posX;
         set
         {
-            if (_posX == value) return;
+            if (_posX == value)
+            {
+                return;
+            }
+
             _posX = value;
             LinkWorld?.Relink(this);
         }
@@ -36,7 +40,11 @@ public sealed partial class ShotState
         get => _posY;
         set
         {
-            if (_posY == value) return;
+            if (_posY == value)
+            {
+                return;
+            }
+
             _posY = value;
             LinkWorld?.Relink(this);
         }

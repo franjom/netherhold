@@ -12,8 +12,15 @@ public static class TriggerCaptureComparison
     public static TriggerCaptureComparisonResult Compare(
         string oursPath, string capturePath, string? anchor = null)
     {
-        if (oursPath is null) throw new ArgumentNullException(nameof(oursPath));
-        if (capturePath is null) throw new ArgumentNullException(nameof(capturePath));
+        if (oursPath is null)
+        {
+            throw new ArgumentNullException(nameof(oursPath));
+        }
+
+        if (capturePath is null)
+        {
+            throw new ArgumentNullException(nameof(capturePath));
+        }
 
         using StreamReader ours = File.OpenText(oursPath);
         using StreamReader capture = File.OpenText(capturePath);
@@ -24,8 +31,15 @@ public static class TriggerCaptureComparison
         TextReader ours, string oursName, TextReader capture, string captureName,
         string? anchor = null)
     {
-        if (ours is null) throw new ArgumentNullException(nameof(ours));
-        if (capture is null) throw new ArgumentNullException(nameof(capture));
+        if (ours is null)
+        {
+            throw new ArgumentNullException(nameof(ours));
+        }
+
+        if (capture is null)
+        {
+            throw new ArgumentNullException(nameof(capture));
+        }
 
         string[] columns = TriggerTurnCsvEmitter.Header.Split(',');
         CaptureData oursData = Read(ours, oursName, columns);
@@ -81,7 +95,10 @@ public static class TriggerCaptureComparison
             {
                 string id = $"t{timer}";
                 if (!oursData.Stamps.TryGetValue(id, out List<long>? mine)
-                    || !captureData.Stamps.TryGetValue(id, out List<long>? theirs)) continue;
+                    || !captureData.Stamps.TryGetValue(id, out List<long>? theirs))
+                {
+                    continue;
+                }
                 // A stamp is a tick, so the run that ended first cannot speak to one written
                 // after it stopped. Comparing the untruncated series makes a short capture
                 // read as a disagreement, which is ADR-0118's mistake in a second place.
@@ -116,8 +133,15 @@ public static class TriggerCaptureComparison
         foreach (string id in only)
         {
             EventObservation e = side.Events[id];
-            if (e.FirstTurnIsCeiling) continue;
-            if (e.FirstTurn - origin + otherOrigin > otherLastTurn) beyond.Add(id);
+            if (e.FirstTurnIsCeiling)
+            {
+                continue;
+            }
+
+            if (e.FirstTurn - origin + otherOrigin > otherLastTurn)
+            {
+                beyond.Add(id);
+            }
         }
         only.RemoveAll(beyond.Contains);
         return beyond;
@@ -127,7 +151,9 @@ public static class TriggerCaptureComparison
     {
         string? header = reader.ReadLine();
         if (header != TriggerTurnCsvEmitter.Header)
+        {
             throw new InvalidDataException($"'{name}' does not have the live trigger-probe header.");
+        }
 
         var events = new Dictionary<string, EventObservation>();
         var stamps = new Dictionary<string, List<long>>();
@@ -136,13 +162,23 @@ public static class TriggerCaptureComparison
         string? line;
         while ((line = reader.ReadLine()) is not null)
         {
-            if (line.Length == 0) continue;
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
             string[] cells = line.Split(',');
             if (cells.Length != columns.Length)
+            {
                 throw new InvalidDataException(
                     $"'{name}' has a row of {cells.Length} columns; expected {columns.Length}.");
+            }
+
             if (!long.TryParse(cells[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out long turn))
+            {
                 throw new InvalidDataException($"'{name}' has an invalid tick '{cells[1]}'.");
+            }
+
             lastTurn = turn;
 
             int eventEnd = 2 + TriggerState.TimerCount + TriggerState.FlagCount;
@@ -150,10 +186,15 @@ public static class TriggerCaptureComparison
             {
                 string cell = cells[col];
                 if (!long.TryParse(cell, NumberStyles.Integer, CultureInfo.InvariantCulture, out long value))
+                {
                     throw new InvalidDataException(
                         $"'{name}' has an invalid value '{cell}' in column {columns[col]}.");
+                }
+
                 if (value != 0 && !events.ContainsKey(columns[col]))
+                {
                     events.Add(columns[col], new EventObservation(turn, value, firstDataRow));
+                }
 
                 // A timer slot holds the tick the timer was started, so every distinct value
                 // it takes is a tick the game (or we) recorded at the moment of acting. Unlike
@@ -163,14 +204,19 @@ public static class TriggerCaptureComparison
                     List<long> seen = stamps.TryGetValue(columns[col], out List<long>? list)
                         ? list
                         : stamps[columns[col]] = [];
-                    if (seen.Count == 0 || seen[^1] != value) seen.Add(value);
+                    if (seen.Count == 0 || seen[^1] != value)
+                    {
+                        seen.Add(value);
+                    }
                 }
             }
             firstDataRow = false;
         }
 
         if (lastTurn == long.MinValue)
+        {
             throw new InvalidDataException($"'{name}' has a header but no data rows.");
+        }
 
         return new CaptureData(events, stamps, lastTurn);
     }
@@ -184,9 +230,12 @@ public static class TriggerCaptureComparison
                 || !byte.TryParse(requested.AsSpan(1), NumberStyles.None,
                     CultureInfo.InvariantCulture, out byte timer)
                 || timer >= TriggerState.TimerCount)
+            {
                 throw new ArgumentException(
                     $"anchor must be t0..t{TriggerState.TimerCount - 1}, not '{requested}'.",
                     nameof(requested));
+            }
+
             return ours.Events.ContainsKey(requested) && capture.Events.ContainsKey(requested)
                 ? requested
                 : null;
@@ -195,7 +244,10 @@ public static class TriggerCaptureComparison
         for (byte timer = 0; timer < TriggerState.TimerCount; timer++)
         {
             string id = $"t{timer}";
-            if (ours.Events.ContainsKey(id) && capture.Events.ContainsKey(id)) return id;
+            if (ours.Events.ContainsKey(id) && capture.Events.ContainsKey(id))
+            {
+                return id;
+            }
         }
         return null;
     }

@@ -57,15 +57,30 @@ public sealed class RoomTickSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        foreach (IRoomTickStep step in _steps) step.BeginTurn(context);
+        foreach (IRoomTickStep step in _steps)
+        {
+            step.BeginTurn(context);
+        }
+
         _world = context.World;
         _rooms.Clear();
         _rooms.AddRange(RoomIndex.Build(context.World, context.Database));
         _rooms.Sort(_newestFirst);
         foreach (RoomInstance room in _rooms)
+        {
             foreach (IRoomTickStep step in _steps)
-                if (step.Applies(context, room)) step.Tick(context, room);
-        foreach (IRoomTickStep step in _steps) step.EndTurn(context);
+            {
+                if (step.Applies(context, room))
+                {
+                    step.Tick(context, room);
+                }
+            }
+        }
+
+        foreach (IRoomTickStep step in _steps)
+        {
+            step.EndTurn(context);
+        }
     }
 
     /// <summary>Steps on their own, over the whole room list in the walk's order: what a step's

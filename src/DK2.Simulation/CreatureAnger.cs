@@ -148,11 +148,31 @@ public struct CreatureAnger : IEquatable<CreatureAnger>
         get
         {
             int most = Company;
-            if (Hunger > most) most = Hunger;
-            if (Lair > most) most = Lair;
-            if (Work > most) most = Work;
-            if (Pay > most) most = Pay;
-            if (Treatment > most) most = Treatment;
+            if (Hunger > most)
+            {
+                most = Hunger;
+            }
+
+            if (Lair > most)
+            {
+                most = Lair;
+            }
+
+            if (Work > most)
+            {
+                most = Work;
+            }
+
+            if (Pay > most)
+            {
+                most = Pay;
+            }
+
+            if (Treatment > most)
+            {
+                most = Treatment;
+            }
+
             return most;
         }
     }
@@ -177,7 +197,11 @@ public struct CreatureAnger : IEquatable<CreatureAnger>
             if (Lair > most) { most = Lair; worst = AngerBucket.Lair; }
             if (Work > most) { most = Work; worst = AngerBucket.Work; }
             if (Pay > most) { most = Pay; worst = AngerBucket.Pay; }
-            if (Treatment > most) worst = AngerBucket.Treatment;
+            if (Treatment > most)
+            {
+                worst = AngerBucket.Treatment;
+            }
+
             return worst;
         }
     }

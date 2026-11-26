@@ -67,7 +67,11 @@ public static class Fixed16
     {
         int x = Abs(dx), y = Abs(dy);
         int bits = x | y;
-        if ((bits & ~0xFFF) == 0) return IntegerMath.SquareRoot((x * x) + (y * y));
+        if ((bits & ~0xFFF) == 0)
+        {
+            return IntegerMath.SquareRoot((x * x) + (y * y));
+        }
+
         if ((bits & ~0x3FFFFF) == 0)
         {
             x >>= 8;

@@ -36,11 +36,22 @@ public static class DoorRules
     {
         door = null;
         WorldState world = context.World;
-        if (world.Doors.Count == 0 || !world.Contains(x >> 12, y >> 12)) return false;
+        if (world.Doors.Count == 0 || !world.Contains(x >> 12, y >> 12))
+        {
+            return false;
+        }
+
         door = world.DoorAt(x >> 12, y >> 12);
-        if (door is null || door.UnderConstruction || door.Open) return false;
+        if (door is null || door.UnderConstruction || door.Open)
+        {
+            return false;
+        }
+
         if (context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition) && ((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade))
+        {
             return z < 0x1801;
+        }
+
         bool acrossX = Math.Abs((x & 0xFFF) - 0x800) <= 0x600, acrossY = Math.Abs((y & 0xFFF) - 0x800) <= 0x600;
         return door.Orientation switch
         {
@@ -57,11 +68,23 @@ public static class DoorRules
     /// deadline starts at 0, so a door made late recovers on consecutive turns until it catches up.</summary>
     public static void Recover(SimulationContext context, DoorState door, DoorDef definition)
     {
-        if (IsDead(door) || context.Tick.Value <= door.RecoveryDeadline) return;
+        if (IsDead(door) || context.Tick.Value <= door.RecoveryDeadline)
+        {
+            return;
+        }
+
         int rate = definition.HealthGain;
-        if (rate == 0) return;
+        if (rate == 0)
+        {
+            return;
+        }
+
         int gain = Math.Min(rate, definition.Health - door.Health);
-        if ((short)gain != 0) Damage(context, door, (short)gain, door.PlayerId);
+        if ((short)gain != 0)
+        {
+            Damage(context, door, (short)gain, door.PlayerId);
+        }
+
         door.RecoveryDeadline += SimulationTiming.OriginalTicksPerGameSecond;
     }
 
@@ -69,9 +92,16 @@ public static class DoorRules
     /// health set to 0, and an unbuilt one leaves its keeper's blueprint list (<c>0x005056E0</c>).</summary>
     public static bool OwnerLost(WorldState world, DoorState door)
     {
-        if (!world.Contains(door.X, door.Y) || world.Tile(door.X, door.Y).OwnerPlayerId == door.PlayerId) return false;
+        if (!world.Contains(door.X, door.Y) || world.Tile(door.X, door.Y).OwnerPlayerId == door.PlayerId)
+        {
+            return false;
+        }
+
         if (door.UnderConstruction)
+        {
             CrateRules.Unregister(world, door.PlayerId, new BlueprintRef(CrateRules.DoorKind, door.Id));
+        }
+
         door.Health = 0;
         return true;
     }
@@ -85,7 +115,11 @@ public static class DoorRules
         bool northSouth = door.Orientation == 0;
         int ax = northSouth ? door.X : door.X - 1, ay = northSouth ? door.Y - 1 : door.Y;
         int bx = northSouth ? door.X : door.X + 1, by = northSouth ? door.Y + 1 : door.Y;
-        if (NavBytes.IsSolid(navigation.NavByte(ax, ay)) && NavBytes.IsSolid(navigation.NavByte(bx, by))) return false;
+        if (NavBytes.IsSolid(navigation.NavByte(ax, ay)) && NavBytes.IsSolid(navigation.NavByte(bx, by)))
+        {
+            return false;
+        }
+
         door.Health = 0;
         return true;
     }
@@ -108,10 +142,15 @@ public static class DoorRules
         if (world.Contains(door.X, door.Y))
         {
             if (((context.Database.Doors.GetValueOrDefault(door.DoorId)?.Flags & DoorFlags.Secret) == DoorFlags.Secret) == true)
+            {
                 world.Tile(door.X, door.Y).SecretDoor = false;
+            }
+
             TerrainDef terrain = context.Database.TerrainById(world.Tile(door.X, door.Y).TerrainId);
             if (!terrain.IsSolid && (terrain.IsWater || terrain.IsLava))
+            {
                 world.Stamp((door.Y * world.Width) + door.X, NavBytes.Floor);
+            }
         }
         context.Emit(SystemName, "door_destroyed", $"door={door.Id} type={door.DoorId} player={door.PlayerId} at={door.X},{door.Y}");
     }

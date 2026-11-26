@@ -94,7 +94,11 @@ public sealed class CampaignPlayer : IPlayerController
         options.Validate();
         _strategy = options.Strategy;
         IReadOnlyList<string> problems = _strategy.Validate();
-        if (problems.Count > 0) throw new ArgumentException("The options' strategy is refused: " + string.Join("; ", problems), nameof(options));
+        if (problems.Count > 0)
+        {
+            throw new ArgumentException("The options' strategy is refused: " + string.Join("; ", problems), nameof(options));
+        }
+
         _best = new Gains(-1, -1, -1, -1);
     }
 
@@ -110,28 +114,59 @@ public sealed class CampaignPlayer : IPlayerController
     /// decisions, within the action bound. Call it between decisions, never during one.</summary>
     public void Apply(PlayerStrategy next)
     {
-        if (next is null) throw new ArgumentNullException(nameof(next));
+        if (next is null)
+        {
+            throw new ArgumentNullException(nameof(next));
+        }
+
         IReadOnlyList<string> problems = next.Validate(_map?.Width, _map?.Height);
-        if (problems.Count > 0) throw new ArgumentException("The strategy is refused: " + string.Join("; ", problems), nameof(next));
+        if (problems.Count > 0)
+        {
+            throw new ArgumentException("The strategy is refused: " + string.Join("; ", problems), nameof(next));
+        }
+
         foreach (RoomTypeId room in _pendingRooms.Keys.Where(r => !next.Rooms.Contains(r) && !next.ExtraRooms.Contains(r)).ToList())
+        {
             _pendingRooms.Remove(room);
-        if (next.Dig == DigMode.Off && _strategy.Dig != DigMode.Off) _untagAll = true;
-        if (next.Dig != DigMode.Off) _untagAll = false;
+        }
+
+        if (next.Dig == DigMode.Off && _strategy.Dig != DigMode.Off)
+        {
+            _untagAll = true;
+        }
+
+        if (next.Dig != DigMode.Off)
+        {
+            _untagAll = false;
+        }
+
         _strategy = next;
     }
 
     public PlayerDecision Decide(PlayerObservation observation)
     {
-        if (observation is null) throw new ArgumentNullException(nameof(observation));
+        if (observation is null)
+        {
+            throw new ArgumentNullException(nameof(observation));
+        }
+
         if (observation.Stamp.RunId != _options.RunId || observation.Stamp.Player != _options.Player)
+        {
             throw new ArgumentException("The observation belongs to another run or player.", nameof(observation));
+        }
 
         _map = (observation.Tiles.Width, observation.Tiles.Height);
         Learn(observation);
-        if (observation.Phase == PlayerPhase.Ended) return PlayerDecision.Wait(_strategy.AdvanceTicks, "await verdict: the game has ended");
+        if (observation.Phase == PlayerPhase.Ended)
+        {
+            return PlayerDecision.Wait(_strategy.AdvanceTicks, "await verdict: the game has ended");
+        }
+
         if (observation.Phase == PlayerPhase.Intro)
+        {
             return (observation.Offers.Actions & PlayerActionKinds.SkipIntro) != 0
                 ? Send([new PlayerAction.SkipIntro()], "skip the intro") : PlayerDecision.Wait(1, "intro playing");
+        }
 
         TilePos home = PlayerActionRoutines.Home(observation);
         var actions = new List<PlayerAction>(_options.MaxActionsPerDecision);
@@ -139,9 +174,17 @@ public sealed class CampaignPlayer : IPlayerController
         _thoughts.Clear();
         Cover(observation);
         Believe(observation);
-        if (Stalled(observation, home, actions) is PlayerDecision limited) return limited;
+        if (Stalled(observation, home, actions) is PlayerDecision limited)
+        {
+            return limited;
+        }
+
         if (actions.Count > 0) { why.Add("recover"); _thoughts.Add(new PlayerThought("recover", true, "stalled: untagged and skipped the marks")); }
-        if (_untagAll) Think("untag", why, actions, () => Untag(observation, actions));
+        if (_untagAll)
+        {
+            Think("untag", why, actions, () => Untag(observation, actions));
+        }
+
         bool hand = Think("hand", why, actions, () => Hand(observation, home, actions));
         Think("room", why, actions, () => Room(observation, home, actions));
         Think("trap", why, actions, () => Trap(observation, actions));
@@ -153,15 +196,25 @@ public sealed class CampaignPlayer : IPlayerController
         bool assault = !hand && !capture && !bank && Think("assault", why, actions, () => Assault(observation, home, actions));
         if (!hand && !capture && !bank && !assault && !Think("work", why, actions, () => Work(observation, home, actions))
             && !Think("pit", why, actions, () => Pit(observation, home, actions)))
+        {
             Think("scout", why, actions, () => Scout(observation, home, actions));
+        }
+
         if (_strategy.UseSpecials)
+        {
             Think("special", why, actions, () =>
             {
-                if (!Fits(actions, 1) || PlayerActionRoutines.Special(observation, _options) is not PlayerAction special) return false;
+                if (!Fits(actions, 1) || PlayerActionRoutines.Special(observation, _options) is not PlayerAction special)
+                {
+                    return false;
+                }
+
                 actions.Add(special);
                 Note($"activate {special}");
                 return true;
             });
+        }
+
         Think("dig", why, actions, () => Dig(observation, home, actions));
         return actions.Count == 0
             ? new PlayerDecision([], _strategy.AdvanceTicks, "wait: nothing offered to do") { Thoughts = _thoughts, Beliefs = _beliefs }
@@ -170,7 +223,11 @@ public sealed class CampaignPlayer : IPlayerController
 
     private PlayerDecision Send(List<PlayerAction> actions, string reason)
     {
-        foreach (PlayerAction action in actions) _sent[new PlayerActionId(_nextActionId++)] = action;
+        foreach (PlayerAction action in actions)
+        {
+            _sent[new PlayerActionId(_nextActionId++)] = action;
+        }
+
         return new PlayerDecision(actions, _strategy.AdvanceTicks, reason) { Thoughts = _thoughts, Beliefs = _beliefs };
     }
 
@@ -181,7 +238,11 @@ public sealed class CampaignPlayer : IPlayerController
         _note = null;
         int before = actions.Count;
         bool acted = run();
-        if (acted) why.Add(routine);
+        if (acted)
+        {
+            why.Add(routine);
+        }
+
         _thoughts.Add(new PlayerThought(routine, actions.Count > before, _note ?? (acted ? "acted" : "nothing to do")));
         return acted;
     }
@@ -205,11 +266,22 @@ public sealed class CampaignPlayer : IPlayerController
         _covered.Clear();
         foreach (PlayerVisibleTrap trap in observation.EnemyTraps)
         {
-            if (_strategy.AvoidTraps == 0) break;
+            if (_strategy.AvoidTraps == 0)
+            {
+                break;
+            }
+
             int r = trap.ReachTiles;
             for (int dy = -r; dy <= r; dy++)
+            {
                 for (int dx = -r; dx <= r; dx++)
-                    if (InReach(dx, dy, r)) _covered.Add(new TilePos(trap.Tile.X + dx, trap.Tile.Y + dy));
+                {
+                    if (InReach(dx, dy, r))
+                    {
+                        _covered.Add(new TilePos(trap.Tile.X + dx, trap.Tile.Y + dy));
+                    }
+                }
+            }
         }
         RefreshNoDrop();
     }
@@ -232,20 +304,47 @@ public sealed class CampaignPlayer : IPlayerController
         int imps = 0, fighters = 0, hurt = 0, unhappy = 0, angry = 0, held = 0;
         foreach (PlayerCreatureSummary creature in observation.Creatures)
         {
-            if (creature.InHand) held++;
-            if (_options.IsWorker(creature.Type)) imps++;
-            else fighters++;
-            if (creature.FlowerKnown && creature.Petals <= 2) hurt++;
-            if (creature.Mood == PlayerCreatureMood.Unhappy) unhappy++;
-            else if (creature.Mood == PlayerCreatureMood.Angry) angry++;
+            if (creature.InHand)
+            {
+                held++;
+            }
+
+            if (_options.IsWorker(creature.Type))
+            {
+                imps++;
+            }
+            else
+            {
+                fighters++;
+            }
+
+            if (creature.FlowerKnown && creature.Petals <= 2)
+            {
+                hurt++;
+            }
+
+            if (creature.Mood == PlayerCreatureMood.Unhappy)
+            {
+                unhappy++;
+            }
+            else if (creature.Mood == PlayerCreatureMood.Angry)
+            {
+                angry++;
+            }
         }
         int threats = 0, enemies = 0;
         foreach (PlayerVisibleThing thing in observation.Things)
+        {
             if (thing.Kind == PlayerThingKind.Creature && thing.Owner != observation.Stamp.Player)
             {
                 enemies++;
-                if (PlayerActionRoutines.IsThreat(observation, thing)) threats++;
+                if (PlayerActionRoutines.IsThreat(observation, thing))
+                {
+                    threats++;
+                }
             }
+        }
+
         Add("gold", observation.Gold.Value);
         Add("mana", observation.Mana.Value);
         Add("mana_net_per_s", (long)observation.ManaIncome.Value - observation.ManaUpkeep.Value);
@@ -275,15 +374,32 @@ public sealed class CampaignPlayer : IPlayerController
     {
         foreach (PlayerReceipt receipt in observation.Receipts)
         {
-            if (!_sent.TryGetValue(receipt.Id, out PlayerAction? action)) continue;
+            if (!_sent.TryGetValue(receipt.Id, out PlayerAction? action))
+            {
+                continue;
+            }
+
             if (action is PlayerAction.BuildRoom build && receipt.Status is PlayerReceiptStatus.Refused or PlayerReceiptStatus.Cancelled
                 && _pendingRooms.Remove(build.Room) && receipt.Reason is PlayerRefusalReason.NotOffered or PlayerRefusalReason.OutOfBounds)
+            {
                 Tried(build.Room).Add(build.From);
-            if (action is PlayerAction.CreateImpAt imp && receipt.Status is PlayerReceiptStatus.Refused) _refusedImpTiles.Add(imp.Tile);
+            }
+
+            if (action is PlayerAction.CreateImpAt imp && receipt.Status is PlayerReceiptStatus.Refused)
+            {
+                _refusedImpTiles.Add(imp.Tile);
+            }
             // Only a refusal about the place bans the tile; a stale view or a spent budget says nothing about it.
             if (action is PlayerAction.PlaceTrap trap && receipt.Status is PlayerReceiptStatus.Refused
-                && receipt.Reason is PlayerRefusalReason.NotOffered or PlayerRefusalReason.OutOfBounds) _refusedTrapTiles.Add(trap.Tile);
-            if (receipt.Status != PlayerReceiptStatus.Queued) _sent.Remove(receipt.Id);
+                && receipt.Reason is PlayerRefusalReason.NotOffered or PlayerRefusalReason.OutOfBounds)
+            {
+                _refusedTrapTiles.Add(trap.Tile);
+            }
+
+            if (receipt.Status != PlayerReceiptStatus.Queued)
+            {
+                _sent.Remove(receipt.Id);
+            }
         }
         var done = new List<RoomTypeId>();
         var building = new List<KeyValuePair<RoomTypeId, PendingRoom>>();
@@ -294,28 +410,55 @@ public sealed class CampaignPlayer : IPlayerController
             if (_options.Knowledge.Room(room) is not { CapsCreatures: true })
             {
                 // An area room: done when the type owns more tiles than when it was sent (this square or another).
-                if (owned > pending.Tiles) done.Add(room);
+                if (owned > pending.Tiles)
+                {
+                    done.Add(room);
+                }
                 else if (stale) { Tried(room).Add(pending.Corner); done.Add(room); }
             }
             // A room that draws creatures works by its furniture, which needs the whole square (Task 3a):
             // pending while DK2's wave lays it; one that stops short is finished later.
             else if (PlayerActionRoutines.RoomCovers(observation, pending.Corner, pending.Side, room)) { done.Add(room); _repairs.Remove(room); }
-            else if (owned > pending.Tiles) building.Add(new(room, pending with { Tiles = owned, Since = observation.Stamp.Tick, Grew = true }));
+            else if (owned > pending.Tiles)
+            {
+                building.Add(new(room, pending with { Tiles = owned, Since = observation.Stamp.Tick, Grew = true }));
+            }
             else if (stale)
             {
                 done.Add(room);
-                if (!pending.Grew) Tried(room).Add(pending.Corner);
-                else _repairs[room] = new Repair(pending.Corner, pending.Side,
+                if (!pending.Grew)
+                {
+                    Tried(room).Add(pending.Corner);
+                }
+                else
+                {
+                    _repairs[room] = new Repair(pending.Corner, pending.Side,
                     _repairs.TryGetValue(room, out Repair before) && before.Corner == pending.Corner ? before.Tries : RepairTries);
+                }
             }
         }
-        foreach (RoomTypeId room in done) _pendingRooms.Remove(room);
-        foreach ((RoomTypeId room, PendingRoom pending) in building) _pendingRooms[room] = pending;
+        foreach (RoomTypeId room in done)
+        {
+            _pendingRooms.Remove(room);
+        }
+
+        foreach ((RoomTypeId room, PendingRoom pending) in building)
+        {
+            _pendingRooms[room] = pending;
+        }
+
         foreach (PlayerVisibleThing thing in observation.Things)
         {
-            if (!PlayerActionRoutines.IsThreat(observation, thing)) continue;
+            if (!PlayerActionRoutines.IsThreat(observation, thing))
+            {
+                continue;
+            }
+
             _lastThreatAt[thing.Tile] = observation.Stamp.Tick;
-            if (_sightings.Add(thing.Tile) && _dangerRadius >= 0) AddClearance(thing.Tile, _dangerRadius);
+            if (_sightings.Add(thing.Tile) && _dangerRadius >= 0)
+            {
+                AddClearance(thing.Tile, _dangerRadius);
+            }
         }
     }
 
@@ -327,7 +470,10 @@ public sealed class CampaignPlayer : IPlayerController
         {
             _failedDrops.Add(tile);
             _noDrop.Add(tile);
-            if (_workDrop == tile) (_workDropForPit ? _refusedPit : _refusedWork).Add(tile);
+            if (_workDrop == tile)
+            {
+                (_workDropForPit ? _refusedPit : _refusedWork).Add(tile);
+            }
         }
         _lastDrop = null;
         _workDrop = null;
@@ -344,14 +490,24 @@ public sealed class CampaignPlayer : IPlayerController
             _rallyDrop = null;
             _rallyDropping = false;
         }
-        if (!Fits(actions, 1)) return false;
+        if (!Fits(actions, 1))
+        {
+            return false;
+        }
         // Engage answers an attack on any of the dungeon (an enemy within EnemyNearTiles of own ground), the one nearest
         // the Heart first; HoldHome only one near home; Off none. With none, anything held goes down near home.
         PlayerVisibleThing? enemy = _strategy.Fight == FightMode.Off ? null
             : PlayerActionRoutines.NearestAttacker(observation, home, _strategy.EnemyNearTiles, _covered);
         if (_strategy.Fight == FightMode.HoldHome && enemy is PlayerVisibleThing far
-            && PlayerActionRoutines.DistanceSquared(far.Tile, home) > (long)_strategy.HomeGuardTiles * _strategy.HomeGuardTiles) enemy = null;
-        if (Rally(observation, home, enemy, actions) is bool rallied) return rallied;
+            && PlayerActionRoutines.DistanceSquared(far.Tile, home) > (long)_strategy.HomeGuardTiles * _strategy.HomeGuardTiles)
+        {
+            enemy = null;
+        }
+
+        if (Rally(observation, home, enemy, actions) is bool rallied)
+        {
+            return rallied;
+        }
         // An enemy at the objective is the attack's, not an attack on the dungeon (Level 5: once own floor touches the hall,
         // its Knights are within reach of own ground and defence would hold the hand for good).
         _attackNote = "";
@@ -359,9 +515,16 @@ public sealed class CampaignPlayer : IPlayerController
         // the Heart's east side out of defence.
         bool atObjective = enemy is PlayerVisibleThing guard && _strategy.AttackParty > 0 && _strategy.AttackAt is TilePos field
             && Chebyshev(guard.Tile, field) <= AttackFieldTiles && Chebyshev(guard.Tile, field) < Chebyshev(guard.Tile, home);
-        if ((enemy is null || atObjective) && Offence(observation, home, actions) is bool attacked) return attacked;
+        if ((enemy is null || atObjective) && Offence(observation, home, actions) is bool attacked)
+        {
+            return attacked;
+        }
         // Nor is it answered one fighter at a time while the attack gathers (R19: never feed it one creature at a time).
-        if (atObjective) enemy = null;
+        if (atObjective)
+        {
+            enemy = null;
+        }
+
         if (observation.HandCount > 0 && _captureDrop is TilePos body)
         {
             // An Imp lifted to capture goes down on the body (R16): a dropped Imp looks at its landing ring first, where a
@@ -378,7 +541,10 @@ public sealed class CampaignPlayer : IPlayerController
         if (observation.HandCount > 0 && _assaultDrop is TilePos assaultAt)
         {
             // An assault party goes down together beside its trap, inside its reach (A2): one drop per item held.
-            if ((observation.Offers.Actions & PlayerActionKinds.DropAt) == 0 || _failedDrops.Contains(assaultAt)) _assaultDrop = null;
+            if ((observation.Offers.Actions & PlayerActionKinds.DropAt) == 0 || _failedDrops.Contains(assaultAt))
+            {
+                _assaultDrop = null;
+            }
             else
             {
                 int released = 0;
@@ -386,7 +552,11 @@ public sealed class CampaignPlayer : IPlayerController
                 Note($"drop an assault party of {released} at {assaultAt}");
                 _lastDrop = (assaultAt, observation.HandCount);
                 _lastDropTick = observation.Stamp.Tick;
-                if (released >= observation.HandCount) _assaultDrop = null;
+                if (released >= observation.HandCount)
+                {
+                    _assaultDrop = null;
+                }
+
                 return true;
             }
         }
@@ -411,7 +581,10 @@ public sealed class CampaignPlayer : IPlayerController
             bool retreat = _carryRetreat;
             _carryRetreat = false;
             // A hurt defender taken out of a fight goes to its Hatchery (or home) whatever the danger there.
-            if (retreat) work = carriedTo ?? PlayerActionRoutines.NearestOwnFloor(observation, home, _noDrop);
+            if (retreat)
+            {
+                work = carriedTo ?? PlayerActionRoutines.NearestOwnFloor(observation, home, _noDrop);
+            }
             // A held worker goes down near home, never toward an enemy (an Imp is no fighter); a fighter takes its place
             // in the formation against the attack (defence plan D3).
             TilePos? fight = !worker && !retreat && enemy is PlayerVisibleThing foe ? FormationDrop(observation, foe.Tile, home, style) : null;
@@ -440,19 +613,38 @@ public sealed class CampaignPlayer : IPlayerController
         PlayerVisibleThing? hurt = null;
         var flowers = new Dictionary<PlayerThingHandle, PlayerCreatureSummary>();
         foreach (PlayerCreatureSummary creature in observation.Creatures)
-            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown) flowers[seen] = creature;
+        {
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown)
+            {
+                flowers[seen] = creature;
+            }
+        }
+
         long reach = (long)(_options.EngagedTiles + 1) * (_options.EngagedTiles + 1);
         foreach (PlayerVisibleThing thing in observation.Things)
         {
-            if (PlayerActionRoutines.DistanceSquared(thing.Tile, target.Tile) > reach) continue;
-            if (PlayerActionRoutines.IsThreat(observation, thing)) attackers++;
+            if (PlayerActionRoutines.DistanceSquared(thing.Tile, target.Tile) > reach)
+            {
+                continue;
+            }
+
+            if (PlayerActionRoutines.IsThreat(observation, thing))
+            {
+                attackers++;
+            }
             else if (thing.Kind == PlayerThingKind.Creature && thing.Owner == observation.Stamp.Player && thing.CreatureType is CreatureTypeId type
                 && !_options.IsWorker(type) && _options.StyleOf(type) != FightStyle.NonFighter)
             {
                 // Only a fighter able to fight counts toward outnumbering the attackers.
                 bool known = flowers.TryGetValue(thing.Handle, out PlayerCreatureSummary flower);
-                if (known && flower.Petals == 2) hurt ??= thing;
-                else if (!known || flower.Petals > 2) defenders++;
+                if (known && flower.Petals == 2)
+                {
+                    hurt ??= thing;
+                }
+                else if (!known || flower.Petals > 2)
+                {
+                    defenders++;
+                }
             }
         }
         if (hurt is PlayerVisibleThing low && HealOffered(observation))
@@ -492,7 +684,10 @@ public sealed class CampaignPlayer : IPlayerController
         TilePos? at = PlayerActionRoutines.NearestOwnFloor(observation, ideal, _noDrop);
         if (style is FightStyle.Flanker or FightStyle.Blitzer && (at is not TilePos behind || Chebyshev(behind, ideal) > 2
             || PlayerActionRoutines.DistanceSquared(behind, home) <= PlayerActionRoutines.DistanceSquared(enemy, home)))
+        {
             at = PlayerActionRoutines.NearestOwnFloor(observation, PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Blocker), _noDrop);
+        }
+
         return at;
     }
 
@@ -518,8 +713,16 @@ public sealed class CampaignPlayer : IPlayerController
         var saving = new List<RoomTypeId>();
         foreach (RoomTypeId room in _strategy.Rooms)
         {
-            if (Owns(observation, room)) continue;
-            if (Build(observation, home, room, grow: false, actions)) return true;
+            if (Owns(observation, room))
+            {
+                continue;
+            }
+
+            if (Build(observation, home, room, grow: false, actions))
+            {
+                return true;
+            }
+
             if (Unaffordable(observation, room)) { waiting = true; saving.Add(room); }
         }
         // A listed room the panel offers but the player cannot yet pay for keeps the gold for itself.
@@ -534,13 +737,27 @@ public sealed class CampaignPlayer : IPlayerController
                 // A room that cannot grow beside itself gets a second one (E3, owner R12: "expand it, create a second one").
                 || _strategy.SecondRooms == 1 && room != RoomTypeId.Treasury && Build(observation, home, room, grow: false, actions, keep)))
             {
-                if (_hungerAsked) _hungerGrowth = observation.Stamp.Tick;
+                if (_hungerAsked)
+                {
+                    _hungerGrowth = observation.Stamp.Tick;
+                }
+
                 return true;
             }
         }
         foreach (RoomTypeId room in _strategy.ExtraRooms)
-            if (!_strategy.Rooms.Contains(room) && !Owns(observation, room) && Build(observation, home, room, grow: false, actions, keep)) return true;
-        if (Recruit(observation, home, actions, keep)) return true;
+        {
+            if (!_strategy.Rooms.Contains(room) && !Owns(observation, room) && Build(observation, home, room, grow: false, actions, keep))
+            {
+                return true;
+            }
+        }
+
+        if (Recruit(observation, home, actions, keep))
+        {
+            return true;
+        }
+
         _note ??= "every listed room owned and none outgrown";
         return false;
     }
@@ -571,7 +788,11 @@ public sealed class CampaignPlayer : IPlayerController
     {
         int nonWorkers = NonWorkers(observation);
         _placedNonWorkers = Math.Min(_placedNonWorkers ?? nonWorkers, nonWorkers);
-        if (nonWorkers > _seenNonWorkers) _lastArrival = observation.Stamp.Tick;
+        if (nonWorkers > _seenNonWorkers)
+        {
+            _lastArrival = observation.Stamp.Tick;
+        }
+
         _seenNonWorkers = nonWorkers;
     }
 
@@ -585,7 +806,10 @@ public sealed class CampaignPlayer : IPlayerController
     /// too (the net count of non-workers), which only delays it.</summary>
     private bool Recruit(PlayerObservation observation, TilePos home, List<PlayerAction> actions, long keep)
     {
-        if (_strategy.RecruitGold <= 0 || Summary(observation, RoomTypeId.Portal) is not PlayerRoomSummary portal) return false;
+        if (_strategy.RecruitGold <= 0 || Summary(observation, RoomTypeId.Portal) is not PlayerRoomSummary portal)
+        {
+            return false;
+        }
         // The portals' cap: at it nobody comes whatever the rooms draw (owner: 15, and 5 for each more portal). Only
         // Portal arrivals count toward it, and no screen shows how many are held (owner, 2026-11-17; schema 9), so the
         // player estimates them: its non-workers less those the level placed. A conversion or a Skeleton counts as an
@@ -598,14 +822,25 @@ public sealed class CampaignPlayer : IPlayerController
         if (gold - keep < _strategy.RecruitGold || gold < (long)observation.WageBill.Value * RecruitPaydays
             || tick - _lastArrival.Value < RecruitWaitTicks
             || _lastRecruit is GameTick last && tick - last.Value < RecruitWaitTicks
-            || _recruitTried is GameTick tried && tick - tried.Value < RecruitRetryTicks) return false;
+            || _recruitTried is GameTick tried && tick - tried.Value < RecruitRetryTicks)
+        {
+            return false;
+        }
+
         _recruitTried = observation.Stamp.Tick;
         var candidates = new List<(RoomTypeId Room, int Tiles, int Cost)>();
         foreach (PlayerRoomOffer offer in observation.Offers.Rooms)
         {
-            if (_options.Knowledge.Room(offer.Room) is not { CapsCreatures: true }) continue;
+            if (_options.Knowledge.Room(offer.Room) is not { CapsCreatures: true })
+            {
+                continue;
+            }
+
             int tiles = OwnedTiles(observation, offer.Room);
-            if (tiles < RecruitMaxTiles) candidates.Add((offer.Room, tiles, offer.Cost.Value));
+            if (tiles < RecruitMaxTiles)
+            {
+                candidates.Add((offer.Room, tiles, offer.Cost.Value));
+            }
         }
         foreach ((RoomTypeId room, int tiles, _) in candidates.OrderBy(c => c.Tiles).ThenBy(c => c.Cost).ThenBy(c => c.Room))
         {
@@ -613,7 +848,11 @@ public sealed class CampaignPlayer : IPlayerController
                 ? Build(observation, home, room, grow: false, actions, keep)
                 : Build(observation, home, room, grow: true, actions, keep)
                   || _strategy.SecondRooms == 1 && Build(observation, home, room, grow: false, actions, keep);
-            if (!built) continue;
+            if (!built)
+            {
+                continue;
+            }
+
             _lastRecruit = observation.Stamp.Tick;
             NoteMore($"recruiting: no new creature for {tick - _lastArrival.Value} ticks, {room} had {tiles} tiles");
             return true;
@@ -633,7 +872,13 @@ public sealed class CampaignPlayer : IPlayerController
             && PlayerActionRoutines.RoomSquares(observation, PlayerActionRoutines.Home(observation), target).Exists(c => !Tried(room).Contains(c))
             ? target : SmallestSide(room);
         foreach (PlayerRoomOffer offer in observation.Offers.Rooms)
-            if (offer.Room == room) return (long)offer.Cost.Value * side * side > observation.Gold.Value;
+        {
+            if (offer.Room == room)
+            {
+                return (long)offer.Cost.Value * side * side > observation.Gold.Value;
+            }
+        }
+
         return false;
     }
 
@@ -643,11 +888,21 @@ public sealed class CampaignPlayer : IPlayerController
     private int TargetSide(RoomTypeId room)
     {
         int side = SmallestSide(room);
-        if (_options.Knowledge.Room(room) is not RoomFacts facts) return side;
+        if (_options.Knowledge.Room(room) is not RoomFacts facts)
+        {
+            return side;
+        }
+
         if (_strategy.AttractionTargets.TryGetValue(room, out int target))
+        {
             side = Math.Max(side, facts.SideFor(target) ?? facts.Sizes[^1].Side);
+        }
+
         if (_strategy.SlotTargets.TryGetValue(room, out int slots))
+        {
             side = Math.Max(side, facts.SideForSlots(slots) ?? facts.Sizes[^1].Side);
+        }
+
         return side;
     }
 
@@ -666,15 +921,21 @@ public sealed class CampaignPlayer : IPlayerController
         {
             if (PlayerActionRoutines.BuildRoom(observation, home, room, side, Tried(room), grow) is not PlayerAction.BuildRoom build)
             {
-                if (PlayerActionRoutines.RoomSquares(observation, home, side).Exists(c => !Tried(room).Contains(c))) return false;
+                if (PlayerActionRoutines.RoomSquares(observation, home, side).Exists(c => !Tried(room).Contains(c)))
+                {
+                    return false;
+                }
                 // No free square this big for a room that must be larger than the plain square (a Library for
                 // its Warlocks, a Temple): dig one out at the target side, and wait for it rather than settle.
                 if (!grow && side == largest && (_strategy.Sites == RoomSites.All || _strategy.Sites == RoomSites.Oversized && side > _strategy.RoomSide))
+                {
                     switch (DigSite(observation, home, room, side, actions))
                     {
                         case SiteState.Marked: return true;
                         case SiteState.Waiting: return false;
                     }
+                }
+
                 continue;
             }
             // Growth and extra rooms leave the gold budget standing after they are paid for (E2).
@@ -683,8 +944,16 @@ public sealed class CampaignPlayer : IPlayerController
                 NoteMore($"{room} {side}x{side} would leave less than {keep} gold");
                 return false;
             }
-            if (_site is Site built && built.Room == room) _site = null;
-            if (PlayerActionRoutines.SelectRoom(observation, room) is PlayerAction press) actions.Add(press);
+            if (_site is Site built && built.Room == room)
+            {
+                _site = null;
+            }
+
+            if (PlayerActionRoutines.SelectRoom(observation, room) is PlayerAction press)
+            {
+                actions.Add(press);
+            }
+
             actions.Add(build);
             NoteMore($"{(grow ? "grow" : "build")} {room} {side}x{side} at {build.From}");
             _pendingRooms[room] = new PendingRoom(build.From, side, observation.Stamp.Tick, OwnedTiles(observation, room));
@@ -698,12 +967,24 @@ public sealed class CampaignPlayer : IPlayerController
     /// whose room still waits for gold is closed without settling: the free square stays for the build.</summary>
     private void AgeSite(PlayerObservation observation)
     {
-        if (_site is not Site open) return;
+        if (_site is not Site open)
+        {
+            return;
+        }
+
         bool wanted = (_strategy.Rooms.Contains(open.Room) || _strategy.ExtraRooms.Contains(open.Room)) && !Owns(observation, open.Room);
-        if (wanted && observation.Stamp.Tick.Value - open.Since.Value < SiteTicks) return;
+        if (wanted && observation.Stamp.Tick.Value - open.Since.Value < SiteTicks)
+        {
+            return;
+        }
+
         if (wanted && PlayerActionRoutines.SquareFree(observation, open.Corner, open.Side)) { _site = null; return; }
         _failedSites.Add(open.Corner);
-        if (wanted) _settled.Add((open.Room, open.Side));   // not dug out in time: that room settles for less
+        if (wanted)
+        {
+            _settled.Add((open.Room, open.Side));   // not dug out in time: that room settles for less
+        }
+
         _site = null;
     }
 
@@ -718,13 +999,28 @@ public sealed class CampaignPlayer : IPlayerController
             // for a smaller room for good. AgeSite gives a site up once it has had its time.
             return SiteState.Waiting;
         }
-        if (_settled.Contains((room, side))) return SiteState.None;
-        if (_strategy.Dig == DigMode.Off || (observation.Offers.Actions & PlayerActionKinds.TagArea) == 0 || !Fits(actions, 1)
-            || !observation.Offers.Rooms.Any(o => o.Room == room)) return SiteState.None;
-        bool breach = _strategy.Breach == BreachMode.Always;
-        if (!breach) EnsureClearance();
-        if (PlayerActionRoutines.RoomSite(observation, home, side, _failedSites, breach ? null : _danger, breach) is not TilePos corner)
+        if (_settled.Contains((room, side)))
+        {
             return SiteState.None;
+        }
+
+        if (_strategy.Dig == DigMode.Off || (observation.Offers.Actions & PlayerActionKinds.TagArea) == 0 || !Fits(actions, 1)
+            || !observation.Offers.Rooms.Any(o => o.Room == room))
+        {
+            return SiteState.None;
+        }
+
+        bool breach = _strategy.Breach == BreachMode.Always;
+        if (!breach)
+        {
+            EnsureClearance();
+        }
+
+        if (PlayerActionRoutines.RoomSite(observation, home, side, _failedSites, breach ? null : _danger, breach) is not TilePos corner)
+        {
+            return SiteState.None;
+        }
+
         actions.Add(new PlayerAction.TagArea(corner, new TilePos(corner.X + side - 1, corner.Y + side - 1)));
         _site = new Site(room, corner, side, observation.Stamp.Tick);
         return SiteState.Marked;
@@ -741,10 +1037,25 @@ public sealed class CampaignPlayer : IPlayerController
             int missing = PlayerActionRoutines.MissingRoomTiles(observation, repair.Corner, repair.Side, room);
             if (missing <= 0 || repair.Tries <= 0) { _repairs.Remove(room); continue; }
             PlayerRoomOffer? offer = null;
-            foreach (PlayerRoomOffer candidate in observation.Offers.Rooms) if (candidate.Room == room) offer = candidate;
+            foreach (PlayerRoomOffer candidate in observation.Offers.Rooms)
+            {
+                if (candidate.Room == room)
+                {
+                    offer = candidate;
+                }
+            }
+
             if ((observation.Offers.Actions & PlayerActionKinds.BuildRoom) == 0 || offer is not PlayerRoomOffer priced
-                || (long)priced.Cost.Value * missing > observation.Gold.Value) continue;
-            if (PlayerActionRoutines.SelectRoom(observation, room) is PlayerAction press) actions.Add(press);
+                || (long)priced.Cost.Value * missing > observation.Gold.Value)
+            {
+                continue;
+            }
+
+            if (PlayerActionRoutines.SelectRoom(observation, room) is PlayerAction press)
+            {
+                actions.Add(press);
+            }
+
             actions.Add(new PlayerAction.BuildRoom(room, repair.Corner, new TilePos(repair.Corner.X + repair.Side - 1, repair.Corner.Y + repair.Side - 1)));
             _repairs[room] = repair with { Tries = repair.Tries - 1 };
             _pendingRooms[room] = new PendingRoom(repair.Corner, repair.Side, observation.Stamp.Tick, OwnedTiles(observation, room), Grew: true);
@@ -758,20 +1069,38 @@ public sealed class CampaignPlayer : IPlayerController
     private bool Outgrown(PlayerObservation observation, RoomTypeId room)
     {
         int tiles = OwnedTiles(observation, room);
-        if (tiles == 0) return false;
-        if (_strategy.TileTargets.TryGetValue(room, out int target) && tiles < target) return true;
+        if (tiles == 0)
+        {
+            return false;
+        }
+
+        if (_strategy.TileTargets.TryGetValue(room, out int target) && tiles < target)
+        {
+            return true;
+        }
+
         switch (room)
         {
             case RoomTypeId.Lair:
                 // The beds the Lair's hover shows (E3); without that fill, its tiles per non-worker.
                 if (_strategy.FreeBeds > 0 && Summary(observation, RoomTypeId.Lair) is { Capacity: > 0 } lair)
+                {
                     return Grow(lair.Capacity - NonWorkers(observation) < _strategy.FreeBeds,
                         $"Lair {lair.Capacity} beds for {NonWorkers(observation)} non-workers");
+                }
+
                 return Grow(tiles < (long)NonWorkers(observation) * _strategy.LairTilesPerCreature,
                     $"Lair {tiles} tiles for {NonWorkers(observation)} non-workers");
             case RoomTypeId.Hatchery:
                 int hungry = 0;
-                foreach (PlayerCreatureSummary creature in observation.Creatures) if (creature.Hungry && !_options.IsWorker(creature.Type)) hungry++;
+                foreach (PlayerCreatureSummary creature in observation.Creatures)
+                {
+                    if (creature.Hungry && !_options.IsWorker(creature.Type))
+                    {
+                        hungry++;
+                    }
+                }
+
                 int nonWorkers = NonWorkers(observation);
                 // Hunger grows it only while it is small for the army: a new Hatchery's chickens take time to hatch, and the
                 // chicken stays on the flowers meanwhile (Level 5, 2026-11-16: 86 Hatchery tiles for four fighters, no gold left).
@@ -785,7 +1114,11 @@ public sealed class CampaignPlayer : IPlayerController
                 return Grow((long)tiles * _strategy.CreaturesPerHatcheryTile < nonWorkers,
                     $"Hatchery {tiles} tiles for {nonWorkers} non-workers");
             case RoomTypeId.Treasury:
-                if (_options.GoldPerTreasuryTile is not int perTile) return false;
+                if (_options.GoldPerTreasuryTile is not int perTile)
+                {
+                    return false;
+                }
+
                 long capacity = (long)tiles * perTile + (Owns(observation, RoomTypeId.DungeonHeart) ? _options.HeartGold ?? 0 : 0);
                 return Grow((long)observation.Gold.Value * 100 >= capacity * _strategy.TreasuryFullPercent,
                     $"Treasury holds {observation.Gold.Value} of {capacity}");
@@ -795,7 +1128,11 @@ public sealed class CampaignPlayer : IPlayerController
 
         bool Grow(bool outgrown, string why)
         {
-            if (outgrown) NoteMore("outgrown: " + why);
+            if (outgrown)
+            {
+                NoteMore("outgrown: " + why);
+            }
+
             return outgrown;
         }
     }
@@ -809,20 +1146,36 @@ public sealed class CampaignPlayer : IPlayerController
     {
         if (_strategy.GoldBudget == 0 || observation.HandCount > 0 || !Fits(actions, 1)
             || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0
-            || Summary(observation, RoomTypeId.Treasury) is not PlayerRoomSummary treasury) return false;
+            || Summary(observation, RoomTypeId.Treasury) is not PlayerRoomSummary treasury)
+        {
+            return false;
+        }
         // Only what wages need (the bill itself, not the margin), and only with room for a whole pile (a Heart tile holds
         // up to BankPileGold; what does not fit lands as loose gold beside the store).
         long need = observation.WageBill.Value;
-        if (treasury.Used >= need || observation.Gold.Value <= treasury.Used || treasury.Capacity - treasury.Used < BankPileGold) return false;
-        if (_lastBank is GameTick banked && observation.Stamp.Tick.Value - banked.Value < BankGapTicks) return false;
+        if (treasury.Used >= need || observation.Gold.Value <= treasury.Used || treasury.Capacity - treasury.Used < BankPileGold)
+        {
+            return false;
+        }
+
+        if (_lastBank is GameTick banked && observation.Stamp.Tick.Value - banked.Value < BankGapTicks)
+        {
+            return false;
+        }
+
         if (PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)) { Note("Treasury short, but an enemy is near home"); return false; }
         PlayerTileGrid grid = observation.Tiles;
         PlayerVisibleThing? pile = null;
         foreach (PlayerVisibleThing thing in observation.Things)
+        {
             if (thing.Kind == PlayerThingKind.StoreGold && (thing.Actions & PlayerThingActions.PickUp) != 0 && grid.Contains(thing.Tile)
                 && grid[thing.Tile].Room != RoomTypeId.Treasury
                 && (pile is null || PlayerActionRoutines.DistanceSquared(thing.Tile, home) < PlayerActionRoutines.DistanceSquared(pile.Value.Tile, home)))
+            {
                 pile = thing;
+            }
+        }
+
         if (pile is not PlayerVisibleThing gold
             || PlayerActionRoutines.NearestRoomTile(observation, RoomTypeId.Treasury, home, _refusedWork) is not TilePos to)
         {
@@ -849,11 +1202,18 @@ public sealed class CampaignPlayer : IPlayerController
     private bool Bridge(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
         if (_strategy.Dig == DigMode.Off || _pendingRooms.Count > 0 || !Fits(actions, 2)
-            || (observation.Offers.Actions & PlayerActionKinds.BuildRoom) == 0) return false;
+            || (observation.Offers.Actions & PlayerActionKinds.BuildRoom) == 0)
+        {
+            return false;
+        }
         // An attack short of floor near its objective (R20) bridges toward it at once; otherwise a bridge waits until
         // nothing is left to dig.
         TilePos? approach = _attackApproach ? _strategy.AttackAt : null;
-        if (approach is null && (Outstanding(observation) > 0 || Frontier(observation, home, preferGold: false).Count > 0)) return false;
+        if (approach is null && (Outstanding(observation) > 0 || Frontier(observation, home, preferGold: false).Count > 0))
+        {
+            return false;
+        }
+
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         long keep = _strategy.GoldBudget == 1 ? GoldNeed(observation) : 0;
@@ -870,23 +1230,42 @@ public sealed class CampaignPlayer : IPlayerController
                 _approachTriedReset = observation.Stamp.Tick;
             }
             for (int y = 0; y < grid.Height; y++)
+            {
                 for (int x = 0; x < grid.Width; x++)
+                {
                     if (PlayerActionRoutines.IsOwnFloor(grid[new TilePos(x, y)], self))
+                    {
                         nearest = Math.Min(nearest, PlayerActionRoutines.DistanceSquared(new TilePos(x, y), aimAt));
+                    }
+                }
+            }
         }
         (TilePos From, TilePos To, RoomTypeId Room, long Score)? best = null;
         ReadOnlySpan<(int X, int Y)> directions = [(1, 0), (-1, 0), (0, 1), (0, -1)];
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
             {
                 var floor = new TilePos(x, y);
-                if (!PlayerActionRoutines.IsOwnFloor(grid[floor], self)) continue;
+                if (!PlayerActionRoutines.IsOwnFloor(grid[floor], self))
+                {
+                    continue;
+                }
+
                 foreach ((int dx, int dy) in directions)
                 {
                     var first = new TilePos(x + dx, y + dy);
-                    if (!grid.Contains(first)) continue;
+                    if (!grid.Contains(first))
+                    {
+                        continue;
+                    }
+
                     PlayerTileFlags hazard = grid[first].Flags & (PlayerTileFlags.Water | PlayerTileFlags.Lava);
-                    if (hazard is not (PlayerTileFlags.Water or PlayerTileFlags.Lava) || grid[first].Room != default) continue;
+                    if (hazard is not (PlayerTileFlags.Water or PlayerTileFlags.Lava) || grid[first].Room != default)
+                    {
+                        continue;
+                    }
+
                     int k = 0;
                     TilePos at = first;
                     while (grid.Contains(at) && (grid[at].Flags & PlayerTileFlags.Known) != 0 && (grid[at].Flags & hazard) != 0
@@ -895,25 +1274,50 @@ public sealed class CampaignPlayer : IPlayerController
                         k++;
                         at = new TilePos(at.X + dx, at.Y + dy);
                     }
-                    if (k == 0 || k > MaxBridgeTiles || !grid.Contains(at)) continue;
+                    if (k == 0 || k > MaxBridgeTiles || !grid.Contains(at))
+                    {
+                        continue;
+                    }
+
                     PlayerTile end = grid[at];
                     bool fresh = (end.Flags & PlayerTileFlags.Known) == 0
                         || (end.Flags & (PlayerTileFlags.Water | PlayerTileFlags.Lava)) == 0
                            && ((end.Flags & PlayerTileFlags.Diggable) != 0 || (end.Flags & PlayerTileFlags.Solid) == 0 && end.Owner != self);
                     // Toward an objective a span must end nearer it, and may end in a trap's reach: the attack is for that.
-                    if (!fresh || approach is null && _covered.Contains(at)) continue;
-                    if (approach is TilePos goal && PlayerActionRoutines.DistanceSquared(at, goal) >= nearest) continue;
+                    if (!fresh || approach is null && _covered.Contains(at))
+                    {
+                        continue;
+                    }
+
+                    if (approach is TilePos goal && PlayerActionRoutines.DistanceSquared(at, goal) >= nearest)
+                    {
+                        continue;
+                    }
+
                     RoomTypeId bridge = hazard == PlayerTileFlags.Water ? RoomTypeId.WoodenBridge : RoomTypeId.StoneBridge;
                     if (Tried(bridge).Contains(first) || Price(observation, bridge) is not long price
-                        || observation.Gold.Value - price * k < keep) continue;
+                        || observation.Gold.Value - price * k < keep)
+                    {
+                        continue;
+                    }
+
                     var last = new TilePos(first.X + dx * (k - 1), first.Y + dy * (k - 1));
                     long score = approach is TilePos target ? (long)k * 100 + PlayerActionRoutines.DistanceSquared(at, target)
                         : (long)k * 1000 + PlayerActionRoutines.DistanceSquared(floor, home);
-                    if (best is not { } b || score < b.Score) best = (first, last, bridge, score);
+                    if (best is not { } b || score < b.Score)
+                    {
+                        best = (first, last, bridge, score);
+                    }
                 }
             }
+        }
+
         if (best is not { } span) { Note("nothing left to dig and no span to bridge"); return false; }
-        if (PlayerActionRoutines.SelectRoom(observation, span.Room) is PlayerAction press) actions.Add(press);
+        if (PlayerActionRoutines.SelectRoom(observation, span.Room) is PlayerAction press)
+        {
+            actions.Add(press);
+        }
+
         actions.Add(new PlayerAction.BuildRoom(span.Room, span.From, span.To));
         _pendingRooms[span.Room] = new PendingRoom(span.From, 1, observation.Stamp.Tick, OwnedTiles(observation, span.Room));
         Tried(span.Room).Add(span.From);
@@ -949,7 +1353,11 @@ public sealed class CampaignPlayer : IPlayerController
     /// least <see cref="PlayerStrategy.TrainGold"/> and three wage bills (E2).</summary>
     private IReadOnlyList<RoomTypeId> UsedRooms(PlayerObservation observation)
     {
-        if (_strategy.UseRooms.Count > 0) return _strategy.UseRooms;
+        if (_strategy.UseRooms.Count > 0)
+        {
+            return _strategy.UseRooms;
+        }
+
         return _strategy.TrainGold > 0 && Owns(observation, RoomTypeId.TrainingRoom)
             && observation.Gold.Value >= Math.Max(_strategy.TrainGold, 3L * observation.WageBill.Value) ? [RoomTypeId.TrainingRoom] : [];
     }
@@ -957,13 +1365,27 @@ public sealed class CampaignPlayer : IPlayerController
     /// <summary>The panel's per-tile price of <paramref name="room"/>, or null when it is not offered.</summary>
     private static long? Price(PlayerObservation observation, RoomTypeId room)
     {
-        foreach (PlayerRoomOffer offer in observation.Offers.Rooms) if (offer.Room == room) return offer.Cost.Value;
+        foreach (PlayerRoomOffer offer in observation.Offers.Rooms)
+        {
+            if (offer.Room == room)
+            {
+                return offer.Cost.Value;
+            }
+        }
+
         return null;
     }
 
     private static PlayerRoomSummary? Summary(PlayerObservation observation, RoomTypeId room)
     {
-        foreach (PlayerRoomSummary summary in observation.Rooms) if (summary.Type == room) return summary;
+        foreach (PlayerRoomSummary summary in observation.Rooms)
+        {
+            if (summary.Type == room)
+            {
+                return summary;
+            }
+        }
+
         return null;
     }
 
@@ -1005,14 +1427,27 @@ public sealed class CampaignPlayer : IPlayerController
     private bool? Rally(PlayerObservation observation, TilePos home, PlayerVisibleThing? enemy, List<PlayerAction> actions)
     {
         _holdDefenders = false;
-        if (_strategy.RallyParty <= 0) return null;
+        if (_strategy.RallyParty <= 0)
+        {
+            return null;
+        }
+
         GameTick now = observation.Stamp.Tick;
         int fighters = 0;
         foreach (PlayerCreatureSummary creature in observation.Creatures)
-            if (!_options.IsWorker(creature.Type) && _options.StyleOf(creature.Type) != FightStyle.NonFighter) fighters++;
+        {
+            if (!_options.IsWorker(creature.Type) && _options.StyleOf(creature.Type) != FightStyle.NonFighter)
+            {
+                fighters++;
+            }
+        }
+
         if (enemy is PlayerVisibleThing foe)
         {
-            if (_stand is not Stand stand || Chebyshev(stand.At, foe.Tile) > StandTiles) _stand = new Stand(foe.Tile, now, fighters);
+            if (_stand is not Stand stand || Chebyshev(stand.At, foe.Tile) > StandTiles)
+            {
+                _stand = new Stand(foe.Tile, now, fighters);
+            }
             else
             {
                 // The stand follows its attack as it paces (Level 4 seed 3: the Lord walks x 21-27 on row 4); only a jump of
@@ -1020,14 +1455,25 @@ public sealed class CampaignPlayer : IPlayerController
                 stand.At = foe.Tile;
                 stand.Seen = now;
                 // A steady advance is no stand: once it is more than three times StandTiles from where it began, start again.
-                if (Chebyshev(stand.Origin, foe.Tile) > 3 * StandTiles) _stand = new Stand(foe.Tile, now, fighters);
+                if (Chebyshev(stand.Origin, foe.Tile) > 3 * StandTiles)
+                {
+                    _stand = new Stand(foe.Tile, now, fighters);
+                }
+
                 stand.Peak = Math.Max(stand.Peak, fighters);
                 // Never at home: a raid on the dungeon is always answered (defence plan D2); a siege is a stand far out.
                 if (!stand.Siege && now.Value - stand.Since.Value >= SiegeTicks && fighters <= stand.Peak - SiegeLosses
-                    && PlayerActionRoutines.DistanceSquared(foe.Tile, home) > 4L * _strategy.HomeGuardTiles * _strategy.HomeGuardTiles) stand.Siege = true;
+                    && PlayerActionRoutines.DistanceSquared(foe.Tile, home) > 4L * _strategy.HomeGuardTiles * _strategy.HomeGuardTiles)
+                {
+                    stand.Siege = true;
+                }
             }
         }
-        else if (_stand is Stand old && now.Value - old.Seen.Value > StandForgetTicks) _stand = null;
+        else if (_stand is Stand old && now.Value - old.Seen.Value > StandForgetTicks)
+        {
+            _stand = null;
+        }
+
         if (_stand is not { Siege: true } siege || enemy is not PlayerVisibleThing target)
         {
             _rallyDrop = null;
@@ -1052,7 +1498,10 @@ public sealed class CampaignPlayer : IPlayerController
             {
                 int lifted = 0;
                 for (int i = 0; i < more.Count && observation.HandCount + lifted < _rallyWant && Fits(actions, 1); i++, lifted++)
+                {
                     actions.Add(new PlayerAction.PickUp(more[i].Handle));
+                }
+
                 Note($"siege at {siege.At}: gathering, {observation.HandCount + lifted} of {_rallyWant} in hand");
                 _rallyDrop = drop;
                 return true;
@@ -1068,7 +1517,10 @@ public sealed class CampaignPlayer : IPlayerController
             siege.Peak = fighters;   // a new reckoning from the push on
             return true;
         }
-        if (observation.HandCount > 0) return null;   // something else is held: the usual drop takes it
+        if (observation.HandCount > 0)
+        {
+            return null;   // something else is held: the usual drop takes it
+        }
 
         // The hand is free. No fighter goes to the siege alone, but the usual path still heals a hurt defender and takes
         // one out of the fight (it only stops short of lifting one to send in).
@@ -1086,7 +1538,11 @@ public sealed class CampaignPlayer : IPlayerController
             return null;
         }
         int taken = 0;
-        for (int i = 0; i < want && Fits(actions, 1); i++, taken++) actions.Add(new PlayerAction.PickUp(free[i].Handle));
+        for (int i = 0; i < want && Fits(actions, 1); i++, taken++)
+        {
+            actions.Add(new PlayerAction.PickUp(free[i].Handle));
+        }
+
         _rallyDrop = drop;
         _rallyWant = want;
         _rallyDropping = false;
@@ -1101,15 +1557,27 @@ public sealed class CampaignPlayer : IPlayerController
     {
         var petals = new Dictionary<PlayerThingHandle, int>();
         foreach (PlayerCreatureSummary creature in observation.Creatures)
-            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown) petals[seen] = creature.Petals;
+        {
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown)
+            {
+                petals[seen] = creature.Petals;
+            }
+        }
+
         long near = (long)_options.EngagedTiles * _options.EngagedTiles;
         var free = new List<PlayerVisibleThing>();
         foreach (PlayerVisibleThing thing in observation.Things)
+        {
             if (thing.Kind == PlayerThingKind.Creature && thing.Owner == observation.Stamp.Player && thing.CreatureType is CreatureTypeId type
                 && !_options.IsWorker(type) && _options.StyleOf(type) != FightStyle.NonFighter && (thing.Actions & PlayerThingActions.PickUp) != 0
                 && petals.TryGetValue(thing.Handle, out int shown) && shown >= 5
                 && PlayerActionRoutines.DistanceSquared(thing.Tile, drop) > near
-                && !PlayerActionRoutines.ThreatNear(observation, thing.Tile, _options.EngagedTiles)) free.Add(thing);
+                && !PlayerActionRoutines.ThreatNear(observation, thing.Tile, _options.EngagedTiles))
+            {
+                free.Add(thing);
+            }
+        }
+
         free.Sort((a, b) => PlayerActionRoutines.DistanceSquared(a.Tile, home).CompareTo(PlayerActionRoutines.DistanceSquared(b.Tile, home)));
         return free;
     }
@@ -1145,9 +1613,17 @@ public sealed class CampaignPlayer : IPlayerController
     /// floor near enough the dig heads for the objective too. Null leaves the hand to the usual answer.</summary>
     private bool? Offence(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
-        if (_strategy.AttackParty <= 0 || _strategy.AttackAt is not TilePos objective) return null;
+        if (_strategy.AttackParty <= 0 || _strategy.AttackAt is not TilePos objective)
+        {
+            return null;
+        }
+
         const PlayerActionKinds hand = PlayerActionKinds.PickUp | PlayerActionKinds.DropAt;
-        if ((observation.Offers.Actions & hand) == 0 && observation.HandCount == 0) return null;
+        if ((observation.Offers.Actions & hand) == 0 && observation.HandCount == 0)
+        {
+            return null;
+        }
+
         GameTick now = observation.Stamp.Tick;
         if (observation.HandCount > 0 && _attackGathering && _attackDrop is TilePos held)
         {
@@ -1156,7 +1632,10 @@ public sealed class CampaignPlayer : IPlayerController
             if (_failedDrops.Contains(held))
             {
                 if (PlayerActionRoutines.NearestOwnFloor(observation, objective, _failedDrops, bridges: true) is TilePos other
-                    && Chebyshev(other, objective) <= AttackDropTiles) _attackDrop = at = other;
+                    && Chebyshev(other, objective) <= AttackDropTiles)
+                {
+                    _attackDrop = at = other;
+                }
                 else { _attackGathering = _attackDropping = false; return null; }
             }
             // Never lift again once part of the wave is down (a dropped fighter that walked off would be lifted again).
@@ -1165,7 +1644,10 @@ public sealed class CampaignPlayer : IPlayerController
             {
                 int lifted = 0;
                 for (int i = 0; i < more.Count && observation.HandCount + lifted < _attackWant && Fits(actions, 1); i++, lifted++)
+                {
                     actions.Add(new PlayerAction.PickUp(more[i].Handle));
+                }
+
                 Note($"attack on {objective}: gathering, {observation.HandCount + lifted} of {_attackWant} in hand");
                 return true;
             }
@@ -1180,17 +1662,27 @@ public sealed class CampaignPlayer : IPlayerController
                 _attackGathering = false;
                 _attackDone = now;
                 _attackLaunched = true;
-                if (_waveIsVanguard) _vanguardSent = true;
+                if (_waveIsVanguard)
+                {
+                    _vanguardSent = true;
+                }
             }
             return true;
         }
-        if (observation.HandCount > 0) return null;
+        if (observation.HandCount > 0)
+        {
+            return null;
+        }
+
         _attackGathering = _attackDropping = false;
 
         int fit = 0, levels = 0;
         foreach (PlayerCreatureSummary creature in observation.Creatures)
+        {
             if (!_options.IsWorker(creature.Type) && _options.StyleOf(creature.Type) != FightStyle.NonFighter && creature.FlowerKnown && creature.Petals >= 5)
             { fit++; levels += creature.Level; }
+        }
+
         if (PlayerActionRoutines.NearestOwnFloor(observation, objective, _failedDrops, bridges: true) is not TilePos drop
             || Chebyshev(drop, objective) > AttackDropTiles)
         {
@@ -1199,11 +1691,21 @@ public sealed class CampaignPlayer : IPlayerController
             return null;
         }
         _attackApproach = false;
-        if (_attackDone is GameTick done && now.Value - done.Value < AttackCooldownTicks) return null;
+        if (_attackDone is GameTick done && now.Value - done.Value < AttackCooldownTicks)
+        {
+            return null;
+        }
+
         List<PlayerVisibleThing> free = FreeFighters(observation, home, drop);
         int enemyLevels = 0;
         foreach (PlayerVisibleThing thing in observation.Things)
-            if (PlayerActionRoutines.IsThreat(observation, thing) && Chebyshev(thing.Tile, objective) <= AttackFieldTiles) enemyLevels += Math.Max(1, thing.Level);
+        {
+            if (PlayerActionRoutines.IsThreat(observation, thing) && Chebyshev(thing.Tile, objective) <= AttackFieldTiles)
+            {
+                enemyLevels += Math.Max(1, thing.Level);
+            }
+        }
+
         bool poor = observation.WageBill.Value > 0 && observation.Gold.Value < (long)observation.WageBill.Value * _strategy.AttackPaydays;
         bool strong = levels * 2 >= enemyLevels * 3;
         bool trained = levels >= _strategy.AttackLevels;
@@ -1215,12 +1717,20 @@ public sealed class CampaignPlayer : IPlayerController
             return null;
         }
         List<PlayerVisibleThing> wave = Wave(free);
-        if (wave.Count == 0 || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0) return null;
+        if (wave.Count == 0 || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0)
+        {
+            return null;
+        }
+
         string why = _attackLaunched ? "reinforcing" : poor && (fit < _strategy.AttackParty || !trained) ? "the gold is short" : "the army is ready";
         _attackWant = wave.Count;
         _waveIsVanguard = !_vanguardSent && wave.TrueForAll(c => c.CreatureType is CreatureTypeId t && _options.Fearless.Contains(t));
         int taken = 0;
-        for (int i = 0; i < wave.Count && Fits(actions, 1); i++, taken++) actions.Add(new PlayerAction.PickUp(wave[i].Handle));
+        for (int i = 0; i < wave.Count && Fits(actions, 1); i++, taken++)
+        {
+            actions.Add(new PlayerAction.PickUp(wave[i].Handle));
+        }
+
         _attackDrop = drop;
         _attackLift = now;
         _attackGathering = true;
@@ -1231,9 +1741,17 @@ public sealed class CampaignPlayer : IPlayerController
         // once it is down. Every later wave takes all who are free.
         List<PlayerVisibleThing> Wave(List<PlayerVisibleThing> candidates)
         {
-            if (_vanguardSent) return candidates;
+            if (_vanguardSent)
+            {
+                return candidates;
+            }
+
             List<PlayerVisibleThing> fearless = candidates.FindAll(c => c.CreatureType is CreatureTypeId type && _options.Fearless.Contains(type));
-            if (fearless.Count > 0 || _attackGathering && _waveIsVanguard) return fearless;
+            if (fearless.Count > 0 || _attackGathering && _waveIsVanguard)
+            {
+                return fearless;
+            }
+
             _vanguardSent = true;
             return candidates;
         }
@@ -1266,8 +1784,16 @@ public sealed class CampaignPlayer : IPlayerController
     /// decision.</summary>
     private bool Capture(PlayerObservation observation, List<PlayerAction> actions)
     {
-        if (!Owns(observation, RoomTypeId.Prison)) return false;
-        if (observation.HandCount > 0 || (observation.Offers.Actions & (PlayerActionKinds.PickUp | PlayerActionKinds.DropAt)) == 0) return false;
+        if (!Owns(observation, RoomTypeId.Prison))
+        {
+            return false;
+        }
+
+        if (observation.HandCount > 0 || (observation.Offers.Actions & (PlayerActionKinds.PickUp | PlayerActionKinds.DropAt)) == 0)
+        {
+            return false;
+        }
+
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         long now = observation.Stamp.Tick.Value;
@@ -1283,19 +1809,31 @@ public sealed class CampaignPlayer : IPlayerController
                 // An own Imp on the body's tile carries it or was dropped there: lifting it would drop the body.
                 || ImpOn(body.Tile)
                 || _captureSent.TryGetValue(body.Tile, out GameTick sent) && now - sent.Value < CaptureRetryTicks
-                || PlayerActionRoutines.ThreatNear(observation, body.Tile, 2)) continue;
+                || PlayerActionRoutines.ThreatNear(observation, body.Tile, 2))
+            {
+                continue;
+            }
+
             foreach (PlayerVisibleThing worker in observation.Things)
             {
                 if (worker.Kind != PlayerThingKind.Creature || worker.Owner != self || worker.CreatureType is not CreatureTypeId type
                     || !_options.IsWorker(type) || (worker.Actions & PlayerThingActions.PickUp) == 0
                     // An Imp sharing its tile with a body carries it: lifting it would drop that body (0x004647D0).
-                    || DownEnemyOn(worker.Tile)) continue;
+                    || DownEnemyOn(worker.Tile))
+                {
+                    continue;
+                }
+
                 long distance = PlayerActionRoutines.DistanceSquared(worker.Tile, body.Tile);
                 if (distance < best) { best = distance; imp = worker; target = body.Tile; }
             }
         }
         if (imp is not PlayerVisibleThing lifted) { Note("no body to capture"); return false; }
-        if (!Fits(actions, 1)) return false;
+        if (!Fits(actions, 1))
+        {
+            return false;
+        }
+
         actions.Add(new PlayerAction.PickUp(lifted.Handle));
         _captureDrop = target;
         _captureSent[target] = observation.Stamp.Tick;
@@ -1305,16 +1843,28 @@ public sealed class CampaignPlayer : IPlayerController
         bool DownEnemyOn(TilePos at)
         {
             foreach (PlayerVisibleThing other in observation.Things)
+            {
                 if (other.Kind == PlayerThingKind.Creature && other.Tile == at && PlayerActionRoutines.IsEnemy(other, self)
-                    && PlayerActionRoutines.IsDown(other)) return true;
+                    && PlayerActionRoutines.IsDown(other))
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
 
         bool ImpOn(TilePos at)
         {
             foreach (PlayerVisibleThing other in observation.Things)
+            {
                 if (other.Kind == PlayerThingKind.Creature && other.Owner == self && other.Tile == at
-                    && other.CreatureType is CreatureTypeId type && _options.IsWorker(type)) return true;
+                    && other.CreatureType is CreatureTypeId type && _options.IsWorker(type))
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
     }
@@ -1338,8 +1888,15 @@ public sealed class CampaignPlayer : IPlayerController
     /// whole party can go rather than sending fighters one by one, and stops once the party stands beside the trap.</summary>
     private bool Assault(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
-        if (_strategy.AssaultParty <= 0 || observation.EnemyTraps.Count == 0) return false;
-        if (observation.HandCount > 0 || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0) return false;
+        if (_strategy.AssaultParty <= 0 || observation.EnemyTraps.Count == 0)
+        {
+            return false;
+        }
+
+        if (observation.HandCount > 0 || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0)
+        {
+            return false;
+        }
         // Defence first: no party goes while an enemy is near home (as Work waits).
         if (PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)) { Note("enemy near home: defence first"); return false; }
         PlayerTileGrid grid = observation.Tiles;
@@ -1349,9 +1906,16 @@ public sealed class CampaignPlayer : IPlayerController
         foreach (PlayerVisibleTrap trap in observation.EnemyTraps)
         {
             // A party sent lately is given its time before another goes to the same trap.
-            if (_assaulted.TryGetValue(trap.Tile, out GameTick sent) && now - sent.Value < AssaultRetryTicks || !Blocks(trap)) continue;
+            if (_assaulted.TryGetValue(trap.Tile, out GameTick sent) && now - sent.Value < AssaultRetryTicks || !Blocks(trap))
+            {
+                continue;
+            }
+
             if (target is not PlayerVisibleTrap best
-                || PlayerActionRoutines.DistanceSquared(trap.Tile, home) < PlayerActionRoutines.DistanceSquared(best.Tile, home)) target = trap;
+                || PlayerActionRoutines.DistanceSquared(trap.Tile, home) < PlayerActionRoutines.DistanceSquared(best.Tile, home))
+            {
+                target = trap;
+            }
         }
         if (target is not PlayerVisibleTrap aim) { Note("no enemy trap covers own ground or a mark"); return false; }
         // The party must land beside the trap to fight it: own floor within AssaultTiles, else the Imps claim nearer first.
@@ -1363,17 +1927,30 @@ public sealed class CampaignPlayer : IPlayerController
         }
         var petals = new Dictionary<PlayerThingHandle, int>();
         foreach (PlayerCreatureSummary creature in observation.Creatures)
-            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown) petals[seen] = creature.Petals;
+        {
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown)
+            {
+                petals[seen] = creature.Petals;
+            }
+        }
+
         int there = 0;
         var free = new List<PlayerVisibleThing>();
         foreach (PlayerVisibleThing thing in observation.Things)
         {
             if (thing.Kind != PlayerThingKind.Creature || thing.Owner != self || thing.CreatureType is not CreatureTypeId type
-                || _options.IsWorker(type) || _options.StyleOf(type) == FightStyle.NonFighter) continue;
+                || _options.IsWorker(type) || _options.StyleOf(type) == FightStyle.NonFighter)
+            {
+                continue;
+            }
+
             if (Chebyshev(thing.Tile, aim.Tile) <= AssaultTiles) { there++; continue; }
             // Not one in a fight (an enemy within the engaged distance), nor one whose flower does not show it fit.
             if ((thing.Actions & PlayerThingActions.PickUp) != 0 && petals.TryGetValue(thing.Handle, out int shown) && shown >= 5
-                && !PlayerActionRoutines.ThreatNear(observation, thing.Tile, _options.EngagedTiles)) free.Add(thing);
+                && !PlayerActionRoutines.ThreatNear(observation, thing.Tile, _options.EngagedTiles))
+            {
+                free.Add(thing);
+            }
         }
         if (there >= _strategy.AssaultParty) { Note($"{there} fighters at the trap at {aim.Tile}"); return false; }
         // The whole rest of the party goes in this decision or none does: a partial party would walk in alone.
@@ -1384,7 +1961,11 @@ public sealed class CampaignPlayer : IPlayerController
             return false;
         }
         free.Sort((a, b) => PlayerActionRoutines.DistanceSquared(a.Tile, drop).CompareTo(PlayerActionRoutines.DistanceSquared(b.Tile, drop)));
-        for (int i = 0; i < want; i++) actions.Add(new PlayerAction.PickUp(free[i].Handle));
+        for (int i = 0; i < want; i++)
+        {
+            actions.Add(new PlayerAction.PickUp(free[i].Handle));
+        }
+
         _assaultDrop = drop;
         _assaulted[aim.Tile] = observation.Stamp.Tick;
         Note($"lift {want} fighters against the {aim.Type} trap at {aim.Tile} (drop at {drop}, {there} there)");
@@ -1395,13 +1976,23 @@ public sealed class CampaignPlayer : IPlayerController
         {
             int r = trap.ReachTiles;
             for (int dy = -r; dy <= r; dy++)
+            {
                 for (int dx = -r; dx <= r; dx++)
                 {
                     var at = new TilePos(trap.Tile.X + dx, trap.Tile.Y + dy);
-                    if (!InReach(dx, dy, r) || !grid.Contains(at)) continue;
+                    if (!InReach(dx, dy, r) || !grid.Contains(at))
+                    {
+                        continue;
+                    }
+
                     PlayerTile tile = grid[at];
-                    if ((tile.Flags & PlayerTileFlags.Tagged) != 0 || PlayerActionRoutines.IsOwnFloor(tile, self)) return true;
+                    if ((tile.Flags & PlayerTileFlags.Tagged) != 0 || PlayerActionRoutines.IsOwnFloor(tile, self))
+                    {
+                        return true;
+                    }
                 }
+            }
+
             return false;
         }
     }
@@ -1421,7 +2012,14 @@ public sealed class CampaignPlayer : IPlayerController
     private int NonWorkers(PlayerObservation observation)
     {
         int count = 0;
-        foreach (PlayerCreatureSummary creature in observation.Creatures) if (!_options.IsWorker(creature.Type)) count++;
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+        {
+            if (!_options.IsWorker(creature.Type))
+            {
+                count++;
+            }
+        }
+
         return count;
     }
 
@@ -1436,40 +2034,79 @@ public sealed class CampaignPlayer : IPlayerController
             || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0
             || observation.Gold.Value < _strategy.UseRoomMinGold || Short(observation)
             || _lastWorkTick is GameTick last && observation.Stamp.Tick.Value - last.Value < _strategy.UseRoomEveryTicks
-            || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)) return false;
+            || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles))
+        {
+            return false;
+        }
+
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         // A creature at the Training Room's cap gains nothing there (owner: "only up to level 4 in the training room").
         var capped = new HashSet<PlayerThingHandle>();
         foreach (PlayerCreatureSummary creature in observation.Creatures)
-            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown && creature.Level >= _options.TrainingMaxLevel) capped.Add(seen);
+        {
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown && creature.Level >= _options.TrainingMaxLevel)
+            {
+                capped.Add(seen);
+            }
+        }
+
         foreach (RoomTypeId room in use)
         {
             int tiles = OwnedTiles(observation, room);
-            if (tiles == 0) continue;
+            if (tiles == 0)
+            {
+                continue;
+            }
+
             int working = 0;
             PlayerVisibleThing? idle = null;
             foreach (PlayerVisibleThing thing in observation.Things)
             {
                 if (thing.Kind != PlayerThingKind.Creature || thing.Owner != self || thing.CreatureType is not CreatureTypeId type
-                    || _options.IsWorker(type) || !grid.Contains(thing.Tile)) continue;
+                    || _options.IsWorker(type) || !grid.Contains(thing.Tile))
+                {
+                    continue;
+                }
+
                 PlayerTile on = grid[thing.Tile];
-                if (on.Room == room) working++;
+                if (on.Room == room)
+                {
+                    working++;
+                }
                 else if (on.Room == default && (thing.Actions & PlayerThingActions.PickUp) != 0
                     && !(room == RoomTypeId.TrainingRoom && capped.Contains(thing.Handle))
                     && (idle is null || PlayerActionRoutines.DistanceSquared(thing.Tile, home) < PlayerActionRoutines.DistanceSquared(idle.Value.Tile, home)))
+                {
                     idle = thing;
+                }
             }
-            if ((long)working * _strategy.TilesPerWorkingCreature >= tiles) continue;
-            if (idle is not PlayerVisibleThing lifted) return false;
+            if ((long)working * _strategy.TilesPerWorkingCreature >= tiles)
+            {
+                continue;
+            }
+
+            if (idle is not PlayerVisibleThing lifted)
+            {
+                return false;
+            }
+
             if (PlayerActionRoutines.NearestRoomTile(observation, room, home, _refusedWork) is not TilePos target)
             {
                 // Every tile has refused a drop once; refusals may pass, so they are forgotten and tried again later.
-                if (PlayerActionRoutines.NearestRoomTile(observation, room, home) is not null) _refusedWork.Clear();
+                if (PlayerActionRoutines.NearestRoomTile(observation, room, home) is not null)
+                {
+                    _refusedWork.Clear();
+                }
+
                 continue;
             }
             // Never into a room an enemy stands near, however far it is from home.
-            if (PlayerActionRoutines.ThreatNear(observation, target, _strategy.EnemyNearTiles)) continue;
+            if (PlayerActionRoutines.ThreatNear(observation, target, _strategy.EnemyNearTiles))
+            {
+                continue;
+            }
+
             actions.Add(new PlayerAction.PickUp(lifted.Handle));
             Note($"lift a {lifted.CreatureType} at {lifted.Tile} to the {room} ({working} working on {tiles} tiles)");
             _carryTo = target;
@@ -1497,7 +2134,11 @@ public sealed class CampaignPlayer : IPlayerController
             || OwnedTiles(observation, RoomTypeId.CombatPit) == 0
             || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)
             || PlayerActionRoutines.NearestRoomTile(observation, RoomTypeId.CombatPit, home) is TilePos pitTile
-               && PlayerActionRoutines.ThreatNear(observation, pitTile, _strategy.EnemyNearTiles)) return false;
+               && PlayerActionRoutines.ThreatNear(observation, pitTile, _strategy.EnemyNearTiles))
+        {
+            return false;
+        }
+
         long now = observation.Stamp.Tick.Value;
         // A rescue does not wait for the interval: a collapsed creature dies within 60 s (CreatureDyingStateDurationSeconds).
         bool paced = _lastPitTick is GameTick last && now - last.Value < _strategy.UseRoomEveryTicks;
@@ -1505,7 +2146,13 @@ public sealed class CampaignPlayer : IPlayerController
         PlayerId self = observation.Stamp.Player;
         var flowers = new Dictionary<PlayerThingHandle, PlayerCreatureSummary>();
         foreach (PlayerCreatureSummary creature in observation.Creatures)
-            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown) flowers[seen] = creature;
+        {
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown)
+            {
+                flowers[seen] = creature;
+            }
+        }
+
         int fighting = 0;
         PlayerVisibleThing? downed = null, hurt = null, done = null, recruit = null, alone = null;
         PlayerCreatureSummary doneFlower = default, recruitFlower = default;
@@ -1515,14 +2162,26 @@ public sealed class CampaignPlayer : IPlayerController
         var bodies = new List<(PlayerVisibleThing Thing, bool Floor)>();
         foreach (PlayerVisibleThing thing in observation.Things)
         {
-            if (thing.Kind != PlayerThingKind.Creature || thing.Owner != self || thing.CreatureType is not CreatureTypeId type || !grid.Contains(thing.Tile)) continue;
+            if (thing.Kind != PlayerThingKind.Creature || thing.Owner != self || thing.CreatureType is not CreatureTypeId type || !grid.Contains(thing.Tile))
+            {
+                continue;
+            }
+
             if (_options.IsWorker(type))
             {
-                if ((thing.Actions & PlayerThingActions.PickUp) != 0) workers.Add(thing);
+                if ((thing.Actions & PlayerThingActions.PickUp) != 0)
+                {
+                    workers.Add(thing);
+                }
+
                 workerTiles.Add(thing.Tile);
                 continue;
             }
-            if (!flowers.TryGetValue(thing.Handle, out PlayerCreatureSummary flower)) continue;
+            if (!flowers.TryGetValue(thing.Handle, out PlayerCreatureSummary flower))
+            {
+                continue;
+            }
+
             PlayerTile on = grid[thing.Tile];
             bool floor = on.Room == RoomTypeId.CombatPit && PlayerActionRoutines.IsInterior(grid, thing.Tile, RoomTypeId.CombatPit, self);
             if (on.Room == RoomTypeId.CombatPit && flower.Petals <= 1)
@@ -1534,7 +2193,10 @@ public sealed class CampaignPlayer : IPlayerController
             {
                 fighting++;
                 alone = thing;
-                if (flower.Petals == 2) hurt ??= thing;
+                if (flower.Petals == 2)
+                {
+                    hurt ??= thing;
+                }
                 else if (flower.Level >= _options.CombatPitMaxLevel && done is null) { done = thing; doneFlower = flower; }
                 continue;
             }
@@ -1555,7 +2217,11 @@ public sealed class CampaignPlayer : IPlayerController
         var stillSinking = new Dictionary<TilePos, GameTick>();
         foreach ((PlayerVisibleThing body, bool floor) in bodies)
         {
-            if (workerTiles.Contains(body.Tile)) continue;
+            if (workerTiles.Contains(body.Tile))
+            {
+                continue;
+            }
+
             if (!floor) { downed ??= body; continue; }
             GameTick first = _sinking.TryGetValue(body.Tile, out (GameTick First, GameTick Seen) seen) && now - seen.Seen.Value <= SinkSeenTicks
                 ? seen.First : observation.Stamp.Tick;
@@ -1566,18 +2232,33 @@ public sealed class CampaignPlayer : IPlayerController
         {
             _sinking[body.Key] = (body.Value, observation.Stamp.Tick);
             if (downed is null && now - body.Value.Value >= RiseTicks)
+            {
                 foreach ((PlayerVisibleThing thing, bool floor) in bodies)
+                {
                     if (floor && thing.Tile == body.Key) { downed = thing; break; }
+                }
+            }
         }
         // A pair seen fighting on any decision is remembered until the routine next runs: a fight may begin and end
         // inside its interval.
-        if (fighting >= 2) _pitPaired = true;
+        if (fighting >= 2)
+        {
+            _pitPaired = true;
+        }
         // The liftable own Imp nearest the body carries it.
         PlayerVisibleThing? carrier = null;
         if (downed is PlayerVisibleThing target)
+        {
             foreach (PlayerVisibleThing worker in workers)
+            {
                 if (carrier is not PlayerVisibleThing b || PlayerActionRoutines.DistanceSquared(worker.Tile, target.Tile)
-                    < PlayerActionRoutines.DistanceSquared(b.Tile, target.Tile)) carrier = worker;
+                    < PlayerActionRoutines.DistanceSquared(b.Tile, target.Tile))
+                {
+                    carrier = worker;
+                }
+            }
+        }
+
         if (downed is PlayerVisibleThing body2 && carrier is PlayerVisibleThing imp && picks && Owns(observation, RoomTypeId.Lair)
             && !(_lastRescueTick is GameTick rescued && now - rescued.Value < RescueGapTicks)
             && !(_rescues.TryGetValue(body2.Tile, out GameTick sent) && now - sent.Value < RescueTicks)
@@ -1591,16 +2272,26 @@ public sealed class CampaignPlayer : IPlayerController
             _lastRescueTick = observation.Stamp.Tick;
             return true;
         }
-        if (paced) return false;
+        if (paced)
+        {
+            return false;
+        }
+
         bool paired = _pitPaired;
         _pitPaired = fighting >= 2;
         bool lone = fighting == 1 && (paired || recruits == 0 || fighting >= _strategy.PitFighters);
-        if (hurt is PlayerVisibleThing low && HealOffered(observation)) actions.Add(new PlayerAction.CastSpell(HealSpell, Target: low.Handle));
+        if (hurt is PlayerVisibleThing low && HealOffered(observation))
+        {
+            actions.Add(new PlayerAction.CastSpell(HealSpell, Target: low.Handle));
+        }
         else if (hurt is PlayerVisibleThing tired && Lift(observation, tired, RoomTypeId.Hatchery, home, actions)) { }
         else if (done is PlayerVisibleThing capped && Lift(observation, capped,
                      doneFlower.Mood != PlayerCreatureMood.Happy ? RoomTypeId.Lair : doneFlower.Petals <= 4 ? RoomTypeId.Hatchery : RoomTypeId.Lair,
                      home, actions)) { }
-        else if (lone && alone is PlayerVisibleThing victor && Lift(observation, victor, RoomTypeId.Lair, home, actions)) _pitPaired = false;
+        else if (lone && alone is PlayerVisibleThing victor && Lift(observation, victor, RoomTypeId.Lair, home, actions))
+        {
+            _pitPaired = false;
+        }
         else if (recruit is PlayerVisibleThing fighter && fighting < _strategy.PitFighters && fighting + recruits >= 2 && picks
             && PlayerActionRoutines.InteriorRoomTile(observation, RoomTypeId.CombatPit, home, _refusedPit) is TilePos pit)
         {
@@ -1608,7 +2299,11 @@ public sealed class CampaignPlayer : IPlayerController
             _carryTo = pit;
             _carryForPit = true;
         }
-        else return false;
+        else
+        {
+            return false;
+        }
+
         _lastPitTick = observation.Stamp.Tick;
         return true;
     }
@@ -1625,7 +2320,11 @@ public sealed class CampaignPlayer : IPlayerController
     private bool Scout(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
         if (_strategy.Scouts <= 0 || observation.HandCount > 0 || !Fits(actions, 1)
-            || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0) return false;
+            || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0)
+        {
+            return false;
+        }
+
         long now = observation.Stamp.Tick.Value;
         if (_scout is (TilePos at, GameTick since))
         {
@@ -1633,9 +2332,15 @@ public sealed class CampaignPlayer : IPlayerController
             // may take a job beside it (ImpTaskSystem's drop scan), and it is followed there.
             PlayerVisibleThing? imp = null;
             foreach (PlayerVisibleThing thing in observation.Things)
+            {
                 if (thing.Kind == PlayerThingKind.Creature && thing.Owner == observation.Stamp.Player && thing.CreatureType is CreatureTypeId type
                     && _options.IsWorker(type) && Chebyshev(thing.Tile, at) <= ScoutFollowTiles
-                    && (imp is null || Chebyshev(thing.Tile, at) < Chebyshev(imp.Value.Tile, at))) imp = thing;
+                    && (imp is null || Chebyshev(thing.Tile, at) < Chebyshev(imp.Value.Tile, at)))
+                {
+                    imp = thing;
+                }
+            }
+
             if (imp is not PlayerVisibleThing scout)
             {
                 // Lost (lifted, or out of sight): stop watching for it.
@@ -1645,10 +2350,24 @@ public sealed class CampaignPlayer : IPlayerController
             _scout = (scout.Tile, since);
             bool hurt = false;
             foreach (PlayerCreatureSummary creature in observation.Creatures)
-                if (creature.Handle == scout.Handle && creature.FlowerKnown && creature.Petals < 6) hurt = true;
+            {
+                if (creature.Handle == scout.Handle && creature.FlowerKnown && creature.Petals < 6)
+                {
+                    hurt = true;
+                }
+            }
+
             bool danger = hurt || EnemyWithin(observation, scout.Tile, ScoutDangerTiles);
-            if (!danger && now - since.Value < ScoutDwellTicks) return false;
-            if ((scout.Actions & PlayerThingActions.PickUp) == 0) return false;
+            if (!danger && now - since.Value < ScoutDwellTicks)
+            {
+                return false;
+            }
+
+            if ((scout.Actions & PlayerThingActions.PickUp) == 0)
+            {
+                return false;
+            }
+
             actions.Add(new PlayerAction.PickUp(scout.Handle));
             _scout = null;
             _carryWorker = true;
@@ -1657,7 +2376,11 @@ public sealed class CampaignPlayer : IPlayerController
             return true;
         }
         if (_lastScoutTick is GameTick last && now - last.Value < _strategy.UseRoomEveryTicks
-            || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles)) return false;
+            || PlayerActionRoutines.ThreatNear(observation, home, _strategy.EnemyNearTiles))
+        {
+            return false;
+        }
+
         if (ScoutTarget(observation, home) is not TilePos target)
         {
             _lastScoutTick = observation.Stamp.Tick;          // none now: look again after the interval, not every decision
@@ -1665,18 +2388,34 @@ public sealed class CampaignPlayer : IPlayerController
         }
         var petals = new Dictionary<PlayerThingHandle, int>();
         foreach (PlayerCreatureSummary creature in observation.Creatures)
-            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown) petals[seen] = creature.Petals;
+        {
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown)
+            {
+                petals[seen] = creature.Petals;
+            }
+        }
+
         PlayerVisibleThing? sent = null;
         int workers = 0;
         foreach (PlayerVisibleThing thing in observation.Things)
         {
             if (thing.Kind != PlayerThingKind.Creature || thing.Owner != observation.Stamp.Player || thing.CreatureType is not CreatureTypeId worker
-                || !_options.IsWorker(worker)) continue;
+                || !_options.IsWorker(worker))
+            {
+                continue;
+            }
+
             workers++;
             // Only an unhurt Imp goes: one already scratched would be lifted home again at once.
-            if ((thing.Actions & PlayerThingActions.PickUp) == 0 || petals.GetValueOrDefault(thing.Handle, 6) < 6) continue;
+            if ((thing.Actions & PlayerThingActions.PickUp) == 0 || petals.GetValueOrDefault(thing.Handle, 6) < 6)
+            {
+                continue;
+            }
+
             if (sent is null || PlayerActionRoutines.DistanceSquared(thing.Tile, target) < PlayerActionRoutines.DistanceSquared(sent.Value.Tile, target))
+            {
                 sent = thing;
+            }
         }
         if (workers < MinImpsToScout || sent is not PlayerVisibleThing chosen)
         {
@@ -1702,22 +2441,39 @@ public sealed class CampaignPlayer : IPlayerController
         PlayerTileGrid grid = observation.Tiles;
         TilePos? best = null;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
             {
                 var at = new TilePos(x, y);
                 PlayerTile tile = grid[at];
                 if (!tile.IsKnown || (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Water | PlayerTileFlags.Lava)) != 0
-                    || tile.Room != default || tile.Owner.Value is not (0 or PlayerIds.Neutral) || _scouted.Contains(at)) continue;
+                    || tile.Room != default || tile.Owner.Value is not (0 or PlayerIds.Neutral) || _scouted.Contains(at))
+                {
+                    continue;
+                }
+
                 bool edge = false;
                 for (int dy = -1; dy <= 1 && !edge; dy++)
+                {
                     for (int dx = -1; dx <= 1 && !edge; dx++)
                     {
                         var near = new TilePos(x + dx, y + dy);
                         edge = grid.Contains(near) && !grid[near].IsKnown;
                     }
-                if (!edge || EnemyWithin(observation, at, ScoutDangerTiles) || NearOthersGround(grid, at, observation.Stamp.Player)) continue;
-                if (best is not TilePos b || PlayerActionRoutines.DistanceSquared(at, home) < PlayerActionRoutines.DistanceSquared(b, home)) best = at;
+                }
+
+                if (!edge || EnemyWithin(observation, at, ScoutDangerTiles) || NearOthersGround(grid, at, observation.Stamp.Player))
+                {
+                    continue;
+                }
+
+                if (best is not TilePos b || PlayerActionRoutines.DistanceSquared(at, home) < PlayerActionRoutines.DistanceSquared(b, home))
+                {
+                    best = at;
+                }
             }
+        }
+
         return best;
     }
 
@@ -1726,10 +2482,22 @@ public sealed class CampaignPlayer : IPlayerController
     private bool EnemyWithin(PlayerObservation observation, TilePos at, int tiles)
     {
         foreach (PlayerVisibleThing thing in observation.Things)
-            if (PlayerActionRoutines.IsThreat(observation, thing) && Chebyshev(thing.Tile, at) <= tiles) return true;
+        {
+            if (PlayerActionRoutines.IsThreat(observation, thing) && Chebyshev(thing.Tile, at) <= tiles)
+            {
+                return true;
+            }
+        }
+
         long now = observation.Stamp.Tick.Value;
         foreach ((TilePos seen, GameTick when) in _lastThreatAt)
-            if (now - when.Value < ThreatMemoryTicks && Chebyshev(seen, at) <= tiles) return true;
+        {
+            if (now - when.Value < ThreatMemoryTicks && Chebyshev(seen, at) <= tiles)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -1737,13 +2505,23 @@ public sealed class CampaignPlayer : IPlayerController
     private static bool NearOthersGround(PlayerTileGrid grid, TilePos at, PlayerId self)
     {
         for (int dy = -ScoutDangerTiles; dy <= ScoutDangerTiles; dy++)
+        {
             for (int dx = -ScoutDangerTiles; dx <= ScoutDangerTiles; dx++)
             {
                 var near = new TilePos(at.X + dx, at.Y + dy);
-                if (!grid.Contains(near)) continue;
+                if (!grid.Contains(near))
+                {
+                    continue;
+                }
+
                 PlayerTile tile = grid[near];
-                if (tile.IsKnown && tile.Owner != self && tile.Owner.Value is not (0 or PlayerIds.Neutral)) return true;
+                if (tile.IsKnown && tile.Owner != self && tile.Owner.Value is not (0 or PlayerIds.Neutral))
+                {
+                    return true;
+                }
             }
+        }
+
         return false;
     }
 
@@ -1769,22 +2547,42 @@ public sealed class CampaignPlayer : IPlayerController
     /// no enemy in sight within <see cref="ImpSafeTiles"/>. On by default; off when <see cref="PlayerStrategy.CreateImps"/> is 0.</summary>
     private bool CreateImp(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
-        if (_strategy.CreateImps <= 0) return false;
+        if (_strategy.CreateImps <= 0)
+        {
+            return false;
+        }
+
         long now = observation.Stamp.Tick.Value;
         NoteResearch(observation);
         if (!Fits(actions, 1) || (observation.Offers.Actions & PlayerActionKinds.CreateImpAt) == 0
             || observation.Offers.CreateImpCost is not ManaAmount price
-            || _lastImpTick is GameTick last && now - last.Value < ImpCastGapTicks) return false;
+            || _lastImpTick is GameTick last && now - last.Value < ImpCastGapTicks)
+        {
+            return false;
+        }
+
         bool upgraded = false;
         foreach (PlayerSpellOffer spell in observation.Offers.Spells)
+        {
             if (spell.Spell == CreateImpSpell)
             {
-                if (!spell.Ready || !spell.Affordable) return false;
+                if (!spell.Ready || !spell.Affordable)
+                {
+                    return false;
+                }
+
                 upgraded = spell.Upgraded;
             }
+        }
 
         int imps = 0;
-        foreach (PlayerCreatureSummary creature in observation.Creatures) if (_options.IsWorker(creature.Type)) imps++;
+        foreach (PlayerCreatureSummary creature in observation.Creatures)
+        {
+            if (_options.IsWorker(creature.Type))
+            {
+                imps++;
+            }
+        }
         // Below the free minimum a free Imp is on its way: wait for it (owner, 2026-11-15).
         if (imps < _options.FreeImps) { Note($"{imps} Imps: a free one is coming"); return false; }
         if (imps >= _strategy.MaxImps) { Note($"{imps} Imps: at the limit"); return false; }
@@ -1795,31 +2593,53 @@ public sealed class CampaignPlayer : IPlayerController
         int marked = 0;
         TilePos? nearestMark = null;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
             {
                 var at = new TilePos(x, y);
-                if ((grid[at].Flags & PlayerTileFlags.Tagged) == 0) continue;
+                if ((grid[at].Flags & PlayerTileFlags.Tagged) == 0)
+                {
+                    continue;
+                }
+
                 marked++;
                 if (nearestMark is not TilePos m || PlayerActionRoutines.DistanceSquared(at, home) < PlayerActionRoutines.DistanceSquared(m, home))
+                {
                     nearestMark = at;
+                }
             }
+        }
+
         int need = (marked + MarkedTilesPerImp - 1) / MarkedTilesPerImp;
         bool waiting = !upgraded && _lastResearchAt is GameTick seen && now - seen.Value < ResearchMemoryTicks;
         // The Library upgrades only once nothing is left to research (0x004C3000): the wait is bounded, never endless.
-        if (!waiting) _upgradeWaitSince = null;
-        else if ((_upgradeWaitSince ??= observation.Stamp.Tick) is GameTick began && now - began.Value >= UpgradeWaitTicks) waiting = false;
+        if (!waiting)
+        {
+            _upgradeWaitSince = null;
+        }
+        else if ((_upgradeWaitSince ??= observation.Stamp.Tick) is GameTick began && now - began.Value >= UpgradeWaitTicks)
+        {
+            waiting = false;
+        }
+
         int target = waiting && need < 2 * Math.Max(imps, 1) ? _strategy.MinImps : Math.Max(_strategy.MinImps, need);
         if (imps >= Math.Min(target, _strategy.MaxImps)) { Note($"{imps} Imps meet the target {target} ({marked} marks)"); return false; }
 
-        if (PlayerActionRoutines.NearestOwnFloor(observation, nearestMark ?? home, _refusedImpTiles) is not TilePos tile) return false;
+        if (PlayerActionRoutines.NearestOwnFloor(observation, nearestMark ?? home, _refusedImpTiles) is not TilePos tile)
+        {
+            return false;
+        }
         // Under attack the mana is for spells: an Imp born beside an enemy dies, its price falls back, and the next is
         // bought into the same fight (Level 6a, 2026-11-15: 50 casts in the last 900 ticks of a lost keeper).
         foreach (PlayerVisibleThing thing in observation.Things)
+        {
             if (PlayerActionRoutines.IsThreat(observation, thing) && Chebyshev(thing.Tile, tile) <= ImpSafeTiles)
             {
                 Note($"enemy near the birth tile {tile}");
                 return false;
             }
+        }
+
         Note($"create an Imp at {tile} ({imps} of target {target})");
         actions.Add(new PlayerAction.CreateImpAt(tile));
         _lastImpTick = observation.Stamp.Tick;
@@ -1833,22 +2653,46 @@ public sealed class CampaignPlayer : IPlayerController
     /// without a Workshop (<see cref="PlayerWorkshopOffer.NeedsWorkshop"/>), so with none it waits.</summary>
     private bool Trap(PlayerObservation observation, List<PlayerAction> actions)
     {
-        if (_strategy.MaxTraps <= 0 || !Fits(actions, 1) || (observation.Offers.Actions & PlayerActionKinds.PlaceTrap) == 0) return false;
+        if (_strategy.MaxTraps <= 0 || !Fits(actions, 1) || (observation.Offers.Actions & PlayerActionKinds.PlaceTrap) == 0)
+        {
+            return false;
+        }
+
         long now = observation.Stamp.Tick.Value;
-        if (_lastTrapTick is GameTick last && now - last.Value < TrapGapTicks) return false;
+        if (_lastTrapTick is GameTick last && now - last.Value < TrapGapTicks)
+        {
+            return false;
+        }
         // A placement accepted but never shown on its tile was refused by the world (blueprint-placement.md): drop the site.
         if (_placedTrap is (TilePos sent, GameTick when) && now - when.Value >= TrapGapTicks)
         {
-            if (observation.Tiles.Contains(sent) && (observation.Tiles[sent].Flags & PlayerTileFlags.OwnTrap) == 0) _refusedTrapTiles.Add(sent);
+            if (observation.Tiles.Contains(sent) && (observation.Tiles[sent].Flags & PlayerTileFlags.OwnTrap) == 0)
+            {
+                _refusedTrapTiles.Add(sent);
+            }
+
             _placedTrap = null;
         }
         // A room bought in this decision spends the same gold the trap would be weighed against.
-        foreach (PlayerAction queued in actions) if (queued is PlayerAction.BuildRoom) return false;
+        foreach (PlayerAction queued in actions)
+        {
+            if (queued is PlayerAction.BuildRoom)
+            {
+                return false;
+            }
+        }
+
         if (Short(observation)) { Note($"keeping {GoldNeed(observation)} gold for payday"); return false; }
         bool buyable = false;
         foreach (PlayerWorkshopOffer offer in observation.Offers.Workshop)
+        {
             if (offer.Kind == PlayerWorkshopKind.Trap && !offer.NeedsWorkshop && offer.Affordable
-                && (long)observation.Gold.Value - offer.Cost.Value >= _strategy.UseRoomMinGold) buyable = true;
+                && (long)observation.Gold.Value - offer.Cost.Value >= _strategy.UseRoomMinGold)
+            {
+                buyable = true;
+            }
+        }
+
         if (!buyable) { Note($"no trap affordable while keeping {_strategy.UseRoomMinGold} gold (or no Workshop)"); return false; }
         _lastTrapTick = observation.Stamp.Tick;   // weighed now: look again after the gap, placed or not
         PlayerTileGrid grid = observation.Tiles;
@@ -1856,19 +2700,33 @@ public sealed class CampaignPlayer : IPlayerController
         PlayerId self = observation.Stamp.Player;
         var entries = new List<TilePos>(_sightings);
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
             {
                 var at = new TilePos(x, y);
                 PlayerTile tile = grid[at];
-                if (PlayerTrapRoutines.IsEntryRoom(tile, self) || PlayerTrapRoutines.IsEnemyGround(tile, self)) entries.Add(at);
+                if (PlayerTrapRoutines.IsEntryRoom(tile, self) || PlayerTrapRoutines.IsEnemyGround(tile, self))
+                {
+                    entries.Add(at);
+                }
             }
+        }
+
         if (entries.Count == 0) { Note("no entry seen to guard"); return false; }
         entries.Sort((a, b) => a.Y != b.Y ? a.Y.CompareTo(b.Y) : a.X.CompareTo(b.X));   // _sightings is a set: fix the order
         foreach (TilePos site in PlayerTrapRoutines.Sites(observation, entries, TrapSpacingTiles, _refusedTrapTiles))
         {
             // A blueprint under an enemy's feet is only carried into the fight.
-            if (PlayerActionRoutines.ThreatNear(observation, site, 1)) continue;
-            if (PlayerTrapRoutines.Choose(observation, site, _strategy.UseRoomMinGold) is not PlayerWorkshopOffer trap) continue;
+            if (PlayerActionRoutines.ThreatNear(observation, site, 1))
+            {
+                continue;
+            }
+
+            if (PlayerTrapRoutines.Choose(observation, site, _strategy.UseRoomMinGold) is not PlayerWorkshopOffer trap)
+            {
+                continue;
+            }
+
             actions.Add(new PlayerAction.PlaceTrap(trap.Id, site));
             _placedTrap = (site, observation.Stamp.Tick);
             Note($"place {trap.Name} at {site} ({PlayerTrapRoutines.SiteKind(observation.Tiles, site)})");
@@ -1895,12 +2753,14 @@ public sealed class CampaignPlayer : IPlayerController
     {
         PlayerTileGrid grid = observation.Tiles;
         foreach (PlayerCreatureSummary creature in observation.Creatures)
+        {
             if (creature.Tile is TilePos at && !_options.IsWorker(creature.Type) && grid.Contains(at)
                 && grid[at].Room == RoomTypeId.Library && grid[at].Owner == observation.Stamp.Player)
             {
                 _lastResearchAt = observation.Stamp.Tick;
                 return;
             }
+        }
     }
 
     private GameTick? _lastImpTick, _lastResearchAt, _upgradeWaitSince;
@@ -1963,29 +2823,67 @@ public sealed class CampaignPlayer : IPlayerController
     /// of home, the nearest home among equals.</summary>
     private bool Strike(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
-        if (!Fits(actions, 1) || (observation.Offers.Actions & PlayerActionKinds.CastSpell) == 0) return false;
+        if (!Fits(actions, 1) || (observation.Offers.Actions & PlayerActionKinds.CastSpell) == 0)
+        {
+            return false;
+        }
+
         PlayerSpellOffer? bolt = null;
-        foreach (PlayerSpellOffer spell in observation.Offers.Spells) if (spell.Spell == ThunderboltSpell) bolt = spell;
-        if (bolt is not PlayerSpellOffer offer || !offer.Ready || !offer.Affordable || !offer.OnCreature) return false;
-        if ((long)observation.Mana.Value - offer.Cost.Value < _strategy.ManaReserve) return false;
+        foreach (PlayerSpellOffer spell in observation.Offers.Spells)
+        {
+            if (spell.Spell == ThunderboltSpell)
+            {
+                bolt = spell;
+            }
+        }
+
+        if (bolt is not PlayerSpellOffer offer || !offer.Ready || !offer.Affordable || !offer.OnCreature)
+        {
+            return false;
+        }
+
+        if ((long)observation.Mana.Value - offer.Cost.Value < _strategy.ManaReserve)
+        {
+            return false;
+        }
+
         PlayerId self = observation.Stamp.Player;
         PlayerVisibleThing? best = null;
         foreach (PlayerVisibleThing enemy in observation.Things)
         {
             // Thunderbolt lands only on ground the caster owns (location selector 1, keeper-spell-casting.md section 1).
             if (enemy.Kind != PlayerThingKind.Creature || !PlayerActionRoutines.IsThreat(observation, enemy)
-                || !observation.Tiles.Contains(enemy.Tile) || observation.Tiles[enemy.Tile].Owner != self) continue;
+                || !observation.Tiles.Contains(enemy.Tile) || observation.Tiles[enemy.Tile].Owner != self)
+            {
+                continue;
+            }
+
             bool fight = PlayerActionRoutines.DistanceSquared(enemy.Tile, home) <= (long)_strategy.EnemyNearTiles * _strategy.EnemyNearTiles;
             if (!fight)
+            {
                 foreach (PlayerVisibleThing own in observation.Things)
+                {
                     if (own.Kind == PlayerThingKind.Creature && own.Owner == self && own.CreatureType is CreatureTypeId type
                         && !_options.IsWorker(type) && Chebyshev(own.Tile, enemy.Tile) <= _options.EngagedTiles) { fight = true; break; }
-            if (!fight) continue;
+                }
+            }
+
+            if (!fight)
+            {
+                continue;
+            }
+
             if (best is not PlayerVisibleThing b || enemy.Level > b.Level
                 || enemy.Level == b.Level && PlayerActionRoutines.DistanceSquared(enemy.Tile, home) < PlayerActionRoutines.DistanceSquared(b.Tile, home))
+            {
                 best = enemy;
+            }
         }
-        if (best is not PlayerVisibleThing target) return false;
+        if (best is not PlayerVisibleThing target)
+        {
+            return false;
+        }
+
         actions.Add(new PlayerAction.CastSpell(ThunderboltSpell, Target: target.Handle));
         Note($"Thunderbolt on the level {target.Level} enemy at {target.Tile}");
         return true;
@@ -1994,9 +2892,19 @@ public sealed class CampaignPlayer : IPlayerController
     /// <summary>Heal on the Spell panel, payable and recharged (Task 4's offers).</summary>
     private static bool HealOffered(PlayerObservation observation)
     {
-        if ((observation.Offers.Actions & PlayerActionKinds.CastSpell) == 0) return false;
+        if ((observation.Offers.Actions & PlayerActionKinds.CastSpell) == 0)
+        {
+            return false;
+        }
+
         foreach (PlayerSpellOffer spell in observation.Offers.Spells)
-            if (spell.Spell == HealSpell) return spell.OnCreature && spell.Affordable && spell.Ready;
+        {
+            if (spell.Spell == HealSpell)
+            {
+                return spell.OnCreature && spell.Affordable && spell.Ready;
+            }
+        }
+
         return false;
     }
 
@@ -2004,7 +2912,11 @@ public sealed class CampaignPlayer : IPlayerController
     /// home's floor without one; false when the hand cannot lift it.</summary>
     private bool Lift(PlayerObservation observation, PlayerVisibleThing creature, RoomTypeId room, TilePos home, List<PlayerAction> actions)
     {
-        if ((creature.Actions & PlayerThingActions.PickUp) == 0 || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0) return false;
+        if ((creature.Actions & PlayerThingActions.PickUp) == 0 || (observation.Offers.Actions & PlayerActionKinds.PickUp) == 0)
+        {
+            return false;
+        }
+
         actions.Add(new PlayerAction.PickUp(creature.Handle));
         _carryTo = PlayerActionRoutines.NearestRoomTile(observation, room, home, _refusedWork);
         return true;
@@ -2013,7 +2925,10 @@ public sealed class CampaignPlayer : IPlayerController
     /// <summary>Dig marks up to the outstanding bound, skipping abandoned tiles.</summary>
     private bool Dig(PlayerObservation observation, TilePos home, List<PlayerAction> actions)
     {
-        if (_strategy.Dig == DigMode.Off || (observation.Offers.Actions & PlayerActionKinds.TagArea) == 0) return false;
+        if (_strategy.Dig == DigMode.Off || (observation.Offers.Actions & PlayerActionKinds.TagArea) == 0)
+        {
+            return false;
+        }
         // A room site's marks are its own (Task 3a): they do not hold the frontier back.
         int room = _strategy.MaxOutstandingTags - Outstanding(observation) + SiteMarks(observation);
         int added = 0, gold = 0, free = room;
@@ -2024,22 +2939,43 @@ public sealed class CampaignPlayer : IPlayerController
         int took = 0;
         TilePos? take = TakeTarget(observation, home);
         if (take is TilePos toward)
+        {
             foreach (TilePos tile in PlayerActionRoutines.Frontier(observation, toward, preferGold: false, _abandoned, breach: true, avoid: _covered))
             {
-                if (took >= TakeMarks || room-- <= 0 || !Fits(actions, 1)) break;
+                if (took >= TakeMarks || room-- <= 0 || !Fits(actions, 1))
+                {
+                    break;
+                }
+
                 actions.Add(new PlayerAction.TagArea(tile, tile));
                 added++;
                 took++;
-                if ((grid[tile].Flags & PlayerTileFlags.GoldSeam) != 0) gold++;
+                if ((grid[tile].Flags & PlayerTileFlags.GoldSeam) != 0)
+                {
+                    gold++;
+                }
             }
+        }
+
         foreach (TilePos tile in Frontier(observation, from, preferGold: _strategy.Dig == DigMode.GoldFirst))
         {
-            if (room <= 0 || !Fits(actions, 1)) break;
-            if (actions.Contains(new PlayerAction.TagArea(tile, tile))) continue;
+            if (room <= 0 || !Fits(actions, 1))
+            {
+                break;
+            }
+
+            if (actions.Contains(new PlayerAction.TagArea(tile, tile)))
+            {
+                continue;
+            }
+
             room--;
             actions.Add(new PlayerAction.TagArea(tile, tile));
             added++;
-            if ((grid[tile].Flags & PlayerTileFlags.GoldSeam) != 0) gold++;
+            if ((grid[tile].Flags & PlayerTileFlags.GoldSeam) != 0)
+            {
+                gold++;
+            }
         }
         string takeNote = took > 0 ? $", {took} toward the room to take at {take}" : "";
         Note(added > 0 ? $"mark {added} tiles ({gold} gold{takeNote}), {_strategy.Dig}"
@@ -2057,27 +2993,55 @@ public sealed class CampaignPlayer : IPlayerController
     {
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
-        if (_strategy.TakeAt.Count == 0 && _strategy.TakeRooms.Count == 0 && !_attackApproach) return null;
+        if (_strategy.TakeAt.Count == 0 && _strategy.TakeRooms.Count == 0 && !_attackApproach)
+        {
+            return null;
+        }
+
         HashSet<TilePos> reached = WalkableFromOwnFloor(grid, self);
         TilePos? best = null;
         long bestDistance = long.MaxValue;
-        foreach (TilePos at in _strategy.TakeAt) Consider(at);
-        if (_attackApproach && _strategy.AttackAt is TilePos objective) Consider(objective);
+        foreach (TilePos at in _strategy.TakeAt)
+        {
+            Consider(at);
+        }
+
+        if (_attackApproach && _strategy.AttackAt is TilePos objective)
+        {
+            Consider(objective);
+        }
+
         if (_strategy.TakeRooms.Count > 0)
+        {
             for (int y = 0; y < grid.Height; y++)
+            {
                 for (int x = 0; x < grid.Width; x++)
                 {
                     var at = new TilePos(x, y);
                     PlayerTile tile = grid[at];
-                    if (tile.Room != default && tile.Owner != self && _strategy.TakeRooms.Contains(tile.Room)) Consider(at);
+                    if (tile.Room != default && tile.Owner != self && _strategy.TakeRooms.Contains(tile.Room))
+                    {
+                        Consider(at);
+                    }
                 }
+            }
+        }
+
         return best;
 
         void Consider(TilePos at)
         {
-            if (!grid.Contains(at)) return;
+            if (!grid.Contains(at))
+            {
+                return;
+            }
+
             PlayerTile tile = grid[at];
-            if (tile.IsKnown && tile.Owner == self || reached.Contains(at) || PlayerActionRoutines.BesideOwnFloor(grid, at, self)) return;
+            if (tile.IsKnown && tile.Owner == self || reached.Contains(at) || PlayerActionRoutines.BesideOwnFloor(grid, at, self))
+            {
+                return;
+            }
+
             long distance = PlayerActionRoutines.DistanceSquared(at, home);
             if (distance < bestDistance) { best = at; bestDistance = distance; }
         }
@@ -2089,16 +3053,27 @@ public sealed class CampaignPlayer : IPlayerController
         var reached = new HashSet<TilePos>();
         var queue = new Queue<TilePos>();
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
             {
                 var at = new TilePos(x, y);
-                if (Open(grid[at]) && grid[at].Owner == self && reached.Add(at)) queue.Enqueue(at);
+                if (Open(grid[at]) && grid[at].Owner == self && reached.Add(at))
+                {
+                    queue.Enqueue(at);
+                }
             }
+        }
+
         while (queue.Count > 0)
         {
             TilePos at = queue.Dequeue();
             foreach (TilePos next in (ReadOnlySpan<TilePos>)[new(at.X + 1, at.Y), new(at.X - 1, at.Y), new(at.X, at.Y + 1), new(at.X, at.Y - 1)])
-                if (grid.Contains(next) && Open(grid[next]) && reached.Add(next)) queue.Enqueue(next);
+            {
+                if (grid.Contains(next) && Open(grid[next]) && reached.Add(next))
+                {
+                    queue.Enqueue(next);
+                }
+            }
         }
         return reached;
 
@@ -2122,28 +3097,55 @@ public sealed class CampaignPlayer : IPlayerController
             RefreshNoDrop();
             return null;
         }
-        if (observation.Stamp.Tick.Value - _gainTick.Value < _options.StallWindowTicks) return null;
+        if (observation.Stamp.Tick.Value - _gainTick.Value < _options.StallWindowTicks)
+        {
+            return null;
+        }
         // With digging off the frontier is no pending work: an idle, non-digging player is not stalled.
         List<TilePos> frontier = _strategy.Dig == DigMode.Off ? [] : Frontier(observation, home, preferGold: false);
         int marks = Outstanding(observation);
-        if (_pendingRooms.Count == 0 && marks == 0 && frontier.Count == 0) return null;
+        if (_pendingRooms.Count == 0 && marks == 0 && frontier.Count == 0)
+        {
+            return null;
+        }
 
         if (_recoveries >= _options.RecoveryAttempts)
+        {
             return PlayerDecision.Limited($"no gain for {_options.StallWindowTicks} ticks after {_recoveries} recoveries: " +
                 $"pending rooms {_pendingRooms.Count}, marks {marks}, frontier {frontier.Count}, hand {observation.HandCount}, gold {observation.Gold.Value}");
+        }
+
         _recoveries++;
-        foreach (KeyValuePair<RoomTypeId, PendingRoom> pending in _pendingRooms) Tried(pending.Key).Add(pending.Value.Corner);
+        foreach (KeyValuePair<RoomTypeId, PendingRoom> pending in _pendingRooms)
+        {
+            Tried(pending.Key).Add(pending.Value.Corner);
+        }
+
         _pendingRooms.Clear();
         PlayerTileGrid grid = observation.Tiles;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
             {
                 var at = new TilePos(x, y);
-                if ((grid[at].Flags & PlayerTileFlags.Tagged) == 0) continue;
+                if ((grid[at].Flags & PlayerTileFlags.Tagged) == 0)
+                {
+                    continue;
+                }
+
                 _abandoned.Add(at);
-                if (Fits(actions, 1)) actions.Add(new PlayerAction.TagArea(at, at, Untag: true));
+                if (Fits(actions, 1))
+                {
+                    actions.Add(new PlayerAction.TagArea(at, at, Untag: true));
+                }
             }
-        for (int i = 0; i < frontier.Count && i < _strategy.MaxOutstandingTags; i++) _abandoned.Add(frontier[i]);
+        }
+
+        for (int i = 0; i < frontier.Count && i < _strategy.MaxOutstandingTags; i++)
+        {
+            _abandoned.Add(frontier[i]);
+        }
+
         _gainTick = observation.Stamp.Tick;
         return null;
     }
@@ -2152,22 +3154,41 @@ public sealed class CampaignPlayer : IPlayerController
     /// decision already untags; done only when the observation shows none.</summary>
     private bool Untag(PlayerObservation observation, List<PlayerAction> actions)
     {
-        if ((observation.Offers.Actions & PlayerActionKinds.TagArea) == 0) return false;
+        if ((observation.Offers.Actions & PlayerActionKinds.TagArea) == 0)
+        {
+            return false;
+        }
+
         PlayerTileGrid grid = observation.Tiles;
         bool standing = false;
         int added = 0;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
             {
                 var at = new TilePos(x, y);
-                if ((grid[at].Flags & PlayerTileFlags.Tagged) == 0) continue;
+                if ((grid[at].Flags & PlayerTileFlags.Tagged) == 0)
+                {
+                    continue;
+                }
+
                 standing = true;
                 var untag = new PlayerAction.TagArea(at, at, Untag: true);
-                if (!Fits(actions, 1) || actions.Contains(untag)) continue;
+                if (!Fits(actions, 1) || actions.Contains(untag))
+                {
+                    continue;
+                }
+
                 actions.Add(untag);
                 added++;
             }
-        if (!standing) _untagAll = false;
+        }
+
+        if (!standing)
+        {
+            _untagAll = false;
+        }
+
         return added > 0;
     }
 
@@ -2194,7 +3215,11 @@ public sealed class CampaignPlayer : IPlayerController
         EnsureClearance();
         List<TilePos> safe = PlayerActionRoutines.Frontier(observation, from, preferGold, skip, breach: false, avoid: _danger, tagged: true);
         // Develop first: the breach waits until no safe tile is left, marked or not.
-        if (safe.Count == 0 && _strategy.Breach == BreachMode.WhenDeveloped) return PlayerActionRoutines.Frontier(observation, from, preferGold, _abandoned);
+        if (safe.Count == 0 && _strategy.Breach == BreachMode.WhenDeveloped)
+        {
+            return PlayerActionRoutines.Frontier(observation, from, preferGold, _abandoned);
+        }
+
         safe.RemoveAll(t => (observation.Tiles[t].Flags & PlayerTileFlags.Tagged) != 0);
         return safe;
     }
@@ -2202,17 +3227,31 @@ public sealed class CampaignPlayer : IPlayerController
     /// <summary>Rebuilds the tiles near enemy sightings when the strategy's clearance changed.</summary>
     private void EnsureClearance()
     {
-        if (_dangerRadius == _strategy.EnemyClearanceTiles) return;
+        if (_dangerRadius == _strategy.EnemyClearanceTiles)
+        {
+            return;
+        }
+
         _danger.Clear();
         _dangerRadius = _strategy.EnemyClearanceTiles;
-        foreach (TilePos seen in _sightings) AddClearance(seen, _dangerRadius);
+        foreach (TilePos seen in _sightings)
+        {
+            AddClearance(seen, _dangerRadius);
+        }
     }
 
     private void AddClearance(TilePos seen, int r)
     {
         for (int dy = -r; dy <= r; dy++)
+        {
             for (int dx = -r; dx <= r; dx++)
-                if (dx * dx + dy * dy <= r * r) _danger.Add(new TilePos(seen.X + dx, seen.Y + dy));
+            {
+                if (dx * dx + dy * dy <= r * r)
+                {
+                    _danger.Add(new TilePos(seen.X + dx, seen.Y + dy));
+                }
+            }
+        }
     }
 
     private static Gains Measure(PlayerObservation observation)
@@ -2221,24 +3260,46 @@ public sealed class CampaignPlayer : IPlayerController
         PlayerId self = observation.Stamp.Player;
         int floor = 0;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
-                if (grid[new TilePos(x, y)] is { IsKnown: true } tile && tile.Owner == self) floor++;
+            {
+                if (grid[new TilePos(x, y)] is { IsKnown: true } tile && tile.Owner == self)
+                {
+                    floor++;
+                }
+            }
+        }
+
         int rooms = 0;
-        foreach (PlayerRoomSummary room in observation.Rooms) rooms += room.TileCount;
+        foreach (PlayerRoomSummary room in observation.Rooms)
+        {
+            rooms += room.TileCount;
+        }
+
         return new Gains(floor, rooms, observation.Creatures.Count, observation.Gold.Value);
     }
 
     /// <summary>The open room site's tiles that still carry a dig mark.</summary>
     private int SiteMarks(PlayerObservation observation)
     {
-        if (_site is not Site site) return 0;
+        if (_site is not Site site)
+        {
+            return 0;
+        }
+
         int marks = 0;
         for (int dy = 0; dy < site.Side; dy++)
+        {
             for (int dx = 0; dx < site.Side; dx++)
             {
                 var at = new TilePos(site.Corner.X + dx, site.Corner.Y + dy);
-                if (observation.Tiles.Contains(at) && (observation.Tiles[at].Flags & PlayerTileFlags.Tagged) != 0) marks++;
+                if (observation.Tiles.Contains(at) && (observation.Tiles[at].Flags & PlayerTileFlags.Tagged) != 0)
+                {
+                    marks++;
+                }
             }
+        }
+
         return marks;
     }
 
@@ -2247,8 +3308,16 @@ public sealed class CampaignPlayer : IPlayerController
         PlayerTileGrid grid = observation.Tiles;
         int marks = 0;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
-                if ((grid[new TilePos(x, y)].Flags & PlayerTileFlags.Tagged) != 0) marks++;
+            {
+                if ((grid[new TilePos(x, y)].Flags & PlayerTileFlags.Tagged) != 0)
+                {
+                    marks++;
+                }
+            }
+        }
+
         return marks;
     }
 
@@ -2257,13 +3326,24 @@ public sealed class CampaignPlayer : IPlayerController
     private static int OwnedTiles(PlayerObservation observation, RoomTypeId room)
     {
         int tiles = 0;
-        foreach (PlayerRoomSummary owned in observation.Rooms) if (owned.Type == room) tiles += owned.TileCount;
+        foreach (PlayerRoomSummary owned in observation.Rooms)
+        {
+            if (owned.Type == room)
+            {
+                tiles += owned.TileCount;
+            }
+        }
+
         return tiles;
     }
 
     private HashSet<TilePos> Tried(RoomTypeId room)
     {
-        if (!_triedSquares.TryGetValue(room, out HashSet<TilePos>? tried)) _triedSquares[room] = tried = [];
+        if (!_triedSquares.TryGetValue(room, out HashSet<TilePos>? tried))
+        {
+            _triedSquares[room] = tried = [];
+        }
+
         return tried;
     }
 

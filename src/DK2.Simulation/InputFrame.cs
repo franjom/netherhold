@@ -51,6 +51,9 @@ public readonly record struct InputFrame(IReadOnlyList<PlayerCommand>? Commands)
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(All.Count);
-        foreach (PlayerCommand c in All) c.HashInto(ref hash);
+        foreach (PlayerCommand c in All)
+        {
+            c.HashInto(ref hash);
+        }
     }
 }

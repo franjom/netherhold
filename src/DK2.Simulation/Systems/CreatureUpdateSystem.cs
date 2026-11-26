@@ -46,18 +46,32 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        foreach (ICreatureUpdateStep step in _steps) step.BeginTurn(context);
+        foreach (ICreatureUpdateStep step in _steps)
+        {
+            step.BeginTurn(context);
+        }
+
         Sweep(context, _steps, walkTriggers: true);
-        foreach (ICreatureUpdateStep step in _steps) step.EndTurn(context);
+        foreach (ICreatureUpdateStep step in _steps)
+        {
+            step.EndTurn(context);
+        }
     }
 
     /// <summary>Steps on their own, over the whole list in the sweep's order: what a step's
     /// <see cref="ISimulationSystem.Execute"/> does in a host that runs it without the others.</summary>
     public static void RunAlone(SimulationContext context, params ICreatureUpdateStep[] steps)
     {
-        foreach (ICreatureUpdateStep step in steps) step.BeginTurn(context);
+        foreach (ICreatureUpdateStep step in steps)
+        {
+            step.BeginTurn(context);
+        }
+
         Sweep(context, steps);
-        foreach (ICreatureUpdateStep step in steps) step.EndTurn(context);
+        foreach (ICreatureUpdateStep step in steps)
+        {
+            step.EndTurn(context);
+        }
     }
 
     private static void Sweep(SimulationContext context, ReadOnlySpan<ICreatureUpdateStep> steps, bool walkTriggers = false)
@@ -66,24 +80,51 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
         bool hasStatusStep = false;
         foreach (ICreatureUpdateStep step in steps)
         {
-            if (step is CombatSystem) hasCombatStep = true;
-            if (step is CreatureStatusSystem) hasStatusStep = true;
+            if (step is CombatSystem)
+            {
+                hasCombatStep = true;
+            }
+
+            if (step is CreatureStatusSystem)
+            {
+                hasStatusStep = true;
+            }
         }
         EntityList<CreatureState> creatures = context.World.Creatures;
         int below = int.MaxValue;
         for (int i = creatures.Count - 1; ; i--)
         {
-            if (i >= creatures.Count) i = creatures.Count - 1;
-            while (i >= 0 && creatures[i].Id >= below) i--;
-            if (i < 0) break;
+            if (i >= creatures.Count)
+            {
+                i = creatures.Count - 1;
+            }
+
+            while (i >= 0 && creatures[i].Id >= below)
+            {
+                i--;
+            }
+
+            if (i < 0)
+            {
+                break;
+            }
+
             CreatureState creature = creatures[i];
             below = creature.Id;
             HandSystem.LandDue(context, creature);
-            if (creature.LinkWorld is null) continue;
+            if (creature.LinkWorld is null)
+            {
+                continue;
+            }
+
             context.UpdateStartStateId = creature.Dk2StateId;
             context.CreaturesUpdatedThisTick.Add(creature);
             bool actionPolled = false;
-            if (!hasStatusStep) PossessionAbilityRules.BeginPrayer(context, creature);
+            if (!hasStatusStep)
+            {
+                PossessionAbilityRules.BeginPrayer(context, creature);
+            }
+
             foreach (ICreatureUpdateStep step in steps)
             {
                 // The native runner follows timed effects and the worker gold block, before combat.
@@ -99,10 +140,15 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                     actionPolled = true;
                 }
                 step.Update(context, creature);
-                if (creature.LinkWorld is null) break;
+                if (creature.LinkWorld is null)
+                {
+                    break;
+                }
                 // 0x00489584 follows timed effects (0x0048E160), before action polling and fight.
                 if (step is CreatureStatusSystem && !CreatureDeathRules.IsCorpse(creature))
+                {
                     TrainingRules.ApplyNonTrainingExperienceLoss(context.Hooks, creature);
+                }
             }
             creature.LastPosBeforeCopy = null; // PreviousPositionStep's stash ends with the update
             if (!actionPolled && creature.LinkWorld is not null)
@@ -116,14 +162,45 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
             }
             // 0x0048A037: after the state handler, before the dust, the reveal and the root walk;
             // no step ours runs after the handler reads the bit.
-            if (creature.LinkWorld is not null) Combat.CombatRules.RefreshAttackable(creature);
-            if (walkTriggers && creature.LinkWorld is not null) context.Triggers?.RunCreature(creature);
-            if (creature.LinkWorld is not null) PossessedMeleeRules.Advance(context, creature);
-            if (creature.LinkWorld is not null) PossessionAbilityRules.AdvancePrayer(context, creature);
-            if (creature.LinkWorld is not null) PossessedExcavationRules.Advance(context, creature);
-            if (creature.LinkWorld is not null) ClaimActionRules.Advance(context, creature);
-            if (creature.LinkWorld is not null) IdleActionRules.Advance(context, creature);
-            if (creature.LinkWorld is not null) CombatPitSystem.AdvanceAction(context, creature);
+            if (creature.LinkWorld is not null)
+            {
+                Combat.CombatRules.RefreshAttackable(creature);
+            }
+
+            if (walkTriggers && creature.LinkWorld is not null)
+            {
+                context.Triggers?.RunCreature(creature);
+            }
+
+            if (creature.LinkWorld is not null)
+            {
+                PossessedMeleeRules.Advance(context, creature);
+            }
+
+            if (creature.LinkWorld is not null)
+            {
+                PossessionAbilityRules.AdvancePrayer(context, creature);
+            }
+
+            if (creature.LinkWorld is not null)
+            {
+                PossessedExcavationRules.Advance(context, creature);
+            }
+
+            if (creature.LinkWorld is not null)
+            {
+                ClaimActionRules.Advance(context, creature);
+            }
+
+            if (creature.LinkWorld is not null)
+            {
+                IdleActionRules.Advance(context, creature);
+            }
+
+            if (creature.LinkWorld is not null)
+            {
+                CombatPitSystem.AdvanceAction(context, creature);
+            }
         }
     }
 }

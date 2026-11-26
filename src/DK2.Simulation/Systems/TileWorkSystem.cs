@@ -30,7 +30,10 @@ public sealed class TileWorkSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         WorldState world = context.World;
-        if (world.PendingWork.Count == 0) return;
+        if (world.PendingWork.Count == 0)
+        {
+            return;
+        }
 
         // Snapshot the count first: resolving an order must not be able to make
         // the loop consume work queued by the same tick's later systems.
@@ -67,13 +70,21 @@ public sealed class TileWorkSystem : ISimulationSystem
                 // 0x004533C0), and a dig strike that reaches zero does it again (0x0049716B): a Hatchery
                 // beside the tile places its coops again each time (ADR-0672).
                 if (result.Outcome is TileWorkOutcome.Destroyed or TileWorkOutcome.Transformed && before != tile.TerrainId)
+                {
                     HatcheryRules.AfterNeighbourWork(world, context.Database, order.TileIndex, context.Rng);
+                }
+
                 if (result.Outcome == TileWorkOutcome.Destroyed
                     && order.Kind is TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall)
+                {
                     HatcheryRules.AfterNeighbourWork(world, context.Database, order.TileIndex, context.Rng);
+                }
+
                 if (order.Kind == TileWorkKind.AttackTile && result.Outcome == TileWorkOutcome.Destroyed)
+                {
                     WallSupportRules.ReleaseUnsupported(world, context.Database,
                         new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width));
+                }
             }
 
             // Any change of terrain ends a kind-14 task: a claim, a conversion, an attacker. A dig
@@ -84,7 +95,9 @@ public sealed class TileWorkSystem : ISimulationSystem
                 tile.FreshlyDug = false;
                 if (result.Outcome == TileWorkOutcome.Destroyed && IsExcavation(order.Kind)
                     && wasTagged && !tile.IsTaggedBy(order.PlayerId))
+                {
                     tile.DigTaskOutlivesWallFor = tile.DigTaskOutlivesWallFor.With(order.PlayerId);
+                }
             }
 
             // Each work action pays its maker once per hit whose tile test passed; the room attack
@@ -93,14 +106,23 @@ public sealed class TileWorkSystem : ISimulationSystem
                 && (order.Kind != TileWorkKind.AttackRoom || order.PlayerId == PlayerIds.Good)
                 && (order.Strike & TileWorkStrike.NoExperience) == 0
                 && world.CreatureById(order.WorkerCreatureId) is { } worker)
+            {
                 CreatureExperienceSystem.AwardWork(context, worker);
-            if ((order.Strike & TileWorkStrike.ClearsWorkerTile) != 0) ClearWorkerTile(context, order);
+            }
+
+            if ((order.Strike & TileWorkStrike.ClearsWorkerTile) != 0)
+            {
+                ClearWorkerTile(context, order);
+            }
 
             if (TileWorkRules.CompletesUpward(order.Kind) && result.Outcome == TileWorkOutcome.Transformed)
             {
                 var at = new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width);
                 RequestCompletionEffect(context, before, at, order.PlayerId);
-                if (order.Kind == TileWorkKind.Claim) RequestClaimSound(context, order);
+                if (order.Kind == TileWorkKind.Claim)
+                {
+                    RequestClaimSound(context, order);
+                }
             }
             PostThreat(context, order, result, before, ownerBefore);
             if (result.Outcome == TileWorkOutcome.Destroyed && before != tile.TerrainId)
@@ -124,17 +146,25 @@ public sealed class TileWorkSystem : ISimulationSystem
     internal static void RequestCompletionEffect(SimulationContext context, byte before, TilePos at, PlayerId owner)
     {
         if (context.Database.TerrainById(before).MaxHealthTypeTerrainId != before)
+        {
             ThingSoundRules.RequestTile(context, SystemName, before, context.World.TileIndex(at), ThingSoundEvent.TileConverted);
+        }
+
         EffectId effect = context.Database.TerrainById(before).MaxHealthEffectId;
         if (context.World.Tile(at).TerrainId == ReinforcedWallTerrainId)
         {
             TilePos[] points = [new(at.X - 1, at.Y), new(at.X, at.Y - 1),
                 new(at.X + 1, at.Y), new(at.X, at.Y + 1)];
             foreach (TilePos point in points)
+            {
                 context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(effect, owner, point, new Fp32(0)));
+            }
         }
-        else context.RequestEffect(SystemName,
+        else
+        {
+            context.RequestEffect(SystemName,
             ViewEffectRequest.AtTileCentre(effect, owner, at, new Fp32(Fp32.One)));
+        }
     }
 
     /// <summary>The imp's claim sound (<c>Imp_ClaimAction</c>, <c>0x00497635</c>), after the strike that
@@ -142,7 +172,11 @@ public sealed class TileWorkSystem : ISimulationSystem
     /// <c>+2</c>), in the imp's category with its own voice. No imp, no sound.</summary>
     private static void RequestClaimSound(SimulationContext context, TileWorkOrder order)
     {
-        if (context.World.CreatureById(order.WorkerCreatureId) is not { } worker) return;
+        if (context.World.CreatureById(order.WorkerCreatureId) is not { } worker)
+        {
+            return;
+        }
+
         ThingSoundRules.Request(context, SystemName, worker,
             RoomIndex.RoomAt(context.World, context.Database, order.TileIndex) is null
                 ? ThingSoundEvent.ImpClaimedFloor : ThingSoundEvent.ImpClaimedRoomTile);
@@ -156,13 +190,33 @@ public sealed class TileWorkSystem : ISimulationSystem
     private static void ClearWorkerTile(SimulationContext context, TileWorkOrder order)
     {
         WorldState world = context.World;
-        if (TileWorkRules.Applies(context.Database, world.TileAtIndex(order.TileIndex), TileWorkKind.AttackTile, order.PlayerId)) return;
-        if (world.CreatureById(order.WorkerCreatureId) is not { } worker) return;
+        if (TileWorkRules.Applies(context.Database, world.TileAtIndex(order.TileIndex), TileWorkKind.AttackTile, order.PlayerId))
+        {
+            return;
+        }
+
+        if (world.CreatureById(order.WorkerCreatureId) is not { } worker)
+        {
+            return;
+        }
+
         int under = (worker.Tile.Y * world.Width) + worker.Tile.X;
         foreach (TrapState trap in world.Traps)
-            if (trap.TileLink.TileIndex == under) TrapRules.Damage(trap, -trap.Health);
+        {
+            if (trap.TileLink.TileIndex == under)
+            {
+                TrapRules.Damage(trap, -trap.Health);
+            }
+        }
+
         foreach (DoorState door in world.Doors)
-            if (door.TileLink.TileIndex == under) DoorRules.Damage(context, door, -door.Health, worker.OwnerPlayerId);
+        {
+            if (door.TileLink.TileIndex == under)
+            {
+                DoorRules.Damage(context, door, -door.Health, worker.OwnerPlayerId);
+            }
+        }
+
         context.Emit(SystemName, "worker_tile_cleared", $"creature={worker.Id} tile={under}");
     }
 
@@ -180,14 +234,18 @@ public sealed class TileWorkSystem : ISimulationSystem
         {
             TerrainDef terrain = context.Database.TerrainById(before);
             if (terrain.IsSolid && terrain.IsOwnable)
+            {
                 world.Messages.Post(world, ownerBefore.Value, PlayerMessageKind.WallBreached, x, y);
+            }
         }
 
         if (order.Kind == TileWorkKind.AttackRoom && order.PlayerId == PlayerIds.Good
             && RoomIndex.RoomAt(world, context.Database, order.TileIndex) is RoomInstance room
             && world.HasPlayer(room.OwnerPlayerId))
+        {
             world.Messages.PostOwnership(world, room.OwnerPlayerId, PlayerMessageKind.RoomAttacked,
                 (RoomTypeId)room.Definition.RoomId, SlabChain.FirstSlab(world, room));
+        }
     }
 
     /// <summary>
@@ -200,10 +258,16 @@ public sealed class TileWorkSystem : ISimulationSystem
     /// </summary>
     internal static int EfficiencyOf(SimulationContext context, int workerCreatureId)
     {
-        if (workerCreatureId < 0) return EfficiencyRules.BaseModifier;
+        if (workerCreatureId < 0)
+        {
+            return EfficiencyRules.BaseModifier;
+        }
 
         CreatureState? worker = context.World.CreatureById(workerCreatureId);
-        if (worker is null) return EfficiencyRules.BaseModifier;
+        if (worker is null)
+        {
+            return EfficiencyRules.BaseModifier;
+        }
 
         return EfficiencyRules.Modifier(
             worker, context.Database.CreatureById(worker.CreatureTypeId));
@@ -229,10 +293,13 @@ public sealed class TileWorkSystem : ISimulationSystem
                 new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), order.PlayerId, efficiency, context);
 
         if (result.Outcome == TileWorkOutcome.Transformed && room is not null)
+        {
             context.Emit(SystemName, "room_converted",
                 $"({order.TileIndex % world.Width},{order.TileIndex / world.Width}) " +
                 $"player={order.PlayerId} {room.Definition.Name} " +
                 $"tiles={room.TileCount} from={room.OwnerPlayerId}");
+        }
+
         return result;
     }
 
@@ -250,10 +317,16 @@ public sealed class TileWorkSystem : ISimulationSystem
     private static int HandTo(SimulationContext context, TileWorkOrder order, int goldReleased, out int putDown)
     {
         putDown = 0;
-        if (goldReleased <= 0 || order.WorkerCreatureId < 0) return 0;
+        if (goldReleased <= 0 || order.WorkerCreatureId < 0)
+        {
+            return 0;
+        }
 
         CreatureState? worker = context.World.CreatureById(order.WorkerCreatureId);
-        if (worker is null) return 0;
+        if (worker is null)
+        {
+            return 0;
+        }
 
         int capacity = CreatureLevelRules.MaxGoldHeld(
             context.Database, context.Database.CreatureById(worker.CreatureTypeId), worker.Level);
@@ -282,7 +355,13 @@ public sealed class TileWorkSystem : ISimulationSystem
     {
         IReadOnlyList<TileWorkKind> tagged = TileWorkRules.TaggedWork;
         for (int i = 0; i < tagged.Count; i++)
-            if (tagged[i] == kind) return true;
+        {
+            if (tagged[i] == kind)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -299,9 +378,17 @@ public sealed class TileWorkSystem : ISimulationSystem
     private static void CreditGoldMined(
         SimulationContext context, TileWorkOrder order, int released)
     {
-        if (released <= 0) return;
+        if (released <= 0)
+        {
+            return;
+        }
+
         CreatureState? miner = context.World.CreatureById(order.WorkerCreatureId);
-        if (miner is null || !context.World.HasPlayer(miner.OwnerPlayerId)) return;
+        if (miner is null || !context.World.HasPlayer(miner.OwnerPlayerId))
+        {
+            return;
+        }
+
         context.World.Player(miner.OwnerPlayerId).GoldMined += released;
     }
 
@@ -355,7 +442,9 @@ public sealed class TileWorkSystem : ISimulationSystem
         // worker to receive it leaves gold uncollected: work a test or the harness queued.
         int uncollected = result.GoldReleased - goldCarried - goldPutDown;
         if (uncollected > 0)
+        {
             context.Emit(SystemName, "gold_uncollected", $"{where} amount={uncollected} (nobody swung)");
+        }
 
         // A store that stopped being one keeps its contents, on the floor of the
         // tile it stood on. That is the original's own answer and it is exact:

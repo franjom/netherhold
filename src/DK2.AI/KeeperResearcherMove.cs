@@ -44,8 +44,15 @@ public sealed class KeeperResearcherMove
         foreach (KeeperCreatureView creature in KeeperResearchStep.Owned(_view))
         {
             CreatureDef definition = _view.Database.CreatureById(creature.CreatureTypeId);
-            if ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) continue;
-            if (definition.HappyJobs.Any(j => j.Job == JobType.Research)) researchers++;
+            if ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
+            {
+                continue;
+            }
+
+            if (definition.HappyJobs.Any(j => j.Job == JobType.Research))
+            {
+                researchers++;
+            }
             // Equal values replace the candidate: the list's last minimum wins.
             else if (definition.Unknown_0F4C <= least)
             {
@@ -53,25 +60,54 @@ public sealed class KeeperResearcherMove
                 candidate = creature;
             }
         }
-        if (researchers >= 2 || candidate is not KeeperCreatureView leaver) return;
+        if (researchers >= 2 || candidate is not KeeperCreatureView leaver)
+        {
+            return;
+        }
 
         // A Portal, else a Hero Portal; then the cap, which counts both kinds.
         KeeperRoomView? portal = _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Portal, _rng)
             ?? _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.HeroPortal, _rng);
-        if (portal is null) return;
+        if (portal is null)
+        {
+            return;
+        }
+
         int portals = _view.OwnRooms.Count(r => PortalRules.IsEntrance(r.Definition));
         int came = KeeperResearchStep.Owned(_view).Count(c => c.CameThroughPortal);
-        if (PortalRules.CreatureCapacity(_view.Database, portals) > came) return;
+        if (PortalRules.CreatureCapacity(_view.Database, portals) > came)
+        {
+            return;
+        }
 
         if (leaver.LastDroppedCounter <= KeeperThreatResponder.DroppedGraceTurns
-            && _turn > KeeperThreatResponder.DroppedGraceTurns) return;
-        if (leaver.InMyHand) return;
+            && _turn > KeeperThreatResponder.DroppedGraceTurns)
+        {
+            return;
+        }
+
+        if (leaver.InMyHand)
+        {
+            return;
+        }
+
         int state = KeeperResearchStep.StateOf(leaver, _prepared);
         if (state is DropLandingRules.LandingState or PortalLeavingState or LeavingState
-            || KeeperThreatResponder.IsStunned(state)) return;
-        if (!leaver.PickupPermitted) return;
+            || KeeperThreatResponder.IsStunned(state))
+        {
+            return;
+        }
+
+        if (!leaver.PickupPermitted)
+        {
+            return;
+        }
+
         _commands.Add(new TakeCreatureCommand(_view.PlayerId, leaver.Id));
         _prepared.Add(leaver.Id);
-        if (leaver.CanPickUp) _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, _view.PositionOf(portal)));
+        if (leaver.CanPickUp)
+        {
+            _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, _view.PositionOf(portal)));
+        }
     }
 }

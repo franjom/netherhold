@@ -47,16 +47,28 @@ public static class Bearing
     /// </summary>
     public static int Of(int dx, int dy)
     {
-        if (dx == 0 && dy == 0) return 0;
+        if (dx == 0 && dy == 0)
+        {
+            return 0;
+        }
+
         if (dx >= 0)
         {
-            if (dy >= 0) return dx >= dy ? Wrap(Arc(dy, dx) + 0x200) : Wrap(0x400 - Arc(dx, dy));
+            if (dy >= 0)
+            {
+                return dx >= dy ? Wrap(Arc(dy, dx) + 0x200) : Wrap(0x400 - Arc(dx, dy));
+            }
+
             int ady = -dy;
             return dx >= ady ? Wrap(0x200 - Arc(ady, dx)) : Wrap(Arc(dx, ady));
         }
 
         int adx = -dx;
-        if (dy >= 0) return adx >= dy ? Wrap(0x600 - Arc(dy, adx)) : Wrap(0x400 + Arc(adx, dy));
+        if (dy >= 0)
+        {
+            return adx >= dy ? Wrap(0x600 - Arc(dy, adx)) : Wrap(0x400 + Arc(adx, dy));
+        }
+
         int ay = -dy;
         return adx >= ay ? Wrap(0x600 + Arc(ay, adx)) : Wrap(0x800 - Arc(adx, ay));
     }
@@ -65,7 +77,11 @@ public static class Bearing
     public static int Distance(int heading, int target)
     {
         int d = Fixed16.Abs(heading - target);
-        if (d > HalfTurn) d = -d;
+        if (d > HalfTurn)
+        {
+            d = -d;
+        }
+
         return d & Mask;
     }
 
@@ -74,7 +90,11 @@ public static class Bearing
     public static bool TurnsUp(int heading, int target)
     {
         int d = target - heading;
-        if (d == 0) return true;
+        if (d == 0)
+        {
+            return true;
+        }
+
         return Fixed16.Abs(d) > HalfTurn ? d < 0 : d >= 0;
     }
 
@@ -84,7 +104,11 @@ public static class Bearing
     public static int TurnToward(ref int heading, int target, int rate)
     {
         int distance = Distance(heading, target);
-        if (distance == 0) return 0;
+        if (distance == 0)
+        {
+            return 0;
+        }
+
         int step = rate <= 0 ? 0 : (rate < distance ? rate : distance);
         heading = Wrap(TurnsUp(heading, target) ? heading + step : heading - step);
         return Distance(heading, target);

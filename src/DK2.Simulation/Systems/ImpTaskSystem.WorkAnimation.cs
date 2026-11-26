@@ -40,17 +40,38 @@ public sealed partial class ImpTaskSystem
     /// ends at once.</summary>
     private static bool WorkActionEnded(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (ReinforcementActionRules.UsesClock(creature, definition)) return !creature.ReinforcementAction.Active;
-        if (ClaimActionRules.UsesClock(creature, definition)) return creature.ClaimAction.Kind == ClaimActionKind.None;
+        if (ReinforcementActionRules.UsesClock(creature, definition))
+        {
+            return !creature.ReinforcementAction.Active;
+        }
+
+        if (ClaimActionRules.UsesClock(creature, definition))
+        {
+            return creature.ClaimAction.Kind == ClaimActionKind.None;
+        }
+
         if (!PlaysWorkLoop(creature, definition))
+        {
             return WorkCadence.ActionEnded(creature.TargetWork, context.Tick.Value, creature.StateEnteredTick);
-        if (creature.ActionArtSlot == 0) return true;
+        }
+
+        if (creature.ActionArtSlot == 0)
+        {
+            return true;
+        }
+
         if ((creature.ActionAnimationFlags & ActionAnimationFlags.Stop) == 0 && !creature.ActionHandlerDone)
         {
-            if (!LoopTileWorkable(context, creature)) creature.ActionAnimationFlags |= ActionAnimationFlags.Stop;
+            if (!LoopTileWorkable(context, creature))
+            {
+                creature.ActionAnimationFlags |= ActionAnimationFlags.Stop;
+            }
             // A standing wall whose job is gone: DK2's handler, which ignores the job, strikes once
             // more and returns done. Ours does not strike work it no longer holds.
-            else creature.ActionHandlerDone = true;
+            else
+            {
+                creature.ActionHandlerDone = true;
+            }
         }
         return (creature.ActionAnimationFlags & ActionAnimationFlags.Stop) != 0
             ? (creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0
@@ -65,8 +86,16 @@ public sealed partial class ImpTaskSystem
     /// leave 3 or 4 ticks after it, 14 and 7, one at 2; none in its tick).</summary>
     private static bool MinersActionBegins(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.TargetWork != TileWorkKind.MineGold || !PlaysWorkLoop(creature, definition)) return false;
-        if (context.Tick.Value <= creature.StateEnteredTick || !LoopTileWorkable(context, creature)) return false;
+        if (creature.TargetWork != TileWorkKind.MineGold || !PlaysWorkLoop(creature, definition))
+        {
+            return false;
+        }
+
+        if (context.Tick.Value <= creature.StateEnteredTick || !LoopTileWorkable(context, creature))
+        {
+            return false;
+        }
+
         return creature.ActionArtSlot != WorkArtSlot
             || (creature.ActionHandlerDone && ActionAnimationClock.AnimationDone(creature));
     }
@@ -88,8 +117,16 @@ public sealed partial class ImpTaskSystem
     /// the next, whose handler runs again. Out of work, the standing or walking clip replaces it.</summary>
     private static void StepWorkAnimation(SimulationContext context, CreatureState creature, CreatureDef definition, bool struck)
     {
-        if (creature.ReinforcementAction.Active || ReinforcementActionRules.UsesClock(creature, definition)) return;
-        if (creature.ClaimAction.OwnsClip || ClaimActionRules.UsesClock(creature, definition)) return;
+        if (creature.ReinforcementAction.Active || ReinforcementActionRules.UsesClock(creature, definition))
+        {
+            return;
+        }
+
+        if (creature.ClaimAction.OwnsClip || ClaimActionRules.UsesClock(creature, definition))
+        {
+            return;
+        }
+
         if (creature.TargetTileIndex >= 0 && creature.SecretDoorTask
             && creature.Dk2StateId == ImpStates.SecretDoorWork)
         {
@@ -98,16 +135,30 @@ public sealed partial class ImpTaskSystem
         }
         if (!PlaysWorkLoop(creature, definition))
         {
-            if (PlaysIdleAction(creature)) ActionAnimationClock.Advance(creature, definition);
-            else if (creature.ActionArtSlot != 0 || creature.ActionHandlerDone) ActionAnimationClock.Clear(creature);
+            if (PlaysIdleAction(creature))
+            {
+                ActionAnimationClock.Advance(creature, definition);
+            }
+            else if (creature.ActionArtSlot != 0 || creature.ActionHandlerDone)
+            {
+                ActionAnimationClock.Clear(creature);
+            }
+
             return;
         }
-        if (context.Tick.Value <= creature.StateEnteredTick) return;
+        if (context.Tick.Value <= creature.StateEnteredTick)
+        {
+            return;
+        }
 
         bool workable = LoopTileWorkable(context, creature);
         if (creature.ActionArtSlot != WorkArtSlot)
         {
-            if (!workable) return;
+            if (!workable)
+            {
+                return;
+            }
+
             ActionAnimationClock.Begin(creature, definition, WorkArtSlot, context.Rng);
             creature.ActionHandlerDone = false;
             AskActionSound(context, creature);
@@ -121,7 +172,11 @@ public sealed partial class ImpTaskSystem
         {
             // The previous turn's advance wrapped the clip (its phase is under one step): the action's handler and clip are both
             // done, so DK2 ends it at the poll and the state begins the next (0x00496AA0, 0x00465870).
-            if (creature.ActionAnimationPhase < creature.ActionAnimationRate) AskActionSound(context, creature);
+            if (creature.ActionAnimationPhase < creature.ActionAnimationRate)
+            {
+                AskActionSound(context, creature);
+            }
+
             creature.ActionHandlerDone = false;
         }
         ActionAnimationClock.Advance(creature, definition);

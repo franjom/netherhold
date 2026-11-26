@@ -20,11 +20,27 @@ public static class BlueprintPlacementRules
     /// door or trap on it.</summary>
     public static Verdict CanTrap(WorldState world, GameDatabase database, TilePos at, PlayerId player)
     {
-        if (!world.Contains(at)) return Verdict.NotTheKeepersTile;
+        if (!world.Contains(at))
+        {
+            return Verdict.NotTheKeepersTile;
+        }
+
         ref TileState tile = ref world.Tile(at);
-        if (tile.OwnerPlayerId != player) return Verdict.NotTheKeepersTile;
-        if (database.TerrainById(tile.TerrainId).IsSolid) return Verdict.Solid;
-        if (database.RoomByTerrain(tile.TerrainId) is not null) return Verdict.ARoom;
+        if (tile.OwnerPlayerId != player)
+        {
+            return Verdict.NotTheKeepersTile;
+        }
+
+        if (database.TerrainById(tile.TerrainId).IsSolid)
+        {
+            return Verdict.Solid;
+        }
+
+        if (database.RoomByTerrain(tile.TerrainId) is not null)
+        {
+            return Verdict.ARoom;
+        }
+
         return Occupied(world, at) ? Verdict.Occupied : Verdict.Allowed;
     }
 
@@ -34,7 +50,11 @@ public static class BlueprintPlacementRules
     public static Verdict CanDoor(WorldState world, GameDatabase database, TilePos at, PlayerId player, DoorDef door)
     {
         Verdict verdict = CanTrap(world, database, at, player);
-        if (verdict != Verdict.Allowed || ((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) return verdict;
+        if (verdict != Verdict.Allowed || ((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade))
+        {
+            return verdict;
+        }
+
         bool northSouth = Solid(world, database, at.X, at.Y - 1) && Solid(world, database, at.X, at.Y + 1);
         bool eastWest = Solid(world, database, at.X + 1, at.Y) && Solid(world, database, at.X - 1, at.Y);
         return northSouth || eastWest ? Verdict.Allowed : Verdict.NoWalls;
@@ -46,9 +66,21 @@ public static class BlueprintPlacementRules
     /// (<c>0x00518AD0</c>) is given 0, which is not built.</summary>
     public static byte Orientation(WorldState world, GameDatabase database, TilePos at, DoorDef? door)
     {
-        if (door is not null && ((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) return 2;
-        if (Solid(world, database, at.X - 1, at.Y) && Solid(world, database, at.X + 1, at.Y)) return 1;
-        if (Solid(world, database, at.X, at.Y - 1) && Solid(world, database, at.X, at.Y + 1)) return 0;
+        if (door is not null && ((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade))
+        {
+            return 2;
+        }
+
+        if (Solid(world, database, at.X - 1, at.Y) && Solid(world, database, at.X + 1, at.Y))
+        {
+            return 1;
+        }
+
+        if (Solid(world, database, at.X, at.Y - 1) && Solid(world, database, at.X, at.Y + 1))
+        {
+            return 0;
+        }
+
         return 2;
     }
 
@@ -57,10 +89,22 @@ public static class BlueprintPlacementRules
     /// (<c>0x005066E0</c>) and it joins the blueprint list (<c>0x00505680</c>).</summary>
     public static Verdict PlaceDoor(WorldState world, GameDatabase database, TilePos at, PlayerId player, byte doorId)
     {
-        if (!database.Doors.TryGetValue(doorId, out DoorDef? door)) return Verdict.NoSuchType;
+        if (!database.Doors.TryGetValue(doorId, out DoorDef? door))
+        {
+            return Verdict.NoSuchType;
+        }
+
         Verdict verdict = CanDoor(world, database, at, player, door);
-        if (verdict != Verdict.Allowed) return verdict;
-        if (!GoldStore.TryWithdraw(world, player, door.GoldCost)) return Verdict.NotEnoughGold;
+        if (verdict != Verdict.Allowed)
+        {
+            return verdict;
+        }
+
+        if (!GoldStore.TryWithdraw(world, player, door.GoldCost))
+        {
+            return Verdict.NotEnoughGold;
+        }
+
         world.Player(player).Statistics.MoneySpent += door.GoldCost; // 0x004C34DE
 
         world.AddDoor(new DoorState
@@ -79,10 +123,22 @@ public static class BlueprintPlacementRules
     /// same three steps.</summary>
     public static Verdict PlaceTrap(WorldState world, GameDatabase database, TilePos at, PlayerId player, byte trapId)
     {
-        if (!database.Traps.TryGetValue(trapId, out TrapDef? trap)) return Verdict.NoSuchType;
+        if (!database.Traps.TryGetValue(trapId, out TrapDef? trap))
+        {
+            return Verdict.NoSuchType;
+        }
+
         Verdict verdict = CanTrap(world, database, at, player);
-        if (verdict != Verdict.Allowed) return verdict;
-        if (!GoldStore.TryWithdraw(world, player, trap.GoldCost)) return Verdict.NotEnoughGold;
+        if (verdict != Verdict.Allowed)
+        {
+            return verdict;
+        }
+
+        if (!GoldStore.TryWithdraw(world, player, trap.GoldCost))
+        {
+            return Verdict.NotEnoughGold;
+        }
+
         world.Player(player).Statistics.MoneySpent += trap.GoldCost; // 0x004C38E0
 
         var placed = new TrapState { X = at.X, Y = at.Y, TrapId = trapId, PlayerId = player.Value, UnderConstruction = true };
@@ -102,9 +158,21 @@ public static class BlueprintPlacementRules
     private static bool Occupied(WorldState world, TilePos at)
     {
         foreach (DoorState d in world.Doors)
-            if (d.X == at.X && d.Y == at.Y) return true;
+        {
+            if (d.X == at.X && d.Y == at.Y)
+            {
+                return true;
+            }
+        }
+
         foreach (TrapState t in world.Traps)
-            if (t.X == at.X && t.Y == at.Y) return true;
+        {
+            if (t.X == at.X && t.Y == at.Y)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 }

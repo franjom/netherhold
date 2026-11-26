@@ -62,30 +62,65 @@ public sealed class KeeperTrainingStep
         KeeperRoomView? training = _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.TrainingRoom, _rng);
         KeeperRoomView? pit = _view.RandomRoomOfType(_view.PlayerId, RoomTypeId.CombatPit, _rng);
         int building = _state.CurrentRoomToBuild & 0x7F;
-        if (building == (byte)RoomTypeId.TrainingRoom) training = null;
-        if (building == (byte)RoomTypeId.CombatPit) pit = null;
-        if (training is null && pit is null) return allowance;
+        if (building == (byte)RoomTypeId.TrainingRoom)
+        {
+            training = null;
+        }
+
+        if (building == (byte)RoomTypeId.CombatPit)
+        {
+            pit = null;
+        }
+
+        if (training is null && pit is null)
+        {
+            return allowance;
+        }
 
         foreach (KeeperCreatureView creature in Owned())
         {
-            if (allowance <= 0) break;
+            if (allowance <= 0)
+            {
+                break;
+            }
+
             CreatureDef definition = _view.Database.CreatureById(creature.CreatureTypeId);
-            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) continue;
+            if (((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+            {
+                continue;
+            }
+
             int level = LevelOf(creature);
 
             if (WantsThePit(creature, definition, level))
             {
                 // No fallback: a Pit candidate without a Pit is passed over.
-                if (pit is null || !HealthyEnough(creature, definition, level)) continue;
-                if (!Eligible(creature, CreatureStateCategory.CombatPit)) continue;
+                if (pit is null || !HealthyEnough(creature, definition, level))
+                {
+                    continue;
+                }
+
+                if (!Eligible(creature, CreatureStateCategory.CombatPit))
+                {
+                    continue;
+                }
                 // The Pit asks for its slot before the permission.
-                if (Slot(pit) is TilePos slot && creature.PickupPermitted) Move(creature, slot);
+                if (Slot(pit) is TilePos slot && creature.PickupPermitted)
+                {
+                    Move(creature, slot);
+                }
             }
             else
             {
-                if (training is null || !Eligible(creature, CreatureStateCategory.Training)) continue;
+                if (training is null || !Eligible(creature, CreatureStateCategory.Training))
+                {
+                    continue;
+                }
                 // Training asks the permission first; refused, it draws no slot.
-                if (creature.PickupPermitted && Slot(training) is TilePos slot) Move(creature, slot);
+                if (creature.PickupPermitted && Slot(training) is TilePos slot)
+                {
+                    Move(creature, slot);
+                }
             }
             allowance--;
         }
@@ -98,7 +133,11 @@ public sealed class KeeperTrainingStep
     private bool WantsThePit(KeeperCreatureView creature, CreatureDef definition, int level)
     {
         int threshold = ExperienceThreshold(definition, level);
-        if ((uint)creature.Experience > (uint)((threshold * 3) / 4)) return true;
+        if ((uint)creature.Experience > (uint)((threshold * 3) / 4))
+        {
+            return true;
+        }
+
         int cap = _view.Database[VariableTypeId.TrainingRoomMaxExperienceLevel] & 0xFF;
         return level >= cap && level < (_p.IACreatureSkillLevel & 0xF);
     }
@@ -107,7 +146,11 @@ public sealed class KeeperTrainingStep
     /// percentage and clamped to 0..<c>0xFFFE</c>, as the step computes it.</summary>
     private int ExperienceThreshold(CreatureDef definition, int level)
     {
-        if (level == CreatureLevelRules.FirstLevel) return definition.ExpForNextLevel;
+        if (level == CreatureLevelRules.FirstLevel)
+        {
+            return definition.ExpForNextLevel;
+        }
+
         int scaled = CreatureLevelRules.Scale(definition.ExpForNextLevel,
             CreatureLevelRules.Percent(_view.Database, CreatureStatId.ExperienceForNextLevel, level));
         return Math.Clamp(scaled, 0, ExperienceThresholdCap);
@@ -126,14 +169,38 @@ public sealed class KeeperTrainingStep
     /// fighting, not in this hand, not landing, not stunned.</summary>
     public bool Eligible(KeeperCreatureView creature, CreatureStateCategory destination)
     {
-        if (creature.LastDroppedCounter <= DroppedGraceTurns && _turn > DroppedGraceTurns) return false;
+        if (creature.LastDroppedCounter <= DroppedGraceTurns && _turn > DroppedGraceTurns)
+        {
+            return false;
+        }
+
         (int state, int resolved) = StatesOf(creature);
         CreatureStateCategory category = CreatureStateTable.Get(resolved).Category;
-        if (category == destination) return false;
-        if (creature.DroppedToDoJob != JobType.None) return false;
-        if (CreatureStateTable.Get(state).Group == NeedRules.NeedGroup) return false;
-        if (category == CreatureStateCategory.Combat) return false;
-        if (creature.InMyHand) return false;
+        if (category == destination)
+        {
+            return false;
+        }
+
+        if (creature.DroppedToDoJob != JobType.None)
+        {
+            return false;
+        }
+
+        if (CreatureStateTable.Get(state).Group == NeedRules.NeedGroup)
+        {
+            return false;
+        }
+
+        if (category == CreatureStateCategory.Combat)
+        {
+            return false;
+        }
+
+        if (creature.InMyHand)
+        {
+            return false;
+        }
+
         return state != DropLandingRules.LandingState && !KeeperThreatResponder.IsStunned(state);
     }
 
@@ -141,7 +208,11 @@ public sealed class KeeperTrainingStep
     /// dropped it, or still in 75 when the hand refused it.</summary>
     private (int State, int Resolved) StatesOf(KeeperCreatureView creature)
     {
-        if (!_prepared.Contains(creature.Id)) return (creature.StateId, creature.ResolvedStateId);
+        if (!_prepared.Contains(creature.Id))
+        {
+            return (creature.StateId, creature.ResolvedStateId);
+        }
+
         int state = creature.CanPickUp ? DropLandingRules.LandingState : PreparedState;
         return (state, state);
     }
@@ -156,7 +227,10 @@ public sealed class KeeperTrainingStep
     {
         _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
         _prepared.Add(creature.Id);
-        if (creature.CanPickUp) _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, slot));
+        if (creature.CanPickUp)
+        {
+            _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, slot));
+        }
     }
 
     private int LevelOf(KeeperCreatureView creature) =>
@@ -166,7 +240,11 @@ public sealed class KeeperTrainingStep
     /// level this tick; the captured health otherwise.</summary>
     private int HealthOf(KeeperCreatureView creature, CreatureDef definition, int level)
     {
-        if (level == creature.Level || creature.MaxHealth <= 0) return creature.Health;
+        if (level == creature.Level || creature.MaxHealth <= 0)
+        {
+            return creature.Health;
+        }
+
         long ratio = ((long)creature.Health << 12) / creature.MaxHealth;
         return (int)((ratio * CreatureLevelRules.MaxHealth(_view.Database, definition, level)) >> 12);
     }

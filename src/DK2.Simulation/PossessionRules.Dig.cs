@@ -23,7 +23,11 @@ public static partial class PossessionRules
     /// begin replaces any running action. No reinforce, no wall claim, no task marked.</summary>
     internal static void DigOrClaim(SimulationContext context, CreatureState me, CreatureDef mine, PossessionAim aim)
     {
-        if (!((mine.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return;
+        if (!((mine.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+        {
+            return;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
         PlayerId owner = me.OwnerPlayerId;
@@ -37,7 +41,11 @@ public static partial class PossessionRules
             if (tile.OwnerPlayerId != owner && OwnFloorRules.Touches(database, world, pose, owner))
             {
                 if (!TileWorkRules.IsNeutralTile(tile) && world.HasPlayer(tile.OwnerPlayerId)
-                    && world.AreAllied(owner, tile.OwnerPlayerId)) return;
+                    && world.AreAllied(owner, tile.OwnerPlayerId))
+                {
+                    return;
+                }
+
                 if (TileWorkRules.IsClaimablePath(database, tile))
                 {
                     BeginWork(context, me);
@@ -59,20 +67,31 @@ public static partial class PossessionRules
 
         (int dx, int dy) = FacingSteps[(ushort)(aim.Yaw.Value + 0x100) >> 9];
         var facing = new TilePos((px >> 12) + dx, (py >> 12) + dy);
-        if (!world.Contains(facing)) return;
+        if (!world.Contains(facing))
+        {
+            return;
+        }
+
         int index = (facing.Y * world.Width) + facing.X;
         ref TileState face = ref world.TileAtIndex(index);
         TerrainDef terrain = database.TerrainById(face.TerrainId);
         if (TileWorkRules.IsMinableGold(database, face))
         {
-            if (PossessedExcavationRules.TryBegin(context, me, mine, PossessedExcavationKind.Mine, facing)) return;
+            if (PossessedExcavationRules.TryBegin(context, me, mine, PossessedExcavationKind.Mine, facing))
+            {
+                return;
+            }
+
             BeginWork(context, me);
             world.QueueWork(new TileWorkOrder(index, TileWorkKind.MineGold, owner, me.Id, PossessedMultiplier(database, me, mine)));
             context.Emit(ActSystem, "possessed_mine", $"creature={me.Id} tile={index}");
         }
         else if (TileWorkRules.IsDiggableWall(terrain))
         {
-            if (PossessedExcavationRules.TryBegin(context, me, mine, PossessedExcavationKind.Dig, facing)) return;
+            if (PossessedExcavationRules.TryBegin(context, me, mine, PossessedExcavationKind.Dig, facing))
+            {
+                return;
+            }
             // Action 1 tests its own guard and picks the rate by the wall's owner each strike.
             BeginWork(context, me);
             bool imp = me.CreatureTypeId == CombatRules.ImpCreatureTypeId;
@@ -121,7 +140,11 @@ public static partial class PossessionRules
     /// is unread).</summary>
     internal static void ClaimTurn(SimulationContext context, CreatureState c)
     {
-        if (c.ClaimActionTile < 0) return;
+        if (c.ClaimActionTile < 0)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         if ((uint)c.ClaimActionTile >= (uint)world.TileCount || CreatureDeathRules.IsDown(c) || HandRules.IsHeld(c)
             || !TileWorkRules.IsClaimablePath(context.Database, world.TileAtIndex(c.ClaimActionTile)))

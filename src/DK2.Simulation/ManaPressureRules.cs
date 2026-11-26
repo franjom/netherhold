@@ -47,7 +47,9 @@ public static class ManaPressureRules
         else if (netRate <= 0 && !state.WarningsSuppressed)
         {
             if (state.WarningDeadline == 0)
+            {
                 state = state with { WarningStage = 1, WarningDeadline = unchecked(now + interval) };
+            }
             else if (state.WarningDeadline <= now)
             {
                 warning = state.WarningStage == 4 && evilWorkers <= minimumWorkers
@@ -67,7 +69,11 @@ public static class ManaPressureRules
         }
 
         bool scan = state.RemovalEnabled && state.ScanDeadline < now;
-        if (scan) state = state with { ScanDeadline = unchecked(now + interval) };
+        if (scan)
+        {
+            state = state with { ScanDeadline = unchecked(now + interval) };
+        }
+
         return new(state, warning, scan);
     }
 
@@ -79,28 +85,51 @@ public static class ManaPressureRules
     {
         uint workers = 0;
         foreach (ManaRemovalCandidate creature in owned)
-            if (creature.EvilWorker) workers++;
-        if (workers <= minimumWorkers) return null;
+        {
+            if (creature.EvilWorker)
+            {
+                workers++;
+            }
+        }
+
+        if (workers <= minimumWorkers)
+        {
+            return null;
+        }
 
         byte lowest = byte.MaxValue;
         int? choice = null;
         bool tied = false;
         foreach (ManaRemovalCandidate creature in owned)
         {
-            if (creature.InHand) continue;
+            if (creature.InHand)
+            {
+                continue;
+            }
+
             if (creature.Level < lowest)
             {
                 lowest = creature.Level;
                 choice = creature.Id;
                 tied = false;
             }
-            else if (creature.Level == lowest) tied = true;
+            else if (creature.Level == lowest)
+            {
+                tied = true;
+            }
         }
-        if (choice.HasValue && !tied) return choice;
+        if (choice.HasValue && !tied)
+        {
+            return choice;
+        }
 
         foreach (ManaRemovalCandidate creature in owned)
+        {
             if (!creature.InHand && creature.TypeId == 1 && creature.Idle)
+            {
                 return creature.Id;
+            }
+        }
 
         int centerX = heartTileX * 4096 + 2048;
         int centerY = heartTileY * 4096 + 2048;
@@ -108,11 +137,19 @@ public static class ManaPressureRules
         choice = null;
         foreach (ManaRemovalCandidate creature in owned)
         {
-            if (creature.InHand || creature.TypeId != 1) continue;
+            if (creature.InHand || creature.TypeId != 1)
+            {
+                continue;
+            }
+
             long dx = unchecked(creature.PosX - centerX);
             long dy = unchecked(creature.PosY - centerY);
             uint distance = unchecked((uint)(dx * dx >> 12) + (uint)(dy * dy >> 12));
-            if (distance <= farthest) continue;
+            if (distance <= farthest)
+            {
+                continue;
+            }
+
             farthest = distance;
             choice = creature.Id;
         }
@@ -123,8 +160,16 @@ public static class ManaPressureRules
         byte typeId, bool possessed, uint started, uint now,
         int mana, ushort impUpkeep, uint ticksPerSecond)
     {
-        if (typeId != 1 || possessed || started == 0) return ManaRemovalAction.None;
-        if (impUpkeep == 0 || mana >= impUpkeep) return ManaRemovalAction.Cancel;
+        if (typeId != 1 || possessed || started == 0)
+        {
+            return ManaRemovalAction.None;
+        }
+
+        if (impUpkeep == 0 || mana >= impUpkeep)
+        {
+            return ManaRemovalAction.Cancel;
+        }
+
         return unchecked(started + 5 * ticksPerSecond) <= now
             ? ManaRemovalAction.ZeroHealth : ManaRemovalAction.None;
     }

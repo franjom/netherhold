@@ -199,7 +199,11 @@ public static class TileWorkRules
     {
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
         tile.Health = Math.Min(tile.Health + terrain.MaxHealth, MaxTileHealth);
-        if (tile.Health < terrain.MaxHealth) return false;
+        if (tile.Health < terrain.MaxHealth)
+        {
+            return false;
+        }
+
         if (terrain.MaxHealthTypeTerrainId == tile.TerrainId)
         {
             tile.Health = terrain.MaxHealth;
@@ -240,12 +244,18 @@ public static class TileWorkRules
         {
             byte destroyed = BridgeRules.RevertsTo(database, tile);
             if (destroyed == tile.TerrainId)
+            {
                 return new TileWorkResult(applied == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed, applied, 0, 0, tile.TerrainId);
+            }
+
             int spilled = Convert(database, ref tile, destroyed, playerId, takeOwnership: false);
             return new TileWorkResult(TileWorkOutcome.Destroyed, applied, 0, spilled, tile.TerrainId);
         }
         if (tile.Health < terrain.MaxHealth)
+        {
             return new TileWorkResult(applied == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed, applied, 0, 0, tile.TerrainId);
+        }
+
         if (terrain.MaxHealthTypeTerrainId == tile.TerrainId)
         {
             tile.Health = terrain.MaxHealth;
@@ -261,8 +271,11 @@ public static class TileWorkRules
         int applied = -Math.Min(damage.Amount, tile.Health);
         tile.Health += applied;
         if (tile.Health > 0)
+        {
             return new TileWorkResult(applied == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
                 applied, 0, 0, tile.TerrainId);
+        }
+
         int spilled = Convert(database, ref tile, BridgeRules.RevertsTo(database, tile),
             tile.OwnerPlayerId, takeOwnership: false);
         return new TileWorkResult(TileWorkOutcome.Destroyed, applied, 0, spilled, tile.TerrainId);
@@ -371,14 +384,24 @@ public static class TileWorkRules
     {
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
 
-        if (CompletesUpward(kind)) return UpwardDestination(terrain, kind);
+        if (CompletesUpward(kind))
+        {
+            return UpwardDestination(terrain, kind);
+        }
 
         // A takeover changes only who holds the tile, so the tile at completion
         // is the tile now — which is what puts an imp inside a rival's room to
         // claim it, where the original puts one.
-        if (CompletesAsTakeover(kind)) return tile.TerrainId;
+        if (CompletesAsTakeover(kind))
+        {
+            return tile.TerrainId;
+        }
 
-        if (PerSecond(database, kind) < 0) return terrain.DestroyedTypeTerrainId;
+        if (PerSecond(database, kind) < 0)
+        {
+            return terrain.DestroyedTypeTerrainId;
+        }
+
         return tile.TerrainId;
     }
 
@@ -564,7 +587,11 @@ public static class TileWorkRules
 
         foreach (TileWorkKind candidate in DigTaskWorkKinds)
         {
-            if (!Applies(database, tile, candidate, playerId)) continue;
+            if (!Applies(database, tile, candidate, playerId))
+            {
+                continue;
+            }
+
             resolved = candidate;
             return true;
         }
@@ -582,7 +609,11 @@ public static class TileWorkRules
     {
         foreach (TileWorkKind candidate in TaggedWorkKinds)
         {
-            if (!Applies(database, tile, candidate, playerId)) continue;
+            if (!Applies(database, tile, candidate, playerId))
+            {
+                continue;
+            }
+
             kind = candidate;
             return true;
         }
@@ -612,7 +643,9 @@ public static class TileWorkRules
         TileWorkStrike strike = TileWorkStrike.None)
     {
         if (IsRoomScoped(kind))
+        {
             throw new ArgumentException($"{kind} works a room's health; apply it through RoomHealthRules.", nameof(kind));
+        }
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
         bool resolvedDig;
@@ -621,7 +654,10 @@ public static class TileWorkRules
             // Action 1's own guard and rate choice (0x00496E00): any diggable wall, the rate by the
             // tile's owner at this strike.
             if (!IsDiggableWall(terrain))
+            {
                 return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
+            }
+
             kind = IsNeutralTile(tile) ? TileWorkKind.Dig
                 : tile.OwnerPlayerId == playerId ? TileWorkKind.DigOwnWall : TileWorkKind.DigEnemyWall;
             resolvedDig = true;
@@ -629,9 +665,15 @@ public static class TileWorkRules
         else
         {
             resolvedDig = TryResolveDigTask(database, tile, kind, playerId, out TileWorkKind currentKind);
-            if (resolvedDig) kind = currentKind;
+            if (resolvedDig)
+            {
+                kind = currentKind;
+            }
+
             if (!Applies(database, tile, kind, playerId))
+            {
                 return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
+            }
         }
 
         int delta = kind == TileWorkKind.AttackRoom && playerId == PlayerIds.Good
@@ -643,7 +685,9 @@ public static class TileWorkRules
         // 0x004971D0: a gem face (terrain +0x17B bit 1, Impenetrable) skips the strike, so it is never
         // damaged, and pays GoldMinedFromGems on every strike (Q587).
         if (kind == TileWorkKind.MineGold && terrain.IsImpenetrable)
+        {
             return new TileWorkResult(TileWorkOutcome.Progressed, 0, GoldFor(database, terrain, kind, tile.Health, tile.Health), 0, tile.TerrainId);
+        }
 
         if (delta < 0)
         {
@@ -701,7 +745,9 @@ public static class TileWorkRules
 
         int room = terrain.MaxHealth - tile.Health;
         if (room <= 0)
+        {
             return new TileWorkResult(TileWorkOutcome.NoChange, 0, 0, 0, tile.TerrainId);
+        }
 
         int repaired = Math.Min(delta, room);
         tile.Health += repaired;
@@ -719,11 +765,17 @@ public static class TileWorkRules
     /// </summary>
     public static int GoldYield(GameDatabase database, in TileState tile, TileWorkKind kind, PlayerId playerId)
     {
-        if (!Applies(database, tile, kind, playerId)) return 0;
+        if (!Applies(database, tile, kind, playerId))
+        {
+            return 0;
+        }
 
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
         int delta = PerApplication(database, kind);
-        if (delta >= 0) return 0;
+        if (delta >= 0)
+        {
+            return 0;
+        }
 
         int applied = Math.Max(delta, -tile.Health);
         return GoldFor(database, terrain, kind, tile.Health, tile.Health + applied);
@@ -748,11 +800,21 @@ public static class TileWorkRules
         int healthBefore,
         int healthAfter)
     {
-        if (kind != TileWorkKind.MineGold || terrain.GoldValue == 0) return 0;
+        if (kind != TileWorkKind.MineGold || terrain.GoldValue == 0)
+        {
+            return 0;
+        }
 
-        if (terrain.IsImpenetrable) return database[VariableTypeId.GoldMinedFromGems];
+        if (terrain.IsImpenetrable)
+        {
+            return database[VariableTypeId.GoldMinedFromGems];
+        }
 
-        if (terrain.MaxHealth <= 0) return 0;
+        if (terrain.MaxHealth <= 0)
+        {
+            return 0;
+        }
+
         return ExtractedBy(terrain, healthAfter) - ExtractedBy(terrain, healthBefore);
     }
 
@@ -795,15 +857,28 @@ public static class TileWorkRules
         // Only when the tile actually became something else: a rival claiming a
         // burning wooden bridge takes it fire and all, because putting the fire
         // out by taking the tile would reward the claim (Q67, Q68).
-        if (terrainChanged) tile.BurnTicksRemaining = 0;
-        if (!next.IsTaggable) tile.TaggedBy = PlayerMask.None;
+        if (terrainChanged)
+        {
+            tile.BurnTicksRemaining = 0;
+        }
+
+        if (!next.IsTaggable)
+        {
+            tile.TaggedBy = PlayerMask.None;
+        }
 
         PlayerId ownerBefore = tile.OwnerPlayerId;
-        if (takeOwnership && next.IsOwnable) tile.OwnerPlayerId = playerId.Value;
+        if (takeOwnership && next.IsOwnable)
+        {
+            tile.OwnerPlayerId = playerId.Value;
+        }
 
         // Tile_SetOwner (0x004559D0) hands the new owner the current terrain's ManaGain alone, so
         // a room tile changing hands brings its new owner nothing of the floor it was built on.
-        if (tile.OwnerPlayerId != ownerBefore) tile.KeptManaGain = 0;
+        if (tile.OwnerPlayerId != ownerBefore)
+        {
+            tile.KeptManaGain = 0;
+        }
 
         // A portal changing hands restarts it: for both portal types DK2's
         // ownership-change handler stamps the clock and zeros the generation
@@ -819,13 +894,20 @@ public static class TileWorkRules
         // DK2's terrain conversion assigns the neutral player when the destination
         // cannot be owned (0x0044FC40); Level 1's tile triggers read that owner.
         // This also lets a keeper claim the ground dug out of their own wall.
-        if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Neutral;
+        if (!next.IsOwnable)
+        {
+            tile.OwnerPlayerId = PlayerIds.Neutral;
+        }
 
         DiscoveryRules.TerrainChanged(database, ref tile, oldTerrain);
 
         int spilled = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));
         tile.GoldHeld -= spilled;
-        if (tile.GoldHeld == 0) tile.StoreGoldLinkOrder = 0;
+        if (tile.GoldHeld == 0)
+        {
+            tile.StoreGoldLinkOrder = 0;
+        }
+
         return spilled;
     }
 }

@@ -30,10 +30,16 @@ public static class PeerCommands
     {
         PlayerCommand command = CommandCodec.Read(reader);
         if (command.PlayerId != sender)
+        {
             throw new InvalidDataException(
                 $"Player {sender.Value} sent a {command.GetType().Name} for player {command.PlayerId.Value}.");
+        }
+
         if (!IsAllowedFromPeer(command))
+        {
             throw new InvalidDataException($"{command.GetType().Name} is not accepted from another player.");
+        }
+
         CheckTiles(command, mapWidth, mapHeight);
         return command;
     }
@@ -49,13 +55,27 @@ public static class PeerCommands
         };
         if (command is SellRoomCommand { Mode: RoomSellMode.PlayerWave } wave
             && !(OnMap(wave.Min, width, height) && OnMap(wave.Max, width, height)))
+        {
             throw new InvalidDataException("A sell wave reaches off the map.");
-        if (tiles is null) return;
+        }
+
+        if (tiles is null)
+        {
+            return;
+        }
+
         if (tiles.Count > (long)width * height)
+        {
             throw new InvalidDataException($"{tiles.Count} tiles exceed the map's {width}x{height}.");
+        }
+
         foreach (TilePos tile in tiles)
+        {
             if (!OnMap(tile, width, height))
+            {
                 throw new InvalidDataException($"Tile {tile.X},{tile.Y} is off the {width}x{height} map.");
+            }
+        }
     }
 
     private static bool OnMap(TilePos tile, int width, int height) =>

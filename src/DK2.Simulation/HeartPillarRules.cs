@@ -26,22 +26,41 @@ public static class HeartPillarRules
     public static bool TryResolve(WorldState world, GameDatabase database, PlayerId owner, HeartPillarId id, out HeartPillarTarget target)
     {
         target = default;
-        if (id.Value < 0 || id.Value / 3 >= world.TileCount) return false;
+        if (id.Value < 0 || id.Value / 3 >= world.TileCount)
+        {
+            return false;
+        }
+
         bool standing = false;
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
-            if (player.PlayerId == owner) standing = !player.HeartRuined && player.HeartHealth > 0;
+            if (player.PlayerId == owner)
+            {
+                standing = !player.HeartRuined && player.HeartHealth > 0;
+            }
         }
-        if (!standing) return false;
+        if (!standing)
+        {
+            return false;
+        }
+
         int tile = id.Value / 3;
         if (world.TileAtIndex(tile).OwnerPlayerId != owner
             || database.RoomByTerrain(world.TileAtIndex(tile).TerrainId)?.TypeId != RoomTypeId.DungeonHeart
-            || RoomIndex.RoomAt(world, database, tile) is not { } room) return false;
+            || RoomIndex.RoomAt(world, database, tile) is not { } room)
+        {
+            return false;
+        }
+
         int[] chain = SlabChain.Order(world, room);
         int ordinal = id.Value % 3;
         int position = ordinal == 0 ? 7 : ordinal == 1 ? 16 : 18;
-        if (position >= chain.Length || chain[position] != tile) return false;
+        if (position >= chain.Length || chain[position] != tile)
+        {
+            return false;
+        }
+
         target = At(new TilePos(tile % world.Width, tile / world.Width), (HeartPillar)ordinal);
         return true;
     }

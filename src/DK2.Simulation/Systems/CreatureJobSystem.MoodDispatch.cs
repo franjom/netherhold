@@ -17,16 +17,27 @@ public sealed partial class CreatureJobSystem
     /// turn (ADR-0574).</summary>
     private void DispatchIdle(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (TryDispatchMoodPrelude(context, creature, definition)) return;
+        if (TryDispatchMoodPrelude(context, creature, definition))
+        {
+            return;
+        }
+
         creature.Fleeing = false;
-        if (Combat.FightReturnRules.TryReturn(context, creature)) return;
+        if (Combat.FightReturnRules.TryReturn(context, creature))
+        {
+            return;
+        }
+
         int destination;
         if (creature.OwnerPlayerId == PlayerIds.Neutral)
         {
             creature.StateDeadlineTick = context.Tick.Value + NothingToDoTicks;
             destination = NeutralIdleState;
         }
-        else destination = ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) ? HornyIdleState : IdleChooserState;
+        else
+        {
+            destination = ((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) ? HornyIdleState : IdleChooserState;
+        }
         // One handler per turn. The special-role controllers remain explicitly unbuilt.
         CreatureStateMachine.TrySetState(context.Hooks, creature, destination, context.Tick.Value);
     }
@@ -52,11 +63,20 @@ public sealed partial class CreatureJobSystem
             {
                 if (context.AngryChooserRanThisTick.Contains(creature))
                 {
-                    if (creature.LastAngryChoiceTick == context.Tick.Value) return true;
+                    if (creature.LastAngryChoiceTick == context.Tick.Value)
+                    {
+                        return true;
+                    }
                 }
-                else if (TryChooseDispatchedMood(context, creature, definition, mood)) return true;
+                else if (TryChooseDispatchedMood(context, creature, definition, mood))
+                {
+                    return true;
+                }
             }
-            if (TryChooseDispatchedMood(context, creature, definition, CreatureMood.Unhappy)) return true;
+            if (TryChooseDispatchedMood(context, creature, definition, CreatureMood.Unhappy))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -66,7 +86,11 @@ public sealed partial class CreatureJobSystem
     {
         long now = context.Tick.Value;
         long last = mood == CreatureMood.Angry ? creature.LastAngryChoiceTick : creature.LastUnhappyChoiceTick;
-        if (last != 0 && now - last < JobRules.ReselectionGateTicks) return false;
+        if (last != 0 && now - last < JobRules.ReselectionGateTicks)
+        {
+            return false;
+        }
+
         if (_seeker.TryGoForALair(context, SystemName, creature, definition))
         {
             // The unhappy lair arm also writes the angry timestamp in the original.
@@ -79,10 +103,19 @@ public sealed partial class CreatureJobSystem
         for (int i = 0; i < _ranges.Count; i++)
         {
             (JobType job, int low, int high) = _ranges[i];
-            if (job != JobType.None && low <= roll && roll <= high && TryStart(job)) return Accepted();
+            if (job != JobType.None && low <= roll && roll <= high && TryStart(job))
+            {
+                return Accepted();
+            }
         }
         for (int i = 0; i < _ranges.Count; i++)
-            if (_ranges[i].Job != JobType.None && TryStart(_ranges[i].Job)) return Accepted();
+        {
+            if (_ranges[i].Job != JobType.None && TryStart(_ranges[i].Job))
+            {
+                return Accepted();
+            }
+        }
+
         return false;
 
         bool TryStart(JobType job) => job is JobType.Leave or JobType.Rebel
@@ -91,8 +124,15 @@ public sealed partial class CreatureJobSystem
 
         bool Accepted()
         {
-            if (mood == CreatureMood.Angry) creature.LastAngryChoiceTick = now;
-            else creature.LastUnhappyChoiceTick = now;
+            if (mood == CreatureMood.Angry)
+            {
+                creature.LastAngryChoiceTick = now;
+            }
+            else
+            {
+                creature.LastUnhappyChoiceTick = now;
+            }
+
             return true;
         }
     }

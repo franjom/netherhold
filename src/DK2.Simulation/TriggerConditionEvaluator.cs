@@ -41,10 +41,20 @@ public static class TriggerConditionEvaluator
         TriggerState state,
         int currentTick)
     {
-        if (record is null) throw new ArgumentNullException(nameof(record));
-        if (state is null) throw new ArgumentNullException(nameof(state));
+        if (record is null)
+        {
+            throw new ArgumentNullException(nameof(record));
+        }
 
-        if (record.Tag != 213) return TriggerConditionResult.NotEvaluated;
+        if (state is null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+
+        if (record.Tag != 213)
+        {
+            return TriggerConditionResult.NotEvaluated;
+        }
 
         // Type 46 is false, not unknown. The world dispatcher's byte table gives it its
         // own slot, and that slot's jump entry is 0x00518941 -- the tail of the unhandled
@@ -70,10 +80,16 @@ public static class TriggerConditionEvaluator
         // (0x00518270, trigger-state.md §4, Q229). An indirect id of 128 reads the byte past the
         // flag bank in DK2; no shipped level uses one, and ours declines it rather than guess.
         if (Byte(parameters, "FlagId") == TriggerState.SpecialFlagId)
+        {
             return Result(TriggerState.Compare(Byte(parameters, "Comparison"), state.SpecialValue, Int(parameters, "Value")));
+        }
+
         int left = state.Read(Byte(parameters, "FlagId"));
         if ((Byte(parameters, "Flag") & 1) == 0 && Byte(parameters, "IndirectFlagId") == TriggerState.SpecialFlagId)
+        {
             return TriggerConditionResult.NotEvaluated;
+        }
+
         int right = (Byte(parameters, "Flag") & 1) != 0
             ? Int(parameters, "Value")
             : state.Read(Byte(parameters, "IndirectFlagId"));
@@ -90,10 +106,15 @@ public static class TriggerConditionEvaluator
         // Id 16 is the level time limit, compared raw against the Value dword: no flag test,
         // no seconds, no started check (0x005184F8).
         if (timerId == TriggerState.SpecialTimerId)
+        {
             return Result(TriggerState.Compare(
                 Byte(parameters, "Comparison"), state.LevelTimeLimit, Int(parameters, "Value")));
+        }
+
         if (!state.IsStarted(timerId))
+        {
             return TriggerConditionResult.Unsatisfied;
+        }
 
         if ((Byte(parameters, "Flag") & 1) != 0)
         {
@@ -105,7 +126,9 @@ public static class TriggerConditionEvaluator
 
         byte indirectId = Byte(parameters, "IndirectTimerId");
         if (indirectId == TriggerState.SpecialTimerId)
+        {
             return TriggerConditionResult.NotEvaluated;
+        }
 
         return Result(TriggerState.Compare(
             Byte(parameters, "Comparison"),

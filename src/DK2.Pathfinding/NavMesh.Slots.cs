@@ -31,8 +31,16 @@ public sealed partial class NavMesh
     /// <c>t</c>, or −1.</summary>
     private int DkBack(int u, int t)
     {
-        if (DkNeighbour(u, 0) == t) return 0;
-        if (DkNeighbour(u, 1) == t) return 1;
+        if (DkNeighbour(u, 0) == t)
+        {
+            return 0;
+        }
+
+        if (DkNeighbour(u, 1) == t)
+        {
+            return 1;
+        }
+
         return DkNeighbour(u, 2) == t ? 2 : -1;
     }
 
@@ -55,6 +63,9 @@ public sealed partial class NavMesh
     /// vertex out of its old triangle leaves the fan index naming a holder.</summary>
     private void IndexVertices(int t)
     {
-        for (int i = 0; i < 3; i++) _pointTri[_v[(3 * t) + i]] = t;
+        for (int i = 0; i < 3; i++)
+        {
+            _pointTri[_v[(3 * t) + i]] = t;
+        }
     }
 }

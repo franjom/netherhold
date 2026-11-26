@@ -189,8 +189,7 @@ public static class CategoryHooks
                 // DK2 returns 0 on a refused claim before event 7. Our claim lacks the Prison's position
                 // tests and capacity (Q504); the hand drop and the imp's admission test the interior
                 // first (ADR-0775, PrisonRules.AdmitsAt), so 7 can still fire into a full Prison.
-                if (!RoomCapacityRules.Claim(in hooks, creature)) return false;
-                hooks.FireCreatureEvent(creature, CreatureTriggerEvent.Imprisoned);
+                if (!RoomCapacityRules.Claim(in hooks, creature)) { return false; } hooks.FireCreatureEvent(creature, CreatureTriggerEvent.Imprisoned);
                 return true;
             },
         },
@@ -221,9 +220,7 @@ public static class CategoryHooks
                 if (world.Contains(creature.Tile))
                 {
                     int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
-                    if (CombatPitRules.IsFloor(CombatPitRules.PitAt(world, hooks.Database, here), here))
-                        creature.CombatPitFighter = true;
-                }
+                    if (CombatPitRules.IsFloor(CombatPitRules.PitAt(world, hooks.Database, here), here)) { creature.CombatPitFighter = true; } }
 
                 return RoomCapacityRules.Claim(in hooks, creature);
             },
@@ -238,8 +235,7 @@ public static class CategoryHooks
             SeedsCountdown = true,
             Enter = static (in StateHookContext hooks, CreatureState creature) =>
             {
-                if (CasinoRules.EnterRefusal(hooks.World, hooks.Database, creature) is not null) return false;
-                creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
+                if (CasinoRules.EnterRefusal(hooks.World, hooks.Database, creature) is not null) { return false; } creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
                 return RoomCapacityRules.Claim(in hooks, creature);
             },
         },
@@ -319,7 +315,11 @@ public static class CategoryHooks
     /// hooks, after the tests that refuse (ADR-0313).</summary>
     internal static bool RunEnter(in StateHookContext hooks, CreatureStateCategory category, CreatureState creature)
     {
-        if (!OwnSeed[(int)category]) creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
+        if (!OwnSeed[(int)category])
+        {
+            creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
+        }
+
         EnterHook? enter = Enters[(int)category];
         return enter is null || enter(in hooks, creature);
     }
@@ -368,7 +368,10 @@ public static class CategoryHooks
         bool[] byCategory = new bool[CreatureStateTable.CategoryCount];
         foreach (HookSlot slot in All)
         {
-            if (slot.SeedsCountdown) byCategory[(int)slot.Category] = true;
+            if (slot.SeedsCountdown)
+            {
+                byCategory[(int)slot.Category] = true;
+            }
         }
 
         return byCategory;
@@ -379,7 +382,10 @@ public static class CategoryHooks
         var byCategory = new T?[CreatureStateTable.CategoryCount];
         foreach (HookSlot slot in All)
         {
-            if (pick(slot) is T hook) byCategory[(int)slot.Category] = hook;
+            if (pick(slot) is T hook)
+            {
+                byCategory[(int)slot.Category] = hook;
+            }
         }
 
         return byCategory;

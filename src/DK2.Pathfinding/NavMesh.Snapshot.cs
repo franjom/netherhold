@@ -15,7 +15,11 @@ public sealed partial class NavMesh
 {
     public void Write(BinaryWriter w)
     {
-        if (w is null) throw new ArgumentNullException(nameof(w));
+        if (w is null)
+        {
+            throw new ArgumentNullException(nameof(w));
+        }
+
         w.Write(MinX);
         w.Write(MinY);
         w.Write(MaxX);
@@ -29,23 +33,46 @@ public sealed partial class NavMesh
             w.Write(_pointTri[p]);
         }
         w.Write(_pointFree.Count);
-        foreach (int p in _pointFree) w.Write(p);
+        foreach (int p in _pointFree)
+        {
+            w.Write(p);
+        }
+
         w.Write(_triCount);
         for (int t = 0; t < _triCount; t++)
         {
-            for (int i = 0; i < 3; i++) w.Write(_v[(3 * t) + i]);
-            for (int i = 0; i < 3; i++) w.Write(_n[(3 * t) + i]);
+            for (int i = 0; i < 3; i++)
+            {
+                w.Write(_v[(3 * t) + i]);
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                w.Write(_n[(3 * t) + i]);
+            }
+
             w.Write(_nav[t]);
             w.Write(_constraint[t]);
         }
         w.Write(_triFree.Count);
-        foreach (int t in _triFree) w.Write(t);
-        foreach (int c in _locateCache) w.Write(c);
+        foreach (int t in _triFree)
+        {
+            w.Write(t);
+        }
+
+        foreach (int c in _locateCache)
+        {
+            w.Write(c);
+        }
     }
 
     public static NavMesh Read(BinaryReader r)
     {
-        if (r is null) throw new ArgumentNullException(nameof(r));
+        if (r is null)
+        {
+            throw new ArgumentNullException(nameof(r));
+        }
+
         var mesh = new NavMesh();
         mesh.MinX = r.ReadInt32();
         mesh.MinY = r.ReadInt32();
@@ -66,7 +93,11 @@ public sealed partial class NavMesh
             mesh._pointTri[p] = r.ReadInt32();
         }
         int pointFree = SaveReader.Count(r, "free mesh points", 4, points);
-        for (int i = 0; i < pointFree; i++) mesh._pointFree.Add(r.ReadInt32());
+        for (int i = 0; i < pointFree; i++)
+        {
+            mesh._pointFree.Add(r.ReadInt32());
+        }
+
         int triangles = SaveReader.Count(r, "mesh triangles", 26, int.MaxValue / 3);
         int triangleCapacity = Math.Max(64, triangles);
         mesh._v = new int[3 * triangleCapacity];
@@ -76,14 +107,30 @@ public sealed partial class NavMesh
         mesh._triCount = triangles;
         for (int t = 0; t < triangles; t++)
         {
-            for (int i = 0; i < 3; i++) mesh._v[(3 * t) + i] = r.ReadInt32();
-            for (int i = 0; i < 3; i++) mesh._n[(3 * t) + i] = r.ReadInt32();
+            for (int i = 0; i < 3; i++)
+            {
+                mesh._v[(3 * t) + i] = r.ReadInt32();
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                mesh._n[(3 * t) + i] = r.ReadInt32();
+            }
+
             mesh._nav[t] = r.ReadByte();
             mesh._constraint[t] = r.ReadByte();
         }
         int triFree = SaveReader.Count(r, "free mesh triangles", 4, triangles);
-        for (int i = 0; i < triFree; i++) mesh._triFree.Add(r.ReadInt32());
-        for (int i = 0; i < mesh._locateCache.Length; i++) mesh._locateCache[i] = r.ReadInt32();
+        for (int i = 0; i < triFree; i++)
+        {
+            mesh._triFree.Add(r.ReadInt32());
+        }
+
+        for (int i = 0; i < mesh._locateCache.Length; i++)
+        {
+            mesh._locateCache[i] = r.ReadInt32();
+        }
+
         return mesh;
     }
 
@@ -102,17 +149,36 @@ public sealed partial class NavMesh
             hash.Add(_pointTri[p]);
         }
         hash.Add(_pointFree.Count);
-        foreach (int p in _pointFree) hash.Add(p);
+        foreach (int p in _pointFree)
+        {
+            hash.Add(p);
+        }
+
         hash.Add(_triCount);
         for (int t = 0; t < _triCount; t++)
         {
-            for (int i = 0; i < 3; i++) hash.Add(_v[(3 * t) + i]);
-            for (int i = 0; i < 3; i++) hash.Add(_n[(3 * t) + i]);
+            for (int i = 0; i < 3; i++)
+            {
+                hash.Add(_v[(3 * t) + i]);
+            }
+
+            for (int i = 0; i < 3; i++)
+            {
+                hash.Add(_n[(3 * t) + i]);
+            }
+
             hash.Add(_nav[t]);
             hash.Add(_constraint[t]);
         }
         hash.Add(_triFree.Count);
-        foreach (int t in _triFree) hash.Add(t);
-        foreach (int c in _locateCache) hash.Add(c);
+        foreach (int t in _triFree)
+        {
+            hash.Add(t);
+        }
+
+        foreach (int c in _locateCache)
+        {
+            hash.Add(c);
+        }
     }
 }

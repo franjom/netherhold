@@ -17,11 +17,22 @@ public static class StreamCount
     public static int Read(BinaryReader reader, int minBytesPerElement)
     {
         int count = reader.ReadInt32();
-        if (count < 0) throw new InvalidDataException($"negative count {count}");
+        if (count < 0)
+        {
+            throw new InvalidDataException($"negative count {count}");
+        }
+
         Stream stream = reader.BaseStream;
-        if (!stream.CanSeek) throw new NotSupportedException("A bounded count needs a seekable stream.");
+        if (!stream.CanSeek)
+        {
+            throw new NotSupportedException("A bounded count needs a seekable stream.");
+        }
+
         if ((long)count * minBytesPerElement > stream.Length - stream.Position)
+        {
             throw new EndOfStreamException($"{count} elements run past the end of the input.");
+        }
+
         return count;
     }
 }

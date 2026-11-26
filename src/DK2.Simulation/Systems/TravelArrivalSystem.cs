@@ -30,11 +30,27 @@ public sealed class TravelArrivalSystem : ICreatureUpdateStep
 
     public void Update(SimulationContext context, CreatureState creature)
     {
-        if (creature.CreatureTypeId == ImpTypeId) return;
-        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) return;
-        if (!StateShadow.IsTravelling(creature) || creature.Dk2StateId is WaitingState or ApproachState) return;
+        if (creature.CreatureTypeId == ImpTypeId)
+        {
+            return;
+        }
+
+        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined))
+        {
+            return;
+        }
+
+        if (!StateShadow.IsTravelling(creature) || creature.Dk2StateId is WaitingState or ApproachState)
+        {
+            return;
+        }
+
         if (creature.Body.PathTotalCount == 0 || creature.Body.PathFinished
-            || FollowPathRules.Progress(creature.Body) != Fixed16.One) return;
+            || FollowPathRules.Progress(creature.Body) != Fixed16.One)
+        {
+            return;
+        }
+
         creature.StopMoving();
     }
 }

@@ -49,7 +49,11 @@ public static class ThreatFleeRules
     /// (<c>+0x535</c>) staying 0.</summary>
     public static void Record(CreatureState creature, int amount, ThreatSource source)
     {
-        if (amount <= 0 || source.Kind == ThreatSource.None) return;
+        if (amount <= 0 || source.Kind == ThreatSource.None)
+        {
+            return;
+        }
+
         creature.ThreatThingKind = source.Kind;
         creature.ThreatThingId = source.Id;
     }
@@ -63,14 +67,41 @@ public static class ThreatFleeRules
     {
         // 0x00489AD3: possessed (+0x3E6 bit 0x80), dying (0x200000), IsFearless, or before FearlessUntil.
         if (CreatureDeathRules.IsPossessed(context.World, me) || CreatureDeathRules.IsDying(me)
-            || ((definition.Flags & CreatureFlags.IsFearless) == CreatureFlags.IsFearless) || CasinoRules.IsFearlessFromGambling(context.World, me)) return;
-        if (me.CurrentFear <= FearRules.FearThreshold(context.Database, definition, me.Level)) return;
-        if (me.Dk2StateId == CombatStates.Stunned) return;
-        if (!CreatureStateMachine.HasState(me) || !CombatRules.IsAttackableOnMap(me)) return;
-        if (me.Dk2StateId == StateShadow.TravelToPoint && me.UtilityNewState == FledState) return;
+            || ((definition.Flags & CreatureFlags.IsFearless) == CreatureFlags.IsFearless) || CasinoRules.IsFearlessFromGambling(context.World, me))
+        {
+            return;
+        }
+
+        if (me.CurrentFear <= FearRules.FearThreshold(context.Database, definition, me.Level))
+        {
+            return;
+        }
+
+        if (me.Dk2StateId == CombatStates.Stunned)
+        {
+            return;
+        }
+
+        if (!CreatureStateMachine.HasState(me) || !CombatRules.IsAttackableOnMap(me))
+        {
+            return;
+        }
+
+        if (me.Dk2StateId == StateShadow.TravelToPoint && me.UtilityNewState == FledState)
+        {
+            return;
+        }
+
         context.FireCreatureEvent(me, CreatureTriggerEvent.Afraid);
-        if (NeedRules.ResolvedCategory(me) == CreatureStateCategory.Combat) return;
-        if (Source(context.World, me) is not (bool creature, int tx, int ty)) return;   // gone: kept
+        if (NeedRules.ResolvedCategory(me) == CreatureStateCategory.Combat)
+        {
+            return;
+        }
+
+        if (Source(context.World, me) is not (bool creature, int tx, int ty))
+        {
+            return;   // gone: kept
+        }
 
         long dx = Math.Abs((long)me.PosX - tx), dy = Math.Abs((long)me.PosY - ty);
         if (!creature && ((dx * dx) >> 12) + ((dy * dy) >> 12) < Reach
@@ -79,7 +110,9 @@ public static class ThreatFleeRules
         {
             MoveOptions options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? Navigation.MoveOptions.Loose : Navigation.MoveOptions.Plain;
             if (context.Navigation.TryRouteTo(me, x, y, options))
+            {
                 CreatureStateMachine.BeginTravel(context.Hooks, me, StateShadow.TravelToPoint, FledState);
+            }
         }
         me.ThreatThingKind = ThreatSource.None;
         me.ThreatThingId = 0;
@@ -91,13 +124,25 @@ public static class ThreatFleeRules
     {
         if (StateShadow.IsTravelling(me))
         {
-            if (me.UtilityNewState != FledState) return false;
-            if (me.HasRoute) return true;
+            if (me.UtilityNewState != FledState)
+            {
+                return false;
+            }
+
+            if (me.HasRoute)
+            {
+                return true;
+            }
+
             me.StopMoving();
             StateShadow.Arrive(context, system, me);
             return true;
         }
-        if (me.Dk2StateId != FledState) return false;
+        if (me.Dk2StateId != FledState)
+        {
+            return false;
+        }
+
         StateShadow.ToIdle(context, system, me);
         return true;
     }

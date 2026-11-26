@@ -65,7 +65,11 @@ internal static class CombatStates
     /// whose enter hook stops the creature: DK2 routes after this, ours probed the route before.</summary>
     public static bool IntoTheGroup(SimulationContext context, CreatureState me)
     {
-        if (NeedRules.ResolvedCategory(me) == CreatureStateCategory.Combat) return false;
+        if (NeedRules.ResolvedCategory(me) == CreatureStateCategory.Combat)
+        {
+            return false;
+        }
+
         StateShadow.Move(context, SystemName, me, Engaging);
         return true;
     }
@@ -77,6 +81,9 @@ internal static class CombatStates
     /// <summary>A handler returning zero, or one that sets 1: state 1, which no state refuses.</summary>
     public static void Idle(in StateHookContext hooks, CreatureState me)
     {
-        if (CreatureStateMachine.HasState(me)) CreatureStateMachine.TrySetState(hooks, me, CreatureStateMachine.Idle);
+        if (CreatureStateMachine.HasState(me))
+        {
+            CreatureStateMachine.TrySetState(hooks, me, CreatureStateMachine.Idle);
+        }
     }
 }

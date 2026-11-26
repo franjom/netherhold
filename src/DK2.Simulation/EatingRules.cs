@@ -154,19 +154,35 @@ public static class EatingRules
             for (int i = 0; i < objects.Count; i++)
             {
                 ObjectState candidate = objects[i];
-                if (candidate.TileLink.TileIndex != tile || !IsEdibleChicken(candidate)) continue;
-                if (thing is null || candidate.TileLink.Order > thing.TileLink.Order) thing = candidate;
+                if (candidate.TileLink.TileIndex != tile || !IsEdibleChicken(candidate))
+                {
+                    continue;
+                }
+
+                if (thing is null || candidate.TileLink.Order > thing.TileLink.Order)
+                {
+                    thing = candidate;
+                }
             }
-            if (thing is null) continue;
+            if (thing is null)
+            {
+                continue;
+            }
 
             long dx = Math.Abs((long)fromX - thing.PosX);
             long dy = Math.Abs((long)fromY - thing.PosY);
             uint distance = unchecked((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12));
-            if (distance >= bestDistance) continue;
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
             // 0x00453600 is asked of the tile under the bird's point; ours' Hatchery pillars are virtual.
             var under = new TilePos(thing.PosX >> 12, thing.PosY >> 12);
             if (CasinoStep.HasObstacle(world, database, (under.Y * world.Width) + under.X)
-                || ChickenMovementRules.HasHatcheryPillar(world, database, under)) continue;
+                || ChickenMovementRules.HasHatcheryPillar(world, database, under))
+            {
+                continue;
+            }
 
             best = thing;
             bestDistance = distance;
@@ -198,19 +214,39 @@ public static class EatingRules
 
         EntityList<ObjectState> objects = world.Objects;
         foreach (int tile in SlabChain.Order(world, room))
-        for (int i = 0; i < objects.Count; i++)
+        {
+            for (int i = 0; i < objects.Count; i++)
         {
             ObjectState thing = objects[i];
-            if (thing.InHand) continue;
-            if (thing.CarriedByCreatureId >= 0) continue;
-            if (!IsFood(database, thing)) continue;
-            if (thing.TileIndex != tile) continue;
+            if (thing.InHand)
+                {
+                    continue;
+                }
 
-            long distance = DistanceSquared(world, from, thing.TileIndex);
-            if (distance >= bestDistance) continue;
+                if (thing.CarriedByCreatureId >= 0)
+                {
+                    continue;
+                }
 
-            best = thing;
+                if (!IsFood(database, thing))
+                {
+                    continue;
+                }
+
+                if (thing.TileIndex != tile)
+                {
+                    continue;
+                }
+
+                long distance = DistanceSquared(world, from, thing.TileIndex);
+            if (distance >= bestDistance)
+                {
+                    continue;
+                }
+
+                best = thing;
             bestDistance = distance;
+        }
         }
 
         return best;
@@ -228,7 +264,10 @@ public static class EatingRules
         EntityList<ObjectState> objects = world.Objects;
         for (int i = 0; i < objects.Count; i++)
         {
-            if (IsEdibleChicken(objects[i]) && Contains(room, objects[i].TileIndex)) return true;
+            if (IsEdibleChicken(objects[i]) && Contains(room, objects[i].TileIndex))
+            {
+                return true;
+            }
         }
 
         return false;
@@ -242,8 +281,13 @@ public static class EatingRules
     {
         ObjectState? newest = null;
         foreach (ObjectState thing in world.Objects)
+        {
             if (IsEdibleChicken(thing) && Contains(room, thing.TileIndex) && (newest is null || thing.Id > newest.Id))
+            {
                 newest = thing;
+            }
+        }
+
         return newest;
     }
 
@@ -253,7 +297,10 @@ public static class EatingRules
         IReadOnlyList<int> tiles = room.TileIndices;
         for (int i = 0; i < tiles.Count; i++)
         {
-            if (tiles[i] == tileIndex) return true;
+            if (tiles[i] == tileIndex)
+            {
+                return true;
+            }
         }
 
         return false;
@@ -296,11 +343,21 @@ public static class EatingRules
     public static bool Tick(GameDatabase database, CreatureDef creature, CreatureState state, long now)
     {
         int fill = HungerFill(database, creature, state.Level);
-        if (fill <= 0) return false;
+        if (fill <= 0)
+        {
+            return false;
+        }
 
         int rate = HungerRateSeconds(creature);
-        if (rate <= 0 || rate >= CreatureHealthRules.Never) return false;
-        if (now - state.LastAteTick < SimulationTiming.TicksFromSeconds(rate)) return false;
+        if (rate <= 0 || rate >= CreatureHealthRules.Never)
+        {
+            return false;
+        }
+
+        if (now - state.LastAteTick < SimulationTiming.TicksFromSeconds(rate))
+        {
+            return false;
+        }
 
         state.LastAteTick = now;
         state.HungerNeed += fill;
@@ -320,7 +377,10 @@ public static class EatingRules
     {
         state.HungerNeed = Math.Max(0, state.HungerNeed - pays);
         state.LastAteTick = now;
-        if (!keepTarget) state.TargetObjectId = NoChicken;
+        if (!keepTarget)
+        {
+            state.TargetObjectId = NoChicken;
+        }
 
         // The eater's own owner is the source (0x0046394C; the prisoner's meal 0x00473857 likewise).
         return CreatureHealthRules.Apply(database, creature, state, creature.HpFromChicken, state.OwnerPlayerId);

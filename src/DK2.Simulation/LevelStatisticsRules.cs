@@ -18,10 +18,17 @@ public static class LevelStatisticsRules
     /// counts a room unless it is a bridge (types 8, 17, 22), and every type adds slabs × cost / 100.</summary>
     public static void CreditRoomTakeover(WorldState world, RoomDef room, int slabs, PlayerId newOwner)
     {
-        if (!world.HasPlayer(newOwner)) return;
+        if (!world.HasPlayer(newOwner))
+        {
+            return;
+        }
+
         ref PlayerLevelStatistics stats = ref world.Player(newOwner).Statistics;
         if (room.TypeId is not (RoomTypeId.WoodenBridge or RoomTypeId.StoneBridge or RoomTypeId.HeroStoneBridge))
+        {
             stats.RoomsTakenOver++;
+        }
+
         stats.RoomExtraPoints += slabs * room.Cost / 100;
     }
 
@@ -30,20 +37,35 @@ public static class LevelStatisticsRules
     /// for the victim's owner, credited or not.</summary>
     public static void CreditDeath(WorldState world, CreatureDef creature, CreatureState state, byte credited)
     {
-        if (state.Health > 0 || state.DeathUncounted) return;
+        if (state.Health > 0 || state.DeathUncounted)
+        {
+            return;
+        }
+
         if (credited != 0 && !((creature.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood) && credited != state.OwnerPlayerId
             && world.HasPlayer(credited))
+        {
             world.Player(credited).Statistics.EnemyCreaturesKilled++;
+        }
         // 0x00488322: every credited death, IsGood or own included, by the victim owner's number.
         if (credited != 0 && world.HasPlayer(credited) && state.OwnerPlayerId < KillTally.Length)
+        {
             unchecked { world.Player(credited).Statistics.KillsByVictimOwner[state.OwnerPlayerId]++; }
-        if (world.HasPlayer(state.OwnerPlayerId)) world.Player(state.OwnerPlayerId).Statistics.OwnCreaturesKilled++;
+        }
+
+        if (world.HasPlayer(state.OwnerPlayerId))
+        {
+            world.Player(state.OwnerPlayerId).Statistics.OwnCreaturesKilled++;
+        }
     }
 
     /// <summary><c>0x004DA7B2</c>: the destroyer of a heart, when it is not the heart's owner.</summary>
     public static void CreditHeartDestroyed(WorldState world, PlayerId owner, PlayerId destroyer)
     {
-        if (destroyer != owner && world.HasPlayer(destroyer)) world.Player(destroyer).Statistics.DungeonHeartsDestroyed++;
+        if (destroyer != owner && world.HasPlayer(destroyer))
+        {
+            world.Player(destroyer).Statistics.DungeonHeartsDestroyed++;
+        }
     }
 
     /// <summary>The level-end part of <c>0x004BE630</c>, once per player: samples mana, creatures and
@@ -55,14 +77,22 @@ public static class LevelStatisticsRules
     {
         ref PlayerState player = ref world.Player(playerId);
         ref PlayerLevelStatistics stats = ref player.Statistics;
-        if (stats.Sampled) return;
+        if (stats.Sampled)
+        {
+            return;
+        }
+
         stats.ManaStored = player.Mana;
 
         int owned = 0, levels = 0;
         foreach (CreatureState creature in world.Creatures)
         {
             // A body stays in our list with its owner; DK2's corpse is another thing, off the player's list.
-            if (CreatureDeathRules.IsCorpse(creature)) continue;
+            if (CreatureDeathRules.IsCorpse(creature))
+            {
+                continue;
+            }
+
             if (creature.OwnerPlayerId == playerId)
             {
                 owned++;
@@ -71,21 +101,41 @@ public static class LevelStatisticsRules
             }
             // 0x004BE98D: another player's creature left dying by this player's blow. DK2 tests +0x3E6 bit
             // 0x200000; the collapsed state stands in for it (a creature at 0 health not yet down is missed).
-            if (creature.HealthSourcePlayerId != playerId.Value || !CreatureDeathRules.IsDying(creature)) continue;
-            if (creature.OwnerPlayerId == PlayerIds.Good) player.HeroesDestroyed++;
-            else stats.EnemyCreaturesKilled++;
+            if (creature.HealthSourcePlayerId != playerId.Value || !CreatureDeathRules.IsDying(creature))
+            {
+                continue;
+            }
+
+            if (creature.OwnerPlayerId == PlayerIds.Good)
+            {
+                player.HeroesDestroyed++;
+            }
+            else
+            {
+                stats.EnemyCreaturesKilled++;
+            }
         }
         stats.CreaturesCommanded = owned;
         stats.CreatureTraining = owned == 0 ? 0 : (int)(((long)levels << 12) / owned);
 
         foreach (ObjectState item in world.Objects)
+        {
             if (item.OwnerPlayerId == playerId.Value && item.ObjectTypeId is >= FirstSpecial and <= LastSpecial)
+            {
                 stats.SpecialsFound++;
+            }
+        }
 
         stats.LevelWon = status == PlayerStatus.Won;
         int land = 0;
         for (int i = 0; i < world.TileCount; i++)
-            if (world.TileAtIndex(i).OwnerPlayerId == playerId.Value) land++;
+        {
+            if (world.TileAtIndex(i).OwnerPlayerId == playerId.Value)
+            {
+                land++;
+            }
+        }
+
         stats.LandOwned = land;
         stats.EndTurn = world.CurrentTick.Value;
         stats.AtVerdict = new LevelCounters

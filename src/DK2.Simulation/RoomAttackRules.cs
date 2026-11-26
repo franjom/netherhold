@@ -27,22 +27,42 @@ public static class RoomAttackRules
     /// </summary>
     public static bool TryBegin(SimulationContext context, string system, CreatureState creature)
     {
-        if (creature.OwnerPlayerId != PlayerIds.Good || !creature.DestroysRooms || creature.CombatPitFighter) return false;
+        if (creature.OwnerPlayerId != PlayerIds.Good || !creature.DestroysRooms || creature.CombatPitFighter)
+        {
+            return false;
+        }
+
         TilePos at = creature.Tile;
         (int lastX, int lastY) = creature.TileEntryLastPos;
-        if (at.X == lastX >> 12 && at.Y == lastY >> 12) return false;
+        if (at.X == lastX >> 12 && at.Y == lastY >> 12)
+        {
+            return false;
+        }
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
         ref TileState tile = ref world.Tile(at);
-        if (tile.OwnerPlayerId is PlayerIds.Good or PlayerIds.Neutral) return false;
-        if (database.RoomByTerrain(tile.TerrainId) is not { IsBuildable: true, PlaceableOnLand: true }) return false;
-        if (!Combat.CombatRules.MayLookForAFight(world, database, creature, force: false)) return false;
+        if (tile.OwnerPlayerId is PlayerIds.Good or PlayerIds.Neutral)
+        {
+            return false;
+        }
+
+        if (database.RoomByTerrain(tile.TerrainId) is not { IsBuildable: true, PlaceableOnLand: true })
+        {
+            return false;
+        }
+
+        if (!Combat.CombatRules.MayLookForAFight(world, database, creature, force: false))
+        {
+            return false;
+        }
 
         int x = CreatureState.CentreOf(at.X), y = CreatureState.CentreOf(at.Y);
         if (!TunnelRules.RouteOrTunnel(context, system, creature, x, y, Systems.StateShadow.TravelToPoint,
                 DestroyingRoomsState, options: 0, at.X, at.Y))
+        {
             return false;
+        }
 
         context.Emit(system, "room_attack_begun", $"creature={creature.Id} at=({at.X},{at.Y})");
         return true;
@@ -61,7 +81,9 @@ public static class RoomAttackRules
         TilePos at = creature.Tile;
         long now = context.Tick.Value;
         if (context.Database.RoomByTerrain(world.Tile(at).TerrainId) is null)
+        {
             return creature.StateDeadlineTick == now - 1;
+        }
 
         world.QueueWork(new TileWorkOrder((at.Y * world.Width) + at.X, TileWorkKind.AttackRoom, creature.OwnerPlayerId, creature.Id));
         creature.StateDeadlineTick = now;

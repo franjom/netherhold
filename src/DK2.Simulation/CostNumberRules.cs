@@ -28,7 +28,11 @@ public static class CostNumberRules
     public static void Show(SimulationContext context, string system, PlayerId player, FpPosition3 point,
         int amount, CostNumberKind kind = CostNumberKind.Gold)
     {
-        if (amount < 0) return;
+        if (amount < 0)
+        {
+            return;
+        }
+
         context.RequestEffect(system, new ViewEffectRequest(
             new EffectId(kind == CostNumberKind.Gold ? GoldEffectId : ManaEffectId), player, point)
         {

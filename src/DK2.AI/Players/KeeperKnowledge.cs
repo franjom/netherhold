@@ -36,7 +36,13 @@ public sealed record RoomFacts
         get
         {
             foreach (RoomSizeFacts size in Sizes)
-                if (CapsCreatures ? size.Attraction > 0 : size.Gold > 0) return size.Side;
+            {
+                if (CapsCreatures ? size.Attraction > 0 : size.Gold > 0)
+                {
+                    return size.Side;
+                }
+            }
+
             return null;
         }
     }
@@ -44,14 +50,28 @@ public sealed record RoomFacts
     /// <summary>The smallest measured side with at least <paramref name="slots"/> floor slots, or null.</summary>
     public int? SideForSlots(int slots)
     {
-        foreach (RoomSizeFacts size in Sizes) if (size.FloorSlots >= slots) return size.Side;
+        foreach (RoomSizeFacts size in Sizes)
+        {
+            if (size.FloorSlots >= slots)
+            {
+                return size.Side;
+            }
+        }
+
         return null;
     }
 
     /// <summary>The smallest measured side whose attraction reaches <paramref name="attraction"/>, or null.</summary>
     public int? SideFor(int attraction)
     {
-        foreach (RoomSizeFacts size in Sizes) if (size.Attraction >= attraction) return size.Side;
+        foreach (RoomSizeFacts size in Sizes)
+        {
+            if (size.Attraction >= attraction)
+            {
+                return size.Side;
+            }
+        }
+
         return null;
     }
 }
@@ -69,7 +89,12 @@ public sealed class KeeperKnowledge
     {
         _rooms = [];
         foreach (RoomFacts room in rooms ?? throw new ArgumentNullException(nameof(rooms)))
-            if (!_rooms.TryAdd(room.Room, room)) throw new ArgumentException($"{room.Room} is described twice.", nameof(rooms));
+        {
+            if (!_rooms.TryAdd(room.Room, room))
+            {
+                throw new ArgumentException($"{room.Room} is described twice.", nameof(rooms));
+            }
+        }
     }
 
     public RoomFacts? Room(RoomTypeId room) => _rooms.TryGetValue(room, out RoomFacts? facts) ? facts : null;

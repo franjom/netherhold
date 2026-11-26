@@ -58,16 +58,28 @@ public static class TempleStep
     /// <summary>One turn of a worshipper. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
     {
-        if (RoomEvictRules.Evict(context, system, creature, RoomTypeId.Temple)) return true;
+        if (RoomEvictRules.Evict(context, system, creature, RoomTypeId.Temple))
+        {
+            return true;
+        }
+
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return true;
+            if (creature.HasRoute)
+            {
+                return true;
+            }
+
             creature.StopMoving();
             return StateShadow.Arrive(context, system, creature);
         }
 
         long age = context.Tick.Value - creature.StateEnteredTick;
-        if (age == 0) return true;
+        if (age == 0)
+        {
+            return true;
+        }
+
         return creature.Dk2StateId switch
         {
             EnteringState => Enter101(context, system, creature, age),
@@ -89,8 +101,16 @@ public static class TempleStep
     private static bool Enter101(SimulationContext context, string system, CreatureState creature, long age)
     {
         WorldState world = context.World;
-        if (age == 1) creature.StopMoving();
-        if (TempleUnder(world, context.Database, creature) is not { } temple) return false;
+        if (age == 1)
+        {
+            creature.StopMoving();
+        }
+
+        if (TempleUnder(world, context.Database, creature) is not { } temple)
+        {
+            return false;
+        }
+
         int here = Here(world, creature);
         if (AutoFurnitureRules.IsFloorSlot(world, temple, here))
         {
@@ -113,7 +133,10 @@ public static class TempleStep
         SacrificeResult result = TempleSacrificeRules.OfferCreature(context.World, context.Database, temple, creature, tile);
         // 0x004F1780 kicks the creature it made to 106 (temple-states.md §6, ADR-0403).
         if (result.RewardKind == SacrificeRewardKind.Creature && context.World.CreatureById(result.SpawnedThingId) is { } summoned)
+        {
             Summon(context, system, summoned);
+        }
+
         context.Emit(system, "sacrificed_in_pool",
             $"creature={creature.Id} type={type} temple_owner={temple.OwnerPlayerId} tile={tile % context.World.Width},{tile / context.World.Width} " +
             $"matched={(result.Matched ? "yes" : "no")} speech={result.SpeechId} reward={result.RewardKind}:{result.SpawnedThingId}");
@@ -136,14 +159,25 @@ public static class TempleStep
         WorldState world = context.World;
         GameDatabase database = context.Database;
         if (!creature.HeldPlace.IsHeld || RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex) is not { } held)
+        {
             return false;
+        }
 
         int here = Here(world, creature);
         int n = FloorSlot(world, database, here) ? 8 : 4;
         int? target;
-        if (SomeoneElseOn(world, creature, here)) target = Neighbour(context, held, here, n);
-        else if (context.Rng.NextInt(100) > StayAbove) target = here;
-        else target = Neighbour(context, held, here, n);
+        if (SomeoneElseOn(world, creature, here))
+        {
+            target = Neighbour(context, held, here, n);
+        }
+        else if (context.Rng.NextInt(100) > StayAbove)
+        {
+            target = here;
+        }
+        else
+        {
+            target = Neighbour(context, held, here, n);
+        }
 
         int x = creature.PosX, y = creature.PosY;
         if (target is { } tile)
@@ -154,7 +188,11 @@ public static class TempleStep
             y = ty + ((-TrapRules.Cosine(a) << 10) >> 16);
         }
 
-        if (Walk(context, system, creature, x, y, FacingState)) return true;
+        if (Walk(context, system, creature, x, y, FacingState))
+        {
+            return true;
+        }
+
         StateShadow.ToIdle(context, system, creature);
         return false;
     }
@@ -171,9 +209,17 @@ public static class TempleStep
         {
             (int dx, int dy) = offsets[(r + k) % n];
             var at = new TilePos(x0 + dx, y0 + dy);
-            if (!world.Contains(at)) continue;
+            if (!world.Contains(at))
+            {
+                continue;
+            }
+
             int tile = (at.Y * world.Width) + at.X;
-            if (!room.Contains(tile) || AutoFurnitureRules.IsFloorSlot(world, room, tile) || AnyoneOn(world, tile)) continue;
+            if (!room.Contains(tile) || AutoFurnitureRules.IsFloorSlot(world, room, tile) || AnyoneOn(world, tile))
+            {
+                continue;
+            }
+
             return tile;
         }
 
@@ -189,11 +235,15 @@ public static class TempleStep
         WorldState world = context.World;
         GameDatabase database = context.Database;
         if (SomeoneElseOn(world, creature, Here(world, creature)) && StateShadow.TryMove(context, system, creature, ChoosingState))
+        {
             return true;
+        }
 
         if (creature.HeldPlace.IsHeld && RoomIndex.RoomAt(world, database, creature.HeldPlace.TileIndex) is { } held
             && CasinoStep.TurnTo(context, creature, CreatureState.CentreOf(held.CentreFieldX), CreatureState.CentreOf(held.CentreFieldY)) != 0)
+        {
             return true;
+        }
 
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         if (AnimationTimingRules.ResolvesPresent(definition, PrayerArtSlot))
@@ -218,12 +268,19 @@ public static class TempleStep
         bool moved = creature.WaitPosX != creature.PosX || creature.WaitPosY != creature.PosY;
         if (age != 1 && moved && StateShadow.TryMove(context, system, creature, EnteringState))
         {
-            if (now < creature.ActionUntilTick) creature.ActionUntilTick = 0;
+            if (now < creature.ActionUntilTick)
+            {
+                creature.ActionUntilTick = 0;
+            }
+
             return true;
         }
 
         (creature.WaitPosX, creature.WaitPosY) = (creature.PosX, creature.PosY);
-        if (now < creature.ActionUntilTick) return true;
+        if (now < creature.ActionUntilTick)
+        {
+            return true;
+        }
 
         // 0x00472F64-0x00472FD3: both floor-slot lookups are of its own position, so the step is
         // always taken (0x004B5560 does not bound it; ours clamps to the map, which a step of under
@@ -245,7 +302,10 @@ public static class TempleStep
     public static void Summon(SimulationContext context, string system, CreatureState creature)
     {
         creature.CurrentJob = JobType.Praying;
-        if (!StateShadow.TryMove(context, system, creature, SummonedState)) EndJob(creature);
+        if (!StateShadow.TryMove(context, system, creature, SummonedState))
+        {
+            EndJob(creature);
+        }
     }
 
     /// <summary>106: at its first turn and holding a place, a walk to the room point resuming 1.</summary>
@@ -254,11 +314,21 @@ public static class TempleStep
         WorldState world = context.World;
         if (age != 1 || !creature.HeldPlace.IsHeld
             || RoomIndex.RoomAt(world, context.Database, creature.HeldPlace.TileIndex) is not { } held)
+        {
             return false;
-        if (PrisonRules.RefusedBodyPoint(world, context.Database, held, context.Rng) is not { } tile) return false;
+        }
+
+        if (PrisonRules.RefusedBodyPoint(world, context.Database, held, context.Rng) is not { } tile)
+        {
+            return false;
+        }
+
         if (!Walk(context, system, creature, CreatureState.CentreOf(tile % world.Width), CreatureState.CentreOf(tile / world.Width),
                 CreatureStateMachine.Idle))
+        {
             return false;
+        }
+
         EndJob(creature);   // a walk resuming 1 is the idle walk's (CreatureJobSystem)
         return true;
     }
@@ -272,7 +342,11 @@ public static class TempleStep
     /// <summary>107: a turn's wait, then 101 on its own keeper's Temple, otherwise idle.</summary>
     private static bool Return(SimulationContext context, string system, CreatureState creature, long age)
     {
-        if (age <= 1) return true;
+        if (age <= 1)
+        {
+            return true;
+        }
+
         return TempleUnder(context.World, context.Database, creature) is { } temple
             && temple.OwnerPlayerId == creature.OwnerPlayerId
             && Set(context, system, creature, EnteringState);
@@ -284,7 +358,11 @@ public static class TempleStep
 
     private static RoomInstance? TempleUnder(WorldState world, GameDatabase database, CreatureState creature)
     {
-        if (!world.Contains(creature.Tile)) return null;
+        if (!world.Contains(creature.Tile))
+        {
+            return null;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(world, database, Here(world, creature));
         return room is not null && room.Definition.TypeId == RoomTypeId.Temple ? room : null;
     }
@@ -299,23 +377,37 @@ public static class TempleStep
     private static bool SomeoneElseOn(WorldState world, CreatureState creature, int tile)
     {
         foreach (CreatureState c in world.Creatures)
+        {
             if (c.Id != creature.Id && !CreatureDeathRules.IsCorpse(c) && world.Contains(c.Tile)
                 && (c.Tile.Y * world.Width) + c.Tile.X == tile)
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
     private static bool AnyoneOn(WorldState world, int tile)
     {
         foreach (CreatureState c in world.Creatures)
+        {
             if (!CreatureDeathRules.IsCorpse(c) && world.Contains(c.Tile) && (c.Tile.Y * world.Width) + c.Tile.X == tile)
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
     private static bool Walk(SimulationContext context, string system, CreatureState creature, int x, int y, int resume)
     {
-        if (!context.Navigation.TryRouteTo(creature, x, y, MoveOptions.Loose)) return false;
+        if (!context.Navigation.TryRouteTo(creature, x, y, MoveOptions.Loose))
+        {
+            return false;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         context.Emit(system, "temple_walk", $"creature={creature.Id} to=({x >> 12},{y >> 12}) resume={resume}");
         return true;

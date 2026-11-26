@@ -61,7 +61,11 @@ public static class FearRules
     /// intake (Level 4's Goblin 435: 606 at 3498, fleeing at 3500).</summary>
     public static void Radiate(SimulationContext context, ISightBlocker sight, HeartSites hearts, CreatureState me, CreatureDef mine)
     {
-        if (CreatureDeathRules.IsDown(me) || StatusEffectRules.IsStunned(me) || ChickenRules.IsChicken(me)) return;
+        if (CreatureDeathRules.IsDown(me) || StatusEffectRules.IsStunned(me) || ChickenRules.IsChicken(me))
+        {
+            return;
+        }
+
         WorldState world = context.World;
 
         int d = Math.Min(FullFearDistance, HeartDistance(world, hearts, me));
@@ -69,20 +73,47 @@ public static class FearRules
         me.TempFear = 0;
 
         int engagements = CombatRules.AttackerCount(me) + (me.FightTargetKind != FightTargetKind.None ? 1 : 0);
-        if (engagements == 0) return;
+        if (engagements == 0)
+        {
+            return;
+        }
+
         int share = ThreatAtLevel(context.Database, mine, me.Level) / engagements;
 
-        if (me.FightTargetKind == FightTargetKind.Creature) Give(world, sight, me, me.FightTargetId, share);
-        for (int i = 0; i < CombatRules.Slots; i++) Give(world, sight, me, me.EngagedMelee[i], share);
-        for (int i = 0; i < CombatRules.Slots; i++) Give(world, sight, me, me.EngagedRanged[i], share);
+        if (me.FightTargetKind == FightTargetKind.Creature)
+        {
+            Give(world, sight, me, me.FightTargetId, share);
+        }
+
+        for (int i = 0; i < CombatRules.Slots; i++)
+        {
+            Give(world, sight, me, me.EngagedMelee[i], share);
+        }
+
+        for (int i = 0; i < CombatRules.Slots; i++)
+        {
+            Give(world, sight, me, me.EngagedRanged[i], share);
+        }
     }
 
     private static void Give(WorldState world, ISightBlocker sight, CreatureState me, int id, int share)
     {
-        if (id == CombatRules.NoTarget) return;
+        if (id == CombatRules.NoTarget)
+        {
+            return;
+        }
+
         CreatureState? them = world.CreatureById(id);
-        if (them is null || CreatureDeathRules.IsDown(them)) return;
-        if (!LineOfSight.Clear(sight, me.PosX, me.PosY, them.PosX, them.PosY)) return;
+        if (them is null || CreatureDeathRules.IsDown(them))
+        {
+            return;
+        }
+
+        if (!LineOfSight.Clear(sight, me.PosX, me.PosY, them.PosX, them.PosY))
+        {
+            return;
+        }
+
         them.TempFear = (ushort)(them.TempFear + share);
         ThreatFleeRules.Record(them, share, ThreatSource.OfCreature(me));   // the inlined 0x0045C5D0 (0x0045E742)
     }
@@ -124,9 +155,17 @@ public static class FearRules
     public static bool ShouldWithdraw(WorldState world, GameDatabase database, HeartSites hearts, CreatureState me, CreatureDef mine)
     {
         if (me.CombatPitFighter || ((mine.Flags & CreatureFlags.IsFearless) == CreatureFlags.IsFearless)
-            || CasinoRules.IsFearlessFromGambling(world, me)) return false;
+            || CasinoRules.IsFearlessFromGambling(world, me))
+        {
+            return false;
+        }
+
         int d = me.OwnerPlayerId == PlayerIds.Good ? 0 : HeartDistance(world, hearts, me);
-        if (d <= WithdrawHeartDistance) return false;
+        if (d <= WithdrawHeartDistance)
+        {
+            return false;
+        }
+
         return me.Health < CreatureLevelRules.MaxHealth(database, mine, me.Level) * 100 / 600;
     }
 
@@ -136,8 +175,16 @@ public static class FearRules
     /// True at three or more. An Imp fighting an Imp is not forced out (ADR-0347).</summary>
     public static bool OverThreat(WorldState world, GameDatabase database, CreatureState me, CreatureDef mine)
     {
-        if (me.OverThreatCounter > CounterReset) me.OverThreatCounter = 0;
-        if (me.OverThreatCounter > FleeCount) me.OverThreatCounter = FleeCount;
+        if (me.OverThreatCounter > CounterReset)
+        {
+            me.OverThreatCounter = 0;
+        }
+
+        if (me.OverThreatCounter > FleeCount)
+        {
+            me.OverThreatCounter = FleeCount;
+        }
+
         if (me.CombatPitFighter || ((mine.Flags & CreatureFlags.IsFearless) == CreatureFlags.IsFearless)
             || CasinoRules.IsFearlessFromGambling(world, me))
         {
@@ -145,10 +192,20 @@ public static class FearRules
             return false;
         }
 
-        if (me.CurrentFear > FearThreshold(database, mine, me.Level)) me.OverThreatCounter++;
-        else me.OverThreatCounter = 0;
+        if (me.CurrentFear > FearThreshold(database, mine, me.Level))
+        {
+            me.OverThreatCounter++;
+        }
+        else
+        {
+            me.OverThreatCounter = 0;
+        }
 
-        if (mine.FightStyle == FightStyle.NonFighter && NonImpAmongAttackers(world, me)) me.OverThreatCounter = FleeCount;
+        if (mine.FightStyle == FightStyle.NonFighter && NonImpAmongAttackers(world, me))
+        {
+            me.OverThreatCounter = FleeCount;
+        }
+
         return me.OverThreatCounter >= FleeCount;
     }
 
@@ -158,7 +215,10 @@ public static class FearRules
     {
         for (int i = 0; i < CombatRules.Slots; i++)
         {
-            if (IsNonImp(world, me.EngagedMelee[i]) || IsNonImp(world, me.EngagedRanged[i])) return true;
+            if (IsNonImp(world, me.EngagedMelee[i]) || IsNonImp(world, me.EngagedRanged[i]))
+            {
+                return true;
+            }
         }
         return false;
 
@@ -177,10 +237,20 @@ public static class FearRules
         for (int n = 0; n < Neighbours.Length; n++)
         {
             int x = tile.X + Neighbours[n].Dx, y = tile.Y + Neighbours[n].Dy;
-            if (!world.Contains(x, y)) continue;
-            if (!CombatTargetRules.CanReach(context.Navigation, me, mine, CreatureState.CentreOf(x), CreatureState.CentreOf(y), int.MaxValue, scratch))
+            if (!world.Contains(x, y))
+            {
                 continue;
-            if (!HeldByAnAttacker(world, me, x, y)) return false;
+            }
+
+            if (!CombatTargetRules.CanReach(context.Navigation, me, mine, CreatureState.CentreOf(x), CreatureState.CentreOf(y), int.MaxValue, scratch))
+            {
+                continue;
+            }
+
+            if (!HeldByAnAttacker(world, me, x, y))
+            {
+                return false;
+            }
         }
         return true;
     }
@@ -191,11 +261,26 @@ public static class FearRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];
-            if (c.Id == me.Id || CreatureDeathRules.IsDown(c)) continue;
+            if (c.Id == me.Id || CreatureDeathRules.IsDown(c))
+            {
+                continue;
+            }
+
             TilePos t = c.Tile;
-            if (t.X != x || t.Y != y) continue;
-            if (!CombatRules.IsHostile(world, me.OwnerPlayerId, c.OwnerPlayerId)) continue;
-            if (c.FightTargetKind == FightTargetKind.Creature && c.FightTargetId == me.Id) return true;
+            if (t.X != x || t.Y != y)
+            {
+                continue;
+            }
+
+            if (!CombatRules.IsHostile(world, me.OwnerPlayerId, c.OwnerPlayerId))
+            {
+                continue;
+            }
+
+            if (c.FightTargetKind == FightTargetKind.Creature && c.FightTargetId == me.Id)
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -209,7 +294,11 @@ public static class FearRules
         SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef mine,
         List<Fixed16Vector> scratch)
     {
-        if (Cornered(context, me, mine, scratch)) return false;
+        if (Cornered(context, me, mine, scratch))
+        {
+            return false;
+        }
+
         long tick = context.Tick.Value;
         if (ShouldWithdraw(context.World, context.Database, hearts, me, mine) && tick != me.CombatStateEnteredTick
             && Withdraw(context, sight, hearts, rooms, me, mine, StagedTarget(context.World, me), scratch))
@@ -217,7 +306,11 @@ public static class FearRules
             WithdrawnBody(me);
             return true;
         }
-        if (!OverThreat(context.World, context.Database, me, mine)) return false;
+        if (!OverThreat(context.World, context.Database, me, mine))
+        {
+            return false;
+        }
+
         PossessionRules.DropFollowFromFear(context.World, me);   // 0x0045F425: a follower lets go first
         EnterFlee(context, me, mine);
         return true;
@@ -243,15 +336,23 @@ public static class FearRules
 
         if (fromApproach)
         {
-            if (((mine.Flags & CreatureFlags.AlwaysFlee) == CreatureFlags.AlwaysFlee)) timer = 0;
+            if (((mine.Flags & CreatureFlags.AlwaysFlee) == CreatureFlags.AlwaysFlee))
+            {
+                timer = 0;
+            }
         }
-        else if (me.FightTargetKind == FightTargetKind.None || mine.FightStyle == FightStyle.NonFighter) timer = 0;
+        else if (me.FightTargetKind == FightTargetKind.None || mine.FightStyle == FightStyle.NonFighter)
+        {
+            timer = 0;
+        }
         else if (me.FightTargetKind == FightTargetKind.Creature)
         {
             CreatureState? target = context.World.CreatureById(me.FightTargetId);
             if (target != null && !CreatureDeathRules.IsDown(target)
                 && RunPerTick(database.CreatureById(target.CreatureTypeId)) > RunPerTick(mine))
+            {
                 timer = 0;
+            }
         }
 
         me.BackOffTimer = timer;
@@ -281,7 +382,10 @@ public static class FearRules
         GameDatabase database = context.Database;
         long tick = context.Tick.Value;
 
-        if (me.FightTargetKind == FightTargetKind.Creature && world.CreatureById(me.FightTargetId) is null) ClearTarget(world, me);
+        if (me.FightTargetKind == FightTargetKind.Creature && world.CreatureById(me.FightTargetId) is null)
+        {
+            ClearTarget(world, me);
+        }
         // The two steering body bits (0x0046037B..0x004603A3).
         me.Body.IsBlocker = false;
         me.Body.IgnoreBlocker = false;
@@ -293,7 +397,10 @@ public static class FearRules
         }
         me.BackOffTimer--;
 
-        if (me.FightTargetKind != FightTargetKind.None && !FightRules.TargetIsValid(world, context.Database, me)) ClearTarget(world, me);
+        if (me.FightTargetKind != FightTargetKind.None && !FightRules.TargetIsValid(world, context.Database, me))
+        {
+            ClearTarget(world, me);
+        }
 
         if (ShouldWithdraw(world, database, hearts, me, mine) && tick != me.CombatStateEnteredTick
             && Withdraw(context, sight, hearts, rooms, me, mine, StagedTarget(world, me), scratch))
@@ -316,7 +423,10 @@ public static class FearRules
         }
 
         CreatureState? target = me.FightTargetKind == FightTargetKind.Creature ? world.CreatureById(me.FightTargetId) : null;
-        if (me.FightTargetKind == FightTargetKind.Creature && target is null) return;
+        if (me.FightTargetKind == FightTargetKind.Creature && target is null)
+        {
+            return;
+        }
 
         CreatureState? nearest = NearestAttacker(context, sight, me, mine, scratch);
         if (nearest != null && (me.FightTargetKind != FightTargetKind.Creature || nearest.Id != me.FightTargetId))
@@ -333,7 +443,10 @@ public static class FearRules
             target = nearest;
         }
 
-        if (!FightRules.TargetPosition(world, context.Database, me, out int tx, out int ty, out _)) return;
+        if (!FightRules.TargetPosition(world, context.Database, me, out int tx, out int ty, out _))
+        {
+            return;
+        }
         // One turn step toward the target (0x004B2AE0 at 0x0046071C) before the range test, so the
         // step back below runs away from it (ADR-0766). DK2 aims at the +0x502 thing's position; ours
         // takes the target position, the same point for a creature (door, trap and pillar points unread).
@@ -342,7 +455,11 @@ public static class FearRules
         me.Heading = heading;
         int d = CombatRules.DistanceSquared(me.PosX, me.PosY, tx, ty);
         int range = MinimumStandOffSquared;
-        if (target != null && CombatRules.InCombat(target)) range = Math.Max(range, target.AttackRangeSquared);
+        if (target != null && CombatRules.InCombat(target))
+        {
+            range = Math.Max(range, target.AttackRangeSquared);
+        }
+
         range = (5 * range) >> 2;
 
         if (d > range)
@@ -381,13 +498,20 @@ public static class FearRules
             int theirs = LocalStrength(context, target.OwnerPlayerId, me.PosX, me.PosY);
             int ours = LocalStrength(context, me.OwnerPlayerId, me.PosX, me.PosY) * 3 / 4;
             if (ours <= theirs && RaiseAlarm(context, rooms, me, mine, target.PosX, target.PosY, (theirs - ours) * 3 / 2))
+            {
                 return;
+            }
+
             End(context, me, ours > theirs ? "outnumbers" : "no_alarm");
             return;
         }
 
         ClearTarget(world, me);
-        if (Withdraw(context, sight, hearts, rooms, me, mine, staged: null, scratch)) return;
+        if (Withdraw(context, sight, hearts, rooms, me, mine, staged: null, scratch))
+        {
+            return;
+        }
+
         End(context, me, "nowhere_to_go");
     }
 
@@ -399,9 +523,16 @@ public static class FearRules
         int g = unchecked((byte)context.Database.Variables[VariableTypeId.GuardRoomReportingDistanceTiles]);
         foreach (RoomInstance room in rooms.Of(context, owner.Value))
         {
-            if (room.Definition.TypeId != RoomTypeId.GuardRoom) continue;
+            if (room.Definition.TypeId != RoomTypeId.GuardRoom)
+            {
+                continue;
+            }
+
             if (targetTile.X > room.MinX - g && targetTile.X < room.MaxX + g
-                && targetTile.Y > room.MinY - g && targetTile.Y < room.MaxY + g) return true;
+                && targetTile.Y > room.MinY - g && targetTile.Y < room.MaxY + g)
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -418,8 +549,16 @@ public static class FearRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];
-            if (c.OwnerPlayerId != playerId || CreatureDeathRules.IsCorpse(c) || !CombatPitRules.IsOnTheMap(c)) continue;
-            if (CombatRules.DistanceSquared(c.PosX, c.PosY, x, y) >= HeadCountRadiusSquared) continue;
+            if (c.OwnerPlayerId != playerId || CreatureDeathRules.IsCorpse(c) || !CombatPitRules.IsOnTheMap(c))
+            {
+                continue;
+            }
+
+            if (CombatRules.DistanceSquared(c.PosX, c.PosY, x, y) >= HeadCountRadiusSquared)
+            {
+                continue;
+            }
+
             sum += ThreatAtLevel(database, database.CreatureById(c.CreatureTypeId), c.Level);
         }
         return sum;
@@ -441,17 +580,38 @@ public static class FearRules
         for (int i = 0; i < 2 * CombatRules.Slots; i++)
         {
             int id = i < CombatRules.Slots ? me.EngagedMelee[i] : me.EngagedRanged[i - CombatRules.Slots];
-            if (id == CombatRules.NoTarget) continue;
+            if (id == CombatRules.NoTarget)
+            {
+                continue;
+            }
+
             CreatureState? c = world.CreatureById(id);
-            if (c is null) continue;
+            if (c is null)
+            {
+                continue;
+            }
 
             int d = PossessionRules.CreepingDistance(database, c, CombatRules.DistanceSquared(me.PosX, me.PosY, c.PosX, c.PosY));
-            if (CombatRules.OppositeAlignment(mine, database.CreatureById(c.CreatureTypeId))) d = CombatRules.Discounted(d);
-            if (d >= best || !CombatRules.IsAttackable(c) || PossessionRules.IsDisguisedFrom(me, c)) continue;
+            if (CombatRules.OppositeAlignment(mine, database.CreatureById(c.CreatureTypeId)))
+            {
+                d = CombatRules.Discounted(d);
+            }
+
+            if (d >= best || !CombatRules.IsAttackable(c) || PossessionRules.IsDisguisedFrom(me, c))
+            {
+                continue;
+            }
 
             bool seen = d < sightSq && LineOfSight.Clear(sight, me.PosX, me.PosY, c.PosX, c.PosY);
-            if (!seen && !(d < hearSq && CombatTargetRules.CanReach(context.Navigation, me, mine, c.PosX, c.PosY, hearSq, scratch))) continue;
-            if (!CombatTargetRules.CanReach(context.Navigation, me, mine, c.PosX, c.PosY, int.MaxValue, scratch)) continue;
+            if (!seen && !(d < hearSq && CombatTargetRules.CanReach(context.Navigation, me, mine, c.PosX, c.PosY, hearSq, scratch)))
+            {
+                continue;
+            }
+
+            if (!CombatTargetRules.CanReach(context.Navigation, me, mine, c.PosX, c.PosY, int.MaxValue, scratch))
+            {
+                continue;
+            }
 
             best = d;
             chosen = c;
@@ -495,13 +655,22 @@ public static class FearRules
         if (CombatTargetRules.CanReach(navigation, me, mine, me.PosX + vx, me.PosY + vy, int.MaxValue, scratch, MoveOptions.Loose))
         {
             if (Passable(world, navigation, me.PosX, me.PosY + vy) || Passable(world, navigation, me.PosX + vx, me.PosY))
+            {
                 return Step(context, me, vx, vy);
+            }
+
             return false;
         }
         if (CombatTargetRules.CanReach(navigation, me, mine, me.PosX, me.PosY + vy, int.MaxValue, scratch, MoveOptions.Loose))
+        {
             return Step(context, me, 0, vy < 1 ? -StepBackLength : StepBackLength);
+        }
+
         if (CombatTargetRules.CanReach(navigation, me, mine, me.PosX + vx, me.PosY, int.MaxValue, scratch, MoveOptions.Loose))
+        {
             return Step(context, me, vx < 1 ? -StepBackLength : StepBackLength, 0);
+        }
+
         return false;
     }
 
@@ -523,12 +692,20 @@ public static class FearRules
     {
         long lengthSq = ((long)vx * vx) + ((long)vy * vy);
         int steps = 1;
-        while (steps < 16 && (long)steps * 16384 * steps * 16384 <= lengthSq) steps++;
+        while (steps < 16 && (long)steps * 16384 * steps * 16384 <= lengthSq)
+        {
+            steps++;
+        }
+
         int x0 = me.PosX, y0 = me.PosY, x = x0, y = y0;
         for (int i = 1; i <= steps; i++)
         {
             int nx = x0 + (i * vx / steps) / 16, ny = y0 + (i * vy / steps) / 16;
-            if (!Passable(context.World, context.Navigation, nx, ny)) break;
+            if (!Passable(context.World, context.Navigation, nx, ny))
+            {
+                break;
+            }
+
             x = nx;
             y = ny;
         }
@@ -557,7 +734,11 @@ public static class FearRules
         SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef mine,
         TilePos? staged, List<Fixed16Vector> scratch)
     {
-        if (me.OwnerPlayerId == PlayerIds.Good) return false;
+        if (me.OwnerPlayerId == PlayerIds.Good)
+        {
+            return false;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
         SimRandom rng = context.Rng;
@@ -583,7 +764,13 @@ public static class FearRules
             {
                 var heartsOfMine = new List<RoomInstance>();
                 foreach (RoomInstance room in mineRooms)
-                    if (room.Definition.TypeId == RoomTypeId.DungeonHeart && !RoomRules.IsRuined(world, room)) heartsOfMine.Add(room);
+                {
+                    if (room.Definition.TypeId == RoomTypeId.DungeonHeart && !RoomRules.IsRuined(world, room))
+                    {
+                        heartsOfMine.Add(room);
+                    }
+                }
+
                 if (heartsOfMine.Count > 0)
                 {
                     RoomInstance heart = heartsOfMine[rng.NextInt(heartsOfMine.Count)];
@@ -610,9 +797,17 @@ public static class FearRules
                 for (int attempt = 0; attempt < 3 && destX < 0; attempt++)
                 {
                     RoomInstance? room = RoomLists.RandomNonBridgeRoom(mineRooms, rng);
-                    if (room is null) return false;
+                    if (room is null)
+                    {
+                        return false;
+                    }
+
                     int x = CreatureState.CentreOf(room.CentreFieldX), y = CreatureState.CentreOf(room.CentreFieldY);
-                    if (!CombatTargetRules.CanReach(context.Navigation, me, mine, x, y, int.MaxValue, scratch)) continue;
+                    if (!CombatTargetRules.CanReach(context.Navigation, me, mine, x, y, int.MaxValue, scratch))
+                    {
+                        continue;
+                    }
+
                     destX = x;
                     destY = y;
                 }
@@ -633,25 +828,38 @@ public static class FearRules
                 for (int attempt = 0; attempt < attempts && destX < 0; attempt++)
                 {
                     int x = me.PosX + ((rng.NextInt(3) - 1) * Fp32.One), y = me.PosY + ((rng.NextInt(3) - 1) * Fp32.One);
-                    if (!InWorld(world, x, y) || !LineOfSight.Clear(sight, me.PosX, me.PosY, x, y)) continue;
+                    if (!InWorld(world, x, y) || !LineOfSight.Clear(sight, me.PosX, me.PosY, x, y))
+                    {
+                        continue;
+                    }
+
                     destX = x;
                     destY = y;
                 }
             }
         }
-        if (destX < 0) return false;
+        if (destX < 0)
+        {
+            return false;
+        }
 
         Navigation.MoveOptions withdrawOptions = MoveOptions.ExactSpot;
         if (!context.Navigation.TryRouteTo(me, destX, destY, withdrawOptions)
             && !context.Navigation.TryRouteTo(me, destX, destY, withdrawOptions = WithdrawFallbackOptions))
+        {
             return false;
+        }
 
         ClearTarget(world, me);
         me.SwingInProgress = false;
         me.CurrentJob = JobType.None;
         me.JobTileIndex = -1;
         me.Running = true;
-        if (CombatStates.IntoTheGroup(context, me)) context.Navigation.TryRouteTo(me, destX, destY, withdrawOptions);
+        if (CombatStates.IntoTheGroup(context, me))
+        {
+            context.Navigation.TryRouteTo(me, destX, destY, withdrawOptions);
+        }
+
         CombatStates.Travel(context, me, CombatStates.Withdrawn);
         me.CombatStateEnteredTick = context.Tick.Value;
         // 0x004617E6: after the run speed is set, before the fight position is stamped.
@@ -685,13 +893,24 @@ public static class FearRules
     internal static (int X, int Y)? AwayFrom(WorldState world, ISightBlocker sight, SimRandom rng, CreatureState me, TilePos target)
     {
         int dx = target.X - (me.PosX >> 12), dy = target.Y - (me.PosY >> 12);
-        if (dx == 0) dx = rng.NextInt(2) == 0 ? -1 : 1;
-        if (dy == 0) dy = rng.NextInt(2) == 0 ? -1 : 1;
+        if (dx == 0)
+        {
+            dx = rng.NextInt(2) == 0 ? -1 : 1;
+        }
+
+        if (dy == 0)
+        {
+            dy = rng.NextInt(2) == 0 ? -1 : 1;
+        }
+
         for (int attempt = 0; attempt < 5; attempt++)
         {
             int ax = rng.NextInt(Math.Abs(dx * 4)), ay = rng.NextInt(Math.Abs(dy * 4));
             int x = me.PosX + ((dx > 0 ? -ax : ax) * Fp32.One), y = me.PosY + ((dy > 0 ? -ay : ay) * Fp32.One);
-            if (InWorld(world, x, y) && LineOfSight.Clear(sight, me.PosX, me.PosY, x, y)) return (x, y);
+            if (InWorld(world, x, y) && LineOfSight.Clear(sight, me.PosX, me.PosY, x, y))
+            {
+                return (x, y);
+            }
         }
         return null;
     }
@@ -706,7 +925,11 @@ public static class FearRules
     {
         if (Systems.StateShadow.IsTravelling(me))
         {
-            if (me.HasRoute) return;
+            if (me.HasRoute)
+            {
+                return;
+            }
+
             CombatStates.Arrive(context, me);
             context.Emit(SystemName, "withdrawn", $"creature={me.Id} tile={me.Tile.X},{me.Tile.Y}");
             return;
@@ -733,28 +956,53 @@ public static class FearRules
     public static bool RaiseAlarm(
         SimulationContext context, RoomCache rooms, CreatureState me, CreatureDef mine, int threatX, int threatY, int deficit)
     {
-        if (mine.JobClass != JobClass.Scout) return false;
+        if (mine.JobClass != JobClass.Scout)
+        {
+            return false;
+        }
+
         WorldState world = context.World;
-        if (CallToArmsRules.IsOn(world, me.OwnerPlayerId)) return false;
-        if (AlreadyResponding(world, me.OwnerPlayerId, threatX, threatY)) return false;
+        if (CallToArmsRules.IsOn(world, me.OwnerPlayerId))
+        {
+            return false;
+        }
+
+        if (AlreadyResponding(world, me.OwnerPlayerId, threatX, threatY))
+        {
+            return false;
+        }
 
         RoomInstance? nearest = null;
         int best = int.MaxValue;
         foreach (RoomInstance room in rooms.Of(context, me.OwnerPlayerId))
         {
-            if (room.Definition.TypeId != RoomTypeId.GuardRoom) continue;
+            if (room.Definition.TypeId != RoomTypeId.GuardRoom)
+            {
+                continue;
+            }
+
             int d = CombatRules.DistanceSquared(threatX, threatY, RoomCentreX(room), RoomCentreY(room));
-            if (d >= best) continue;
+            if (d >= best)
+            {
+                continue;
+            }
+
             best = d;
             nearest = room;
         }
-        if (nearest is null) return false;
+        if (nearest is null)
+        {
+            return false;
+        }
 
         // 0x004E4D90(room, point, 0, 0): draw once, then skip floor slots in chain order.
         int[] chain = SlabChain.Order(world, nearest);
         int pointIndex = context.Rng.NextInt(chain.Length);
         while (AutoFurnitureRules.IsFloorSlot(world, nearest, chain[pointIndex]))
+        {
             pointIndex = (pointIndex + 1) % chain.Length;
+        }
+
         int pointTile = chain[pointIndex];
         TilePos point = new(pointTile % world.Width, pointTile / world.Width);
         int pointX = CreatureState.CentreOf(point.X);
@@ -762,7 +1010,10 @@ public static class FearRules
 
         // +0x36F == 1 (the Imp) routes with 0x80, everyone else with 0 (0x0047542A, Q517).
         Navigation.MoveOptions options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
-        if (!context.Navigation.TryRouteTo(me, pointX, pointY, options)) return false;
+        if (!context.Navigation.TryRouteTo(me, pointX, pointY, options))
+        {
+            return false;
+        }
 
         ClearTarget(world, me);
         me.SwingInProgress = false;
@@ -773,7 +1024,11 @@ public static class FearRules
         me.AlarmDeficit = deficit;
         me.AlarmRoomTile = nearest.TileIndices[0];
         me.Running = true;
-        if (CombatStates.IntoTheGroup(context, me)) context.Navigation.TryRouteTo(me, pointX, pointY, options);
+        if (CombatStates.IntoTheGroup(context, me))
+        {
+            context.Navigation.TryRouteTo(me, pointX, pointY, options);
+        }
+
         CombatStates.Travel(context, me, CombatStates.RespondingToThreat);
         me.CombatStateEnteredTick = context.Tick.Value;
         ThingSoundRules.Request(context, SystemName, me, ThingSoundEvent.Withdrew);   // 0x004754AC
@@ -792,12 +1047,23 @@ public static class FearRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];
-            if (c.OwnerPlayerId != owner) continue;
+            if (c.OwnerPlayerId != owner)
+            {
+                continue;
+            }
+
             int state = c.Dk2StateId == Systems.StateShadow.TravelToPoint ? c.UtilityNewState : c.Dk2StateId;
-            if (state is not (CombatStates.RespondingToThreat or CombatStates.ReportingDanger)) continue;
+            if (state is not (CombatStates.RespondingToThreat or CombatStates.ReportingDanger))
+            {
+                continue;
+            }
+
             bool raising = c.Dk2StateId == CombatStates.RespondingToThreat;
             int cx = raising ? c.AlarmX : c.PosX, cy = raising ? c.AlarmY : c.PosY;
-            if (CombatRules.DistanceSquared(cx, cy, x, y) < RespondingRadiusSquared) return true;
+            if (CombatRules.DistanceSquared(cx, cy, x, y) < RespondingRadiusSquared)
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -810,7 +1076,11 @@ public static class FearRules
     {
         if (Systems.StateShadow.IsTravelling(me))
         {
-            if (me.HasRoute) return;
+            if (me.HasRoute)
+            {
+                return;
+            }
+
             CombatStates.Arrive(context, me);
             return;
         }
@@ -825,7 +1095,11 @@ public static class FearRules
     /// <summary>State 252 (<c>0x00458680</c>): returns 1 while an action is current, else 0, idle.</summary>
     private static void StandingDown(SimulationContext context, CreatureState me)
     {
-        if (context.Tick.Value < me.ActionUntilTick) return;
+        if (context.Tick.Value < me.ActionUntilTick)
+        {
+            return;
+        }
+
         me.ActionUntilTick = 0;
         CombatStates.Idle(context.Hooks, me);
     }
@@ -847,17 +1121,44 @@ public static class FearRules
         for (int i = 0; room != null && wanted >= 0 && i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];
-            if (c.OwnerPlayerId != me.OwnerPlayerId || c.Id == me.Id) continue;
+            if (c.OwnerPlayerId != me.OwnerPlayerId || c.Id == me.Id)
+            {
+                continue;
+            }
+
             CreatureDef def = database.CreatureById(c.CreatureTypeId);
-            if (((def.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || ((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) continue;
-            if (CombatRules.InCombat(c) || !CombatRules.MayLookForAFight(world, context.Database, c, force: false)) continue;
-            if (c.Activity is not (CreatureActivity.Working or CreatureActivity.AtWork or CreatureActivity.GoingToJob)) continue;
-            if (c.JobTileIndex < 0 || !room.TileIndices.Contains(c.JobTileIndex)) continue;
-            if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4) continue;
+            if (((def.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) || ((def.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+            {
+                continue;
+            }
+
+            if (CombatRules.InCombat(c) || !CombatRules.MayLookForAFight(world, context.Database, c, force: false))
+            {
+                continue;
+            }
+
+            if (c.Activity is not (CreatureActivity.Working or CreatureActivity.AtWork or CreatureActivity.GoingToJob))
+            {
+                continue;
+            }
+
+            if (c.JobTileIndex < 0 || !room.TileIndices.Contains(c.JobTileIndex))
+            {
+                continue;
+            }
+
+            if (c.Health <= CreatureLevelRules.MaxHealth(database, def, c.Level) / 4)
+            {
+                continue;
+            }
 
             // The Imp with 0x80, everyone else with 0 (0x0047583F); workers are skipped above.
             Navigation.MoveOptions options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
-            if (!context.Navigation.TryRouteTo(c, me.AlarmX, me.AlarmY, options)) continue;
+            if (!context.Navigation.TryRouteTo(c, me.AlarmX, me.AlarmY, options))
+            {
+                continue;
+            }
+
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;
             c.Running = true; // DK2 sets the raiser's run speed on it (combat-alarm.md §3)
@@ -879,9 +1180,13 @@ public static class FearRules
         CombatStates.Enter(context, me, CreatureStateMachine.Idle);
         CombatStates.Enter(context, me, CombatStates.StandingDown);
         if (((mine.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+        {
             me.ActionUntilTick = context.Tick.Value + AnimationTimingRules.CountedHoldTicks(mine, AlarmArtSlot, 1);
+        }
         else
+        {
             CombatStates.Idle(context.Hooks, me);
+        }
     }
 
     /// <summary>Action 79's animation block (combat-alarm.md §3).</summary>
@@ -895,11 +1200,19 @@ public static class FearRules
         if (Systems.StateShadow.IsTravelling(me))
         {
             // The walk's turn enters 254; its count starts on the next (ADR-0580).
-            if (!me.HasRoute) CombatStates.Arrive(context, me);
+            if (!me.HasRoute)
+            {
+                CombatStates.Arrive(context, me);
+            }
+
             return;
         }
         me.ReportTicks = unchecked(me.ReportTicks + 1);
-        if ((uint)me.ReportTicks <= ReportTicks) return;
+        if ((uint)me.ReportTicks <= ReportTicks)
+        {
+            return;
+        }
+
         me.Running = false;
         CombatStates.Idle(context.Hooks, me);
         context.Emit(SystemName, "stands_down", $"creature={me.Id}");
@@ -933,7 +1246,10 @@ public static class FearRules
         if (me.FightTargetKind == FightTargetKind.Creature && me.FightTargetId != CombatRules.NoTarget)
         {
             CreatureState? target = world.CreatureById(me.FightTargetId);
-            if (target != null) CombatRules.Unregister(target, me.Id);
+            if (target != null)
+            {
+                CombatRules.Unregister(target, me.Id);
+            }
         }
         me.FightTargetId = CombatRules.NoTarget;
         me.FightTargetKind = FightTargetKind.None;

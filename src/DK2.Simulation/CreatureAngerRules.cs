@@ -50,7 +50,10 @@ public static class CreatureAngerRules
     public static int Apply(
         CreatureDef creature, CreatureState state, AngerBucket bucket, int delta)
     {
-        if (!CanBeAngered(creature)) return 0;
+        if (!CanBeAngered(creature))
+        {
+            return 0;
+        }
 
         int before = state.Anger[bucket];
         state.Anger[bucket] = Math.Clamp(before + delta, 0, Saturation);
@@ -65,10 +68,18 @@ public static class CreatureAngerRules
         WorldState world, CreatureDef creature, CreatureState state,
         AngerBucket bucket, int delta, AngerComplaint complaint)
     {
-        if (!world.Triggers.CreatureAngerEnabled || !CanBeAngered(creature)) return 0;
+        if (!world.Triggers.CreatureAngerEnabled || !CanBeAngered(creature))
+        {
+            return 0;
+        }
+
         CreatureMood before = MoodOf(creature, state);
         int applied = Apply(creature, state, bucket, delta);
-        if (delta > 0) PostMoodChange(world, creature, state, before, complaint);
+        if (delta > 0)
+        {
+            PostMoodChange(world, creature, state, before, complaint);
+        }
+
         return applied;
     }
 
@@ -80,7 +91,11 @@ public static class CreatureAngerRules
         WorldState world, CreatureDef creature, CreatureState state, CreatureMood before, AngerComplaint complaint)
     {
         CreatureMood after = MoodOf(creature, state);
-        if (after == before) return;
+        if (after == before)
+        {
+            return;
+        }
+
         PlayerMessageKind? kind = after switch
         {
             CreatureMood.Unhappy => PlayerMessageKind.CreatureUnhappy,
@@ -88,7 +103,9 @@ public static class CreatureAngerRules
             _ => null,
         };
         if (kind is PlayerMessageKind posted && world.HasPlayer(state.OwnerPlayerId))
+        {
             world.Messages.Post(world, state.OwnerPlayerId, posted, (int)complaint, state.Id);
+        }
     }
 
     /// <summary>Wipes one grievance to zero: DK2's <c>0x00486F80(bucket)</c>, which adds the
@@ -105,7 +122,9 @@ public static class CreatureAngerRules
     public static void ForgetAll(WorldState world, CreatureDef creature, CreatureState state)
     {
         for (int bucket = 0; bucket < CreatureAnger.Count; bucket++)
+        {
             Forget(world, creature, state, (AngerBucket)bucket);
+        }
     }
 
     /// <summary>Saturates all six grievances: DK2's <c>0x00486ED0</c>, each counter plus 0xFFFE through
@@ -113,9 +132,15 @@ public static class CreatureAngerRules
     /// special's call (<c>0x0048B870</c>) tests <c>NeverAngered</c> before it, as <see cref="Apply(CreatureDef, CreatureState, AngerBucket, int)"/> does.</summary>
     public static void SaturateAll(WorldState world, CreatureDef creature, CreatureState state)
     {
-        if (!world.Triggers.CreatureAngerEnabled) return;
+        if (!world.Triggers.CreatureAngerEnabled)
+        {
+            return;
+        }
+
         for (int bucket = 0; bucket < CreatureAnger.Count; bucket++)
+        {
             Apply(creature, state, (AngerBucket)bucket, 0xFFFE);
+        }
     }
 
     /// <summary>The anger a creature must <b>exceed</b> to be angry: the ceiling itself. No variable
@@ -130,8 +155,16 @@ public static class CreatureAngerRules
     public static CreatureMood MoodOf(CreatureDef creature, in CreatureAnger anger)
     {
         int worst = anger.Max;
-        if (worst > AngryAt(creature)) return CreatureMood.Angry;
-        if (worst >= UnhappyAt(creature)) return CreatureMood.Unhappy;
+        if (worst > AngryAt(creature))
+        {
+            return CreatureMood.Angry;
+        }
+
+        if (worst >= UnhappyAt(creature))
+        {
+            return CreatureMood.Unhappy;
+        }
+
         return CreatureMood.Content;
     }
 
@@ -150,7 +183,10 @@ public static class CreatureAngerRules
         // State-flag bit 1 returns before all three need charges, independently of custody
         // (0x00478D0C). Prison anger is the prison's own update (ADR-0074).
         CreatureAnger delta = default;
-        if (!NeedRules.NeedAngerRuns(state) || PrisonRules.HasKeeperBinding(state)) return delta;
+        if (!NeedRules.NeedAngerRuns(state) || PrisonRules.HasKeeperBinding(state))
+        {
+            return delta;
+        }
         // The need-anger routine 0x00478D00 returns at once for a follower (0x00478D1D): no lair,
         // food or pay charge. The in-lair calm below is another routine's and still applies.
         // The dispatcher calls it for a keeper's non-workers only (0x00476FC0, ADR-0485; the worker
@@ -210,9 +246,18 @@ public static class CreatureAngerRules
     private static bool Offers(WorldState world, GameDatabase database, PlayerId player, RoomTypeId type)
     {
         if (world.Availability(player, AvailabilityKind.Room, (int)type) == RoomNeedRules.Available)
+        {
             return true;
+        }
+
         foreach (RoomInstance room in RoomIndex.Build(world, database))
-            if (room.Definition.TypeId == type && room.OwnerPlayerId == player.Value) return true;
+        {
+            if (room.Definition.TypeId == type && room.OwnerPlayerId == player.Value)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -222,7 +267,10 @@ public static class CreatureAngerRules
         for (int i = 0; i < CreatureAnger.Count; i++)
         {
             var bucket = (AngerBucket)i;
-            if (delta[bucket] != 0) Apply(creature, state, bucket, delta[bucket]);
+            if (delta[bucket] != 0)
+            {
+                Apply(creature, state, bucket, delta[bucket]);
+            }
         }
     }
 
@@ -234,7 +282,10 @@ public static class CreatureAngerRules
         for (int i = 0; i < CreatureAnger.Count; i++)
         {
             var bucket = (AngerBucket)i;
-            if (delta[bucket] != 0) Apply(world, creature, state, bucket, delta[bucket], complaint);
+            if (delta[bucket] != 0)
+            {
+                Apply(world, creature, state, bucket, delta[bucket], complaint);
+            }
         }
     }
 
@@ -247,7 +298,10 @@ public static class CreatureAngerRules
         for (int i = 0; i < CreatureAnger.Count; i++)
         {
             var bucket = (AngerBucket)i;
-            if (delta[bucket] != 0) Apply(world, creature, state, bucket, delta[bucket], complaints[i]);
+            if (delta[bucket] != 0)
+            {
+                Apply(world, creature, state, bucket, delta[bucket], complaints[i]);
+            }
         }
     }
 
@@ -278,8 +332,12 @@ public static class CreatureAngerRules
     public static void ApplyNeeds(WorldState world, CreatureDef creature, CreatureState state, CreatureAnger delta)
     {
         foreach (AngerBucket bucket in NeedOrder)
+        {
             if (delta[bucket] != 0)
+            {
                 Apply(world, creature, state, bucket, delta[bucket], NeedComplaints[(int)bucket]);
+            }
+        }
     }
 
     /// <summary>Whether this creature can be angered at all — one flag read from the record. False

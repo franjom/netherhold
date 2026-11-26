@@ -39,13 +39,33 @@ public static class JailBreakRules
         int w = world.Width;
         foreach (int tile in SlabChain.Order(world, room))
         {
-            if (!room.IsInterior(tile)) continue;
+            if (!room.IsInterior(tile))
+            {
+                continue;
+            }
+
             int x = tile % w, y = tile / w;
-            if (y == 0) continue;
+            if (y == 0)
+            {
+                continue;
+            }
+
             int north = tile - w;
-            if (room.IsInterior(north)) continue;
-            if (x > 0 && room.IsInterior(north - 1)) continue;
-            if (x < w - 1 && room.IsInterior(north + 1)) continue;
+            if (room.IsInterior(north))
+            {
+                continue;
+            }
+
+            if (x > 0 && room.IsInterior(north - 1))
+            {
+                continue;
+            }
+
+            if (x < w - 1 && room.IsInterior(north + 1))
+            {
+                continue;
+            }
+
             return north;
         }
 
@@ -57,7 +77,11 @@ public static class JailBreakRules
     public static void OpenByPossession(SimulationContext context, RoomInstance room)
     {
         ref byte flags = ref DoorOf(context.World, room);
-        if ((flags & Activated) == 0) flags = Unlocked(flags);
+        if ((flags & Activated) == 0)
+        {
+            flags = Unlocked(flags);
+        }
+
         if ((flags & Open) == 0)
         {
             flags |= Open;
@@ -71,11 +95,31 @@ public static class JailBreakRules
     /// captive, not already breaking out and not fighting, with an ally held there.</summary>
     public static bool StartsABreakOut(WorldState world, GameDatabase database, CreatureState rescuer, RoomInstance room)
     {
-        if (room.Definition.TypeId != RoomTypeId.Prison) return false;
-        if (world.AreAllied(rescuer.OwnerPlayerId, room.OwnerPlayerId) && room.OwnerPlayerId != PlayerIds.Neutral) return false;
-        if (PrisonRules.HasKeeperBinding(rescuer)) return false;
-        if (rescuer.Dk2StateId == BreakingOutState || rescuer.UtilityNewState == BreakingOutState) return false;
-        if (Combat.CombatRules.Preoccupied(rescuer)) return false;
+        if (room.Definition.TypeId != RoomTypeId.Prison)
+        {
+            return false;
+        }
+
+        if (world.AreAllied(rescuer.OwnerPlayerId, room.OwnerPlayerId) && room.OwnerPlayerId != PlayerIds.Neutral)
+        {
+            return false;
+        }
+
+        if (PrisonRules.HasKeeperBinding(rescuer))
+        {
+            return false;
+        }
+
+        if (rescuer.Dk2StateId == BreakingOutState || rescuer.UtilityNewState == BreakingOutState)
+        {
+            return false;
+        }
+
+        if (Combat.CombatRules.Preoccupied(rescuer))
+        {
+            return false;
+        }
+
         return AlliedPrisoners(world, rescuer, room).Any();
     }
 
@@ -85,10 +129,25 @@ public static class JailBreakRules
     {
         foreach (CreatureState c in world.Creatures)
         {
-            if (c.Id == rescuer.Id || (!PrisonRules.HasKeeperBinding(c) || !PrisonRules.IsPrisonInmate(c)) || c.PrisonOwnerPlayerId != room.OwnerPlayerId) continue;
-            if (HandRules.IsHeld(c) || CreatureDeathRules.IsDown(c) || c.OwnerPlayerId == PlayerIds.Neutral) continue;
-            if (!room.Contains((c.Tile.Y * world.Width) + c.Tile.X)) continue;
-            if (world.AreAllied(rescuer.OwnerPlayerId, c.OwnerPlayerId)) yield return c;
+            if (c.Id == rescuer.Id || (!PrisonRules.HasKeeperBinding(c) || !PrisonRules.IsPrisonInmate(c)) || c.PrisonOwnerPlayerId != room.OwnerPlayerId)
+            {
+                continue;
+            }
+
+            if (HandRules.IsHeld(c) || CreatureDeathRules.IsDown(c) || c.OwnerPlayerId == PlayerIds.Neutral)
+            {
+                continue;
+            }
+
+            if (!room.Contains((c.Tile.Y * world.Width) + c.Tile.X))
+            {
+                continue;
+            }
+
+            if (world.AreAllied(rescuer.OwnerPlayerId, c.OwnerPlayerId))
+            {
+                yield return c;
+            }
         }
     }
 
@@ -100,14 +159,24 @@ public static class JailBreakRules
     {
         WorldState world = context.World;
         int here = (rescuer.Tile.Y * world.Width) + rescuer.Tile.X;
-        if (RoomIndex.RoomAt(world, context.Database, here) is not { } room || room.Definition.TypeId != RoomTypeId.Prison) return false;
+        if (RoomIndex.RoomAt(world, context.Database, here) is not { } room || room.Definition.TypeId != RoomTypeId.Prison)
+        {
+            return false;
+        }
+
         int door = DoorTile(world, room);
-        if (door < 0) return false;
+        if (door < 0)
+        {
+            return false;
+        }
 
         if (door != here)
         {
             if (!context.Navigation.TryRouteTo(rescuer, CreatureState.CentreOf(door % world.Width), CreatureState.CentreOf(door / world.Width), Navigation.MoveOptions.Loose))
+            {
                 return false;
+            }
+
             CreatureStateMachine.BeginTravel(context.Hooks, rescuer, StateShadow.TravelToPoint, BreakingOutState);
             context.Emit(system, "rescuer_to_door", $"creature={rescuer.Id} door=({door % world.Width},{door / world.Width})");
             return true;
@@ -119,10 +188,17 @@ public static class JailBreakRules
             Steering.Bearing.Of(CreatureState.CentreOf(cx) - rescuer.PosX, CreatureState.CentreOf(cy) - rescuer.PosY),
             SimulationTiming.TurnRatePerTick(context.Database.CreatureById(rescuer.CreatureTypeId)));
         rescuer.Heading = heading;
-        if (left != 0) return true;
+        if (left != 0)
+        {
+            return true;
+        }
 
         ref byte flags = ref DoorOf(world, room);
-        if ((flags & Activated) == 0) flags = Unlocked(flags);
+        if ((flags & Activated) == 0)
+        {
+            flags = Unlocked(flags);
+        }
+
         if ((flags & Open) == 0)
         {
             flags |= Open;
@@ -149,15 +225,30 @@ public static class JailBreakRules
         int w = world.Width;
         foreach (CreatureState c in world.Creatures)
         {
-            if ((!PrisonRules.HasKeeperBinding(c) || !PrisonRules.IsPrisonInmate(c)) || HandRules.IsHeld(c) || CreatureDeathRules.IsDown(c)) continue;
-            if (TortureRules.IsBeingTortured(c)) continue;
+            if ((!PrisonRules.HasKeeperBinding(c) || !PrisonRules.IsPrisonInmate(c)) || HandRules.IsHeld(c) || CreatureDeathRules.IsDown(c))
+            {
+                continue;
+            }
+
+            if (TortureRules.IsBeingTortured(c))
+            {
+                continue;
+            }
+
             int at = (c.Tile.Y * w) + c.Tile.X;
-            if (!room.IsInterior(at) || (!all && c.OwnerPlayerId != player)) continue;
+            if (!room.IsInterior(at) || (!all && c.OwnerPlayerId != player))
+            {
+                continue;
+            }
 
             int x, y;
             if (door < 0)
             {
-                if (RimTile(context, room) is not int rim) continue;
+                if (RimTile(context, room) is not int rim)
+                {
+                    continue;
+                }
+
                 x = CreatureState.CentreOf(rim % w);
                 y = CreatureState.CentreOf(rim / w);
             }
@@ -168,7 +259,11 @@ public static class JailBreakRules
             }
             // 0x004E2D40(1), once per creature released; with no door only when a rim was found.
             DoorOf(world, room) |= Broken;
-            if (!Walk(context, c, x, y)) continue;
+            if (!Walk(context, c, x, y))
+            {
+                continue;
+            }
+
             context.Emit(system, "prisoner_released", $"creature={c.Id} owner={c.OwnerPlayerId} held_by={c.PrisonOwnerPlayerId}");
         }
     }
@@ -199,17 +294,33 @@ public static class JailBreakRules
         int door = DoorTile(world, room);
         if (door < 0)
         {
-            if (RimTile(context, room) is int rim) Walk(context, prisoner, CreatureState.CentreOf(rim % w), CreatureState.CentreOf(rim / w));
+            if (RimTile(context, room) is int rim)
+            {
+                Walk(context, prisoner, CreatureState.CentreOf(rim % w), CreatureState.CentreOf(rim / w));
+            }
+
             return;
         }
 
         int dx = door % w, dy = door / w;
         if (prisoner.Tile.X == dx && prisoner.Tile.Y == dy + 1)
         {
-            if (!Walk(context, prisoner, CreatureState.CentreOf(dx), CreatureState.CentreOf(dy))) return;
+            if (!Walk(context, prisoner, CreatureState.CentreOf(dx), CreatureState.CentreOf(dy)))
+            {
+                return;
+            }
+
             ref byte flags = ref DoorOf(world, room);
-            if ((flags & Activated) == 0) flags = Unlocked(flags);
-            if ((flags & Open) == 0) StampDoor(world, room, context.Tick);
+            if ((flags & Activated) == 0)
+            {
+                flags = Unlocked(flags);
+            }
+
+            if ((flags & Open) == 0)
+            {
+                StampDoor(world, room, context.Tick);
+            }
+
             flags |= Open;
             return;
         }
@@ -219,13 +330,20 @@ public static class JailBreakRules
 
     private static void StampDoor(WorldState world, RoomInstance room, GameTick tick)
     {
-        foreach (int tile in room.TileIndices) world.TileAtIndex(tile).PrisonDoorAnimationTick = tick.Value;
+        foreach (int tile in room.TileIndices)
+        {
+            world.TileAtIndex(tile).PrisonDoorAnimationTick = tick.Value;
+        }
     }
 
     /// <summary><c>0x00471890(point, 121, 0x6C)</c>.</summary>
     private static bool Walk(SimulationContext context, CreatureState creature, int x, int y)
     {
-        if (!context.Navigation.TryRouteTo(creature, x, y, Navigation.MoveOptions.Loose)) return false;
+        if (!context.Navigation.TryRouteTo(creature, x, y, Navigation.MoveOptions.Loose))
+        {
+            return false;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, EscapingState);
         return true;
     }

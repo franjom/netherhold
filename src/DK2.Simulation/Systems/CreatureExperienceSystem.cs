@@ -22,20 +22,38 @@ public sealed class CreatureExperienceSystem : ICreatureUpdateStep
     public void Update(SimulationContext context, CreatureState state)
     {
         // 0047A870 pays each original update, before the state handler can leave combat.
-        if (!SimulationTiming.OnOriginalTick(context.Tick.Value)) return;
+        if (!SimulationTiming.OnOriginalTick(context.Tick.Value))
+        {
+            return;
+        }
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
-        if (state.Possessed) return;
+        if (state.Possessed)
+        {
+            return;
+        }
+
         CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
         // Preserve the inactive-creature gates used by the standalone host too.
-        if (CreatureEligibility.IsExcluded(state, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) return;
-        if (state.Activity == CreatureActivity.Leaving) return;
+        if (CreatureEligibility.IsExcluded(state, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down))
+        {
+            return;
+        }
+
+        if (state.Activity == CreatureActivity.Leaving)
+        {
+            return;
+        }
 
         int gained = CombatExperiencePerOriginalTick(world, database, creature, state);
-        if (gained == 0) return;
+        if (gained == 0)
+        {
+            return;
+        }
+
         Award(context, creature, state, gained);
     }
 
@@ -44,7 +62,11 @@ public sealed class CreatureExperienceSystem : ICreatureUpdateStep
     /// creature that made it, worker or not (the room attack's reader pays a hero too).</summary>
     internal static void AwardWork(SimulationContext context, CreatureState state)
     {
-        if (state.Level >= CreatureLevelRules.MaxLevel) return;
+        if (state.Level >= CreatureLevelRules.MaxLevel)
+        {
+            return;
+        }
+
         Award(context, context.Database.CreatureById(state.CreatureTypeId), state,
             CreatureLevelRules.WorkExperiencePerHit(context.Database));
     }
@@ -55,7 +77,10 @@ public sealed class CreatureExperienceSystem : ICreatureUpdateStep
         int before = state.Level;
         int needed = CreatureLevelRules.ExperienceForNextLevel(database, creature, before);
         int banked = state.ExperiencePoints;
-        if (!CreatureLevelRules.Grant(context.Hooks, creature, state, gained)) return;
+        if (!CreatureLevelRules.Grant(context.Hooks, creature, state, gained))
+        {
+            return;
+        }
 
         // "discarded", not "spare": DK2 zeroes the balance on promotion, so
         // the overshoot is gone rather than carried (Q127).
@@ -76,14 +101,33 @@ public sealed class CreatureExperienceSystem : ICreatureUpdateStep
     public static int CombatExperiencePerOriginalTick(
         WorldState world, GameDatabase database, CreatureDef creature, CreatureState state)
     {
-        if (state.Dk2StateId is not (Combat.CombatStates.Engaging or 200)) return 0;
-        if (((creature.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && !((creature.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood)) return 0;
-        if (state.FightTargetKind != Combat.FightTargetKind.Creature) return 0;
+        if (state.Dk2StateId is not (Combat.CombatStates.Engaging or 200))
+        {
+            return 0;
+        }
+
+        if (((creature.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && !((creature.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood))
+        {
+            return 0;
+        }
+
+        if (state.FightTargetKind != Combat.FightTargetKind.Creature)
+        {
+            return 0;
+        }
+
         CreatureState? target = world.CreatureById(state.FightTargetId);
-        if (target is null || target.Dk2StateId == CreatureStateMachine.NoState) return 0;
+        if (target is null || target.Dk2StateId == CreatureStateMachine.NoState)
+        {
+            return 0;
+        }
 
         int perTick = SimulationTiming.LoaderRatePerTick(creature.ExpPerSecond);
-        if (state.Level == 1) return perTick;
+        if (state.Level == 1)
+        {
+            return perTick;
+        }
+
         int scaled = perTick * CreatureLevelRules.Percent(database, CreatureStatId.ExpPerSecond, state.Level) / 100;
         return Math.Clamp(scaled, 0, 0xFFFE);
     }

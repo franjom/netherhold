@@ -38,7 +38,11 @@ public static class AnimationTimingRules
     /// fall back to 1; the rest by the binary's literal switch, 0 for a slot it does not list.</summary>
     public static int ResolveArtSlot(CreatureDef definition, int slot)
     {
-        if (HasArt(definition, slot)) return slot;
+        if (HasArt(definition, slot))
+        {
+            return slot;
+        }
+
         return slot switch
         {
             >= 37 and <= 41 => 1,
@@ -66,8 +70,16 @@ public static class AnimationTimingRules
     public static int CountedHoldTicks(CreatureDef definition, int slot, int count)
     {
         CreatureAnimationTiming animation = definition.ArtSlot(ResolveArtSlot(definition, slot));
-        if (count < 2) return ActionHoldTicks(animation);
-        if (animation.ResourceType != 6 || animation.FramesPerSecond == 0 || animation.FrameCount == 0) return 1;
+        if (count < 2)
+        {
+            return ActionHoldTicks(animation);
+        }
+
+        if (animation.ResourceType != 6 || animation.FramesPerSecond == 0 || animation.FrameCount == 0)
+        {
+            return 1;
+        }
+
         CreatureState clock = _countedClock ??= new CreatureState();
         bool hasStart = (animation.Flags & CreatureAnimationFlags.StartSegment) != 0 && animation.StartSegmentFrames != 0;
         int frames = hasStart ? animation.StartSegmentFrames : animation.FrameCount;
@@ -79,14 +91,21 @@ public static class AnimationTimingRules
         for (int ticks = 1; ; ticks++)
         {
             ActionAnimationClock.AdvanceResolved(clock, animation);
-            if (ActionAnimationClock.CountedActionEnded(clock)) return ticks;
+            if (ActionAnimationClock.CountedActionEnded(clock))
+            {
+                return ticks;
+            }
         }
     }
 
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-reaper.md")]
     public static int FirstCycleHoldTicks(CreatureAnimationTiming animation)
     {
-        if (animation.ResourceType != 6) return 1;
+        if (animation.ResourceType != 6)
+        {
+            return 1;
+        }
+
         int mainDuration = Duration(animation.FrameCount, animation.FramesPerSecond);
         bool hasStart = (animation.Flags & CreatureAnimationFlags.StartSegment) != 0;
         bool hasEnd = (animation.Flags & CreatureAnimationFlags.EndSegment) != 0;
@@ -100,16 +119,32 @@ public static class AnimationTimingRules
         {
             ticks++;
             int step = AdvanceRate(duration);
-            if (step == 0) return ticks;
+            if (step == 0)
+            {
+                return ticks;
+            }
+
             phase += step;
-            if (phase < One) continue;
+            if (phase < One)
+            {
+                continue;
+            }
+
             if (segment == Segment.Start)
             {
                 phase = Carry(phase - One, duration, mainDuration);
                 duration = mainDuration;
                 segment = Segment.Main;
-                if (AdvanceRate(duration) == 0) return ticks;
-                if (phase <= One) continue;
+                if (AdvanceRate(duration) == 0)
+                {
+                    return ticks;
+                }
+
+                if (phase <= One)
+                {
+                    continue;
+                }
+
                 if (!hasEnd)
                 {
                     phase = One;
@@ -118,7 +153,11 @@ public static class AnimationTimingRules
                 phase = Math.Min(One, Carry(phase - One, duration, endDuration));
                 duration = endDuration;
                 segment = Segment.End;
-                if (AdvanceRate(duration) == 0) return ticks;
+                if (AdvanceRate(duration) == 0)
+                {
+                    return ticks;
+                }
+
                 continue;
             }
             return ticks;
@@ -127,7 +166,11 @@ public static class AnimationTimingRules
 
     public static int ActionHoldTicks(CreatureAnimationTiming animation)
     {
-        if (animation.ResourceType != 6) return 1;
+        if (animation.ResourceType != 6)
+        {
+            return 1;
+        }
+
         int mainDuration = Duration(animation.FrameCount, animation.FramesPerSecond);
         bool hasStart = (animation.Flags & CreatureAnimationFlags.StartSegment) != 0;
         bool hasEnd = (animation.Flags & CreatureAnimationFlags.EndSegment) != 0;
@@ -141,18 +184,38 @@ public static class AnimationTimingRules
         while (true)
         {
             ticks++;
-            if (complete) return ticks;
+            if (complete)
+            {
+                return ticks;
+            }
+
             int step = AdvanceRate(duration);
-            if (step == 0) return ticks;
+            if (step == 0)
+            {
+                return ticks;
+            }
+
             phase += step;
-            if (phase < One) continue;
+            if (phase < One)
+            {
+                continue;
+            }
+
             if (segment == Segment.Start)
             {
                 phase = Carry(phase - One, duration, mainDuration);
                 duration = mainDuration;
                 segment = Segment.Main;
-                if (AdvanceRate(duration) == 0) return ticks;
-                if (phase <= One) continue;
+                if (AdvanceRate(duration) == 0)
+                {
+                    return ticks;
+                }
+
+                if (phase <= One)
+                {
+                    continue;
+                }
+
                 if (!hasEnd)
                 {
                     phase = One;
@@ -164,7 +227,11 @@ public static class AnimationTimingRules
                 phase = Math.Min(One, Carry(phase - One, duration, endDuration));
                 duration = endDuration;
                 segment = Segment.End;
-                if (AdvanceRate(duration) == 0) return ticks;
+                if (AdvanceRate(duration) == 0)
+                {
+                    return ticks;
+                }
+
                 continue;
             }
             complete = true;

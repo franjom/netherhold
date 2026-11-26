@@ -34,11 +34,31 @@ public static class RoomPlanner
     {
         foreach (byte id in Candidates(p))
         {
-            if (id == 0 || Array.IndexOf(NeverBuilt, id) >= 0) continue;
-            if (id == (currentRoomToBuild & 0x7F)) continue;
-            if (!view.Database.Rooms.TryGetValue((RoomTypeId)id, out RoomDef? def)) continue;
-            if (!def.IsBuildable || !isAvailable(id)) continue;
-            if (view.OwnRoomOfType(id) is not null) continue;
+            if (id == 0 || Array.IndexOf(NeverBuilt, id) >= 0)
+            {
+                continue;
+            }
+
+            if (id == (currentRoomToBuild & 0x7F))
+            {
+                continue;
+            }
+
+            if (!view.Database.Rooms.TryGetValue((RoomTypeId)id, out RoomDef? def))
+            {
+                continue;
+            }
+
+            if (!def.IsBuildable || !isAvailable(id))
+            {
+                continue;
+            }
+
+            if (view.OwnRoomOfType(id) is not null)
+            {
+                continue;
+            }
+
             return id;
         }
         return null;
@@ -46,8 +66,15 @@ public static class RoomPlanner
 
     private static IEnumerable<byte> Candidates(KeeperAIParameters p)
     {
-        foreach (byte id in p.RoomList) yield return id;
-        for (byte id = 16; id <= 26; id++) yield return id;
+        foreach (byte id in p.RoomList)
+        {
+            yield return id;
+        }
+
+        for (byte id = 16; id <= 26; id++)
+        {
+            yield return id;
+        }
     }
 
     /// <summary>The original's ideal-neighbour table: which own room a new room is sited from.</summary>
@@ -80,10 +107,16 @@ public static class RoomPlanner
     {
         if (!p.PlaceRoomsNextToIdeal && IdealNeighbour(roomId) is RoomTypeId ideal
             && view.RandomRoomOfType(view.PlayerId, ideal, rng) is KeeperRoomView neighbour)
+        {
             return view.PositionOf(neighbour);
+        }
 
         KeeperRoomView? random = view.RandomNonBridgeRoom(view.PlayerId, rng);
-        if (random is not null) return view.PositionOf(random);
+        if (random is not null)
+        {
+            return view.PositionOf(random);
+        }
+
         return view.Heart;
     }
 
@@ -96,9 +129,21 @@ public static class RoomPlanner
     /// once +2 has failed, when the caller reseeds or gives up.</summary>
     public static int? NextSearchDirection(int current, int preferred)
     {
-        if (current == preferred) return (current + 1) & 3;
-        if (current == ((preferred + 1) & 3)) return (current - 2) & 3;
-        if (current == ((preferred - 1) & 3)) return (current - 1) & 3;
+        if (current == preferred)
+        {
+            return (current + 1) & 3;
+        }
+
+        if (current == ((preferred + 1) & 3))
+        {
+            return (current - 2) & 3;
+        }
+
+        if (current == ((preferred - 1) & 3))
+        {
+            return (current - 1) & 3;
+        }
+
         return null;
     }
 
@@ -106,8 +151,18 @@ public static class RoomPlanner
     {
         var pool = new List<KeeperRoomView>();
         foreach (KeeperRoomView r in view.OwnRooms)
-            if (!avoidBridges || !BridgeRules.IsBridge(r.Definition)) pool.Add(r);
-        if (pool.Count == 0) return null;
+        {
+            if (!avoidBridges || !BridgeRules.IsBridge(r.Definition))
+            {
+                pool.Add(r);
+            }
+        }
+
+        if (pool.Count == 0)
+        {
+            return null;
+        }
+
         return pool[rng.NextInt(pool.Count)];
     }
 
@@ -123,7 +178,11 @@ public static class RoomPlanner
         KeeperView view, KeeperAIParameters p, byte roomId, BuildArea area, out TilePos origin)
     {
         origin = default;
-        if (view.Heart is not TilePos heart) return null;
+        if (view.Heart is not TilePos heart)
+        {
+            return null;
+        }
+
         bool portal = roomId is (byte)RoomTypeId.Portal or (byte)RoomTypeId.HeroPortal;
         KeeperRoomView? best = null;
         int bestDist = int.MaxValue;
@@ -135,23 +194,42 @@ public static class RoomPlanner
             bool matches = portal
                 ? r.Definition.TypeId is RoomTypeId.Portal or RoomTypeId.HeroPortal
                 : r.Definition.RoomId == roomId;
-            if (!matches || !KeeperView.IsNeutral(r)) continue;
+            if (!matches || !KeeperView.IsNeutral(r))
+            {
+                continue;
+            }
+
             int distance = KeeperView.DistanceSquared(view.FirstSlabOf(r), heart);
             if (distance < bestDist) { bestDist = distance; best = r; }
         }
-        if (best is null) return null;
+        if (best is null)
+        {
+            return null;
+        }
         // 0x004FC690 reads stored positions (+0x27): the target's, and the own room's nearest it,
         // which is the origin. A portal's range runs from its first slab (+0x2D) to that origin,
         // inclusive; another room's from the heart position to the target, strict (ADR-0394).
         TilePos target = view.PositionOf(best);
-        if (!area.Contains(target) || view.NearestOwnRoomByPosition(target) is not KeeperRoomView from) return null;
+        if (!area.Contains(target) || view.NearestOwnRoomByPosition(target) is not KeeperRoomView from)
+        {
+            return null;
+        }
+
         origin = view.PositionOf(from);
         int rangeSquared = p.NeutralRoomRangeFromHeart * p.NeutralRoomRangeFromHeart;
         bool inRange = portal
             ? KeeperView.DistanceSquared(view.FirstSlabOf(best), origin) <= rangeSquared
             : KeeperView.DistanceSquared(target, heart) < rangeSquared;
-        if (inRange) return best;
-        if (OwnLandOnBoundary(view, target, p.NeutralRoomRangeFromClaimedArea) is not TilePos boundary) return null;
+        if (inRange)
+        {
+            return best;
+        }
+
+        if (OwnLandOnBoundary(view, target, p.NeutralRoomRangeFromClaimedArea) is not TilePos boundary)
+        {
+            return null;
+        }
+
         origin = boundary;
         return best;
     }
@@ -166,6 +244,7 @@ public static class RoomPlanner
         TilePos? best = null;
         int bestDistance = int.MaxValue;
         for (int edge = 0; edge < 4; edge++)
+        {
             for (int offset = -radius; offset <= radius + 1; offset++)
             {
                 TilePos tile = edge switch
@@ -182,6 +261,8 @@ public static class RoomPlanner
                     bestDistance = distance;
                 }
             }
+        }
+
         return best;
     }
 }

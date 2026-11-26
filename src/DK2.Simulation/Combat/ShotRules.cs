@@ -128,10 +128,18 @@ public static partial class ShotRules
         shot.ViewHeading = new Dk2Angle((ushort)Steering.Bearing.Of(aimX - shot.PosX, aimY - shot.PosY));
         shot.Heading = shot.ViewHeading.Raw;
         shot.HasLaunchHeading = true;
-        if (aimZ is { } height && definition.Mass == 0) shot.VelZ = VerticalVelocity(shot, definition, aimX, aimY, height);
+        if (aimZ is { } height && definition.Mass == 0)
+        {
+            shot.VelZ = VerticalVelocity(shot, definition, aimX, aimY, height);
+        }
+
         long dx = aimX - shot.PosX, dy = aimY - shot.PosY;
         long dist = Isqrt((dx * dx) + (dy * dy));
-        if (dist == 0) return;
+        if (dist == 0)
+        {
+            return;
+        }
+
         shot.VelX = (int)(definition.Speed * dx / dist);
         shot.VelY = (int)(definition.Speed * dy / dist);
     }
@@ -153,14 +161,22 @@ public static partial class ShotRules
     /// explosions and clouds stand where they are made.</summary>
     public static ShotState? Chain(SimulationContext context, ShotState parent, byte childType, bool onThing = false)
     {
-        if (childType == 0 || !context.Database.Shots.TryGetValue(childType, out ShotDef? definition)) return null;
+        if (childType == 0 || !context.Database.Shots.TryGetValue(childType, out ShotDef? definition))
+        {
+            return null;
+        }
+
         ShotState child = Spawn(context.World, definition, parent.OwnerPlayerId, parent.PosX, parent.PosY, parent.Data1, parent.Data2,
             parent.CasterId, parent.TargetKind, parent.TargetId, parent.TargetPlayerId, parent.TargetTileIndex, parent.TargetX, parent.TargetY);
         child.PosZ = parent.PosZ;
         RequestTrail(context, child, parent.ViewHeading, parent.ViewHeight);
         // The hit-thing child is made with a zeroed heading word (0x004ABF1A); the hit-solid child takes
         // the parent's (0x004AB394). The death shot's argument is unread and keeps the parent's here.
-        if (onThing) child.Heading = 0;
+        if (onThing)
+        {
+            child.Heading = 0;
+        }
+
         context.Emit(SystemName, "shot_chained", $"shot={parent.Id} child={child.Id} type={definition.ShotId} data1={child.Data1} data2={child.Data2}");
         return child;
     }
@@ -189,13 +205,28 @@ public static partial class ShotRules
             return forced is null || forced.Activity == CreatureActivity.Dead || !CombatPitRules.IsOnTheMap(forced) ? null : forced;
         }
         byte mode = definition.CollideType;
-        if (mode == CollideBodies) return WalkBodies(world, database, shot, definition, out bestOrder);
-        if (mode == CollideNone) return null;
-        if (mode != CollideBoth) return Walk(world, database, shot, definition, enemies: mode == CollideEnemies, out bestOrder);
+        if (mode == CollideBodies)
+        {
+            return WalkBodies(world, database, shot, definition, out bestOrder);
+        }
+
+        if (mode == CollideNone)
+        {
+            return null;
+        }
+
+        if (mode != CollideBoth)
+        {
+            return Walk(world, database, shot, definition, enemies: mode == CollideEnemies, out bestOrder);
+        }
         // Both (0x004AC330): a whole enemies walk, then, only if it found nothing (a trap included),
         // a whole friends walk.
         CreatureState? enemy = Walk(world, database, shot, definition, enemies: true, out bestOrder);
-        if (enemy != null || FindTrapHit(world, shot, definition, out _) != null) return enemy;
+        if (enemy != null || FindTrapHit(world, shot, definition, out _) != null)
+        {
+            return enemy;
+        }
+
         return Walk(world, database, shot, definition, enemies: false, out bestOrder);
     }
 
@@ -213,15 +244,31 @@ public static partial class ShotRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            if ((candidate.Id == shot.CasterId) != selfTarget || CreatureDeathRules.IsCorpse(candidate)) continue;
+            if ((candidate.Id == shot.CasterId) != selfTarget || CreatureDeathRules.IsCorpse(candidate))
+            {
+                continue;
+            }
+
             bool standing = !CreatureDeathRules.IsDown(candidate);
             bool admitted = enemies
                 ? (standing && CombatRules.IsHostile(world, shot.OwnerPlayerId, candidate.OwnerPlayerId)) || TurncoatRules.IsActive(candidate)
                 : standing && candidate.OwnerPlayerId == shot.OwnerPlayerId;
-            if (!admitted) continue;
+            if (!admitted)
+            {
+                continue;
+            }
+
             long order = window.Order(candidate.Tile, ChainRank(candidate));
-            if (order >= bestOrder) continue;
-            if (!Overlaps(shot, definition, candidate, database.CreatureById(candidate.CreatureTypeId))) continue;
+            if (order >= bestOrder)
+            {
+                continue;
+            }
+
+            if (!Overlaps(shot, definition, candidate, database.CreatureById(candidate.CreatureTypeId)))
+            {
+                continue;
+            }
+
             best = candidate;
             bestOrder = order;
         }
@@ -241,10 +288,22 @@ public static partial class ShotRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            if (!CreatureDeathRules.IsCorpse(candidate) || !CombatPitRules.IsOnTheMap(candidate)) continue;
+            if (!CreatureDeathRules.IsCorpse(candidate) || !CombatPitRules.IsOnTheMap(candidate))
+            {
+                continue;
+            }
+
             long order = window.Order(candidate.Tile, ChainRank(candidate));
-            if (order >= bestOrder) continue;
-            if (!Overlaps(shot, definition, candidate, database.CreatureById(candidate.CreatureTypeId))) continue;
+            if (order >= bestOrder)
+            {
+                continue;
+            }
+
+            if (!Overlaps(shot, definition, candidate, database.CreatureById(candidate.CreatureTypeId)))
+            {
+                continue;
+            }
+
             best = candidate;
             bestOrder = order;
         }
@@ -300,17 +359,33 @@ public static partial class ShotRules
     public static TrapState? FindTrapHit(WorldState world, ShotState shot, ShotDef definition, out long order)
     {
         order = long.MaxValue;
-        if (definition.CollideType is not (CollideEnemies or CollideBoth)) return null;
+        if (definition.CollideType is not (CollideEnemies or CollideBoth))
+        {
+            return null;
+        }
+
         var window = new SearchWindow(world, shot, definition);
         TrapState? best = null;
         foreach (TrapState trap in world.Traps)
         {
-            if (trap.UnderConstruction) continue;
+            if (trap.UnderConstruction)
+            {
+                continue;
+            }
+
             long at = window.Order(new TilePos(trap.X, trap.Y), TrapRank);
-            if (at >= order) continue;
+            if (at >= order)
+            {
+                continue;
+            }
+
             int width = CombatRules.IsHostile(world, shot.OwnerPlayerId, trap.PlayerId) ? EnemyTrapWidth : 0;
             int half = ((definition.Radius << 1) + width) / 2;
-            if (Math.Abs(shot.PosX - trap.PosX) >= half || Math.Abs(shot.PosY - trap.PosY) >= half) continue;
+            if (Math.Abs(shot.PosX - trap.PosX) >= half || Math.Abs(shot.PosY - trap.PosY) >= half)
+            {
+                continue;
+            }
+
             best = trap;
             order = at;
         }
@@ -327,7 +402,11 @@ public static partial class ShotRules
     /// whoever owns the trap.</summary>
     public static void ContactDamageTrap(SimulationContext context, ShotState shot, ShotDef definition, TrapState trap)
     {
-        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0) return;
+        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0)
+        {
+            return;
+        }
+
         TrapRules.Damage(trap, -ContactAmount(shot));
         context.Emit(SystemName, "shot_trap_hit", $"shot={shot.Id} caster={shot.CasterId} trap={trap.Id} damage={ContactAmount(shot)} health={trap.Health}");
     }
@@ -340,9 +419,17 @@ public static partial class ShotRules
     /// quarter tile. The original object's overlap box remains unbuilt (Q363).</summary>
     public static bool HitsHeart(WorldState world, GameDatabase database, ShotState shot, ShotDef definition)
     {
-        if (shot.TargetKind != FightTargetKind.Heart || shot.TargetTileIndex < 0) return false;
+        if (shot.TargetKind != FightTargetKind.Heart || shot.TargetTileIndex < 0)
+        {
+            return false;
+        }
+
         if (!HeartPillarRules.TryResolve(world, database, shot.TargetPlayerId, new HeartPillarId(shot.TargetId), out HeartPillarTarget pillar)
-            || shot.TargetTileIndex != pillar.Tile.Y * world.Width + pillar.Tile.X) return false;
+            || shot.TargetTileIndex != pillar.Tile.Y * world.Width + pillar.Tile.X)
+        {
+            return false;
+        }
+
         int reach = CombatRules.ReachSquared(definition.Radius + StandInReach);
         return CombatRules.DistanceSquared(shot.PosX, shot.PosY, pillar.X.Raw, pillar.Y.Raw) < reach;
     }
@@ -353,7 +440,11 @@ public static partial class ShotRules
     public static bool HitsDoor(WorldState world, ShotState shot, ShotDef definition, out DoorState? door)
     {
         door = shot.TargetKind == FightTargetKind.Door ? world.DoorById(shot.TargetId) : null;
-        if (door is null || door.Health <= 0) return false;
+        if (door is null || door.Health <= 0)
+        {
+            return false;
+        }
+
         int reach = CombatRules.ReachSquared(definition.Radius + StandInReach);
         return CombatRules.DistanceSquared(shot.PosX, shot.PosY, CreatureState.CentreOf(door.X), CreatureState.CentreOf(door.Y)) < reach;
     }
@@ -362,7 +453,11 @@ public static partial class ShotRules
     /// delta (<c>0x004B2CE0</c>).</summary>
     public static void ContactDamageDoor(SimulationContext context, ShotState shot, ShotDef definition, DoorState door)
     {
-        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0) return;
+        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0)
+        {
+            return;
+        }
+
         DoorRules.Damage(context, door, -ContactAmount(shot), shot.OwnerPlayerId);
         context.Emit(SystemName, "shot_door_hit", $"shot={shot.Id} caster={shot.CasterId} door={door.Id} damage={ContactAmount(shot)} health={door.Health}");
     }
@@ -372,12 +467,24 @@ public static partial class ShotRules
     /// fire-category hit lights also consumes simulation draws (shot-effects.md §5).</summary>
     public static void ContactDamage(SimulationContext context, ShotState shot, ShotDef definition, CreatureState target)
     {
-        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0 || CreatureDeathRules.IsCorpse(target)) return;
-        if (StatusEffectRules.IsInvulnerable(target)) return;
+        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0 || CreatureDeathRules.IsCorpse(target))
+        {
+            return;
+        }
+
+        if (StatusEffectRules.IsInvulnerable(target))
+        {
+            return;
+        }
+
         GameDatabase database = context.Database;
         // 0x004AC589: both callers (0x004ABFD2, 0x004B25B6) pass the shot's owner (+0x28).
         StatusEffectRules.IgniteWeakTarget(context, definition, target, 10, shot.OwnerPlayerId);
-        if (CreatureDeathRules.IsDown(target)) return;
+        if (CreatureDeathRules.IsDown(target))
+        {
+            return;
+        }
+
         int landed = StatusEffectRules.Hurt(context.World, database, database.CreatureById(target.CreatureTypeId), target, ContactAmount(shot), shot.OwnerPlayerId);
         context.Emit(SystemName, "shot_hit", $"shot={shot.Id} type={definition.ShotId} caster={shot.CasterId} target={target.Id} damage={ContactAmount(shot)} landed={landed} health={target.Health}");
     }
@@ -387,9 +494,17 @@ public static partial class ShotRules
     /// the owner's heart (<c>0x004DA200</c>, Q363).</summary>
     public static void ContactDamageHeart(SimulationContext context, ShotState shot, ShotDef definition)
     {
-        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0) return;
+        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0)
+        {
+            return;
+        }
+
         WorldState world = context.World;
-        if (world.Player(shot.TargetPlayerId).HeartHealth <= 0) return;
+        if (world.Player(shot.TargetPlayerId).HeartHealth <= 0)
+        {
+            return;
+        }
+
         bool killed = HeartSoundRules.Damage(context, SystemName, shot.TargetPlayerId, ContactAmount(shot), shot.OwnerPlayerId);
         CombatMessageRules.HeartDamaged(context, shot.TargetPlayerId);
         context.Emit(SystemName, "shot_heart_hit",
@@ -408,7 +523,11 @@ public static partial class ShotRules
     /// (<c>0x004AC773</c>–<c>0x004AC8B7</c>), so from 12 tiles the squared radius wraps as it does there.</remarks>
     public static void AreaDamage(SimulationContext context, ShotState shot, ShotDef definition)
     {
-        if (definition.DamageType != AreaDamageType || shot.Data1 <= 0 || shot.Data2 <= 0) return;
+        if (definition.DamageType != AreaDamageType || shot.Data1 <= 0 || shot.Data2 <= 0)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int tiles = shot.Data2;
@@ -422,18 +541,35 @@ public static partial class ShotRules
         List<(int Tile, int Rank, object Thing)> things = [];
         foreach (CreatureState c in world.Creatures)
         {
-            if (c.OwnerPlayerId == shot.OwnerPlayerId || CreatureDeathRules.IsCorpse(c) || !CombatPitRules.IsOnTheMap(c)) continue;
-            if (c.Tile.X < x0 || c.Tile.X > x1 || c.Tile.Y < y0 || c.Tile.Y > y1) continue;
+            if (c.OwnerPlayerId == shot.OwnerPlayerId || CreatureDeathRules.IsCorpse(c) || !CombatPitRules.IsOnTheMap(c))
+            {
+                continue;
+            }
+
+            if (c.Tile.X < x0 || c.Tile.X > x1 || c.Tile.Y < y0 || c.Tile.Y > y1)
+            {
+                continue;
+            }
+
             things.Add(((c.Tile.Y * world.Width) + c.Tile.X, -c.ChainOrder, c));
         }
         if (!sparesStatics)
         {
             foreach (TrapState t in world.Traps)
+            {
                 if (t.PlayerId != shot.OwnerPlayerId && t.X >= x0 && t.X <= x1 && t.Y >= y0 && t.Y <= y1)
+                {
                     things.Add(((t.Y * world.Width) + t.X, 1, t));
+                }
+            }
+
             foreach (DoorState d in world.Doors)
+            {
                 if (d.PlayerId != shot.OwnerPlayerId && d.X >= x0 && d.X <= x1 && d.Y >= y0 && d.Y <= y1)
+                {
                     things.Add(((d.Y * world.Width) + d.X, 2, d));
+                }
+            }
         }
         things.Sort((a, b) => a.Tile != b.Tile ? a.Tile.CompareTo(b.Tile) : a.Rank.CompareTo(b.Rank));
 
@@ -447,13 +583,29 @@ public static partial class ShotRules
                 DoorState d => (CreatureState.CentreOf(d.X), CreatureState.CentreOf(d.Y)),
                 _ => (0, 0),
             };
-            if (thing is CreatureState invulnerable && StatusEffectRules.IsInvulnerable(invulnerable)) continue;
-            if (damage == 0) continue;
+            if (thing is CreatureState invulnerable && StatusEffectRules.IsInvulnerable(invulnerable))
+            {
+                continue;
+            }
+
+            if (damage == 0)
+            {
+                continue;
+            }
+
             uint distanceSquared = TrapRules.DistanceSquared(shot.PosX, shot.PosY, px, py);
-            if (distanceSquared >= radiusSquared) continue;
+            if (distanceSquared >= radiusSquared)
+            {
+                continue;
+            }
+
             int root = (int)Isqrt(unchecked((uint)(distanceSquared << 12)));
             damage = unchecked((radius - root) * damage) / radius;
-            if (damage <= 0) continue; // the health routine returns at once on a zero delta; a wrapped negative is not modelled
+            if (damage <= 0)
+            {
+                continue; // the health routine returns at once on a zero delta; a wrapped negative is not modelled
+            }
+
             switch (thing)
             {
                 case CreatureState target when !CreatureDeathRules.IsDown(target):
@@ -481,7 +633,11 @@ public static partial class ShotRules
     /// body, a held creature and a dying one are left out as the health routine refuses them.</summary>
     public static void SquareDamage(SimulationContext context, ShotState shot, ShotDef definition)
     {
-        if (definition.DamageType != SquareDamageType || shot.Data1 <= 0) return;
+        if (definition.DamageType != SquareDamageType || shot.Data1 <= 0)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int tileX = shot.PosX >> 12, tileY = shot.PosY >> 12;
@@ -489,10 +645,22 @@ public static partial class ShotRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState target = creatures[i];
-            if (target.OwnerPlayerId == shot.OwnerPlayerId || CreatureDeathRules.IsCorpse(target) || !CombatPitRules.IsOnTheMap(target)) continue;
+            if (target.OwnerPlayerId == shot.OwnerPlayerId || CreatureDeathRules.IsCorpse(target) || !CombatPitRules.IsOnTheMap(target))
+            {
+                continue;
+            }
+
             TilePos at = target.Tile;
-            if (at.X < tileX - shot.Data2 || at.X >= tileX + shot.Data2 || at.Y < tileY - shot.Data2 || at.Y >= tileY + shot.Data2) continue;
-            if (!world.Contains(at) || StatusEffectRules.IsInvulnerable(target) || CreatureDeathRules.IsDown(target)) continue;
+            if (at.X < tileX - shot.Data2 || at.X >= tileX + shot.Data2 || at.Y < tileY - shot.Data2 || at.Y >= tileY + shot.Data2)
+            {
+                continue;
+            }
+
+            if (!world.Contains(at) || StatusEffectRules.IsInvulnerable(target) || CreatureDeathRules.IsDown(target))
+            {
+                continue;
+            }
+
             int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, shot.Data1, shot.OwnerPlayerId); // 0x004AC661/0x004AC688
             context.Emit(SystemName, "shot_square_hit", $"shot={shot.Id} type={definition.ShotId} target={target.Id} damage={ContactAmount(shot)} landed={landed} health={target.Health}");
         }
@@ -507,7 +675,11 @@ public static partial class ShotRules
     /// creature side built (28 guided, 34 instant, and the unread ones) do nothing (Q394, Q395).</summary>
     public static void Process(SimulationContext context, ShotState shot, ShotDef definition, uint eventBit, CreatureState? struck)
     {
-        if ((definition.ShotProcessFlags & eventBit) == 0) return;
+        if ((definition.ShotProcessFlags & eventBit) == 0)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         if (definition.ProcessType == 25)
         {
@@ -523,8 +695,11 @@ public static partial class ShotRules
             }
             // 0x004AF1BF, every call after the first (the pre-move event): with twenty updates left, for the owner's screen alone.
             else if (eventBit != FirstTickEvent && shot.Health == 20)
+            {
                 RequestShotSound(context, shot, definition, ThingSoundEvent.SightOfEvilEnding,
                     viewerOnlyFor: new PlayerId(shot.OwnerPlayerId));
+            }
+
             return;
         }
         if (definition.ProcessType == ReaperRules.ProcessType)
@@ -553,7 +728,11 @@ public static partial class ShotRules
             context.Emit(SystemName, "alarm_raised_by_trap", $"shot={shot.Id} player={shot.OwnerPlayerId} at={shot.PosX >> 12},{shot.PosY >> 12}");
             return;
         }
-        if (definition.ProcessType is FearProcess or GasProcess) return;
+        if (definition.ProcessType is FearProcess or GasProcess)
+        {
+            return;
+        }
+
         if (definition.ProcessType == BoulderProcess)
         {
             BoulderRules.Launch(context, shot);
@@ -582,7 +761,11 @@ public static partial class ShotRules
         CreatureState? target = struck ?? (shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null);
         if (target is null)
         {
-            if (definition.ProcessType == InstantProcess) shot.Health = 0;
+            if (definition.ProcessType == InstantProcess)
+            {
+                shot.Health = 0;
+            }
+
             return;
         }
         CreatureDef definitionOfTarget = context.Database.CreatureById(target.CreatureTypeId);
@@ -598,7 +781,11 @@ public static partial class ShotRules
                     shot.PosY = target.PosY;
                     shot.ForcedCollision = true;
                 }
-                else if (struck is null) shot.Health = 0;
+                else if (struck is null)
+                {
+                    shot.Health = 0;
+                }
+
                 break;
             case ModifyHealthProcess: ModifyHealth(context, shot, definition, target, definitionOfTarget); break;
             case SpeedProcess: StatusEffectRules.ModifySpeed(context, target, shot.Data1, shot.Data2); break;
@@ -623,7 +810,11 @@ public static partial class ShotRules
     {
         WorldState world = context.World;
         var tile = new TilePos(shot.PosX >> 12, shot.PosY >> 12);
-        if (!world.Contains(tile) || context.Database.ObjectById((byte)shot.Data1) is not { } definition) return;
+        if (!world.Contains(tile) || context.Database.ObjectById((byte)shot.Data1) is not { } definition)
+        {
+            return;
+        }
+
         if (shot.Data1 == CallToArmsRules.ObjectTypeId && world.HasPlayer(shot.OwnerPlayerId))
         {
             ref PlayerState player = ref world.Player(shot.OwnerPlayerId);
@@ -656,11 +847,19 @@ public static partial class ShotRules
     /// attacking abnormal targets (rebellion.md §7.2).</summary>
     public static void ModifyHealth(SimulationContext context, ShotState shot, ShotDef definition, CreatureState target, CreatureDef targetDef)
     {
-        if (((targetDef.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) || CreatureDeathRules.IsCorpse(target)) return;
+        if (((targetDef.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny) || CreatureDeathRules.IsCorpse(target))
+        {
+            return;
+        }
+
         WorldState world = context.World;
         GameDatabase database = context.Database;
         StatusEffectRules.IgniteWeakTarget(context, definition, target, 5, shot.OwnerPlayerId);
-        if (CreatureDeathRules.IsDown(target)) return;
+        if (CreatureDeathRules.IsDown(target))
+        {
+            return;
+        }
+
         int max = CreatureHealthRules.MaxHealth(database, targetDef, target);
         if (definition.ShotId == DisruptionShotId)
         {
@@ -676,7 +875,9 @@ public static partial class ShotRules
         if (amount > 0 && target.FrozenTicks == 0 && !target.InHand && !PrisonRules.HasKeeperBinding(target)
             && !target.CombatPitFighter && !target.AttackAbnormalTargets
             && CreatureStateMachine.TrySetState(context.Hooks, target, CreatureStateMachine.Idle, context.Tick.Value))
+        {
             target.StopMoving(); // DK2 moves only a walking state (0x0048A23B), so the route goes with the state
+        }
         // 0x004B2CE0 refuses a creature whose kind is OnlyAttackableByHorny for a positive delta too.
         // Both arms pass the shot's owner (+0x28) as the source (0x004ADCE0, 0x004ADDF8).
         int healed = amount >= 0
@@ -701,10 +902,22 @@ public static partial class ShotRules
 
     public static long Isqrt(long value)
     {
-        if (value <= 0) return 0;
+        if (value <= 0)
+        {
+            return 0;
+        }
+
         long root = (long)Math.Sqrt(value);
-        while (root * root > value) root--;
-        while ((root + 1) * (root + 1) <= value) root++;
+        while (root * root > value)
+        {
+            root--;
+        }
+
+        while ((root + 1) * (root + 1) <= value)
+        {
+            root++;
+        }
+
         return root;
     }
 }

@@ -20,17 +20,28 @@ public static class RoomWalkRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int[] chain = SlabChain.Order(world, room);
-        if (chain.Length == 0) return null;
+        if (chain.Length == 0)
+        {
+            return null;
+        }
+
         int start = context.Rng.NextInt(chain.Length);
         var slots = new HashSet<int>();
         AutoFurnitureRules.FurnitureSlots(world, database, room, slots);
         for (int k = 0; k <= chain.Length; k++)
         {
             int tile = chain[(start + k) % chain.Length];
-            if (slots.Contains(tile) || CasinoStep.NavClass(database, world.TileAtIndex(tile)) != 0) continue;
+            if (slots.Contains(tile) || CasinoStep.NavClass(database, world.TileAtIndex(tile)) != 0)
+            {
+                continue;
+            }
+
             if (room.Definition.TypeId != RoomTypeId.Lair && (CasinoStep.HasObstacle(world, database, tile)
                     || ChickenMovementRules.HasHatcheryPillar(world, database, new TilePos(tile % world.Width, tile / world.Width))))
+            {
                 continue;   // DK2's Hatchery pillars are Obstacle things on their tiles; ours keeps them virtual (Q805)
+            }
+
             return tile;
         }
 
@@ -46,7 +57,13 @@ public static class RoomWalkRules
         AutoFurnitureRules.FurnitureSlots(world, database, room, slots);
         var open = new List<int>();
         foreach (int tile in SlabChain.Order(world, room))
-            if (!slots.Contains(tile)) open.Add(tile);
+        {
+            if (!slots.Contains(tile))
+            {
+                open.Add(tile);
+            }
+        }
+
         return open.Count == 0 ? null : open[rng.NextInt(open.Count)];
     }
 }

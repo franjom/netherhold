@@ -27,24 +27,40 @@ public static class ManaRules
 
     internal static void RecordTerrainChange(WorldState world, GameDatabase database, in TileState tile, byte terrainId)
     {
-        if (tile.TerrainId == terrainId || !world.HasPlayer(tile.OwnerPlayerId)) return;
+        if (tile.TerrainId == terrainId || !world.HasPlayer(tile.OwnerPlayerId))
+        {
+            return;
+        }
+
         TerrainDef old = database.TerrainById(tile.TerrainId);
         TerrainDef next = database.TerrainById(terrainId);
         ref PlayerState player = ref world.Player(tile.OwnerPlayerId);
         if (!old.IsRoom && !next.IsRoom)
         {
             if (tile.OwnerPlayerId != PlayerIds.Unowned)
+            {
                 player.TerrainManaGainPerSecond += (short)next.ManaGain
                     - (tile.TerrainId == 0 ? 0 : (short)old.ManaGain);
+            }
         }
-        else if (HasBridgeBonus(terrainId)) player.TerrainManaGainPerSecond++;
-        else if (HasBridgeBonus(tile.TerrainId)) player.TerrainManaGainPerSecond--;
+        else if (HasBridgeBonus(terrainId))
+        {
+            player.TerrainManaGainPerSecond++;
+        }
+        else if (HasBridgeBonus(tile.TerrainId))
+        {
+            player.TerrainManaGainPerSecond--;
+        }
     }
 
     /// <summary>Owner-write half: transfers only the current definition's words, leaving room and bridge leftovers.</summary>
     public static void SetOwner(WorldState world, GameDatabase database, ref TileState tile, PlayerId owner)
     {
-        if (tile.OwnerPlayerId == owner) return;
+        if (tile.OwnerPlayerId == owner)
+        {
+            return;
+        }
+
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
         if (tile.OwnerPlayerId != PlayerIds.Unowned && world.HasPlayer(tile.OwnerPlayerId))
         {
@@ -84,7 +100,10 @@ public static class ManaRules
                 }
                 // Map_LoadTileRecord lays the hazard, then builds the room for its owner;
                 // Map_SetRoomTile therefore credits map bridges just like newly built ones.
-                if (terrain.IsRoom && HasBridgeBonus(tile.TerrainId)) owner.TerrainManaGainPerSecond++;
+                if (terrain.IsRoom && HasBridgeBonus(tile.TerrainId))
+                {
+                    owner.TerrainManaGainPerSecond++;
+                }
             }
         }
     }
@@ -115,7 +134,13 @@ public static class ManaRules
     public static byte? DungeonHeartTerrainId(GameDatabase database)
     {
         foreach (RoomDef room in database.Rooms.Values)
-            if (room.TypeId == RoomTypeId.DungeonHeart) return room.TerrainId;
+        {
+            if (room.TypeId == RoomTypeId.DungeonHeart)
+            {
+                return room.TerrainId;
+            }
+        }
+
         return null;
     }
 
@@ -140,17 +165,25 @@ public static class ManaRules
         Span<int> indexOfOwner = stackalloc int[256];
         indexOfOwner.Fill(-1);
         for (int i = 0; i < world.PlayerCount; i++)
+        {
             indexOfOwner[world.PlayerAtIndex(i).PlayerId.Value] = i;
+        }
 
         for (int i = 0; i < world.TileCount; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
             int player = indexOfOwner[tile.OwnerPlayerId];
-            if (player < 0) continue;
+            if (player < 0)
+            {
+                continue;
+            }
 
             // A flag rather than a count: however many tiles a heart covers it is one
             // heart, and a keeper never has two.
-            if (tile.TerrainId == heartTerrain) hasHeart[player] = true;
+            if (tile.TerrainId == heartTerrain)
+            {
+                hasHeart[player] = true;
+            }
         }
 
         int fromHeart = hasHeart.Contains(true) ? HeartGainPerSecond(database) : 0;
@@ -214,7 +247,9 @@ public static class ManaRules
         Span<int> indexOfOwner = stackalloc int[256];
         indexOfOwner.Fill(-1);
         for (int i = 0; i < world.PlayerCount; i++)
+        {
             indexOfOwner[world.PlayerAtIndex(i).PlayerId.Value] = i;
+        }
 
         // +0x10D6: the completed traps' upkeep, summed as Mana_UpkeepPerSecond (0x004C17A0) sums it.
         // DK2 registers it for any owner but pays keepers alone (0x004B9EC0); this loop pays every
@@ -224,21 +259,34 @@ public static class ManaRules
         {
             TrapState trap = traps[i];
             int owner = indexOfOwner[trap.PlayerId];
-            if (owner < 0 || !PlayerIds.IsKeeper(trap.PlayerId) || trap.UnderConstruction || !database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition)) continue;
+            if (owner < 0 || !PlayerIds.IsKeeper(trap.PlayerId) || trap.UnderConstruction || !database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition))
+            {
+                continue;
+            }
+
             upkeep[owner] += TrapUpkeepPerSecond(definition);
         }
 
         int perImp = ImpUpkeepPerSecond(database);
-        if (perImp == 0) return upkeep;
+        if (perImp == 0)
+        {
+            return upkeep;
+        }
 
         EntityList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
             int player = indexOfOwner[creature.OwnerPlayerId];
-            if (player < 0) continue;
+            if (player < 0)
+            {
+                continue;
+            }
+
             if (((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+            {
                 upkeep[player] += perImp;
+            }
         }
         return upkeep;
     }
@@ -260,7 +308,10 @@ public static class ManaRules
             : gainPerSecond;
         long net = income - upkeepPerSecond;
         long mana = before + net;
-        if (net >= 0) mana = Math.Min(mana, Threshold(database));
+        if (net >= 0)
+        {
+            mana = Math.Min(mana, Threshold(database));
+        }
 
         player.Mana = (int)Math.Max(0, mana);
         return player.Mana - before;

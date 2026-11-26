@@ -28,11 +28,22 @@ public static class TrapActivationRules
         TrapDef definition, PlayerId owner, bool underConstruction, long tick,
         long rechargeDeadline, int mana, bool beingDisarmed)
     {
-        if (underConstruction) return TrapReadiness.UnderConstruction;
-        if (tick < rechargeDeadline) return TrapReadiness.Recharging;
+        if (underConstruction)
+        {
+            return TrapReadiness.UnderConstruction;
+        }
+
+        if (tick < rechargeDeadline)
+        {
+            return TrapReadiness.Recharging;
+        }
+
         if ((definition.Flags & UsesMana) != 0 && owner != PlayerIds.Good
             && definition.ManaCostToFire != 0 && definition.ManaCostToFire > mana)
+        {
             return TrapReadiness.InsufficientMana;
+        }
+
         return beingDisarmed ? TrapReadiness.BeingDisarmed : TrapReadiness.Ready;
     }
 

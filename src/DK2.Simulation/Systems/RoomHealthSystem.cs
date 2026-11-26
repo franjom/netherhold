@@ -25,7 +25,11 @@ public sealed class RoomHealthSystem : IRoomTickStep
     public void BeginTurn(SimulationContext context)
     {
         GameDatabase database = context.Database;
-        if (ReferenceEquals(_checked, database)) return;
+        if (ReferenceEquals(_checked, database))
+        {
+            return;
+        }
+
         _checked = database;
         _anyGain = database.Rooms.Values.Any(r => r.HealthGain != 0);
     }

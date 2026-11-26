@@ -45,8 +45,16 @@ public static class FloorGold
     /// <summary>Is this object a pile of gold?</summary>
     public static bool IsPile(GameDatabase database, ObjectState instance)
     {
-        if (database is null) throw new ArgumentNullException(nameof(database));
-        if (instance is null) throw new ArgumentNullException(nameof(instance));
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
+        if (instance is null)
+        {
+            throw new ArgumentNullException(nameof(instance));
+        }
+
         return database.ObjectById(instance.ObjectTypeId) is { IsGold: true };
     }
 
@@ -66,7 +74,11 @@ public static class FloorGold
     /// pile sitting exactly on the limit is still a valid target.</summary>
     public static bool AcceptsMore(GameDatabase database, ObjectState pile)
     {
-        if (pile is null) throw new ArgumentNullException(nameof(pile));
+        if (pile is null)
+        {
+            throw new ArgumentNullException(nameof(pile));
+        }
+
         return IsPile(database, pile) && pile.GoldHeld <= MaxPile(database);
     }
 
@@ -74,26 +86,40 @@ public static class FloorGold
     public static void PilesOn(
         WorldState world, GameDatabase database, int tileIndex, List<ObjectState> into)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (into is null) throw new ArgumentNullException(nameof(into));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (into is null)
+        {
+            throw new ArgumentNullException(nameof(into));
+        }
 
         foreach (ObjectState instance in world.Objects)
         {
             if (instance.TileIndex == tileIndex && IsPile(database, instance))
+            {
                 into.Add(instance);
+            }
         }
     }
 
     /// <summary>How much gold is lying on one tile, across however many piles.</summary>
     public static int OnTile(WorldState world, GameDatabase database, int tileIndex)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
 
         int total = 0;
         foreach (ObjectState instance in world.Objects)
         {
             if (instance.TileIndex == tileIndex && IsPile(database, instance))
+            {
                 total += instance.GoldHeld;
+            }
         }
         return total;
     }
@@ -105,12 +131,18 @@ public static class FloorGold
     /// it.</summary>
     public static int Total(WorldState world, GameDatabase database)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
 
         int total = 0;
         foreach (ObjectState instance in world.Objects)
         {
-            if (IsPile(database, instance)) total += instance.GoldHeld;
+            if (IsPile(database, instance))
+            {
+                total += instance.GoldHeld;
+            }
         }
         return total;
     }
@@ -122,8 +154,15 @@ public static class FloorGold
     public static ObjectState? Drop(
         WorldState world, GameDatabase database, int tileIndex, int amount, PlayerId ownerPlayerId)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (amount <= 0) return null;
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (amount <= 0)
+        {
+            return null;
+        }
 
         ObjectState pile = world.SpawnObject(database, FloorGoldObjectId, ownerPlayerId, tileIndex);
         pile.GoldHeld = amount;
@@ -145,17 +184,32 @@ public static class FloorGold
     public static ObjectState? PutDown(
         WorldState world, GameDatabase database, int tileIndex, byte cell, int amount)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (amount <= 0) return null;
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (amount <= 0)
+        {
+            return null;
+        }
 
         foreach (ObjectState instance in world.Objects)
         {
-            if (!IsLoosePile(instance, tileIndex) || instance.Cell != cell) continue;
+            if (!IsLoosePile(instance, tileIndex) || instance.Cell != cell)
+            {
+                continue;
+            }
+
             instance.GoldHeld += amount;
             return instance;
         }
         ObjectState? pile = Drop(world, database, tileIndex, amount);
-        if (pile is not null) pile.Cell = cell;
+        if (pile is not null)
+        {
+            pile.Cell = cell;
+        }
+
         return pile;
     }
 
@@ -164,11 +218,20 @@ public static class FloorGold
     /// the whole tile.</summary>
     public static int PileInCell(WorldState world, int tileIndex, byte cell)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         int largest = 0;
         foreach (ObjectState instance in world.Objects)
+        {
             if (IsLoosePile(instance, tileIndex) && (cell == MiningSlots.AnyCell || instance.Cell == cell))
+            {
                 largest = Math.Max(largest, instance.GoldHeld);
+            }
+        }
+
         return largest;
     }
 
@@ -181,14 +244,33 @@ public static class FloorGold
     public static int Take(
         WorldState world, GameDatabase database, ObjectState pile, int amount)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (pile is null) throw new ArgumentNullException(nameof(pile));
-        if (!IsPile(database, pile)) return 0;
-        if (amount <= 0) return 0;
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (pile is null)
+        {
+            throw new ArgumentNullException(nameof(pile));
+        }
+
+        if (!IsPile(database, pile))
+        {
+            return 0;
+        }
+
+        if (amount <= 0)
+        {
+            return 0;
+        }
 
         int taken = Math.Min(amount, pile.GoldHeld);
         pile.GoldHeld -= taken;
-        if (pile.GoldHeld <= 0) world.RemoveObject(pile.Id);
+        if (pile.GoldHeld <= 0)
+        {
+            world.RemoveObject(pile.Id);
+        }
+
         return taken;
     }
 
@@ -213,16 +295,33 @@ public static class FloorGold
     public static int DropFrom(
         WorldState world, GameDatabase database, CreatureState creature, SimRandom rng)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
-        if (rng is null) throw new ArgumentNullException(nameof(rng));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (creature is null)
+        {
+            throw new ArgumentNullException(nameof(creature));
+        }
+
+        if (rng is null)
+        {
+            throw new ArgumentNullException(nameof(rng));
+        }
 
         int piles = PileCount(creature.GoldHeld);
-        if (piles == 0) return 0;
+        if (piles == 0)
+        {
+            return 0;
+        }
 
         int each = creature.GoldHeld / piles;
         creature.GoldHeld = 0;
-        if (each <= 0) return 0;
+        if (each <= 0)
+        {
+            return 0;
+        }
 
         int tileIndex = creature.Tile.Y * world.Width + creature.Tile.X;
         for (int i = 0; i < piles; i++)

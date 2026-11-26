@@ -61,6 +61,9 @@ public struct Hash64
     {
         if (s is null) { Add(ulong.MaxValue); return; }
         Add(s.Length);
-        foreach (char c in s) Add((ushort)c);
+        foreach (char c in s)
+        {
+            Add((ushort)c);
+        }
     }
 }

@@ -27,24 +27,35 @@ public static class WallSupportRules
             TilePos at = Offset(changedFloor, offset);
             if (IsOwnedWall(world, database, at, requireFullNonGold: false)
                 && !OwnFloorRules.Touches(database, world, at, world.Tile(at).OwnerPlayerId))
+            {
                 TileWorkRules.ReleaseWall(world, database, at);
+            }
         }
 
         foreach (TilePos offset in Diagonal)
         {
             TilePos at = Offset(changedFloor, offset);
             if (!IsOwnedWall(world, database, at, requireFullNonGold: true)
-                || OwnFloorRules.Touches(database, world, at, world.Tile(at).OwnerPlayerId)) continue;
+                || OwnFloorRules.Touches(database, world, at, world.Tile(at).OwnerPlayerId))
+            {
+                continue;
+            }
 
             bool retained = false;
             foreach ((TilePos First, TilePos Second) pair in RetainingPairs)
+            {
                 if (IsOwnedWall(world, database, Offset(at, pair.First), requireFullNonGold: true)
                     && IsOwnedWall(world, database, Offset(at, pair.Second), requireFullNonGold: true))
                 {
                     retained = true;
                     break;
                 }
-            if (!retained) TileWorkRules.ReleaseWall(world, database, at);
+            }
+
+            if (!retained)
+            {
+                TileWorkRules.ReleaseWall(world, database, at);
+            }
         }
     }
 
@@ -52,7 +63,11 @@ public static class WallSupportRules
 
     private static bool IsOwnedWall(WorldState world, GameDatabase database, TilePos at, bool requireFullNonGold)
     {
-        if (!world.Contains(at)) return false;
+        if (!world.Contains(at))
+        {
+            return false;
+        }
+
         ref TileState tile = ref world.Tile(at);
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
         return tile.OwnerPlayerId != PlayerIds.Neutral && terrain.IsSolid

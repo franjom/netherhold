@@ -129,7 +129,7 @@ The distance gate refers to the last task tile, not the gold-store destination.
 Modern `ImpTaskSystem.cs:256`, `ImpTaskSystem.Selection.cs:639` and the
 existing [just-dug handler evidence](imp-claim-path.md#5-the-just-dug-claim-0x00464170-and-0x00469600)
 do not establish a gate mismatch for the turn-309 take. The rest/selection
-boundary is in `ImpTaskSystem.Wander.cs:77` and `:90`.
+boundary is in `ImpTaskSystem.UpdateWander` and `ToRest`.
 
 ### Opening-time input control
 
@@ -290,8 +290,8 @@ this replay. Stop this control rather than add another timing workaround.
 
 The binary order is already known: the [creature update](functions/00488930.md)
 calls the action runner at `0x00489A68`, before state dispatch at `0x0048A030`;
-both call sites were rechecked in instructions. Modern `ImpTaskSystem.cs:210`
-updates workers newest first, but `ImpTaskSystem.Work.cs:154` queues strikes
+both call sites were rechecked in instructions. Modern `ImpTaskSystem.Update`
+updates workers newest first, but `ImpTaskSystem.UpdateWorking` queues strikes
 for `TileWorkSystem.Execute` after that pass. The local control demonstrates
 this visibility difference; it does not validate the broader ADR-0503 candidate
 or implement native action-before-state ordering within the striker.

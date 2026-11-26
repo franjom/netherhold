@@ -23,8 +23,16 @@ public sealed class AllianceSystem : ISimulationSystem
     {
         foreach (SetAllianceCommand alliance in context.Commands<SetAllianceCommand>())
         {
-            if (!Known(context, alliance.PlayerId) || !Known(context, alliance.OtherPlayerId)) continue;
-            if (alliance.PlayerId >= 8 || alliance.OtherPlayerId >= 8) continue;
+            if (!Known(context, alliance.PlayerId) || !Known(context, alliance.OtherPlayerId))
+            {
+                continue;
+            }
+
+            if (alliance.PlayerId >= 8 || alliance.OtherPlayerId >= 8)
+            {
+                continue;
+            }
+
             context.World.SetAllied(alliance.PlayerId, alliance.OtherPlayerId.Value, alliance.Allied);
         }
     }
@@ -32,7 +40,13 @@ public sealed class AllianceSystem : ISimulationSystem
     private static bool Known(SimulationContext context, PlayerId playerId)
     {
         for (int i = 0; i < context.World.PlayerCount; i++)
-            if (context.World.PlayerAtIndex(i).PlayerId == playerId) return true;
+        {
+            if (context.World.PlayerAtIndex(i).PlayerId == playerId)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 }

@@ -207,12 +207,18 @@ public static class CallToArmsRules
             // refused route or 190 leaves it idle; ours idles it here, standing in for that handler.
             if (creature.TortureVoluntary
                 && CreatureStateMachine.TrySetState(context.Hooks, creature, TortureRules.VoluntaryLeaveState, context.Tick.Value))
+            {
                 creature.TortureRoll = 0;
+            }
+
             if (!CanRoute(context, creature, definition, tile)
                 || !CreatureStateMachine.TrySetState(context.Hooks, creature, GoingState, context.Tick.Value))
             {
                 if (creature.Dk2StateId == TortureRules.VoluntaryLeaveState)
+                {
                     CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
+                }
+
                 continue;
             }
 
@@ -288,9 +294,17 @@ public static class CallToArmsRules
     public static bool AfterPayment(SimulationContext context, string system, ref PlayerState player)
     {
         WorldState world = context.World;
-        if (!IsLive(world, player) || player.CallToArms.ManaTick >= Turn(context)) return false;
+        if (!IsLive(world, player) || player.CallToArms.ManaTick >= Turn(context))
+        {
+            return false;
+        }
+
         int upkeep = UpkeepPerSecond(world, context.Database, player, Turn(context));
-        if (upkeep == 0 || upkeep <= player.Mana) return false;
+        if (upkeep == 0 || upkeep <= player.Mana)
+        {
+            return false;
+        }
+
         ObjectState flag = world.ObjectById(player.CallToArms.ObjectId)!;
         flag.ProcessState = Fading;
         context.Emit(system, "call_to_arms_unaffordable", $"player={player.PlayerId} upkeep={upkeep} mana={player.Mana}");

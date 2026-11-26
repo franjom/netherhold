@@ -24,14 +24,22 @@ public static class ObjectSoundRules
 
     internal static void Made(SimulationContext context, ObjectState thing)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         ThingSoundRules.Request(context, SystemName, thing, ThingSoundEvent.ObjectMade);
         ThingSoundRules.Request(context, SystemName, thing, ThingSoundEvent.ObjectMadeSecond);
     }
 
     internal static void Removing(SimulationContext context, ObjectState thing)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         ThingSoundRules.Request(context, SystemName, thing, ThingSoundEvent.ObjectRemoved);
     }
 }

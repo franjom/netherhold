@@ -42,27 +42,57 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
     public void Update(SimulationContext context, CreatureState creature)
     {
         GameDatabase database = context.Database;
-        if (creature.Possessed) return;
+        if (creature.Possessed)
+        {
+            return;
+        }
+
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-        if (!CreatureHealthRules.CanGetHungry(definition)) return;
+        if (!CreatureHealthRules.CanGetHungry(definition))
+        {
+            return;
+        }
 
         // The clock first, ahead of the attempt and of every state handler (0x00477C20 under 0x00476FC0).
         if (!CreatureDeathRules.IsDying(creature) && !CreatureDeathRules.IsCorpse(creature))
+        {
             Clock(context, definition, creature);
+        }
 
-        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) return;
+        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down))
+        {
+            return;
+        }
 
         // A creature walking out for good does not stop for lunch, for the
         // same reason it does not stop for a bed.
-        if (creature.Activity == CreatureActivity.Leaving) return;
-        if (Combat.CombatRules.Preoccupied(creature)) return;
+        if (creature.Activity == CreatureActivity.Leaving)
+        {
+            return;
+        }
+
+        if (Combat.CombatRules.Preoccupied(creature))
+        {
+            return;
+        }
 
         if (creature.Dk2StateId == EatingRules.AfterMealState)
         {
-            if (context.Tick.Value < creature.ActionUntilTick) return;
+            if (context.Tick.Value < creature.ActionUntilTick)
+            {
+                return;
+            }
+
             creature.ActionUntilTick = 0;
-            if (creature.FoodOwedAfterMeal) BackToTheSearch(context, creature);
-            else GiveUp(context, creature, handlerReturnedZero: true);
+            if (creature.FoodOwedAfterMeal)
+            {
+                BackToTheSearch(context, creature);
+            }
+            else
+            {
+                GiveUp(context, creature, handlerReturnedZero: true);
+            }
+
             return;
         }
 
@@ -81,20 +111,37 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
                 // refuses outright while the creature is in the sleeping
                 // state category (Q176, read from the binary).
                 if (creature.Activity is CreatureActivity.Sleeping
-                    or CreatureActivity.GoingToSleep) break;
+                    or CreatureActivity.GoingToSleep)
+                {
+                    break;
+                }
 
                 // An idle creature goes looking, and so does one at a job whose state
                 // admits Eating: the needs routine's mask test (NeedRules, ADR-0198).
-                if (!NeedRules.MayAsk(creature, CreatureStateCategory.Eating)) break;
-                if (!EatingRules.IsHungry(database, definition, creature)) break;
+                if (!NeedRules.MayAsk(creature, CreatureStateCategory.Eating))
+                {
+                    break;
+                }
+
+                if (!EatingRules.IsHungry(database, definition, creature))
+                {
+                    break;
+                }
 
                 // At most one attempt a game second, the original's
                 // LastAttemptedHunger test.
-                if (context.Tick.Value < creature.LastFoodAttemptTick + EatingRules.RetryTicks) break;
+                if (context.Tick.Value < creature.LastFoodAttemptTick + EatingRules.RetryTicks)
+                {
+                    break;
+                }
+
                 creature.LastFoodAttemptTick = context.Tick.Value;
 
                 // The busy test comes after the stamp, so a busy creature spends the try.
-                if (NeedRules.IsBusy(context.World, creature, context.Tick.Value)) break;
+                if (NeedRules.IsBusy(context.World, creature, context.Tick.Value))
+                {
+                    break;
+                }
 
                 TrySetOutForAHatchery(context, creature, definition);
                 break;
@@ -105,11 +152,17 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
     /// Group 7 and the clock flags defer the update, not elapsed time (ADR-0579).</summary>
     public static void Clock(SimulationContext context, CreatureDef definition, CreatureState creature)
     {
-        if (!NeedRules.HungerClockRuns(creature)) return;
+        if (!NeedRules.HungerClockRuns(creature))
+        {
+            return;
+        }
 
         // The clock ADDS a helping; it does not raise a flag. A creature with nowhere to eat
         // therefore accumulates, and owes every helping it missed (docs/research/eating.md).
-        if (!EatingRules.Tick(context.Database, definition, creature, context.Tick.Value)) return;
+        if (!EatingRules.Tick(context.Database, definition, creature, context.Tick.Value))
+        {
+            return;
+        }
 
         context.Emit(SystemName, "creature_hungry",
             $"creature={creature.Id} type={definition.Name} " +
@@ -137,11 +190,22 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         int hatcheries = 0;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (!EatingRules.IsHatcheryOf(room, creature.OwnerPlayerId)) continue;
-            if (room.TileIndices.Count == 0) continue;
+            if (!EatingRules.IsHatcheryOf(room, creature.OwnerPlayerId))
+            {
+                continue;
+            }
+
+            if (room.TileIndices.Count == 0)
+            {
+                continue;
+            }
+
             hatcheries++;
 
-            if (!EatingRules.HoldsAChicken(world, room)) continue;
+            if (!EatingRules.HoldsAChicken(world, room))
+            {
+                continue;
+            }
 
             candidates.Add((
                 EatingRules.DistanceSquared(world, creature.Tile, CentreTileIndex(world, room)),
@@ -167,9 +231,16 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
 
             // 0x004634B0 walks through the room helper 0x00471A70, whose point is 0x004E4C10's
             // random(size) along the slab chain (Room.cpp:1509), as every room walk's is.
-            if (RoomWalkRules.ArrivalTile(context, room) is not int target) continue;
+            if (RoomWalkRules.ArrivalTile(context, room) is not int target)
+            {
+                continue;
+            }
+
             var at = new TilePos(target % world.Width, target / world.Width);
-            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose)) continue;
+            if (!context.Navigation.TryRoute(creature, at, Navigation.MoveOptions.Loose))
+            {
+                continue;
+            }
 
             chosen = room;
             arrival = target;
@@ -227,7 +298,10 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
     private void Seeking(
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
-        if (creature.HasRoute) return;
+        if (creature.HasRoute)
+        {
+            return;
+        }
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -238,7 +312,11 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         // No stocked hatchery reached returns 0, and the dispatcher drops it to 1 (0x004772B0).
         if (!travelling && creature.Dk2StateId == EatingRules.FindHatcheryState)
         {
-            if (!TrySetOutForAHatchery(context, creature, definition)) GiveUp(context, creature, handlerReturnedZero: true);
+            if (!TrySetOutForAHatchery(context, creature, definition))
+            {
+                GiveUp(context, creature, handlerReturnedZero: true);
+            }
+
             return;
         }
 
@@ -261,7 +339,11 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
 
             creature.StopMoving();
             // A refused SetState returns 0 too (0x00471606).
-            if (!StateShadow.Arrive(context, SystemName, creature)) GiveUp(context, creature, handlerReturnedZero: true);
+            if (!StateShadow.Arrive(context, SystemName, creature))
+            {
+                GiveUp(context, creature, handlerReturnedZero: true);
+            }
+
             return;
         }
 
@@ -316,7 +398,11 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         // arrival hands over to 93, whose handler runs on the next turn (one handler a turn).
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return;
+            if (creature.HasRoute)
+            {
+                return;
+            }
+
             Arrive(context, creature);
             return;
         }
@@ -336,7 +422,10 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         }
 
         // A turn step toward the bird each turn until it faces it (0x004B2AE0 at 0x004637CC).
-        if (CasinoStep.TurnTo(context, creature, chicken.PosX, chicken.PosY) != 0) return;
+        if (CasinoStep.TurnTo(context, creature, chicken.PosX, chicken.PosY) != 0)
+        {
+            return;
+        }
 
         // Then within 0x1000 of it, each term squared and shifted right by 12 (0x00463823), or 92
         // again: the walk ran out short of the bird, or the bird moved.
@@ -454,7 +543,9 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         Shadow(context, creature, CreatureStateMachine.Idle);
         creature.StopMoving();
         if (handlerReturnedZero && creature.Dk2StateId == CreatureStateMachine.Idle)
+        {
             context.IdledByEatHandlerThisTick.Add(creature);
+        }
     }
 
     /// <summary>From idle into state 91, the needs routine's entry into eating
@@ -462,7 +553,11 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
     private static void EnterTheChain(SimulationContext context, CreatureState creature)
     {
         // Taken off a job: 0x004633D0 sets 91 from the job's own state.
-        if (NeedRules.IsAtAJob(creature)) NeedRules.EndJob(creature);
+        if (NeedRules.IsAtAJob(creature))
+        {
+            NeedRules.EndJob(creature);
+        }
+
         Shadow(context, creature, EatingRules.FindHatcheryState);
     }
 

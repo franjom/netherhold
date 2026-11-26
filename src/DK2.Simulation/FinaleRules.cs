@@ -76,13 +76,31 @@ public static class FinaleRules
     /// Treasury arm draws too, is not mirrored (ADR-0675).</summary>
     public static void HornyAmbience(SimulationContext context, string system, CreatureState creature, CreatureDef definition)
     {
-        if (!((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)) return;
+        if (!((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+        {
+            return;
+        }
+
         WorldState world = context.World;
-        if (!world.HasPlayer(creature.OwnerPlayerId) || (world.Player(creature.OwnerPlayerId).Finale.Flags & SequenceStarted) == 0) return;
-        if (creature.Dk2StateId == AmbienceQuietState) return;
+        if (!world.HasPlayer(creature.OwnerPlayerId) || (world.Player(creature.OwnerPlayerId).Finale.Flags & SequenceStarted) == 0)
+        {
+            return;
+        }
+
+        if (creature.Dk2StateId == AmbienceQuietState)
+        {
+            return;
+        }
+
         int roll = context.Rng.NextInt(20);
-        if (roll == 0) ThingSoundRules.Request(context, system, creature, (ThingSoundEvent)0xCC);   // 0xCC has no name of its own yet
-        else if (roll == 10) ThingSoundRules.Request(context, system, creature, ThingSoundEvent.BattleCall);
+        if (roll == 0)
+        {
+            ThingSoundRules.Request(context, system, creature, (ThingSoundEvent)0xCC);   // 0xCC has no name of its own yet
+        }
+        else if (roll == 10)
+        {
+            ThingSoundRules.Request(context, system, creature, ThingSoundEvent.BattleCall);
+        }
     }
     public const uint ReaperCreated = 0x800;
     public const uint ResultContinued = 0x40000;
@@ -118,17 +136,31 @@ public static class FinaleRules
     /// every winner celebrates. The profile writes of that dispatch are the host's.</summary>
     public static void OnVerdict(SimulationContext context, PlayerId playerId, byte status)
     {
-        if (status != PlayerStatus.Won) return;
+        if (status != PlayerStatus.Won)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         if (world.GameMode == GameMode.MyPetDungeon)
         {
             Celebrate(context, playerId);
             return;
         }
-        if (world.GameMode != GameMode.Campaign || playerId != world.LocalPlayerId) return;
+        if (world.GameMode != GameMode.Campaign || playerId != world.LocalPlayerId)
+        {
+            return;
+        }
+
         ushort flags = context.Database.Level?.Flags ?? 0;
-        if ((flags & (SecretLevelFlag | SpecialLevelFlag)) != 0) Celebrate(context, playerId);
-        else Begin(context, playerId);
+        if ((flags & (SecretLevelFlag | SpecialLevelFlag)) != 0)
+        {
+            Celebrate(context, playerId);
+        }
+        else
+        {
+            Begin(context, playerId);
+        }
     }
 
     /// <summary><c>0x004BF410</c> (§2).</summary>
@@ -136,7 +168,11 @@ public static class FinaleRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (world.GameMode == GameMode.Multiplayer) return;
+        if (world.GameMode == GameMode.Multiplayer)
+        {
+            return;
+        }
+
         ref PlayerState player = ref world.Player(playerId);
         (ushort hx, ushort hy) = ManaRemovalLifecycle.HeartTile(world, database, playerId);
         player.Finale.PointX = (hx - 2) << 12;
@@ -161,7 +197,11 @@ public static class FinaleRules
             player.Finale.PointZ = 0;
 
             CreatureState? reaper = PrepareReaper(context, ref player);
-            if (reaper is null) return;
+            if (reaper is null)
+            {
+                return;
+            }
+
             reaper.ReaperCanAcquireFight = reaper.ReaperIsAttackable = false;
             reaper.Heading = 0x400;
             if (CreatureStateMachine.TrySetState(context.Hooks, reaper, VanishState, context.Tick.Value))
@@ -173,7 +213,11 @@ public static class FinaleRules
             player.Finale.Flags |= SequenceStarted;
             context.Emit(SystemName, "begun", $"player={playerId} reaper={reaper.Id} gem={gem.Id} landing=({lx >> 12},{ly >> 12})");
         }
-        else context.Emit(SystemName, "no_gem", $"player={playerId}");
+        else
+        {
+            context.Emit(SystemName, "no_gem", $"player={playerId}");
+        }
+
         View(context, ScriptedViewKind.Letterbox, playerId, 0, flag: true);
     }
 
@@ -184,9 +228,16 @@ public static class FinaleRules
     {
         PlayerState[] players = world.RawPlayers;
         for (int p = 0; p < players.Length; p++)
+        {
             foreach (ObjectState thing in world.Objects)
+            {
                 if (thing.OwnerPlayerId == players[p].PlayerId.Value && thing.ObjectTypeId == TriggerExecutor.PortalGemObjectId)
+                {
                     return thing;
+                }
+            }
+        }
+
         return null;
     }
 
@@ -202,17 +253,40 @@ public static class FinaleRules
         {
             int dx = context.Rng.NextInt(16) - 8;
             int dy = context.Rng.NextInt(16) - 8;
-            if (attempt < NearTries && dx * dx + dy * dy < NearDistanceSquared) continue;
+            if (attempt < NearTries && dx * dx + dy * dy < NearDistanceSquared)
+            {
+                continue;
+            }
+
             var tile = new TilePos(gx + dx, gy + dy);
-            if (!world.Contains(tile)) continue;
+            if (!world.Contains(tile))
+            {
+                continue;
+            }
             // DK2 keeps one explored bit (0x00510000); ours asks the winner's layer.
-            if (!world.Tile(tile).IsExploredBy(playerId)) continue;
-            if ((context.Navigation.NavByte(tile.X, tile.Y) & 8) != 0) continue;
-            if (ExcludedRoom(world, context.Database, tile) || HoldsAThing(world, tile)) continue;
+            if (!world.Tile(tile).IsExploredBy(playerId))
+            {
+                continue;
+            }
+
+            if ((context.Navigation.NavByte(tile.X, tile.Y) & 8) != 0)
+            {
+                continue;
+            }
+
+            if (ExcludedRoom(world, context.Database, tile) || HoldsAThing(world, tile))
+            {
+                continue;
+            }
+
             x = CreatureState.CentreOf(tile.X);
             y = CreatureState.CentreOf(tile.Y);
             points.Clear();
-            if (!context.Navigation.Route(from, new Fixed16Vector(x << 4, y << 4), mover, points, refresh: false)) continue;
+            if (!context.Navigation.Route(from, new Fixed16Vector(x << 4, y << 4), mover, points, refresh: false))
+            {
+                continue;
+            }
+
             return true;
         }
         x = y = 0;
@@ -229,13 +303,35 @@ public static class FinaleRules
     /// <summary>A creature, object, trap or door on the tile (thing classes 0, 2, 3 and 4).</summary>
     private static bool HoldsAThing(WorldState world, TilePos tile)
     {
-        if (world.DoorAt(tile.X, tile.Y) is not null) return true;
+        if (world.DoorAt(tile.X, tile.Y) is not null)
+        {
+            return true;
+        }
+
         foreach (TrapState trap in world.Traps)
-            if (trap.X == tile.X && trap.Y == tile.Y) return true;
+        {
+            if (trap.X == tile.X && trap.Y == tile.Y)
+            {
+                return true;
+            }
+        }
+
         foreach (CreatureState creature in world.Creatures)
-            if (creature.Tile == tile) return true;
+        {
+            if (creature.Tile == tile)
+            {
+                return true;
+            }
+        }
+
         foreach (ObjectState thing in world.Objects)
-            if (thing.PosX >> 12 == tile.X && thing.PosY >> 12 == tile.Y) return true;
+        {
+            if (thing.PosX >> 12 == tile.X && thing.PosY >> 12 == tile.Y)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -258,9 +354,17 @@ public static class FinaleRules
         }
         CreatureDef? definition = ReaperRules.ReaperDefinition(database);
         var at = new TilePos(player.Finale.PointX >> 12, player.Finale.PointY >> 12);
-        if (definition is null || !world.Contains(at)) return null;
+        if (definition is null || !world.Contains(at))
+        {
+            return null;
+        }
+
         reaper = world.TrySpawnCreature(database, definition.CreatureId, player.PlayerId, at);
-        if (reaper is null) return null;
+        if (reaper is null)
+        {
+            return null;
+        }
+
         reaper.PosX = reaper.LastPosX = player.Finale.PointX;
         reaper.PosY = reaper.LastPosY = player.Finale.PointY;
         reaper.ReaperHidden = true;
@@ -272,7 +376,11 @@ public static class FinaleRules
     /// <summary>States 228-234 for a creature in one of them (§3).</summary>
     public static void Run(SimulationContext context, CreatureState reaper)
     {
-        if (reaper.Dk2StateId is < VanishState or > WalkState) return;
+        if (reaper.Dk2StateId is < VanishState or > WalkState)
+        {
+            return;
+        }
+
         uint age = ++reaper.ReaperStateAgeTicks;
         ref PlayerState player = ref context.World.Player(reaper.OwnerPlayerId);
         switch (reaper.Dk2StateId)
@@ -301,10 +409,20 @@ public static class FinaleRules
                 Effect(context, reaper, SmokeEffect);
                 reaper.ReaperAlpha = byte.MaxValue;
             }
-            else if (age == tps) Effect(context, reaper, BirthTrailEffect, reaper.Heading);
-            else if (age > tps) reaper.ReaperAlpha = (byte)Math.Max(0, reaper.ReaperAlpha - 64);
+            else if (age == tps)
+            {
+                Effect(context, reaper, BirthTrailEffect, reaper.Heading);
+            }
+            else if (age > tps)
+            {
+                reaper.ReaperAlpha = (byte)Math.Max(0, reaper.ReaperAlpha - 64);
+            }
         }
-        if (age < 2 * tps) return;
+        if (age < 2 * tps)
+        {
+            return;
+        }
+
         reaper.ReaperHidden = true;
         StartPath(context, ref player, GemPath, new TilePos(player.Finale.GemTileX, player.Finale.GemTileY));
         Enter(context, reaper, WaitCameraState);
@@ -319,7 +437,11 @@ public static class FinaleRules
             reaper.ReaperStateAgeTicks--;
             return;
         }
-        if (age < 4) return;
+        if (age < 4)
+        {
+            return;
+        }
+
         Glide(context, ref player, new TilePos(player.Finale.PointX >> 12, player.Finale.PointY >> 12));
         Enter(context, reaper, AppearState);
     }
@@ -350,8 +472,16 @@ public static class FinaleRules
             reaper.ReaperAlpha = 0;
             return;
         }
-        if (reaper.ReaperAlpha < byte.MaxValue) reaper.ReaperAlpha = (byte)Math.Min(byte.MaxValue, reaper.ReaperAlpha + 16);
-        if (context.Tick.Value < reaper.ActionUntilTick) return;
+        if (reaper.ReaperAlpha < byte.MaxValue)
+        {
+            reaper.ReaperAlpha = (byte)Math.Min(byte.MaxValue, reaper.ReaperAlpha + 16);
+        }
+
+        if (context.Tick.Value < reaper.ActionUntilTick)
+        {
+            return;
+        }
+
         reaper.ReaperActionId = 0;
         reaper.ReaperAlpha = byte.MaxValue;
         Enter(context, reaper, RoarState);
@@ -366,7 +496,11 @@ public static class FinaleRules
             reaper.ActionUntilTick = context.Tick.Value + ReaperRules.SummonHoldTicks(context.Database.CreatureById(reaper.CreatureTypeId));
             return;
         }
-        if (context.Tick.Value < reaper.ActionUntilTick) return;
+        if (context.Tick.Value < reaper.ActionUntilTick)
+        {
+            return;
+        }
+
         reaper.ReaperActionId = 0;
         Enter(context, reaper, RouteToGemState);
     }
@@ -376,10 +510,22 @@ public static class FinaleRules
     private static void RouteToGem(SimulationContext context, ref PlayerState player, CreatureState reaper)
     {
         ObjectState? gem = context.World.ObjectById(player.Finale.GemObjectId);
-        if (gem is null) return;
+        if (gem is null)
+        {
+            return;
+        }
+
         var tile = new TilePos(gem.PosX >> 12, gem.PosY >> 12);
-        if (!context.World.Contains(tile) || (context.Navigation.NavByte(tile.X, tile.Y) & 8) != 0) return;
-        if (!context.Navigation.TryRouteTo(reaper, gem.PosX, gem.PosY, GemRouteOptions)) return;
+        if (!context.World.Contains(tile) || (context.Navigation.NavByte(tile.X, tile.Y) & 8) != 0)
+        {
+            return;
+        }
+
+        if (!context.Navigation.TryRouteTo(reaper, gem.PosX, gem.PosY, GemRouteOptions))
+        {
+            return;
+        }
+
         Enter(context, reaper, WalkState);
         reaper.UtilityNewState = PickUpGemState;
     }
@@ -392,18 +538,39 @@ public static class FinaleRules
         WorldState world = context.World;
         TilePos at = reaper.Tile;
         for (int dx = -1; dx <= 1; dx++)
+        {
             for (int dy = -1; dy <= 1; dy++)
             {
-                if (dx != 0 && dy != 0) continue;
+                if (dx != 0 && dy != 0)
+                {
+                    continue;
+                }
+
                 var tile = new TilePos(at.X + dx, at.Y + dy);
-                if (!world.Contains(tile)) continue;
+                if (!world.Contains(tile))
+                {
+                    continue;
+                }
+
                 foreach (TrapState trap in world.Traps)
                 {
-                    if (trap.X != tile.X || trap.Y != tile.Y) continue;
-                    if (!trap.UnderConstruction) trap.Health = 0;
+                    if (trap.X != tile.X || trap.Y != tile.Y)
+                    {
+                        continue;
+                    }
+
+                    if (!trap.UnderConstruction)
+                    {
+                        trap.Health = 0;
+                    }
+
                     break;
                 }
-                if (world.DoorAt(tile.X, tile.Y) is not { UnderConstruction: false } door) continue;
+                if (world.DoorAt(tile.X, tile.Y) is not { UnderConstruction: false } door)
+                {
+                    continue;
+                }
+
                 if (door.PlayerId == reaper.OwnerPlayerId)
                 {
                     if (door.LockMode != 0)
@@ -412,12 +579,21 @@ public static class FinaleRules
                         ThingSoundRules.Request(context, SystemName, door, ThingSoundEvent.DoorUnlocked);   // 0x004A6844 through 0x00475040
                     }
                 }
-                else door.LockPickTicks = (context.Database.Variables.Misc.TryGetValue(
+                else
+                {
+                    door.LockPickTicks = (context.Database.Variables.Misc.TryGetValue(
                     VariableTypeId.DoorPickedTimeSeconds, out MiscVariable? seconds) ? seconds.Value : 0)
                     * SimulationTiming.OriginalTicksPerGameSecond;
+                }
             }
+        }
+
         DiscoveryRules.SetExplored(world, context.Database, reaper.Tile, reaper.OwnerPlayerId);
-        if (reaper.HasRoute) return;
+        if (reaper.HasRoute)
+        {
+            return;
+        }
+
         reaper.UtilityNewState = CreatureStateMachine.Idle;
         Enter(context, reaper, PickUpGemState);
     }
@@ -436,7 +612,11 @@ public static class FinaleRules
             View(context, ScriptedViewKind.ViewFlag84, reaper.OwnerPlayerId, 0);
             BeginAction(context, reaper, PickupAction, PickupArt);
             player.Finale.PickupTick = context.Tick.Value;
-            if (world.ObjectById(player.Finale.GemObjectId) is not null) world.RemoveObject(player.Finale.GemObjectId);
+            if (world.ObjectById(player.Finale.GemObjectId) is not null)
+            {
+                world.RemoveObject(player.Finale.GemObjectId);
+            }
+
             ThingSoundRules.Request(context, SystemName, reaper, ThingSoundEvent.ReaperTookGem);   // 0x00474644, after the gem goes
             player.Finale.PickupStage = 0;
             context.Emit(SystemName, "gem_taken", $"player={reaper.OwnerPlayerId} reaper={reaper.Id}");
@@ -445,14 +625,21 @@ public static class FinaleRules
         if (player.Finale.PickupStage == 0)
         {
             reaper.ReaperStateAgeTicks--;
-            if (context.Tick.Value <= player.Finale.PickupTick + 13 * SimulationTiming.OriginalTicksPerGameSecond) return;
+            if (context.Tick.Value <= player.Finale.PickupTick + 13 * SimulationTiming.OriginalTicksPerGameSecond)
+            {
+                return;
+            }
             // The effect stands at the mesh's point 8000 when the renderer has one (0x00441AA0);
             // ours at the Reaper (HYPOTHESIS: the point lies on the Reaper's mesh).
             Effect(context, reaper, EndOfLevelEffect);
             player.Finale.PickupStage = 1;
             return;
         }
-        if (player.Finale.PickupStage != 1) return;
+        if (player.Finale.PickupStage != 1)
+        {
+            return;
+        }
+
         player.Finale.PickupStage = 2;
         View(context, ScriptedViewKind.WinScreen, reaper.OwnerPlayerId, 0);
         context.Emit(SystemName, "win_screen", $"player={reaper.OwnerPlayerId}");
@@ -464,7 +651,11 @@ public static class FinaleRules
     public static void Celebrate(SimulationContext context, PlayerId playerId)
     {
         WorldState world = context.World;
-        if (world.GameMode == GameMode.Multiplayer) return;
+        if (world.GameMode == GameMode.Multiplayer)
+        {
+            return;
+        }
+
         ref PlayerState player = ref world.Player(playerId);
         player.Finale.Flags |= SequenceStarted;
         (ushort hx, ushort hy) = ManaRemovalLifecycle.HeartTile(world, context.Database, playerId);
@@ -474,10 +665,17 @@ public static class FinaleRules
         View(context, ScriptedViewKind.HideGui, playerId, 0);
         foreach (CreatureState creature in world.CreatureOwnershipOrder)
         {
-            if (creature.OwnerPlayerId != playerId || !CreatureStateMachine.HasState(creature)) continue;
+            if (creature.OwnerPlayerId != playerId || !CreatureStateMachine.HasState(creature))
+            {
+                continue;
+            }
+
             if (creature.HeldPlace.IsHeld
                 && RoomIndex.RoomAt(world, context.Database, creature.HeldPlace.TileIndex)?.Definition.TypeId == RoomTypeId.TortureChamber)
+            {
                 continue;
+            }
+
             CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
             int cycles = context.Rng.NextInt(24);
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
@@ -497,7 +695,11 @@ public static class FinaleRules
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
-            if (player.Finale.FireworksTick == 0 || context.Tick.Value < player.Finale.FireworksTick) continue;
+            if (player.Finale.FireworksTick == 0 || context.Tick.Value < player.Finale.FireworksTick)
+            {
+                continue;
+            }
+
             player.Finale.FireworksTick = 0;
             (ushort hx, ushort hy) = ManaRemovalLifecycle.HeartTile(world, context.Database, player.PlayerId);
             context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(FireworksEffect), player.PlayerId,
@@ -516,22 +718,38 @@ public static class FinaleRules
         player.Finale.Flags = player.Status == PlayerStatus.Won
             ? player.Finale.Flags | ResultContinued | Continued
             : (player.Finale.Flags & ~ResultContinued) | Continued;
-        if (player.Status == PlayerStatus.Conquered) player.Finale.Flags |= ContinuedFromConquered;
+        if (player.Status == PlayerStatus.Conquered)
+        {
+            player.Finale.Flags |= ContinuedFromConquered;
+        }
+
         player.Status = PlayerStatus.Playing;
         View(context, ScriptedViewKind.Letterbox, playerId, 2, flag: false);
         CreatureState? reaper = null;
         foreach (CreatureState creature in world.CreatureOwnershipOrder)
         {
-            if (creature.OwnerPlayerId != playerId || !CreatureStateMachine.HasState(creature)) continue;
+            if (creature.OwnerPlayerId != playerId || !CreatureStateMachine.HasState(creature))
+            {
+                continue;
+            }
+
             if (((context.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
             {
                 reaper ??= creature;
                 continue;
             }
-            if (creature.InHand || creature.PrisonOwnerPlayerId != PrisonRules.NoPrison) continue;
+            if (creature.InHand || creature.PrisonOwnerPlayerId != PrisonRules.NoPrison)
+            {
+                continue;
+            }
+
             CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
         }
-        if (world.GameMode == GameMode.Campaign && reaper is not null) ReaperRules.Depart(context, reaper);
+        if (world.GameMode == GameMode.Campaign && reaper is not null)
+        {
+            ReaperRules.Depart(context, reaper);
+        }
+
         context.Emit(SystemName, "continued", $"player={playerId}");
     }
 
@@ -539,14 +757,24 @@ public static class FinaleRules
     /// (<c>0x00451EF0</c> sets DK2's one explored bit; ours that player's layer).</summary>
     public static void RevealMap(WorldState world, PlayerId playerId)
     {
-        if (playerId != world.LocalPlayerId) return;
-        for (int i = 0; i < world.TileCount; i++) world.TileAtIndex(i).SetExploredBy(playerId);
+        if (playerId != world.LocalPlayerId)
+        {
+            return;
+        }
+
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            world.TileAtIndex(i).SetExploredBy(playerId);
+        }
     }
 
     /// <summary>The skip (<c>0x00405362</c>) also finishes a timed camera move (camera-paths.md).</summary>
     public static void SkipGlide(ref PlayerState player, GameTick now)
     {
-        if (player.Finale.CameraGlideEndTick > now.Value) player.Finale.CameraGlideEndTick = now.Value;
+        if (player.Finale.CameraGlideEndTick > now.Value)
+        {
+            player.Finale.CameraGlideEndTick = now.Value;
+        }
     }
 
     private static void Enter(SimulationContext context, CreatureState reaper, int state) =>
@@ -570,7 +798,10 @@ public static class FinaleRules
     private static void StartPath(SimulationContext context, ref PlayerState player, int pathId, TilePos tile)
     {
         if (!CameraPathRules.TryStart(context.Database, ref player, player.PossessedCreatureId != 0, pathId, context.Tick))
+        {
             return;
+        }
+
         context.RequestView(SystemName, new ScriptedViewRequest(
             ScriptedViewKind.CameraPath, player.PlayerId, pathId, tile, false, context.Tick.Value));
     }

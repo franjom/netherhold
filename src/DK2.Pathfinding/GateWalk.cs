@@ -72,7 +72,11 @@ public static class GateWalk
     /// always the degenerate destination gate.</summary>
     public static int Run(NavMesh mesh, NavPoint from, NavPoint to, List<int> corridor, List<NavPoint> funnel, GateRecord[] records, int cap)
     {
-        if (records.Length <= MaxRecords) throw new ArgumentException("needs MaxRecords + 1 slots", nameof(records));
+        if (records.Length <= MaxRecords)
+        {
+            throw new ArgumentException("needs MaxRecords + 1 slots", nameof(records));
+        }
+
         int gates = corridor.Count - 1;
         int count = 0;
         if (gates <= 0)
@@ -95,7 +99,11 @@ public static class GateWalk
                 continue;
             }
 
-            if (count == MaxRecords) break;
+            if (count == MaxRecords)
+            {
+                break;
+            }
+
             ref GateRecord rec = ref records[count];
             rec = new GateRecord(cur.A, cur.B, -1);
 
@@ -113,7 +121,10 @@ public static class GateWalk
             {
                 rec.Selector = a1 >= b1 ? 1 : 0;
                 proximity = Math.Min(a1, b1);
-                if (moreFunnel) previousF = funnel[j++];
+                if (moreFunnel)
+                {
+                    previousF = funnel[j++];
+                }
             }
 
             if (proximity < NearThreshold)
@@ -131,12 +142,26 @@ public static class GateWalk
                     // a degenerate segment stands in for that stale point and never crosses.
                     NavPoint after = j < funnel.Count - 1 ? funnel[j + 1] : funnel[j];
                     found = Intersect(ref rec, funnel[j], after);
-                    if (found && j < funnel.Count - 1) previousF = funnel[j++];
-                    if (!found) rec.Selector = saved;
+                    if (found && j < funnel.Count - 1)
+                    {
+                        previousF = funnel[j++];
+                    }
+
+                    if (!found)
+                    {
+                        rec.Selector = saved;
+                    }
                 }
 
-                if (rec.Selector == 2) AdjustAroundCrossing(ref rec, cap);
-                else Collapse(ref rec, cap);
+                if (rec.Selector == 2)
+                {
+                    AdjustAroundCrossing(ref rec, cap);
+                }
+                else
+                {
+                    Collapse(ref rec, cap);
+                }
+
                 rec.Selector = saved;
             }
 
@@ -155,8 +180,15 @@ public static class GateWalk
     /// clamped below <see cref="FractionOne"/>.</summary>
     public static void Select(GateRecord[] records, int count, NavPoint to, int fraction, List<NavPoint> waypoints)
     {
-        if (fraction > FractionOne - 1) fraction = FractionOne - 1;
-        else if (fraction < 0) fraction = 0;
+        if (fraction > FractionOne - 1)
+        {
+            fraction = FractionOne - 1;
+        }
+        else if (fraction < 0)
+        {
+            fraction = 0;
+        }
+
         for (int k = 0; k < count - 1; k++)
         {
             ref readonly GateRecord r = ref records[k];
@@ -181,9 +213,17 @@ public static class GateWalk
         int sx = (p.X - q.X) << 6, sy = (p.Y - q.Y) << 6;
         int num = MulQ14(sy, ax) - MulQ14(sx, ay);
         int den = MulQ14(gy, sx) - MulQ14(gx, sy);
-        if (den == 0) return false;
+        if (den == 0)
+        {
+            return false;
+        }
+
         long t = ((long)num << 14) / den;
-        if (t < -FractionOne || t > FractionOne) return false;
+        if (t < -FractionOne || t > FractionOne)
+        {
+            return false;
+        }
+
         r.Crossing = new NavPoint(r.A.X + (MulQ14((int)t, gx) >> 6), r.A.Y + (MulQ14((int)t, gy) >> 6));
         return InBox(r.Crossing, r.A, r.B);
     }
@@ -192,16 +232,30 @@ public static class GateWalk
     /// measured from the endpoint the selector keeps (<c>0x004CFC50</c>).</summary>
     public static void Collapse(ref GateRecord r, int cap)
     {
-        if (Octile(r.A, r.B) < cap) return;
+        if (Octile(r.A, r.B) < cap)
+        {
+            return;
+        }
+
         bool keepB = r.Selector == 1;
         NavPoint kept = keepB ? r.B : r.A, moved = keepB ? r.A : r.B;
         int dx = (moved.X - kept.X) << 6, dy = (moved.Y - kept.Y) << 6;
         int den = IntegerMath.SquareRoot(MulQ14(dx, dx) + MulQ14(dy, dy)) << 13;
-        if (den == 0) den = 1;
+        if (den == 0)
+        {
+            den = 1;
+        }
+
         int tiles = (cap >> 8) - 1;
         var cut = new NavPoint(kept.X + (DivQ14(dx, den) * tiles), kept.Y + (DivQ14(dy, den) * tiles));
-        if (keepB) r.A = cut;
-        else r.B = cut;
+        if (keepB)
+        {
+            r.A = cut;
+        }
+        else
+        {
+            r.B = cut;
+        }
     }
 
     /// <summary>With a crossing known (<c>0x004CFDA0</c>): nothing when both endpoints are within
@@ -212,7 +266,11 @@ public static class GateWalk
     {
         int dA = Octile(r.A, r.Crossing), dB = Octile(r.B, r.Crossing);
         int half = cap >> 1;
-        if (dA < half && dB < half) return;
+        if (dA < half && dB < half)
+        {
+            return;
+        }
+
         int nearHalf = (cap + 2) >> 1;
         if (dA < nearHalf)
         {
@@ -234,8 +292,15 @@ public static class GateWalk
         int tiles = cap >> 9;
         var minus = new NavPoint(r.Crossing.X - (ux * tiles), r.Crossing.Y - (uy * tiles));
         var plus = new NavPoint(r.Crossing.X + (ux * tiles), r.Crossing.Y + (uy * tiles));
-        if (InBox(minus, r.A, r.B)) r.A = minus;
-        if (InBox(plus, r.A, r.B)) r.B = plus;
+        if (InBox(minus, r.A, r.B))
+        {
+            r.A = minus;
+        }
+
+        if (InBox(plus, r.A, r.B))
+        {
+            r.B = plus;
+        }
     }
 
     /// <summary>−1 when the sight-line from <paramref name="o"/> to <paramref name="n"/> leaves the
@@ -243,7 +308,11 @@ public static class GateWalk
     /// passes between them.</summary>
     private static int State(NavPoint o, in Gate g, NavPoint n)
     {
-        if (NavMesh.Orient(o.X, o.Y, g.A.X, g.A.Y, n.X, n.Y) < 0) return -1;
+        if (NavMesh.Orient(o.X, o.Y, g.A.X, g.A.Y, n.X, n.Y) < 0)
+        {
+            return -1;
+        }
+
         return NavMesh.Orient(o.X, o.Y, g.B.X, g.B.Y, n.X, n.Y) > 0 ? 1 : 0;
     }
 

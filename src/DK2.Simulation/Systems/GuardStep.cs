@@ -22,7 +22,11 @@ public static class GuardStep
     {
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return true;
+            if (creature.HasRoute)
+            {
+                return true;
+            }
+
             creature.StopMoving();
             // The travel handler's arrival sets the resume state and returns (travel-states.md §1 step 7);
             // the dispatcher makes one handler call a turn (0x004772AA), so 97's, 98's or 100's runs next turn.
@@ -44,14 +48,25 @@ public static class GuardStep
         WorldState world = context.World;
         GameDatabase database = context.Database;
         TilePos at = creature.Tile;
-        if (!GuardRules.IsOwnGuardRoom(world, database, at.X, at.Y, creature.OwnerPlayerId)) return false;
+        if (!GuardRules.IsOwnGuardRoom(world, database, at.X, at.Y, creature.OwnerPlayerId))
+        {
+            return false;
+        }
 
         TilePos post = GuardRules.NearestPost(world, database, at.X, at.Y, creature.OwnerPlayerId);
         int slot = GuardRules.Slot(world, database, post.X, post.Y, creature.OwnerPlayerId, out int facing);
-        if (slot != GuardRules.NoSlot) creature.GuardFacing = facing;
+        if (slot != GuardRules.NoSlot)
+        {
+            creature.GuardFacing = facing;
+        }
+
         creature.GuardDeadlineTick = context.Tick.Value + 75 + Random(context, VariableTypeId.MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds);
 
-        if (GuardRules.PostPoint(post, slot == GuardRules.NoSlot ? GuardRules.NoSlot : facing) is not (int x, int y) || !Walk(context, creature, x, y, GuardRules.PatrolState)) return false;
+        if (GuardRules.PostPoint(post, slot == GuardRules.NoSlot ? GuardRules.NoSlot : facing) is not (int x, int y) || !Walk(context, creature, x, y, GuardRules.PatrolState))
+        {
+            return false;
+        }
+
         context.Emit(system, "guard_to_post", $"creature={creature.Id} post=({post.X},{post.Y}) slot={slot} facing={creature.GuardFacing}");
         return true;
     }
@@ -64,12 +79,19 @@ public static class GuardStep
         // Past the deadline 0x00463190 looks for a Guard Post of the room; going to one ends the turn.
         if (context.Tick.Value > creature.GuardDeadlineTick)
         {
-            if (ToAGuardPost(context, system, creature)) return true;
+            if (ToAGuardPost(context, system, creature))
+            {
+                return true;
+            }
+
             creature.GuardDeadlineTick = context.Tick.Value + 75 + Random(context, VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds);
         }
 
         TilePos at = creature.Tile;
-        if (!GuardRules.IsOwnGuardRoom(world, database, at.X, at.Y, creature.OwnerPlayerId)) return false;
+        if (!GuardRules.IsOwnGuardRoom(world, database, at.X, at.Y, creature.OwnerPlayerId))
+        {
+            return false;
+        }
 
         (TilePos to, int facing) = GuardRules.Leg(world, database, at.X, at.Y, creature.GuardFacing, creature.OwnerPlayerId);
         creature.GuardFacing = facing;
@@ -97,14 +119,33 @@ public static class GuardStep
         List<TrapState> posts = [];
         foreach (TrapState trap in world.Traps)
         {
-            if (trap.PlayerId != creature.OwnerPlayerId || trap.UnderConstruction) continue;
-            if (!database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition) || (definition.Flags & TrapRules.GuardPostBranch) == 0) continue;
-            if (TrapRules.SameRoom(world, database, trap, creature.HeldPlace)) posts.Add(trap);
+            if (trap.PlayerId != creature.OwnerPlayerId || trap.UnderConstruction)
+            {
+                continue;
+            }
+
+            if (!database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition) || (definition.Flags & TrapRules.GuardPostBranch) == 0)
+            {
+                continue;
+            }
+
+            if (TrapRules.SameRoom(world, database, trap, creature.HeldPlace))
+            {
+                posts.Add(trap);
+            }
         }
-        if (posts.Count == 0) return false;
+        if (posts.Count == 0)
+        {
+            return false;
+        }
+
         for (int i = context.Rng.NextInt(posts.Count); i < posts.Count; i++)
         {
-            if (!Walk(context, creature, posts[i].PosX, posts[i].PosY, GuardRules.AtThePostState)) continue;
+            if (!Walk(context, creature, posts[i].PosX, posts[i].PosY, GuardRules.AtThePostState))
+            {
+                continue;
+            }
+
             context.Emit(system, "guard_to_guard_post", $"creature={creature.Id} trap={posts[i].Id} at=({posts[i].X},{posts[i].Y})");
             return true;
         }
@@ -118,10 +159,18 @@ public static class GuardStep
     {
         WorldState world = context.World;
         creature.GuardDeadlineTick = context.Tick.Value + 50 + Random(context, VariableTypeId.MaxTimeInGuardRoomBeforeWanderingToGuardPostSeconds);
-        if (!creature.HeldPlace.IsHeld || RoomIndex.RoomAt(world, context.Database, creature.HeldPlace.TileIndex) is not { } room) return false;
+        if (!creature.HeldPlace.IsHeld || RoomIndex.RoomAt(world, context.Database, creature.HeldPlace.TileIndex) is not { } room)
+        {
+            return false;
+        }
+
         int tile = SlabChain.Order(world, room)[context.Rng.NextInt(room.TileCount)];
         int x = CreatureState.CentreOf(tile % world.Width), y = CreatureState.CentreOf(tile / world.Width);
-        if (!Walk(context, creature, x, y, GuardRules.PatrolState)) return false;
+        if (!Walk(context, creature, x, y, GuardRules.PatrolState))
+        {
+            return false;
+        }
+
         context.Emit(system, "guard_from_guard_post", $"creature={creature.Id} to=({tile % world.Width},{tile / world.Width})");
         return true;
     }
@@ -130,9 +179,17 @@ public static class GuardStep
     /// handler, so the first act is two turns after entry.</summary>
     private static bool Lost(SimulationContext context, string system, CreatureState creature)
     {
-        if (context.Tick.Value - creature.GuardLostTick <= 1) return true;
+        if (context.Tick.Value - creature.GuardLostTick <= 1)
+        {
+            return true;
+        }
+
         TilePos at = creature.Tile;
-        if (!GuardRules.IsOwnGuardRoom(context.World, context.Database, at.X, at.Y, creature.OwnerPlayerId)) return false;
+        if (!GuardRules.IsOwnGuardRoom(context.World, context.Database, at.X, at.Y, creature.OwnerPlayerId))
+        {
+            return false;
+        }
+
         StateShadow.Move(context, system, creature, GuardRules.ToThePostState);
         return true;
     }
@@ -141,8 +198,16 @@ public static class GuardStep
     /// the map is a failed route.</summary>
     private static bool Walk(SimulationContext context, CreatureState creature, int x, int y, int resume)
     {
-        if (!context.World.Contains(new TilePos(x / Fp32.One, y / Fp32.One))) return false;
-        if (!context.Navigation.TryRouteTo(creature, x, y, Navigation.MoveOptions.Loose)) return false;
+        if (!context.World.Contains(new TilePos(x / Fp32.One, y / Fp32.One)))
+        {
+            return false;
+        }
+
+        if (!context.Navigation.TryRouteTo(creature, x, y, Navigation.MoveOptions.Loose))
+        {
+            return false;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         return true;
     }

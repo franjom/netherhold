@@ -31,15 +31,28 @@ public static class DropDeliveryRules
     public static CreatureState? RecipientOf(
         WorldState world, GameDatabase database, ObjectState thing, int targetCreatureId)
     {
-        if (targetCreatureId <= 0) return null;
+        if (targetCreatureId <= 0)
+        {
+            return null;
+        }
+
         CreatureState? creature = world.CreatureById(targetCreatureId);
-        if (creature is null || creature.InHand || CreatureDeathRules.IsCorpse(creature)) return null;
+        if (creature is null || creature.InHand || CreatureDeathRules.IsCorpse(creature))
+        {
+            return null;
+        }
 
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         if (database.ObjectById(thing.ObjectTypeId) is { IsGold: true })
+        {
             return PaydayRules.Wage(database, definition, creature.Level) != 0 ? creature : null;
+        }
+
         if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId)
+        {
             return EatingRules.HungerFill(database, definition, creature.Level) != 0 ? creature : null;
+        }
+
         return null;
     }
 
@@ -60,7 +73,11 @@ public static class DropDeliveryRules
         {
             int pocketed = PurseRules.Receive(database, definition, creature, thing.GoldHeld >> 1);
             // 0x0049F14E: a creature holding no place (+0x3B9) celebrates before its debt is cleared.
-            if (!creature.HeldPlace.IsHeld) Celebrate(context, system, creature, definition);
+            if (!creature.HeldPlace.IsHeld)
+            {
+                Celebrate(context, system, creature, definition);
+            }
+
             int cleared = creature.WageOwed;
             creature.WageOwed = 0;
             creature.SkipNextPayment = true;
@@ -95,9 +112,17 @@ public static class DropDeliveryRules
     public static bool Celebrate(SimulationContext context, string system, CreatureState creature, CreatureDef definition)
     {
         int previous = creature.Dk2StateId;
-        if (previous == PortalRules.JoiningState) return false;
+        if (previous == PortalRules.JoiningState)
+        {
+            return false;
+        }
+
         long now = context.Tick.Value;
-        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, CelebratingState, now)) return false;
+        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, CelebratingState, now))
+        {
+            return false;
+        }
+
         if (AnimationTimingRules.ResolvesPresent(definition, CelebrationArtSlot))
         {
             int plays = context.Rng.NextInt(3) + 2;

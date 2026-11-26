@@ -15,9 +15,16 @@ public sealed class RescuePrioritySystem : ISimulationSystem
     {
         foreach (SetRescuePriorityCommand mark in context.Commands<SetRescuePriorityCommand>())
         {
-            if (!context.World.PlayerIds.Contains(mark.PlayerId)) continue;
+            if (!context.World.PlayerIds.Contains(mark.PlayerId))
+            {
+                continue;
+            }
+
             CreatureState? creature = context.World.CreatureById(mark.CreatureId);
-            if (creature is not null) RescuePriorityRules.Set(creature, mark.PlayerId, mark.Enabled);
+            if (creature is not null)
+            {
+                RescuePriorityRules.Set(creature, mark.PlayerId, mark.Enabled);
+            }
         }
     }
 }

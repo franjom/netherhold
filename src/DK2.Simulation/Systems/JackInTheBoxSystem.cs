@@ -22,7 +22,11 @@ public sealed class JackInTheBoxSystem : ICreatureUpdateStep
 
     public void Update(SimulationContext context, CreatureState jack)
     {
-        if (!JackInTheBoxRules.IsJack(jack) || jack.DeathShotFired) return;
+        if (!JackInTheBoxRules.IsJack(jack) || jack.DeathShotFired)
+        {
+            return;
+        }
+
         if (!CreatureDeathRules.IsDown(jack) && !HandRules.IsHeld(jack))
         {
             if (StateShadow.IsTravelling(jack))
@@ -38,8 +42,14 @@ public sealed class JackInTheBoxSystem : ICreatureUpdateStep
                     StateShadow.Arrive(context, SystemName, jack);
                 }
             }
-            else if (jack.Dk2StateId == JackInTheBoxRules.SpringState) JackInTheBoxRules.Handle(context, jack);
+            else if (jack.Dk2StateId == JackInTheBoxRules.SpringState)
+            {
+                JackInTheBoxRules.Handle(context, jack);
+            }
         }
-        if (jack.Health <= 0) JackInTheBoxRules.Explode(context, jack);
+        if (jack.Health <= 0)
+        {
+            JackInTheBoxRules.Explode(context, jack);
+        }
     }
 }

@@ -52,10 +52,16 @@ public static class ManufactureRules
     public static int PerOriginalTick(GameDatabase database, CreatureDef creature, CreatureState state)
     {
         int perTick = SimulationTiming.LoaderRatePerTick(creature.ManufacturePerSecond);
-        if (perTick == 0) return 0;
+        if (perTick == 0)
+        {
+            return 0;
+        }
 
         int level = CreatureLevelRules.Clamp(state.Level);
-        if (level == CreatureLevelRules.FirstLevel) return perTick;
+        if (level == CreatureLevelRules.FirstLevel)
+        {
+            return perTick;
+        }
 
         int scaled = CreatureLevelRules.Scale(
             perTick, CreatureLevelRules.Percent(database, CreatureStatId.ManufacturePerSecond, level));
@@ -77,8 +83,16 @@ public static class ManufactureRules
     /// shipped level authors one (Q667), so only a custom level would differ.</remarks>
     public static void QueueAuthoredDoor(WorldState world, GameDatabase database, DoorState door)
     {
-        if (!door.UnderConstruction) return;
-        if (!database.Doors.TryGetValue(door.DoorId, out DoorDef? def)) return;
+        if (!door.UnderConstruction)
+        {
+            return;
+        }
+
+        if (!database.Doors.TryGetValue(door.DoorId, out DoorDef? def))
+        {
+            return;
+        }
+
         TryQueue(world, database, door.PlayerId, DoorKind, door.DoorId, (int)def.ManufactureRequired, def.CrateObjectId);
         CrateRules.Register(world, door.PlayerId, new BlueprintRef(DoorKind, door.Id));
     }
@@ -90,38 +104,67 @@ public static class ManufactureRules
         if (kind == TrapKind)
         {
             if (database.Traps.TryGetValue(typeId, out TrapDef? trap))
+            {
                 TryQueue(world, database, playerId, kind, typeId, trap.ManufactureRequired, trap.CrateObjectId);
+            }
         }
         else if (database.Doors.TryGetValue(typeId, out DoorDef? door))
+        {
             TryQueue(world, database, playerId, kind, typeId, (int)door.ManufactureRequired, door.CrateObjectId);
+        }
     }
 
     private static void TryQueue(
         WorldState world, GameDatabase database, PlayerId playerId, byte kind, byte typeId, int cost, byte crateId)
     {
-        if (!PlayerIds.IsKeeper(playerId.Value) || !world.HasPlayer(playerId)) return;
+        if (!PlayerIds.IsKeeper(playerId.Value) || !world.HasPlayer(playerId))
+        {
+            return;
+        }
+
         List<ManufactureOrder> queue = world.Player(playerId).ManufactureQueue;
-        if (queue.Count >= QueueCapacity) return;
+        if (queue.Count >= QueueCapacity)
+        {
+            return;
+        }
 
         int blueprints = 0;
         if (kind == TrapKind)
         {
             foreach (TrapState t in world.Traps)
-                if (t.UnderConstruction && t.PlayerId == playerId && t.TrapId == typeId) blueprints++;
+            {
+                if (t.UnderConstruction && t.PlayerId == playerId && t.TrapId == typeId)
+                {
+                    blueprints++;
+                }
+            }
         }
         else
         {
             foreach (DoorState d in world.Doors)
-                if (d.UnderConstruction && d.PlayerId == playerId && d.DoorId == typeId) blueprints++;
+            {
+                if (d.UnderConstruction && d.PlayerId == playerId && d.DoorId == typeId)
+                {
+                    blueprints++;
+                }
+            }
         }
 
         // Crates only: 0x005066E0 never reads the ring, so an order left by a destroyed blueprint
         // (Q668) does not stand in for a crate.
         int crates = 0;
         foreach (ObjectState o in world.Objects)
-            if (crateId != 0 && o.ObjectTypeId == crateId && o.OwnerPlayerId == playerId) crates++;
+        {
+            if (crateId != 0 && o.ObjectTypeId == crateId && o.OwnerPlayerId == playerId)
+            {
+                crates++;
+            }
+        }
 
-        if (blueprints > crates) Enqueue(ref world.Player(playerId), new ManufactureOrder(kind, typeId, cost));
+        if (blueprints > crates)
+        {
+            Enqueue(ref world.Player(playerId), new ManufactureOrder(kind, typeId, cost));
+        }
     }
 
     /// <summary>The push's write (<c>0x005066E0</c>): the entry goes in the ring's tail slot and the
@@ -129,7 +172,11 @@ public static class ManufactureRules
     /// compares with (<see cref="PlayerState.ManufactureSlotZeroCost"/>).</summary>
     public static void Enqueue(ref PlayerState keeper, ManufactureOrder order)
     {
-        if (keeper.ManufactureRingTail == 0) keeper.ManufactureSlotZeroCost = order.Cost & 0xFFFF;
+        if (keeper.ManufactureRingTail == 0)
+        {
+            keeper.ManufactureSlotZeroCost = order.Cost & 0xFFFF;
+        }
+
         keeper.ManufactureRingTail = (byte)((keeper.ManufactureRingTail + 1) % QueueCapacity);
         keeper.ManufactureQueue.Add(order);
     }
@@ -152,16 +199,26 @@ public static class ManufactureRules
         GameDatabase database = hooks.Database;
         ref PlayerState keeper = ref world.Player(creature.OwnerPlayerId);
         keeper.ManufacturePoints = (keeper.ManufacturePoints + amount) & 0xFFFF;
-        if (keeper.ManufactureQueue.Count == 0 || keeper.ManufactureSlotZeroCost > keeper.ManufacturePoints) return null;
+        if (keeper.ManufactureQueue.Count == 0 || keeper.ManufactureSlotZeroCost > keeper.ManufacturePoints)
+        {
+            return null;
+        }
 
         ManufactureOrder order = keeper.ManufactureQueue[0];
         byte crateId = CrateObjectId(database, order);
         RoomInstance? workshop = Workshop(world, database, creature);
-        if (crateId == 0 || workshop is null) return null;
+        if (crateId == 0 || workshop is null)
+        {
+            return null;
+        }
 
         foreach (CreatureState worker in world.Creatures)
         {
-            if (worker.OwnerPlayerId != workshop.OwnerPlayerId || !IsAttached(world, workshop, worker)) continue;
+            if (worker.OwnerPlayerId != workshop.OwnerPlayerId || !IsAttached(world, workshop, worker))
+            {
+                continue;
+            }
+
             CreatureStateMachine.TrySetState(hooks, worker, CrateRules.CrateMadeState);
         }
 
@@ -182,8 +239,15 @@ public static class ManufactureRules
         long bestDistance = long.MaxValue;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.Definition.TypeId != RoomTypeId.Workshop || room.OwnerPlayerId != creature.OwnerPlayerId) continue;
-            if (room.TileIndices.Count == 0 || !Occupied(world, room, creature.OwnerPlayerId)) continue;
+            if (room.Definition.TypeId != RoomTypeId.Workshop || room.OwnerPlayerId != creature.OwnerPlayerId)
+            {
+                continue;
+            }
+
+            if (room.TileIndices.Count == 0 || !Occupied(world, room, creature.OwnerPlayerId))
+            {
+                continue;
+            }
 
             long distance = EatingRules.DistanceSquared(world, creature.Tile, room.TileIndices[0]);
             if (distance < bestDistance)
@@ -204,7 +268,10 @@ public static class ManufactureRules
     {
         foreach (CreatureState c in world.Creatures)
         {
-            if (c.OwnerPlayerId == keeper && IsAttached(world, room, c)) return true;
+            if (c.OwnerPlayerId == keeper && IsAttached(world, room, c))
+            {
+                return true;
+            }
         }
 
         return false;
@@ -219,7 +286,11 @@ public static class ManufactureRules
         for (int p = 0; p < world.PlayerCount; p++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(p);
-            if (player.ManufacturePoints == 0 || player.ManufacturingCreatures != 0) continue;
+            if (player.ManufacturePoints == 0 || player.ManufacturingCreatures != 0)
+            {
+                continue;
+            }
+
             int loss = database[VariableTypeId.ManufacturePointLossWhileNoWorkersPerSecond];
             player.ManufacturePoints = player.ManufacturePoints <= loss ? 0 : player.ManufacturePoints - loss;
         }
@@ -247,8 +318,15 @@ public static class ManufactureRules
     /// (<c>0x00455990</c>), not the creature's own. A tile with no keeper of ours is skipped.</summary>
     private static void CountMaker(WorldState world, CreatureState creature, int by)
     {
-        if (!world.Contains(creature.Tile)) return;
+        if (!world.Contains(creature.Tile))
+        {
+            return;
+        }
+
         PlayerId owner = world.Tile(creature.Tile).OwnerPlayerId;
-        if (world.HasPlayer(owner)) world.Player(owner).ManufacturingCreatures += by;
+        if (world.HasPlayer(owner))
+        {
+            world.Player(owner).ManufacturingCreatures += by;
+        }
     }
 }

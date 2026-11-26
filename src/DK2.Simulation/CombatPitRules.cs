@@ -42,8 +42,16 @@ public static class CombatPitRules
     /// <summary>The Combat Pit on this tile, any owner's (<c>0x00453A20(16)</c>).</summary>
     public static RoomInstance? PitAt(WorldState world, GameDatabase database, int tileIndex)
     {
-        if (tileIndex < 0 || tileIndex >= world.TileCount) return null;
-        if (database.RoomByTerrain(world.TileAtIndex(tileIndex).TerrainId)?.TypeId != RoomTypeId.CombatPit) return null;
+        if (tileIndex < 0 || tileIndex >= world.TileCount)
+        {
+            return null;
+        }
+
+        if (database.RoomByTerrain(world.TileAtIndex(tileIndex).TerrainId)?.TypeId != RoomTypeId.CombatPit)
+        {
+            return null;
+        }
+
         return RoomIndex.RoomAt(world, database, tileIndex);
     }
 
@@ -57,11 +65,22 @@ public static class CombatPitRules
         var pits = new List<RoomInstance>();
         foreach (TilePos pos in tiles)
         {
-            if (!world.Contains(pos)) continue;
+            if (!world.Contains(pos))
+            {
+                continue;
+            }
+
             int index = (pos.Y * world.Width) + pos.X;
             bool known = false;
-            for (int i = 0; i < pits.Count && !known; i++) known = pits[i].Contains(index);
-            if (!known && PitAt(world, database, index) is { } pit) pits.Add(pit);
+            for (int i = 0; i < pits.Count && !known; i++)
+            {
+                known = pits[i].Contains(index);
+            }
+
+            if (!known && PitAt(world, database, index) is { } pit)
+            {
+                pits.Add(pit);
+            }
         }
 
         return pits;
@@ -90,7 +109,11 @@ public static class CombatPitRules
     /// fight in progress is left alone.</summary>
     public static void ForceTarget(WorldState world, CreatureState creature, int targetId, FightTargetKind kind)
     {
-        if (creature.AttackingId != CombatRules.NoTarget) ClearForcedTarget(world, creature);
+        if (creature.AttackingId != CombatRules.NoTarget)
+        {
+            ClearForcedTarget(world, creature);
+        }
+
         creature.AttackAbnormalTargets = true;
         creature.AttackingId = targetId;
         creature.AttackingKind = kind;
@@ -111,7 +134,10 @@ public static class CombatPitRules
     public static void Unmark(WorldState world, CreatureState creature)
     {
         creature.CombatPitFighter = false;
-        if (creature.AttackAbnormalTargets || creature.AttackingId != CombatRules.NoTarget) ClearForcedTarget(world, creature);
+        if (creature.AttackAbnormalTargets || creature.AttackingId != CombatRules.NoTarget)
+        {
+            ClearForcedTarget(world, creature);
+        }
     }
 
     /// <summary><c>0x004D8100</c>: the nearest fighter on the pit's floor that may be paired with
@@ -121,7 +147,11 @@ public static class CombatPitRules
     public static CreatureState? Opponent(WorldState world, GameDatabase database, RoomInstance pit, CreatureState seeker)
     {
         // 0x004D8113: a chicken finds nobody, and neither scan takes one (0x004D81DA, 0x004D8327).
-        if (ChickenRules.IsChicken(seeker)) return null;
+        if (ChickenRules.IsChicken(seeker))
+        {
+            return null;
+        }
+
         return Nearest(world, database, pit, seeker, hostile: true) ?? Nearest(world, database, pit, seeker, hostile: false);
     }
 
@@ -134,13 +164,33 @@ public static class CombatPitRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState candidate = creatures[i];
-            if (candidate.Id == seeker.Id || !candidate.CombatPitFighter || candidate.Level >= cap) continue;
-            if (CreatureDeathRules.IsDown(candidate) || !IsOnTheMap(candidate) || ChickenRules.IsChicken(candidate)) continue;
-            if (CombatRules.IsHostile(world, seeker.OwnerPlayerId, candidate.OwnerPlayerId) != hostile) continue;
+            if (candidate.Id == seeker.Id || !candidate.CombatPitFighter || candidate.Level >= cap)
+            {
+                continue;
+            }
+
+            if (CreatureDeathRules.IsDown(candidate) || !IsOnTheMap(candidate) || ChickenRules.IsChicken(candidate))
+            {
+                continue;
+            }
+
+            if (CombatRules.IsHostile(world, seeker.OwnerPlayerId, candidate.OwnerPlayerId) != hostile)
+            {
+                continue;
+            }
+
             TilePos tile = candidate.Tile;
-            if (!IsFloor(pit, (tile.Y * world.Width) + tile.X)) continue;
+            if (!IsFloor(pit, (tile.Y * world.Width) + tile.X))
+            {
+                continue;
+            }
+
             int d = CombatRules.DistanceSquared(seeker.PosX, seeker.PosY, candidate.PosX, candidate.PosY);
-            if (d >= best) continue;
+            if (d >= best)
+            {
+                continue;
+            }
+
             best = d;
             chosen = candidate;
         }
@@ -173,13 +223,37 @@ public static class CombatPitRules
         {
             (int dx, int dy) = table[(start + i) % count];
             var next = new TilePos(at.X + dx, at.Y + dy);
-            if (!world.Contains(next)) continue;
+            if (!world.Contains(next))
+            {
+                continue;
+            }
+
             int index = (next.Y * world.Width) + next.X;
-            if (!pit.Contains(index)) continue;
-            if (context.Database.TerrainById(world.TileAtIndex(index).TerrainId).IsSolid) continue;
-            if (IsFloor(pit, index) != (!rimOnly && floor)) continue;
-            if (context.Navigation.NavByte(next.X, next.Y) != navigation) continue;
-            if (empty && AnyoneOn(world, next, null)) continue;
+            if (!pit.Contains(index))
+            {
+                continue;
+            }
+
+            if (context.Database.TerrainById(world.TileAtIndex(index).TerrainId).IsSolid)
+            {
+                continue;
+            }
+
+            if (IsFloor(pit, index) != (!rimOnly && floor))
+            {
+                continue;
+            }
+
+            if (context.Navigation.NavByte(next.X, next.Y) != navigation)
+            {
+                continue;
+            }
+
+            if (empty && AnyoneOn(world, next, null))
+            {
+                continue;
+            }
+
             return index;
         }
 
@@ -194,8 +268,15 @@ public static class CombatPitRules
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState other = creatures[i];
-            if (ReferenceEquals(other, except) || !IsOnTheMap(other)) continue;
-            if (other.Tile == tile) return true;
+            if (ReferenceEquals(other, except) || !IsOnTheMap(other))
+            {
+                continue;
+            }
+
+            if (other.Tile == tile)
+            {
+                return true;
+            }
         }
 
         return false;

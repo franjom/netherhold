@@ -92,7 +92,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         // where the refresh is several with a branch per tile (ADR-0454). The snapshot is taken
         // once the refresh has succeeded, so one that throws before the bytes are swapped is
         // retried; an edit that throws leaves the mesh as the throw left it (ADR-0461).
-        if (_mesh != null && Unchanged()) return;
+        if (_mesh != null && Unchanged())
+        {
+            return;
+        }
+
         if (!RoutingBytesChanged())
         {
             Snapshot();
@@ -103,14 +107,21 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         {
             _mesh = NavMesh.Build(_routingGrid);
             _router = new MeshRouter(_mesh);
-            if (_wholeBuilds) _builtLocate = _mesh.CaptureLocateCache();
+            if (_wholeBuilds)
+            {
+                _builtLocate = _mesh.CaptureLocateCache();
+            }
         }
         else
         {
             int count = _routingBytes.Length;
             for (int i = 0; i < count; i++)
             {
-                if (_routingBytes[i] == _routingScratch[i]) continue;
+                if (_routingBytes[i] == _routingScratch[i])
+                {
+                    continue;
+                }
+
                 int x = i % Width, y = i / Width;
                 _mesh.Retriangulate(_routingGrid, x, y, x + 1, y + 1);
             }
@@ -122,7 +133,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// <summary>Restores the last whole build's locate cache for an independent questioner.</summary>
     public void RestoreBuiltLocate()
     {
-        if (!_wholeBuilds) throw new InvalidOperationException("only a whole-build steering keeps its build's locate cache");
+        if (!_wholeBuilds)
+        {
+            throw new InvalidOperationException("only a whole-build steering keeps its build's locate cache");
+        }
+
         _mesh?.RestoreLocateCache(_builtLocate);
     }
 
@@ -133,19 +148,39 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private bool RoutingBytesChanged()
     {
         int count = _world.Width * _world.Height;
-        if (_scratch.Length != count) _scratch = new byte[count];
+        if (_scratch.Length != count)
+        {
+            _scratch = new byte[count];
+        }
+
         var structures = StructureBlocks.For(_world, _database);
         _structures = structures;
         _platformCentres = structures.HeartCentres;
         FillNavigationBytes(_database, _world, structures, _scratch);
 
-        if (_mesh != null && _scratch.AsSpan().SequenceEqual(_bytes)) return false;
+        if (_mesh != null && _scratch.AsSpan().SequenceEqual(_bytes))
+        {
+            return false;
+        }
+
         (_bytes, _scratch) = (_scratch, _bytes);
-        if (_scratch.Length != count) _scratch = new byte[count];
-        if (_routingScratch.Length != count) _routingScratch = new byte[count];
+        if (_scratch.Length != count)
+        {
+            _scratch = new byte[count];
+        }
+
+        if (_routingScratch.Length != count)
+        {
+            _routingScratch = new byte[count];
+        }
+
         Array.Copy(_bytes, _routingScratch, count);
         (_routingBytes, _routingScratch) = (_routingScratch, _routingBytes);
-        if (_routingScratch.Length != count) _routingScratch = new byte[count];
+        if (_routingScratch.Length != count)
+        {
+            _routingScratch = new byte[count];
+        }
+
         return true;
     }
 
@@ -154,15 +189,27 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// built from the tiles at the first ask.</summary>
     public void Write(BinaryWriter w)
     {
-        if (w is null) throw new ArgumentNullException(nameof(w));
+        if (w is null)
+        {
+            throw new ArgumentNullException(nameof(w));
+        }
+
         w.Write(_mesh is not null);
-        if (_mesh is null) return;
+        if (_mesh is null)
+        {
+            return;
+        }
+
         w.Write(_bytes.Length);
         w.Write(_bytes);
         w.Write(_routingBytes.Length);
         w.Write(_routingBytes);
         w.Write(_platformCentres.Count);
-        foreach (int centre in _platformCentres) w.Write(centre);
+        foreach (int centre in _platformCentres)
+        {
+            w.Write(centre);
+        }
+
         _mesh.Write(w);
     }
 
@@ -173,18 +220,38 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// are derived from the loaded tiles.</summary>
     public void Read(BinaryReader r)
     {
-        if (r is null) throw new ArgumentNullException(nameof(r));
-        if (!r.ReadBoolean()) return;
+        if (r is null)
+        {
+            throw new ArgumentNullException(nameof(r));
+        }
+
+        if (!r.ReadBoolean())
+        {
+            return;
+        }
+
         int count = _world.Width * _world.Height;
         int length = SaveReader.Count(r, "navigation bytes", 1, count);
-        if (length != count) throw new InvalidDataException($"a navigation save of {length} bytes for a map of {count} tiles");
+        if (length != count)
+        {
+            throw new InvalidDataException($"a navigation save of {length} bytes for a map of {count} tiles");
+        }
+
         _bytes = SaveReader.Bytes(r, count, "navigation tiles");
         length = SaveReader.Count(r, "routing bytes", 1, count);
-        if (length != count) throw new InvalidDataException($"a routing save of {length} bytes for a map of {count} tiles");
+        if (length != count)
+        {
+            throw new InvalidDataException($"a routing save of {length} bytes for a map of {count} tiles");
+        }
+
         _routingBytes = SaveReader.Bytes(r, count, "navigation tiles");
         int centres = SaveReader.Count(r, "heart platforms", 4, count);
         int[] platforms = new int[centres];
-        for (int i = 0; i < centres; i++) platforms[i] = r.ReadInt32();
+        for (int i = 0; i < centres; i++)
+        {
+            platforms[i] = r.ReadInt32();
+        }
+
         _platformCentres = platforms;
         _mesh = NavMesh.Read(r);
         _router = new MeshRouter(_mesh);
@@ -207,17 +274,49 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     private bool Unchanged()
     {
-        if (!SameTileKeys()) return false;
+        if (!SameTileKeys())
+        {
+            return false;
+        }
+
         IReadOnlyList<DoorState> doors = _world.Doors;
-        if (doors.Count != _doorSnapshot.Count) return false;
+        if (doors.Count != _doorSnapshot.Count)
+        {
+            return false;
+        }
+
         for (int i = 0; i < doors.Count; i++)
-            if (KeyOf(doors[i]) != _doorSnapshot[i]) return false;
-        if (RuinedHearts() != _ruinedSnapshot) return false;
-        if (_world.NavStamps.Count != _navStampSnapshot) return false;
+        {
+            if (KeyOf(doors[i]) != _doorSnapshot[i])
+            {
+                return false;
+            }
+        }
+
+        if (RuinedHearts() != _ruinedSnapshot)
+        {
+            return false;
+        }
+
+        if (_world.NavStamps.Count != _navStampSnapshot)
+        {
+            return false;
+        }
+
         Crypts(_cryptScratch);
-        if (_cryptScratch.Count != _cryptSnapshot.Count) return false;
+        if (_cryptScratch.Count != _cryptSnapshot.Count)
+        {
+            return false;
+        }
+
         for (int i = 0; i < _cryptScratch.Count; i++)
-            if (_cryptScratch[i] != _cryptSnapshot[i]) return false;
+        {
+            if (_cryptScratch[i] != _cryptSnapshot[i])
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -237,11 +336,25 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     {
         ReadOnlySpan<TileState> tiles = _world.Tiles;
         ReadOnlySpan<uint> keys = _tileKeys;
-        if (tiles.Length != keys.Length) return false;
+        if (tiles.Length != keys.Length)
+        {
+            return false;
+        }
+
         long writes = TileState.KeyWriteCount;
-        if (writes == _tileKeyWrites) return true;
+        if (writes == _tileKeyWrites)
+        {
+            return true;
+        }
+
         for (int i = 0; i < keys.Length; i++)
-            if (TileKeyOf(in tiles[i]) != keys[i]) return false;
+        {
+            if (TileKeyOf(in tiles[i]) != keys[i])
+            {
+                return false;
+            }
+        }
+
         _tileKeyWrites = writes;
         return true;
     }
@@ -251,8 +364,16 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         // Counted before the tiles are read, so a change made meanwhile makes the next look read them again.
         long writes = TileState.KeyWriteCount;
         ReadOnlySpan<TileState> tiles = _world.Tiles;
-        if (_tileKeys.Length != tiles.Length) _tileKeys = new uint[tiles.Length];
-        for (int i = 0; i < tiles.Length; i++) _tileKeys[i] = TileKeyOf(in tiles[i]);
+        if (_tileKeys.Length != tiles.Length)
+        {
+            _tileKeys = new uint[tiles.Length];
+        }
+
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            _tileKeys[i] = TileKeyOf(in tiles[i]);
+        }
+
         _tileKeyWrites = writes;
     }
 
@@ -268,7 +389,9 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         {
             ObjectState thing = objects[i];
             if (thing.ObjectTypeId == AutoFurnitureRules.CryptObjectId)
+            {
                 into.Add(((long)thing.TileIndex << 1) | (thing.InHand ? 1L : 0L));
+            }
         }
     }
 
@@ -277,7 +400,13 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     {
         ulong mask = 0;
         for (int i = 0; i < _world.PlayerCount && i < 64; i++)
-            if (_world.PlayerAtIndex(i).HeartRuined) mask |= 1UL << i;
+        {
+            if (_world.PlayerAtIndex(i).HeartRuined)
+            {
+                mask |= 1UL << i;
+            }
+        }
+
         return mask;
     }
 
@@ -286,7 +415,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         StoreTileKeys();
         _doorSnapshot.Clear();
         IReadOnlyList<DoorState> doors = _world.Doors;
-        for (int i = 0; i < doors.Count; i++) _doorSnapshot.Add(KeyOf(doors[i]));
+        for (int i = 0; i < doors.Count; i++)
+        {
+            _doorSnapshot.Add(KeyOf(doors[i]));
+        }
+
         _ruinedSnapshot = RuinedHearts();
         _navStampSnapshot = _world.NavStamps.Count;
         Crypts(_cryptSnapshot);
@@ -326,32 +459,58 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         }
         Span<bool> doubleQuad = stackalloc bool[256];
         foreach (RoomDef room in database.Rooms.Values)
-            if (IsDoubleQuad(room)) doubleQuad[room.TerrainId] = true;
+        {
+            if (IsDoubleQuad(room))
+            {
+                doubleQuad[room.TerrainId] = true;
+            }
+        }
 
         bool anyDoubleQuad = false;
         for (int index = 0; index < world.TileCount; index++)
         {
             byte terrain = world.TileAtIndex(index).TerrainId;
-            if (!known[terrain]) database.TerrainById(terrain);
+            if (!known[terrain])
+            {
+                database.TerrainById(terrain);
+            }
+
             bytes[index] = solid[terrain] ? NavBytes.Solid : open[terrain];
             anyDoubleQuad |= doubleQuad[terrain];
         }
 
         // A portal's centre is its hole unless its terrain is solid (ByteOf's order).
         foreach (int centre in structures.PortalCentres)
-            if (!solid[world.TileAtIndex(centre).TerrainId]) bytes[centre] = NavBytes.PortalHole;
+        {
+            if (!solid[world.TileAtIndex(centre).TerrainId])
+            {
+                bytes[centre] = NavBytes.PortalHole;
+            }
+        }
 
         // Only DoubleQuad rooms mark their floor slots, so only they are filled, and only when the
         // map holds one.
         if (anyDoubleQuad)
+        {
             foreach (RoomInstance room in RoomIndex.Build(world, database, IsDoubleQuad))
-                foreach (int tile in AutoFurnitureRules.FloorSlotSet(world, room)) bytes[tile] = NavBytes.PortalHole;
+            {
+                foreach (int tile in AutoFurnitureRules.FloorSlotSet(world, room))
+                {
+                    bytes[tile] = NavBytes.PortalHole;
+                }
+            }
+        }
 
         // A removed door's 0 over water or lava (Q600) and the Heart builder's 3 (Q601) stand until
         // the terrain changes. Index loop: the list is an interface, and a foreach would box.
         IReadOnlyList<NavStamp> stamps = world.NavStamps;
         for (int i = 0; i < stamps.Count; i++)
-            if (world.TileAtIndex(stamps[i].Tile).TerrainId == stamps[i].TerrainId) bytes[stamps[i].Tile] = stamps[i].Byte;
+        {
+            if (world.TileAtIndex(stamps[i].Tile).TerrainId == stamps[i].TerrainId)
+            {
+                bytes[stamps[i].Tile] = stamps[i].Byte;
+            }
+        }
 
         // A closed, completed door overwrites its tile (`0x004A66F0`); an open one leaves floor,
         // until an enemy sees an open Secret Door (DoorState.SeenWhileOpen).
@@ -360,7 +519,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         for (int d = 0; d < doorList.Count; d++)
         {
             DoorState door = doorList[d];
-            if (door.UnderConstruction || door.ReadsAsFloor || !world.Contains(door.X, door.Y)) continue;
+            if (door.UnderConstruction || door.ReadsAsFloor || !world.Contains(door.X, door.Y))
+            {
+                continue;
+            }
+
             bool barricade = database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && ((def.Flags & DoorFlags.Barricade) == DoorFlags.Barricade);
             bytes[(door.Y * world.Width) + door.X] =
                 NavBytes.Door(door.PlayerId, door.LockMode != 0 || barricade, world.Tile(door.X, door.Y).SecretDoor);
@@ -375,16 +538,36 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// Q601). Routing reads these same bytes.</summary>
     public static byte ByteOf(TerrainDef terrain, bool portalCentre)
     {
-        if (terrain.IsSolid) return NavBytes.Solid;
-        if (portalCentre) return NavBytes.PortalHole;
-        if (terrain.IsWater) return NavBytes.Water;
-        if (terrain.IsLava) return NavBytes.Lava;
+        if (terrain.IsSolid)
+        {
+            return NavBytes.Solid;
+        }
+
+        if (portalCentre)
+        {
+            return NavBytes.PortalHole;
+        }
+
+        if (terrain.IsWater)
+        {
+            return NavBytes.Water;
+        }
+
+        if (terrain.IsLava)
+        {
+            return NavBytes.Lava;
+        }
+
         return NavBytes.Floor;
     }
 
     public bool CanMove(Fixed16Vector from, Fixed16Vector to)
     {
-        if (_structures is null || !_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart)) return true;
+        if (_structures is null || !_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart))
+        {
+            return true;
+        }
+
         to = new Fixed16Vector((to.X >> 4) << 4, (to.Y >> 4) << 4);
         long radius = (heart.Width.Raw >> 1) << 4;
         IReadOnlyList<int> centres = _structures.HeartCentres;
@@ -399,20 +582,34 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             // A loaded body inside the core may leave, but never move deeper into it.
             if (startSquared < radius * radius)
             {
-                if (dot < 0) return false;
+                if (dot < 0)
+                {
+                    return false;
+                }
+
                 continue;
             }
             long lengthSquared = sx * sx + sy * sy;
-            if (lengthSquared == 0 || dot >= 0) continue;
+            if (lengthSquared == 0 || dot >= 0)
+            {
+                continue;
+            }
+
             if (-dot >= lengthSquared)
             {
-                if ((dx + sx) * (dx + sx) + (dy + sy) * (dy + sy) < radius * radius) return false;
+                if ((dx + sx) * (dx + sx) + (dy + sy) * (dy + sy) < radius * radius)
+                {
+                    return false;
+                }
             }
             else
             {
                 long fraction = (-dot << 16) / lengthSquared;
                 long closestX = dx + ((sx * fraction) >> 16), closestY = dy + ((sy * fraction) >> 16);
-                if (closestX * closestX + closestY * closestY < (radius + 1) * (radius + 1)) return false;
+                if (closestX * closestX + closestY * closestY < (radius + 1) * (radius + 1))
+                {
+                    return false;
+                }
             }
         }
         return true;
@@ -420,26 +617,50 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target)
     {
-        if (!_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart)) return target;
+        if (!_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart))
+        {
+            return target;
+        }
+
         (int x, int y) = target.Tile();
         if (!_world.Contains(new TilePos(x, y)) ||
-            _database.RoomByTerrain(_world.Tile(x, y).TerrainId)?.TypeId != RoomTypeId.DungeonHeart) return target;
+            _database.RoomByTerrain(_world.Tile(x, y).TerrainId)?.TypeId != RoomTypeId.DungeonHeart)
+        {
+            return target;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(_world, _database, y * _world.Width + x);
         if (room is null || room.Width < 3 || room.Height < 3 ||
-            RoomRules.IsRuined(_world, room)) return target;
+            RoomRules.IsRuined(_world, room))
+        {
+            return target;
+        }
+
         var centre = new Fixed16Vector(CreatureState.CentreOf((room.MinX + room.MaxX) / 2) << 4,
             CreatureState.CentreOf((room.MinY + room.MaxY) / 2) << 4);
         int radius = (heart.Width.Raw >> 1) << 4;
         long dx = (long)target.X - centre.X, dy = (long)target.Y - centre.Y;
-        if (dx * dx + dy * dy >= (long)radius * radius) return target;
+        if (dx * dx + dy * dy >= (long)radius * radius)
+        {
+            return target;
+        }
+
         Fixed16Vector direction = Fixed16.Normalise(from - centre);
-        if (direction == Fixed16Vector.Zero) direction = new Fixed16Vector(Fixed16.One, 0);
+        if (direction == Fixed16Vector.Zero)
+        {
+            direction = new Fixed16Vector(Fixed16.One, 0);
+        }
+
         return centre + direction.Scale(radius + (Fixed16.One >> 3));
     }
 
     public byte NavByte(int x, int y)
     {
-        if (x < 0 || y < 0 || x >= _world.Width || y >= _world.Height || _bytes.Length == 0) return NavBytes.Solid;
+        if (x < 0 || y < 0 || x >= _world.Width || y >= _world.Height || _bytes.Length == 0)
+        {
+            return NavBytes.Solid;
+        }
+
         return _bytes[(y * _world.Width) + x];
     }
 
@@ -503,9 +724,16 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// route within one triangle is the one point (<c>0x004CF490</c>, ADR-0388).</summary>
     public bool TryRouteToStance(CreatureState creature, long x, long y, MoveOptions options)
     {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (creature is null)
+        {
+            throw new ArgumentNullException(nameof(creature));
+        }
+
         if (creature.Tile != new TilePos((int)(x / Fp32.One), (int)(y / Fp32.One)))
+        {
             return TryRouteTo(creature, (int)x, (int)y, options);
+        }
+
         ResetBodyForRequest(creature);
         creature.RouteOptions = options;
         Fixed16Vector target = ConstrainTarget(creature.Body.Pos, new Fixed16Vector((int)x << 4, (int)y << 4));
@@ -529,7 +757,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points, bool refresh,
         RoutePointKind pointKind)
     {
-        if (refresh || _router is null) Refresh();
+        if (refresh || _router is null)
+        {
+            Refresh();
+        }
+
         using ProfileScope _ = Profiler.Scope(SimulationMarkers.NavRoute);
         Fixed16Vector constrained = ConstrainTarget(from, to);
         // DK2 decides on the point asked for: a live Heart's centre carries the builder's lava byte
@@ -537,11 +769,21 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         // (Level 5, turn 1817). ADR-0439's edge point is only where a route that exists ends.
         if (constrained != to && !_router!.TryRoute(new NavPoint(from.X >> 8, from.Y >> 8),
                 new NavPoint(to.X >> 8, to.Y >> 8), mover, _waypoints, pointKind))
+        {
             return false;
+        }
+
         to = constrained;
         if (!_router!.TryRoute(new NavPoint(from.X >> 8, from.Y >> 8), new NavPoint(to.X >> 8, to.Y >> 8), mover, _waypoints, pointKind))
+        {
             return false;
-        foreach (NavPoint p in _waypoints) points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));
+        }
+
+        foreach (NavPoint p in _waypoints)
+        {
+            points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));
+        }
+
         return true;
     }
 
@@ -563,26 +805,62 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         _physicalStorePileTiles.Clear();
         foreach (ObjectState device in _world.Objects)
         {
-            if (!device.TileLink.IsLinked || device.ObjectTypeId == DungeonHeartObstacleObjectId) continue;
+            if (!device.TileLink.IsLinked || device.ObjectTypeId == DungeonHeartObstacleObjectId)
+            {
+                continue;
+            }
+
             int tx = device.TileLink.TileIndex % _world.Width, ty = device.TileLink.TileIndex / _world.Width;
-            if (tx < x0 || tx > x1 || ty < y0 || ty > y1) continue;
+            if (tx < x0 || tx > x1 || ty < y0 || ty > y1)
+            {
+                continue;
+            }
+
             ObjectDef? definition = _database.ObjectById(device.ObjectTypeId);
-            if (definition is null) continue;
+            if (definition is null)
+            {
+                continue;
+            }
+
             if (!device.InHand && device.CarriedByCreatureId < 0 && (definition.Flags & ObjectFlags.Pillar) != 0)
+            {
                 _physicalPillarTiles.Add(device.TileLink.TileIndex);
+            }
+
             if (!device.InHand && device.CarriedByCreatureId < 0 && device.ObjectTypeId == HeartPillarRules.ArchPillarObjectId)
+            {
                 _physicalHeartPillarTiles.Add(device.TileLink.TileIndex);
+            }
+
             if (!device.InHand && device.CarriedByCreatureId < 0
                 && device.ObjectTypeId == FloorGold.TreasuryPileObjectId)
+            {
                 _physicalStorePileTiles.Add(device.TileLink.TileIndex);
-            if ((definition.Flags & ObjectFlags.Obstacle) == 0) continue;
+            }
+
+            if ((definition.Flags & ObjectFlags.Obstacle) == 0)
+            {
+                continue;
+            }
+
             int size = (definition.Width.Raw >> 1) << 4;
-            if (size <= 0) continue;
+            if (size <= 0)
+            {
+                continue;
+            }
+
             int x = CreatureState.CentreOf(device.TileIndex % _world.Width);
             int y = CreatureState.CentreOf(device.TileIndex / _world.Width);
-            if (device.PosX != 0 || device.PosY != 0) (x, y) = (device.PosX, device.PosY);
+            if (device.PosX != 0 || device.PosY != 0)
+            {
+                (x, y) = (device.PosX, device.PosY);
+            }
+
             if (device.AutoPlaced && RoomIndex.RoomAt(_world, _database, device.TileIndex) is { } room)
+            {
                 (x, y) = AutoFurnitureRules.FurniturePosition(_world, _database, room, device);
+            }
+
             _objectObstacles.Add(new ObjectObstacle(device.TileLink.TileIndex, device.TileLink.Order,
                 new Fixed16Vector(x << 4, y << 4), size, (definition.Flags & ObjectFlags.SolidObstacle) != 0));
         }
@@ -601,15 +879,26 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             solid = obstacle.Solid || !solid;
             into.Add(new SteeringObstacle(obstacle.Position, obstacle.Size, solid, false));
         }
-        if (_structures is null || _structures.HeartCentres.Count == 0) return;
+        if (_structures is null || _structures.HeartCentres.Count == 0)
+        {
+            return;
+        }
 
         foreach (int index in _structures.HeartCentres)
         {
             var pos = new Fixed16Vector(
                 CreatureState.CentreOf(index % _world.Width) << 4, CreatureState.CentreOf(index / _world.Width) << 4);
-            if (!_database.Objects.TryGetValue(DungeonHeartObstacleObjectId, out ObjectDef? def)) continue;
+            if (!_database.Objects.TryGetValue(DungeonHeartObstacleObjectId, out ObjectDef? def))
+            {
+                continue;
+            }
+
             int size = (def.Width.Raw << 4) >> 1;
-            if ((pos - centre).Octile() > range + size) continue;
+            if ((pos - centre).Octile() > range + size)
+            {
+                continue;
+            }
+
             into.Add(new SteeringObstacle(pos, size, (def.Flags & ObjectFlags.SolidObstacle) == ObjectFlags.SolidObstacle, true));
         }
     }
@@ -620,18 +909,33 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// (<c>0x004D14A1</c>); only 100 is left to the tail (structure-blocks.md §5.3).</summary>
     private void AddVirtualHeartCentreObjects(TilePos minimum, TilePos maximum)
     {
-        if (_structures is null) return;
+        if (_structures is null)
+        {
+            return;
+        }
+
         foreach (int index in _structures.HeartCentres)
         {
             int x = index % _world.Width, y = index / _world.Width;
-            if (x < minimum.X || x > maximum.X || y < minimum.Y || y > maximum.Y) continue;
+            if (x < minimum.X || x > maximum.X || y < minimum.Y || y > maximum.Y)
+            {
+                continue;
+            }
+
             var position = new Fixed16Vector(CreatureState.CentreOf(x) << 4, CreatureState.CentreOf(y) << 4);
             for (int i = 0; i < HeartCentreChain.Length; i++)
             {
                 if (_database.ObjectById(HeartCentreChain[i]) is not { } definition
-                    || (definition.Flags & ObjectFlags.Obstacle) == 0) continue;
+                    || (definition.Flags & ObjectFlags.Obstacle) == 0)
+                {
+                    continue;
+                }
+
                 int size = (definition.Width.Raw >> 1) << 4;
-                if (size <= 0) continue;
+                if (size <= 0)
+                {
+                    continue;
+                }
                 // Oldest things on the tile, in the builder's order: the head (86) is the newest.
                 _objectObstacles.Add(new ObjectObstacle(index, long.MinValue + HeartCentreChain.Length - i, position, size,
                     (definition.Flags & ObjectFlags.SolidObstacle) != 0));
@@ -644,18 +948,32 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private void AddVirtualStorePiles(TilePos minimum, TilePos maximum)
     {
         ObjectDef? definition = _database.ObjectById(FloorGold.TreasuryPileObjectId);
-        if (definition is null || (definition.Flags & ObjectFlags.Obstacle) == 0) return;
+        if (definition is null || (definition.Flags & ObjectFlags.Obstacle) == 0)
+        {
+            return;
+        }
+
         int size = (definition.Width.Raw >> 1) << 4;
-        if (size <= 0) return;
+        if (size <= 0)
+        {
+            return;
+        }
+
         for (int y = minimum.Y; y <= maximum.Y; y++)
-        for (int x = minimum.X; x <= maximum.X; x++)
+        {
+            for (int x = minimum.X; x <= maximum.X; x++)
         {
             int index = y * _world.Width + x;
             ref TileState tile = ref _world.TileAtIndex(index);
-            if (tile.GoldHeld <= 0 || _physicalStorePileTiles.Contains(index)) continue;
-            var position = new Fixed16Vector(CreatureState.CentreOf(x) << 4, CreatureState.CentreOf(y) << 4);
+            if (tile.GoldHeld <= 0 || _physicalStorePileTiles.Contains(index))
+                {
+                    continue;
+                }
+
+                var position = new Fixed16Vector(CreatureState.CentreOf(x) << 4, CreatureState.CentreOf(y) << 4);
             _objectObstacles.Add(new ObjectObstacle(index, tile.StoreGoldLinkOrder, position, size,
                 (definition.Flags & ObjectFlags.SolidObstacle) != 0));
+        }
         }
     }
 
@@ -663,17 +981,30 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private void AddVirtualHatcheryPillars(TilePos minimum, TilePos maximum)
     {
         ObjectDef? definition = _database.ObjectById(HatcheryRules.PillarObjectId);
-        if (definition is null || (definition.Flags & ObjectFlags.Obstacle) == 0) return;
+        if (definition is null || (definition.Flags & ObjectFlags.Obstacle) == 0)
+        {
+            return;
+        }
+
         int size = (definition.Width.Raw >> 1) << 4;
-        if (size <= 0) return;
+        if (size <= 0)
+        {
+            return;
+        }
+
         for (int y = minimum.Y; y <= maximum.Y; y++)
-        for (int x = minimum.X; x <= maximum.X; x++)
+        {
+            for (int x = minimum.X; x <= maximum.X; x++)
         {
             int tileIndex = y * _world.Width + x;
             if (_physicalPillarTiles.Contains(tileIndex)
                 || RoomIndex.RoomAt(_world, _database, tileIndex) is not { } room
-                || room.Definition.TypeId != RoomTypeId.Hatchery) continue;
-            foreach (int corner in AutoFurnitureRules.RoomPillarCorners(_world, room, new TilePos(x, y)))
+                || room.Definition.TypeId != RoomTypeId.Hatchery)
+                {
+                    continue;
+                }
+
+                foreach (int corner in AutoFurnitureRules.RoomPillarCorners(_world, room, new TilePos(x, y)))
             {
                 (int dx, int dy) = corner switch
                 {
@@ -687,6 +1018,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
                     (definition.Flags & ObjectFlags.SolidObstacle) != 0));
             }
         }
+        }
     }
 
     /// <summary>A live Heart's three Arch Pillars (object 94) are things on their tiles in DK2 and
@@ -695,23 +1027,39 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private void AddVirtualHeartPillars(TilePos minimum, TilePos maximum)
     {
         ObjectDef? definition = _database.ObjectById(HeartPillarRules.ArchPillarObjectId);
-        if (definition is null || (definition.Flags & ObjectFlags.Obstacle) == 0) return;
+        if (definition is null || (definition.Flags & ObjectFlags.Obstacle) == 0)
+        {
+            return;
+        }
+
         int size = (definition.Width.Raw >> 1) << 4;
-        if (size <= 0) return;
+        if (size <= 0)
+        {
+            return;
+        }
+
         for (int y = minimum.Y; y <= maximum.Y; y++)
-        for (int x = minimum.X; x <= maximum.X; x++)
+        {
+            for (int x = minimum.X; x <= maximum.X; x++)
         {
             int tileIndex = y * _world.Width + x;
             ref TileState tile = ref _world.TileAtIndex(tileIndex);
             if (_physicalHeartPillarTiles.Contains(tileIndex)
-                || _database.RoomByTerrain(tile.TerrainId)?.TypeId != RoomTypeId.DungeonHeart) continue;
-            long tick = _world.CurrentTick.Value;
+                || _database.RoomByTerrain(tile.TerrainId)?.TypeId != RoomTypeId.DungeonHeart)
+                {
+                    continue;
+                }
+
+                long tick = _world.CurrentTick.Value;
             bool standing = false;
             for (int i = 0; i < _world.PlayerCount; i++)
             {
                 ref PlayerState player = ref _world.PlayerAtIndex(i);
-                if (player.PlayerId == tile.OwnerPlayerId) standing = !player.HeartRuined && player.HeartHealth > 0;
-            }
+                if (player.PlayerId == tile.OwnerPlayerId)
+                    {
+                        standing = !player.HeartRuined && player.HeartHealth > 0;
+                    }
+                }
             // The chain walk is kept for the turn; the Heart's standing is looked at every time.
             if (!_heartPillarMasks.TryGetValue(tileIndex, out (long Tick, bool Standing, byte Mask) known)
                 || known.Tick != tick || known.Standing != standing)
@@ -720,19 +1068,27 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
                 for (int ordinal = 0; ordinal < 3; ordinal++)
                 {
                     var id = HeartPillarId.For(_world, HeartPillarRules.At(new TilePos(x, y), (HeartPillar)ordinal));
-                    if (HeartPillarRules.TryResolve(_world, _database, tile.OwnerPlayerId, id, out _)) mask |= (byte)(1 << ordinal);
-                }
+                    if (HeartPillarRules.TryResolve(_world, _database, tile.OwnerPlayerId, id, out _))
+                        {
+                            mask |= (byte)(1 << ordinal);
+                        }
+                    }
                 _heartPillarMasks[tileIndex] = known = (tick, standing, mask);
             }
             for (int ordinal = 0; ordinal < 3; ordinal++)
             {
-                if ((known.Mask & (1 << ordinal)) == 0) continue;
-                HeartPillarTarget pillar = HeartPillarRules.At(new TilePos(x, y), (HeartPillar)ordinal);
+                if ((known.Mask & (1 << ordinal)) == 0)
+                    {
+                        continue;
+                    }
+
+                    HeartPillarTarget pillar = HeartPillarRules.At(new TilePos(x, y), (HeartPillar)ordinal);
                 // Treat the builder's pillars as oldest; exact mixed rebuild history is not retained.
                 _objectObstacles.Add(new ObjectObstacle(tileIndex, long.MinValue,
                     new Fixed16Vector(pillar.X.Raw << 4, pillar.Y.Raw << 4), size,
                     (definition.Flags & ObjectFlags.SolidObstacle) != 0));
             }
+        }
         }
     }
 
@@ -756,8 +1112,15 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         int sum = 0;
         foreach (CreatureState c in _world.Creatures)
         {
-            if (!InTileChain(c, out int tx, out int ty)) continue;
-            if (tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1) sum += (short)c.Body.Radius;
+            if (!InTileChain(c, out int tx, out int ty))
+            {
+                continue;
+            }
+
+            if (tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1)
+            {
+                sum += (short)c.Body.Radius;
+            }
         }
 
         return sum;
@@ -771,10 +1134,18 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         int x1 = Math.Min(Width - 1, (((centre.X + half) >> 4) + 0xFFF) >> 12);
         int y1 = (((centre.Y + half) >> 4) + 0xFFF) >> 12;
         // The native upper-Y clamp uses width, even on a non-square map.
-        if (y1 >= Height) y1 = Width - 1;
+        if (y1 >= Height)
+        {
+            y1 = Width - 1;
+        }
+
         foreach (CreatureState c in _world.Creatures)
         {
-            if (!InTileChain(c, out int tx, out int ty) || tx < x0 || tx > x1 || ty < y0 || ty > y1) continue;
+            if (!InTileChain(c, out int tx, out int ty) || tx < x0 || tx > x1 || ty < y0 || ty > y1)
+            {
+                continue;
+            }
+
             into.Add(new SteeringNeighbour(c.Body, _database.CreatureById(c.CreatureTypeId).SizeClass));
         }
     }
@@ -786,7 +1157,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private bool InTileChain(CreatureState c, out int tx, out int ty)
     {
         tx = ty = 0;
-        if (!c.TileLink.IsLinked || CreatureDeathRules.IsCorpse(c)) return false;
+        if (!c.TileLink.IsLinked || CreatureDeathRules.IsCorpse(c))
+        {
+            return false;
+        }
+
         int index = c.TileLink.TileIndex;
         ty = index / Width;
         tx = index - (ty * Width);

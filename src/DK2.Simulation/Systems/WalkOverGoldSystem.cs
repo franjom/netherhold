@@ -37,10 +37,19 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
         for (int i = world.Objects.Count - 1; i >= 0; i--)
         {
             ObjectState thing = world.Objects[i];
-            if (IsTakeable(thing)) _piles.Add(thing);
-            else if (IsLooseNeutralChicken(thing)) _chickens.Add(thing);
+            if (IsTakeable(thing))
+            {
+                _piles.Add(thing);
+            }
+            else if (IsLooseNeutralChicken(thing))
+            {
+                _chickens.Add(thing);
+            }
         }
-        if (_piles.Count == 0 && _chickens.Count == 0) return;
+        if (_piles.Count == 0 && _chickens.Count == 0)
+        {
+            return;
+        }
 
         EntityList<CreatureState> creatures = world.Creatures;
         for (int i = creatures.Count - 1; i >= 0; i--)
@@ -49,9 +58,17 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
             // A corpse is DK2's separate dead-body thing, which has no creature update; ours keeps
             // it in the list (ADR-0206), on the piles its own death dropped.
             if (HandRules.IsHeld(creature) || CreatureDeathRules.IsCorpse(creature)
-                || !world.Contains(creature.Tile)) continue;
+                || !world.Contains(creature.Tile))
+            {
+                continue;
+            }
+
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-            if (IsWorkerArm(world, definition, creature)) continue;
+            if (IsWorkerArm(world, definition, creature))
+            {
+                continue;
+            }
+
             TakeFromTile(context, creature, definition);
         }
     }
@@ -79,11 +96,22 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
         // A Casino tile and +0x3F2 skip the whole walk (0x00489248..0x0048926A), chickens included.
-        if (creature.CasinoBigWinnerTicks != 0) return;
+        if (creature.CasinoBigWinnerTicks != 0)
+        {
+            return;
+        }
+
         int tileIndex = (creature.Tile.Y * world.Width) + creature.Tile.X;
         RoomDef? room = database.RoomByTerrain(world.TileAtIndex(tileIndex).TerrainId);
-        if (room is { RoomId: (byte)RoomTypeId.Casino }) return;
-        if (creature.Dk2StateId == DropLandingRules.LandingState) return;
+        if (room is { RoomId: (byte)RoomTypeId.Casino })
+        {
+            return;
+        }
+
+        if (creature.Dk2StateId == DropLandingRules.LandingState)
+        {
+            return;
+        }
 
         // The chicken arm (0x004892A6..0x0048932E): not in 76 (tested above), not on a Portal or
         // Hatchery tile; whatever the creature's hunger the bird is destroyed and action 26 begins at
@@ -91,9 +119,13 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
         // callers, assumes a begin not refused (0x00496743 refuses over some current actions; ours
         // has no action layer to refuse it).
         if (room is not { RoomId: (byte)RoomTypeId.Portal or (byte)RoomTypeId.Hatchery })
+        {
             foreach (ObjectState chicken in _chickens)
             {
-                if (chicken.TileIndex != tileIndex || world.ObjectById(chicken.Id) is null) continue;
+                if (chicken.TileIndex != tileIndex || world.ObjectById(chicken.Id) is null)
+                {
+                    continue;
+                }
                 // DK2 zeroes the bird's health (0x004892EF-0x00489318, vtable +0x20) and its own update, after the
                 // creature's, removes it. Ours walks over after the objects have updated, so the bird has had
                 // this turn's update already and goes now (Q796; a second walker this turn finds none, a deviation).
@@ -103,20 +135,31 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
                     $"creature={creature.Id} chicken={chicken.Id} at=({tileIndex % world.Width},{tileIndex / world.Width}) " +
                     $"need={creature.HungerNeed}");
             }
+        }
 
-        if (room is { RoomId: (byte)RoomTypeId.Treasury }) return;
+        if (room is { RoomId: (byte)RoomTypeId.Treasury })
+        {
+            return;
+        }
 
         // A Skeleton's maximum is 0, so with an empty purse it lacks nothing and takes nothing.
         int max = CreatureLevelRules.MaxGoldHeld(database, definition, creature.Level);
         foreach (ObjectState pile in _piles)
         {
-            if (pile.TileIndex != tileIndex || pile.GoldHeld <= 0) continue;
+            if (pile.TileIndex != tileIndex || pile.GoldHeld <= 0)
+            {
+                continue;
+            }
 
             // Compared unsigned (0x004893B1): a purse already over its maximum takes the whole
             // pile, and the clamp after the add (0x0048AB60) loses the excess.
             uint lacks = unchecked((uint)(max - creature.GoldHeld));
             int taken = FloorGold.Take(world, database, pile, (int)Math.Min(lacks, (uint)pile.GoldHeld));
-            if (taken == 0) continue;
+            if (taken == 0)
+            {
+                continue;
+            }
+
             creature.GoldHeld = (int)Math.Min(unchecked((uint)(creature.GoldHeld + taken)), (uint)max);
             context.Emit(Name, "gold_taken",
                 $"creature={creature.Id} at=({tileIndex % world.Width},{tileIndex / world.Width}) " +

@@ -142,9 +142,19 @@ public static class KeeperAIPersonality
     {
         foreach ((string map, KeeperPersonality replacement, byte[] replaced) in Remaps)
         {
-            if (!string.Equals(map, mapName, StringComparison.Ordinal)) continue;
+            if (!string.Equals(map, mapName, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
             for (int i = 0; i < replaced.Length && i < RemapListMax && replaced[i] != RemapListEnd; i++)
-                if (replaced[i] == (byte)personality) return replacement;
+            {
+                if (replaced[i] == (byte)personality)
+                {
+                    return replacement;
+                }
+            }
+
             return personality;
         }
         return personality;
@@ -155,13 +165,19 @@ public static class KeeperAIPersonality
     public static KeeperAIParameters Parameters(KeeperPersonality personality, string mapName, GameDatabase database,
         int width, int height)
     {
-        if ((byte)personality >= Count) throw new ArgumentOutOfRangeException(nameof(personality));
+        if ((byte)personality >= Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(personality));
+        }
+
         int p = (byte)Remap(personality, mapName);
 
         // The skill level is capped at CombatPitMaxExperienceLevel (byte 0x006F2976, variable 192).
         byte skill = SkillLevel[p];
         if (database.Variables.TryGet(VariableTypeId.CombatPitMaxExperienceLevel, out int cap) && cap <= skill)
+        {
             skill = (byte)cap;
+        }
 
         return new KeeperAIParameters
         {
@@ -262,8 +278,15 @@ public static class KeeperAIPersonality
         int n = 0;
         foreach (RoomDef room in database.Rooms.Values.OrderBy(r => r.RoomId))
         {
-            if (n == RoomListLength) break;
-            if (Qualifies(room)) list[n++] = room.RoomId;
+            if (n == RoomListLength)
+            {
+                break;
+            }
+
+            if (Qualifies(room))
+            {
+                list[n++] = room.RoomId;
+            }
         }
         return list;
 

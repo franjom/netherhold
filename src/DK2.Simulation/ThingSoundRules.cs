@@ -219,9 +219,17 @@ public static class ThingSoundRules
     public static void Request(SimulationContext context, string system, ObjectState thing, ThingSoundEvent sound,
         FpPosition3? at = null, bool alternating = false)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         string category = context.Database.ObjectById(thing.ObjectTypeId)?.SoundCategory ?? "";
-        if (category.Length == 0) return;
+        if (category.Length == 0)
+        {
+            return;
+        }
+
         FpPosition3 point = at ?? PointOf(context, thing);
         Request(context, system, new SoundSourceId(SoundSourceKind.Object, thing.Id), category, sound, point, alternating: alternating);
     }
@@ -241,8 +249,16 @@ public static class ThingSoundRules
     /// Nothing is emitted for a door with no category.</summary>
     public static void Request(SimulationContext context, string system, DoorState door, ThingSoundEvent sound)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
-        if (!context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition) || definition.SoundCategory.Length == 0) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
+        if (!context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition) || definition.SoundCategory.Length == 0)
+        {
+            return;
+        }
+
         Request(context, system, new SoundSourceId(SoundSourceKind.Door, door.Id), definition.SoundCategory, sound,
             AtTile(context, door.X, door.Y));
     }
@@ -253,8 +269,16 @@ public static class ThingSoundRules
     public static void Request(SimulationContext context, string system, TrapState trap, ThingSoundEvent sound,
         PlayerId? viewerOnlyFor = null)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
-        if (!context.Database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition) || definition.SoundCategory.Length == 0) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
+        if (!context.Database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition) || definition.SoundCategory.Length == 0)
+        {
+            return;
+        }
+
         Request(context, system, new SoundSourceId(SoundSourceKind.Trap, trap.Id), definition.SoundCategory, sound,
             AtTile(context, trap.X, trap.Y), viewerOnlyFor: viewerOnlyFor);
     }
@@ -275,7 +299,11 @@ public static class ThingSoundRules
         bool voiced = false, PlayerId? viewerOnlyFor = null, SoundSourceId? source = null, bool listenerRelative = false)
     {
         string category = context.Database.TerrainById(terrainId).SoundCategory;
-        if (category.Length == 0) return;
+        if (category.Length == 0)
+        {
+            return;
+        }
+
         int width = context.World.Width;
         Request(context, system, source ?? new SoundSourceId(kind, tileIndex), category, sound,
             new(new Fp32(CreatureState.CentreOf(tileIndex % width)), new Fp32(CreatureState.CentreOf(tileIndex / width)),
@@ -296,7 +324,11 @@ public static class ThingSoundRules
         byte objectTypeId, ThingSoundEvent sound, bool voiced = false)
     {
         string category = context.Database.ObjectById(objectTypeId)?.SoundCategory ?? "";
-        if (category.Length == 0) return;
+        if (category.Length == 0)
+        {
+            return;
+        }
+
         Request(context, system, SoundSourceId.Of(new CreatureId(creature.Id)), category, sound,
             new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), voiced);
     }
@@ -310,8 +342,16 @@ public static class ThingSoundRules
     public static void Request(SimulationContext context, string system, SoundSourceId source, string category,
         ThingSoundEvent sound, FpPosition3 position, bool voiced = true, PlayerId? viewerOnlyFor = null, bool alternating = false, bool listenerRelative = false)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
-        if (category.Length > 31) category = category.Substring(0, 31);
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
+        if (category.Length > 31)
+        {
+            category = category.Substring(0, 31);
+        }
+
         context.RequestSound(system, new(source, category, sound, position, voiced, viewerOnlyFor, alternating, ListenerRelative: listenerRelative));
     }
 
@@ -319,7 +359,11 @@ public static class ThingSoundRules
     /// vtable <c>+0x18</c>). Asked where a thing's loop ends: the burning creature's fire (<c>0x0048E62E</c>).</summary>
     public static void Stop(SimulationContext context, string system, SoundSourceId source)
     {
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
+
         context.RequestSound(system, new(source, "", default, default, Stop: true));
     }
 
@@ -330,7 +374,11 @@ public static class ThingSoundRules
         ThingSoundEvent sound)
     {
         string category = definition.SoundCategory;
-        if (category.Length > 31) category = category.Substring(0, 31);
+        if (category.Length > 31)
+        {
+            category = category.Substring(0, 31);
+        }
+
         hooks.RequestSound(system, new(SoundSourceId.Of(new CreatureId(creature.Id)), category, sound,
             new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ))));
     }

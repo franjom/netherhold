@@ -45,7 +45,11 @@ public static class PrisonRules
     /// owner first (vtable <c>+0x24</c>).</summary>
     internal static void Return(SimulationContext context, string system, CreatureState creature)
     {
-        if (context.Tick.Value - creature.StateEnteredTick <= 1) return;
+        if (context.Tick.Value - creature.StateEnteredTick <= 1)
+        {
+            return;
+        }
+
         WorldState world = context.World;
         bool onPrison = world.Contains(creature.Tile)
             && RoomIndex.RoomAt(world, context.Database, (creature.Tile.Y * world.Width) + creature.Tile.X) is { } room
@@ -136,7 +140,10 @@ public static class PrisonRules
 
         // A prisoner whose cell has stopped being a cell has bigger problems,
         // and PrisonSystem frees it on the same second.
-        if (cell is null) return false;
+        if (cell is null)
+        {
+            return false;
+        }
 
         for (int i = 0; i < Orthogonal.Length; i++)
         {
@@ -145,10 +152,16 @@ public static class PrisonRules
 
             int x = here.X + dx;
             int y = here.Y + dy;
-            if (x < 0 || y < 0 || x >= world.Width || y >= world.Height) continue;
+            if (x < 0 || y < 0 || x >= world.Width || y >= world.Height)
+            {
+                continue;
+            }
 
             // Inside the bars, not merely inside the room (ADR-0139).
-            if (!cell.IsInterior((y * world.Width) + x)) continue;
+            if (!cell.IsInterior((y * world.Width) + x))
+            {
+                continue;
+            }
 
             step = new TilePos(x, y);
             return true;
@@ -171,7 +184,10 @@ public static class PrisonRules
     /// <see cref="CreatureFlags2.NeverAngered"/>, where DK2 reads an unmapped flag bit: same intent, both excluding the Skeleton and Jack (Q210).</para></summary>
     public static int AngerPerFailedFoodSearch(CreatureDef creature)
     {
-        if (!CreatureAngerRules.CanBeAngered(creature)) return 0;
+        if (!CreatureAngerRules.CanBeAngered(creature))
+        {
+            return 0;
+        }
 
         return SimulationTiming.LoaderRatePerTick(creature.AngerNoFood);
     }
@@ -208,7 +224,12 @@ public static class PrisonRules
     {
         int cap = 0;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
-            if (IsPrisonOf(room, keeper)) cap += Capacity(room);
+        {
+            if (IsPrisonOf(room, keeper))
+            {
+                cap += Capacity(room);
+            }
+        }
 
         return cap;
     }
@@ -221,8 +242,12 @@ public static class PrisonRules
     {
         int held = 0;
         foreach (CreatureState creature in world.Creatures)
+        {
             if (creature.OwnerPlayerId == keeper && creature.CreatureTypeId == skeletonTypeId)
+            {
                 held++;
+            }
+        }
 
         return held;
     }
@@ -271,7 +296,11 @@ public static class PrisonRules
         WorldState world, GameDatabase database, PlayerId playerId, TilePos from)
     {
         int tile = NearestWithSpace(world, database, playerId, from, out RoomInstance? room);
-        if (tile < 0 || room is null) return -1;
+        if (tile < 0 || room is null)
+        {
+            return -1;
+        }
+
         int door = JailBreakRules.DoorTile(world, room);
         return door >= 0 ? door : tile;
     }
@@ -285,18 +314,35 @@ public static class PrisonRules
 
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (!IsPrisonOf(room, playerId)) continue;
-            if (PrisonerCount(world, room) >= Capacity(room)) continue;
-            if (!IsActivated(world, room)) continue;
+            if (!IsPrisonOf(room, playerId))
+            {
+                continue;
+            }
+
+            if (PrisonerCount(world, room) >= Capacity(room))
+            {
+                continue;
+            }
+
+            if (!IsActivated(world, room))
+            {
+                continue;
+            }
 
             foreach (int tileIndex in room.InteriorTileIndices)
             {
-                if (PrisonerOn(world, tileIndex) is not null) continue;
+                if (PrisonerOn(world, tileIndex) is not null)
+                {
+                    continue;
+                }
 
                 long dx = (tileIndex % world.Width) - from.X;
                 long dy = (tileIndex / world.Width) - from.Y;
                 long distance = (dx * dx) + (dy * dy);
-                if (distance >= bestDistance) continue;
+                if (distance >= bestDistance)
+                {
+                    continue;
+                }
 
                 bestDistance = distance;
                 best = tileIndex;
@@ -322,12 +368,27 @@ public static class PrisonRules
     /// tile is not asked. Asked at the door, so a prison that filled during the walk turns the body away.</summary>
     public static bool AdmitsAt(WorldState world, GameDatabase database, int tileIndex)
     {
-        if (tileIndex < 0 || tileIndex >= world.Width * world.Height) return false;
+        if (tileIndex < 0 || tileIndex >= world.Width * world.Height)
+        {
+            return false;
+        }
 
         RoomInstance? room = RoomIndex.RoomAt(world, database, tileIndex);
-        if (room is null || room.Definition.TypeId != RoomTypeId.Prison) return false;
-        if (!room.IsInterior(tileIndex)) return false;
-        if (!IsActivated(world, room)) return false;
+        if (room is null || room.Definition.TypeId != RoomTypeId.Prison)
+        {
+            return false;
+        }
+
+        if (!room.IsInterior(tileIndex))
+        {
+            return false;
+        }
+
+        if (!IsActivated(world, room))
+        {
+            return false;
+        }
+
         return PrisonerCount(world, room) < Capacity(room);
     }
 
@@ -346,11 +407,21 @@ public static class PrisonRules
         int count = 0;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (!HasKeeperBinding(creature) || !IsPrisonInmate(creature)) continue;
-            if (creature.PrisonOwnerPlayerId != room.OwnerPlayerId) continue;
+            if (!HasKeeperBinding(creature) || !IsPrisonInmate(creature))
+            {
+                continue;
+            }
+
+            if (creature.PrisonOwnerPlayerId != room.OwnerPlayerId)
+            {
+                continue;
+            }
 
             int tileIndex = (creature.Tile.Y * world.Width) + creature.Tile.X;
-            if (room.TileIndices.Contains(tileIndex)) count++;
+            if (room.TileIndices.Contains(tileIndex))
+            {
+                count++;
+            }
         }
         return count;
     }
@@ -360,9 +431,20 @@ public static class PrisonRules
     {
         foreach (CreatureState creature in world.Creatures)
         {
-            if (!HasKeeperBinding(creature) || !IsPrisonInmate(creature)) continue;
-            if (HandRules.IsHeld(creature)) continue;
-            if ((creature.Tile.Y * world.Width) + creature.Tile.X == tileIndex) return creature;
+            if (!HasKeeperBinding(creature) || !IsPrisonInmate(creature))
+            {
+                continue;
+            }
+
+            if (HandRules.IsHeld(creature))
+            {
+                continue;
+            }
+
+            if ((creature.Tile.Y * world.Width) + creature.Tile.X == tileIndex)
+            {
+                return creature;
+            }
         }
         return null;
     }
@@ -395,7 +477,10 @@ public static class PrisonRules
     {
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
-        if (tileIndex < 0 || tileIndex >= world.Width * world.Height) return false;
+        if (tileIndex < 0 || tileIndex >= world.Width * world.Height)
+        {
+            return false;
+        }
 
         LairRules.ReleaseBed(world, database, creature);
 
@@ -414,7 +499,11 @@ public static class PrisonRules
 
         // Into the captive's states: 114 from an imp; from the hand, 1 and then 114, the Prison's
         // enemy state (76, ADR-0226); then 115 (ADR-0191).
-        if (dropped) CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
+        if (dropped)
+        {
+            CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
+        }
+
         CreatureStateMachine.TrySetState(hooks, creature, AdmittedState);
         CreatureStateMachine.TrySetState(hooks, creature, DecidingState);
 
@@ -436,9 +525,15 @@ public static class PrisonRules
         creature.PrisonOwnerPlayerId = NoPrison;
 
         // A captive holds only the captive states and the walks between them; freed, it is idle.
-        if (wasCaptive) CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
+        if (wasCaptive)
+        {
+            CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
+        }
+
         if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.BeingTortured)
+        {
             creature.ClearJob();
+        }
     }
 
     /// <summary>The health a prison takes off a prisoner each game second:

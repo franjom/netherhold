@@ -52,13 +52,31 @@ public sealed class GridPathfinder : IPathfinder
 
     public bool TryFindPath(IPathGrid grid, TilePos from, TilePos to, List<TilePos> path)
     {
-        if (grid is null) throw new ArgumentNullException(nameof(grid));
-        if (path is null) throw new ArgumentNullException(nameof(path));
+        if (grid is null)
+        {
+            throw new ArgumentNullException(nameof(grid));
+        }
+
+        if (path is null)
+        {
+            throw new ArgumentNullException(nameof(path));
+        }
 
         path.Clear();
-        if (!InBounds(grid, from) || !InBounds(grid, to)) return false;
-        if (from == to) return true;
-        if (!grid.IsWalkable(to.X, to.Y)) return false;
+        if (!InBounds(grid, from) || !InBounds(grid, to))
+        {
+            return false;
+        }
+
+        if (from == to)
+        {
+            return true;
+        }
+
+        if (!grid.IsWalkable(to.X, to.Y))
+        {
+            return false;
+        }
 
         Begin(grid);
 
@@ -85,13 +103,23 @@ public sealed class GridPathfinder : IPathfinder
             {
                 int nx = cx + NeighbourDx[i];
                 int ny = cy + NeighbourDy[i];
-                if (!InBounds(grid, nx, ny) || !grid.IsWalkable(nx, ny)) continue;
-                if (i >= 4 && CornerOnly(grid, cx, cy, i)) continue;
+                if (!InBounds(grid, nx, ny) || !grid.IsWalkable(nx, ny))
+                {
+                    continue;
+                }
+
+                if (i >= 4 && CornerOnly(grid, cx, cy, i))
+                {
+                    continue;
+                }
 
                 int nextCost = _cost[current] + NeighbourCost[i];
                 int n = (ny * _width) + nx;
                 bool seen = _stamp[n] == _generation;
-                if (seen && _cost[n] <= nextCost) continue;
+                if (seen && _cost[n] <= nextCost)
+                {
+                    continue;
+                }
 
                 _stamp[n] = _generation;
                 _cameFrom[n] = current;
@@ -105,12 +133,26 @@ public sealed class GridPathfinder : IPathfinder
 
     public bool TryFindNearest(IPathGrid grid, TilePos from, Func<TilePos, bool> isGoal, List<TilePos> path)
     {
-        if (grid is null) throw new ArgumentNullException(nameof(grid));
-        if (isGoal is null) throw new ArgumentNullException(nameof(isGoal));
-        if (path is null) throw new ArgumentNullException(nameof(path));
+        if (grid is null)
+        {
+            throw new ArgumentNullException(nameof(grid));
+        }
+
+        if (isGoal is null)
+        {
+            throw new ArgumentNullException(nameof(isGoal));
+        }
+
+        if (path is null)
+        {
+            throw new ArgumentNullException(nameof(path));
+        }
 
         path.Clear();
-        if (!InBounds(grid, from)) return false;
+        if (!InBounds(grid, from))
+        {
+            return false;
+        }
 
         Begin(grid);
 
@@ -146,12 +188,22 @@ public sealed class GridPathfinder : IPathfinder
             {
                 int nx = cx + NeighbourDx[i];
                 int ny = cy + NeighbourDy[i];
-                if (!InBounds(grid, nx, ny) || !grid.IsWalkable(nx, ny)) continue;
-                if (i >= 4 && CornerOnly(grid, cx, cy, i)) continue;
+                if (!InBounds(grid, nx, ny) || !grid.IsWalkable(nx, ny))
+                {
+                    continue;
+                }
+
+                if (i >= 4 && CornerOnly(grid, cx, cy, i))
+                {
+                    continue;
+                }
 
                 int nextCost = _cost[current] + NeighbourCost[i];
                 int n = (ny * _width) + nx;
-                if (_stamp[n] == _generation && _cost[n] <= nextCost) continue;
+                if (_stamp[n] == _generation && _cost[n] <= nextCost)
+                {
+                    continue;
+                }
 
                 _stamp[n] = _generation;
                 _cameFrom[n] = current;
@@ -216,7 +268,9 @@ public sealed class GridPathfinder : IPathfinder
     private void BuildPath(int goal, List<TilePos> path)
     {
         for (int at = goal; at >= 0 && _cameFrom[at] >= 0; at = _cameFrom[at])
+        {
             path.Add(new TilePos(at % _width, at / _width));
+        }
 
         path.Reverse();
     }

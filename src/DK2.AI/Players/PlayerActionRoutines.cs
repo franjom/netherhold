@@ -28,9 +28,17 @@ public static class PlayerActionRoutines
     public static bool IsThreat(PlayerObservation observation, in PlayerVisibleThing thing)
     {
         PlayerId self = observation.Stamp.Player;
-        if (!IsEnemy(thing, self) || IsDown(thing)) return false;
+        if (!IsEnemy(thing, self) || IsDown(thing))
+        {
+            return false;
+        }
+
         PlayerTileGrid grid = observation.Tiles;
-        if (!grid.Contains(thing.Tile)) return true;
+        if (!grid.Contains(thing.Tile))
+        {
+            return true;
+        }
+
         PlayerTile on = grid[thing.Tile];
         return on.Owner != self || on.Room is not (RoomTypeId.Prison or RoomTypeId.TortureChamber);
     }
@@ -51,15 +59,30 @@ public static class PlayerActionRoutines
         PlayerId self = observation.Stamp.Player;
         long hx = 0, hy = 0, hn = 0, fx = 0, fy = 0, fn = 0;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
             {
                 PlayerTile tile = grid[new TilePos(x, y)];
-                if (tile.Owner != self || !tile.IsKnown) continue;
+                if (tile.Owner != self || !tile.IsKnown)
+                {
+                    continue;
+                }
+
                 if (tile.Room == RoomTypeId.DungeonHeart) { hx += x; hy += y; hn++; }
                 else if (IsOwnFloor(tile, self)) { fx += x; fy += y; fn++; }
             }
-        if (hn > 0) return new TilePos((int)(hx / hn), (int)(hy / hn));
-        if (fn > 0) return new TilePos((int)(fx / fn), (int)(fy / fn));
+        }
+
+        if (hn > 0)
+        {
+            return new TilePos((int)(hx / hn), (int)(hy / hn));
+        }
+
+        if (fn > 0)
+        {
+            return new TilePos((int)(fx / fn), (int)(fy / fn));
+        }
+
         return new TilePos(grid.Width / 2, grid.Height / 2);
     }
 
@@ -76,21 +99,36 @@ public static class PlayerActionRoutines
         PlayerId self = observation.Stamp.Player;
         var candidates = new List<(int Gold, long Distance, TilePos Tile)>();
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
             {
                 var at = new TilePos(x, y);
                 PlayerTile tile = grid[at];
-                if (!tagged && (tile.Flags & PlayerTileFlags.Tagged) != 0 || skip.Contains(at) || avoid?.Contains(at) == true) continue;
+                if (!tagged && (tile.Flags & PlayerTileFlags.Tagged) != 0 || skip.Contains(at) || avoid?.Contains(at) == true)
+                {
+                    continue;
+                }
+
                 bool diggable = !tile.IsKnown || (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Diggable)) == (PlayerTileFlags.Solid | PlayerTileFlags.Diggable);
-                if (!diggable || !BesideOwnFloor(grid, at, self) || !breach && BesideOthersGround(grid, at, self)) continue;
+                if (!diggable || !BesideOwnFloor(grid, at, self) || !breach && BesideOthersGround(grid, at, self))
+                {
+                    continue;
+                }
+
                 int gold = preferGold && (tile.Flags & PlayerTileFlags.GoldSeam) != 0 ? 0 : 1;
                 candidates.Add((gold, DistanceSquared(at, home), at));
             }
+        }
+
         candidates.Sort((a, b) => a.Gold != b.Gold ? a.Gold.CompareTo(b.Gold)
             : a.Distance != b.Distance ? a.Distance.CompareTo(b.Distance)
             : a.Tile.Y != b.Tile.Y ? a.Tile.Y.CompareTo(b.Tile.Y) : a.Tile.X.CompareTo(b.Tile.X));
         var tiles = new List<TilePos>(candidates.Count);
-        foreach ((_, _, TilePos tile) in candidates) tiles.Add(tile);
+        foreach ((_, _, TilePos tile) in candidates)
+        {
+            tiles.Add(tile);
+        }
+
         return tiles;
     }
 
@@ -101,19 +139,45 @@ public static class PlayerActionRoutines
     public static PlayerAction.BuildRoom? BuildRoom(PlayerObservation observation, TilePos home, RoomTypeId room, int side, ICollection<TilePos> tried,
         bool grow = false)
     {
-        if ((observation.Offers.Actions & PlayerActionKinds.BuildRoom) == 0) return null;
+        if ((observation.Offers.Actions & PlayerActionKinds.BuildRoom) == 0)
+        {
+            return null;
+        }
+
         PlayerRoomOffer? offer = null;
         foreach (PlayerRoomOffer candidate in observation.Offers.Rooms)
-            if (candidate.Room == room) offer = candidate;
-        if (offer is not PlayerRoomOffer priced || (long)priced.Cost.Value * side * side > observation.Gold.Value) return null;
+        {
+            if (candidate.Room == room)
+            {
+                offer = candidate;
+            }
+        }
+
+        if (offer is not PlayerRoomOffer priced || (long)priced.Cost.Value * side * side > observation.Gold.Value)
+        {
+            return null;
+        }
+
         List<TilePos> squares = RoomSquares(observation, home, side);
         if (grow)
+        {
             foreach (TilePos corner in squares)
+            {
                 if (!tried.Contains(corner) && Touches(observation.Tiles, corner, side, room, observation.Stamp.Player))
+                {
                     return new PlayerAction.BuildRoom(room, corner, new TilePos(corner.X + side - 1, corner.Y + side - 1));
+                }
+            }
+        }
+
         foreach (TilePos corner in squares)
+        {
             if (!tried.Contains(corner))
+            {
                 return new PlayerAction.BuildRoom(room, corner, new TilePos(corner.X + side - 1, corner.Y + side - 1));
+            }
+        }
+
         return null;
     }
 
@@ -126,12 +190,22 @@ public static class PlayerActionRoutines
         PlayerId self = observation.Stamp.Player;
         TilePos? best = null;
         for (int y = 1; y < grid.Height - 1; y++)
+        {
             for (int x = 1; x < grid.Width - 1; x++)
             {
                 var at = new TilePos(x, y);
-                if (skip?.Contains(at) == true || !IsInterior(grid, at, room, self)) continue;
-                if (best is not TilePos b || DistanceSquared(at, home) < DistanceSquared(b, home)) best = at;
+                if (skip?.Contains(at) == true || !IsInterior(grid, at, room, self))
+                {
+                    continue;
+                }
+
+                if (best is not TilePos b || DistanceSquared(at, home) < DistanceSquared(b, home))
+                {
+                    best = at;
+                }
             }
+        }
+
         return best;
     }
 
@@ -140,11 +214,17 @@ public static class PlayerActionRoutines
     public static bool IsInterior(PlayerTileGrid grid, TilePos at, RoomTypeId room, PlayerId self)
     {
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
             {
                 var near = new TilePos(at.X + dx, at.Y + dy);
-                if (!grid.Contains(near) || grid[near].Room != room || grid[near].Owner != self) return false;
+                if (!grid.Contains(near) || grid[near].Room != room || grid[near].Owner != self)
+                {
+                    return false;
+                }
             }
+        }
+
         return true;
     }
 
@@ -157,13 +237,23 @@ public static class PlayerActionRoutines
         PlayerId self = observation.Stamp.Player;
         TilePos? best = null;
         for (int dy = -ImpDropScanTiles; dy <= ImpDropScanTiles; dy++)
+        {
             for (int dx = -ImpDropScanTiles; dx <= ImpDropScanTiles; dx++)
             {
                 var at = new TilePos(body.X + dx, body.Y + dy);
                 if (Math.Abs(dx) + Math.Abs(dy) > ImpDropScanTiles || !grid.Contains(at) || !IsOwnFloor(grid[at], self)
-                    || IsInterior(grid, at, RoomTypeId.CombatPit, self)) continue;
-                if (best is not TilePos b || DistanceSquared(at, body) < DistanceSquared(b, body)) best = at;
+                    || IsInterior(grid, at, RoomTypeId.CombatPit, self))
+                {
+                    continue;
+                }
+
+                if (best is not TilePos b || DistanceSquared(at, body) < DistanceSquared(b, body))
+                {
+                    best = at;
+                }
             }
+        }
+
         return best;
     }
 
@@ -179,14 +269,21 @@ public static class PlayerActionRoutines
         TilePos? best = null;
         long bestDistance = long.MaxValue;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
             {
                 var at = new TilePos(x, y);
                 PlayerTile tile = grid[at];
-                if (tile.Room != room || tile.Owner != self || !tile.IsKnown || skip?.Contains(at) == true) continue;
+                if (tile.Room != room || tile.Owner != self || !tile.IsKnown || skip?.Contains(at) == true)
+                {
+                    continue;
+                }
+
                 long d = DistanceSquared(at, home);
                 if (d < bestDistance) { bestDistance = d; best = at; }
             }
+        }
+
         return best;
     }
 
@@ -196,16 +293,25 @@ public static class PlayerActionRoutines
         PlayerTileGrid grid = observation.Tiles;
         var corners = new List<(long Distance, TilePos Corner)>();
         for (int y = 0; y + side <= grid.Height; y++)
+        {
             for (int x = 0; x + side <= grid.Width; x++)
             {
                 var corner = new TilePos(x, y);
                 if (SquareFree(observation, corner, side))
+                {
                     corners.Add((DistanceSquared(new TilePos(x + side / 2, y + side / 2), home), corner));
+                }
             }
+        }
+
         corners.Sort((a, b) => a.Distance != b.Distance ? a.Distance.CompareTo(b.Distance)
             : a.Corner.Y != b.Corner.Y ? a.Corner.Y.CompareTo(b.Corner.Y) : a.Corner.X.CompareTo(b.Corner.X));
         var result = new List<TilePos>(corners.Count);
-        foreach ((_, TilePos corner) in corners) result.Add(corner);
+        foreach ((_, TilePos corner) in corners)
+        {
+            result.Add(corner);
+        }
+
         return result;
     }
 
@@ -221,26 +327,52 @@ public static class PlayerActionRoutines
         TilePos? best = null;
         (int Rock, long Distance, int Y, int X) bestKey = (int.MaxValue, long.MaxValue, int.MaxValue, int.MaxValue);
         for (int y = 0; y + side <= grid.Height; y++)
+        {
             for (int x = 0; x + side <= grid.Width; x++)
             {
                 var corner = new TilePos(x, y);
-                if (skip.Contains(corner)) continue;
+                if (skip.Contains(corner))
+                {
+                    continue;
+                }
+
                 int rock = 0, floor = 0;
                 bool ok = true;
                 for (int dy = 0; ok && dy < side; dy++)
+                {
                     for (int dx = 0; ok && dx < side; dx++)
                     {
                         var at = new TilePos(x + dx, y + dy);
                         PlayerTile tile = grid[at];
-                        if (avoid?.Contains(at) == true || !breach && BesideOthersGround(grid, at, self)) ok = false;
-                        else if (IsOwnFloor(tile, self) && tile.Room == default) floor++;
-                        else if (tile.IsKnown && (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Diggable)) == (PlayerTileFlags.Solid | PlayerTileFlags.Diggable)) rock++;
-                        else ok = false;
+                        if (avoid?.Contains(at) == true || !breach && BesideOthersGround(grid, at, self))
+                        {
+                            ok = false;
+                        }
+                        else if (IsOwnFloor(tile, self) && tile.Room == default)
+                        {
+                            floor++;
+                        }
+                        else if (tile.IsKnown && (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Diggable)) == (PlayerTileFlags.Solid | PlayerTileFlags.Diggable))
+                        {
+                            rock++;
+                        }
+                        else
+                        {
+                            ok = false;
+                        }
                     }
-                if (!ok || floor == 0 || rock == 0) continue;
+                }
+
+                if (!ok || floor == 0 || rock == 0)
+                {
+                    continue;
+                }
+
                 (int rock, long, int y, int x) key = (rock, DistanceSquared(new TilePos(x + side / 2, y + side / 2), home), y, x);
                 if (key.CompareTo(bestKey) < 0) { bestKey = key; best = corner; }
             }
+        }
+
         return best;
     }
 
@@ -249,7 +381,13 @@ public static class PlayerActionRoutines
     {
         var button = GuiButtonTarget.Room(room);
         foreach (GuiButtonTarget panel in observation.Offers.Panels)
-            if (panel == button) return new PlayerAction.SelectPanel(button);
+        {
+            if (panel == button)
+            {
+                return new PlayerAction.SelectPanel(button);
+            }
+        }
+
         return null;
     }
 
@@ -259,8 +397,13 @@ public static class PlayerActionRoutines
     public static bool ThreatNear(PlayerObservation observation, TilePos at, int tiles)
     {
         foreach (PlayerVisibleThing thing in observation.Things)
+        {
             if (IsThreat(observation, thing) && Math.Max(Math.Abs(thing.Tile.X - at.X), Math.Abs(thing.Tile.Y - at.Y)) <= tiles)
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -279,15 +422,25 @@ public static class PlayerActionRoutines
             // An enemy inside an enemy trap's reach is not answered: a drop there feeds the trap (economy and assault plan
             // A2; Level 4, 2026-11-16: a Dwarf lookout between two Sentry traps drew 2617 drops on seed 3).
             if (!IsThreat(observation, thing) || covered is not null && covered.Contains(thing.Tile)
-                || best is PlayerVisibleThing b && DistanceSquared(thing.Tile, home) >= DistanceSquared(b.Tile, home)) continue;
+                || best is PlayerVisibleThing b && DistanceSquared(thing.Tile, home) >= DistanceSquared(b.Tile, home))
+            {
+                continue;
+            }
+
             bool near = false;
             for (int dy = -tiles; dy <= tiles && !near; dy++)
+            {
                 for (int dx = -tiles; dx <= tiles && !near; dx++)
                 {
                     var at = new TilePos(thing.Tile.X + dx, thing.Tile.Y + dy);
                     near = grid.Contains(at) && IsOwnFloor(grid[at], self);
                 }
-            if (near) best = thing;
+            }
+
+            if (near)
+            {
+                best = thing;
+            }
         }
         return best;
     }
@@ -297,8 +450,13 @@ public static class PlayerActionRoutines
     {
         PlayerVisibleThing? enemy = null;
         foreach (PlayerVisibleThing thing in observation.Things)
+        {
             if (IsThreat(observation, thing) && (enemy is null || DistanceSquared(thing.Tile, home) < DistanceSquared(enemy.Value.Tile, home)))
+            {
                 enemy = thing;
+            }
+        }
+
         return enemy;
     }
 
@@ -339,7 +497,13 @@ public static class PlayerActionRoutines
         PlayerId self = observation.Stamp.Player;
         var petals = new Dictionary<PlayerThingHandle, int>();
         foreach (PlayerCreatureSummary creature in observation.Creatures)
-            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown) petals[seen] = creature.Petals;
+        {
+            if (creature.Handle is PlayerThingHandle seen && creature.FlowerKnown)
+            {
+                petals[seen] = creature.Petals;
+            }
+        }
+
         PlayerVisibleThing? best = null;
         int bestRank = int.MaxValue;
         var drops = new Dictionary<FightStyle, TilePos?>();
@@ -348,7 +512,11 @@ public static class PlayerActionRoutines
             if (thing.Kind != PlayerThingKind.Creature || thing.Owner != self || (thing.Actions & PlayerThingActions.PickUp) == 0
                 || thing.CreatureType is not CreatureTypeId type || options.IsWorker(type)
                 || petals.GetValueOrDefault(thing.Handle, 6) < 5
-                || DistanceSquared(thing.Tile, enemy) <= (long)near * near) continue;
+                || DistanceSquared(thing.Tile, enemy) <= (long)near * near)
+            {
+                continue;
+            }
+
             int rank = options.StyleOf(type) switch
             {
                 FightStyle.Blocker => 0,
@@ -357,8 +525,16 @@ public static class PlayerActionRoutines
                 _ => -1,
             };
             FightStyle style = options.StyleOf(type);
-            if (!drops.TryGetValue(style, out TilePos? drop)) drops[style] = drop = dropFor(style);
-            if (rank < 0 || drop is TilePos placed && DistanceSquared(thing.Tile, placed) <= (long)near * near) continue;
+            if (!drops.TryGetValue(style, out TilePos? drop))
+            {
+                drops[style] = drop = dropFor(style);
+            }
+
+            if (rank < 0 || drop is TilePos placed && DistanceSquared(thing.Tile, placed) <= (long)near * near)
+            {
+                continue;
+            }
+
             if (best is null || rank < bestRank || rank == bestRank && DistanceSquared(thing.Tile, home) < DistanceSquared(best.Value.Tile, home))
             {
                 best = thing;
@@ -372,9 +548,14 @@ public static class PlayerActionRoutines
     public static PlayerAction? Special(PlayerObservation observation, CampaignPlayerOptions options)
     {
         foreach (PlayerVisibleThing thing in observation.Things)
+        {
             if (thing.Kind == PlayerThingKind.Special && (thing.Actions & PlayerThingActions.Activate) != 0
                 && thing.ObjectType is ObjectTypeId type && options.AllowsSpecial(type))
+            {
                 return new PlayerAction.ActivateSpecial(thing.Handle);
+            }
+        }
+
         return null;
     }
 
@@ -387,15 +568,22 @@ public static class PlayerActionRoutines
         TilePos? best = null;
         long bestDistance = long.MaxValue;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
             {
                 var at = new TilePos(x, y);
                 PlayerTile tile = grid[at];
                 bool bridge = bridges && tile.Room is RoomTypeId.WoodenBridge or RoomTypeId.StoneBridge && tile.Owner == self;
-                if (!bridge && (!IsOwnFloor(tile, self) || tile.Room != default) || skip.Contains(at)) continue;
+                if (!bridge && (!IsOwnFloor(tile, self) || tile.Room != default) || skip.Contains(at))
+                {
+                    continue;
+                }
+
                 long d = DistanceSquared(at, to);
                 if (d < bestDistance) { bestDistance = d; best = at; }
             }
+        }
+
         return best;
     }
 
@@ -404,11 +592,17 @@ public static class PlayerActionRoutines
     {
         PlayerTileGrid grid = observation.Tiles;
         for (int dy = 0; dy < side; dy++)
+        {
             for (int dx = 0; dx < side; dx++)
             {
                 var at = new TilePos(corner.X + dx, corner.Y + dy);
-                if (!grid.Contains(at) || grid[at].Room != room) return false;
+                if (!grid.Contains(at) || grid[at].Room != room)
+                {
+                    return false;
+                }
             }
+        }
+
         return true;
     }
 
@@ -421,15 +615,30 @@ public static class PlayerActionRoutines
         PlayerId self = observation.Stamp.Player;
         int missing = 0;
         for (int dy = 0; dy < side; dy++)
+        {
             for (int dx = 0; dx < side; dx++)
             {
                 var at = new TilePos(corner.X + dx, corner.Y + dy);
-                if (!grid.Contains(at)) return -1;
+                if (!grid.Contains(at))
+                {
+                    return -1;
+                }
+
                 PlayerTile tile = grid[at];
-                if (tile.Room == room && tile.Owner == self) continue;
-                if (!IsOwnFloor(tile, self) || tile.Room != default || (tile.Flags & PlayerTileFlags.Tagged) != 0) return -1;
+                if (tile.Room == room && tile.Owner == self)
+                {
+                    continue;
+                }
+
+                if (!IsOwnFloor(tile, self) || tile.Room != default || (tile.Flags & PlayerTileFlags.Tagged) != 0)
+                {
+                    return -1;
+                }
+
                 missing++;
             }
+        }
+
         return missing;
     }
 
@@ -446,13 +655,23 @@ public static class PlayerActionRoutines
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         for (int dy = 0; dy < side; dy++)
+        {
             for (int dx = 0; dx < side; dx++)
             {
                 var at = new TilePos(corner.X + dx, corner.Y + dy);
-                if (!grid.Contains(at)) return false;
+                if (!grid.Contains(at))
+                {
+                    return false;
+                }
+
                 PlayerTile tile = grid[at];
-                if (!IsOwnFloor(tile, self) || tile.Room != default || (tile.Flags & PlayerTileFlags.Tagged) != 0) return false;
+                if (!IsOwnFloor(tile, self) || tile.Room != default || (tile.Flags & PlayerTileFlags.Tagged) != 0)
+                {
+                    return false;
+                }
             }
+        }
+
         return true;
     }
 
@@ -462,7 +681,10 @@ public static class PlayerActionRoutines
         for (int i = 0; i < side; i++)
         {
             if (Shows(corner.X + i, corner.Y - 1) || Shows(corner.X + i, corner.Y + side)
-                || Shows(corner.X - 1, corner.Y + i) || Shows(corner.X + side, corner.Y + i)) return true;
+                || Shows(corner.X - 1, corner.Y + i) || Shows(corner.X + side, corner.Y + i))
+            {
+                return true;
+            }
         }
         return false;
 
@@ -476,10 +698,17 @@ public static class PlayerActionRoutines
         foreach ((int dx, int dy) in Neighbours)
         {
             var next = new TilePos(at.X + dx, at.Y + dy);
-            if (!grid.Contains(next)) continue;
+            if (!grid.Contains(next))
+            {
+                continue;
+            }
+
             PlayerTile tile = grid[next];
             if (tile.IsKnown && (tile.Flags & PlayerTileFlags.Solid) == 0
-                && tile.Owner != self && tile.Owner != PlayerIds.Neutral && tile.Owner != PlayerIds.Unowned) return true;
+                && tile.Owner != self && tile.Owner != PlayerIds.Neutral && tile.Owner != PlayerIds.Unowned)
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -489,7 +718,10 @@ public static class PlayerActionRoutines
         foreach ((int dx, int dy) in Neighbours)
         {
             var next = new TilePos(at.X + dx, at.Y + dy);
-            if (grid.Contains(next) && IsOwnFloor(grid[next], self)) return true;
+            if (grid.Contains(next) && IsOwnFloor(grid[next], self))
+            {
+                return true;
+            }
         }
         return false;
     }

@@ -23,9 +23,15 @@ public sealed class CarriedThingSoundSystem : ICreatureUpdateStep
 
     public void Update(SimulationContext context, CreatureState creature)
     {
-        if (creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0) return;
+        if (creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0)
+        {
+            return;
+        }
         // The id lookups scan: nobody listening, nothing to ask for.
-        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (ReferenceEquals(context.Events, NullEventSink.Instance))
+        {
+            return;
+        }
         // A word that names no live thing is cleared and sounds nothing (0x0048B60A).
         WorldState world = context.World;
         bool live;
@@ -34,7 +40,14 @@ public sealed class CarriedThingSoundSystem : ICreatureUpdateStep
             ObjectState? thing = world.ObjectById(creature.CarriedObjectId);
             live = thing is not null && thing.ObjectTypeId != TriggerExecutor.PortalGemObjectId;
         }
-        else live = world.CreatureById(creature.CarriedCreatureId) is not null;
-        if (live) ThingSoundRules.Request(context, Name, creature, ThingSoundEvent.CarriedThing);
+        else
+        {
+            live = world.CreatureById(creature.CarriedCreatureId) is not null;
+        }
+
+        if (live)
+        {
+            ThingSoundRules.Request(context, Name, creature, ThingSoundEvent.CarriedThing);
+        }
     }
 }

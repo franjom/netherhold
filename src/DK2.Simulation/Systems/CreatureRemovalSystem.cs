@@ -26,7 +26,11 @@ public sealed class CreatureRemovalSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState state = world.Creatures[i];
-            if (!state.DeathUncounted || state.Health > 0 || CreatureDeathRules.IsCorpse(state)) continue;
+            if (!state.DeathUncounted || state.Health > 0 || CreatureDeathRules.IsCorpse(state))
+            {
+                continue;
+            }
+
             CreatureDef definition = context.Database.CreatureById(state.CreatureTypeId);
             CreatureHealthSystem.Die(context, SystemName, definition, state);
         }

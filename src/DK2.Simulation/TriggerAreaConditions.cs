@@ -30,10 +30,25 @@ public static class TriggerAreaConditions
         WorldState world,
         GameDatabase database)
     {
-        if (record is null) throw new ArgumentNullException(nameof(record));
-        if (area is null) throw new ArgumentNullException(nameof(area));
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (record is null)
+        {
+            throw new ArgumentNullException(nameof(record));
+        }
+
+        if (area is null)
+        {
+            throw new ArgumentNullException(nameof(area));
+        }
+
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
 
         IReadOnlyDictionary<string, long> p = record.Parameters;
         return record.Type switch
@@ -95,17 +110,31 @@ public static class TriggerAreaConditions
     private static int Matching(
         ActionPointState area, WorldState world, GameDatabase database, PlayerId player, byte terrain)
     {
-        if (player == 0 && terrain == 0) return Size(area);
+        if (player == 0 && terrain == 0)
+        {
+            return Size(area);
+        }
 
         int count = 0;
         foreach (TilePos pos in Tiles(area, world))
         {
             ref TileState tile = ref world.Tile(pos);
-            if (terrain != 0 && tile.TerrainId != terrain) continue;
+            if (terrain != 0 && tile.TerrainId != terrain)
+            {
+                continue;
+            }
+
             if (player != 0)
             {
-                if (tile.OwnerPlayerId != player) continue;
-                if (terrain == 0 && !database.TerrainById(tile.TerrainId).IsOwnable) continue;
+                if (tile.OwnerPlayerId != player)
+                {
+                    continue;
+                }
+
+                if (terrain == 0 && !database.TerrainById(tile.TerrainId).IsOwnable)
+                {
+                    continue;
+                }
             }
             count++;
         }
@@ -156,12 +185,28 @@ public static class TriggerAreaConditions
     {
         foreach (CreatureState creature in world.Creatures)
         {
-            if (!Contains(area, creature.Tile)) continue;
-            if (player != 0 && creature.OwnerPlayerId != player) continue;
-            if (typeId != 0 && creature.CreatureTypeId != typeId) continue;
+            if (!Contains(area, creature.Tile))
+            {
+                continue;
+            }
+
+            if (player != 0 && creature.OwnerPlayerId != player)
+            {
+                continue;
+            }
+
+            if (typeId != 0 && creature.CreatureTypeId != typeId)
+            {
+                continue;
+            }
 
             foreach (PlayerId playerId in world.PlayerIds)
-                if (world.Player(playerId).PossessedCreatureId == creature.Id) return true;
+            {
+                if (world.Player(playerId).PossessedCreatureId == creature.Id)
+                {
+                    return true;
+                }
+            }
         }
 
         return false;
@@ -186,7 +231,13 @@ public static class TriggerAreaConditions
     {
         int count = 0;
         foreach (TilePos pos in Tiles(area, world))
-            if (world.Tile(pos).IsTaggedBy(player)) count++;
+        {
+            if (world.Tile(pos).IsTaggedBy(player))
+            {
+                count++;
+            }
+        }
+
         return count;
     }
 
@@ -198,7 +249,13 @@ public static class TriggerAreaConditions
     {
         int count = 0;
         foreach (TilePos pos in Tiles(area, world))
-            if (database.TerrainById(world.Tile(pos).TerrainId).IsTaggable) count++;
+        {
+            if (database.TerrainById(world.Tile(pos).TerrainId).IsTaggable)
+            {
+                count++;
+            }
+        }
+
         return count;
     }
 
@@ -215,8 +272,15 @@ public static class TriggerAreaConditions
     private static IEnumerable<TilePos> Tiles(ActionPointState area, WorldState world)
     {
         for (int y = area.StartY; y <= area.EndY; y++)
+        {
             for (int x = area.StartX; x <= area.EndX; x++)
-                if (world.Contains(x, y)) yield return new TilePos(x, y);
+            {
+                if (world.Contains(x, y))
+                {
+                    yield return new TilePos(x, y);
+                }
+            }
+        }
     }
 
     private static byte Byte(IReadOnlyDictionary<string, long> parameters, string name) =>

@@ -16,7 +16,10 @@ public static class CreatureIdentityRules
 
     public static void Initialize(WorldState world, CreatureState creature, SimRandom random)
     {
-        if (creature.NameIndex != UnassignedNameIndex || !CreatureStateMachine.HasState(creature)) return;
+        if (creature.NameIndex != UnassignedNameIndex || !CreatureStateMachine.HasState(creature))
+        {
+            return;
+        }
         // The constructor has already linked this creature to its owner. Its cleared
         // field participates in the search, so candidate zero collides with itself.
         creature.NameIndex = 0;
@@ -35,12 +38,24 @@ public static class CreatureIdentityRules
             bool used = false;
             foreach (CreatureState other in world.Creatures)
             {
-                if (other.OwnerPlayerId != creature.OwnerPlayerId || !CreatureStateMachine.HasState(other)) continue;
-                if ((bloodGroup ? other.BloodGroupIndex : other.NameIndex) != candidate) continue;
+                if (other.OwnerPlayerId != creature.OwnerPlayerId || !CreatureStateMachine.HasState(other))
+                {
+                    continue;
+                }
+
+                if ((bloodGroup ? other.BloodGroupIndex : other.NameIndex) != candidate)
+                {
+                    continue;
+                }
+
                 used = true;
                 break;
             }
-            if (!used) return candidate;
+            if (!used)
+            {
+                return candidate;
+            }
+
             candidate = (candidate + 1) % count;
         } while (candidate != first);
         return first;

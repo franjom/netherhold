@@ -47,15 +47,27 @@ public static class StateEntryLog
     // A set bit is never cleared, so the loop ends.
     internal static void Record(int stateId)
     {
-        if (_suspended > 0) return;
+        if (_suspended > 0)
+        {
+            return;
+        }
+
         ref long word = ref Bits[stateId >> 6];
         long bit = 1L << (stateId & 63);
         long seen = Interlocked.Read(ref word);
-        if ((seen & bit) == 0) FirstCaller.TryAdd(stateId, OutsideCaller());
+        if ((seen & bit) == 0)
+        {
+            FirstCaller.TryAdd(stateId, OutsideCaller());
+        }
+
         while ((seen & bit) == 0)
         {
             long was = Interlocked.CompareExchange(ref word, seen | bit, seen);
-            if (was == seen) return;
+            if (was == seen)
+            {
+                return;
+            }
+
             seen = was;
         }
     }
@@ -66,7 +78,10 @@ public static class StateEntryLog
         var ids = new List<int>();
         for (int id = 0; id < CreatureStateTable.Count; id++)
         {
-            if ((Interlocked.Read(ref Bits[id >> 6]) & (1L << (id & 63))) != 0) ids.Add(id);
+            if ((Interlocked.Read(ref Bits[id >> 6]) & (1L << (id & 63))) != 0)
+            {
+                ids.Add(id);
+            }
         }
 
         return ids;
@@ -84,7 +99,9 @@ public static class StateEntryLog
             Type? type = frame.GetMethod()?.DeclaringType;
             if (type is not null && type.Assembly != typeof(StateEntryLog).Assembly
                 && type.Namespace?.StartsWith("System", StringComparison.Ordinal) != true)
+            {
                 return $"{type.FullName}.{frame.GetMethod()!.Name}";
+            }
         }
 
         return "(no caller outside DK2.Simulation)";

@@ -31,7 +31,11 @@ public static partial class PossessionRules
     public static void ToggleSneak(SimulationContext context, ISightBlocker sight, CreatureState me, int tileX, int tileY)
     {
         WorldState world = context.World;
-        if (!world.Contains(tileX, tileY)) return;
+        if (!world.Contains(tileX, tileY))
+        {
+            return;
+        }
+
         byte owner = world.Tile(tileX, tileY).OwnerPlayerId;
         if (me.SneakingAs != 0 || owner == me.OwnerPlayerId || owner == PlayerIds.Neutral)
         {
@@ -39,16 +43,31 @@ public static partial class PossessionRules
             return;
         }
         for (int i = 0; i < world.PlayerCount; i++)
+        {
             foreach (CreatureState c in world.OwnedCreatures(world.PlayerAtIndex(i).PlayerId))
             {
-                if (!world.AreAllied(TurncoatRules.CombatSide(c), owner)) continue;
+                if (!world.AreAllied(TurncoatRules.CombatSide(c), owner))
+                {
+                    continue;
+                }
+
                 int range = CombatRules.RangeSquared(context.Database.CreatureById(c.CreatureTypeId).DistanceCanSee);
                 int d = CreepingDistance(context.Database, me, unchecked((int)TrapRules.DistanceSquared(me.PosX, me.PosY, c.PosX, c.PosY)));
-                if (d >= range) continue;
-                if (!LineOfSight.Clear(sight, me.PosX, me.PosY, c.PosX, c.PosY)) continue;
+                if (d >= range)
+                {
+                    continue;
+                }
+
+                if (!LineOfSight.Clear(sight, me.PosX, me.PosY, c.PosX, c.PosY))
+                {
+                    continue;
+                }
+
                 me.SneakingAs = 0;
                 return;
             }
+        }
+
         me.SneakingAs = owner;
     }
 
@@ -62,7 +81,10 @@ public static partial class PossessionRules
     /// allied to the disguise ends it.</summary>
     private static void UnmaskAgainst(WorldState world, CreatureState me, byte targetOwner)
     {
-        if (me.SneakingAs != 0 && world.AreAllied(new PlayerId((byte)me.SneakingAs), targetOwner)) me.SneakingAs = 0;
+        if (me.SneakingAs != 0 && world.AreAllied(new PlayerId((byte)me.SneakingAs), targetOwner))
+        {
+            me.SneakingAs = 0;
+        }
     }
 
     // ------------------------------------------------------------------ hypnosis
@@ -91,16 +113,39 @@ public static partial class PossessionRules
         for (int i = creatures.Count - 1; i >= 0; i--)
         {
             CreatureState c = creatures[i];
-            if (!CreatureStateMachine.HasState(c) || !CombatRules.IsHostile(world, keeper.Value, c.OwnerPlayerId)) continue;
-            if (!((database.CreatureById(c.CreatureTypeId).Flags & CreatureFlags.CanBeHypnotized) == CreatureFlags.CanBeHypnotized)) continue;
-            if (!InAimCone(aim.Yaw.Value, pose, new Vec3(c.PosX, c.PosY, c.PosZ))) continue;
-            if (!LineOfSight.Clear(sight, px, py, c.PosX, c.PosY)) continue;
+            if (!CreatureStateMachine.HasState(c) || !CombatRules.IsHostile(world, keeper.Value, c.OwnerPlayerId))
+            {
+                continue;
+            }
+
+            if (!((database.CreatureById(c.CreatureTypeId).Flags & CreatureFlags.CanBeHypnotized) == CreatureFlags.CanBeHypnotized))
+            {
+                continue;
+            }
+
+            if (!InAimCone(aim.Yaw.Value, pose, new Vec3(c.PosX, c.PosY, c.PosZ)))
+            {
+                continue;
+            }
+
+            if (!LineOfSight.Clear(sight, px, py, c.PosX, c.PosY))
+            {
+                continue;
+            }
+
             uint d = TrapRules.DistanceSquared(px, py, c.PosX, c.PosY);
-            if (d >= nearest) continue;
+            if (d >= nearest)
+            {
+                continue;
+            }
+
             nearest = d;
             best = c;
         }
-        if (best is null || ((database.CreatureById(best.CreatureTypeId).Flags & CreatureFlags.IsImmuneToTurncoat) == CreatureFlags.IsImmuneToTurncoat)) return;
+        if (best is null || ((database.CreatureById(best.CreatureTypeId).Flags & CreatureFlags.IsImmuneToTurncoat) == CreatureFlags.IsImmuneToTurncoat))
+        {
+            return;
+        }
 
         best.HypnosisOwnerPlayerId = best.OwnerPlayerId;
         world.ChangeCreatureOwner(database, best, new PlayerId(me.OwnerPlayerId));
@@ -130,7 +175,11 @@ public static partial class PossessionRules
     /// (forced target, then <c>SelectAVictim</c> at once) and counts one commanded attack.</summary>
     private static void Command(SimulationContext context, ISightBlocker sight, PossessionCombat combat, CreatureState me, CreatureState target)
     {
-        if (me.HypnotisedCreatureId == 0 || context.World.CreatureById(me.HypnotisedCreatureId) is not { } held) return;
+        if (me.HypnotisedCreatureId == 0 || context.World.CreatureById(me.HypnotisedCreatureId) is not { } held)
+        {
+            return;
+        }
+
         CombatPitRules.ClearForcedTarget(context.World, held);
         ForceTarget(context.World, held, target.Id);
         CombatTargetRules.SelectAVictim(context, sight, combat.Hearts, combat.Rooms, held,
@@ -157,7 +206,11 @@ public static partial class PossessionRules
     /// DK2 runs it inside the creature's own update; ours once a tick in the possession system.</summary>
     internal static void EndCommandedAttack(WorldState world, CreatureState c)
     {
-        if (!c.Hypnotised || c.HypnotisedAttacks == 0 || c.HypnotisedAttacks > c.AttackCreatureHits) return;
+        if (!c.Hypnotised || c.HypnotisedAttacks == 0 || c.HypnotisedAttacks > c.AttackCreatureHits)
+        {
+            return;
+        }
+
         CombatPitRules.ClearForcedTarget(world, c);
         c.HypnotisedAttacks = 0;
         c.AttackCreatureHits = 0;
@@ -171,7 +224,10 @@ public static partial class PossessionRules
     {
         if (c.Hypnotised && world.HasPlayer(c.OwnerPlayerId)
             && world.CreatureById(world.Player(c.OwnerPlayerId).PossessedCreatureId) is { } possessor)
+        {
             possessor.HypnotisedCreatureId = 0;
+        }
+
         c.Hypnotised = false;
         LeaderLosesFollower(world, c);
     }
@@ -195,10 +251,17 @@ public static partial class PossessionRules
     /// toward zero; the distance product keeps its low 32 bits and divides unsigned.</summary>
     public static int CreepingDistance(GameDatabase database, CreatureState creeper, int distanceSquared)
     {
-        if (!creeper.Creeping) return distanceSquared;
+        if (!creeper.Creeping)
+        {
+            return distanceSquared;
+        }
+
         int percent = database.CreatureById(creeper.CreatureTypeId).CreepingDistancePercent;
         if (creeper.Level != 1)
+        {
             percent = unchecked(database.StatPercent(CreatureStatId.CreepingDistance, creeper.Level) * percent) / 100;
+        }
+
         return unchecked((int)((uint)(distanceSquared * percent) / 100u));
     }
 }

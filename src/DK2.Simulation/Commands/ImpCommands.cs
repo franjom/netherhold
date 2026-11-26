@@ -33,6 +33,9 @@ public sealed record CreateImpCommand : PlayerCommand
             hash.Add(at.Y);
         }
         hash.Add(Position.HasValue);
-        if (Position is { } position) position.HashInto(ref hash);
+        if (Position is { } position)
+        {
+            position.HashInto(ref hash);
+        }
     }
 }

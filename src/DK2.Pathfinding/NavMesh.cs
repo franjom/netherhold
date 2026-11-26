@@ -81,7 +81,14 @@ public sealed partial class NavMesh
     public int LiveTriangleCount()
     {
         int count = 0;
-        for (int t = 0; t < _triCount; t++) if (IsTriangleLive(t)) count++;
+        for (int t = 0; t < _triCount; t++)
+        {
+            if (IsTriangleLive(t))
+            {
+                count++;
+            }
+        }
+
         return count;
     }
 
@@ -101,8 +108,16 @@ public sealed partial class NavMesh
     /// lists empty.</summary>
     public void Reset(int x0, int y0, int x1, int y1)
     {
-        if (x1 <= x0) throw new ArgumentOutOfRangeException(nameof(x1));
-        if (y1 <= y0) throw new ArgumentOutOfRangeException(nameof(y1));
+        if (x1 <= x0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(x1));
+        }
+
+        if (y1 <= y0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(y1));
+        }
+
         MinX = x0;
         MinY = y0;
         MaxX = x1;
@@ -136,14 +151,21 @@ public sealed partial class NavMesh
     /// started (ADR-0486). −1 when the walk leaves the canvas, which the original never guards.</summary>
     public int Locate(int x, int y)
     {
-        if (_triCount == 0) return -1;
+        if (_triCount == 0)
+        {
+            return -1;
+        }
+
         int cell = CellOf(x, y);
         int t = _locateCache[cell];
         if (!LiveSlot(t))
         {
             t = RefreshLocateCell(cell);
             _locateCache[cell] = t;
-            if (t < 0) return -1;
+            if (t < 0)
+            {
+                return -1;
+            }
         }
         for (int guard = 0; guard <= (4 * _triCount) + 16; guard++)
         {
@@ -154,7 +176,10 @@ public sealed partial class NavMesh
             {
                 int k = 2 - i;
                 int a = Vertex(t, k), b = Vertex(t, (k + 1) % 3);
-                if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) < 0) code |= 1 << i;
+                if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) < 0)
+                {
+                    code |= 1 << i;
+                }
             }
             switch (code)
             {
@@ -171,7 +196,10 @@ public sealed partial class NavMesh
                 case 5: t = FanToward(t, 0, x, y); break;
                 default: t = FanToward(t, 1, x, y); break;
             }
-            if (t < 0) return -1;
+            if (t < 0)
+            {
+                return -1;
+            }
         }
         return -1;
     }
@@ -183,7 +211,10 @@ public sealed partial class NavMesh
     public void RestoreLocateCache(int[] cache)
     {
         if (cache is null || cache.Length != _locateCache.Length)
+        {
             throw new ArgumentException($"a locate cache has {_locateCache.Length} slots", nameof(cache));
+        }
+
         Array.Copy(cache, _locateCache, cache.Length);
     }
 
@@ -199,12 +230,42 @@ public sealed partial class NavMesh
     private int RefreshLocateCell(int cell)
     {
         int cx = cell & 3, cy = cell >> 2;
-        if (cx > 0 && LiveSlot(_locateCache[cell - 1])) return _locateCache[cell - 1];
-        if (cx < 3 && LiveSlot(_locateCache[cell + 1])) return _locateCache[cell + 1];
-        if (cy > 0 && LiveSlot(_locateCache[cell - 4])) return _locateCache[cell - 4];
-        if (cy < 3 && LiveSlot(_locateCache[cell + 4])) return _locateCache[cell + 4];
-        foreach (int c in _locateCache) if (LiveSlot(c)) return c;
-        for (int t = 0; t < _triCount; t++) if (IsTriangleLive(t)) return t;
+        if (cx > 0 && LiveSlot(_locateCache[cell - 1]))
+        {
+            return _locateCache[cell - 1];
+        }
+
+        if (cx < 3 && LiveSlot(_locateCache[cell + 1]))
+        {
+            return _locateCache[cell + 1];
+        }
+
+        if (cy > 0 && LiveSlot(_locateCache[cell - 4]))
+        {
+            return _locateCache[cell - 4];
+        }
+
+        if (cy < 3 && LiveSlot(_locateCache[cell + 4]))
+        {
+            return _locateCache[cell + 4];
+        }
+
+        foreach (int c in _locateCache)
+        {
+            if (LiveSlot(c))
+            {
+                return c;
+            }
+        }
+
+        for (int t = 0; t < _triCount; t++)
+        {
+            if (IsTriangleLive(t))
+            {
+                return t;
+            }
+        }
+
         return -1;
     }
 
@@ -219,17 +280,31 @@ public sealed partial class NavMesh
     public int LocateEndpoint(int x, int y)
     {
         int t = Locate(x, y);
-        if (t < 0) return -1;
+        if (t < 0)
+        {
+            return -1;
+        }
+
         for (int k = 0; k < 3; k++)
         {
             int p = Vertex(t, k);
-            if (Sx(p) == x && Sy(p) == y) return FanToward(t, k, FarX, FarY);
+            if (Sx(p) == x && Sy(p) == y)
+            {
+                return FanToward(t, k, FarX, FarY);
+            }
         }
         for (int i = 0; i < 3; i++)
         {
             int a = Vertex(t, i), b = Vertex(t, (i + 1) % 3);
-            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) != 0) continue;
-            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), FarX, FarY) < 0) return Neighbour(t, i);
+            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) != 0)
+            {
+                continue;
+            }
+
+            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), FarX, FarY) < 0)
+            {
+                return Neighbour(t, i);
+            }
         }
         return t;
     }
@@ -249,12 +324,23 @@ public sealed partial class NavMesh
             int v = Vertex(t, k), next = Vertex(t, (k + 1) % 3), prev = Vertex(t, (k + 2) % 3);
             bool strictlyInsideLeaving = Orient(Sx(v), Sy(v), Sx(next), Sy(next), qx, qy) > 0;
             bool onOrInsideArriving = Orient(Sx(prev), Sy(prev), Sx(v), Sy(v), qx, qy) >= 0;
-            if (strictlyInsideLeaving && onOrInsideArriving) return true;
+            if (strictlyInsideLeaving && onOrInsideArriving)
+            {
+                return true;
+            }
 
             int n = Neighbour(t, (k + 2) % 3);
-            if (n < 0) return false;
+            if (n < 0)
+            {
+                return false;
+            }
+
             int j = 0;
-            while (j < 3 && Neighbour(n, j) != t) j++;
+            while (j < 3 && Neighbour(n, j) != t)
+            {
+                j++;
+            }
+
             t = n;
             k = j;
         }
@@ -268,7 +354,10 @@ public sealed partial class NavMesh
         for (int i = 0; i < 3; i++)
         {
             int a = Vertex(t, i), b = Vertex(t, (i + 1) % 3);
-            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) < 0) return false;
+            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) < 0)
+            {
+                return false;
+            }
         }
         return true;
     }
@@ -284,22 +373,34 @@ public sealed partial class NavMesh
     public int InsertPoint(int tileX, int tileY)
     {
         if (tileX < MinX || tileY < MinY || tileX > MaxX || tileY > MaxY)
+        {
             throw new ArgumentOutOfRangeException(nameof(tileX), "tile corner outside the map");
+        }
 
         long x = (long)tileX * UnitsPerTile, y = (long)tileY * UnitsPerTile;
         int t = Locate((int)x, (int)y);
-        if (t < 0) throw new InvalidOperationException("no live triangle contains the point");
+        if (t < 0)
+        {
+            throw new InvalidOperationException("no live triangle contains the point");
+        }
 
         for (int i = 0; i < 3; i++)
         {
             int p = Vertex(t, i);
-            if (_px[p] == tileX && _py[p] == tileY) return p;
+            if (_px[p] == tileX && _py[p] == tileY)
+            {
+                return p;
+            }
         }
 
         for (int e = 0; e < 3; e++)
         {
             int a = DkVertex(t, e), b = DkVertex(t, Next(e));
-            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) != 0) continue;
+            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) != 0)
+            {
+                continue;
+            }
+
             int np = NewPoint(tileX, tileY);
             SplitEdge(t, e, np);
             return np;
@@ -334,9 +435,17 @@ public sealed partial class NavMesh
         DkSetConstraint(b, 0, false);
         DkSetConstraint(b, 1, false);
         int na = DkNeighbour(a, 1);
-        if (na != NoNeighbour) DkSetNeighbour(na, DkBack(na, t), a);
+        if (na != NoNeighbour)
+        {
+            DkSetNeighbour(na, DkBack(na, t), a);
+        }
+
         int nb = DkNeighbour(b, 2);
-        if (nb != NoNeighbour) DkSetNeighbour(nb, DkBack(nb, t), b);
+        if (nb != NoNeighbour)
+        {
+            DkSetNeighbour(nb, DkBack(nb, t), b);
+        }
+
         IndexVertices(a);
         IndexVertices(b);
     }
@@ -377,7 +486,11 @@ public sealed partial class NavMesh
         DkSetNeighbour(n, Prev(e), t);
         DkSetConstraint(n, Prev(e), false);
         int outer = DkNeighbour(n, Next(e));
-        if (outer != NoNeighbour) DkSetNeighbour(outer, DkBack(outer, t), n);
+        if (outer != NoNeighbour)
+        {
+            DkSetNeighbour(outer, DkBack(outer, t), n);
+        }
+
         IndexVertices(n);
         return n;
     }
@@ -432,7 +545,11 @@ public sealed partial class NavMesh
         int t = AllocTriangle();
         _nav[t] = nav;
         _constraint[t] = 0;
-        for (int i = 0; i < 3; i++) _n[(3 * t) + i] = NoNeighbour;
+        for (int i = 0; i < 3; i++)
+        {
+            _n[(3 * t) + i] = NoNeighbour;
+        }
+
         SetVertices(t, a, b, c);
         return t;
     }
@@ -440,7 +557,11 @@ public sealed partial class NavMesh
     /// <summary>Stores the vertices wound positively, swapping the last two if needed.</summary>
     private void SetVertices(int t, int a, int b, int c)
     {
-        if (Orient(_px[a], _py[a], _px[b], _py[b], _px[c], _py[c]) < 0) (b, c) = (c, b);
+        if (Orient(_px[a], _py[a], _px[b], _py[b], _px[c], _py[c]) < 0)
+        {
+            (b, c) = (c, b);
+        }
+
         _v[(3 * t) + 0] = a; _v[(3 * t) + 1] = b; _v[(3 * t) + 2] = c;
         _pointTri[a] = t; _pointTri[b] = t; _pointTri[c] = t;
     }
@@ -455,7 +576,13 @@ public sealed partial class NavMesh
         if (start >= _triCount || !IsTriangleLive(start) || IndexOf(start, p) < 0)
         {
             for (int t = 0; t < _triCount; t++)
-                if (IsTriangleLive(t) && IndexOf(t, p) >= 0) _fan.Add(t);
+            {
+                if (IsTriangleLive(t) && IndexOf(t, p) >= 0)
+                {
+                    _fan.Add(t);
+                }
+            }
+
             return _fan;
         }
 
@@ -465,8 +592,16 @@ public sealed partial class NavMesh
         {
             _fan.Add(cur);
             int next = Neighbour(cur, (IndexOf(cur, p) + 2) % 3);
-            if (next == start) return _fan;
-            if (next == NoNeighbour) break;
+            if (next == start)
+            {
+                return _fan;
+            }
+
+            if (next == NoNeighbour)
+            {
+                break;
+            }
+
             cur = next;
         }
 
@@ -475,7 +610,11 @@ public sealed partial class NavMesh
         for (int guard = 0; guard <= _triCount; guard++)
         {
             int next = Neighbour(cur, IndexOf(cur, p));
-            if (next == NoNeighbour || next == start) break;
+            if (next == NoNeighbour || next == start)
+            {
+                break;
+            }
+
             _fan.Add(next);
             cur = next;
         }
@@ -487,7 +626,11 @@ public sealed partial class NavMesh
     private void Link(int t, int i, int u)
     {
         _n[(3 * t) + i] = u;
-        if (u == NoNeighbour) return;
+        if (u == NoNeighbour)
+        {
+            return;
+        }
+
         int from = Vertex(t, i), to = Vertex(t, (i + 1) % 3);
         int j = EdgeIndexOf(u, to, from);
         _n[(3 * u) + j] = t;
@@ -495,15 +638,27 @@ public sealed partial class NavMesh
 
     private void SetConstraint(int t, int i, bool on)
     {
-        if (on) _constraint[t] |= (byte)(1 << i);
-        else _constraint[t] &= (byte)~(1 << i);
+        if (on)
+        {
+            _constraint[t] |= (byte)(1 << i);
+        }
+        else
+        {
+            _constraint[t] &= (byte)~(1 << i);
+        }
     }
 
     /// <summary>The edge of <c>t</c> running from <c>from</c> to <c>to</c>.</summary>
     public int EdgeIndexOf(int t, int from, int to)
     {
         for (int i = 0; i < 3; i++)
-            if (Vertex(t, i) == from && Vertex(t, (i + 1) % 3) == to) return i;
+        {
+            if (Vertex(t, i) == from && Vertex(t, (i + 1) % 3) == to)
+            {
+                return i;
+            }
+        }
+
         throw new InvalidOperationException($"triangle {t} has no edge {from}->{to}");
     }
 }

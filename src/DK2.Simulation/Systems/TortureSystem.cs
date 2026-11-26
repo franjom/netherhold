@@ -34,9 +34,20 @@ public sealed class TortureSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = world.Creatures[i];
-            if (creature.Possessed) continue;
-            if (!TortureRules.IsBeingTortured(creature)) continue;
-            if (HandRules.IsHeld(creature)) continue;
+            if (creature.Possessed)
+            {
+                continue;
+            }
+
+            if (!TortureRules.IsBeingTortured(creature))
+            {
+                continue;
+            }
+
+            if (HandRules.IsHeld(creature))
+            {
+                continue;
+            }
 
             int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
             byte keeper = TortureRules.KeeperOf(creature);
@@ -57,7 +68,10 @@ public sealed class TortureSystem : ISimulationSystem
                         $"creature={creature.Id} at=({next % world.Width},{next / world.Width})");
                     // 136's own positioning arm runs the chair test too, and zeroes the roll words first.
                     if (TortureRules.FreeDeviceAt(world, database, keeper, next, creature.Id) is ObjectState taken)
+                    {
                         ElectrocuteIfUnfit(context, creature, taken);
+                    }
+
                     continue;
                 }
 
@@ -66,11 +80,25 @@ public sealed class TortureSystem : ISimulationSystem
                 continue;
             }
 
-            if (creature.Dk2StateId == TortureRules.TorturedState && ElectrocuteIfUnfit(context, creature, device)) continue;
-            if (creature.Dk2StateId == TortureRules.TorturedState) TurnTheWheel(context, creature, device, here);
+            if (creature.Dk2StateId == TortureRules.TorturedState && ElectrocuteIfUnfit(context, creature, device))
+            {
+                continue;
+            }
 
-            if (CreatureStateMachine.UpdatingCategory(creature) != CreatureStateCategory.Torture) continue;
-            if (!CreatureStateMachine.HookFires(creature, CreatureStateMachine.HookCountdownSeed)) continue;
+            if (creature.Dk2StateId == TortureRules.TorturedState)
+            {
+                TurnTheWheel(context, creature, device, here);
+            }
+
+            if (CreatureStateMachine.UpdatingCategory(creature) != CreatureStateCategory.Torture)
+            {
+                continue;
+            }
+
+            if (!CreatureStateMachine.HookFires(creature, CreatureStateMachine.HookCountdownSeed))
+            {
+                continue;
+            }
 
             Act(context, creature, keeper);
         }
@@ -86,7 +114,10 @@ public sealed class TortureSystem : ISimulationSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
         if (RoomIndex.RoomAt(world, database, here) is not RoomInstance room
-            || !TortureRules.OnWallWheel(world, room, device)) return;
+            || !TortureRules.OnWallWheel(world, room, device))
+        {
+            return;
+        }
 
         if (creature.TortureRoll is >= TortureRules.TroughEffectFirstRoll and < TortureRules.TroughEffectEndRoll
             && (context.Tick.Value + 1) % SimulationTiming.OriginalTicksPerGameSecond == 0
@@ -110,9 +141,20 @@ public sealed class TortureSystem : ISimulationSystem
         ObjectState? coals = null;
         foreach (ObjectState thing in world.Objects)
         {
-            if (thing.TileIndex != tileIndex || thing.InHand) continue;
-            if (thing.ObjectTypeId == TortureRules.WaterTroughObjectId) return thing;
-            if (thing.ObjectTypeId == TortureRules.CoalsTroughObjectId) coals ??= thing;
+            if (thing.TileIndex != tileIndex || thing.InHand)
+            {
+                continue;
+            }
+
+            if (thing.ObjectTypeId == TortureRules.WaterTroughObjectId)
+            {
+                return thing;
+            }
+
+            if (thing.ObjectTypeId == TortureRules.CoalsTroughObjectId)
+            {
+                coals ??= thing;
+            }
         }
         return coals;
     }
@@ -131,14 +173,18 @@ public sealed class TortureSystem : ISimulationSystem
 
         if (creature.Health <= 0 && CreatureDeathRules.CanBeResurrected(definition)
             && CreatureDeathRules.TryReincarnate(context, definition, creature))
+        {
             context.Emit(SystemName, "creature_reincarnated",
                 $"creature={creature.Id} type={definition.Name} player={creature.OwnerPlayerId} " +
                 $"level={creature.Level} at=({creature.Tile.X},{creature.Tile.Y})");
+        }
 
         // Only a creature tortured in its own keeper's chamber takes the mood: selector 8, bucket 5.
         if (creature.OwnerPlayerId == keeper)
+        {
             CreatureAngerRules.Apply(world, definition, creature, AngerBucket.Treatment, definition.TortureMoodChange,
                 AngerComplaint.Tortured);
+        }
 
         if (creature.Health <= 0)
         {
@@ -172,10 +218,16 @@ public sealed class TortureSystem : ISimulationSystem
         context.Emit(SystemName, "tortured",
             $"creature={creature.Id} type={definition.Name} health={creature.Health} " +
             $"hurt={hurt} duration={creature.TorturedDuration}/{threshold}");
-        if (creature.TorturedDuration <= threshold) return;
+        if (creature.TorturedDuration <= threshold)
+        {
+            return;
+        }
 
         creature.TorturedDuration = 0;
-        if (creature.OwnerPlayerId == keeper) return;
+        if (creature.OwnerPlayerId == keeper)
+        {
+            return;
+        }
 
         if (CreatureAngerRules.RollPercent(context.Rng) < database[VariableTypeId.TortureChanceOfDyingWhenConverted])
         {
@@ -190,7 +242,11 @@ public sealed class TortureSystem : ISimulationSystem
         // wiped, the converting keeper's rescue bit cleared, message 58 to the new owner, creature
         // event 9 on the convert (its tree now reads the new owner), then the statistic.
         byte from = creature.OwnerPlayerId;
-        if (world.HasPlayer(from)) world.Messages.Post(world, from, PlayerMessageKind.CreatureConvertedAway, creature.Id, 0);
+        if (world.HasPlayer(from))
+        {
+            world.Messages.Post(world, from, PlayerMessageKind.CreatureConvertedAway, creature.Id, 0);
+        }
+
         world.ChangeCreatureOwner(database, creature, keeper);
         CreatureAngerRules.ForgetAll(world, definition, creature);
         RescuePriorityRules.Set(creature, keeper, false);
@@ -212,7 +268,10 @@ public sealed class TortureSystem : ISimulationSystem
     private static bool ElectrocuteIfUnfit(SimulationContext context, CreatureState creature, ObjectState device)
     {
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-        if (!TortureRules.KillsOnChair(device, definition)) return false;
+        if (!TortureRules.KillsOnChair(device, definition))
+        {
+            return false;
+        }
 
         creature.TortureRoll = 0; // 136 zeroes +0x64/+0x66/+0x68 before the call (0x00484CE0)
         creature.Health = 0;

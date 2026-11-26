@@ -14,7 +14,11 @@ public static class DiscoveryRules
     public static void SetExplored(WorldState world, GameDatabase database, TilePos position,
         PlayerId player, bool explored = true)
     {
-        if (!world.Contains(position)) return;
+        if (!world.Contains(position))
+        {
+            return;
+        }
+
         int index = position.Y * world.Width + position.X;
         RoomDef? definition = database.RoomByTerrain(world.Tile(position).TerrainId);
         // The set arm 0x00454B80 takes construction 3, 4 and 8 as a whole room; the clear arm
@@ -26,7 +30,10 @@ public static class DiscoveryRules
             if (room is not null)
             {
                 foreach (int roomTile in room.TileIndices)
+                {
                     Set(ref world.TileAtIndex(roomTile), player, explored);
+                }
+
                 return;
             }
         }
@@ -37,22 +44,39 @@ public static class DiscoveryRules
         bool explored)
     {
         for (int y = point.StartY; y <= point.EndY && y < world.Height; y++)
+        {
             for (int x = point.StartX; x <= point.EndX && x < world.Width; x++)
+            {
                 foreach (PlayerState player in world.RawPlayers)
+                {
                     SetExplored(world, database, new TilePos(x, y), player.PlayerId, explored);
+                }
+            }
+        }
     }
 
     internal static void TerrainChanged(GameDatabase database, ref TileState tile, byte oldTerrain)
     {
         if ((database.TerrainById(oldTerrain).Flags & TerrainFlags.UnexploreIfDugByAnotherPlayer) != 0)
+        {
             tile.ExploredBy = PlayerMask.None;
+        }
+
         if (tile.OwnerPlayerId <= TileState.MaxTaggingPlayerId)
+        {
             tile.SetExploredBy(tile.OwnerPlayerId);
+        }
     }
 
     private static void Set(ref TileState tile, PlayerId player, bool explored)
     {
-        if (explored) tile.SetExploredBy(player);
-        else tile.ClearExploredBy(player);
+        if (explored)
+        {
+            tile.SetExploredBy(player);
+        }
+        else
+        {
+            tile.ClearExploredBy(player);
+        }
     }
 }

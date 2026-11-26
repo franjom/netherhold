@@ -18,11 +18,22 @@ public static class ActivityRules
 {
     public static CreatureActivity? Of(CreatureState creature)
     {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (creature is null)
+        {
+            throw new ArgumentNullException(nameof(creature));
+        }
+
         int state = creature.Dk2StateId;
-        if (state == CreatureStateMachine.NoState) return CreatureActivity.Dead;
+        if (state == CreatureStateMachine.NoState)
+        {
+            return CreatureActivity.Dead;
+        }
+
         if (state is Systems.StateShadow.TravelToPoint or Systems.StateShadow.TravelToRoom or CombatStates.Approaching)
+        {
             return Walking(creature, creature.UtilityNewState);
+        }
+
         return Standing(creature, state);
     }
 

@@ -25,8 +25,10 @@ public readonly record struct PlayerMask(ushort Bits)
     public PlayerMask With(PlayerId playerId)
     {
         if (playerId.Value > MaxPlayerId)
+        {
             throw new ArgumentOutOfRangeException(
                 nameof(playerId), playerId.Value, $"A player mask only holds player ids 0..{MaxPlayerId}.");
+        }
 
         return new PlayerMask((ushort)(Bits | (1 << playerId.Value)));
     }

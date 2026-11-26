@@ -100,7 +100,11 @@ public static class Funnel
     {
         for (int i = 0; i < 3; i++)
         {
-            if (mesh.Neighbour(t, i) != next) continue;
+            if (mesh.Neighbour(t, i) != next)
+            {
+                continue;
+            }
+
             int a = mesh.Vertex(t, i), b = mesh.Vertex(t, (i + 1) % 3);
             right = new NavPoint(mesh.PointX(a) * NavMesh.UnitsPerTile, mesh.PointY(a) * NavMesh.UnitsPerTile);
             left = new NavPoint(mesh.PointX(b) * NavMesh.UnitsPerTile, mesh.PointY(b) * NavMesh.UnitsPerTile);
@@ -123,7 +127,11 @@ public sealed class FunnelBuffers
 
     internal void Ensure(int count)
     {
-        if (Left.Length >= count) return;
+        if (Left.Length >= count)
+        {
+            return;
+        }
+
         int size = Math.Max(count, Left.Length * 2);
         Left = new NavPoint[size];
         Right = new NavPoint[size];

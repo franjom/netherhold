@@ -62,14 +62,26 @@ public static class MiningSlots
         int askingCreatureId)
     {
         int face = Face(standing, target);
-        if (face < 0) return None;
+        if (face < 0)
+        {
+            return None;
+        }
+
         int standingIndex = standing.Y * world.Width + standing.X;
         int limit = FloorGold.MaxPile(database);
         for (int along = 0; along < PerFace; along++)
         {
             byte slot = (byte)(face * PerFace + along);
-            if (Held(world, targetIndex, slot, askingCreatureId)) continue;
-            if (FloorGold.PileInCell(world, standingIndex, Cell(slot)) > limit) continue;
+            if (Held(world, targetIndex, slot, askingCreatureId))
+            {
+                continue;
+            }
+
+            if (FloorGold.PileInCell(world, standingIndex, Cell(slot)) > limit)
+            {
+                continue;
+            }
+
             return slot;
         }
         return None;
@@ -82,14 +94,23 @@ public static class MiningSlots
     /// Digs hold slots as mines do: the dig handler walks the same twelve (ADR-0289).</summary>
     public static CreatureState? Holder(WorldState world, int targetIndex, byte slot, int askingCreatureId)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         int pool = TaskStealing.PoolOf(world, askingCreatureId);
         foreach (CreatureState other in world.Creatures)
+        {
             if (other.Id != askingCreatureId && other.TargetTileIndex == targetIndex && other.WorkSlot == slot
                 && TaskStealing.InPool(pool, other)
                 && other.TargetWork is TileWorkKind.Dig or TileWorkKind.MineGold
                     or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall)
+            {
                 return other;
+            }
+        }
+
         return null;
     }
 
@@ -116,15 +137,35 @@ public static class MiningSlots
     /// 2 south, 3 west; the step is +1 clockwise or -1, toward the worker's second side.</summary>
     public static (int Side, int Step) StartSide(int dx, int dy)
     {
-        if (dx == 0) return (dy > 0 ? 2 : 0, 1);
+        if (dx == 0)
+        {
+            return (dy > 0 ? 2 : 0, 1);
+        }
+
         if (dx < 0)
         {
-            if (dy == 0) return (3, 1);
-            if (dy > 0) return -dx < dy ? (2, 1) : (3, -1);
+            if (dy == 0)
+            {
+                return (3, 1);
+            }
+
+            if (dy > 0)
+            {
+                return -dx < dy ? (2, 1) : (3, -1);
+            }
+
             return dx != dy && -dx <= -dy ? (0, -1) : (3, 1);
         }
-        if (dy == 0) return (1, 1);
-        if (dy > 0) return dx < dy ? (2, -1) : (1, 1);
+        if (dy == 0)
+        {
+            return (1, 1);
+        }
+
+        if (dy > 0)
+        {
+            return dx < dy ? (2, -1) : (1, 1);
+        }
+
         return -dx != dy && dx <= -dy ? (0, 1) : (1, -1);
     }
 }

@@ -51,14 +51,28 @@ public static class WorldResync
     public static ResyncReport Apply(
         GameSimulation simulation, ResyncState state, Func<int, int?> creatureOf, ResyncParts parts = ResyncParts.All)
     {
-        if (simulation is null) throw new ArgumentNullException(nameof(simulation));
-        if (state is null) throw new ArgumentNullException(nameof(state));
-        if (creatureOf is null) throw new ArgumentNullException(nameof(creatureOf));
+        if (simulation is null)
+        {
+            throw new ArgumentNullException(nameof(simulation));
+        }
+
+        if (state is null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+
+        if (creatureOf is null)
+        {
+            throw new ArgumentNullException(nameof(creatureOf));
+        }
+
         SimulationContext context = simulation.Context;
         WorldState world = context.World;
         GameDatabase database = context.Database;
         if (world.Width != state.Width || world.Height != state.Height)
+        {
             throw new InvalidDataException($"the capture's map is {state.Width}x{state.Height}, ours {world.Width}x{world.Height}");
+        }
 
         var notes = new List<string>();
         int tilesChanged = 0;
@@ -90,7 +104,10 @@ public static class WorldResync
             {
                 unmapped++;
                 if (unmappedNotes.Count < 12)
+                {
                     unmappedNotes.Add($"slot {native.Slot} (type {native.Type}, player {native.Owner}, state {native.State}, health {native.Health}): not paired and not made");
+                }
+
                 continue;
             }
             if (ours.InHand)
@@ -105,8 +122,16 @@ public static class WorldResync
                 CopyFear(ours, native);
                 CopyFightReturn(ours, native);
             }
-            if (((parts & ResyncParts.Levels) == ResyncParts.Levels)) RaiseLevel(context, ours, native, notes);
-            if (!((parts & ResyncParts.Pose) == ResyncParts.Pose)) continue;
+            if (((parts & ResyncParts.Levels) == ResyncParts.Levels))
+            {
+                RaiseLevel(context, ours, native, notes);
+            }
+
+            if (!((parts & ResyncParts.Pose) == ResyncParts.Pose))
+            {
+                continue;
+            }
+
             if (IsDown(native))
             {
                 // DK2's health counts the dying window down from 240 a tick at a time (the capture,
@@ -115,10 +140,16 @@ public static class WorldResync
                 ours.PosX = native.X;
                 ours.PosY = native.Y;
                 ours.Health = 0;
-                if (!CreatureDeathRules.IsDying(ours)) CreatureDeathRules.Collapse(context.Hooks, ours);
+                if (!CreatureDeathRules.IsDying(ours))
+                {
+                    CreatureDeathRules.Collapse(context.Hooks, ours);
+                }
                 // The native position is already the fallen one: 217 is entered here, with no step back.
                 if (native.State == CreatureDeathRules.DyingState && ours.Dk2StateId == CreatureDeathRules.FallingState)
+                {
                     CreatureStateMachine.TrySetState(context.Hooks, ours, CreatureDeathRules.DyingState);
+                }
+
                 ours.DyingTicks = Math.Max(0, CreatureDeathRules.DyingWindowTicks(database) - native.Health);
                 placed++;
                 continue;
@@ -133,10 +164,17 @@ public static class WorldResync
                 ours.PosY = native.Y;
                 ours.Health = native.Health;
                 placed++;
-                if (standing) continue;
+                if (standing)
+                {
+                    continue;
+                }
                 // A route laid from our point leads nowhere from DK2's; the state's own update lays the next.
                 ours.StopMoving();
-                if (native.State == ours.Dk2StateId) continue;
+                if (native.State == ours.Dk2StateId)
+                {
+                    continue;
+                }
+
                 if (CreatureStateMachine.HasState(ours) && StateShadow.TryMove(context, SystemName, ours, CreatureStateMachine.Idle))
                 {
                     idle++;
@@ -207,7 +245,10 @@ public static class WorldResync
                 // The marked kinds tell a wall of the keeper's own from a seam; the resume state only
                 // says "dig". The tile decides, as the walk's own predicate does.
                 if (kind == TileWorkKind.Dig && TileWorkRules.TryTaggedWork(database, world.TileAtIndex(tileIndex), ours.OwnerPlayerId, out TileWorkKind tagged))
+                {
                     kind = tagged;
+                }
+
                 if (ImpTaskSystem.ReissueJob(context, ours, tileIndex, kind, job.TaskSide, (byte)job.TaskSlot))
                 {
                     // The walk writes the last kind and tile as a choice would; DK2's stand.
@@ -227,7 +268,11 @@ public static class WorldResync
 
         foreach (ResyncPlayer player in ((parts & ResyncParts.Players) == ResyncParts.Players) ? state.Players : [])
         {
-            if (!PlayerIds.IsKeeper((byte)player.Id) || !world.HasPlayer((byte)player.Id)) continue;
+            if (!PlayerIds.IsKeeper((byte)player.Id) || !world.HasPlayer((byte)player.Id))
+            {
+                continue;
+            }
+
             ref PlayerState keeper = ref world.Player((byte)player.Id);
             ApplyPlayerState(world, state, player, ref keeper, notes);
             notes.Add($"player {player.Id}: DK2 money {player.Money}, mana {player.Mana} (ours {keeper.Mana}); mana copied, money reported only");
@@ -235,23 +280,45 @@ public static class WorldResync
             if (player.Manufacture is { } making)
             {
                 keeper.ManufacturePoints = making.Points & 0xFFFF;
-                if (making.Tail >= 0) keeper.ManufactureRingTail = (byte)(making.Tail % ManufactureRules.QueueCapacity);
-                if (making.SlotZeroCost >= 0) keeper.ManufactureSlotZeroCost = making.SlotZeroCost & 0xFFFF;
+                if (making.Tail >= 0)
+                {
+                    keeper.ManufactureRingTail = (byte)(making.Tail % ManufactureRules.QueueCapacity);
+                }
+
+                if (making.SlotZeroCost >= 0)
+                {
+                    keeper.ManufactureSlotZeroCost = making.SlotZeroCost & 0xFFFF;
+                }
+
                 keeper.ManufactureQueue.Clear();
                 foreach (ResyncOrder order in making.Orders.Take(ManufactureRules.QueueCapacity))
+                {
                     keeper.ManufactureQueue.Add(new ManufactureOrder((byte)order.Kind, (byte)order.Type, order.Cost));
+                }
             }
         }
 
         int triggerValues = ((parts & ResyncParts.Triggers) == ResyncParts.Triggers) ? ApplyTriggerBanks(world.Triggers, state, notes) : 0;
         int portalClocks = ((parts & ResyncParts.Portals) == ResyncParts.Portals) ? ApplyPortalClocks(world, database, state, notes) : 0;
 
-        if (!((parts & ResyncParts.Seed) == ResyncParts.Seed)) notes.Add("DK2 seed not applied: skipped");
-        else if (simulation.Rng.Algorithm is Dk2Lcg lcg) lcg.Reseed(state.Seed);
-        else notes.Add($"DK2 seed {state.Seed} not applied: the run does not draw from DK2's generator (--rng dk2)");
+        if (!((parts & ResyncParts.Seed) == ResyncParts.Seed))
+        {
+            notes.Add("DK2 seed not applied: skipped");
+        }
+        else if (simulation.Rng.Algorithm is Dk2Lcg lcg)
+        {
+            lcg.Reseed(state.Seed);
+        }
+        else
+        {
+            notes.Add($"DK2 seed {state.Seed} not applied: the run does not draw from DK2's generator (--rng dk2)");
+        }
 
         if (otherResumes.Count > 0)
+        {
             notes.Add("walks set choosing instead, by resume state: " + string.Join(", ", otherResumes.Select(p => $"{p.Key}x{p.Value}")));
+        }
+
         notes.AddRange(unmappedNotes);
         return new ResyncReport(tilesChanged, placed, reissued, choosing, left, unmapped, piles, marksSet, notes,
             doorsAndTraps, crates, crateTrips, paired, idle, triggerValues, added, removed,
@@ -265,7 +332,10 @@ public static class WorldResync
         {
             if (terminal.Status is < PlayerStatus.Playing or > PlayerStatus.Lost
                 || terminal.KilledByPlayer is < 0 or > byte.MaxValue || terminal.HeartDiedTick < 0)
+            {
                 throw new InvalidDataException($"player {native.Id}: invalid captured terminal state");
+            }
+
             player.Status = (byte)terminal.Status;
             player.KilledByPlayerId = (byte)terminal.KilledByPlayer;
             player.HeartDiedTick = new GameTick(terminal.HeartDiedTick == 0 ? 0 : terminal.HeartDiedTick - 1);
@@ -278,9 +348,14 @@ public static class WorldResync
             stats.EndTurn = player.StatusTick.Value;
             stats.AtVerdict = default;
             if (terminal.Status != PlayerStatus.Playing)
+            {
                 notes.Add($"player {native.Id}: exact verdict tick and sampled result unavailable; status restored without verdict side effects");
+            }
         }
-        else notes.Add($"player {native.Id}: captured terminal state unavailable; retained ours");
+        else
+        {
+            notes.Add($"player {native.Id}: captured terminal state unavailable; retained ours");
+        }
 
         if (native.Heart is not { } heart)
         {
@@ -289,13 +364,21 @@ public static class WorldResync
         }
         if (heart.LastAttacker is < 0 or > byte.MaxValue || heart.RegenCountdown is < 0 or > byte.MaxValue
             || heart.RoomTag is <= 0 or > 0xFFF)
+        {
             throw new InvalidDataException($"player {native.Id}: invalid captured Heart state");
+        }
+
         player.HeartHealth = heart.Health;
         player.HeartLastAttackerPlayerId = (byte)heart.LastAttacker;
         player.HeartRuined = heart.RoomRuined;
         player.HeartRegenCountdown = (byte)heart.RegenCountdown;
         for (int i = 0; i < world.TileCount; i++)
-            if (state.Tiles[(3 * i) + 2] == heart.RoomTag) world.TileAtIndex(i).RoomRuined = heart.RoomRuined;
+        {
+            if (state.Tiles[(3 * i) + 2] == heart.RoomTag)
+            {
+                world.TileAtIndex(i).RoomRuined = heart.RoomRuined;
+            }
+        }
     }
 
     /// <summary>A native status supplies no exact verdict turn; zero would falsely mean the first tick.</summary>
@@ -308,7 +391,11 @@ public static class WorldResync
     /// Portal on either side is left ours and noted.</summary>
     private static int ApplyPortalClocks(WorldState world, GameDatabase database, ResyncState state, List<string> notes)
     {
-        if (state.Rooms is null) return 0;
+        if (state.Rooms is null)
+        {
+            return 0;
+        }
+
         IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, database);
         int set = 0;
         foreach (IGrouping<int, ResyncRoom> native in state.Rooms
@@ -340,19 +427,31 @@ public static class WorldResync
         var ours = new CreatureState?[natives.Length];
         var taken = new HashSet<int>();
         for (int n = 0; n < natives.Length; n++)
+        {
             if (creatureOf(natives[n].Slot) is int id && world.CreatureById(id) is { } mapped
                 && Same(natives[n], mapped) && taken.Add(mapped.Id))
+            {
                 ours[n] = mapped;
+            }
+        }
 
         paired = 0;
         for (int n = 0; n < natives.Length; n++)
         {
-            if (ours[n] is not null || natives[n].Health <= 0) continue;
+            if (ours[n] is not null || natives[n].Health <= 0)
+            {
+                continue;
+            }
+
             CreatureState? nearest = null;
             long best = long.MaxValue;
             foreach (CreatureState candidate in world.Creatures)
             {
-                if (taken.Contains(candidate.Id) || !Same(natives[n], candidate)) continue;
+                if (taken.Contains(candidate.Id) || !Same(natives[n], candidate))
+                {
+                    continue;
+                }
+
                 long dx = candidate.PosX - natives[n].X, dy = candidate.PosY - natives[n].Y;
                 long distance = (dx * dx) + (dy * dy);
                 if (distance < best)
@@ -361,7 +460,11 @@ public static class WorldResync
                     nearest = candidate;
                 }
             }
-            if (nearest is null) continue;
+            if (nearest is null)
+            {
+                continue;
+            }
+
             taken.Add(nearest.Id);
             ours[n] = nearest;
             paired++;
@@ -414,11 +517,23 @@ public static class WorldResync
         for (int i = 0; i < pairs.Count; i++)
         {
             ResyncCreature native = pairs[i].Native;
-            if (pairs[i].Ours is not null || native.Health <= 0 || !database.Creatures.ContainsKey((byte)native.Type)) continue;
+            if (pairs[i].Ours is not null || native.Health <= 0 || !database.Creatures.ContainsKey((byte)native.Type))
+            {
+                continue;
+            }
+
             var tile = new TilePos(native.X / Fp32.One, native.Y / Fp32.One);
-            if (!world.Contains(tile)) continue;
+            if (!world.Contains(tile))
+            {
+                continue;
+            }
+
             CreatureState? made = world.TrySpawnCreature(database, (byte)native.Type, new PlayerId((byte)native.Owner), tile);
-            if (made is null) continue;
+            if (made is null)
+            {
+                continue;
+            }
+
             pairs[i] = (native, made);
             added++;
         }
@@ -430,7 +545,11 @@ public static class WorldResync
     /// nothing in ours takes one away. The health copied after it is DK2's.</summary>
     private static void RaiseLevel(SimulationContext context, CreatureState ours, ResyncCreature native, List<string> notes)
     {
-        if (native.Level <= 0 || ours.Level == native.Level) return;
+        if (native.Level <= 0 || ours.Level == native.Level)
+        {
+            return;
+        }
+
         if (ours.Level > native.Level)
         {
             notes.Add($"creature {ours.Id} (slot {native.Slot}) is level {ours.Level}, DK2's {native.Level}; left");
@@ -449,7 +568,11 @@ public static class WorldResync
     /// before the turn it runs, so the window can end one tick after DK2's.</summary>
     private static void CopyFightReturn(CreatureState ours, ResyncCreature native)
     {
-        if (native.FightReturn is not { } fight) return;
+        if (native.FightReturn is not { } fight)
+        {
+            return;
+        }
+
         ours.OldFightTileX = fight.X;
         ours.OldFightTileY = fight.Y;
         ours.OldFightTick = fight.Tick;
@@ -457,7 +580,11 @@ public static class WorldResync
 
     private static void CopyFear(CreatureState ours, ResyncCreature native)
     {
-        if (native.Fear is not { } fear) return;
+        if (native.Fear is not { } fear)
+        {
+            return;
+        }
+
         ours.TempFear = (ushort)fear.Temp;
         ours.CurrentFear = (ushort)fear.Current;
         ours.OverThreatCounter = (byte)fear.Counter;
@@ -469,7 +596,11 @@ public static class WorldResync
     /// repeat state is not in the capture and stays ours.</summary>
     private static int ApplyTriggerBanks(TriggerState triggers, ResyncState state, List<string> notes)
     {
-        if (state.Flags is not { } flags || state.Timers is not { } timers) return 0;
+        if (state.Flags is not { } flags || state.Timers is not { } timers)
+        {
+            return 0;
+        }
+
         if (flags.Length != TriggerState.FlagCount || timers.Length != TriggerState.TimerCount)
         {
             notes.Add($"trigger banks not copied: the capture has {flags.Length} flags and {timers.Length} timers");
@@ -480,14 +611,22 @@ public static class WorldResync
         int[] ourTimers = triggers.RawTimers;
         for (int i = 0; i < flags.Length; i++)
         {
-            if (ourFlags[i] == (byte)flags[i]) continue;
+            if (ourFlags[i] == (byte)flags[i])
+            {
+                continue;
+            }
+
             notes.Add($"flag {i}: ours {ourFlags[i]}, DK2's {flags[i]}");
             ourFlags[i] = (byte)flags[i];
             changed++;
         }
         for (int i = 0; i < timers.Length; i++)
         {
-            if (ourTimers[i] == timers[i]) continue;
+            if (ourTimers[i] == timers[i])
+            {
+                continue;
+            }
+
             notes.Add($"timer {i}: ours started {ourTimers[i]}, DK2's {timers[i]}");
             ourTimers[i] = timers[i];
             changed++;
@@ -502,7 +641,11 @@ public static class WorldResync
     /// types copies nothing.</summary>
     private static int ApplyDoorsAndTraps(SimulationContext context, ResyncState state, List<string> notes)
     {
-        if (state.Doors is not { } doors || state.Traps is not { } traps) return 0;
+        if (state.Doors is not { } doors || state.Traps is not { } traps)
+        {
+            return 0;
+        }
+
         if (doors.Any(d => d.Type == 0))
         {
             notes.Add("doors and traps not copied: the capture has no door types");
@@ -512,24 +655,33 @@ public static class WorldResync
         GameDatabase database = context.Database;
         int changed = 0;
         foreach (DoorState door in world.Doors.ToArray())
+        {
             if (!doors.Any(d => d.X == door.X && d.Y == door.Y && d.Owner == door.PlayerId && d.Type == door.DoorId))
             {
                 notes.Add($"door {door.Id} type {door.DoorId} of player {door.PlayerId} at ({door.X},{door.Y}) is not DK2's; removed");
                 DoorRules.Remove(context, door);
                 changed++;
             }
+        }
+
         foreach (TrapState trap in world.Traps.ToArray())
+        {
             if (!traps.Any(t => t.X == trap.X && t.Y == trap.Y && t.Owner == trap.PlayerId && t.Type == trap.TrapId))
             {
                 notes.Add($"trap {trap.Id} type {trap.TrapId} of player {trap.PlayerId} at ({trap.X},{trap.Y}) is not DK2's; removed");
                 TrapRules.Remove(context, trap);
                 changed++;
             }
+        }
 
         var blueprints = new List<(int Slot, byte Owner, BlueprintRef Ref)>();
         foreach (ResyncDoor native in doors)
         {
-            if (!world.Contains(native.X, native.Y) || !database.Doors.TryGetValue((byte)native.Type, out DoorDef? def)) continue;
+            if (!world.Contains(native.X, native.Y) || !database.Doors.TryGetValue((byte)native.Type, out DoorDef? def))
+            {
+                continue;
+            }
+
             DoorState? door = world.Doors.FirstOrDefault(d => d.X == native.X && d.Y == native.Y && d.PlayerId == native.Owner);
             if (door is null)
             {
@@ -550,15 +702,33 @@ public static class WorldResync
                 changed++;
             }
             if (native.Health > 0 && door.Health != native.Health)
+            {
                 notes.Add($"door {door.Id} at ({door.X},{door.Y}): health ours {door.Health}, DK2's {native.Health}");
+            }
+
             door.UnderConstruction = native.Constructing;
-            if (((def.Flags & DoorFlags.Secret) == DoorFlags.Secret)) world.Tile(door.X, door.Y).SecretDoor = !native.Constructing;
-            if (native.Health > 0) door.Health = native.Health;
-            if (native.Constructing) blueprints.Add((native.Slot, door.PlayerId, new BlueprintRef(CrateRules.DoorKind, door.Id)));
+            if (((def.Flags & DoorFlags.Secret) == DoorFlags.Secret))
+            {
+                world.Tile(door.X, door.Y).SecretDoor = !native.Constructing;
+            }
+
+            if (native.Health > 0)
+            {
+                door.Health = native.Health;
+            }
+
+            if (native.Constructing)
+            {
+                blueprints.Add((native.Slot, door.PlayerId, new BlueprintRef(CrateRules.DoorKind, door.Id)));
+            }
         }
         foreach (ResyncTrap native in traps)
         {
-            if (!world.Contains(native.X, native.Y) || !database.Traps.TryGetValue((byte)native.Type, out TrapDef? def)) continue;
+            if (!world.Contains(native.X, native.Y) || !database.Traps.TryGetValue((byte)native.Type, out TrapDef? def))
+            {
+                continue;
+            }
+
             TrapState? trap = world.Traps.FirstOrDefault(t => t.X == native.X && t.Y == native.Y && t.PlayerId == native.Owner);
             if (trap is null)
             {
@@ -579,15 +749,34 @@ public static class WorldResync
                 notes.Add($"trap {trap.Id} at ({trap.X},{trap.Y}) is built in ours and a blueprint in DK2; left built");
             }
             if (native.Health > 0 && trap.Health != native.Health)
+            {
                 notes.Add($"trap {trap.Id} at ({trap.X},{trap.Y}): health ours {trap.Health}, DK2's {native.Health}");
-            if (native.Health > 0) trap.Health = native.Health;
-            if (trap.UnderConstruction) blueprints.Add((native.Slot, trap.PlayerId, new BlueprintRef(CrateRules.TrapKind, trap.Id)));
+            }
+
+            if (native.Health > 0)
+            {
+                trap.Health = native.Health;
+            }
+
+            if (trap.UnderConstruction)
+            {
+                blueprints.Add((native.Slot, trap.PlayerId, new BlueprintRef(CrateRules.TrapKind, trap.Id)));
+            }
         }
 
         foreach (ResyncPlayer player in state.Players)
-            if (PlayerIds.IsKeeper((byte)player.Id) && world.HasPlayer((byte)player.Id)) world.Player((byte)player.Id).Blueprints.Clear();
+        {
+            if (PlayerIds.IsKeeper((byte)player.Id) && world.HasPlayer((byte)player.Id))
+            {
+                world.Player((byte)player.Id).Blueprints.Clear();
+            }
+        }
+
         foreach ((int _, byte owner, BlueprintRef blueprint) in blueprints.OrderBy(b => b.Slot))
+        {
             CrateRules.Register(world, owner, blueprint);
+        }
+
         return changed;
     }
 
@@ -598,18 +787,37 @@ public static class WorldResync
     {
         foreach (ObjectState crate in world.Objects.ToArray())
         {
-            if (!CrateRules.IsCrate(database, crate)) continue;
+            if (!CrateRules.IsCrate(database, crate))
+            {
+                continue;
+            }
+
             if (crate.CarriedByCreatureId >= 0 && world.CreatureById(crate.CarriedByCreatureId) is { } carrier)
+            {
                 ObjectCarryRules.PutDown(carrier, crate);
+            }
+
             world.RemoveObject(crate.Id);
         }
         int placed = 0;
         foreach (ResyncObject thing in state.Objects ?? [])
         {
-            if ((thing.Flags & (CarriedFlag | InHandFlag)) != 0 || thing.Type is <= 0 or > byte.MaxValue) continue;
-            if (database.ObjectById((byte)thing.Type) is null || CrateRules.KindOf(database, (byte)thing.Type) is null) continue;
+            if ((thing.Flags & (CarriedFlag | InHandFlag)) != 0 || thing.Type is <= 0 or > byte.MaxValue)
+            {
+                continue;
+            }
+
+            if (database.ObjectById((byte)thing.Type) is null || CrateRules.KindOf(database, (byte)thing.Type) is null)
+            {
+                continue;
+            }
+
             int x = thing.X / Fp32.One, y = thing.Y / Fp32.One;
-            if (!world.Contains(x, y)) continue;
+            if (!world.Contains(x, y))
+            {
+                continue;
+            }
+
             ObjectState crate = world.SpawnObject(database, (byte)thing.Type, (byte)thing.Owner, (y * world.Width) + x);
             crate.PosX = thing.X;
             crate.PosY = thing.Y;
@@ -626,9 +834,17 @@ public static class WorldResync
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (!world.Contains(job.TaskX, job.TaskY) || job.TaskSide is <= 0 or > byte.MaxValue) return false;
+        if (!world.Contains(job.TaskX, job.TaskY) || job.TaskSide is <= 0 or > byte.MaxValue)
+        {
+            return false;
+        }
+
         byte crateObject = (byte)job.TaskSide;
-        if (CrateRules.KindOf(database, crateObject) is not byte kind || kind != CrateKindOf(resume)) return false;
+        if (CrateRules.KindOf(database, crateObject) is not byte kind || kind != CrateKindOf(resume))
+        {
+            return false;
+        }
+
         int blueprint = (job.TaskY * world.Width) + job.TaskX;
         bool carrying = resume is CrateRules.InstallTrapState or CrateRules.InstallDoorState;
 
@@ -643,15 +859,31 @@ public static class WorldResync
             long best = long.MaxValue;
             foreach (ObjectState thing in world.Objects)
             {
-                if (thing.ObjectTypeId != crateObject || thing.OwnerPlayerId != imp.OwnerPlayerId || thing.CarriedByCreatureId >= 0 || thing.InHand) continue;
+                if (thing.ObjectTypeId != crateObject || thing.OwnerPlayerId != imp.OwnerPlayerId || thing.CarriedByCreatureId >= 0 || thing.InHand)
+                {
+                    continue;
+                }
+
                 long distance = EatingRules.DistanceSquared(world, imp.Tile, thing.TileIndex);
-                if (distance >= best) continue;
+                if (distance >= best)
+                {
+                    continue;
+                }
+
                 best = distance;
                 crate = thing;
             }
         }
-        if (crate is null) return false;
-        if (ImpTaskSystem.ReissueCrateJob(context, imp, blueprint, kind, crate, carrying)) return true;
+        if (crate is null)
+        {
+            return false;
+        }
+
+        if (ImpTaskSystem.ReissueCrateJob(context, imp, blueprint, kind, crate, carrying))
+        {
+            return true;
+        }
+
         if (carrying)
         {
             ObjectCarryRules.PutDown(imp, crate);
@@ -672,18 +904,31 @@ public static class WorldResync
     /// ticks), each filed after everything marked before the resync.</summary>
     private static int ApplyMarks(WorldState world, ResyncState state)
     {
-        if (state.Marks is not { Length: > 0 } marks) return 0;
+        if (state.Marks is not { Length: > 0 } marks)
+        {
+            return 0;
+        }
+
         var keepers = new HashSet<byte>(marks.Select(m => (byte)m.Player));
         for (int i = 0; i < world.Width * world.Height; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
             foreach (byte keeper in keepers)
-                if (tile.IsTaggedBy(keeper)) tile.TaggedBy = tile.TaggedBy.Without(keeper);
+            {
+                if (tile.IsTaggedBy(keeper))
+                {
+                    tile.TaggedBy = tile.TaggedBy.Without(keeper);
+                }
+            }
         }
         int set = 0;
         foreach (ResyncMark mark in marks.OrderBy(m => m.Order))
         {
-            if (!world.Contains(mark.X, mark.Y)) continue;
+            if (!world.Contains(mark.X, mark.Y))
+            {
+                continue;
+            }
+
             ref TileState tile = ref world.Tile(mark.X, mark.Y);
             tile.TaggedBy = tile.TaggedBy.With((byte)mark.Player);
             tile.TagOrder = world.NextTagOrder++;
@@ -712,19 +957,33 @@ public static class WorldResync
     {
         int changed = 0;
         for (int y = 0; y < world.Height; y++)
-        for (int x = 0; x < world.Width; x++)
+        {
+            for (int x = 0; x < world.Width; x++)
         {
             int index = (y * world.Width) + x;
             ref TileState tile = ref world.Tile(x, y);
             TileState before = tile;
             byte terrain = (byte)state.Terrain(index);
             int owner = state.Owner(index);
-            if (tile.TerrainId != terrain || (owner != 0 && tile.OwnerPlayerId != owner)) changed++;
-            tile.TerrainId = terrain;
-            if (owner != 0) tile.OwnerPlayerId = (byte)owner;
-            ManaRules.RecordTileChange(world, database, before, tile);
-            if (state.TileHealth is { } health && index < health.Length) tile.Health = health[index];
+            if (tile.TerrainId != terrain || (owner != 0 && tile.OwnerPlayerId != owner))
+                {
+                    changed++;
+                }
+
+                tile.TerrainId = terrain;
+            if (owner != 0)
+                {
+                    tile.OwnerPlayerId = (byte)owner;
+                }
+
+                ManaRules.RecordTileChange(world, database, before, tile);
+            if (state.TileHealth is { } health && index < health.Length)
+                {
+                    tile.Health = health[index];
+                }
+            }
         }
+
         return changed;
     }
 
@@ -732,16 +991,33 @@ public static class WorldResync
     private static int ReplaceFloorGold(WorldState world, GameDatabase database, ResyncState state)
     {
         foreach (ObjectState pile in world.Objects.ToArray())
+        {
             if (FloorGold.IsPile(database, pile) && !pile.InHand && pile.CarriedByCreatureId < 0)
+            {
                 world.RemoveObject(pile.Id);
+            }
+        }
+
         int placed = 0;
         foreach (ResyncObject thing in state.Objects ?? [])
         {
-            if (thing.Type != FloorGold.FloorGoldObjectId || thing.Gold <= 0) continue;
+            if (thing.Type != FloorGold.FloorGoldObjectId || thing.Gold <= 0)
+            {
+                continue;
+            }
+
             int x = thing.X / Fp32.One, y = thing.Y / Fp32.One;
-            if (!world.Contains(x, y)) continue;
+            if (!world.Contains(x, y))
+            {
+                continue;
+            }
+
             ObjectState? pile = FloorGold.Drop(world, database, (y * world.Width) + x, thing.Gold);
-            if (pile is null) continue;
+            if (pile is null)
+            {
+                continue;
+            }
+
             pile.PosX = thing.X;
             pile.PosY = thing.Y;
             placed++;

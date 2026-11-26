@@ -37,21 +37,45 @@ public static class RoomNeedRules
         bool treasury = false, space = false, reachable = false;
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (room.OwnerPlayerId != player) continue;
-            if (room.Definition.TypeId == RoomTypeId.Treasury) treasury = true;
-            else if (room.Definition.TypeId != RoomTypeId.DungeonHeart || RoomRules.IsRuined(world, room)) continue;
-            if (!room.TileIndices.Any(tile => GoldStore.SpaceIn(world, context.Database, tile) > 0)) continue;
+            if (room.OwnerPlayerId != player)
+            {
+                continue;
+            }
+
+            if (room.Definition.TypeId == RoomTypeId.Treasury)
+            {
+                treasury = true;
+            }
+            else if (room.Definition.TypeId != RoomTypeId.DungeonHeart || RoomRules.IsRuined(world, room))
+            {
+                continue;
+            }
+
+            if (!room.TileIndices.Any(tile => GoldStore.SpaceIn(world, context.Database, tile) > 0))
+            {
+                continue;
+            }
+
             space = true;
             int first = SlabChain.FirstSlab(world, room);
             if (CanRoute(context, carrier, definition, new TilePos(first % world.Width, first / world.Width), MoveOptions.Loose))
+            {
                 reachable = true;
+            }
         }
 
         if (!treasury)
+        {
             return world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Treasury) == Available
                 ? Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Treasury)
                 : null;
-        if (!space) return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Treasury);
+        }
+
+        if (!space)
+        {
+            return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Treasury);
+        }
+
         return reachable ? null : Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.Treasury);
     }
 
@@ -61,7 +85,11 @@ public static class RoomNeedRules
     public static PlayerMessage? GoldLeftOver(SimulationContext context, PlayerId player)
     {
         WorldState world = context.World;
-        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Treasury) == 1) return null;
+        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Treasury) == 1)
+        {
+            return null;
+        }
+
         bool treasury = RoomIndex.Build(world, context.Database)
             .Any(r => r.OwnerPlayerId == player && r.Definition.TypeId == RoomTypeId.Treasury);
         return Post(context, player, treasury ? PlayerMessageKind.RoomFull : PlayerMessageKind.RoomNeeded, RoomTypeId.Treasury);
@@ -78,25 +106,46 @@ public static class RoomNeedRules
     {
         WorldState world = context.World;
         PlayerId player = creature.OwnerPlayerId;
-        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Lair) != Available) return null;
+        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Lair) != Available)
+        {
+            return null;
+        }
 
         var lairs = RoomIndex.Build(world, context.Database)
             .Where(r => r.OwnerPlayerId == player && LairRules.IsLairRoom(context.Database, r)).ToList();
-        if (lairs.Count == 0) return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Lair);
+        if (lairs.Count == 0)
+        {
+            return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Lair);
+        }
 
         bool fullAndSettled = false;
         long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
         foreach (RoomInstance lair in lairs)
         {
-            if (!CanReachRoom(context, creature, definition, lair, MoveOptions.Loose)) continue;
-            if (LairRules.HasFreeSlot(world, context.Database, lair)) return null;
-            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, lair) > grace) fullAndSettled = true;
+            if (!CanReachRoom(context, creature, definition, lair, MoveOptions.Loose))
+            {
+                continue;
+            }
+
+            if (LairRules.HasFreeSlot(world, context.Database, lair))
+            {
+                return null;
+            }
+
+            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, lair) > grace)
+            {
+                fullAndSettled = true;
+            }
         }
 
         foreach (RoomInstance lair in lairs)
+        {
             if (LairRules.HasFreeSlot(world, context.Database, lair)
                 && !CanReachRoom(context, creature, definition, lair, IgnoreDoors))
+            {
                 return Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.Lair);
+            }
+        }
 
         return fullAndSettled ? Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Lair) : null;
     }
@@ -112,27 +161,47 @@ public static class RoomNeedRules
     {
         WorldState world = context.World;
         PlayerId player = creature.OwnerPlayerId;
-        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Hatchery) != Available) return null;
+        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Hatchery) != Available)
+        {
+            return null;
+        }
 
         var hatcheries = RoomIndex.Build(world, context.Database)
             .Where(r => EatingRules.IsHatcheryOf(r, player.Value) && r.TileIndices.Count > 0).ToList();
-        if (hatcheries.Count == 0) return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Hatchery);
+        if (hatcheries.Count == 0)
+        {
+            return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Hatchery);
+        }
 
         bool emptyAndSettled = false;
         long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
         foreach (RoomInstance hatchery in hatcheries)
         {
-            if (!CanReachRoom(context, creature, definition, hatchery, MoveOptions.Loose)) continue;
-            if (EatingRules.HoldsAChicken(world, hatchery)) return null;
+            if (!CanReachRoom(context, creature, definition, hatchery, MoveOptions.Loose))
+            {
+                continue;
+            }
+
+            if (EatingRules.HoldsAChicken(world, hatchery))
+            {
+                return null;
+            }
+
             if (HatcheryRules.ChickensGenerated(world, hatchery) != 0
                 && world.CurrentTick.Value - SlabChain.SizeChangedTick(world, hatchery) > grace)
+            {
                 emptyAndSettled = true;
+            }
         }
 
         foreach (RoomInstance hatchery in hatcheries)
+        {
             if (EatingRules.HoldsAChicken(world, hatchery)
                 && !CanReachRoom(context, creature, definition, hatchery, IgnoreDoors))
+            {
                 return Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.Hatchery);
+            }
+        }
 
         return emptyAndSettled ? Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Hatchery) : null;
     }
@@ -167,19 +236,30 @@ public static class RoomNeedRules
         var rooms = RoomIndex.Build(world, context.Database)
             .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == type).ToList();
         if (rooms.Count == 0)
+        {
             return world.Availability(player, AvailabilityKind.Room, (int)type) == Available ? RescueRoom.NoRoom : RescueRoom.None;
+        }
 
         var placed = rooms.Where(r => type == RoomTypeId.Prison
             ? PrisonRules.PrisonerCount(world, r) + 1 <= PrisonRules.Capacity(r)
             : LairRules.HasFreeSlot(world, context.Database, r)).ToList();
-        if (placed.Count == 0) return RescueRoom.Full;
+        if (placed.Count == 0)
+        {
+            return RescueRoom.Full;
+        }
 
         var scratch = new List<Steering.Fixed16Vector>();
         foreach (RoomInstance room in placed)
         {
-            if (type == RoomTypeId.Prison && !PrisonRules.IsActivated(world, room)) continue;
+            if (type == RoomTypeId.Prison && !PrisonRules.IsActivated(world, room))
+            {
+                continue;
+            }
+
             if (ChickenRules.Reachable(context, worker, definition, Position(world, room), scratch))
+            {
                 return RescueRoom.Usable;
+            }
         }
 
         return RescueRoom.Unreachable;
@@ -198,12 +278,24 @@ public static class RoomNeedRules
         var scratch = new List<Steering.Fixed16Vector>();
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
-            if (room.OwnerPlayerId != worker.OwnerPlayerId || !LairRules.IsLairRoom(context.Database, room)) continue;
-            if (!LairRules.HasFreeSlot(world, context.Database, room)) continue;
+            if (room.OwnerPlayerId != worker.OwnerPlayerId || !LairRules.IsLairRoom(context.Database, room))
+            {
+                continue;
+            }
+
+            if (!LairRules.HasFreeSlot(world, context.Database, room))
+            {
+                continue;
+            }
+
             TilePos at = Position(world, room);
             long dx = (long)CreatureState.CentreOf(at.X) - body.PosX, dy = (long)CreatureState.CentreOf(at.Y) - body.PosY;
             long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);
-            if (distance >= bestDistance || !ChickenRules.Reachable(context, worker, definition, at, scratch)) continue;
+            if (distance >= bestDistance || !ChickenRules.Reachable(context, worker, definition, at, scratch))
+            {
+                continue;
+            }
+
             (best, bestDistance) = (room, distance);
         }
 
@@ -225,7 +317,11 @@ public static class RoomNeedRules
         long bestDistance = long.MaxValue;
         foreach (int index in room.TileIndices)
         {
-            if (slots.Contains(index)) continue;
+            if (slots.Contains(index))
+            {
+                continue;
+            }
+
             long dx = index % w - cx, dy = index / w - cy;
             long d = (dx * dx) + (dy * dy);
             if (d < bestDistance) { bestDistance = d; best = index; }
@@ -271,17 +367,31 @@ public static class RoomNeedRules
         }
 
         if (wants is not (RoomTypeId.TrainingRoom or RoomTypeId.Temple or RoomTypeId.TortureChamber
-            or RoomTypeId.Casino or RoomTypeId.Workshop)) return null;
+            or RoomTypeId.Casino or RoomTypeId.Workshop))
+        {
+            return null;
+        }
+
         WorldState world = context.World;
         PlayerId player = creature.OwnerPlayerId;
-        if (world.Availability(player, AvailabilityKind.Room, (int)wants) != Available) return null;
+        if (world.Availability(player, AvailabilityKind.Room, (int)wants) != Available)
+        {
+            return null;
+        }
 
         var rooms = RoomIndex.Build(world, context.Database)
             .Where(r => r.OwnerPlayerId == player && r.Definition.TypeId == wants && r.TileIndices.Count > 0).ToList();
         if (rooms.Count == 0)
+        {
             return Post(context, player, wants == RoomTypeId.TortureChamber && creature.CreatureTypeId == MistressCreatureId
                 ? PlayerMessageKind.RoomWanted : PlayerMessageKind.RoomNeeded, wants);
-        if (wants == RoomTypeId.Workshop && world.Player(player).ManufactureQueue.Count == 0) return null;
+        }
+
+        if (wants == RoomTypeId.Workshop && world.Player(player).ManufactureQueue.Count == 0)
+        {
+            return null;
+        }
+
         bool party = wants == RoomTypeId.Casino && world.Player(player).CasinoParties != 0;
 
         bool full = false;
@@ -289,20 +399,55 @@ public static class RoomNeedRules
         long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
         foreach (RoomInstance room in rooms)
         {
-            if (party && !CasinoJackpotRules.IsPartyOn(world, room)) continue;
-            if (!CanReachRoom(context, creature, definition, room, MoveOptions.Loose)) continue;
-            if (HasPlace(world, context.Database, room, creature)) return null; // DK2 would have taken it
-            if (wants == RoomTypeId.TortureChamber && RoomCapacityRules.HasRoom(world, context.Database, room, creature.Id)) continue;
-            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, room) <= grace) continue;
-            if (IsEquipped(world, room)) full = true;
-            else unequipped = room;
+            if (party && !CasinoJackpotRules.IsPartyOn(world, room))
+            {
+                continue;
+            }
+
+            if (!CanReachRoom(context, creature, definition, room, MoveOptions.Loose))
+            {
+                continue;
+            }
+
+            if (HasPlace(world, context.Database, room, creature))
+            {
+                return null; // DK2 would have taken it
+            }
+
+            if (wants == RoomTypeId.TortureChamber && RoomCapacityRules.HasRoom(world, context.Database, room, creature.Id))
+            {
+                continue;
+            }
+
+            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, room) <= grace)
+            {
+                continue;
+            }
+
+            if (IsEquipped(world, room))
+            {
+                full = true;
+            }
+            else
+            {
+                unequipped = room;
+            }
         }
 
         foreach (RoomInstance room in rooms)
+        {
             if (HasPlace(world, context.Database, room, creature, forUnreachable: true)
                 && !CanReachRoom(context, creature, definition, room, IgnoreDoors))
+            {
                 return Post(context, player, PlayerMessageKind.RoomUnreachable, wants);
-        if (full) return Post(context, player, PlayerMessageKind.RoomFull, wants);
+            }
+        }
+
+        if (full)
+        {
+            return Post(context, player, PlayerMessageKind.RoomFull, wants);
+        }
+
         return unequipped is null ? null
             : Post(context, player, PlayerMessageKind.RoomUnequipped, wants, SlabChain.FirstSlab(world, unequipped));
     }
@@ -336,7 +481,11 @@ public static class RoomNeedRules
         long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
         foreach (RoomInstance room in libraries)
         {
-            if (!CanReachRoom(context, creature, definition, room, MoveOptions.Loose)) continue;
+            if (!CanReachRoom(context, creature, definition, room, MoveOptions.Loose))
+            {
+                continue;
+            }
+
             bool shelf = ResearchTreeRules.FindShelf(context, room) >= 0;
             if (shelf && RoomCapacityRules.HasRoom(context.Hooks, room, creature))
             {
@@ -344,19 +493,37 @@ public static class RoomNeedRules
                 long dx = (long)CreatureState.CentreOf(first % world.Width) - creature.PosX;
                 long dy = (long)CreatureState.CentreOf(first / world.Width) - creature.PosY;
                 long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);
-                if (distance < best) (nearest, best) = (room, distance);
+                if (distance < best)
+                {
+                    (nearest, best) = (room, distance);
+                }
+
                 if (distance < bestFriendly && !HoldsOneItObjectsTo(world, database, room, against))
+                {
                     (friendly, bestFriendly) = (room, distance);
+                }
+
                 continue;
             }
 
-            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, room) <= grace) continue;
+            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, room) <= grace)
+            {
+                continue;
+            }
+
             if (!IsEquipped(world, room)) { unequipped = true; last = room; }
             else if (!shelf) { storage = true; last = room; }
-            else full = true;
+            else
+            {
+                full = true;
+            }
         }
 
-        if ((friendly ?? nearest) is { } found) return found;
+        if ((friendly ?? nearest) is { } found)
+        {
+            return found;
+        }
+
         posted = LibraryMessage(context, creature, definition, libraries, storage, full, unequipped, last);
         return null;
     }
@@ -366,7 +533,13 @@ public static class RoomNeedRules
     private static bool HoldsOneItObjectsTo(WorldState world, GameDatabase database, RoomInstance room, CreatureFlags against)
     {
         foreach (CreatureState c in world.Creatures)
-            if (c.HeldPlace.In(room) && ((database.CreatureById(c.CreatureTypeId).Flags & against) == against)) return true;
+        {
+            if (c.HeldPlace.In(room) && ((database.CreatureById(c.CreatureTypeId).Flags & against) == against))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -375,18 +548,41 @@ public static class RoomNeedRules
     {
         WorldState world = context.World;
         PlayerId player = creature.OwnerPlayerId;
-        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Lair) != Available) return null;
-        if (libraries.Count == 0) return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Library);
+        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.Lair) != Available)
+        {
+            return null;
+        }
+
+        if (libraries.Count == 0)
+        {
+            return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.Library);
+        }
         // The finder's own +0x213 test; Job_TryResearch, like JobRules.Refused, has already asked it.
-        if (world.Player(player).ResearchTarget == 0) return null;
+        if (world.Player(player).ResearchTarget == 0)
+        {
+            return null;
+        }
 
         foreach (RoomInstance room in libraries)
+        {
             if (ResearchTreeRules.FindShelf(context, room) >= 0
                 && RoomCapacityRules.HasRoom(context.Hooks, room, creature)
                 && !CanReachRoom(context, creature, definition, room, IgnoreDoors))
+            {
                 return Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.Library);
-        if (storage) return Post(context, player, PlayerMessageKind.RoomStorageFull, RoomTypeId.Library, SlabChain.FirstSlab(world, last!));
-        if (full) return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Library);
+            }
+        }
+
+        if (storage)
+        {
+            return Post(context, player, PlayerMessageKind.RoomStorageFull, RoomTypeId.Library, SlabChain.FirstSlab(world, last!));
+        }
+
+        if (full)
+        {
+            return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.Library);
+        }
+
         return unequipped ? Post(context, player, PlayerMessageKind.RoomUnequipped, RoomTypeId.Library, SlabChain.FirstSlab(world, last!)) : null;
     }
 
@@ -407,20 +603,51 @@ public static class RoomNeedRules
         long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
         foreach (RoomInstance pit in pits)
         {
-            if (!CombatPitSpectatorRules.FightOn(context, pit) || !CanReachRoom(context, creature, definition, pit, MoveOptions.Loose)) continue;
+            if (!CombatPitSpectatorRules.FightOn(context, pit) || !CanReachRoom(context, creature, definition, pit, MoveOptions.Loose))
+            {
+                continue;
+            }
+
             if (RoomCapacityRules.HasRoom(world, context.Database, pit, creature.Id)) { candidate = true; continue; }
-            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, pit) <= grace) continue;
-            if (IsEquipped(world, pit)) full = true;
-            else unequipped = pit;
+            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, pit) <= grace)
+            {
+                continue;
+            }
+
+            if (IsEquipped(world, pit))
+            {
+                full = true;
+            }
+            else
+            {
+                unequipped = pit;
+            }
         }
 
-        if (candidate || pits.Count == 0) return null;
-        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.CombatPit) != Available) return null;
+        if (candidate || pits.Count == 0)
+        {
+            return null;
+        }
+
+        if (world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.CombatPit) != Available)
+        {
+            return null;
+        }
+
         foreach (RoomInstance pit in pits)
+        {
             if (CombatPitSpectatorRules.FightOn(context, pit) && !CanReachRoom(context, creature, definition, pit, IgnoreDoors)
                 && RoomCapacityRules.HasRoom(world, context.Database, pit, creature.Id))
+            {
                 return Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.CombatPit);
-        if (full) return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.CombatPit);
+            }
+        }
+
+        if (full)
+        {
+            return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.CombatPit);
+        }
+
         return unequipped is null ? null
             : Post(context, player, PlayerMessageKind.RoomUnequipped, RoomTypeId.CombatPit, SlabChain.FirstSlab(world, unequipped));
     }
@@ -445,20 +672,51 @@ public static class RoomNeedRules
         long grace = SimulationTiming.TicksFromSeconds(FullRoomGraceSeconds);
         foreach (RoomInstance pit in pits)
         {
-            if (!CanReachRoom(context, creature, definition, pit, MoveOptions.Loose)) continue;
+            if (!CanReachRoom(context, creature, definition, pit, MoveOptions.Loose))
+            {
+                continue;
+            }
+
             bool slot = RandomFloorSlot(context, pit);
             if (slot && DropTest(world, pit)) { candidate = true; continue; }
-            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, pit) <= grace) continue;
-            if (slot && !IsEquipped(world, pit)) unequipped = pit;
-            else full = true;
+            if (world.CurrentTick.Value - SlabChain.SizeChangedTick(world, pit) <= grace)
+            {
+                continue;
+            }
+
+            if (slot && !IsEquipped(world, pit))
+            {
+                unequipped = pit;
+            }
+            else
+            {
+                full = true;
+            }
         }
 
-        if (candidate || world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.CombatPit) != Available) return null;
-        if (pits.Count == 0) return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.CombatPit);
+        if (candidate || world.Availability(player, AvailabilityKind.Room, (int)RoomTypeId.CombatPit) != Available)
+        {
+            return null;
+        }
+
+        if (pits.Count == 0)
+        {
+            return Post(context, player, PlayerMessageKind.RoomNeeded, RoomTypeId.CombatPit);
+        }
+
         foreach (RoomInstance pit in pits)
+        {
             if (!CanReachRoom(context, creature, definition, pit, IgnoreDoors) && RandomFloorSlot(context, pit) && DropTest(world, pit))
+            {
                 return Post(context, player, PlayerMessageKind.RoomUnreachable, RoomTypeId.CombatPit);
-        if (full) return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.CombatPit);
+            }
+        }
+
+        if (full)
+        {
+            return Post(context, player, PlayerMessageKind.RoomFull, RoomTypeId.CombatPit);
+        }
+
         return unequipped is null ? null
             : Post(context, player, PlayerMessageKind.RoomUnequipped, RoomTypeId.CombatPit, SlabChain.FirstSlab(world, unequipped));
     }
@@ -468,7 +726,11 @@ public static class RoomNeedRules
     private static bool RandomFloorSlot(SimulationContext context, RoomInstance room)
     {
         int count = AutoFurnitureRules.FloorSlotSet(context.World, room).Count;
-        if (count == 0) return false;
+        if (count == 0)
+        {
+            return false;
+        }
+
         context.Rng.NextInt(count);
         return true;
     }
@@ -481,7 +743,13 @@ public static class RoomNeedRules
         HashSet<int> slots = AutoFurnitureRules.FloorSlotSet(world, pit);
         int standing = 0;
         foreach (CreatureState c in world.Creatures)
-            if (!HandRules.IsHeld(c) && world.Contains(c.Tile) && slots.Contains(world.TileIndex(c.Tile))) standing++;
+        {
+            if (!HandRules.IsHeld(c) && world.Contains(c.Tile) && slots.Contains(world.TileIndex(c.Tile)))
+            {
+                standing++;
+            }
+        }
+
         return standing < slots.Count;
     }
 
@@ -492,7 +760,11 @@ public static class RoomNeedRules
     {
         int units = room.Definition.TypeId == RoomTypeId.TortureChamber ? 2 * RoomCapacityRules.Units : RoomCapacityRules.Units;
         bool place = RoomCapacityRules.HasRoom(world, database, room, creature.Id, units);
-        if (room.Definition.TypeId != RoomTypeId.Casino) return place;
+        if (room.Definition.TypeId != RoomTypeId.Casino)
+        {
+            return place;
+        }
+
         bool lever = CasinoRules.Lever(world, room) is not null;
         return forUnreachable ? place && lever : place || lever;
     }
@@ -518,9 +790,14 @@ public static class RoomNeedRules
     private static bool HasAttached(WorldState world, RoomInstance room, byte first, byte second)
     {
         foreach (ObjectState thing in world.Objects)
+        {
             if (thing.AutoPlaced && (thing.ObjectTypeId == first || thing.ObjectTypeId == second)
                 && EatingRules.Contains(room, thing.TileIndex))
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -533,7 +810,11 @@ public static class RoomNeedRules
         RoomInstance room, Navigation.MoveOptions options)
     {
         int? point = StealGoldRules.FirstStandable(context.World, context.Database, definition, room);
-        if (point is not int tile) return false;
+        if (point is not int tile)
+        {
+            return false;
+        }
+
         int w = context.World.Width;
         return CanRoute(context, creature, definition, new TilePos(tile % w, tile / w), options);
     }
@@ -541,7 +822,11 @@ public static class RoomNeedRules
     /// <summary><c>0x004D0E60</c> without loading a route: the creature's position to the tile's centre.</summary>
     private static bool CanRoute(SimulationContext context, CreatureState creature, CreatureDef definition, TilePos tile, Navigation.MoveOptions options)
     {
-        if (creature.Tile == tile) return true;
+        if (creature.Tile == tile)
+        {
+            return true;
+        }
+
         var from = new Steering.Fixed16Vector(creature.PosX << 4, creature.PosY << 4);
         var to = new Steering.Fixed16Vector(CreatureState.CentreOf(tile.X) << 4, CreatureState.CentreOf(tile.Y) << 4);
         return context.Navigation.Route(from, to, WorldSteering.ProfileOf(definition, creature.OwnerPlayerId, options), []);
@@ -560,7 +845,10 @@ public static class RoomNeedRules
         uint lastBefore = entries.Count == 0 ? 0 : entries[^1].Id;
         PlayerMessage? posted = world.Messages.PostRoom(world, player.Value, kind, room, roomTag);
         if (posted is PlayerMessage message && message.Id != lastBefore && entries[^1].Id == message.Id)
+        {
             emit(system, "room_message", $"player={player} kind={(int)kind} room={room} id={message.Id}");
+        }
+
         return posted;
     }
 }

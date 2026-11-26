@@ -26,17 +26,30 @@ public static class TriggerReach
     /// populated — the executor needs <see cref="TriggerExecutor.TrackReach"/>.</param>
     public static IReadOnlyList<TriggerGate> Gated(TriggerTree tree, TriggerRunResult result)
     {
-        if (tree is null) throw new ArgumentNullException(nameof(tree));
-        if (result is null) throw new ArgumentNullException(nameof(result));
+        if (tree is null)
+        {
+            throw new ArgumentNullException(nameof(tree));
+        }
+
+        if (result is null)
+        {
+            throw new ArgumentNullException(nameof(result));
+        }
+
         if (result.Reached is null)
+        {
             throw new ArgumentException(
                 "The run did not track reach; set TriggerExecutor.TrackReach.", nameof(result));
+        }
 
         var gates = new List<TriggerGate>();
         foreach (BlockedTrigger blocked in result.Blocked)
         {
             TriggerRecord? record = tree.Resolve(unchecked((short)blocked.TriggerId));
-            if (record is null) continue;
+            if (record is null)
+            {
+                continue;
+            }
 
             var subtree = new HashSet<ushort>();
             Collect(tree, unchecked((short)record.ChildTriggerId), subtree);
@@ -53,17 +66,30 @@ public static class TriggerReach
     /// open if an arm were implemented.</summary>
     public static IReadOnlyList<TriggerClosure> Closed(TriggerTree tree, TriggerRunResult result)
     {
-        if (tree is null) throw new ArgumentNullException(nameof(tree));
-        if (result is null) throw new ArgumentNullException(nameof(result));
+        if (tree is null)
+        {
+            throw new ArgumentNullException(nameof(tree));
+        }
+
+        if (result is null)
+        {
+            throw new ArgumentNullException(nameof(result));
+        }
+
         if (result.Reached is null || result.Unsatisfied is null)
+        {
             throw new ArgumentException(
                 "The run did not track reach; set TriggerExecutor.TrackReach.", nameof(result));
+        }
 
         var closures = new List<TriggerClosure>();
         foreach (ushort id in result.Unsatisfied)
         {
             TriggerRecord? record = tree.Resolve(unchecked((short)id));
-            if (record is null) continue;
+            if (record is null)
+            {
+                continue;
+            }
 
             var subtree = new HashSet<ushort>();
             Collect(tree, unchecked((short)record.ChildTriggerId), subtree);
@@ -80,11 +106,22 @@ public static class TriggerReach
     /// owns them.</summary>
     public static HashSet<ushort> Reachable(TriggerTree tree, IEnumerable<ushort> roots)
     {
-        if (tree is null) throw new ArgumentNullException(nameof(tree));
-        if (roots is null) throw new ArgumentNullException(nameof(roots));
+        if (tree is null)
+        {
+            throw new ArgumentNullException(nameof(tree));
+        }
+
+        if (roots is null)
+        {
+            throw new ArgumentNullException(nameof(roots));
+        }
 
         var seen = new HashSet<ushort>();
-        foreach (ushort root in roots) Collect(tree, unchecked((short)root), seen);
+        foreach (ushort root in roots)
+        {
+            Collect(tree, unchecked((short)root), seen);
+        }
+
         return seen;
     }
 
@@ -98,7 +135,11 @@ public static class TriggerReach
         while (id != 0)
         {
             TriggerRecord? record = tree.Resolve(id);
-            if (record is null || !seen.Add(record.TriggerId)) return;
+            if (record is null || !seen.Add(record.TriggerId))
+            {
+                return;
+            }
+
             Collect(tree, unchecked((short)record.ChildTriggerId), seen);
             id = unchecked((short)record.NextTriggerId);
         }

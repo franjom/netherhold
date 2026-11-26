@@ -56,10 +56,21 @@ public sealed class KeeperRetreatStep
     {
         foreach (KeeperCreatureView creature in Owned(_view.PlayerId))
         {
-            if (allowance <= 0) break;
-            if (!Selected(creature)) continue;
+            if (allowance <= 0)
+            {
+                break;
+            }
+
+            if (!Selected(creature))
+            {
+                continue;
+            }
             // 0x004C6460(5): a random own Heart room; the drop is at the heart position, not its centre.
-            if (_view.OwnRoomOfType((byte)RoomTypeId.DungeonHeart) is null) continue;
+            if (_view.OwnRoomOfType((byte)RoomTypeId.DungeonHeart) is null)
+            {
+                continue;
+            }
+
             if (creature.PickupPermitted)
             {
                 // 0x0048E6A0 passed: 0x004BFBD0 prepares it, 0x004BC500 lifts it unless the hand
@@ -67,7 +78,10 @@ public sealed class KeeperRetreatStep
                 // still spends the allowance and still leaves the creature prepared.
                 _commands.Add(new TakeCreatureCommand(_view.PlayerId, creature.Id));
                 Prepared.Add(creature.Id);
-                if (creature.CanPickUp) _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, Destination()));
+                if (creature.CanPickUp)
+                {
+                    _commands.Add(DropCommand.ByComputerKeeper(_view.PlayerId, Destination()));
+                }
             }
             allowance--;
         }
@@ -82,20 +96,32 @@ public sealed class KeeperRetreatStep
     public bool Selected(KeeperCreatureView creature)
     {
         int max = creature.MaxHealth;
-        if (creature.CombatPitFighter && creature.Health < (int)((uint)max >> 1)) return true;
+        if (creature.CombatPitFighter && creature.Health < (int)((uint)max >> 1))
+        {
+            return true;
+        }
 
         // DK2 multiplies the byte by the unsigned maximum and divides unsigned; the health is signed.
         int threshold = (int)(((uint)_p.BARetreatHealth * (uint)max) / 100);
         bool wounded = creature.Health < threshold;
         CreatureStateCategory category = CreatureStateTable.Get(creature.ResolvedStateId).Category;
-        if (wounded && category == CreatureStateCategory.Combat) return true;
+        if (wounded && category == CreatureStateCategory.Combat)
+        {
+            return true;
+        }
 
         if (creature.LastDroppedCounter <= DroppedGraceTurns && _turn > DroppedGraceTurns)
+        {
             return creature.CombatPitFighter && SkilledEnough(creature);
+        }
+
         if (!creature.CombatPitFighter)
+        {
             return wounded && category != CreatureStateCategory.Lair
                 && !creature.InMyHand && creature.StateId != DropLandingRules.LandingState
                 && !KeeperThreatResponder.IsStunned(creature.StateId) && !creature.AttachedToRoom;
+        }
+
         return SkilledEnough(creature);
     }
 

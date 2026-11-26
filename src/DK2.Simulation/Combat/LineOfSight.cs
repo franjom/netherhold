@@ -37,7 +37,10 @@ public static class LineOfSight
 
         while (true)
         {
-            if ((((x + dx) ^ x) & TileMask) == 0 && (((y + dy) ^ y) & TileMask) == 0) return true;
+            if ((((x + dx) ^ x) & TileMask) == 0 && (((y + dy) ^ y) & TileMask) == 0)
+            {
+                return true;
+            }
 
             // Distance to the next boundary on each axis, and the parameter (2.14) at which the
             // line reaches it. Going backwards the boundary is the one just below the tile.
@@ -46,12 +49,20 @@ public static class LineOfSight
             int tx = int.MaxValue, ty = int.MaxValue;
             if (dx != 0)
             {
-                if (dx < 0) stepToX = -(x & 0xFFFF) - 1;
+                if (dx < 0)
+                {
+                    stepToX = -(x & 0xFFFF) - 1;
+                }
+
                 tx = (stepToX << 14) / dx;
             }
             if (dy != 0)
             {
-                if (dy < 0) stepToY = -(y & 0xFFFF) - 1;
+                if (dy < 0)
+                {
+                    stepToY = -(y & 0xFFFF) - 1;
+                }
+
                 ty = (stepToY << 14) / dy;
             }
 
@@ -64,7 +75,10 @@ public static class LineOfSight
                 dy -= stepY;
                 x += stepToX;
                 dx -= stepToX;
-                if (stepY != 0 && stepY == stepToY) crossedY = true;
+                if (stepY != 0 && stepY == stepToY)
+                {
+                    crossedY = true;
+                }
             }
             else if (ty < tx)
             {
@@ -74,7 +88,10 @@ public static class LineOfSight
                 dx -= stepX;
                 y += stepToY;
                 dy -= stepToY;
-                if (stepX != 0 && stepX == stepToX) crossedX = true;
+                if (stepX != 0 && stepX == stepToX)
+                {
+                    crossedX = true;
+                }
             }
             else
             {
@@ -101,7 +118,10 @@ public static class LineOfSight
                 blocked = grid.Blocks(x >> 16, y >> 16);
             }
 
-            if (blocked) return false;
+            if (blocked)
+            {
+                return false;
+            }
         }
     }
 }
@@ -149,9 +169,17 @@ public sealed class WorldSight : ISightBlocker
     public bool Blocks(int x, int y)
     {
         byte nav = _navigation.NavByte(x, y);
-        if (NavBytes.IsSolid(nav)) return true;
+        if (NavBytes.IsSolid(nav))
+        {
+            return true;
+        }
+
         Sync();
-        if (x < 0 || y < 0 || x >= _world.Width || y >= _world.Height) return false;
+        if (x < 0 || y < 0 || x >= _world.Width || y >= _world.Height)
+        {
+            return false;
+        }
+
         int index = (y * _world.Width) + x;
         // What the door's tile reads as is taken live: it changes without a change of the door list.
         return _doorTiles[index] == PlainDoor && _doorAt[index] is { UnderConstruction: false, ReadsAsFloor: false };
@@ -159,7 +187,11 @@ public sealed class WorldSight : ISightBlocker
 
     private void Sync()
     {
-        if (_doorsVersion == _world.DoorsVersion && _doorTiles.Length == _world.TileCount) return;
+        if (_doorsVersion == _world.DoorsVersion && _doorTiles.Length == _world.TileCount)
+        {
+            return;
+        }
+
         if (_doorTiles.Length != _world.TileCount)
         {
             _doorTiles = new byte[_world.TileCount];
@@ -172,7 +204,11 @@ public sealed class WorldSight : ISightBlocker
         }
         foreach (DoorState door in _world.Doors)
         {
-            if (!_world.Contains(door.X, door.Y)) continue;
+            if (!_world.Contains(door.X, door.Y))
+            {
+                continue;
+            }
+
             bool barricade = _database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)
                 && (definition.Flags & DoorFlags.Barricade) != 0;
             int index = (door.Y * _world.Width) + door.X;

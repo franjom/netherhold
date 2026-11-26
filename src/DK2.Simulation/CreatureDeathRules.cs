@@ -45,8 +45,15 @@ public static class CreatureDeathRules
     public static bool HasDyingState(
         WorldState world, GameDatabase database, CreatureDef creature, CreatureState state)
     {
-        if (!LeavesBody(creature)) return false;
-        if (IsPossessed(world, state)) return false;
+        if (!LeavesBody(creature))
+        {
+            return false;
+        }
+
+        if (IsPossessed(world, state))
+        {
+            return false;
+        }
 
         RoomInstance? room = AttachedRoom(world, database, state);
 
@@ -86,7 +93,12 @@ public static class CreatureDeathRules
     public static bool IsPossessed(WorldState world, CreatureState state)
     {
         for (int i = 0; i < world.PlayerCount; i++)
-            if (world.PlayerAtIndex(i).PossessedCreatureId == state.Id) return true;
+        {
+            if (world.PlayerAtIndex(i).PossessedCreatureId == state.Id)
+            {
+                return true;
+            }
+        }
 
         return false;
     }
@@ -120,16 +132,34 @@ public static class CreatureDeathRules
         if (world.Contains(at)
             && RoomIndex.RoomAt(world, database, (at.Y * world.Width) + at.X) is { Definition.TypeId: RoomTypeId.Temple } temple
             && AutoFurnitureRules.IsFloorSlot(world, temple, (at.Y * world.Width) + at.X))
+        {
             return false;
-        if (!GraveyardRules.HasRoomForAnother(context, creature.OwnerPlayerId)) return false;
+        }
+
+        if (!GraveyardRules.HasRoomForAnother(context, creature.OwnerPlayerId))
+        {
+            return false;
+        }
 
         var graveyards = new List<RoomInstance>();
         foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
             if (room.OwnerPlayerId == creature.OwnerPlayerId && room.Definition.TypeId == RoomTypeId.Graveyard)
+            {
                 graveyards.Add(room);
-        if (graveyards.Count == 0) return false;
+            }
+        }
+
+        if (graveyards.Count == 0)
+        {
+            return false;
+        }
+
         RoomInstance graveyard = graveyards[context.Rng.NextInt(graveyards.Count)];
-        if (creature.Level <= 1) return false;
+        if (creature.Level <= 1)
+        {
+            return false;
+        }
 
         creature.StopMoving();
         creature.PosX = CreatureState.CentreOf(graveyard.CentreFieldX);
@@ -225,7 +255,10 @@ public static class CreatureDeathRules
     /// <see cref="Systems.CreatureHealthSystem"/> or <see cref="BecomeCorpse"/>. Its gold is dropped by the caller (<see cref="Systems.CreatureHealthSystem"/>), not here, so a capture resync that collapses a creature does not add piles to the floor gold it has just replaced.</summary>
     public static bool Collapse(in StateHookContext hooks, CreatureState creature)
     {
-        if (IsDying(creature)) return false;
+        if (IsDying(creature))
+        {
+            return false;
+        }
 
         // DK2 replaces the health with the dying countdown (0x004B2FA0); ours keeps the countdown in
         // DyingTicks and the health at zero, whatever overkill the blow left (CreatureHealthRules.Apply).
@@ -247,7 +280,9 @@ public static class CreatureDeathRules
         // and temporary vectors (0x00459635-0x00459658): a push or a fall in progress stops dead.
         creature.PhysicalVelocityX = creature.PhysicalVelocityY = creature.CreationVelocityZ = 0;
         if (CreaturePhysicsRules.OwnsHeight(creature))
+        {
             CreaturePhysicsRules.SetHeight(hooks.World, hooks.Database, creature, creature.PosZ);
+        }
         // No stop: neither entry (0x00459560, 0x004596D0) nor the damage call 0x0048B770 reaches 0x0048ECE0, so
         // the body keeps its last step's 16.16 point and velocity until a physical commit (a fall to a lower
         // floor) puts it back on the entity; a neighbour is pushed off where it is (Q795).
@@ -268,12 +303,23 @@ public static class CreatureDeathRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (!IsDying(creature)) return false;
+        if (!IsDying(creature))
+        {
+            return false;
+        }
+
         TilePos at = creature.Tile;
         int here = (at.Y * world.Width) + at.X;
-        if (!LairRules.IsLairTileOf(world, database, here, creature.OwnerPlayerId)) return false;
+        if (!LairRules.IsLairTileOf(world, database, here, creature.OwnerPlayerId))
+        {
+            return false;
+        }
+
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-        if (!LairRules.NeedsBed(definition) || RoomIndex.RoomAt(world, database, here) is not { } room) return false;
+        if (!LairRules.NeedsBed(definition) || RoomIndex.RoomAt(world, database, here) is not { } room)
+        {
+            return false;
+        }
 
         if (!LairRules.TryFindFreeTile(world, database, room, at, creature.OwnerPlayerId, context.Rng, out int tile, out _))
         {
@@ -302,11 +348,21 @@ public static class CreatureDeathRules
     public static bool Rescue(in StateHookContext hooks, CreatureState creature)
     {
         WorldState world = hooks.World;
-        if (!IsDying(creature)) return false;
+        if (!IsDying(creature))
+        {
+            return false;
+        }
 
         int bed = LairRules.BedTileIndex(world, hooks.Database, creature);
-        if (bed < 0) return false;
-        if (bed >= world.Width * world.Height) return false;
+        if (bed < 0)
+        {
+            return false;
+        }
+
+        if (bed >= world.Width * world.Height)
+        {
+            return false;
+        }
 
         creature.PosX = CreatureState.CentreOf(bed % world.Width);
         creature.PosY = CreatureState.CentreOf(bed / world.Width);

@@ -163,7 +163,11 @@ public static class WorldSnapshot
         w.Write(world.FogOfWarEnabled);
         w.Write((byte)world.GameMode);
         w.Write(world.ActivePlayerOrder.Count);
-        foreach (PlayerId id in world.ActivePlayerOrder) w.Write(id.Value);
+        foreach (PlayerId id in world.ActivePlayerOrder)
+        {
+            w.Write(id.Value);
+        }
+
         w.Write(world.TileCount);
         for (int i = 0; i < world.TileCount; i++)
         {
@@ -224,7 +228,10 @@ public static class WorldSnapshot
             w.Write(pair.Key.Tile.X);
             w.Write(pair.Key.Tile.Y);
             w.Write(pair.Value.Order);
-            foreach (int holder in pair.Value.Holders) w.Write(holder);
+            foreach (int holder in pair.Value.Holders)
+            {
+                w.Write(holder);
+            }
         }
         w.Write(world.RepairTaskEntries.Count);
         foreach (KeyValuePair<(PlayerId Player, TilePos Tile), RepairTaskEntry> pair in world.RepairTaskEntries.OrderBy(e => e.Key.Player.Value)
@@ -233,7 +240,10 @@ public static class WorldSnapshot
             w.Write(pair.Key.Player.Value);
             w.Write(pair.Key.Tile.X);
             w.Write(pair.Key.Tile.Y);
-            foreach (int holder in pair.Value.Holders) w.Write(holder);
+            foreach (int holder in pair.Value.Holders)
+            {
+                w.Write(holder);
+            }
         }
         w.Write(world.PlayerCount);
         for (int i = 0; i < world.PlayerCount; i++)
@@ -299,7 +309,11 @@ public static class WorldSnapshot
                 w.Write(entrance.Block);
             }
             w.Write(p.IntroducedCreatureTypes.Count);
-            foreach (byte creatureType in p.IntroducedCreatureTypes) w.Write(creatureType);
+            foreach (byte creatureType in p.IntroducedCreatureTypes)
+            {
+                w.Write(creatureType);
+            }
+
             w.Write(p.ManufacturePoints);
             w.Write(p.ManufacturingCreatures);
             w.Write(p.InformationGiven);
@@ -340,7 +354,11 @@ public static class WorldSnapshot
         foreach (RoomBuildWaveState? wave in world.RoomBuildWaveSlots)
         {
             w.Write(wave.HasValue);
-            if (wave is not RoomBuildWaveState active) continue;
+            if (wave is not RoomBuildWaveState active)
+            {
+                continue;
+            }
+
             w.Write((byte)active.RoomId);
             w.Write(active.Press.X);
             w.Write(active.Press.Y);
@@ -352,7 +370,11 @@ public static class WorldSnapshot
         foreach (RoomSellWaveState? wave in world.RoomSellWaveSlots)
         {
             w.Write(wave.HasValue);
-            if (wave is not RoomSellWaveState active) continue;
+            if (wave is not RoomSellWaveState active)
+            {
+                continue;
+            }
+
             w.Write(active.Min.X);
             w.Write(active.Min.Y);
             w.Write(active.Max.X);
@@ -373,7 +395,11 @@ public static class WorldSnapshot
 
         w.Write(world.NextCreatureId);
         w.Write(world.CreatureSlots.FreeTags.Count);
-        foreach (NativeCreatureTag tag in world.CreatureSlots.FreeTags) w.Write(tag.Value);
+        foreach (NativeCreatureTag tag in world.CreatureSlots.FreeTags)
+        {
+            w.Write(tag.Value);
+        }
+
         w.Write(world.Creatures.Count);
         foreach (CreatureState c in world.Creatures)
         {
@@ -694,16 +720,30 @@ public static class WorldSnapshot
             w.Write(c.GoodJobActionPointId);
             w.Write(c.GemCarrier);
             w.Write(c.TrainingCharges);
-            for (int i = 0; i < c.SpellStamps.Length; i++) w.Write(c.SpellStamps[i]);
-            for (int i = 0; i < c.EngagedMelee.Length; i++) w.Write(c.EngagedMelee[i]);
-            for (int i = 0; i < c.EngagedRanged.Length; i++) w.Write(c.EngagedRanged[i]);
+            for (int i = 0; i < c.SpellStamps.Length; i++)
+            {
+                w.Write(c.SpellStamps[i]);
+            }
+
+            for (int i = 0; i < c.EngagedMelee.Length; i++)
+            {
+                w.Write(c.EngagedMelee[i]);
+            }
+
+            for (int i = 0; i < c.EngagedRanged.Length; i++)
+            {
+                w.Write(c.EngagedRanged[i]);
+            }
 
             // The route window is state, not a cache: a creature restored without it would
             // request again from a different position and the restored run would diverge.
             WriteBody(w, c.Body);
         }
 
-        foreach (CreatureState c in world.CreatureOwnershipOrder) w.Write(c.Id);
+        foreach (CreatureState c in world.CreatureOwnershipOrder)
+        {
+            w.Write(c.Id);
+        }
 
         w.Write(world.NextShotId);
         w.Write(world.Shots.Count);
@@ -920,7 +960,11 @@ public static class WorldSnapshot
             w.Write(generator.Unknown_0008); w.Write(generator.Unknown_000C);
             w.Write(generator.Unknown_0010); w.Write(generator.Unknown_0012);
             w.Write(generator.EffectIds.Count);
-            foreach (ushort effectId in generator.EffectIds) w.Write(effectId);
+            foreach (ushort effectId in generator.EffectIds)
+            {
+                w.Write(effectId);
+            }
+
             w.Write(generator.Frequency); w.Write(generator.GeneratorId);
             w.Write(generator.Unknown_001E.ToArray());
             w.Write(generator.PosX); w.Write(generator.PosY); w.Write(generator.PosZ);
@@ -955,8 +999,16 @@ public static class WorldSnapshot
         // fixed 128 bytes and 16 dwords, and a sparse form would have to
         // encode which slots are set, which costs more than the slots.
         world.Messages.Write(w);
-        for (int i = 0; i < TriggerState.FlagCount; i++) w.Write(world.Triggers.RawFlags[i]);
-        for (int i = 0; i < TriggerState.TimerCount; i++) w.Write(world.Triggers.RawTimers[i]);
+        for (int i = 0; i < TriggerState.FlagCount; i++)
+        {
+            w.Write(world.Triggers.RawFlags[i]);
+        }
+
+        for (int i = 0; i < TriggerState.TimerCount; i++)
+        {
+            w.Write(world.Triggers.RawTimers[i]);
+        }
+
         w.Write(world.Triggers.SpecialValue);
         w.Write(world.Triggers.SpecialValueWritten);
         w.Write(world.Triggers.RawWorldOptions);
@@ -992,7 +1044,10 @@ public static class WorldSnapshot
         TriggerTree? triggers = null)
     {
         if (!stream.CanSeek)
+        {
             throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "A snapshot requires a seekable stream.");
+        }
+
         try { return ReadCore(stream, database, systems, triggers); }
         catch (Exception ex) when (SaveReader.IsMalformed(ex))
         { throw SaveReader.Wrap(ex, stream.Position); }
@@ -1005,12 +1060,16 @@ public static class WorldSnapshot
 
         byte[] magic = SaveReader.Bytes(r, MagicBytes.Length, "snapshot magic");
         if (magic.Length != MagicBytes.Length || !magic.SequenceEqual(MagicBytes))
+        {
             throw SaveReader.Error(r, SaveIncompatibleReason.NotASave, "Not a DK2 simulation snapshot (bad magic)");
+        }
 
         int version = r.ReadInt32();
         if (version != FormatVersion)
+        {
             throw SaveReader.Error(r, SaveIncompatibleReason.UnsupportedVersion,
                 $"Snapshot format version {version} is not supported (this build reads {FormatVersion}).");
+        }
 
         var tick = new GameTick(r.ReadInt64());
         SimRandom rng = ReadRandom(r);
@@ -1018,15 +1077,24 @@ public static class WorldSnapshot
         int width = r.ReadInt32();
         int height = r.ReadInt32();
         if (width <= 0 || height <= 0 || (long)width * height > int.MaxValue)
+        {
             throw SaveReader.Error(r, SaveIncompatibleReason.OutOfRange, $"Invalid map dimensions {width}x{height}");
+        }
+
         bool fogOfWarEnabled = r.ReadBoolean();
         var gameMode = (GameMode)r.ReadByte();
         var activePlayerOrder = new PlayerId[SaveReader.Count(r, "active players", 1, byte.MaxValue + 1)];
-        for (int i = 0; i < activePlayerOrder.Length; i++) activePlayerOrder[i] = new PlayerId(r.ReadByte());
+        for (int i = 0; i < activePlayerOrder.Length; i++)
+        {
+            activePlayerOrder[i] = new PlayerId(r.ReadByte());
+        }
+
         int tileCount = SaveReader.Count(r, "tileCount", 125);
         if (tileCount != (long)width * height)
+        {
             throw SaveReader.Error(r, SaveIncompatibleReason.Corrupt,
                 $"Snapshot claims {width}x{height} but carries {tileCount} tiles.");
+        }
 
         var tiles = new TileState[tileCount];
         for (int i = 0; i < tileCount; i++)
@@ -1089,7 +1157,11 @@ public static class WorldSnapshot
             PlayerId player = r.ReadByte();
             var tile = new TilePos(r.ReadInt32(), r.ReadInt32());
             var entry = new SecretDoorTaskEntry { Order = r.ReadInt32() };
-            for (int side = 0; side < 4; side++) entry.Holders[side] = r.ReadInt32();
+            for (int side = 0; side < 4; side++)
+            {
+                entry.Holders[side] = r.ReadInt32();
+            }
+
             secretDoorEntries.Add((player, tile), entry);
         }
         int repairTaskEntryCount = SaveReader.Count(r, "repairTaskEntryCount", 25);
@@ -1099,7 +1171,11 @@ public static class WorldSnapshot
             PlayerId player = r.ReadByte();
             var tile = new TilePos(r.ReadInt32(), r.ReadInt32());
             var entry = new RepairTaskEntry();
-            for (int side = 0; side < 4; side++) entry.Holders[side] = r.ReadInt32();
+            for (int side = 0; side < 4; side++)
+            {
+                entry.Holders[side] = r.ReadInt32();
+            }
+
             repairTaskEntries.Add((player, tile), entry);
         }
         int playerCount = SaveReader.Count(r, "playerCount", 132, byte.MaxValue + 1);
@@ -1153,14 +1229,23 @@ public static class WorldSnapshot
 
             int availabilityCount = SaveReader.Count(r, "availabilityCount", 27);
             for (int a = 0; a < availabilityCount; a++)
+            {
                 players[i].Availabilities.Add(new AvailabilityState(
                     (AvailabilityKind)r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt64(), r.ReadInt64()));
+            }
+
             players[i].LastSackedCreatureTypeId = r.ReadByte();
             int entranceCount = SaveReader.Count(r, "entranceCount", 9);
             for (int a = 0; a < entranceCount; a++)
+            {
                 players[i].EntranceInfo.Add(new EntranceInfoState(r.ReadByte(), r.ReadInt32(), r.ReadInt32()));
+            }
+
             int introducedCount = SaveReader.Count(r, "introducedCount", 1, byte.MaxValue + 1);
-            for (int a = 0; a < introducedCount; a++) players[i].IntroducedCreatureTypes.Add(r.ReadByte());
+            for (int a = 0; a < introducedCount; a++)
+            {
+                players[i].IntroducedCreatureTypes.Add(r.ReadByte());
+            }
 
             players[i].ManufacturePoints = r.ReadInt32();
             players[i].ManufacturingCreatures = r.ReadInt32();
@@ -1172,14 +1257,22 @@ public static class WorldSnapshot
             players[i].ManufactureSlotZeroCost = r.ReadInt32();
             int orderCount = SaveReader.Count(r, "orderCount", 6, ManufactureRules.QueueCapacity);
             for (int o = 0; o < orderCount; o++)
+            {
                 players[i].ManufactureQueue.Add(new ManufactureOrder(r.ReadByte(), r.ReadByte(), r.ReadInt32()));
+            }
+
             int blueprintCount = SaveReader.Count(r, "blueprintCount", 5);
             for (int o = 0; o < blueprintCount; o++)
+            {
                 players[i].Blueprints.Add(new BlueprintRef(r.ReadByte(), r.ReadInt32()));
+            }
 
             int handCount = SaveReader.Count(r, "handCount", 5);
             if (handCount > 0)
+            {
                 SaveReader.CheckCount(r, handCount, "hand items", 5, HandRules.Capacity(database));
+            }
+
             for (int h = 0; h < handCount; h++)
             {
                 var kind = (HandItemKind)r.ReadByte();
@@ -1198,19 +1291,36 @@ public static class WorldSnapshot
         world.NextTagOrder = nextTagOrder;
         world.Carry = carry;
         world.LocalPlayerId = new PlayerId(localPlayer);
-        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> pair in secretDoorEntries) world.SecretDoorEntries.Add(pair.Key, pair.Value);
-        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), RepairTaskEntry> pair in repairTaskEntries) world.RepairTaskEntries.Add(pair.Key, pair.Value);
+        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> pair in secretDoorEntries)
+        {
+            world.SecretDoorEntries.Add(pair.Key, pair.Value);
+        }
+
+        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), RepairTaskEntry> pair in repairTaskEntries)
+        {
+            world.RepairTaskEntries.Add(pair.Key, pair.Value);
+        }
+
         world.CurrentTick = tick;
 
         for (int i = 0; i < world.RoomBuildWaveSlots.Length; i++)
+        {
             if (r.ReadBoolean())
+            {
                 world.RoomBuildWaveSlots[i] = new RoomBuildWaveState((RoomTypeId)r.ReadByte(),
                     new TilePos(r.ReadInt32(), r.ReadInt32()), new TilePos(r.ReadInt32(), r.ReadInt32()),
                     new GameTick(r.ReadInt64()), r.ReadUInt16());
+            }
+        }
+
         for (int i = 0; i < world.RoomSellWaveSlots.Length; i++)
+        {
             if (r.ReadBoolean())
+            {
                 world.RoomSellWaveSlots[i] = new RoomSellWaveState(new TilePos(r.ReadInt32(), r.ReadInt32()),
                     new TilePos(r.ReadInt32(), r.ReadInt32()), new GameTick(r.ReadInt64()));
+            }
+        }
 
         int workCount = SaveReader.Count(r, "workCount", 18);
         for (int i = 0; i < workCount; i++)
@@ -1222,7 +1332,11 @@ public static class WorldSnapshot
         int nextCreatureId = r.ReadInt32();
         int freeCreatureSlots = SaveReader.Count(r, "freeCreatureSlots", 2);
         var freeTags = new NativeCreatureTag[freeCreatureSlots];
-        for (int i = 0; i < freeTags.Length; i++) freeTags[i] = new NativeCreatureTag(r.ReadUInt16());
+        for (int i = 0; i < freeTags.Length; i++)
+        {
+            freeTags[i] = new NativeCreatureTag(r.ReadUInt16());
+        }
+
         world.CreatureSlots.Restore(freeTags);
         int creatureCount = SaveReader.Count(r, "creatureCount", 890);
         for (int i = 0; i < creatureCount; i++)
@@ -1559,9 +1673,20 @@ public static class WorldSnapshot
                 GemCarrier = r.ReadBoolean(),
                 TrainingCharges = r.ReadByte(),
             };
-            for (int k = 0; k < creature.SpellStamps.Length; k++) creature.SpellStamps[k] = r.ReadInt64();
-            for (int k = 0; k < creature.EngagedMelee.Length; k++) creature.EngagedMelee[k] = r.ReadInt32();
-            for (int k = 0; k < creature.EngagedRanged.Length; k++) creature.EngagedRanged[k] = r.ReadInt32();
+            for (int k = 0; k < creature.SpellStamps.Length; k++)
+            {
+                creature.SpellStamps[k] = r.ReadInt64();
+            }
+
+            for (int k = 0; k < creature.EngagedMelee.Length; k++)
+            {
+                creature.EngagedMelee[k] = r.ReadInt32();
+            }
+
+            for (int k = 0; k < creature.EngagedRanged.Length; k++)
+            {
+                creature.EngagedRanged[k] = r.ReadInt32();
+            }
 
             ReadBody(r, creature.Body);
             world.RawCreatures.Add(creature);
@@ -1573,11 +1698,17 @@ public static class WorldSnapshot
         // creatures die must not hand out an id it has already used.
         world.NextCreatureId = nextCreatureId;
         if (!world.CreatureSlots.IsValidPartition(world.Creatures))
+        {
             throw SaveReader.Error(r, SaveIncompatibleReason.Corrupt, "Invalid native creature slot ownership.");
+        }
 
         SaveReader.CheckCount(r, creatureCount, "creature ownership order", 4);
         int[] ownershipOrder = new int[creatureCount];
-        for (int i = 0; i < ownershipOrder.Length; i++) ownershipOrder[i] = r.ReadInt32();
+        for (int i = 0; i < ownershipOrder.Length; i++)
+        {
+            ownershipOrder[i] = r.ReadInt32();
+        }
+
         world.RestoreCreatureOwnershipOrder(ownershipOrder);
 
         int nextShotId = r.ReadInt32();
@@ -1729,7 +1860,10 @@ public static class WorldSnapshot
             });
         }
         int navStampCount = SaveReader.Count(r, "navStampCount", 6);
-        for (int i = 0; i < navStampCount; i++) world.RawNavStamps.Add(new NavStamp(r.ReadInt32(), r.ReadByte(), r.ReadByte()));
+        for (int i = 0; i < navStampCount; i++)
+        {
+            world.RawNavStamps.Add(new NavStamp(r.ReadInt32(), r.ReadByte(), r.ReadByte()));
+        }
 
         world.NextTrapId = r.ReadInt32();
         int trapCount = SaveReader.Count(r, "trapCount", 82);
@@ -1774,13 +1908,18 @@ public static class WorldSnapshot
             };
         }
         for (int i = 0; i < WorldState.HeroSlotCount; i++)
+        {
             world.HeroSlotArray[i] = new HeroSlot { CreatureId = r.ReadInt32(), Value = r.ReadByte() };
+        }
+
         int borderCursorCount = SaveReader.Count(r, "borderCursorCount", 7);
         for (int i = 0; i < borderCursorCount; i++)
+        {
             world.RoomBorderCursorList.Add(new RoomBorderCursor
             {
                 X = r.ReadByte(), Y = r.ReadByte(), Orientation = r.ReadByte(), Phase = r.ReadInt32(),
             });
+        }
 
         int heroPartyCount = SaveReader.Count(r, "heroPartyCount", 17, byte.MaxValue + 1);
         for (int i = 0; i < heroPartyCount; i++)
@@ -1821,7 +1960,11 @@ public static class WorldSnapshot
             ushort unknown0010 = r.ReadUInt16(); ushort unknown0012 = r.ReadUInt16();
             int effectIdCount = SaveReader.Count(r, "effectIdCount", 2);
             ushort[] effectIds = new ushort[effectIdCount];
-            for (int e = 0; e < effectIdCount; e++) effectIds[e] = r.ReadUInt16();
+            for (int e = 0; e < effectIdCount; e++)
+            {
+                effectIds[e] = r.ReadUInt16();
+            }
+
             world.RawEffectGenerators.Add(new EffectGeneratorState
             {
                 X = x, Y = y, Unknown_0008 = unknown0008, Unknown_000C = unknown000C,
@@ -1841,7 +1984,10 @@ public static class WorldSnapshot
             int nextInsertionIndex = r.ReadInt32();
             var entries = new SacrificeIngredient[TempleSacrificeState.Capacity];
             for (int slot = 0; slot < entries.Length; slot++)
+            {
                 entries[slot] = new SacrificeIngredient(r.ReadByte(), r.ReadByte(), r.ReadInt32());
+            }
+
             temple.Restore(count, nextInsertionIndex, entries);
             world.RawTempleSacrifices.Add(temple);
         }
@@ -1855,8 +2001,16 @@ public static class WorldSnapshot
         }
 
         world.Messages.Read(r);
-        for (int i = 0; i < TriggerState.FlagCount; i++) world.Triggers.RawFlags[i] = r.ReadByte();
-        for (int i = 0; i < TriggerState.TimerCount; i++) world.Triggers.RawTimers[i] = r.ReadInt32();
+        for (int i = 0; i < TriggerState.FlagCount; i++)
+        {
+            world.Triggers.RawFlags[i] = r.ReadByte();
+        }
+
+        for (int i = 0; i < TriggerState.TimerCount; i++)
+        {
+            world.Triggers.RawTimers[i] = r.ReadInt32();
+        }
+
         world.Triggers.SpecialValue = r.ReadInt32();
         world.Triggers.SpecialValueWritten = r.ReadBoolean();
         world.Triggers.RawWorldOptions = r.ReadByte();
@@ -1866,12 +2020,17 @@ public static class WorldSnapshot
         world.Triggers.MaximumSlaps = r.ReadInt32();
         int triggerRecordCount = SaveReader.Count(r, "triggerRecordCount", 8);
         for (int i = 0; i < triggerRecordCount; i++)
+        {
             world.Triggers.RestoreRecord(r.ReadInt32(), r.ReadUInt16(), r.ReadBoolean(), r.ReadByte());
+        }
 
         var simulation = new GameSimulation(database, world, rng, systems, triggers, levelStart: false);
         simulation.Navigation.Read(r);
         if (SaveReader.Remaining(r) != 0)
+        {
             throw SaveReader.Error(r, SaveIncompatibleReason.Corrupt, "Unexpected bytes after the snapshot");
+        }
+
         return simulation;
     }
 

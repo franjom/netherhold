@@ -42,7 +42,11 @@ public static class GuardRules
     /// <summary>Whether (x, y) is a tile of <paramref name="owner"/>'s Guard Room.</summary>
     public static bool IsOwnGuardRoom(WorldState world, GameDatabase database, int x, int y, PlayerId owner)
     {
-        if (!world.Contains(new TilePos(x, y))) return false;
+        if (!world.Contains(new TilePos(x, y)))
+        {
+            return false;
+        }
+
         ref TileState tile = ref world.Tile(x, y);
         return tile.OwnerPlayerId == owner && RoomRules.RoomOn(database, tile)?.RoomId == (byte)RoomTypeId.GuardRoom;
     }
@@ -53,14 +57,22 @@ public static class GuardRules
     public static int Slot(WorldState world, GameDatabase database, int x, int y, PlayerId owner, out int facing)
     {
         facing = 0;
-        if (!world.Contains(new TilePos(x, y)) || RoomRules.RoomOn(database, world.Tile(x, y)) is null) return NoSlot;
+        if (!world.Contains(new TilePos(x, y)) || RoomRules.RoomOn(database, world.Tile(x, y)) is null)
+        {
+            return NoSlot;
+        }
+
         int mask = (IsOwnGuardRoom(world, database, x - 1, y, owner) ? 1 : 0)
                    | (IsOwnGuardRoom(world, database, x + 1, y, owner) ? 2 : 0)
                    | (IsOwnGuardRoom(world, database, x, y - 1, owner) ? 4 : 0)
                    | (IsOwnGuardRoom(world, database, x, y + 1, owner) ? 8 : 0);
         for (int i = 0; i < Slots.Length; i++)
         {
-            if (Slots[i].Mask != mask) continue;
+            if (Slots[i].Mask != mask)
+            {
+                continue;
+            }
+
             facing = Slots[i].Facing;
             return i;
         }
@@ -72,19 +84,38 @@ public static class GuardRules
     /// <see cref="NoSlot"/>, or (0, 0) once a leg reaches twice the map's larger side.</summary>
     public static TilePos NearestPost(WorldState world, GameDatabase database, int x, int y, PlayerId owner)
     {
-        if (IsPost(world, database, x, y, owner)) return new TilePos(x, y);
+        if (IsPost(world, database, x, y, owner))
+        {
+            return new TilePos(x, y);
+        }
+
         int limit = 2 * Math.Max(world.Width, world.Height);
         int step = 1, length = 1;
         x++;
         while (true)
         {
             for (int i = 0; i < length; i++, y += step)
-                if (IsPost(world, database, x, y, owner)) return new TilePos(x, y);
+            {
+                if (IsPost(world, database, x, y, owner))
+                {
+                    return new TilePos(x, y);
+                }
+            }
+
             length++;
             step = -step;
             for (int i = 0; i < length; i++, x += step)
-                if (IsPost(world, database, x, y, owner)) return new TilePos(x, y);
-            if (length >= limit) return new TilePos(0, 0);
+            {
+                if (IsPost(world, database, x, y, owner))
+                {
+                    return new TilePos(x, y);
+                }
+            }
+
+            if (length >= limit)
+            {
+                return new TilePos(0, 0);
+            }
         }
     }
 
@@ -97,7 +128,11 @@ public static class GuardRules
     /// (<see cref="NoSlot"/>), whose pair lies in the source-path string after the table.</summary>
     public static (int X, int Y)? PostPoint(TilePos post, int facing)
     {
-        if (facing >= NoSlot) return null;
+        if (facing >= NoSlot)
+        {
+            return null;
+        }
+
         return ((post.X << 12) | Offsets[(2 * facing) + 1], (post.Y << 12) | Offsets[(2 * facing) + 2]);
     }
 
@@ -115,10 +150,17 @@ public static class GuardRules
         (int dx, int dy, int wx, int wy, int blocked, int opens) = Heading(facing);
         for (int n = 0; n < world.Width * world.Height; n++)
         {
-            if (!IsOwnGuardRoom(world, database, x + dx, y + dy, owner)) return (new TilePos(x, y), blocked);
+            if (!IsOwnGuardRoom(world, database, x + dx, y + dy, owner))
+            {
+                return (new TilePos(x, y), blocked);
+            }
+
             x += dx;
             y += dy;
-            if (IsOwnGuardRoom(world, database, x + wx, y + wy, owner)) return (new TilePos(x, y), opens);
+            if (IsOwnGuardRoom(world, database, x + wx, y + wy, owner))
+            {
+                return (new TilePos(x, y), opens);
+            }
         }
 
         return (new TilePos(x, y), facing);

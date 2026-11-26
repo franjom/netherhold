@@ -39,7 +39,11 @@ public readonly record struct PossessedSlot
 
     public PossessedSlot(int value)
     {
-        if (value is < -8 or > 7) throw new ArgumentOutOfRangeException(nameof(value), value, "A signed four-bit slot.");
+        if (value is < -8 or > 7)
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), value, "A signed four-bit slot.");
+        }
+
         Value = (sbyte)value;
     }
 

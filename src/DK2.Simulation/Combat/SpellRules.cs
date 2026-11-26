@@ -40,7 +40,11 @@ public static class SpellRules
     /// <summary>The spell in a slot, or null when the slot is empty or names no definition.</summary>
     public static CreatureSpellDef? SpellOf(GameDatabase database, CreatureDef definition, int slot)
     {
-        if (slot < 0 || slot >= definition.Spells.Count || slot >= Slots) return null;
+        if (slot < 0 || slot >= definition.Spells.Count || slot >= Slots)
+        {
+            return null;
+        }
+
         byte id = definition.Spells[slot].CreatureSpellId;
         return id != 0 && database.CreatureSpells.TryGetValue(id, out CreatureSpellDef? spell) ? spell : null;
     }
@@ -66,7 +70,11 @@ public static class SpellRules
     public static bool CanCast(GameDatabase database, CreatureState me, CreatureDef definition, int slot, long tick)
     {
         CreatureSpellDef? spell = SpellOf(database, definition, slot);
-        if (spell is null) return false;
+        if (spell is null)
+        {
+            return false;
+        }
+
         long stamp = me.SpellStamps[slot];
         return stamp == CreatureState.NeverUsed || stamp + CombatRules.Scaled(
             CombatRules.RechargeTicks(database, me, RechargeTicks(spell)), me, definition) < tick;
@@ -89,12 +97,28 @@ public static class SpellRules
         int count = Math.Min(definition.Spells.Count, Slots);
         for (int i = 0; i < count; i++)
         {
-            if (definition.Spells[i].LevelAvailable > me.Level) continue;
-            if (!whileRecharging && !CanCast(database, me, definition, i, tick)) continue;
+            if (definition.Spells[i].LevelAvailable > me.Level)
+            {
+                continue;
+            }
+
+            if (!whileRecharging && !CanCast(database, me, definition, i, tick))
+            {
+                continue;
+            }
+
             CreatureSpellDef? spell = SpellOf(database, definition, i);
-            if (spell is null || !IsAttack(spell) || (skipStatus && IsStatus(spell))) continue;
+            if (spell is null || !IsAttack(spell) || (skipStatus && IsStatus(spell)))
+            {
+                continue;
+            }
+
             int ready = unchecked((int)me.SpellStamps[i] + CombatRules.RechargeTicks(database, me, RechargeTicks(spell)));
-            if (best >= 0 && ready >= bestReady) continue;
+            if (best >= 0 && ready >= bestReady)
+            {
+                continue;
+            }
+
             best = i;
             bestReady = ready;
             chosen = spell;
@@ -120,10 +144,22 @@ public static class SpellRules
         int count = Math.Min(definition.Spells.Count, Slots);
         for (int i = 0; i < count; i++)
         {
-            if (definition.Spells[i].LevelAvailable > me.Level) continue;
-            if (!whileRecharging && !CanCast(database, me, definition, i, tick)) continue;
+            if (definition.Spells[i].LevelAvailable > me.Level)
+            {
+                continue;
+            }
+
+            if (!whileRecharging && !CanCast(database, me, definition, i, tick))
+            {
+                continue;
+            }
+
             CreatureSpellDef? spell = SpellOf(database, definition, i);
-            if (spell is null || !IsBodySpell(database, spell)) continue;
+            if (spell is null || !IsBodySpell(database, spell))
+            {
+                continue;
+            }
+
             best = i;
             chosen = spell;
         }
@@ -139,10 +175,22 @@ public static class SpellRules
         int count = Math.Min(definition.Spells.Count, Slots);
         for (int i = 0; i < count; i++)
         {
-            if (definition.Spells[i].LevelAvailable > me.Level) continue;
-            if (!CanCast(database, me, definition, i, tick)) continue;
+            if (definition.Spells[i].LevelAvailable > me.Level)
+            {
+                continue;
+            }
+
+            if (!CanCast(database, me, definition, i, tick))
+            {
+                continue;
+            }
+
             CreatureSpellDef spell = SpellOf(database, definition, i)!;
-            if (!IsFriendly(spell)) continue;
+            if (!IsFriendly(spell))
+            {
+                continue;
+            }
+
             best = i;
             chosen = spell;
         }

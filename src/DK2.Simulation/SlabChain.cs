@@ -33,7 +33,13 @@ public static class SlabChain
     {
         int best = -1;
         foreach (int tile in room.TileIndices)
-            if (best < 0 || Before(world, tile, best)) best = tile;
+        {
+            if (best < 0 || Before(world, tile, best))
+            {
+                best = tile;
+            }
+        }
+
         return best;
     }
 
@@ -43,7 +49,11 @@ public static class SlabChain
         SimRandom? stream = null, SimulationContext? context = null)
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
-        if (tile.TerrainId == terrainBefore && tile.OwnerPlayerId == ownerBefore) return;
+        if (tile.TerrainId == terrainBefore && tile.OwnerPlayerId == ownerBefore)
+        {
+            return;
+        }
+
         tile.ChickensGenerated = 0;
 
         // The tile's part of the old room's deficit goes with the old room; whatever it joins, it
@@ -51,20 +61,33 @@ public static class SlabChain
         int lost = tile.RoomHealthLost;
         tile.RoomHealthLost = 0;
         if (database.RoomByTerrain(terrainBefore) is { } before)
+        {
             Removed(world, database, tileIndex, terrainBefore, ownerBefore, before, lost, stream, context);
+        }
+
         if (database.RoomByTerrain(tile.TerrainId) is { } after)
         {
             List<int>? absorbed = after.TypeId == RoomTypeId.Graveyard ? [] : null;
             List<int> chain = Added(world, database, tileIndex, absorbed, stream, context);
-            if (after.TypeId == RoomTypeId.Prison) Activate(world, chain);
-            if (absorbed is { Count: > 0 }) GraveyardRules.Unlink(world, absorbed);
+            if (after.TypeId == RoomTypeId.Prison)
+            {
+                Activate(world, chain);
+            }
+
+            if (absorbed is { Count: > 0 })
+            {
+                GraveyardRules.Unlink(world, absorbed);
+            }
         }
         else
         {
             (tile.SlabOrder, tile.RoomSizeChangedTick, tile.RoomKickedTick) = (0, 0, 0);
             tile.RoomListPosition = default;
         }
-        if (tile.TerrainId != terrainBefore) KickNeighbours(world, database, tileIndex, context);
+        if (tile.TerrainId != terrainBefore)
+        {
+            KickNeighbours(world, database, tileIndex, context);
+        }
     }
 
     /// <summary>A holder a neighbour's change picked: no room's stamp equals it.</summary>
@@ -86,22 +109,35 @@ public static class SlabChain
         for (int d = 0; d < Dx.Length; d++)
         {
             int nx = x + Dx[d], ny = y + Dy[d];
-            if (nx < 0 || ny < 0 || nx >= world.Width || ny >= world.Height) continue;
+            if (nx < 0 || ny < 0 || nx >= world.Width || ny >= world.Height)
+            {
+                continue;
+            }
+
             int n = (ny * world.Width) + nx;
             if (database.RoomByTerrain(world.TileAtIndex(n).TerrainId) is not { } definition
                 || !((definition.Flags & RoomFlags.SpecialWalls) == RoomFlags.SpecialWalls)
                 || definition.TypeId is not (RoomTypeId.Library or RoomTypeId.TrainingRoom or RoomTypeId.Workshop
                     or RoomTypeId.TortureChamber or RoomTypeId.Casino)
                 || RoomIndex.RoomAt(world, database, n) is not { } room)
+            {
                 continue;
+            }
 
             if (context is not null && definition.TypeId == RoomTypeId.Library)
             {
                 foreach (CreatureState holder in world.Creatures.Where(c => c.HeldPlace.In(room))
                     .OrderByDescending(c => c.HeldPlaceSerial).ToArray())
                 {
-                    if (holder.InHand) continue;
-                    if (Systems.StateShadow.TryMove(context, "room neighbour", holder, ResearchStep.ReturningState)) break;
+                    if (holder.InHand)
+                    {
+                        continue;
+                    }
+
+                    if (Systems.StateShadow.TryMove(context, "room neighbour", holder, ResearchStep.ReturningState))
+                    {
+                        break;
+                    }
                 }
                 continue;
             }
@@ -109,11 +145,21 @@ public static class SlabChain
             CreatureState? head = null;
             foreach (CreatureState c in world.Creatures)
             {
-                if (!c.HeldPlace.In(room) || c.HeldPlaceStamp == KickedMark) continue;
-                if (head is null || c.HeldPlaceSerial > head.HeldPlaceSerial) head = c;
+                if (!c.HeldPlace.In(room) || c.HeldPlaceStamp == KickedMark)
+                {
+                    continue;
+                }
+
+                if (head is null || c.HeldPlaceSerial > head.HeldPlaceSerial)
+                {
+                    head = c;
+                }
             }
 
-            if (head is not null) head.HeldPlaceStamp = KickedMark;
+            if (head is not null)
+            {
+                head.HeldPlaceStamp = KickedMark;
+            }
         }
     }
 
@@ -122,7 +168,10 @@ public static class SlabChain
     internal static void Kick(WorldState world, RoomInstance room)
     {
         long now = world.CurrentTick.Value;
-        foreach (int tile in room.TileIndices) world.TileAtIndex(tile).RoomKickedTick = now;
+        foreach (int tile in room.TileIndices)
+        {
+            world.TileAtIndex(tile).RoomKickedTick = now;
+        }
     }
 
     /// <summary>The later of the room's rebuild and its last kick: a holder that claimed its place
@@ -168,13 +217,21 @@ public static class SlabChain
         for (int d = 0; d < Dx.Length; d++)
         {
             int n = Neighbour(world, tileIndex, d);
-            if (n < 0 || taken.Contains(n) || !Same(world, n, terrain, owner)) continue;
+            if (n < 0 || taken.Contains(n) || !Same(world, n, terrain, owner))
+            {
+                continue;
+            }
+
             List<int> room = Fill(world, n, terrain, owner, taken);
             Sort(world, room);
             if (chain is null)
             {
                 int clockTile = int.MaxValue;
-                foreach (int t in room) clockTile = Math.Min(clockTile, t);
+                foreach (int t in room)
+                {
+                    clockTile = Math.Min(clockTile, t);
+                }
+
                 hatcheryStamp = world.TileAtIndex(clockTile).HatcheryLastGeneratedTick;
                 workshop = WorkshopTimerRules.Read(world, clockTile);
                 pit = CombatPitRoomStep.Read(world, clockTile);
@@ -194,7 +251,10 @@ public static class SlabChain
             else
             {
                 if (database.RoomByTerrain(terrain)?.TypeId == RoomTypeId.CombatPit && context is not null)
+                {
                     Systems.CombatPitSystem.ReleaseAttached(context, place => room.Contains(place.TileIndex));
+                }
+
                 chain.AddRange(room);
                 absorbed?.AddRange(room);
                 freed.AddRange(room);
@@ -203,16 +263,35 @@ public static class SlabChain
 
         bool workshopRoom = WorkshopTimerRules.IsWorkshop(database.RoomByTerrain(terrain));
         // A tile with no neighbour starts a room, and a Workshop's constructor draws its four timers (0x004F4A60).
-        if (chain is null && workshopRoom && world.RoomConstructionRandom is { } rng) workshop = WorkshopTimerRules.Construct(rng);
+        if (chain is null && workshopRoom && world.RoomConstructionRandom is { } rng)
+        {
+            workshop = WorkshopTimerRules.Construct(rng);
+        }
+
         chain ??= [tileIndex];
-        if (listPosition == default) listPosition = RoomLists.Next(world);
+        if (listPosition == default)
+        {
+            listPosition = RoomLists.Next(world);
+        }
+
         RoomLists.Set(world, chain, listPosition);
         Stamp(world, chain);
-        if (workshopRoom) WorkshopTimerRules.Place(world, chain, workshop);
-        if (database.RoomByTerrain(terrain)?.TypeId == RoomTypeId.CombatPit) CombatPitRoomStep.Place(world, chain, pit);
+        if (workshopRoom)
+        {
+            WorkshopTimerRules.Place(world, chain, workshop);
+        }
+
+        if (database.RoomByTerrain(terrain)?.TypeId == RoomTypeId.CombatPit)
+        {
+            CombatPitRoomStep.Place(world, chain, pit);
+        }
         // The joined room's ruin (+0x9A bit 0) is the grown room's; a tile that starts a room starts
         // unruined, as Room_Construct clears the bit (0x004E392D, ADR-0662).
-        foreach (int t in chain) world.TileAtIndex(t).RoomRuined = ruined;
+        foreach (int t in chain)
+        {
+            world.TileAtIndex(t).RoomRuined = ruined;
+        }
+
         int lowest = KeepDoor(world, chain, door);
         ref TileState head = ref world.TileAtIndex(lowest);
         (head.CasinoParty, head.CasinoPartyStartTick) = (party, partyStart);
@@ -231,7 +310,10 @@ public static class SlabChain
             // absorbs) and Room_Rebuild places the coops again, before Room_OnTilesChanged (ADR-0672).
             HatcheryRules.RemoveAutoPlacedCoops(world, chain);
             if (RoomIndex.RoomAt(world, database, chain[0]) is { } grown)
+            {
                 HatcheryRules.RebuildCoops(world, database, grown, world.RoomConstructionRandom);
+            }
+
             ChickenMovementRules.AdoptOnChain(world, database, chain);
         }
         // Room_AddTile's 0x004E4480 (0x004ED2D8): a Treasury's slot +0x09 banks its floor gold, an
@@ -239,7 +321,10 @@ public static class SlabChain
         GoldStore.BankFloorGold(world, database, chain, freed, stream, context);
         if (database.RoomByTerrain(terrain)?.TypeId == RoomTypeId.CombatPit && context is not null
             && RoomIndex.RoomAt(world, database, chain[0]) is { } grownPit)
+        {
             Systems.CombatPitSystem.Reset(context, grownPit);
+        }
+
         return chain;
     }
 
@@ -248,7 +333,11 @@ public static class SlabChain
     /// built or loaded with the map, whose tiles are inserted one by one (<c>0x004C5C30</c>).</summary>
     private static void Activate(WorldState world, List<int> chain)
     {
-        if (chain.Count != 1) return;
+        if (chain.Count != 1)
+        {
+            return;
+        }
+
         world.TileAtIndex(chain[0]).PrisonDoor |= JailBreakRules.Activated;
     }
 
@@ -285,24 +374,40 @@ public static class SlabChain
         for (int d = 0; d < Dx.Length; d++)
         {
             int n = Neighbour(world, tileIndex, d);
-            if (n >= 0 && !old.Contains(n) && Same(world, n, terrain, owner)) Fill(world, n, terrain, owner, old);
+            if (n >= 0 && !old.Contains(n) && Same(world, n, terrain, owner))
+            {
+                Fill(world, n, terrain, owner, old);
+            }
         }
 
         // Each piece is constructed afresh (Room_Construct, 0x004E3800), which clears the ruin bit.
-        foreach (int tile in old) world.TileAtIndex(tile).RoomRuined = false;
+        foreach (int tile in old)
+        {
+            world.TileAtIndex(tile).RoomRuined = false;
+        }
 
         // The share is taken of the room as it was, the leaving tile still counted (0x004ED54F).
         int size = old.Count + 1;
-        foreach (int tile in old) lost += world.TileAtIndex(tile).RoomHealthLost;
+        foreach (int tile in old)
+        {
+            lost += world.TileAtIndex(tile).RoomHealthLost;
+        }
+
         int health = (RoomHealthRules.StartPerTile(database, room) * size) - lost;
         int percent = RoomHealthRules.SharePercent(health, RoomHealthRules.MaxPerTile(database, room) * size);
 
         int[] order = [.. old];
         Sort(world, order);
         // The old room is freed (0x004ED9FA), and Room_OnFreed takes out every corpse in it (0x004E3AB3).
-        if (room.TypeId == RoomTypeId.Graveyard) GraveyardRules.Unlink(world, [.. old, tileIndex]);
+        if (room.TypeId == RoomTypeId.Graveyard)
+        {
+            GraveyardRules.Unlink(world, [.. old, tileIndex]);
+        }
+
         if (room.TypeId == RoomTypeId.CombatPit && context is not null)
+        {
             Systems.CombatPitSystem.ReleaseAttached(context, place => place.TileIndex == tileIndex || old.Contains(place.TileIndex));
+        }
 
         var chainOf = new Dictionary<int, List<int>>(order.Length);
         var chains = new List<List<int>>();
@@ -314,7 +419,11 @@ public static class SlabChain
             for (int d = 0; d < Dx.Length; d++)
             {
                 int n = Neighbour(world, tile, d);
-                if (n < 0 || !chainOf.TryGetValue(n, out List<int>? other)) continue;
+                if (n < 0 || !chainOf.TryGetValue(n, out List<int>? other))
+                {
+                    continue;
+                }
+
                 if (joined is null)
                 {
                     joined = other;
@@ -342,7 +451,9 @@ public static class SlabChain
                 positions.Add(alone, RoomLists.Next(world));
                 // Each piece is a new room, and a Workshop's constructor draws its timers as it is made.
                 if (WorkshopTimerRules.IsWorkshop(room) && world.RoomConstructionRandom is { } rng)
+                {
                     workshops.Add(alone, WorkshopTimerRules.Construct(rng));
+                }
             }
         }
 
@@ -353,14 +464,21 @@ public static class SlabChain
         ref TileState leaving = ref world.TileAtIndex(tileIndex);
         byte door = leaving.PrisonDoor;
         long animationTick = leaving.PrisonDoorAnimationTick;
-        foreach (int tile in old) animationTick = Math.Max(animationTick, world.TileAtIndex(tile).PrisonDoorAnimationTick);
+        foreach (int tile in old)
+        {
+            animationTick = Math.Max(animationTick, world.TileAtIndex(tile).PrisonDoorAnimationTick);
+        }
+
         leaving.PrisonDoorAnimationTick = 0;
         (leaving.WorkshopSteamTimer, leaving.WorkshopSmokeTimer, leaving.WorkshopLavaBubblingTimer, leaving.WorkshopLavaSpillTimer) = (0, 0, 0, 0);
         leaving.HatcheryLastGeneratedTick = 0;
         leaving.HatcheryStartupIntervalTicks = 0;
         (leaving.PitAmbientShortTicks, leaving.PitAmbientLongTicks, leaving.PitPreviousStandingCount, leaving.PitFightSeenTick) = (0, 0, 0, 0);
         (leaving.PrisonDoor, leaving.CasinoParty, leaving.CasinoPartyStartTick) = (0, 0, 0);
-        foreach (int tile in old) door |= world.TileAtIndex(tile).PrisonDoor;
+        foreach (int tile in old)
+        {
+            door |= world.TileAtIndex(tile).PrisonDoor;
+        }
         // The freed old room's Room_OnFreed unlinks every bird it held (0x004E39C0); each piece adopts afresh.
         if (room.TypeId == RoomTypeId.Hatchery)
         {
@@ -375,9 +493,16 @@ public static class SlabChain
             Stamp(world, chain);
             RoomHealthRules.SetPiece(world, database, room, chain, percent);
             KeepDoor(world, chain, door, animationTick);
-            if (WorkshopTimerRules.IsWorkshop(room)) WorkshopTimerRules.Place(world, chain, workshops.GetValueOrDefault(chain));
+            if (WorkshopTimerRules.IsWorkshop(room))
+            {
+                WorkshopTimerRules.Place(world, chain, workshops.GetValueOrDefault(chain));
+            }
+
             if (room.TypeId == RoomTypeId.CombatPit)
+            {
                 CombatPitRoomStep.Place(world, chain, new CombatPitRoomRuntime(0, 0, 0, world.CurrentTick.Value));
+            }
+
             if (room.TypeId == RoomTypeId.Hatchery)
             {
                 int lowest = int.MaxValue;
@@ -389,15 +514,27 @@ public static class SlabChain
                 }
                 world.TileAtIndex(lowest).HatcheryLastGeneratedTick = world.CurrentTick.Value + 1;
                 if (RoomIndex.RoomAt(world, database, chain[0]) is { } piece)
+                {
                     HatcheryRules.RebuildCoops(world, database, piece, world.RoomConstructionRandom);
+                }
+
                 ChickenMovementRules.AdoptOnChain(world, database, chain);
             }
-            if (room.TypeId == RoomTypeId.Prison) Activate(world, chain);
+            if (room.TypeId == RoomTypeId.Prison)
+            {
+                Activate(world, chain);
+            }
+
             if (room.TypeId == RoomTypeId.CombatPit && context is not null
                 && RoomIndex.RoomAt(world, database, chain[0]) is { } piecePit)
+            {
                 Systems.CombatPitSystem.Reset(context, piecePit);
+            }
             // The old room was freed and emptied (0x004D9670); each piece banks what lies on it (0x004ED76C).
-            if (room.TypeId == RoomTypeId.Treasury) GoldStore.BankFloorGold(world, database, chain, chain, stream, context);
+            if (room.TypeId == RoomTypeId.Treasury)
+            {
+                GoldStore.BankFloorGold(world, database, chain, chain, stream, context);
+            }
         }
     }
 
@@ -406,7 +543,10 @@ public static class SlabChain
     /// chain becomes its tiles in row-major order — order 0 here.</summary>
     public static void AsLoaded(WorldState world)
     {
-        for (int i = 0; i < world.TileCount; i++) world.TileAtIndex(i).SlabOrder = 0;
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            world.TileAtIndex(i).SlabOrder = 0;
+        }
     }
 
     /// <summary><c>0x004C7380</c>'s wave over a dragged rectangle: from the second corner, one
@@ -418,8 +558,13 @@ public static class SlabChain
         int sx = x2 <= x1 ? 1 : -1, sy = y2 <= y1 ? 1 : -1;
         var tiles = new List<TilePos>((dx + 1) * (dy + 1));
         for (int e = 0; e <= dx + dy; e++)
+        {
             for (int i = Math.Max(0, e - dy); i <= Math.Min(e, dx); i++)
+            {
                 tiles.Add(new TilePos(x2 + (i * sx), y2 + ((e - i) * sy)));
+            }
+        }
+
         return tiles;
     }
 
@@ -441,7 +586,11 @@ public static class SlabChain
     /// The derived room already merges in state; this preserves each intermediate refresh.</summary>
     internal static void ObserveCaptureMerges(WorldState world, RoomInstance room)
     {
-        if (!world.ObservesRoomTileChanges) return;
+        if (!world.ObservesRoomTileChanges)
+        {
+            return;
+        }
+
         List<int> chain = [.. Order(world, room)];
         var taken = new HashSet<int>(chain);
         var next = new Dictionary<int, int>();
@@ -454,7 +603,11 @@ public static class SlabChain
             for (int d = 0; d < Dx.Length; d++)
             {
                 int n = Neighbour(world, current, d);
-                if (n < 0 || taken.Contains(n) || !Same(world, n, terrain, owner)) continue;
+                if (n < 0 || taken.Contains(n) || !Same(world, n, terrain, owner))
+                {
+                    continue;
+                }
+
                 List<int> other = Fill(world, n, terrain, owner, taken);
                 Sort(world, other);
                 next[chain[chain.Count - 1]] = other[0];
@@ -467,7 +620,10 @@ public static class SlabChain
 
         void Link(List<int> tiles)
         {
-            for (int i = 0; i < tiles.Count; i++) next[tiles[i]] = i + 1 < tiles.Count ? tiles[i + 1] : -1;
+            for (int i = 0; i < tiles.Count; i++)
+            {
+                next[tiles[i]] = i + 1 < tiles.Count ? tiles[i + 1] : -1;
+            }
         }
     }
 
@@ -476,7 +632,11 @@ public static class SlabChain
     public static long SizeChangedTick(WorldState world, RoomInstance room)
     {
         long stamp = 0;
-        foreach (int tile in room.TileIndices) stamp = Math.Max(stamp, world.TileAtIndex(tile).RoomSizeChangedTick);
+        foreach (int tile in room.TileIndices)
+        {
+            stamp = Math.Max(stamp, world.TileAtIndex(tile).RoomSizeChangedTick);
+        }
+
         return stamp;
     }
 
@@ -511,6 +671,7 @@ public static class SlabChain
         var tiles = new List<int> { start };
         taken.Add(start);
         for (int i = 0; i < tiles.Count; i++)
+        {
             for (int d = 0; d < Dx.Length; d++)
             {
                 int n = Neighbour(world, tiles[i], d);
@@ -520,6 +681,7 @@ public static class SlabChain
                     tiles.Add(n);
                 }
             }
+        }
 
         return tiles;
     }

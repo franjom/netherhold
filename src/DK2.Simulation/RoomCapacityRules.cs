@@ -41,7 +41,10 @@ public static class RoomCapacityRules
         int used = 0;
         foreach (CreatureState c in world.Creatures)
         {
-            if (c.Id != exceptId && c.HeldPlace.In(room)) used += c.HeldPlace.Units;
+            if (c.Id != exceptId && c.HeldPlace.In(room))
+            {
+                used += c.HeldPlace.Units;
+            }
         }
 
         return used;
@@ -55,13 +58,28 @@ public static class RoomCapacityRules
         WorldState world, GameDatabase database, RoomInstance room, int exceptId = -1, int units = Units)
     {
         if (room.Definition.TypeId == RoomTypeId.Workshop && !CrateRules.WorkshopHasRoom(world, database, room))
+        {
             return false;
-        if (!AutoFurnitureRules.TryTotalCapacity(world, room, out int capacity)) return true;
+        }
+
+        if (!AutoFurnitureRules.TryTotalCapacity(world, room, out int capacity))
+        {
+            return true;
+        }
+
         int rememberedGuards = 0;
         if (room.Definition.TypeId == RoomTypeId.GuardRoom)
+        {
             foreach (CreatureState creature in world.OwnedCreatures(room.OwnerPlayerId))
+            {
                 if (creature.ReturnToJob == JobType.Guard
-                    && creature.ReturnRoom.RefersTo(world, room)) rememberedGuards++;
+                    && creature.ReturnRoom.RefersTo(world, room))
+                {
+                    rememberedGuards++;
+                }
+            }
+        }
+
         return Occupants(world, room, exceptId) + rememberedGuards + units <= capacity;
     }
 
@@ -70,7 +88,10 @@ public static class RoomCapacityRules
     internal static bool HasRoom(in StateHookContext hooks, RoomInstance room, CreatureState? except = null, int units = Units)
     {
         if (room.Definition.TypeId == RoomTypeId.Library && ResearchTreeRules.FindShelf(hooks, room) < 0)
+        {
             return false;
+        }
+
         return HasRoom(hooks.World, hooks.Database, room, except?.Id ?? -1, units);
     }
 
@@ -80,7 +101,10 @@ public static class RoomCapacityRules
     {
         foreach (CreatureState c in world.Creatures)
         {
-            if (c.HeldPlace.In(room)) return c;
+            if (c.HeldPlace.In(room))
+            {
+                return c;
+            }
         }
 
         return null;
@@ -98,10 +122,17 @@ public static class RoomCapacityRules
     internal static bool Claim(in StateHookContext hooks, CreatureState creature)
     {
         WorldState world = hooks.World;
-        if (!world.Contains(creature.Tile)) return false;
+        if (!world.Contains(creature.Tile))
+        {
+            return false;
+        }
+
         int tile = (creature.Tile.Y * world.Width) + creature.Tile.X;
         RoomInstance? room = RoomIndex.RoomAt(world, hooks.Database, tile);
-        if (room is null || !Admits(room, creature)) return false;
+        if (room is null || !Admits(room, creature))
+        {
+            return false;
+        }
 
         // A Combat Pit fighter links in without the test or the units. The Prison's position
         // tests (0x00453A20(11), 0x00454110) and its overcrowding roll are not built here (Q504);
@@ -117,14 +148,20 @@ public static class RoomCapacityRules
         if (!HasRoom(hooks, room, creature))
         {
             if (!SearchesElsewhere(world, room) || !AnotherHasRoom(hooks, room, creature))
+            {
                 PostFull(hooks, room, (RoomTypeId)room.Definition.RoomId);
+            }
+
             return false;
         }
         creature.HeldPlace = new RoomPlace(tile, Units);
         creature.HeldPlaceStamp = SlabChain.HoldersStamp(world, room);
         creature.HeldPlaceSerial = world.NextPlaceClaim++;
         if (room.Definition.TypeId == RoomTypeId.Prison && Occupants(world, room) > PrisonRules.Capacity(room))
+        {
             PostFull(hooks, room, RoomTypeId.Prison);
+        }
+
         return true;
     }
 
@@ -137,10 +174,19 @@ public static class RoomCapacityRules
     /// when every creature holding a place in it stands on one of its tiles.</summary>
     private static bool SearchesElsewhere(WorldState world, RoomInstance room)
     {
-        if (room.Definition.TypeId != RoomTypeId.GuardRoom) return true;
+        if (room.Definition.TypeId != RoomTypeId.GuardRoom)
+        {
+            return true;
+        }
+
         foreach (CreatureState c in world.Creatures)
+        {
             if (c.HeldPlace.In(room) && !(world.Contains(c.Tile) && room.Contains((c.Tile.Y * world.Width) + c.Tile.X)))
+            {
                 return false;
+            }
+        }
+
         return true;
     }
 
@@ -149,7 +195,11 @@ public static class RoomCapacityRules
     private static void PostFull(in StateHookContext hooks, RoomInstance room, RoomTypeId type)
     {
         WorldState world = hooks.World;
-        if (!world.HasPlayer(room.OwnerPlayerId)) return;
+        if (!world.HasPlayer(room.OwnerPlayerId))
+        {
+            return;
+        }
+
         RoomNeedRules.PostReported(world, room.OwnerPlayerId, PlayerMessageKind.RoomFull, type, 0,
             nameof(RoomCapacityRules), hooks.EmitEvent ?? NoEvent);
     }
@@ -189,10 +239,20 @@ public static class RoomCapacityRules
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
             if (room.OwnerPlayerId != full.OwnerPlayerId || room.Definition.TypeId != full.Definition.TypeId)
+            {
                 continue;
-            if (room.TileIndices.Count == 0 || !HasRoom(hooks, room, creature)) continue;
+            }
+
+            if (room.TileIndices.Count == 0 || !HasRoom(hooks, room, creature))
+            {
+                continue;
+            }
             // Native scans every matching capacity candidate, even after selecting a room.
-            if (found) continue;
+            if (found)
+            {
+                continue;
+            }
+
             int first = SlabChain.FirstSlab(world, room);
             var to = new TilePos(first % world.Width, first / world.Width);
             if (creature.Tile == to) { found = true; continue; }
@@ -200,7 +260,9 @@ public static class RoomCapacityRules
             if (steering.Route(new Steering.Fixed16Vector(creature.PosX << 4, creature.PosY << 4),
                     new Steering.Fixed16Vector(CreatureState.CentreOf(to.X) << 4, CreatureState.CentreOf(to.Y) << 4),
                     WorldSteering.ProfileOf(definition, creature.OwnerPlayerId, MoveOptions.Loose), [], refresh: false))
+            {
                 found = true;
+            }
         }
 
         return found;
@@ -222,21 +284,49 @@ public static class RoomCapacityRules
         long best = long.MaxValue, bestFriendly = long.MaxValue;
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.OwnerPlayerId != creature.OwnerPlayerId || room.Definition.TypeId != type || room.TileIndices.Count == 0) continue;
-            if (!HasRoom(context.Hooks, room)) continue;
+            if (room.OwnerPlayerId != creature.OwnerPlayerId || room.Definition.TypeId != type || room.TileIndices.Count == 0)
+            {
+                continue;
+            }
+
+            if (!HasRoom(context.Hooks, room))
+            {
+                continue;
+            }
+
             (int mx, int my) = CombatPitSpectatorRules.Middle(room);
             long dx = Math.Abs((long)CreatureState.CentreOf(mx) - creature.PosX), dy = Math.Abs((long)CreatureState.CentreOf(my) - creature.PosY);
             long distance = ((dx * dx) >> 12) + ((dy * dy) >> 12);
-            if (distance >= best && distance >= bestFriendly) continue;
+            if (distance >= best && distance >= bestFriendly)
+            {
+                continue;
+            }
+
             int first = SlabChain.FirstSlab(world, room);
             if (!Combat.CombatTargetRules.CanReach(context.Navigation, creature, definition, CreatureState.CentreOf(first % world.Width),
                     CreatureState.CentreOf(first / world.Width), int.MaxValue, [], MoveOptions.Loose))
+            {
                 continue;
-            if (distance < best) (nearest, best) = (room, distance);
+            }
+
+            if (distance < best)
+            {
+                (nearest, best) = (room, distance);
+            }
+
             bool objects = false;
             foreach (CreatureState c in world.Creatures)
-                if (c.HeldPlace.In(room) && ((database.CreatureById(c.CreatureTypeId).Flags & against) == against)) objects = true;
-            if (!objects && distance < bestFriendly) (nearestFriendly, bestFriendly) = (room, distance);
+            {
+                if (c.HeldPlace.In(room) && ((database.CreatureById(c.CreatureTypeId).Flags & against) == against))
+                {
+                    objects = true;
+                }
+            }
+
+            if (!objects && distance < bestFriendly)
+            {
+                (nearestFriendly, bestFriendly) = (room, distance);
+            }
         }
 
         return nearestFriendly ?? nearest;

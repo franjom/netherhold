@@ -16,7 +16,11 @@ public sealed partial class ImpTaskSystem
     /// room, if there is one.</summary>
     private bool TryDepositTheLoad(SimulationContext context, CreatureState creature)
     {
-        if (!TryRouteToSomewhereItFits(context, creature)) return false;
+        if (!TryRouteToSomewhereItFits(context, creature))
+        {
+            return false;
+        }
+
         BeginDelivering(creature);
         ToTheStore(context, creature);
         return true;
@@ -63,15 +67,24 @@ public sealed partial class ImpTaskSystem
         // A possessed worker is the creature arm's (WalkOverGoldSystem.IsWorkerArm).
         if (!WalkOverGoldSystem.IsWorkerArm(context.World, definition, creature)
             || creature.GoldHeld >= FullAt(context, creature, definition))
+        {
             return;
+        }
+
         WorldState world = context.World;
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         foreach (ObjectState pile in world.Objects)
         {
             if (pile.TileIndex != here || !FloorGold.IsPile(context.Database, pile) || pile.InHand
                 || pile.CarriedByCreatureId >= 0 || pile.OwnerPlayerId != PlayerIds.Neutral)
+            {
                 continue;
-            if (!InReach(creature, PileCentre(world, pile))) continue;
+            }
+
+            if (!InReach(creature, PileCentre(world, pile)))
+            {
+                continue;
+            }
 
             int lacks = CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level) - creature.GoldHeld;
             int taken = FloorGold.Take(world, context.Database, pile, lacks);
@@ -85,9 +98,17 @@ public sealed partial class ImpTaskSystem
     /// <summary>A pile's explicit point, otherwise its represented cell or tile centre.</summary>
     private static (long X, long Y) PileCentre(WorldState world, ObjectState pile)
     {
-        if (FloorGoldLandingRules.HasPosition(pile)) return (pile.PosX, pile.PosY);
+        if (FloorGoldLandingRules.HasPosition(pile))
+        {
+            return (pile.PosX, pile.PosY);
+        }
+
         long x = (pile.TileIndex % world.Width) * 4096L, y = (pile.TileIndex / world.Width) * 4096L;
-        if (pile.Cell == MiningSlots.AnyCell) return (x + 2048, y + 2048);
+        if (pile.Cell == MiningSlots.AnyCell)
+        {
+            return (x + 2048, y + 2048);
+        }
+
         return (x + 682 + (pile.Cell % 3) * 1365, y + 682 + (pile.Cell / 3) * 1365);
     }
 
@@ -141,7 +162,9 @@ public sealed partial class ImpTaskSystem
         {
             if (pile.TileIndex == tileIndex && FloorGold.IsPile(context.Database, pile)
                 && pile.OwnerPlayerId == PlayerIds.Neutral)
+            {
                 return PileCentre(world, pile);
+            }
         }
 
         return (CreatureState.CentreOf(tileIndex % world.Width), CreatureState.CentreOf(tileIndex / world.Width));
@@ -163,7 +186,10 @@ public sealed partial class ImpTaskSystem
         SimulationContext context, TilePos at, PlayerId playerId, int askingCreatureId)
     {
         WorldState world = context.World;
-        if (!world.Contains(at)) return false;
+        if (!world.Contains(at))
+        {
+            return false;
+        }
 
         int index = (at.Y * world.Width) + at.X;
         ref TileState tile = ref world.TileAtIndex(index);
@@ -174,7 +200,10 @@ public sealed partial class ImpTaskSystem
             return false;
         }
 
-        if (FloorGold.OnTile(world, context.Database, index) <= 0) return false;
+        if (FloorGold.OnTile(world, context.Database, index) <= 0)
+        {
+            return false;
+        }
 
         return !ImpCrowding.FaceIsFull(
             world, context.Database, index, at, askingCreatureId, workedFromTheTile: true);
@@ -212,7 +241,11 @@ public sealed partial class ImpTaskSystem
         // Still on the road: state 27 runs when the walk to the pile's point ends, not when the
         // tile is entered (Level 3 seed01: each fetch's gold came 1-7 ticks after entering, 4-15
         // units from the pile).
-        if (creature.HasRoute) return;
+        if (creature.HasRoute)
+        {
+            return;
+        }
+
         int here = (creature.Tile.Y * world.Width) + creature.Tile.X;
         if (here != creature.TargetTileIndex)
         {
@@ -243,7 +276,10 @@ public sealed partial class ImpTaskSystem
         // State 27 (0x00466850): full hands go to the store chooser (resume 28); a part-load, or
         // a full one with no store that has room, sets 10 at once, and the next choice may be
         // more gold, a claim or a wall with the gold still in its hands (ADR-0288).
-        if (HandsFull(context, creature, definition) && TryDepositTheLoad(context, creature)) return;
+        if (HandsFull(context, creature, definition) && TryDepositTheLoad(context, creature))
+        {
+            return;
+        }
 
         WorkEnded(context, creature);
         GoIdle(creature);
@@ -266,13 +302,24 @@ public sealed partial class ImpTaskSystem
         int taken = 0;
         foreach (ObjectState pile in piles)
         {
-            if (pile.OwnerPlayerId != PlayerIds.Neutral || !InReach(creature, PileCentre(context.World, pile))) continue;
+            if (pile.OwnerPlayerId != PlayerIds.Neutral || !InReach(creature, PileCentre(context.World, pile)))
+            {
+                continue;
+            }
+
             int lacks = CreatureLevelRules.MaxGoldHeld(context.Database, definition, creature.Level) - creature.GoldHeld;
-            if (lacks <= 0) break;
+            if (lacks <= 0)
+            {
+                break;
+            }
+
             int took = FloorGold.Take(context.World, context.Database, pile, lacks);
             creature.GoldHeld += took;
             taken += took;
-            if (HandsFull(context, creature, definition)) break;
+            if (HandsFull(context, creature, definition))
+            {
+                break;
+            }
         }
 
         return taken;
@@ -301,7 +348,10 @@ public sealed partial class ImpTaskSystem
     {
         if (creature.Dk2StateId == StateShadow.TravelToPoint)
         {
-            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One) return;
+            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One)
+            {
+                return;
+            }
             // State 6 stops at its committed position before resuming the store-facing state.
             creature.StopMoving();
             if (!StateShadow.Arrive(context, SystemName, creature))
@@ -330,9 +380,14 @@ public sealed partial class ImpTaskSystem
         }
 
         if (creature.Dk2StateId == ImpStates.PuttingDownGold && TryPutDown(context, creature))
+        {
             StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
+        }
         else
+        {
             StateShadow.ToIdle(context, SystemName, creature);
+        }
+
         GoIdle(creature);
     }
 
@@ -350,19 +405,33 @@ public sealed partial class ImpTaskSystem
         WorldState world = context.World;
         GameDatabase database = context.Database;
         TilePos here = creature.Tile;
-        if (!world.Contains(here)) return false;
+        if (!world.Contains(here))
+        {
+            return false;
+        }
 
         int index = (here.Y * world.Width) + here.X;
         RoomInstance? room = RoomIndex.RoomAt(world, database, index);
-        if (room is null || room.OwnerPlayerId != creature.OwnerPlayerId) return false;
+        if (room is null || room.OwnerPlayerId != creature.OwnerPlayerId)
+        {
+            return false;
+        }
+
         bool liveHeart = room.Definition.TypeId == RoomTypeId.DungeonHeart && !RoomRules.IsRuined(world, room);
-        if (!liveHeart && room.Definition.TypeId != RoomTypeId.Treasury) return false;
+        if (!liveHeart && room.Definition.TypeId != RoomTypeId.Treasury)
+        {
+            return false;
+        }
 
         int perTile = database[VariableTypeId.MaxGoldPerTreasuryTile];
         long capacity = (long)(liveHeart ? 16 : room.TileIndices.Count) * perTile;
         IReadOnlyList<int> roomTiles = room.TileIndices;
         long stored = 0;
-        for (int i = 0; i < roomTiles.Count; i++) stored = checked(stored + world.TileAtIndex(roomTiles[i]).GoldHeld);
+        for (int i = 0; i < roomTiles.Count; i++)
+        {
+            stored = checked(stored + world.TileAtIndex(roomTiles[i]).GoldHeld);
+        }
+
         long space = capacity - stored;
         // Unsigned in DK2: a room over its capacity reads as all the room in the world.
         int put = space == 0 ? 0 : space < 0 ? creature.GoldHeld : (int)Math.Min(space, creature.GoldHeld);
@@ -377,8 +446,11 @@ public sealed partial class ImpTaskSystem
 
         // 0x00466B95: after the deposit and the spend, whenever the room had any space, even for an empty purse.
         if (space != 0)
+        {
             ThingSoundRules.RequestInObjectCategory(context, SystemName, creature, FloorGold.FloorGoldObjectId,
                 ThingSoundEvent.GoldDeposited);
+        }
+
         return true;
     }
 
@@ -386,7 +458,13 @@ public sealed partial class ImpTaskSystem
     {
         IReadOnlyList<int> tiles = room.TileIndices;
         for (int i = 0; i < tiles.Count; i++)
-            if (GoldStore.SpaceIn(world, database, tiles[i]) > 0) return true;
+        {
+            if (GoldStore.SpaceIn(world, database, tiles[i]) > 0)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -414,8 +492,16 @@ public sealed partial class ImpTaskSystem
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
         {
             if (room.OwnerPlayerId != player || room.Definition.TypeId is not
-                (RoomTypeId.Treasury or RoomTypeId.DungeonHeart)) continue;
-            if (!HasSpaceForGold(world, context.Database, room)) continue;
+                (RoomTypeId.Treasury or RoomTypeId.DungeonHeart))
+            {
+                continue;
+            }
+
+            if (!HasSpaceForGold(world, context.Database, room))
+            {
+                continue;
+            }
+
             int first = SlabChain.FirstSlab(world, room);
             long dx = CreatureState.CentreOf(first % w) - (long)creature.PosX;
             long dy = CreatureState.CentreOf(first / w) - (long)creature.PosY;
@@ -426,15 +512,26 @@ public sealed partial class ImpTaskSystem
         foreach ((_, RoomInstance room) in rooms)
         {
             int first = SlabChain.FirstSlab(world, room);
-            if (!context.Navigation.TryRoute(creature, new TilePos(first % w, first / w), Navigation.MoveOptions.ExactSpot)) continue;
+            if (!context.Navigation.TryRoute(creature, new TilePos(first % w, first / w), Navigation.MoveOptions.ExactSpot))
+            {
+                continue;
+            }
+
             int[] chain = SlabChain.Order(world, room);
             int start = chain[context.Rng.NextInt(chain.Length)];
             int target = GoldStore.DepositTileAlongChain(world, context.Database, room, start);
-            if (target < 0) return false;
+            if (target < 0)
+            {
+                return false;
+            }
+
             TilePos drop = new(target % w, target / w);
             (int px, int py) = StoreWalkPoints[context.Rng.NextInt(StoreWalkPoints.Length)];
             if (!context.Navigation.TryRouteTo(creature, (drop.X << 12) | px, (drop.Y << 12) | py, Navigation.MoveOptions.ExactSpot))
+            {
                 return false;
+            }
+
             context.Emit(SystemName, "delivering",
                 $"imp={creature.Id} player={player} gold={creature.GoldHeld} " +
                 $"to=({drop.X},{drop.Y}) steps={creature.Body.PathTotalCount}");

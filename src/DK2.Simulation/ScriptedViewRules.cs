@@ -101,8 +101,16 @@ public static class CameraPathRules
     /// nothing. Returns whether the path started.</summary>
     public static bool TryStart(GameDatabase database, ref PlayerState player, bool possessing, int pathId, GameTick now)
     {
-        if (Playing(player, now) || possessing) return false;
-        if (!database.CameraPathFrames.TryGetValue(pathId, out int frames)) return false;
+        if (Playing(player, now) || possessing)
+        {
+            return false;
+        }
+
+        if (!database.CameraPathFrames.TryGetValue(pathId, out int frames))
+        {
+            return false;
+        }
+
         player.CameraPathEndTick = now.Value + DurationTicks(pathId, frames);
         return true;
     }
@@ -110,7 +118,11 @@ public static class CameraPathRules
     /// <summary>The skip (<c>0x00405362</c>): with the camera on a path, end it now.</summary>
     public static bool Skip(ref PlayerState player, GameTick now)
     {
-        if (!Playing(player, now)) return false;
+        if (!Playing(player, now))
+        {
+            return false;
+        }
+
         player.CameraPathEndTick = now.Value;
         return true;
     }

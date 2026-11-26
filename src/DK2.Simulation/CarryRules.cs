@@ -34,11 +34,30 @@ public static class CarryRules
     /// ADR-0018).</summary>
     public static bool CanCarry(CreatureDef definition, CreatureState worker, CreatureState body)
     {
-        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)) return false;
-        if (worker.Id == body.Id) return false;
-        if (worker.CarriedCreatureId >= 0) return false;
-        if (worker.GoldHeld > 0) return false;
-        if (HandRules.IsHeld(worker) || CreatureDeathRules.IsDown(worker)) return false;
+        if (!((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
+        {
+            return false;
+        }
+
+        if (worker.Id == body.Id)
+        {
+            return false;
+        }
+
+        if (worker.CarriedCreatureId >= 0)
+        {
+            return false;
+        }
+
+        if (worker.GoldHeld > 0)
+        {
+            return false;
+        }
+
+        if (HandRules.IsHeld(worker) || CreatureDeathRules.IsDown(worker))
+        {
+            return false;
+        }
 
         return IsCarryable(body);
     }
@@ -56,7 +75,9 @@ public static class CarryRules
         WorldState world, GameDatabase database, CreatureState worker, CreatureState body)
     {
         if (CreatureDeathRules.IsCorpse(body))
+        {
             return NearestGraveyardTile(world, database, worker);
+        }
 
         // A collapsed enemy goes to the WORKER's keeper's prison, not the
         // body's (kind 13's other branch). A keeper with no prison, or whose
@@ -64,7 +85,9 @@ public static class CarryRules
         // selector 0x0046D810 raises no task without a place (ADR-0354). One that
         // fills during the walk refuses at the door, onto the rim (ADR-0148).
         if (body.OwnerPlayerId != worker.OwnerPlayerId)
+        {
             return PrisonRules.GateTileIn(world, database, worker.OwnerPlayerId, worker.Tile);
+        }
 
         return LairRules.BedTileIndex(world, database, body);
     }
@@ -81,8 +104,15 @@ public static class CarryRules
 
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.OwnerPlayerId != worker.OwnerPlayerId) continue;
-            if (room.Definition.TypeId != RoomTypeId.Graveyard || !GraveyardRules.HasPlace(world, room)) continue;
+            if (room.OwnerPlayerId != worker.OwnerPlayerId)
+            {
+                continue;
+            }
+
+            if (room.Definition.TypeId != RoomTypeId.Graveyard || !GraveyardRules.HasPlace(world, room))
+            {
+                continue;
+            }
 
             foreach (int tileIndex in room.TileIndices)
             {
@@ -92,7 +122,10 @@ public static class CarryRules
 
                 // Ties go to the lower tile index (row-major), the order RoomInstance keeps its
                 // tiles in and every other room walk here uses.
-                if (distance >= bestDistance) continue;
+                if (distance >= bestDistance)
+                {
+                    continue;
+                }
 
                 bestDistance = distance;
                 best = tileIndex;
@@ -124,14 +157,21 @@ public static class CarryRules
     /// <summary>Releases a dragged creature at its carrier's current position on cleanup.</summary>
     public static void DropWhatever(WorldState world, CreatureState worker)
     {
-        if (worker.CarriedCreatureId < 0) return;
+        if (worker.CarriedCreatureId < 0)
+        {
+            return;
+        }
+
         CreatureState? body = world.CreatureById(worker.CarriedCreatureId);
         if (body is not null)
         {
             FollowCarrier(worker, body);
             PutDown(worker, body);
         }
-        else worker.CarriedCreatureId = -1;
+        else
+        {
+            worker.CarriedCreatureId = -1;
+        }
     }
 
     /// <summary>Moves a carried body to wherever its carrier is. Called after the mover has run, so

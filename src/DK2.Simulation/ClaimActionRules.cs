@@ -48,12 +48,18 @@ internal static class ClaimActionRules
         creature.ClaimAction = new ClaimActionState { Kind = kind, Target = target, OwnsClip = true };
         creature.ActionHandlerDone = false;
         if (creature.ActionAnimationRate == 0 || creature.ActionAnimationPhase < creature.ActionAnimationRate)
+        {
             CreatureActionSounds.Begin(context, "ImpTask", creature, (int)kind);
+        }
     }
 
     internal static void Poll(SimulationContext context, CreatureState creature)
     {
-        if (creature.ClaimAction.Kind == ClaimActionKind.None || !context.ClaimActionsPolledThisTick.Add(creature)) return;
+        if (creature.ClaimAction.Kind == ClaimActionKind.None || !context.ClaimActionsPolledThisTick.Add(creature))
+        {
+            return;
+        }
+
         ClaimActionState action = creature.ClaimAction;
         if (!creature.ActionHandlerDone)
         {
@@ -66,35 +72,69 @@ internal static class ClaimActionRules
                     WorkKind(action.Kind), creature.OwnerPlayerId, creature.Id, multiplier));
                 Work.Execute(context);
             }
-            if (Workable(context, creature, action)) creature.ActionHandlerDone = action.Kind != ClaimActionKind.Claim;
+            if (Workable(context, creature, action))
+            {
+                creature.ActionHandlerDone = action.Kind != ClaimActionKind.Claim;
+            }
             else
             {
                 creature.ActionAnimationFlags |= ActionAnimationFlags.Stop;
                 ActionAnimationFlags terminal = ActionAnimationFlags.Complete;
-                if (action.Kind == ClaimActionKind.ConvertRoom) terminal |= ActionAnimationFlags.Wrapped;
+                if (action.Kind == ClaimActionKind.ConvertRoom)
+                {
+                    terminal |= ActionAnimationFlags.Wrapped;
+                }
+
                 creature.ActionHandlerDone = (creature.ActionAnimationFlags & terminal) != 0;
             }
         }
         PollAnimation(creature);
-        if (creature.ActionHandlerDone && creature.ClaimAction.AnimationComplete) Cancel(creature);
+        if (creature.ActionHandlerDone && creature.ClaimAction.AnimationComplete)
+        {
+            Cancel(creature);
+        }
     }
 
     private static void PollAnimation(CreatureState creature)
     {
-        if (creature.ClaimAction.AnimationComplete) return;
-        if (creature.ActionAnimationRate == 0) creature.ClaimAction.AnimationComplete = true;
+        if (creature.ClaimAction.AnimationComplete)
+        {
+            return;
+        }
+
+        if (creature.ActionAnimationRate == 0)
+        {
+            creature.ClaimAction.AnimationComplete = true;
+        }
+
         const ActionAnimationFlags cycle = ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped;
-        if ((creature.ActionAnimationFlags & cycle) == 0) return;
-        if (creature.ActionCount == 0) creature.ClaimAction.AnimationComplete = true;
+        if ((creature.ActionAnimationFlags & cycle) == 0)
+        {
+            return;
+        }
+
+        if (creature.ActionCount == 0)
+        {
+            creature.ClaimAction.AnimationComplete = true;
+        }
         else if (creature.ActionCount == 1)
         {
-            if ((creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0) creature.ActionCount = byte.MaxValue;
+            if ((creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0)
+            {
+                creature.ActionCount = byte.MaxValue;
+            }
         }
         else
         {
             creature.ActionCount--;
-            if (creature.ActionCount == 1) creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
-            else creature.ActionAnimationFlags &= ~cycle;
+            if (creature.ActionCount == 1)
+            {
+                creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
+            }
+            else
+            {
+                creature.ActionAnimationFlags &= ~cycle;
+            }
         }
     }
 
@@ -115,7 +155,10 @@ internal static class ClaimActionRules
 
     internal static void Advance(SimulationContext context, CreatureState creature)
     {
-        if (!creature.ClaimAction.OwnsClip || !context.ClaimActionsAdvancedThisTick.Add(creature)) return;
+        if (!creature.ClaimAction.OwnsClip || !context.ClaimActionsAdvancedThisTick.Add(creature))
+        {
+            return;
+        }
         // The clip is kept between one action and the next of its work state only: a turn that ends
         // with no action running gets the standing clip (the chooser 0x0048BE50). An attacked tile's
         // claim passes through the entry state that way and begins its own clip from phase 0 (Level 5: an
@@ -124,16 +167,26 @@ internal static class ClaimActionRules
             && creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work;
         if (creature.ClaimAction.Kind == ClaimActionKind.None && !sameJob)
         {
-            if (creature.ActionArtSlot == ArtSlot) ActionAnimationClock.Clear(creature);
+            if (creature.ActionArtSlot == ArtSlot)
+            {
+                ActionAnimationClock.Clear(creature);
+            }
+
             creature.ClaimAction = default;
         }
         else if (!StatusEffectRules.IsFrozen(creature))
+        {
             ActionAnimationClock.Advance(creature, context.Database.CreatureById(creature.CreatureTypeId));
+        }
     }
 
     internal static void Cancel(CreatureState creature)
     {
-        if (!creature.ClaimAction.OwnsClip) return;
+        if (!creature.ClaimAction.OwnsClip)
+        {
+            return;
+        }
+
         creature.ClaimAction = new ClaimActionState { OwnsClip = true };
         creature.ActionHandlerDone = false;
         creature.ActionCount = 0;

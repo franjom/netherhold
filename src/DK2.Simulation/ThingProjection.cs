@@ -68,9 +68,20 @@ public static class ThingProjection
         WorldState world, GameDatabase database, IEnumerable<ThingRecord> things,
         IReadOnlyDictionary<byte, int>? startingGold = null)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
-        if (things is null) throw new ArgumentNullException(nameof(things));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
+        if (things is null)
+        {
+            throw new ArgumentNullException(nameof(things));
+        }
 
         int creatures = 0, objects = 0, actionPoints = 0, doors = 0, traps = 0;
         int heroParties = 0, effectGenerators = 0;
@@ -118,7 +129,11 @@ public static class ThingProjection
                     break;
 
                 case ObjectThing t:
-                    if (PlaceObject(world, database, t)) objects++;
+                    if (PlaceObject(world, database, t))
+                    {
+                        objects++;
+                    }
+
                     break;
 
                 case ActionPointThing t:
@@ -154,7 +169,10 @@ public static class ThingProjection
                 // build every dungeon heart and hero gate twice.
                 case RoomThing t:
                     if (BuildHeart(world, database, t) && startingGold is not null)
+                    {
                         PayStartingGold(world, database, t, startingGold, paid);
+                    }
+
                     rooms++;
                     break;
 
@@ -177,18 +195,40 @@ public static class ThingProjection
     /// <c>Damageable</c> at load and <c>player+0x76</c> bit 4 clear, which <c>0x004DA200</c> tests.</summary>
     private static bool BuildHeart(WorldState world, GameDatabase database, RoomThing thing)
     {
-        if (database.RoomByTerrain(thing.RoomType)?.TypeId != RoomTypeId.DungeonHeart) return true;
-        if (!world.Contains(new TilePos(thing.X, thing.Y))) return true;
+        if (database.RoomByTerrain(thing.RoomType)?.TypeId != RoomTypeId.DungeonHeart)
+        {
+            return true;
+        }
+
+        if (!world.Contains(new TilePos(thing.X, thing.Y)))
+        {
+            return true;
+        }
+
         RoomInstance? heart = RoomIndex.RoomAt(world, database, (thing.Y * world.Width) + thing.X);
-        if (heart is null) return true;
+        if (heart is null)
+        {
+            return true;
+        }
         // Chain tile 12, where the builder makes the obstacle and the heart object, gets navigation
         // byte 3 whether or not the heart is ruined (0x004DBB65, Q601).
         int[] chain = SlabChain.Order(world, heart);
-        if (chain.Length > 12) world.Stamp(chain[12], NavBytes.Lava);
+        if (chain.Length > 12)
+        {
+            world.Stamp(chain[12], NavBytes.Lava);
+        }
+
         int pct = thing.InitialHealth;
         // The builder ruins its room at 0 whoever owns it (0x004DB711-0x004DB715).
-        if (pct == 0) RoomRules.Ruin(world, heart);
-        if (!world.HasPlayer(heart.OwnerPlayerId)) return pct != 0;
+        if (pct == 0)
+        {
+            RoomRules.Ruin(world, heart);
+        }
+
+        if (!world.HasPlayer(heart.OwnerPlayerId))
+        {
+            return pct != 0;
+        }
 
         ref PlayerState owner = ref world.Player(heart.OwnerPlayerId);
         if (pct == 0)
@@ -214,21 +254,40 @@ public static class ThingProjection
         WorldState world, GameDatabase database, RoomThing thing,
         IReadOnlyDictionary<byte, int> startingGold, HashSet<byte> paid)
     {
-        if (database.RoomByTerrain(thing.RoomType)?.TypeId != RoomTypeId.DungeonHeart) return;
-        if (!world.Contains(new TilePos(thing.X, thing.Y))) return;
+        if (database.RoomByTerrain(thing.RoomType)?.TypeId != RoomTypeId.DungeonHeart)
+        {
+            return;
+        }
+
+        if (!world.Contains(new TilePos(thing.X, thing.Y)))
+        {
+            return;
+        }
 
         int tileIndex = (thing.Y * world.Width) + thing.X;
         RoomInstance? heart = RoomIndex.RoomAt(world, database, tileIndex);
-        if (heart is null || !paid.Add(heart.OwnerPlayerId)) return;
+        if (heart is null || !paid.Add(heart.OwnerPlayerId))
+        {
+            return;
+        }
 
-        if (!startingGold.TryGetValue(heart.OwnerPlayerId, out int gold) || gold <= 0) return;
+        if (!startingGold.TryGetValue(heart.OwnerPlayerId, out int gold) || gold <= 0)
+        {
+            return;
+        }
 
         int left = GoldStore.FillAlongChain(world, database, heart, gold);
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (left <= 0) break;
+            if (left <= 0)
+            {
+                break;
+            }
+
             if (room.OwnerPlayerId == heart.OwnerPlayerId && room.Definition.TypeId == RoomTypeId.Treasury)
+            {
                 left = GoldStore.FillAlongChain(world, database, room, left);
+            }
         }
     }
 
@@ -255,7 +314,9 @@ public static class ThingProjection
         // The record's Flags into the creature's, the bits the loader copies (ADR-0201).
         state.Flags = (byte)(thing.Flags & flagMask);
         if ((state.Flags & LevelPlacedCreatureRules.PlacedAsDropped) != 0)
+        {
             CreatureStateMachine.TrySetState(new StateHookContext(world, database), state, DropLandingRules.LandingState);
+        }
 
         // No floor on the result, deliberately: a creature that rounded to zero health would die on
         // the tick it arrived, but the clamp could never fire — the smallest Hp in the shipped table
@@ -276,7 +337,11 @@ public static class ThingProjection
     /// script later makes it with world action 2.</summary>
     private static bool PlaceObject(WorldState world, GameDatabase database, ObjectThing thing)
     {
-        if (thing.ObjectId == TriggerExecutor.PortalGemObjectId) return false;
+        if (thing.ObjectId == TriggerExecutor.PortalGemObjectId)
+        {
+            return false;
+        }
+
         ObjectState state = world.SpawnObject(
             database, thing.ObjectId, thing.PlayerId, (thing.Y * world.Width) + thing.X);
 
@@ -306,14 +371,19 @@ public static class ThingProjection
                 thing.WaitDelay * SimulationTiming.OriginalTicksPerGameSecond)),
         });
         if ((thing.Flags & 0x10) != 0)
+        {
             DiscoveryRules.Rectangle(world, database, world.ActionPoints[world.ActionPoints.Count - 1], explored: true);
+        }
     }
 
     private static void PlaceDoor(WorldState world, GameDatabase database, DoorThing thing)
     {
         if (world.Contains(thing.X, thing.Y)
             && ((database.Doors.GetValueOrDefault(thing.DoorId)?.Flags & DoorFlags.Secret) == DoorFlags.Secret) == true)
+        {
             world.Tile(thing.X, thing.Y).SecretDoor = true;
+        }
+
         world.AddDoor(new DoorState
         {
             X = thing.X,
@@ -352,7 +422,10 @@ public static class ThingProjection
         };
         TrapRules.Seed(world, database, trap, database.Traps.GetValueOrDefault(thing.TrapId));
         world.AddTrap(trap);
-        if (thing.NumberOfShots != 0) TrapRules.Complete(world, database, trap);
+        if (thing.NumberOfShots != 0)
+        {
+            TrapRules.Complete(world, database, trap);
+        }
     }
 
     private static void PlaceHeroParty(WorldState world, HeroPartyThing thing) =>

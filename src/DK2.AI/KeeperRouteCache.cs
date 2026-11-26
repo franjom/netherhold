@@ -34,22 +34,42 @@ public sealed class KeeperRouteCache
 
     private bool Matches(INavByteGrid grid)
     {
-        if (grid.Width != _width || grid.Width * grid.Height != _bytes.Length) return false;
+        if (grid.Width != _width || grid.Width * grid.Height != _bytes.Length)
+        {
+            return false;
+        }
+
         int i = 0;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
-                if (_bytes[i++] != grid.NavByte(x, y)) return false;
+            {
+                if (_bytes[i++] != grid.NavByte(x, y))
+                {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 
     private void Capture(INavByteGrid grid)
     {
         int count = grid.Width * grid.Height;
-        if (_bytes.Length != count) _bytes = new byte[count];
+        if (_bytes.Length != count)
+        {
+            _bytes = new byte[count];
+        }
+
         _width = grid.Width;
         int i = 0;
         for (int y = 0; y < grid.Height; y++)
+        {
             for (int x = 0; x < grid.Width; x++)
+            {
                 _bytes[i++] = grid.NavByte(x, y);
+            }
+        }
     }
 }

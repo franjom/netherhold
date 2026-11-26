@@ -27,8 +27,16 @@ public sealed class RoomSellSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         foreach (SellRoomCommand sell in context.Commands<SellRoomCommand>())
-            if (sell.Mode == RoomSellMode.PlayerWave) Queue(context, sell);
-            else Apply(context, sell);
+        {
+            if (sell.Mode == RoomSellMode.PlayerWave)
+            {
+                Queue(context, sell);
+            }
+            else
+            {
+                Apply(context, sell);
+            }
+        }
     }
 
     /// <summary>Action <c>0x31</c> (<c>0x004C70A0</c>): the rectangle goes into the first free of three slots, with
@@ -36,11 +44,19 @@ public sealed class RoomSellSystem : ISimulationSystem
     private static void Queue(SimulationContext context, SellRoomCommand command)
     {
         WorldState world = context.World;
-        if (!world.HasPlayer(command.PlayerId)) return;
+        if (!world.HasPlayer(command.PlayerId))
+        {
+            return;
+        }
+
         for (int slotIndex = 0; slotIndex < RoomSellWaveRules.SlotsPerPlayer; slotIndex++)
         {
             ref RoomSellWaveState? slot = ref world.RoomSellWave(command.PlayerId, slotIndex);
-            if (slot.HasValue) continue;
+            if (slot.HasValue)
+            {
+                continue;
+            }
+
             slot = new RoomSellWaveState(command.Min, command.Max, context.Tick);
             return;
         }
@@ -53,15 +69,27 @@ public sealed class RoomSellSystem : ISimulationSystem
     internal static void Drain(SimulationContext context, PlayerId playerId)
     {
         WorldState world = context.World;
-        if (!playerId.IsKeeper || world.Player(playerId).KilledByPlayerId != 0) return;
+        if (!playerId.IsKeeper || world.Player(playerId).KilledByPlayerId != 0)
+        {
+            return;
+        }
+
         for (int slotIndex = 0; slotIndex < RoomSellWaveRules.SlotsPerPlayer; slotIndex++)
         {
             ref RoomSellWaveState? slot = ref world.RoomSellWave(playerId, slotIndex);
-            if (slot is not RoomSellWaveState wave) continue;
+            if (slot is not RoomSellWaveState wave)
+            {
+                continue;
+            }
+
             TilePos end = RoomBuildWaveRules.ClampPress(wave.Min);
             foreach (TilePos pos in RoomSellWaveRules.Diagonal(wave, context.Tick, world))
             {
-                if (world.Contains(pos)) SellWaveTile(context, playerId, pos);
+                if (world.Contains(pos))
+                {
+                    SellWaveTile(context, playerId, pos);
+                }
+
                 if (pos == end)
                 {
                     slot = null;
@@ -74,15 +102,24 @@ public sealed class RoomSellSystem : ISimulationSystem
     private static void SellWaveTile(SimulationContext context, PlayerId playerId, TilePos pos)
     {
         TileSale sale = SellOne(context, playerId, pos, wave: true);
-        if (sale.Verdict != RoomSale.Allowed) return;
+        if (sale.Verdict != RoomSale.Allowed)
+        {
+            return;
+        }
+
         context.Emit(SystemName, "sold",
             $"player={playerId} tiles=1 refund={sale.Banked} refused=0 tile=({pos.X},{pos.Y})");
         if (sale.Displaced > 0)
+        {
             context.Emit(SystemName, "gold_displaced",
                 $"player={playerId} amount={sale.Displaced} reason=store_sold (now piles on the floor tiles that replaced it)");
+        }
+
         if (sale.Bridge)
+        {
             context.Emit(SystemName, "bridge_sold",
                 $"player={playerId} tiles=1 note=reverted to the water or lava each one spanned (Q64)");
+        }
     }
 
     private readonly record struct TileSale(RoomSale Verdict, int Banked, int Lost, int Displaced, bool Bridge);
@@ -94,14 +131,23 @@ public sealed class RoomSellSystem : ISimulationSystem
     private static TileSale SellOne(SimulationContext context, PlayerId playerId, TilePos pos, bool wave = false)
     {
         WorldState world = context.World;
-        if (!world.Contains(pos)) return new TileSale(RoomSale.OffMap, 0, 0, 0, false);
+        if (!world.Contains(pos))
+        {
+            return new TileSale(RoomSale.OffMap, 0, 0, 0, false);
+        }
 
         ref TileState tile = ref world.Tile(pos);
         RoomSale verdict = RoomRules.CanSell(context.Database, tile, playerId, out RoomDef? room);
-        if (verdict != RoomSale.Allowed || room is null) return new TileSale(verdict, 0, 0, 0, false);
+        if (verdict != RoomSale.Allowed || room is null)
+        {
+            return new TileSale(verdict, 0, 0, 0, false);
+        }
         // The paid sale's opening test (0x004C5DD0, world slot +0x384 -> 0x0044F770): the keeper's availability
         // of the room's type must be neither 1 (none) nor 4, or nothing happens: no unmake, refund or number.
-        if (!RoomRules.IsSellableType(world, playerId, room)) return new TileSale(RoomSale.NotAvailable, 0, 0, 0, false);
+        if (!RoomRules.IsSellableType(world, playerId, room))
+        {
+            return new TileSale(RoomSale.NotAvailable, 0, 0, 0, false);
+        }
 
         int refund = RoomRules.RefundPerTile(context.Database, room);
         int index = (pos.Y * world.Width) + pos.X;
@@ -113,7 +159,9 @@ public sealed class RoomSellSystem : ISimulationSystem
         // A Graveyard sold even in part is rebuilt with its tally at 0 (Q321).
         if (room.TypeId == RoomTypeId.Graveyard
             && RoomIndex.RoomAt(world, context.Database, index) is RoomInstance graveyard)
+        {
             GraveyardRules.Forget(world, graveyard);
+        }
 
         // Unmake first, then bank: the other order would let a refund land on the tile being sold.
         byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
@@ -126,7 +174,11 @@ public sealed class RoomSellSystem : ISimulationSystem
 
         int banked = GoldStore.Deposit(world, context.Database, playerId, refund);
         // What no store takes asks for a Treasury (0x004BA420).
-        if (banked < refund) RoomNeedRules.GoldLeftOver(context, playerId);
+        if (banked < refund)
+        {
+            RoomNeedRules.GoldLeftOver(context, playerId);
+        }
+
         if (wave && banked < refund)
         {
             FloorGold.Drop(world, context.Database, index, refund - banked);
@@ -165,7 +217,11 @@ public sealed class RoomSellSystem : ISimulationSystem
                 continue;
             }
             sold++;
-            if (sale.Bridge) bridges++;
+            if (sale.Bridge)
+            {
+                bridges++;
+            }
+
             displacedGold += sale.Displaced;
             refunded += sale.Banked;
             lostRefund += sale.Lost;

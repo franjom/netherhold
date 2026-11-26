@@ -72,16 +72,28 @@ public static class CasinoStep
     /// <summary>One turn of a gambler. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
     {
-        if (RoomEvictRules.Evict(context, system, creature, RoomTypeId.Casino)) return true;
+        if (RoomEvictRules.Evict(context, system, creature, RoomTypeId.Casino))
+        {
+            return true;
+        }
+
         if (StateShadow.IsTravelling(creature))
         {
-            if (creature.HasRoute) return true;
+            if (creature.HasRoute)
+            {
+                return true;
+            }
+
             creature.StopMoving();
             return StateShadow.Arrive(context, system, creature);
         }
 
         long age = context.Tick.Value - creature.StateEnteredTick;
-        if (age == 0) return true;
+        if (age == 0)
+        {
+            return true;
+        }
+
         return creature.Dk2StateId switch
         {
             ChoosingState => Choose(context, system, creature, age),
@@ -103,23 +115,51 @@ public static class CasinoStep
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (age == 1) creature.StopMoving();
-        if (OwnCasinoUnder(world, database, creature) is not { } room) return false;
+        if (age == 1)
+        {
+            creature.StopMoving();
+        }
+
+        if (OwnCasinoUnder(world, database, creature) is not { } room)
+        {
+            return false;
+        }
 
         if (CasinoJackpotRules.IsPartyOn(world, room) && Walk(context, system, creature, creature.PosX, creature.PosY, DancingState))
+        {
             return true;
-        if (CasinoRules.Lever(world, room) is null) return false;
+        }
+
+        if (CasinoRules.Lever(world, room) is null)
+        {
+            return false;
+        }
+
         creature.CasinoFacing = true;
         creature.CasinoObjectId = CreatureState.NoCasinoObject;
-        if (creature.GoldHeld <= CasinoRules.Stake(database) || !creature.HeldPlace.IsHeld) return false;
+        if (creature.GoldHeld <= CasinoRules.Stake(database) || !creature.HeldPlace.IsHeld)
+        {
+            return false;
+        }
 
         bool tableFirst = context.Rng.NextInt(2) != 0;
         for (int pass = 0; pass < 2; pass++)
         {
             bool table = tableFirst == (pass == 0);
-            if (Nearest(world, database, room, creature, table ? 0 : 3) is not { } found) continue;
-            if (table) ToTable(context, system, creature, room, found);
-            else ToAlcove(context, system, creature, room, found);
+            if (Nearest(world, database, room, creature, table ? 0 : 3) is not { } found)
+            {
+                continue;
+            }
+
+            if (table)
+            {
+                ToTable(context, system, creature, room, found);
+            }
+            else
+            {
+                ToAlcove(context, system, creature, room, found);
+            }
+
             return true;
         }
 
@@ -138,11 +178,23 @@ public static class CasinoStep
         uint bestDistance = uint.MaxValue;
         foreach (ObjectState thing in world.Objects)
         {
-            if (thing.InHand || !EatingRules.Contains(room, thing.TileIndex)) continue;
-            if (!IsFurnitureOf(room, thing.ObjectTypeId, firstSlot)) continue;
+            if (thing.InHand || !EatingRules.Contains(room, thing.TileIndex))
+            {
+                continue;
+            }
+
+            if (!IsFurnitureOf(room, thing.ObjectTypeId, firstSlot))
+            {
+                continue;
+            }
+
             (int x, int y) = FurniturePosition(world, database, room, thing);
             uint distance = Distance(creature.PosX - x, creature.PosY - y);
-            if (distance >= bestDistance || IsNamedByAnother(world, room, creature, thing.Id)) continue;
+            if (distance >= bestDistance || IsNamedByAnother(world, room, creature, thing.Id))
+            {
+                continue;
+            }
+
             best = thing;
             bestDistance = distance;
         }
@@ -154,14 +206,26 @@ public static class CasinoStep
     {
         IReadOnlyList<byte> ids = room.Definition.ObjectIds;
         for (int slot = firstSlot; slot < firstSlot + 3 && slot < ids.Count; slot++)
-            if (ids[slot] != 0 && ids[slot] == type) return true;
+        {
+            if (ids[slot] != 0 && ids[slot] == type)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
     private static bool IsNamedByAnother(WorldState world, RoomInstance room, CreatureState seeker, int objectId)
     {
         foreach (CreatureState c in world.Creatures)
-            if (c.Id != seeker.Id && c.HeldPlace.In(room) && c.CasinoObjectId == objectId) return true;
+        {
+            if (c.Id != seeker.Id && c.HeldPlace.In(room) && c.CasinoObjectId == objectId)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -228,13 +292,25 @@ public static class CasinoStep
     private static int? FloorTile(SimulationContext context, WorldState world, GameDatabase database, RoomInstance room)
     {
         int[] chain = SlabChain.Order(world, room);
-        if (chain.Length == 0) return null;
+        if (chain.Length == 0)
+        {
+            return null;
+        }
+
         int start = context.Rng.NextInt(chain.Length);
         for (int k = 0; k <= chain.Length; k++)
         {
             int tile = chain[(start + k) % chain.Length];
-            if (AutoFurnitureRules.IsFloorSlot(world, room, tile)) continue;
-            if (NavClass(database, world.TileAtIndex(tile)) != 0 || HasObstacle(world, database, tile)) continue;
+            if (AutoFurnitureRules.IsFloorSlot(world, room, tile))
+            {
+                continue;
+            }
+
+            if (NavClass(database, world.TileAtIndex(tile)) != 0 || HasObstacle(world, database, tile))
+            {
+                continue;
+            }
+
             return tile;
         }
 
@@ -245,17 +321,30 @@ public static class CasinoStep
     internal static int NavClass(GameDatabase database, in TileState tile)
     {
         TerrainFlags flags = database.TerrainById(tile.TerrainId).Flags;
-        if (((flags & TerrainFlags.Solid) == TerrainFlags.Solid)) return 8;
-        if (((flags & TerrainFlags.Water) == TerrainFlags.Water)) return 1;
+        if (((flags & TerrainFlags.Solid) == TerrainFlags.Solid))
+        {
+            return 8;
+        }
+
+        if (((flags & TerrainFlags.Water) == TerrainFlags.Water))
+        {
+            return 1;
+        }
+
         return ((flags & TerrainFlags.Lava) == TerrainFlags.Lava) ? 3 : 0;
     }
 
     internal static bool HasObstacle(WorldState world, GameDatabase database, int tile)
     {
         foreach (ObjectState thing in world.Objects)
+        {
             if (!thing.InHand && thing.TileIndex == tile
                 && database.ObjectById(thing.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.Obstacle) == ObjectFlags.Obstacle))
+            {
                 return true;
+            }
+        }
+
         return false;
     }
 
@@ -264,19 +353,33 @@ public static class CasinoStep
     /// <summary>146: face the alcove, perhaps get drunk, then a drink of action 39 or 56 (casino.md §4).</summary>
     private static bool AtTheAlcove(SimulationContext context, string system, CreatureState creature)
     {
-        if (Facing(context, system, creature) is bool facing) return facing;
+        if (Facing(context, system, creature) is bool facing)
+        {
+            return facing;
+        }
+
         WorldState world = context.World;
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         int action, slot;
         if (context.Rng.NextInt(100) < 75)
         {
             if (context.Rng.NextInt(100) < DrunkPercent && AnimationTimingRules.ResolvesPresent(definition, 34))
+            {
                 GetDrunk(context, system, creature);
+            }
+
             (action, slot) = (39, 19);
         }
-        else (action, slot) = (56, 37);
+        else
+        {
+            (action, slot) = (56, 37);
+        }
 
-        if (!AnimationTimingRules.ResolvesPresent(definition, slot)) return false;
+        if (!AnimationTimingRules.ResolvesPresent(definition, slot))
+        {
+            return false;
+        }
+
         Begin(context, system, creature, definition, action, slot, count: 3);
         return Enter(context, system, creature, DrinkingState);
     }
@@ -288,13 +391,25 @@ public static class CasinoStep
         creature.DrunkTicks = DrunkSeconds * SimulationTiming.OriginalTicksPerGameSecond;
         int drunk = 0;
         if (creature.HeldPlace.IsHeld && RoomIndex.RoomAt(world, context.Database, creature.HeldPlace.TileIndex) is { } room)
+        {
             foreach (CreatureState c in world.Creatures)
-                if (c.HeldPlace.In(room) && c.DrunkTicks > 0) drunk++;
+            {
+                if (c.HeldPlace.In(room) && c.DrunkTicks > 0)
+                {
+                    drunk++;
+                }
+            }
+        }
 
         if (drunk > RowdyAbove)
+        {
             world.Messages.Post(world, creature.OwnerPlayerId, PlayerMessageKind.CasinoRowdy, RowdyVariant, 0);
+        }
         else if (drunk > MerryAbove)
+        {
             world.Messages.Post(world, creature.OwnerPlayerId, PlayerMessageKind.CasinoDrinking, 0, 0);
+        }
+
         context.Emit(system, "casino_drunk", $"creature={creature.Id} drunk_here={drunk}");
     }
 
@@ -302,15 +417,26 @@ public static class CasinoStep
     /// setting choose (casino.md §5).</summary>
     private static bool AtTheTable(SimulationContext context, string system, CreatureState creature)
     {
-        if (Facing(context, system, creature) is bool facing) return facing;
+        if (Facing(context, system, creature) is bool facing)
+        {
+            return facing;
+        }
+
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         bool stingy = CasinoRules.SettingUnder(context.World, context.Database, creature) == CasinoRules.Stingy;
         int action = TableAction(
             AnimationTimingRules.HasArt(definition, 14), AnimationTimingRules.HasArt(definition, stingy ? 9 : 8),
             AnimationTimingRules.HasArt(definition, 20), stingy, () => context.Rng.NextInt(100));
         int slot = action switch { 65 => 14, 66 => 8, 67 => 9, 68 => 20, _ => -1 };
-        if (slot < 0) creature.ActionUntilTick = 0;
-        else Begin(context, system, creature, definition, action, slot, count: 3);
+        if (slot < 0)
+        {
+            creature.ActionUntilTick = 0;
+        }
+        else
+        {
+            Begin(context, system, creature, definition, action, slot, count: 3);
+        }
+
         return Enter(context, system, creature, PlayingState);
     }
 
@@ -320,8 +446,16 @@ public static class CasinoStep
     /// art 20, action 0, which ends at once (casino.md §5).</summary>
     public static int TableAction(bool a, bool b, bool d, bool stingy, Func<int> roll)
     {
-        if (!d) return 0;
-        if (!b) return 68;
+        if (!d)
+        {
+            return 0;
+        }
+
+        if (!b)
+        {
+            return 68;
+        }
+
         int r = roll();
         return a && r < 50 ? 65 : r < 75 ? (stingy ? 67 : 66) : 68;
     }
@@ -330,7 +464,11 @@ public static class CasinoStep
     /// (else back to 145) and the creature turns toward it. Null once it faces it.</summary>
     private static bool? Facing(SimulationContext context, string system, CreatureState creature)
     {
-        if (!creature.CasinoFacing) return null;
+        if (!creature.CasinoFacing)
+        {
+            return null;
+        }
+
         WorldState world = context.World;
         if (world.ObjectById(creature.CasinoObjectId) is not { InHand: false } thing
             || RoomIndex.RoomAt(world, context.Database, thing.TileIndex) is not { } room)
@@ -340,7 +478,11 @@ public static class CasinoStep
         }
 
         (int x, int y) = FurniturePosition(world, context.Database, room, thing);
-        if (TurnTo(context, creature, x, y) != 0) return true;
+        if (TurnTo(context, creature, x, y) != 0)
+        {
+            return true;
+        }
+
         creature.CasinoFacing = false;
         return null;
     }
@@ -353,21 +495,33 @@ public static class CasinoStep
     {
         long now = context.Tick.Value;
         bool moved = creature.WaitPosX != creature.PosX || creature.WaitPosY != creature.PosY;
-        if (age > 1 && moved && now < creature.ActionUntilTick) creature.ActionUntilTick = 0;
+        if (age > 1 && moved && now < creature.ActionUntilTick)
+        {
+            creature.ActionUntilTick = 0;
+        }
+
         creature.WaitPosX = creature.PosX;
         creature.WaitPosY = creature.PosY;
-        if (now >= creature.ActionUntilTick) return Enter(context, system, creature, ChoosingState);
+        if (now >= creature.ActionUntilTick)
+        {
+            return Enter(context, system, creature, ChoosingState);
+        }
 
         // While the action runs, 147 asks for 0xE1 (0x00456DF0) and 149 for 0xD5 (0x00456B37) every eighth game
         // second of the state's age. At a Roulette Table 149 asks every fourth as well, when a Roulette Wheel
         // (object 30) is on the table's tile (0x00456AE9); ours has no wheel objects, so that one waits.
         if (creature.Dk2StateId is DrinkingState or PlayingState && age % (8 * SimulationTiming.OriginalTicksPerGameSecond) == 0)
+        {
             ThingSoundRules.Request(context, system, creature,
                 creature.Dk2StateId == DrinkingState ? ThingSoundEvent.Drank : ThingSoundEvent.Gambled);
+        }
 
         if (creature.Dk2StateId == PlayingState && age % (4 * SimulationTiming.OriginalTicksPerGameSecond) == 0
             && context.World.ObjectById(creature.CasinoObjectId) is { InHand: false, ObjectTypeId: RouletteTableObjectId })
+        {
             context.Rng.NextInt(2);
+        }
+
         return true;
     }
 
@@ -389,13 +543,27 @@ public static class CasinoStep
         if (age == 1)
         {
             creature.ActionUntilTick = 0;
-            if (AnimationTimingRules.ResolvesPresent(definition, 28)) Begin(context, system, creature, definition, 57, 28, count: 64);
-            else if (AnimationTimingRules.ResolvesPresent(definition, 8)) Begin(context, system, creature, definition, 35, 8, count: 64);
-            else return false;
+            if (AnimationTimingRules.ResolvesPresent(definition, 28))
+            {
+                Begin(context, system, creature, definition, 57, 28, count: 64);
+            }
+            else if (AnimationTimingRules.ResolvesPresent(definition, 8))
+            {
+                Begin(context, system, creature, definition, 35, 8, count: 64);
+            }
+            else
+            {
+                return false;
+            }
+
             return true;
         }
 
-        if (context.Tick.Value < creature.ActionUntilTick) return true;
+        if (context.Tick.Value < creature.ActionUntilTick)
+        {
+            return true;
+        }
+
         CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
         return Enter(context, system, creature, ChoosingState);
     }
@@ -405,7 +573,11 @@ public static class CasinoStep
     /// <summary>The Casino under the creature, if it is its own keeper's (<c>0x004539B0(15, owner, 0)</c>).</summary>
     internal static RoomInstance? OwnCasinoUnder(WorldState world, GameDatabase database, CreatureState creature)
     {
-        if (!world.Contains(creature.Tile)) return null;
+        if (!world.Contains(creature.Tile))
+        {
+            return null;
+        }
+
         RoomInstance? room = RoomIndex.RoomAt(world, database, (creature.Tile.Y * world.Width) + creature.Tile.X);
         return room is not null && room.Definition.TypeId == RoomTypeId.Casino && room.OwnerPlayerId == creature.OwnerPlayerId
             ? room : null;
@@ -426,14 +598,26 @@ public static class CasinoStep
     {
         IReadOnlyList<byte> ids = room.Definition.ObjectIds;
         for (int slot = firstSlot; slot < firstSlot + count && slot < ids.Count; slot++)
-            if (ids[slot] != 0 && FirstOfType(world, tile, ids[slot]) is { } thing) return thing;
+        {
+            if (ids[slot] != 0 && FirstOfType(world, tile, ids[slot]) is { } thing)
+            {
+                return thing;
+            }
+        }
+
         return null;
     }
 
     private static ObjectState? FirstOfType(WorldState world, int tile, byte type)
     {
         foreach (ObjectState thing in world.Objects)
-            if (!thing.InHand && thing.TileIndex == tile && thing.ObjectTypeId == type) return thing;
+        {
+            if (!thing.InHand && thing.TileIndex == tile && thing.ObjectTypeId == type)
+            {
+                return thing;
+            }
+        }
+
         return null;
     }
 
@@ -450,7 +634,11 @@ public static class CasinoStep
     /// <summary>A walk to a point resuming <paramref name="resume"/>, options <c>0x80</c>.</summary>
     private static bool Walk(SimulationContext context, string system, CreatureState creature, int x, int y, int resume)
     {
-        if (!context.Navigation.TryRouteTo(creature, x, y, MoveOptions.Loose)) return false;
+        if (!context.Navigation.TryRouteTo(creature, x, y, MoveOptions.Loose))
+        {
+            return false;
+        }
+
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
         context.Emit(system, "casino_walk", $"creature={creature.Id} to=({x >> 12},{y >> 12}) resume={resume}");
         return true;

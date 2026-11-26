@@ -13,8 +13,12 @@ public readonly record struct RoomSite(TilePos Origin, int Width, int Height)
     public IEnumerable<TilePos> Tiles()
     {
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 yield return new TilePos(Origin.X + x, Origin.Y + y);
+            }
+        }
     }
 
     public bool Contains(TilePos p) =>
@@ -78,13 +82,19 @@ public static class SiteFinder
             steps--;
             pos = new TilePos(pos.X + dx, pos.Y + dy);
         }
-        if (steps == 0 || !view.InBounds(pos) || IsUndiggableRock(view, pos)) return null;
+        if (steps == 0 || !view.InBounds(pos) || IsUndiggableRock(view, pos))
+        {
+            return null;
+        }
 
         // Leave the configured gap.
         for (int i = 0; i < tilesBetweenRooms; i++)
         {
             pos = new TilePos(pos.X + dx, pos.Y + dy);
-            if (!view.InBounds(pos) || IsUndiggableRock(view, pos)) return null;
+            if (!view.InBounds(pos) || IsUndiggableRock(view, pos))
+            {
+                return null;
+            }
         }
 
         TilePos joinPoint = pos;
@@ -95,7 +105,10 @@ public static class SiteFinder
         var start = new TilePos(pos.X + (dy * (side / 2)), pos.Y + (dx * (side / 2)));
 
         int w = side, h = side;
-        if (!Acceptable(view, start, w, h, sx, sy)) return null;
+        if (!Acceptable(view, start, w, h, sx, sy))
+        {
+            return null;
+        }
 
         // side² short of the requested size: one more strip forward if it fits.
         if (side * side < roomSize)
@@ -112,11 +125,20 @@ public static class SiteFinder
         // The perimeter test only applies when the keeper leaves a gap between
         // rooms (the original gates it on TilesLeftBetweenRooms != 0): a keeper
         // that builds rooms touching is expected to have open ground around them.
-        if (tilesBetweenRooms > 0 && !PerimeterClosedEnough(view, start, w, h, sx, sy, opennessPercent)) return null;
+        if (tilesBetweenRooms > 0 && !PerimeterClosedEnough(view, start, w, h, sx, sy, opennessPercent))
+        {
+            return null;
+        }
 
         RoomSite site = Normalise(start, w, h, sx, sy);
         foreach (TilePos t in site.Tiles())
-            if (!area.Contains(t)) return null;
+        {
+            if (!area.Contains(t))
+            {
+                return null;
+            }
+        }
+
         return new SiteChoice(site, joinPoint, start, sx, sy);
     }
 
@@ -130,9 +152,17 @@ public static class SiteFinder
     /// <summary>Diggable rock, or the keeper's own floor with no room on it.</summary>
     private static bool TileAcceptable(KeeperView view, TilePos p)
     {
-        if (!view.InBounds(p)) return false;
+        if (!view.InBounds(p))
+        {
+            return false;
+        }
+
         TerrainDef t = view.Terrain(p);
-        if (t.IsTaggable && !t.IsImpenetrable) return true;
+        if (t.IsTaggable && !t.IsImpenetrable)
+        {
+            return true;
+        }
+
         return view.IsMine(p) && !t.IsRoom && !t.IsSolid;
     }
 
@@ -142,8 +172,16 @@ public static class SiteFinder
     private static bool Acceptable(KeeperView view, TilePos start, int w, int h, int sx, int sy)
     {
         for (int j = 0; j < h; j++)
+        {
             for (int i = 0; i < w; i++)
-                if (!TileAcceptable(view, Lay(start, i, j, sx, sy))) return false;
+            {
+                if (!TileAcceptable(view, Lay(start, i, j, sx, sy)))
+                {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 
@@ -167,8 +205,15 @@ public static class SiteFinder
     private static void Count(KeeperView view, TilePos p, ref int open, ref int total)
     {
         total++;
-        if (!view.InBounds(p)) return;
-        if (view.IsTaggedByAnyone(p) || !view.IsSolid(p)) open++;
+        if (!view.InBounds(p))
+        {
+            return;
+        }
+
+        if (view.IsTaggedByAnyone(p) || !view.IsSolid(p))
+        {
+            open++;
+        }
     }
 
     private static RoomSite Normalise(TilePos start, int w, int h, int sx, int sy)

@@ -47,17 +47,30 @@ public static class KeeperDirections
         int dy = heart.Y - (mapHeight / 2);
         int defend;
         if (Math.Abs(dy) < Math.Abs(dx))
+        {
             defend = dx <= 0 ? 1 : 3;
+        }
         else
+        {
             defend = dy > 0 ? 2 : 0;
+        }
+
         return (defend, (defend + 2) & 3);
     }
 
     /// <summary>Clockwise heading code of a unit step, for the line walker.</summary>
     public static int HeadingOf(int dx, int dy)
     {
-        if (dx > 0) return 1;
-        if (dx < 0) return 3;
+        if (dx > 0)
+        {
+            return 1;
+        }
+
+        if (dx < 0)
+        {
+            return 3;
+        }
+
         return dy > 0 ? 2 : 0;
     }
 }
