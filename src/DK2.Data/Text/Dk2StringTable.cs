@@ -18,13 +18,13 @@ public sealed record Dk2StringEntry(uint Id, string Value, uint StoredOffset);
 public sealed class Dk2StringTable
 {
     private const int HeaderSize = 12;
-    private readonly IReadOnlyDictionary<uint, string> byId;
+    private readonly IReadOnlyDictionary<uint, string> _byId;
 
     private Dk2StringTable(uint fileId, List<Dk2StringEntry> entries)
     {
         FileId = fileId;
         Entries = new ReadOnlyCollection<Dk2StringEntry>(entries);
-        byId = new ReadOnlyDictionary<uint, string>(
+        _byId = new ReadOnlyDictionary<uint, string>(
             entries.ToDictionary(entry => entry.Id, entry => entry.Value));
     }
 
@@ -127,7 +127,7 @@ public sealed class Dk2StringTable
         return new Dk2StringTable(fileId, entries);
     }
 
-    public bool TryResolve(uint id, out string value) => byId.TryGetValue(id, out value!);
+    public bool TryResolve(uint id, out string value) => _byId.TryGetValue(id, out value!);
 
     public string Resolve(uint id) =>
         TryResolve(id, out string value)

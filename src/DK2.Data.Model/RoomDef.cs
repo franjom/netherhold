@@ -126,9 +126,9 @@ public sealed record RoomDef
     /// per-tick rules ask this for every room, and in the whole run it was the simulation's third
     /// largest allocation (ADR-0696).
     /// </remarks>
-    public RoomTypeId? TypeId => s_namedIds[RoomId];
+    public RoomTypeId? TypeId => NamedIdLookup[RoomId];
 
-    private static readonly RoomTypeId?[] s_namedIds = NamedIds();
+    private static readonly RoomTypeId?[] NamedIdLookup = NamedIds();
 
     private static RoomTypeId?[] NamedIds()
     {

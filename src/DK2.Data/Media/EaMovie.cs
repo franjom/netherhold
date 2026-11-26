@@ -109,7 +109,7 @@ public sealed class EaMovie
         {
             case Tag.SCHl: case Tag.SNh1: case Tag.SEAD: return EaMovieChunkKind.AudioHeader;
             case Tag.SCDl: case Tag.SNd1: case Tag.SNDC: return EaMovieChunkKind.Audio;
-            case Tag.pIQT: return EaMovieChunkKind.Video;
+            case Tag.PIQT: return EaMovieChunkKind.Video;
             case Tag.SCEl: case Tag.SNe1: case Tag.SEND: return EaMovieChunkKind.End;
             case Tag.SCCl: case Tag.SCLl: return EaMovieChunkKind.Skipped;
         }
@@ -189,7 +189,7 @@ public sealed class EaMovie
         public const uint SCHl = 0x6C484353, SCDl = 0x6C444353, SCEl = 0x6C454353, SCCl = 0x6C434353, SCLl = 0x6C4C4353;
         public const uint SNh1 = 0x684E5331, SNd1 = 0x644E5331, SNe1 = 0x654E5331; // "1SNh" etc. as read
         public const uint SEAD = 0x44414553, SNDC = 0x43444E53, SEND = 0x444E4553;
-        public const uint pIQT = 0x54514970;
+        public const uint PIQT = 0x54514970;
         public static readonly uint[] BothOrders = [SCHl, SCDl, SCCl, SCLl, SNDC];
     }
 }

@@ -16,17 +16,17 @@ public sealed record BitmapGlyph(
 /// <summary>A DK2 <c>.bf4</c> font. <see cref="LineHeight"/> is header byte +5 (<c>0x00633630</c>).</summary>
 public sealed class BitmapFont
 {
-    private readonly Dictionary<char, BitmapGlyph> byCharacter;
+    private readonly Dictionary<char, BitmapGlyph> _byCharacter;
 
     public BitmapFont(int lineHeight, IReadOnlyList<BitmapGlyph> glyphs)
     {
         LineHeight = lineHeight;
         Glyphs = glyphs;
-        byCharacter = new Dictionary<char, BitmapGlyph>(glyphs.Count);
+        _byCharacter = new Dictionary<char, BitmapGlyph>(glyphs.Count);
         // The files repeat a few characters (spaces); the first copy wins.
         foreach (BitmapGlyph glyph in glyphs)
         {
-            byCharacter.TryAdd(glyph.Character, glyph);
+            _byCharacter.TryAdd(glyph.Character, glyph);
         }
     }
 
@@ -34,5 +34,5 @@ public sealed class BitmapFont
     public IReadOnlyList<BitmapGlyph> Glyphs { get; }
 
     public BitmapGlyph? Find(char character) =>
-        byCharacter.TryGetValue(character, out BitmapGlyph? glyph) ? glyph : null;
+        _byCharacter.TryGetValue(character, out BitmapGlyph? glyph) ? glyph : null;
 }
