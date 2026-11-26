@@ -19586,3 +19586,19 @@ machine does with 81's silent 0 returns, whether DK2 reads `+0x64` after a Sleep
 job, and the failure message 0x2B, still not posted. Hash/save 530 adds no field;
 earlier saves are refused. Tests: `SleepJobTests`, `LairDropTests`,
 `ActivityRulesTests`.
+
+## ADR-0823 - a loaded save keeps drawing a hidden secret door as wall
+**Date:** 2026-11-26 | **Status:** accepted | exception to ADR-0783 | **Systems:** presentation-godot, doors-traps
+
+**Context.** DK2 draws a Secret Door nobody has uncovered as its owner's Reinforced Wall for every other
+viewer: a presentation bit the level-start sweep sets through bridge command 0x11. Restoring a saved game
+skips that sweep and nothing rebuilds the bit, so after a load the door is drawn as a door, while the
+tile's secret-door marker survives and the tile still hovers as "Enemy Wall". The owner saw both on level
+`Q888SecretDoors` (2026-11-26, SHOT0027). Evidence: record 004434F0, question Q888.
+
+**Decision.** The owner, 2026-11-26: ours does not reproduce this. `WorldView.IsHiddenSecretDoor` derives
+the wall from the marker, so a loaded game draws the hidden door as wall, as a level start does.
+
+**Consequences.** This is a presentation deviation only: the marker, and with it routing, the Imps' uncover
+task and the hover, behave as in DK2, so simulation runs stay comparable with native captures, which is
+what ADR-0783 protects. The defect is still tracked in issue #2 with this ADR as its disposition.
