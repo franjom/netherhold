@@ -222,7 +222,7 @@ public sealed class FrameRecording
 
     private static string Quote(string text)
     {
-        var quoted = new StringBuilder(text.Length + 2).Append('"');
+        StringBuilder quoted = new StringBuilder(text.Length + 2).Append('"');
         foreach (char c in text)
         {
             if (c == '"' || c == '\\') quoted.Append('\\').Append(c);

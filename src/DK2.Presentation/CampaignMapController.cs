@@ -65,7 +65,7 @@ public sealed class CampaignMapController : IDisposable
     }
     public void Hover(CampaignSlot slot)
     {
-        var next = IsAtMap && CampaignProgression.CanSelect(Profile, slot, SecretFiveAvailable) ? slot : CampaignSlot.None;
+        CampaignSlot next = IsAtMap && CampaignProgression.CanSelect(Profile, slot, SecretFiveAvailable) ? slot : CampaignSlot.None;
         if (Hovered == next) return;
         if (Hovered.IsCampaign) _markerPhases[Hovered.Value - 1] = 0;
         if (next.IsCampaign) _markerPhases[next.Value - 1] = 0xfff;
@@ -159,7 +159,7 @@ public sealed class CampaignMapController : IDisposable
 
     private void SetEntryName(string name)
     {
-        var rows = HiScores.ToArray();
+        HiScoreEntry[] rows = HiScores.ToArray();
         rows[EntryRow] = rows[EntryRow] with { Name = name };
         HiScores = Array.AsReadOnly(rows); Revision++;
     }
@@ -224,7 +224,7 @@ public sealed class CampaignMapController : IDisposable
         if (IsAtMap)
         {
         long elapsed = (long)(_session.Now - _entered).TotalMilliseconds;
-        var routes = RouteSlots(Profile.LevelNumber);
+            IReadOnlyList<int> routes = RouteSlots(Profile.LevelNumber);
         if (elapsed < 10000)
         {
             if (routes.Count == 0) _entered = _session.Now - TimeSpan.FromSeconds(10);

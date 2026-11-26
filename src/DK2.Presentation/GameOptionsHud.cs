@@ -190,7 +190,7 @@ public sealed class GameOptionsHud
         float side = box.Height;
         (int lo, int hi) = Model.Settings.Range(id);
         float t = (Model.Settings.Value(id) - lo) / (float)(hi - lo);
-        var tint = part.Enabled ? HudColor.White : new HudColor(255, 255, 255, Dim);
+        HudColor tint = part.Enabled ? HudColor.White : new HudColor(255, 255, 255, Dim);
         var left = new FrontEndRect(box.X - side, box.Y, side, side);
         var right = new FrontEndRect(box.X + box.Width, box.Y, side, side);
         var thumb = new FrontEndRect(box.X + t * (box.Width - side), box.Y, side, side);

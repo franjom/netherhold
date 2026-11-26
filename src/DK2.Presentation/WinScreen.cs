@@ -72,7 +72,7 @@ public sealed class WinScreen
     /// (<c>LevelDef.Unknown_6403[3]</c>) when the extended metadata is present.</summary>
     public static byte[] RewardsOf(LevelDef level)
     {
-        var bytes = new byte[5];
+        byte[] bytes = new byte[5];
         level.NextRewards.Span[..Math.Min(4, level.NextRewards.Length)].CopyTo(bytes);
         if (level.Unknown_6403.Length > 3) bytes[4] = level.Unknown_6403.Span[3];
         return bytes;

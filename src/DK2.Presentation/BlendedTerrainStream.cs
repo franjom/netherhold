@@ -142,7 +142,7 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
     {
         if (indices.Count == 0) return;
         IReadOnlyList<BlendedVertex> vertices = _chunkVertices ?? throw new InvalidOperationException("No chunk begun.");
-        var kept = new int[indices.Count];
+        int[] kept = new int[indices.Count];
         for (int i = 0; i < kept.Length; i++)
         {
             int vertex = indices[i];

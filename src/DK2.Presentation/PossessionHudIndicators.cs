@@ -74,7 +74,7 @@ public sealed class PossessionHudIndicators
     private void Holder(HudFrame frame, HudScreen screen, PlayerId player, int x, float y)
     {
         var text = new HudText(_font(screen.Height), _playerName(player), int.MaxValue / 2);
-        var size = HudTextPixels.Measure(text);
+        (int Width, int Height) size = HudTextPixels.Measure(text);
         int overflow = size.Width - (int)(260 * screen.Height / 1920f);
         if (overflow <= 0) { _scroll = 0; _forward = true; }
         else

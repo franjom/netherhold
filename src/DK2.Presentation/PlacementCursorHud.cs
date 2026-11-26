@@ -152,7 +152,7 @@ public sealed class PlacementCursorHud
 
     private static string[] Digits(string family)
     {
-        var names = new string[10];
+        string[] names = new string[10];
         for (int i = 0; i < 10; i++) names[i] = family + (char)('0' + i);
         return names;
     }

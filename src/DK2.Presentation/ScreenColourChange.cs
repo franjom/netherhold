@@ -69,7 +69,7 @@ public sealed class ScreenColourChange
         Array.Copy(_target, _current, _current.Length);
         if (_read < _count)
         {
-            var next = _queue[_read++];
+            (ScreenColourKind Kind, int Length) next = _queue[_read++];
             Begin(next.Kind, clockMilliseconds, next.Length, queued: true);
         }
         else Running = false;

@@ -242,7 +242,7 @@ public sealed class EffectDrawList
             return (source.Red | source.Green | source.Blue) == 0 ? EffectColour.White : Tint(source);
         // A tile drawn without a table this frame has no lights, as DK2's empty list: base colour alone.
         if (!lights(new TilePos(source.XRaw >> 12, source.YRaw >> 12), out ClassicLightTable table)) return Tint(source);
-        var (red, green, blue) = SpriteLighting.Lit(source.Red, source.Green, source.Blue, table.Lights, position);
+        (byte red, byte green, byte blue) = SpriteLighting.Lit(source.Red, source.Green, source.Blue, table.Lights, position);
         return new EffectColour(red, green, blue);
     }
 
@@ -268,7 +268,7 @@ public sealed class EffectDrawList
     public static void AddBillboardQuad(EffectQuadBuffer quads, ConstructionParticle source, in EffectBillboard billboard,
         Vector3 right, Vector3 up, int spriteFrames)
     {
-        var (u0, u1) = FrameSpan(source, spriteFrames);
+        (float u0, float u1) = FrameSpan(source, spriteFrames);
         // 0x0043CC30 -> 0x00599C60 supplies current heading twice; 0x0057F3D0 turns the camera-space quad.
         float angle = source.HeadingRaw * (2f * (float)Math.PI / 2048f);
         float cosine = (float)Math.Cos(angle), sine = (float)Math.Sin(angle);
@@ -303,7 +303,7 @@ public sealed class EffectDrawList
         float angle = MeshOrientation.LerpAngle(source.PreviousHeadingRaw * (360f / 2048f),
             source.HeadingRaw * (360f / 2048f), fraction) * Deg2Rad;
         float cos = (float)Math.Cos(angle), sin = (float)Math.Sin(angle);
-        var (u0, u1) = FrameSpan(source, spriteFrames);
+        (float u0, float u1) = FrameSpan(source, spriteFrames);
         int first = quads.VertexCount;
         EffectColour colour = SpriteColour(source, RenderWorld.Ground(x / 4096f, y / 4096f, height));
         for (int corner = 0; corner < 4; corner++)

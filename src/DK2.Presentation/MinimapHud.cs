@@ -92,7 +92,7 @@ public sealed class MinimapHud
 
     private static string[] BuildCorners()
     {
-        var corners = new string[8];
+        string[] corners = new string[8];
         for (int i = 0; i < 4; i++)
         {
             string suffix = "mapbf-" + i.ToString("00", System.Globalization.CultureInfo.InvariantCulture);

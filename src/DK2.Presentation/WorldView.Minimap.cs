@@ -30,10 +30,10 @@ public sealed partial class WorldView
     {
         output.Clear();
         _settledMinimapPickups.Clear();
-        foreach (var pending in _minimapPickups)
+        foreach (KeyValuePair<int, GameTick> pending in _minimapPickups)
             if (pending.Value <= world.CurrentTick) _settledMinimapPickups.Add(pending.Key);
         foreach (int id in _settledMinimapPickups) _minimapPickups.Remove(id);
-        MinimapMapBounds bounds = MinimapMapBounds.Fit(world.Width, world.Height);
+        var bounds = MinimapMapBounds.Fit(world.Width, world.Height);
         MinimapHeartTile = null;
         if (_minimapHeartWorld != world)
         {
@@ -129,7 +129,7 @@ public sealed partial class WorldView
             if (!world.Contains(tile.X, tile.Y)) return;
             if (!world.FogOfWarEnabled || world.Tile(tile).IsExploredBy(_viewingPlayerId)) flags |= MinimapMarkerFlags.Explored;
             var facts = new MinimapMarkerFacts(kind, position, owner, flags);
-            if (MinimapMarkerRules.TryCreate(facts, _viewingPlayerId, world.CurrentTick, palette, out var marker)) output.Add(marker);
+            if (MinimapMarkerRules.TryCreate(facts, _viewingPlayerId, world.CurrentTick, palette, out MinimapMarker marker)) output.Add(marker);
         }
     }
 

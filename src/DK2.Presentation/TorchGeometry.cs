@@ -12,7 +12,7 @@ public static class TorchGeometry
 {
     public static Vector3 Vertex(in TorchView torch, Vector3 vertex, TerrainLattice? lattice)
     {
-        Quaternion turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, torch.Yaw * (MathF.PI / 1024f));
+        var turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, torch.Yaw * (MathF.PI / 1024f));
         Vector3 placed = Vector3.Transform(vertex, turn) + new Vector3(
             torch.MeshPosX / (float)Fp32.One, torch.Height / (float)Fp32.One, -torch.MeshPosY / (float)Fp32.One);
         if (lattice is null) return placed;

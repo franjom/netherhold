@@ -25,7 +25,7 @@ public sealed class FrontEndLabelGeometry
         if (text is null) throw new ArgumentNullException(nameof(text));
         var glyphs = new List<FrontEndGlyph>();
         int pen = 0, left = int.MaxValue, top = int.MaxValue, right = int.MinValue, bottom = int.MinValue;
-        var lines = Lines(font, text, wrapWidth);
+        IReadOnlyList<string> lines = Lines(font, text, wrapWidth);
         int maximumAdvance = 0, lineIndex = 0;
         foreach (string line in lines)
         {
@@ -50,7 +50,7 @@ public sealed class FrontEndLabelGeometry
             }
             maximumAdvance = Math.Max(maximumAdvance, pen); lineIndex++;
         }
-        var bounds = glyphs.Count == 0 ? default : new FrontEndRect(left, top, right - left, bottom - top);
+        FrontEndRect bounds = glyphs.Count == 0 ? default : new FrontEndRect(left, top, right - left, bottom - top);
         return new(bounds, maximumAdvance, font.LineHeight, lines.Count * font.LineHeight, glyphs.AsReadOnly());
     }
 

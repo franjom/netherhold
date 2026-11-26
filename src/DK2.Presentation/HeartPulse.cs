@@ -28,7 +28,7 @@ public sealed class HeartPulse
     /// (<see cref="IsHeartOf"/>) by <paramref name="step"/>.</summary>
     public bool TryTakeHealthAdvance(out PlayerId owner, out Fp32 step)
     {
-        if (_advances.TryDequeue(out var advance))
+        if (_advances.TryDequeue(out (PlayerId Owner, Fp32 Step) advance))
         {
             (owner, step) = advance;
             return true;

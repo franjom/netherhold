@@ -31,7 +31,7 @@ public static class MinimapNavigation
         int x, y;
         if (view.Zoom.IsWholeMap)
         {
-            MinimapMapBounds fit = MinimapMapBounds.Fit(view.Width, view.Height);
+            var fit = MinimapMapBounds.Fit(view.Width, view.Height);
             if (fit.Width == 0 || fit.Height == 0) return false;
             x = view.Width / 2 + unchecked(view.Width * rx) / fit.Width;
             y = view.Height / 2 + unchecked(view.Height * ry) / fit.Height;

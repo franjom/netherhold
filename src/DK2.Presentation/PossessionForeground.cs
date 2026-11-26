@@ -5,6 +5,7 @@
 using System.Numerics;
 using DK2.Art;
 using DK2.Art.Kmf;
+using DK2.Assets;
 using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.Simulation.Combat;
@@ -88,7 +89,7 @@ public sealed class PossessionForeground
         if (sample.Resource == null) return;
         if (!_clips.TryGetValue(sample.Resource, out Clip? clip))
         {
-            clip = art.TryResolveEntry(sample.Resource, out var asset) && art.TryLoadModel(asset, out KmfModel model)
+            clip = art.TryResolveEntry(sample.Resource, out ResolvedAsset asset) && art.TryLoadModel(asset, out KmfModel model)
                 && model.Animation is { IsComplete: true } ? new Clip(model) : null;
             _clips.Add(sample.Resource, clip);
         }

@@ -13,7 +13,7 @@ public static class ScreenColourTables
     public const int ChannelSize = 256, Length = 3 * ChannelSize;
     public static ushort[] Build(ScreenColourKind kind, double gamma)
     {
-        var table = new ushort[Length];
+        ushort[] table = new ushort[Length];
         Build(kind, gamma, table);
         return table;
     }

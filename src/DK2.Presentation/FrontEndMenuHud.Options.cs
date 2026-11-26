@@ -101,7 +101,7 @@ public sealed partial class FrontEndMenuHud
                 float[] start = { 0, 306 * 4, 454 * 4, raw.Width };
                 for (int column = 0; column < 3; column++)
                 {
-                    var widget = template with { Id = new FrontEndWidgetId((ushort)(800 + column * 5 + i)),
+                    FrontEndWidget widget = template with { Id = new FrontEndWidgetId((ushort)(800 + column * 5 + i)),
                         Draw = FrontEndDrawKind.PlainText, TextId = 0, Primary = new FrontEndAction(FrontEndActionKind.None, default),
                         DrawRect = new FrontEndRect(raw.X + start[column], raw.Y + i * raw.Height / 5,
                             start[column + 1] - start[column], raw.Height / 5) };
@@ -115,21 +115,21 @@ public sealed partial class FrontEndMenuHud
         if (Model.Page == FrontEndPage.Graphics)
         {
             FrontEndWidget template = WidgetById(125)!;
-            var scale = template with { Id = new FrontEndWidgetId(900), TextId = 0,
+            FrontEndWidget scale = template with { Id = new FrontEndWidgetId(900), TextId = 0,
                 DrawRect = new FrontEndRect(1616, 1300, 680, 48), Draw = FrontEndDrawKind.None };
             _resultWidgets.Add(scale);
-            var caption = template with { Id = new FrontEndWidgetId(901), TextId = 0,
+            FrontEndWidget caption = template with { Id = new FrontEndWidgetId(901), TextId = 0,
                 DrawRect = new FrontEndRect(80, 1260, 1300, 100), Draw = FrontEndDrawKind.PlainText };
             _resultWidgets.Add(caption);
             float fitting = _hudFit(Model.Options.Pending.UiScale);
             AddLabel(caption, $"HUD scale {Model.Options.Pending.UiScale}% (fits {(int)Math.Round(fitting)}%)",
                 new FrontEndFont(FrontEndFontFamily.FrontEnd, 14), FrontEndTextAlignment.Left, FrontEndVerticalAlignment.Centre, true);
-            var unavailable = template with { Id = new FrontEndWidgetId(991), TextId = 0,
+            FrontEndWidget unavailable = template with { Id = new FrontEndWidgetId(991), TextId = 0,
                 DrawRect = new FrontEndRect(80, 1430, 2250, 80), Draw = FrontEndDrawKind.PlainText };
             _resultWidgets.Add(unavailable);
             AddLabel(unavailable, "Water, environment mapping and shadows are unavailable.",
                 new FrontEndFont(FrontEndFontFamily.FrontEnd, 14), FrontEndTextAlignment.Left, FrontEndVerticalAlignment.Centre, true);
-            var note = template with { Id = new FrontEndWidgetId(990), TextId = 0,
+            FrontEndWidget note = template with { Id = new FrontEndWidgetId(990), TextId = 0,
                 DrawRect = new FrontEndRect(80, 1540, 1900, 100), Draw = FrontEndDrawKind.PlainText };
             _resultWidgets.Add(note);
             AddLabel(note, "Set the display mode in the launcher.",

@@ -332,7 +332,7 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         _window.Reset();
         _objects.Clear();
         foreach (List<ObjectSource> entries in _entries) entries.Clear();
-        foreach (var sources in _objectsByTile) sources?.Clear();
+        foreach (List<ObjectSource>? sources in _objectsByTile) sources?.Clear();
         Array.Clear(_terrain, 0, _terrain.Length);
         Array.Clear(_torches, 0, _torches.Length);
         Array.Clear(_cells, 0, _cells.Length);

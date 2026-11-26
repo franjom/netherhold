@@ -51,12 +51,12 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
     public static CampaignResults? Build(CampaignProfile profile, CampaignSlot played)
     {
         if (profile.PlayerStatisticsValid[StatisticsRow] == 0 || played == CampaignSlot.None) return null;
-        LevelStatisticsBlock b = LevelStatisticsBlock.FromDwords(profile.PlayerStatistics, StatisticsRow);
+        var b = LevelStatisticsBlock.FromDwords(profile.PlayerStatistics, StatisticsRow);
         uint seconds = b.TimeTaken, hours = seconds / 3600;
         string time = hours != 0 ? $"{hours:00} : {seconds / 60 % 60:00}" : $"{seconds / 60:00} : {seconds % 60:00}";
         (uint whole, uint hundredths) = b.TrainingParts;
         uint attempts = profile.LevelAttempts[played.Value - 1] + (b.LevelWon ? 1u : 0u);
-        var cells = new[]
+        CampaignResultCell[] cells = new[]
         {
             new CampaignResultCell(1516, "", b.LevelWon ? 21u : 22u),
             new CampaignResultCell(1410, time),

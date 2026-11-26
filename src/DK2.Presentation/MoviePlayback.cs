@@ -222,7 +222,7 @@ public sealed class MoviePlayback : IDisposable
     {
         _aheadIndex = -1;
         if (index >= _timeline.VideoFrames.Count || _decodeError != null) return;
-        var (width, height) = TqiDecoder.FrameSize(_timeline.Movie.Payload(_timeline.VideoFrames[index]));
+        (int width, int height) = TqiDecoder.FrameSize(_timeline.Movie.Payload(_timeline.VideoFrames[index]));
         if (width != Width || height != Height) return; // a size change is not expected in DK2's movies
         _aheadIndex = index;
         _requested = index;

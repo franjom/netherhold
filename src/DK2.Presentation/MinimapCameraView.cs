@@ -48,9 +48,9 @@ public readonly record struct MinimapCameraView(Vector3 Position, Vector3 Forwar
     /// as Unity's <c>ViewportPointToRay</c> casts it through the off-centre frustum; the direction is unit length.</summary>
     public Vector3 RayDirection(float x, float y)
     {
-        Vector3 forward = Vector3.Normalize(Forward);
-        Vector3 right = Vector3.Normalize(Vector3.Cross(Up, forward));
-        Vector3 up = Vector3.Cross(forward, right);
+        var forward = Vector3.Normalize(Forward);
+        var right = Vector3.Normalize(Vector3.Cross(Up, forward));
+        var up = Vector3.Cross(forward, right);
         float tangent = MathF.Tan(VerticalFieldOfView * (MathF.PI / 360f));
         return Vector3.Normalize(forward + right * ((2 * x - 1) * tangent * Aspect)
             + up * ((2 * y - 1 - ProjectionCentreShift) * tangent));

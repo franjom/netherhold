@@ -353,7 +353,7 @@ public sealed class MessageTabsHud
             _barHeld = 0;
         }
         // This height uses the remake's virtual units; native reference-point scaling is recorded in 0x0052C5A0.
-        var (x, y, boxWidth, height) = HudIndicatorLayout.MessagePanel(stripTop, (int)(_panelSize.Height * 1920f / _screen.Height), indicators);
+        (int x, int y, int boxWidth, int height) = HudIndicatorLayout.MessagePanel(stripTop, (int)(_panelSize.Height * 1920f / _screen.Height), indicators);
         _panel = new HudRect(x, y, boxWidth, height);
         if (_panelShown)
         {
@@ -390,7 +390,7 @@ public sealed class MessageTabsHud
         _barUp = new HudRect(px + bx, py + by, TextScrollBar.Width, TextScrollBar.Arrow);
         _barDown = new HudRect(px + bx, py + by + h - TextScrollBar.Arrow, TextScrollBar.Width, TextScrollBar.Arrow);
         var track = new HudRect(px + bx, py + by + TextScrollBar.Arrow, TextScrollBar.Width, TextScrollBar.Track(h));
-        var (top, length) = _bar.Thumb(h);
+        (int top, int length) = _bar.Thumb(h);
         _thumb = new HudRect(px + bx + 20, py + by + top + 4, 28, Math.Max(0, length - 8));
         if (!_panelShown) return;
         Button(frame, "GUI\\Scroll Bars\\v-scroll_bar_bg", TrackAction, track);
@@ -405,7 +405,7 @@ public sealed class MessageTabsHud
     private void BuildFrame(HudFrame frame, int width, int height)
     {
         float pixel = _screen.Height / 1200f, border = HudIndicatorLayout.FrameBorder * pixel;
-        var (ix, iy, iw, ih) = HudIndicatorLayout.FrameInner(0, 0, V(width), V(height), pixel);
+        (float ix, float iy, float iw, float ih) = HudIndicatorLayout.FrameInner(0, 0, V(width), V(height), pixel);
         for (int row = 0; row < 3; row++)
         for (int column = 0; column < 3; column++)
         {
@@ -463,7 +463,7 @@ public sealed class MessageTabsHud
 
     private static string[,] Names()
     {
-        var names = new string[Families.Length, 3];
+        string[,] names = new string[Families.Length, 3];
         for (int family = 0; family < Families.Length; family++)
             for (int frame = 0; frame < 3; frame++) names[family, frame] = $"GUI\\Tabs\\Messages\\{Families[family]}-0{frame}";
         return names;
@@ -471,7 +471,7 @@ public sealed class MessageTabsHud
 
     private static string[] DigitNames(string family)
     {
-        var names = new string[10];
+        string[] names = new string[10];
         for (int d = 0; d < 10; d++) names[d] = family + (char)('0' + d);
         return names;
     }

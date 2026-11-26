@@ -122,7 +122,7 @@ public static class PickTriangles
     /// <paramref name="scale"/>; the map is affine, so a distance along it is the same in both spaces.</summary>
     public static void ToLocal(Vector3 position, Quaternion turn, Vector3 scale, ref Vector3 origin, ref Vector3 direction)
     {
-        Quaternion back = Quaternion.Conjugate(turn);
+        var back = Quaternion.Conjugate(turn);
         origin = Vector3.Transform(origin - position, back) / scale;
         direction = Vector3.Transform(direction, back) / scale;
     }

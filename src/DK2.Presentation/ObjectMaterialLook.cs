@@ -41,7 +41,7 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
     /// <c>AA_BlueTexture</c> or <c>AA_RedTexture</c> (draw flag 0x100, <c>0x00580EC0</c>), the dig tag's overlay.</summary>
     public static ObjectMaterialLook Blueprint(bool red)
     {
-        TerrainMaterialLook overlay = TerrainMaterialLook.For(new TerrainMaterialKey(default, BlueprintOverlay(red)));
+        var overlay = TerrainMaterialLook.For(new TerrainMaterialKey(default, BlueprintOverlay(red)));
         return new ObjectMaterialLook(overlay.Texture, overlay.Blend, overlay.WritesDepth, overlay.FullLight, overlay.Colour,
             overlay.AddedLight);
     }

@@ -109,7 +109,7 @@ public sealed class CameraPathPlayback
             0, 0, 0, 1);
         // As ClassicCamera.Pose: the native matrix in memory order is the row-major view, and
         // its transpose takes camera axes to the world.
-        Matrix4x4 inverseView = Matrix4x4.Transpose(view);
+        var inverseView = Matrix4x4.Transpose(view);
         Vector3 forward = ToUnity(Vector3.TransformNormal(Vector3.UnitZ, inverseView));
         Vector3 up = ToUnity(Vector3.TransformNormal(-Vector3.UnitY, inverseView));
         return new CameraPathPose(ToUnity(engine), forward, up,

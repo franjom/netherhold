@@ -16,7 +16,7 @@ public static class HudImagePixels
     public static byte[] Apply(byte[] rgba, int width, int height, in HudImage image)
     {
         if (image.Variant is HudImageVariant.None or HudImageVariant.Glow) return rgba;
-        var into = new byte[rgba.Length];
+        byte[] into = new byte[rgba.Length];
         Fill(rgba, width, height, image, into);
         return into;
     }
@@ -95,7 +95,7 @@ public static class HudImagePixels
     /// channel as alpha, so over a dark ground the draw adds about what an additive draw would.</summary>
     public static byte[] AdditiveOverAlpha(byte[] rgba)
     {
-        var to = new byte[rgba.Length];
+        byte[] to = new byte[rgba.Length];
         for (int i = 0; i < rgba.Length; i += 4)
         {
             int r = rgba[i], g = rgba[i + 1], b = rgba[i + 2], a = rgba[i + 3];

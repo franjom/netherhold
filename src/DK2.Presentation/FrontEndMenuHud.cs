@@ -328,7 +328,7 @@ public sealed partial class FrontEndMenuHud : IDisposable
     {
         BitmapFont font = _sources.Font(fontSpec);
         FrontEndRect box = LabelBox(widget);
-        FrontEndLabelGeometry geometry = FrontEndLabelGeometry.Measure(font, text, clip ? (int)box.Width : 0);
+        var geometry = FrontEndLabelGeometry.Measure(font, text, clip ? (int)box.Width : 0);
         if (widget.Draw == FrontEndDrawKind.Title && geometry.Advance > 629)
         { font = _sources.Font(new FrontEndFont(FrontEndFontFamily.FrontEnd, 28)); geometry = FrontEndLabelGeometry.Measure(font, text); }
         var shape = new HudLabel(font, geometry);

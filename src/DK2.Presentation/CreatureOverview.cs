@@ -56,7 +56,7 @@ public sealed class CreatureOverview
         Func<CreatureOverviewType,int>? order=null)
     {
         _database=database;_viewer=viewingPlayer;
-        var definitions=database.Creatures.Values.Where(d=>!((d.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique))
+        CreatureDef[] definitions =database.Creatures.Values.Where(d=>!((d.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique))
             .OrderBy(d=>order?.Invoke(new(d.CreatureId))??d.CreatureId).ThenBy(d=>d.CreatureId).ToArray();
         _worker=definitions.First(d=>(d.Flags&(CreatureFlags.IsEvil|CreatureFlags.IsWorker))==(CreatureFlags.IsEvil|CreatureFlags.IsWorker)).CreatureId;
         _all=definitions.OrderBy(d=>d.CreatureId==_worker?0:1).Select(d=>new CreatureOverviewEntry(new(d.CreatureId),name(new(d.CreatureId),d.Name))).ToArray();
@@ -65,7 +65,7 @@ public sealed class CreatureOverview
     public void Capture(WorldState world)
     {
         _settled.Clear();
-        foreach(var pair in _pending) if(pair.Value<=world.CurrentTick) _settled.Add(pair.Key);
+        foreach(KeyValuePair<int, GameTick> pair in _pending) if(pair.Value<=world.CurrentTick) _settled.Add(pair.Key);
         foreach(int id in _settled) _pending.Remove(id);
         Array.Clear(_owned,0,_owned.Length);Array.Clear(_counts,0,_counts.Length);
         Array.Clear(_filteredCounts,0,_filteredCounts.Length);

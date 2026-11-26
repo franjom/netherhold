@@ -18,20 +18,20 @@ public sealed class SoundVoiceBindings<TSource> where TSource : class
     public void Assign(SoundVoiceId voice, SoundId sound, TSource source, SoundPriority priority = default)
     {
         SoundVoiceId? previous = null;
-        foreach (var entry in _voices)
+        foreach (KeyValuePair<SoundVoiceId, (SoundId Sound, SoundPriority Priority, TSource Source)> entry in _voices)
             if (ReferenceEquals(entry.Value.Source, source)) { previous = entry.Key; break; }
         if (previous.HasValue) _voices.Remove(previous.Value);
         if (voice != SoundVoiceId.None) _voices[voice] = (sound, priority, source);
     }
     public bool TryGet(SoundVoiceId voice, out SoundId sound, out TSource? source)
     {
-        if (_voices.TryGetValue(voice, out var found)) { sound = found.Sound; source = found.Source; return true; }
+        if (_voices.TryGetValue(voice, out (SoundId Sound, SoundPriority Priority, TSource Source) found)) { sound = found.Sound; source = found.Source; return true; }
         sound = default; source = null; return false;
     }
     /// <summary>Ends a voice's ownership of its source and returns the source, or null when the voice is not bound.</summary>
     public TSource? Release(SoundVoiceId voice)
     {
-        if (!_voices.Remove(voice, out var found)) return null;
+        if (!_voices.Remove(voice, out (SoundId Sound, SoundPriority Priority, TSource Source) found)) return null;
         return found.Source;
     }
 
@@ -43,5 +43,5 @@ public sealed class SoundVoiceBindings<TSource> where TSource : class
     }
 
     public bool CanRetain(SoundVoiceId voice, SoundPriority priority, Func<TSource, bool> playing) =>
-        _voices.TryGetValue(voice, out var found) && found.Priority.Value >= priority.Value && playing(found.Source);
+        _voices.TryGetValue(voice, out (SoundId Sound, SoundPriority Priority, TSource Source) found) && found.Priority.Value >= priority.Value && playing(found.Source);
 }

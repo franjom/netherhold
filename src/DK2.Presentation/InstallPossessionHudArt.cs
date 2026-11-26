@@ -32,7 +32,7 @@ public sealed class InstallPossessionHudArt
         }
     }
 
-    public string Icon(CreatureOverviewType type) => _creatures.TryGetValue(type, out var art) ? art.Icon : "";
-    public string Portrait(CreatureOverviewType type) => _creatures.TryGetValue(type, out var art) ? art.Portrait : "";
-    public string Melee(CreatureOverviewType type) => _creatures.TryGetValue(type, out var art) ? art.Melee : "";
+    public string Icon(CreatureOverviewType type) => _creatures.TryGetValue(type, out (string Icon, string Portrait, string Melee) art) ? art.Icon : "";
+    public string Portrait(CreatureOverviewType type) => _creatures.TryGetValue(type, out (string Icon, string Portrait, string Melee) art) ? art.Portrait : "";
+    public string Melee(CreatureOverviewType type) => _creatures.TryGetValue(type, out (string Icon, string Portrait, string Melee) art) ? art.Melee : "";
 }

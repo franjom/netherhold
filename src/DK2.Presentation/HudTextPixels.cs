@@ -24,7 +24,7 @@ public static class HudTextPixels
         Bounds(text, out IReadOnlyList<BitmapTextLine> lines, out width, out height, out int minY);
         BitmapFont font = text.Font;
         int widest = Widest(text, lines);
-        var pixels = new byte[width * height * 4];
+        byte[] pixels = new byte[width * height * 4];
         for (int row = 0; row < lines.Count; row++)
         {
             int pen = Indent(text, lines[row], widest);
@@ -97,7 +97,7 @@ public static class HudTextPixels
     /// inked there as one-row runs that skip it. Usually nothing to do: glyph ink rarely meets.</summary>
     private static void Resolve(List<HudTextPiece> pieces, int width, int height)
     {
-        var alpha = new byte[width * height];
+        byte[] alpha = new byte[width * height];
         bool shared = false;
         foreach (HudTextPiece p in pieces)
             for (int y = p.Y; y < p.Y + p.Height; y++)
@@ -110,7 +110,7 @@ public static class HudTextPixels
                 }
         if (!shared) return;
         Array.Clear(alpha, 0, alpha.Length);
-        var owner = new int[width * height];
+        int[] owner = new int[width * height];
         for (int i = 0; i < pieces.Count; i++)
         {
             HudTextPiece p = pieces[i];

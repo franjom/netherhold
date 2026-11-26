@@ -98,7 +98,7 @@ public sealed class LiquidSurfaceWave
 
     private static float[] BuildSines(LiquidSurface kind)
     {
-        var sines = new float[PhaseMask(kind) + 1];
+        float[] sines = new float[PhaseMask(kind) + 1];
         for (int n = 0; n < sines.Length; n++)
             sines[n] = kind == LiquidSurface.Water
                 ? (float)Math.Sin((n * 4096) * (float)Math.PI / 65536f)
@@ -220,7 +220,7 @@ public sealed class LiquidSurfaceWave
             for (int t = k * IndicesPerTile; t < (k + 1) * IndicesPerTile; t += 3)
             {
                 int a = _triangles[t], b = _triangles[t + 1], c = _triangles[t + 2];
-                Vector3 face = Vector3.Normalize(Vector3.Cross(_positions[b] - _positions[a], _positions[c] - _positions[a]));
+                var face = Vector3.Normalize(Vector3.Cross(_positions[b] - _positions[a], _positions[c] - _positions[a]));
                 _normals[a] += face;
                 _normals[b] += face;
                 _normals[c] += face;

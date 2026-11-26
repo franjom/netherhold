@@ -199,7 +199,7 @@ public sealed class LightningDrawList
         Vector3 renderStart = new(start.X, start.Z, -start.Y), renderEnd = new(end.X, end.Z, -end.Y);
         Vector3 a = _nativeCamera is null ? Transform(renderStart, _view) : _nativeCamera.ToCamera(renderStart);
         Vector3 b = _nativeCamera is null ? Transform(renderEnd, _view) : _nativeCamera.ToCamera(renderEnd);
-        var paths = _bolts.BuildInto(a, b, amplitude);
+        IReadOnlyList<LightningPathBuffer> paths = _bolts.BuildInto(a, b, amplitude);
         for (int p = 0; p < paths.Count; p++)
         {
             int offset = _vertices.Count;

@@ -30,7 +30,7 @@ public static class AmbienceGrid
     /// <summary>The 121 cells, row by row from the listener's tile less five in y and in x; an empty string is a cell with none.</summary>
     public static string[] Cells(WorldState world, GameDatabase database, PlayerId viewer, TilePos listener)
     {
-        var cells = new string[Side * Side];
+        string[] cells = new string[Side * Side];
         Cells(world, database, viewer, listener, cells);
         return cells;
     }

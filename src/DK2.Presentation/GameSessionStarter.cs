@@ -67,7 +67,7 @@ public static class GameSessionStarter
         if (map is null) throw new ArgumentNullException(nameof(map));
         var seen = new SortedSet<byte>();
         foreach (MapTile tile in map.Tiles) seen.Add(tile.PlayerId);
-        var players = new byte[seen.Count];
+        byte[] players = new byte[seen.Count];
         seen.CopyTo(players);
         return players;
     }

@@ -43,7 +43,7 @@ public sealed class InstallBottomPanelArt : IBottomPanelArt, IDisposable
         {
             var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, room.RoomId);
             _names[key] = _strings.Resolve(room.NameStringId);
-            if (art.Rooms.TryGetValue(room.RoomId, out var resources)) _icons[key] = resources[0].Name;
+            if (art.Rooms.TryGetValue(room.RoomId, out IReadOnlyList<Dk2ArtResource>? resources)) _icons[key] = resources[0].Name;
         }
         // A stored special's slot draws runtime art slot 0, file art #1, the GuiIconResource
         // (0x00412FC0 installs the definition itself; object-drawing.md §2).
@@ -52,7 +52,7 @@ public sealed class InstallBottomPanelArt : IBottomPanelArt, IDisposable
             if (!special.IsSpecial) continue;
             var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Special, special.ObjectId);
             _names[key] = _strings.Resolve(special.NameStringId);
-            if (art.Objects.TryGetValue(special.ObjectId, out var resources) && resources.Count > 1) _icons[key] = resources[1].Name;
+            if (art.Objects.TryGetValue(special.ObjectId, out IReadOnlyList<Dk2ArtResource>? resources) && resources.Count > 1) _icons[key] = resources[1].Name;
         }
         Read(install, "KeeperSpells", KwdRecordType.KeeperSpells, 406, 0xEE, 0xE6, BottomPanelChoiceKind.Spell);
         Read(install, "Doors", KwdRecordType.Doors, 616, 0x244, 0x23C, BottomPanelChoiceKind.Door);

@@ -39,7 +39,7 @@ public sealed class TerrainPiece
     /// (<see cref="ClassicMaterialRecipe.FromKmf"/>): a Decay terrain's face passes its damage stage.</summary>
     public static TerrainPiece FromModel(KmfModel model, int textureIndex)
     {
-        RenderMesh source = RenderMesh.FromModel(model);
+        var source = RenderMesh.FromModel(model);
         var recipes = new ClassicMaterialRecipe[source.Triangles.Count];
         for (int i = 0; i < recipes.Length; i++)
             recipes[i] = ClassicMaterialRecipe.FromKmf(i < model.Materials.Count ? model.Materials[i] : null, textureIndex);

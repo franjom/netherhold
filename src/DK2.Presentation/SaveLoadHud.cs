@@ -80,7 +80,7 @@ public sealed class SaveLoadHud
     {
         if (!Visible || screen.Height <= 0) return;
         if (_height != screen.Height || _revision != _view!.Revision) Set(screen);
-        foreach (var line in _lines)
+        foreach ((HudText Text, HudRect Rect, HudColor Tint, Press Press, int Index, HudRect? Clip) line in _lines)
             frame.Add(new HudDraw(HudDrawKind.Quad, HudImage.Of(line.Text), line.Rect, line.Tint, Clip: line.Clip));
     }
 
@@ -93,7 +93,7 @@ public sealed class SaveLoadHud
         if (button != 0 || !Visible) return false;
         int at = LineAt(x, y);
         if (at < 0) return false;
-        var line = _lines[at];
+        (HudText Text, HudRect Rect, HudColor Tint, Press Press, int Index, HudRect? Clip) line = _lines[at];
         switch (line.Press)
         {
             case Press.Select:

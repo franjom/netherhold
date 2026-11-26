@@ -32,8 +32,8 @@ public static class PossessionCamera
     public static ClassicCameraPose Picture(PossessionView view, CameraThing preset, CameraViewport viewport, int? referenceScreenWidth)
     {
         PossessionCameraPose pose = Pose(view);
-        Vector3 right = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, pose.Forward));
-        Vector3 level = Vector3.Cross(pose.Forward, right);
+        var right = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, pose.Forward));
+        var level = Vector3.Cross(pose.Forward, right);
         float roll = pose.RollDegrees * (MathF.PI / 180);
         return new ClassicCameraPose(pose.Position, pose.Forward, level * MathF.Cos(roll) - right * MathF.Sin(roll),
             VerticalFieldOfView(preset, viewport, referenceScreenWidth), FarClipDistance(preset),

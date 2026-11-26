@@ -201,10 +201,10 @@ public sealed class TerrainLattice
     {
         int x1 = ((4 * x) + (2 * c) - 1) >> 2, x2 = ((4 * x) + (2 * c) + 1) >> 2;
         int y1 = ((4 * y) + (2 * r) - 1) >> 2, y2 = ((4 * y) + (2 * r) + 1) >> 2;
-        var a = TileParams(x1, y1, layer);
-        var b = TileParams(x2, y1, layer);
-        var d = TileParams(x1, y2, layer);
-        var e = TileParams(x2, y2, layer);
+        (int Hw, int Vw, float Hl, float Vl) a = TileParams(x1, y1, layer);
+        (int Hw, int Vw, float Hl, float Vl) b = TileParams(x2, y1, layer);
+        (int Hw, int Vw, float Hl, float Vl) d = TileParams(x1, y2, layer);
+        (int Hw, int Vw, float Hl, float Vl) e = TileParams(x2, y2, layer);
         return (Math.Min(Math.Min(a.Hw, b.Hw), Math.Min(d.Hw, e.Hw)),
             Math.Min(Math.Min(a.Vw, b.Vw), Math.Min(d.Vw, e.Vw)),
             MathF.Min(MathF.Min(a.Hl, b.Hl), MathF.Min(d.Hl, e.Hl)),
@@ -235,7 +235,7 @@ public sealed class TerrainLattice
 
     private void Corner(int x, int y, int layer, int r, int c, bool tnw, bool tne, bool tsw, bool tse, Span<Vector3> q)
     {
-        var p = SubPoint(x, y, layer, r, c);
+        (int Hw, int Vw, float Hl, float Vl) p = SubPoint(x, y, layer, r, c);
         float a = p.Hl, z0 = -p.Vl;
         bool northPair = tnw | tne, southPair = tsw | tse, westPair = tnw | tsw, eastPair = tne | tse;
         ref Vector3 point = ref q[(r * 3) + c];
@@ -258,7 +258,7 @@ public sealed class TerrainLattice
     private void Edge(int x, int y, int layer, int r, int c, bool first, bool second, bool vertical, Span<Vector3> q)
     {
         if (first == second) return;
-        var p = SubPoint(x, y, layer, r, c);
+        (int Hw, int Vw, float Hl, float Vl) p = SubPoint(x, y, layer, r, c);
         ref Vector3 point = ref q[(r * 3) + c];
         float move = first ? -p.Hl : p.Hl;
         if (vertical) point.Y += move;
@@ -269,12 +269,12 @@ public sealed class TerrainLattice
     // The wibble (0x0059E750): a position-seeded jitter, then pushes into closed ground.
     private Vector3 Wibble(int x, int y, int layer, int r, int c, ReadOnlySpan<bool> n)
     {
-        var p = SubPoint(x, y, layer, r, c);
+        (int Hw, int Vw, float Hl, float Vl) p = SubPoint(x, y, layer, r, c);
         uint seed = unchecked((uint)((2 * x) + c + (16 * layer) + (0x10000 * ((2 * y) + r))));
         int dz = p.Vw != 0 ? (int)Rand(ref seed, (uint)p.Vw) : 0;
         int dy = p.Hw != 0 ? (int)Rand(ref seed, (uint)p.Hw) - (p.Hw / 2) : 0;
         int dx = p.Hw != 0 ? (int)Rand(ref seed, (uint)p.Hw) - (p.Hw / 2) : 0;
-        var d = new Vector3(dx, dy, dz) * K17;
+        Vector3 d = new Vector3(dx, dy, dz) * K17;
 
         float push = p.Hw * K17 / 2f;
         bool nw = n[0], north = n[1], west = n[3], centre = n[4];

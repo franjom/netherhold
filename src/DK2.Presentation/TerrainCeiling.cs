@@ -117,7 +117,7 @@ public static class TerrainCeiling
 
     private static byte[] BuildTriangles()
     {
-        var triangles = new byte[24];
+        byte[] triangles = new byte[24];
         int at = 0;
         for (int i = 0; i < 2; i++)
             for (int j = 0; j < 2; j++)
@@ -135,7 +135,7 @@ public static class TerrainCeiling
     // min(15, floor(sqrt(16 * d2))) for d2 = 0 to 16.
     private static byte[] BuildNibbles()
     {
-        var nibbles = new byte[NoneFound + 1];
+        byte[] nibbles = new byte[NoneFound + 1];
         for (int d = 0; d <= NoneFound; d++)
         {
             int root = 0;

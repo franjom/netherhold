@@ -16,10 +16,10 @@ public static class CampaignMoon
         if (localClock.Hour < 12) { day--; seconds += 43200; }
         else seconds -= 43200;
         float fraction = seconds * 1.1574074e-5f;
-        var earlier = NewMoon(1);
+        (int Day, float Fraction) earlier = NewMoon(1);
         for (int cycle = 2; cycle <= 10001; cycle++)
         {
-            var later = NewMoon(cycle);
+            (int Day, float Fraction) later = NewMoon(cycle);
             if ((earlier.Day < day || earlier.Day == day && earlier.Fraction <= fraction)
                 && (day < later.Day || day == later.Day && fraction < later.Fraction))
             {

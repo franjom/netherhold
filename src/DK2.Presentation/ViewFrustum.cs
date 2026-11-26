@@ -53,9 +53,9 @@ public readonly struct ViewFrustum
     public static ViewFrustum FromPose(in ClassicCameraPose pose, float aspect, float near)
     {
         float far = Math.Max(near + .01f, pose.FarClipDistance);
-        Vector3 forward = Vector3.Normalize(pose.Forward);
-        Vector3 right = Vector3.Normalize(Vector3.Cross(pose.Up, forward));
-        Vector3 up = Vector3.Cross(forward, right);
+        var forward = Vector3.Normalize(pose.Forward);
+        var right = Vector3.Normalize(Vector3.Cross(pose.Up, forward));
+        var up = Vector3.Cross(forward, right);
         // worldToCameraMatrix: the camera's inverse transform with z negated (camera space looks down -z).
         var view = new Matrix4x4(
             right.X, right.Y, right.Z, -Vector3.Dot(right, pose.Position),

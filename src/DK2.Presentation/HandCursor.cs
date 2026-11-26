@@ -31,7 +31,7 @@ public static class HandCursor
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (database is null) throw new ArgumentNullException(nameof(database));
-        var state = world.Tile(tile);
+        TileState state = world.Tile(tile);
         return state.IsTaggedBy(viewer)
             || world.FogOfWarEnabled && !state.IsExploredBy(viewer)
             || database.TerrainById(state.TerrainId).IsTaggable;

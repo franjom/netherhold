@@ -24,7 +24,7 @@ public static class EngineCameraPaths
             frames = null;
             if (File.Exists(wad))
             {
-                using WadArchive archive = WadArchive.Open(wad);
+                using var archive = WadArchive.Open(wad);
                 string name = "EnginePath" + pathId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".kcs";
                 foreach (WadEntry entry in archive.Entries)
                 {

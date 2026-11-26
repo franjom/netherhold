@@ -356,7 +356,7 @@ public sealed partial class WorldView
         if (thing.ObjectTypeId == CasinoLeverId && thing.ProcessState is not (48 or 49))
             objectAnimationStartedAt = new GameTick(-AnimationTimingRules.FirstCycleHoldTicks(definition?.ArtSlot(slot) ?? default) - 1);
         if (ReferenceEquals(world, _objectPositionsWorld) && world.CurrentTick.Value == _objectPositionsTick.Value + 1
-            && _objectPositions.TryGetValue(thing.Id, out var previous))
+            && _objectPositions.TryGetValue(thing.Id, out (int X, int Y, int Heading, int Z, int Pitch, int Roll) previous))
         {
             (previousX, previousY, previousHeading) = (previous.X, previous.Y, previous.Heading);
             (previousZ, previousPitch, previousRoll) = (previous.Z, previous.Pitch, previous.Roll);

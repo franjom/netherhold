@@ -109,7 +109,7 @@ public sealed class WorldPointerInput
             PointerOverHud: _host.PointerOverHud(),
             PointerPosition: tile is TilePos pointTile ? _host.PointerPosition(pointTile) : null);
         _journal?.Intent(intent);
-        PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
+        var snapshot = PlayerInputSnapshot.Capture(
             _view, world, frame.Viewer, database, pointerTile: tile, pendingCommands: pending);
         if (tile is TilePos at && (tool == PlayerToolMode.Hand || tool == PlayerToolMode.Slap))
             snapshot = snapshot.ForHover(_host.Hover(at));

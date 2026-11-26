@@ -627,7 +627,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         if (moved == null) return;
         foreach (ConstructionParticle particle in _particles)
         {
-            if (!_parents.TryGetValue(particle, out Emitter? parent) || !moved.TryGetValue(parent, out var step)) continue;
+            if (!_parents.TryGetValue(particle, out Emitter? parent) || !moved.TryGetValue(parent, out (int X, int Y, int Z) step)) continue;
             particle.XRaw += step.X;
             particle.YRaw += step.Y;
             particle.HeightRaw += step.Z;
@@ -722,7 +722,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     private static (byte Red, byte Green, byte Blue) KeeperColour(PlayerId owner)
     {
         // Player tags currently equal Numbers (Q271); the native palette uses Number.
-        var colour = ClassicKeeperPalette.Colour(owner);
+        (byte Red, byte Green, byte Blue) colour = ClassicKeeperPalette.Colour(owner);
         return ((byte)Math.Max(48, (int)colour.Red), (byte)Math.Max(48, (int)colour.Green),
             (byte)Math.Max(48, (int)colour.Blue));
     }

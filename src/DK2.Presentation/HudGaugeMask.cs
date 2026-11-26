@@ -16,7 +16,7 @@ public sealed class HudGaugeMask
     {
         if (width <= 0 || height <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         Width = width; Height = height;
-        var angle = new double[width * height];
+        double[] angle = new double[width * height];
         for (int row = 0; row < height; row++)
             for (int x = 0; x < width; x++)
                 angle[row * width + x] = HudGaugeFraction.Angle(HudImagePixels.GaugeOffset(x, row, width, height));

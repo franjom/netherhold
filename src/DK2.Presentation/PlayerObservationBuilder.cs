@@ -119,7 +119,7 @@ public sealed class PlayerObservationBuilder
 
         WorldState world = completedWorld;
         ref readonly PlayerState keeper = ref world.Player(_player);
-        PlayerResult result = (PlayerResult)keeper.Status;
+        var result = (PlayerResult)keeper.Status;
         PlayerPhase phase = result != PlayerResult.Playing ? PlayerPhase.Ended
             : CameraPathRules.Playing(keeper, world.CurrentTick) ? PlayerPhase.Intro : PlayerPhase.Playing;
 

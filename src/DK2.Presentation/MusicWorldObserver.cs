@@ -47,8 +47,8 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
             int state = creature.Dk2StateId;
             bool moving = CreatureStateTable.Get(state).Category == CreatureStateCategory.Movement;
             int resume = moving ? creature.UtilityNewState : state;
-            var current = (state, resume);
-            if (!_previous.TryGetValue(creature.Id, out var previous) || previous != current)
+            (int state, int resume) current = (state, resume);
+            if (!_previous.TryGetValue(creature.Id, out (int State, int Resume) previous) || previous != current)
                 if (moving && resume is 164 or 180 or 184 || state == 186) music.Raise(MusicLevel.Raid);
             _previous[creature.Id] = current;
             if (database.Creatures.TryGetValue(creature.CreatureTypeId, out CreatureDef? definition)

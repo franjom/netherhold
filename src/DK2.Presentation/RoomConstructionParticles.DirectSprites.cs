@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Assets;
+using DK2.Core;
 using DK2.Data.Model;
 
 namespace DK2.Presentation;
@@ -30,7 +31,7 @@ public sealed partial class RoomConstructionParticles
     {
         EffectDef effect = emitter.Definition;
         if (!HasDirectSprite(effect)) return;
-        var point = emitter.Request.Position;
+        FpPosition3 point = emitter.Request.Position;
         int health = emitter.Health;
         int initial = effect.MinScale, target = effect.MinScale, steps = 0;
         bool returns = false;

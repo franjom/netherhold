@@ -324,7 +324,7 @@ public static class StatusFlowerCentre
     public static AngerBucket LargestAnger(in CreatureAnger anger)
     {
         AngerBucket best = 0;
-        for (var bucket = AngerBucket.Company; bucket <= AngerBucket.Treatment; bucket++)
+        for (AngerBucket bucket = AngerBucket.Company; bucket <= AngerBucket.Treatment; bucket++)
             if (anger[bucket] > anger[best]) best = bucket;
         return best;
     }
@@ -420,7 +420,7 @@ public sealed class StatusFlowers
             }
             bool blink = belowSixth || healthWindow;
             bool neutral = creature.OwnerPlayerId == PlayerIds.Neutral;
-            var (red, green, blue) = ClassicKeeperPalette.Colour(
+            (byte red, byte green, byte blue) = ClassicKeeperPalette.Colour(
                 new PlayerId(neutral ? Math.Max(_paletteIndex, (byte)1) : creature.OwnerPlayerId));
             var colour = new StatusFlowerColour(red, green, blue);
             if (blink && !neutral) colour = StatusFlowerRules.Blinked(colour, milliseconds, _blinkUntil);
@@ -429,7 +429,7 @@ public sealed class StatusFlowers
             byte? slot = HeroSlotValue(world, creature.Id);
             byte? heroSlot = creature.OwnerPlayerId == PlayerIds.Good ? slot : null;
             int countdown = StatusFlowerRules.RemovalStep(creature.ManaRemovalStamp, turn);
-            var (icon, arcs) = Centre(world, creature, definition, turn, milliseconds, facts.Dying, heroSlot, countdown);
+            (string? icon, bool arcs) = Centre(world, creature, definition, turn, milliseconds, facts.Dying, heroSlot, countdown);
             bool marked = RescuePriorityRules.IsMarked(creature, _viewer);
             _shown.Add(new StatusFlower(creature.Id, creature.Level, new PlayerId(creature.OwnerPlayerId),
                 colour, StatusFlowerRules.Height(definition.Height, creature.Level, TortureLift(world, creature),
@@ -473,7 +473,7 @@ public sealed class StatusFlowers
     {
         if (countdown != 0)
         {
-            StatusFlowerMode kept = _centre.TryGetValue(creature.Id, out var entry) ? entry.Mode : StatusFlowerMode.Level;
+            StatusFlowerMode kept = _centre.TryGetValue(creature.Id, out (StatusFlowerMode Mode, long Until) entry) ? entry.Mode : StatusFlowerMode.Level;
             return (StatusFlowerCentre.LevelIcon(6 - countdown), kept == StatusFlowerMode.Level);
         }
         bool hero = creature.OwnerPlayerId == PlayerIds.Good;
@@ -492,13 +492,13 @@ public sealed class StatusFlowers
                     && HandRules.LastDroppedCounter(creature, turn.Value) < SimulationTiming.TicksPerSecond * 5,
                 NeedRules.ResolvedCategory(creature), creature.Dk2StateId),
             Level: creature.Level);
-        (StatusFlowerMode mode, long until) = _centre.TryGetValue(creature.Id, out var held) ? held : (StatusFlowerMode.Level, 0L);
+        (StatusFlowerMode mode, long until) = _centre.TryGetValue(creature.Id, out (StatusFlowerMode Mode, long Until) held) ? held : (StatusFlowerMode.Level, 0L);
         if (until < milliseconds)
         {
             mode = StatusFlowerCentre.Next(mode, facts);
             until = milliseconds + StatusFlowerRules.CycleMs;
         }
-        var (icon, drawn) = StatusFlowerCentre.Icon(mode, facts);
+        (string? icon, StatusFlowerMode drawn) = StatusFlowerCentre.Icon(mode, facts);
         _centre[creature.Id] = (drawn, until);
         return (icon, drawn == StatusFlowerMode.Level);
     }

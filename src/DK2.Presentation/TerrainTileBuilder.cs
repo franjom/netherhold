@@ -270,7 +270,7 @@ public sealed class TerrainTileBuilder
         geometry.Pieces.Add(new PlacedPiece(piece, rotation, at, invertLightingNormals, stateSource ?? geometry.DefaultStateSource));
         for (int m = 0; m < piece.Triangles.Count; m++)
         {
-            TerrainMaterialKey key = TerrainMaterialKey.For(piece.Recipes[m],
+            var key = TerrainMaterialKey.For(piece.Recipes[m],
                 geometry.StateTexture ? false : red, geometry.StateTexture ? false : tagged,
                 geometry.StateTexture ? default : tint, fogOpacity);
             geometry.Groups.Add(new TriangleGroup(placed, m, geometry.SlotOf(key)));

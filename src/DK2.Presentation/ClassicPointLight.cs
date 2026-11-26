@@ -103,7 +103,7 @@ public readonly record struct ClassicPointLight
         int blue = light.Blue + ((light.Flags & 0x2000) != 0 ? 256 : 0);
         if ((light.Flags & 0x80) != 0)
         {
-            var colour = ClassicKeeperPalette.Colour(owner);
+            (byte Red, byte Green, byte Blue) colour = ClassicKeeperPalette.Colour(owner);
             red = Math.Max(32, red * colour.Red / 255);
             green = Math.Max(32, green * colour.Green / 255);
             blue = Math.Max(32, blue * colour.Blue / 255);

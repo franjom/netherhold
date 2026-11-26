@@ -39,7 +39,7 @@ public static class RightHandedFrame
     public static RightHandedCamera Camera(in ClassicCameraPose pose)
     {
         Vector3 back = -Vector3.Normalize(Direction(pose.Forward));
-        Vector3 right = Vector3.Normalize(Vector3.Cross(Direction(pose.Up), back));
+        var right = Vector3.Normalize(Vector3.Cross(Direction(pose.Up), back));
         return new RightHandedCamera(Point(pose.Position), right, Vector3.Cross(back, right), back);
     }
 

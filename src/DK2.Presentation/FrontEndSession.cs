@@ -46,7 +46,7 @@ public sealed class FrontEndSession
         if (PathPlaying) return false;
         IReadOnlyList<KcsFrame>? frames = _loadPath(transition.Path);
         if (frames is null || frames.Count == 0) return false;
-        var nextPath = NewPath(transition.Path, frames);
+        CameraPathPlayback nextPath = NewPath(transition.Path, frames);
         _flow.BeginTransition(transition);
         _path = nextPath;
         _pathStarted = _now;

@@ -580,7 +580,7 @@ public sealed partial class WorldView
     public void AcknowledgeTagPreviews(GameTick completedTick)
     {
         _completedTagPreviews.Clear();
-        foreach (var entry in _queuedTagPreviews)
+        foreach (KeyValuePair<TilePos, (bool Tagged, GameTick AppliesAt)> entry in _queuedTagPreviews)
             if (entry.Value.AppliesAt <= completedTick) _completedTagPreviews.Add(entry.Key);
         foreach (TilePos position in _completedTagPreviews) _queuedTagPreviews.Remove(position);
         if (_completedTagPreviews.Count > 0) PreviewVersion++;
@@ -649,7 +649,7 @@ public sealed partial class WorldView
     {
         if (_previewing && x >= _previewX1 && x <= _previewX2 && y >= _previewY1 && y <= _previewY2)
             return _previewTagged && (terrain.IsTaggable || tile.IsTaggedBy(_viewingPlayerId));
-        if (_queuedTagPreviews.TryGetValue(new TilePos(x, y), out var queued))
+        if (_queuedTagPreviews.TryGetValue(new TilePos(x, y), out (bool Tagged, GameTick AppliesAt) queued))
             return queued.Tagged && (terrain.IsTaggable || tile.IsTaggedBy(_viewingPlayerId));
         return tile.IsTaggedBy(_viewingPlayerId);
     }
@@ -1774,7 +1774,7 @@ public sealed partial class WorldView
         if (_portalPoseTick == world.CurrentTick) return;
         _portalPoseTick = world.CurrentTick;
         _stalePortalPoseIds.Clear();
-        foreach (var entry in _portalPoses)
+        foreach (KeyValuePair<int, (CreatureState Creature, GameTick JoiningTick, GameTick? ExitTick)> entry in _portalPoses)
         {
             CreatureState? creature = world.CreatureById(entry.Key);
             if (creature is null || !ReferenceEquals(creature, entry.Value.Creature)
@@ -1794,7 +1794,7 @@ public sealed partial class WorldView
             _portalPoses[creature.Id] = (creature, world.CurrentTick, null);
             return false;
         }
-        if (!_portalPoses.TryGetValue(creature.Id, out var previous)
+        if (!_portalPoses.TryGetValue(creature.Id, out (CreatureState Creature, GameTick JoiningTick, GameTick? ExitTick) previous)
             || !ReferenceEquals(previous.Creature, creature)) return false;
         if (previous.ExitTick.HasValue)
         {

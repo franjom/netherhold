@@ -20,7 +20,7 @@ public static class HudLabelPixels
         FrontEndLabelGeometry geometry = label.Geometry;
         int width = Math.Max(1, (int)geometry.InkBounds.Width) + 2 * padding;
         int height = Math.Max(1, (int)geometry.InkBounds.Height) + 2 * padding;
-        var pixels = new byte[width * height * 4];
+        byte[] pixels = new byte[width * height * 4];
         foreach (FrontEndGlyph item in geometry.Glyphs)
         {
             BitmapGlyph glyph = label.Font.Find(item.Character)!;
@@ -42,7 +42,7 @@ public static class HudLabelPixels
     public static RgbaImage Pad(RgbaImage image, int padding)
     {
         int width = image.Width + 2 * padding, height = image.Height + 2 * padding;
-        var padded = new byte[width * height * 4];
+        byte[] padded = new byte[width * height * 4];
         for (int y = 0; y < image.Height; y++)
             Buffer.BlockCopy(image.Pixels, y * image.Width * 4, padded, ((y + padding) * width + padding) * 4, image.Width * 4);
         return new RgbaImage(width, height, padded);

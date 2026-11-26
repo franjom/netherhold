@@ -136,7 +136,7 @@ public sealed class ClassicCamera
         Matrix4x4 nativeView = Matrix4x4.CreateRotationZ(-Radians(yaw))
             * Matrix4x4.CreateRotationX(-Radians(pitch))
             * Matrix4x4.CreateRotationZ(-Radians(new Dk2Angle((ushort)(state.Roll & 2047))));
-        Matrix4x4 inverseView = Matrix4x4.Transpose(nativeView);
+        var inverseView = Matrix4x4.Transpose(nativeView);
         int framedWidth = ReferenceScreenWidth ?? viewport.ScreenWidth;
         float distance = (float)new Fp32(state.Zoom).ToDouble() * 640f / framedWidth;
         Vector3 offset = ToUnity(Vector3.TransformNormal(new Vector3(0, 0, -distance), inverseView));
