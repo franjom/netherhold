@@ -29,7 +29,11 @@ public partial class InGameHud
     /// return (<see cref="StatusFlowers"/>, drawn by <see cref="WorldScene.DrawFlowers"/> among the blended items).</summary>
     private void DrawPossessionEntryBadge(long milliseconds, WorldHoverHit? pointerHit, HoverFeedback feedback, bool ordinaryHudVisible)
     {
-        if (!ordinaryHudVisible || _simulation == null || _world == null || _sources == null) return;
+        if (!ordinaryHudVisible || _simulation == null || _world == null || _sources == null)
+        {
+            _world?.HideUnusedDollarFlowers(0);
+            return;
+        }
         CreatureQueryTarget hovered = pointerHit is { Kind: WorldHoverKind.Creature } creatureHit
             ? new CreatureQueryTarget(creatureHit.EntityId) : CreatureQueryTarget.None;
         if (_entryFlowerDatabase != _simulation.Database)
@@ -40,6 +44,6 @@ public partial class InGameHud
         InstallHudSources sources = _sources;
         _entryFlowerArt ??= name => sources.Texture(StatusFlowerLayers.Folder + name);
         _world.DrawFlowers(_entryFlowers!.Capture(_simulation.World, _simulation.CurrentTick, hovered, milliseconds),
-            Possessing, _entryFlowerArt);
+            Possessing, _entryFlowerArt, _elapsed);
     }
 }

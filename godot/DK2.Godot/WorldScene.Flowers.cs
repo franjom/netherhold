@@ -15,8 +15,7 @@ namespace DK2.GodotAdapter;
 /// instance of its icon's batch among the blended items, so it joins DK2's one back-to-front list (0x0057F7E0 queues the
 /// A_ sprite with batch state 0x200; 0x0058B9D0) as Unity's <c>TransparentTerrain.PlaceItems</c> places it: a blended run
 /// or an effect nearer than the icon draws over it. The tint is the instance colour, the experience wedge and the ring
-/// its custom data (<c>Shaders/StatusFlower.gdshader</c>). The dollar flower's mesh is not drawn (Unity's
-/// <c>ClassicFlowerDollar</c>).</summary>
+/// its custom data (<c>Shaders/StatusFlower.gdshader</c>). The dollar is an animated world mesh instead.</summary>
 public partial class WorldScene
 {
     private readonly StatusFlowerLayer[] _flowerLayers = new StatusFlowerLayer[StatusFlowerLayers.MaxLayers];
@@ -30,15 +29,20 @@ public partial class WorldScene
     /// <summary>Adds this frame's flowers over the drawn creatures as blended items; call before
     /// <see cref="DrawBlendedItems"/>. <paramref name="art"/> reads an icon by its name under
     /// <see cref="StatusFlowerLayers.Folder"/>, once per icon.</summary>
-    public void DrawFlowers(IReadOnlyList<StatusFlower> flowers, bool possessing, Func<string, RgbaImage> art)
+    public void DrawFlowers(IReadOnlyList<StatusFlower> flowers, bool possessing, Func<string, RgbaImage> art, double seconds)
     {
         if (!_previewPass && PreviewPose.HasValue)
         {
-            SwapPreviewItems(); DrawFlowers(flowers, possessing, art); SwapPreviewItems();
+            SwapPreviewItems(); DrawFlowers(flowers, possessing, art, seconds); SwapPreviewItems();
         }
         MinimapCameraView? activeView = _previewPass && PreviewPose is ClassicCameraPose preview
             ? MinimapCameraView.Of(preview, PreviewViewport) : View;
-        if (activeView is not MinimapCameraView view || flowers.Count == 0) return;
+        if (activeView is not MinimapCameraView view || flowers.Count == 0)
+        {
+            if (!_previewPass) HideUnusedDollarFlowers(0);
+            return;
+        }
+        int dollars = 0;
         long started = System.Diagnostics.Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
         NVector3 forward = NVector3.Normalize(view.Forward);
         NVector3 right = NVector3.Normalize(NVector3.Cross(view.Up, forward));
@@ -50,6 +54,14 @@ public partial class WorldScene
             StatusFlower flower = flowers[f];
             if (!TryGetCreaturePosition(new(flower.CreatureId), out NVector3 feet)) continue;
             NVector3 anchor = feet + NVector3.UnitY * (flower.Height.Raw / (float)Fp32.One);
+            if (flower.Dollar)
+            {
+                // The same world mesh is visible to both cameras.
+                bool visible = _creatures.TryGetValue(flower.CreatureId, out CreatureSlot? creature) && creature.Slot.Node.Visible;
+                if (!_previewPass && visible && DrawDollarFlower(dollars, anchor, seconds)) dollars++;
+                continue;
+            }
+            if (!_previewPass) _flowerDollarClock.Reset();
             // The owner's colour as a source_color uniform took it: made linear, as the art is sampled.
             Color tint = new Color(flower.Colour.Red / 255f, flower.Colour.Green / 255f, flower.Colour.Blue / 255f).SrgbToLinear();
             int count = StatusFlowerLayers.Build(flower, _flowerLayers);
@@ -66,6 +78,7 @@ public partial class WorldScene
                     new Color(layer.Wedge, layer.Ring ? 1f : 0f, 0f, 0f));
             }
         }
+        if (!_previewPass) HideUnusedDollarFlowers(dollars);
         ItemTime(ItemStep.Flowers, started);
         ItemBytes(allocated);
     }
@@ -101,6 +114,7 @@ public partial class WorldScene
 
     private void FreeFlowers()
     {
+        FreeDollarFlowers();
         foreach (FlowerBatch batch in _flowerBatches.Values)
         {
             batch.Material.Dispose();

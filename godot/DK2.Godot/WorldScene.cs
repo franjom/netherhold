@@ -112,7 +112,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     public void Open(string install, CampaignLevelData level, WorldState world, WorldView view, PlayerId viewer,
         NVector3 focus, int scrollSpeed)
     {
-        OpenWorld(install, level, world, view, viewer, additionalArt: null);
+        OpenWorld(install, level, world, view, viewer, StatusFlowerArt.Entries);
         CameraThing? profile = ClassicCameraSetup.Preset(
             GameDatabaseLoader.LoadCameraPresets(install, level.Name), ClassicCameraMode.Dungeon);
         if (profile == null)

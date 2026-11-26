@@ -98,5 +98,5 @@ new cast validator is claimed. Native spell refusal leaves the previously
 published hover id untouched; the remake still supplies only the current
 qualified pick and does not mirror that retained-id state. Godot's flower layers join the blended
 items (migration plan step 3k), ordered among the translucent runs and effects by distance.
-Dollar-mesh flowers remain unbuilt in Godot. Native capture pixel, tint intensity and popup timing parity
+The [Godot adapter](../../godot/README.md#shot-effects) also draws dollar-mesh flowers. Native capture pixel, tint intensity and popup timing parity
 remain separate from the rule tests.

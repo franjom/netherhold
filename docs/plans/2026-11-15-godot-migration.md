@@ -988,7 +988,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         in the custom data (was one instance and one material per frame per flame); sprites and flower icons are `.gdshader`
         files; mesh particles (the Heart's plug, group parts, type-6 frames, shot bodies) are pooled models per mesh with the
         element's tint as an instance uniform. Also wired: the group parts, the local pickup dust, the first model update.
-        Footsteps and the beat sound are sound only (wired in step 4); the dollar mesh is not drawn; lightning is drawn by 3l. Frames
+        Step 4 adds footsteps, the beat sound and the dollar flower mesh. Step 3l draws lightning. Frames
         against HEAD (Movie Maker, 1920x1080, scripted pointer, flags off and `--light-perpixel --light-shadows
         --light-post`): flames, flowers and all but the Heart byte-identical in those examples; this does not establish
         native flower overlap with opaque walls ([comparison limits](../research/hand-cursor-rendering.md#native-cage-observations)). New content judged right against
@@ -1172,6 +1172,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 
 - [x] Original DK2 save import from the command line. See [terrain import](../../godot/README.md#importing-an-original-dk2-save)
       for the flag, export entry point and checkpoint scope.
+- [x] Dollar flower. Godot uses the existing [world mesh and clock](../../godot/README.md#shot-effects).
 - [ ] Front-end Load Game and settings. Include the Import DK2 Save button in Load Game.
 
 ## Step 5: remove Unity (one change, at parity)
