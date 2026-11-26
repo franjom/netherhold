@@ -296,7 +296,7 @@ for s in 0..3:
    which to vt+0xF4, how +0x16 places a quarter, and what +0xC = 0x90 and +0x11
    mean, were not re-read. The quadrant numbering (0 NW … 3 SW) is inferred.
 2. **Grid bit 15.** It marks a secret door hidden from the viewer (record 004434F0);
-   the senders of the flag other than the reveal arm are unread. The secret-door
+   all seven senders of the flag are read, and each writes the tile marker with it. The secret-door
    prelude of 0x0043E860 was read from the decompile only; the hero-wall scheme's run-on tests
    were read from the instructions (0x0043F3A0..0x0043F50F, floor-and-terrain-pieces.md section 5).
 3. **Unread builders.** The player tables

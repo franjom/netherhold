@@ -1329,7 +1329,8 @@ public sealed partial class WorldView
     /// (<c>0x004434F0</c>), written by the handler of bridge command <c>0x11</c>
     /// (<c>0x004488A0</c>) from the marker's value, forced to zero for the door's owner; the terrain
     /// builder's prelude (<c>0x0043E8FC</c>) and the room wall chooser read the bit. Ours derives it
-    /// from the marker.</para></summary>
+    /// from the marker: each of the command's seven senders writes the marker with the same value
+    /// (record 004434F0, which also lists where a restored game can part the two).</para></summary>
     private bool IsHiddenSecretDoor(WorldState world, int x, int y) =>
         world.Tile(x, y).SecretDoor && world.DoorAt(x, y) is { } door && door.PlayerId != _viewingPlayerId;
 
