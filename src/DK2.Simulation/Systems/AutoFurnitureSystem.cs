@@ -47,7 +47,7 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
             AutoFurnitureRules.DesiredFurniture(world, context.Database, room, roomFurniture);
             foreach ((int tile, byte type) in roomFurniture)
             {
-                var key = (room.OwnerPlayerId, tile, type);
+                (byte OwnerPlayerId, int tile, byte type) key = (room.OwnerPlayerId, tile, type);
                 if (unmatched.Add(key)) desired.Add(key);
             }
         }
@@ -60,7 +60,7 @@ public sealed class AutoFurnitureSystem : ISimulationSystem
             // reach this state (Q196), but no held object may satisfy a room slot.
             if (thing.InHand) continue;
 
-            var key = (thing.OwnerPlayerId, thing.TileIndex, thing.ObjectTypeId);
+            (byte OwnerPlayerId, int TileIndex, byte ObjectTypeId) key = (thing.OwnerPlayerId, thing.TileIndex, thing.ObjectTypeId);
             if (unmatched.Remove(key)) continue;
             // A Hatchery's coops are deleted and placed by its rebuild (HatcheryRules.RebuildCoops, ADR-0672).
             if (thing.AutoPlaced && thing.ObjectTypeId != HatcheryRules.CoopObjectId) remove.Add(thing.Id);

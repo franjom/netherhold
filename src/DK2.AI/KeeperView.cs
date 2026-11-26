@@ -552,7 +552,7 @@ public sealed class KeeperView : INavByteGrid
     /// keeper's own stream (ADR-0244).</summary>
     public KeeperRoomView? RandomRoomOfType(PlayerId player, RoomTypeId type, SimRandom rng)
     {
-        List<KeeperRoomView> rooms = RoomsOf(player).Where(r => r.Definition.RoomId == (byte)type && !r.Ruined).ToList();
+        var rooms = RoomsOf(player).Where(r => r.Definition.RoomId == (byte)type && !r.Ruined).ToList();
         return rooms.Count == 0 ? null : rooms[rng.NextInt(rooms.Count)];
     }
 
@@ -560,7 +560,7 @@ public sealed class KeeperView : INavByteGrid
     /// index yields nothing, since the walk past it never stops.</summary>
     public KeeperRoomView? RandomNonBridgeRoom(PlayerId player, SimRandom rng)
     {
-        List<KeeperRoomView> rooms = RoomsOf(player).ToList();
+        var rooms = RoomsOf(player).ToList();
         if (rooms.Count == 0) return null;
         KeeperRoomView drawn = rooms[rng.NextInt(rooms.Count)];
         return BridgeRules.IsBridge(drawn.Definition) ? null : drawn;

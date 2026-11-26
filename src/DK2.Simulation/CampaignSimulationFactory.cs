@@ -15,7 +15,7 @@ public static class CampaignSimulationFactory
         IReadOnlyList<PlayerDef> players, IReadOnlyList<ThingRecord> things,
         IReadOnlyList<TriggerRecord> triggers, ulong seed, bool fogOfWarEnabled = false)
     {
-        WorldState world = WorldState.FromMap(database, map,
+        var world = WorldState.FromMap(database, map,
             players.Select(p => p.PlayerId), fogOfWarEnabled: fogOfWarEnabled);
         ThingProjection.Place(world, database, things,
             players.ToDictionary(p => p.PlayerId, p => p.StartingGold));

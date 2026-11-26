@@ -39,7 +39,7 @@ public static class RoomLists
     internal static void Initialize(WorldState world, GameDatabase database)
     {
         int[] parent = Enumerable.Repeat(-1, world.TileCount).ToArray();
-        RoomListPosition[] positions = new RoomListPosition[world.TileCount];
+        var positions = new RoomListPosition[world.TileCount];
         var workshopRoots = new List<int>();
         int Root(int tile)
         {

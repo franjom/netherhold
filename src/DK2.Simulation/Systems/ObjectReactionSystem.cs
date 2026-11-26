@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Data.Model;
+
 namespace DK2.Simulation.Systems;
 
 public sealed class ObjectReactionSystem : ISimulationSystem
@@ -19,7 +21,7 @@ public sealed class ObjectReactionSystem : ISimulationSystem
                 target.ProcessAgeTicks++;
                 if (target.ProcessAgeTicks == 1) target.ProcessDeadline = context.Tick.Value;
                 int slot = target.ProcessState == 48 ? 5 : 6;
-                var definition = context.Database.ObjectById(target.ObjectTypeId);
+                ObjectDef? definition = context.Database.ObjectById(target.ObjectTypeId);
                 if (definition is null || target.ProcessAgeTicks > AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(slot)))
                 {
                     target.ProcessCount = 1;

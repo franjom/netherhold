@@ -217,7 +217,7 @@ public static class WorldSnapshot
         world.Carry.Write(w);
         w.Write(world.LocalPlayerId.Value);
         w.Write(world.SecretDoorEntries.Count);
-        foreach (var pair in world.SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
+        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> pair in world.SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
             .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
         {
             w.Write(pair.Key.Player.Value);
@@ -227,7 +227,7 @@ public static class WorldSnapshot
             foreach (int holder in pair.Value.Holders) w.Write(holder);
         }
         w.Write(world.RepairTaskEntries.Count);
-        foreach (var pair in world.RepairTaskEntries.OrderBy(e => e.Key.Player.Value)
+        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), RepairTaskEntry> pair in world.RepairTaskEntries.OrderBy(e => e.Key.Player.Value)
             .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
         {
             w.Write(pair.Key.Player.Value);
@@ -1080,7 +1080,7 @@ public static class WorldSnapshot
         long nextRoomListPosition = r.ReadInt64();
         long nextPlaceClaim = r.ReadInt64();
         int nextTagOrder = r.ReadInt32();
-        CampaignCarry carry = CampaignCarry.Read(r);
+        var carry = CampaignCarry.Read(r);
         byte localPlayer = r.ReadByte();
         int secretDoorEntryCount = SaveReader.Count(r, "secretDoorEntryCount", 29);
         var secretDoorEntries = new Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry>();
@@ -1189,7 +1189,7 @@ public static class WorldSnapshot
             players[i].KeeperFrameAfterDefeat = r.ReadBoolean();
         }
 
-        WorldState world = WorldState.FromParts(width, height, tiles, players, fogOfWarEnabled);
+        var world = WorldState.FromParts(width, height, tiles, players, fogOfWarEnabled);
         world.GameMode = gameMode;
         world.ActivePlayerOrderSlots = activePlayerOrder;
         world.NextSlabOrder = nextSlabOrder;
@@ -1198,8 +1198,8 @@ public static class WorldSnapshot
         world.NextTagOrder = nextTagOrder;
         world.Carry = carry;
         world.LocalPlayerId = new PlayerId(localPlayer);
-        foreach (var pair in secretDoorEntries) world.SecretDoorEntries.Add(pair.Key, pair.Value);
-        foreach (var pair in repairTaskEntries) world.RepairTaskEntries.Add(pair.Key, pair.Value);
+        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> pair in secretDoorEntries) world.SecretDoorEntries.Add(pair.Key, pair.Value);
+        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), RepairTaskEntry> pair in repairTaskEntries) world.RepairTaskEntries.Add(pair.Key, pair.Value);
         world.CurrentTick = tick;
 
         for (int i = 0; i < world.RoomBuildWaveSlots.Length; i++)
@@ -1820,7 +1820,7 @@ public static class WorldSnapshot
             int unknown0008 = r.ReadInt32(); int unknown000C = r.ReadInt32();
             ushort unknown0010 = r.ReadUInt16(); ushort unknown0012 = r.ReadUInt16();
             int effectIdCount = SaveReader.Count(r, "effectIdCount", 2);
-            var effectIds = new ushort[effectIdCount];
+            ushort[] effectIds = new ushort[effectIdCount];
             for (int e = 0; e < effectIdCount; e++) effectIds[e] = r.ReadUInt16();
             world.RawEffectGenerators.Add(new EffectGeneratorState
             {

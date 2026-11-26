@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Navigation;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Combat;
@@ -76,7 +77,7 @@ public static class ThreatFleeRules
             && FearRules.AwayFrom(context.World, sight, context.Rng, me, new TilePos(tx >> 12, ty >> 12)) is (int x, int y)
             && CreatureStateMachine.TrySetState(context.Hooks, me, CreatureStateMachine.Idle))
         {
-            var options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? Navigation.MoveOptions.Loose : Navigation.MoveOptions.Plain;
+            MoveOptions options = me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? Navigation.MoveOptions.Loose : Navigation.MoveOptions.Plain;
             if (context.Navigation.TryRouteTo(me, x, y, options))
                 CreatureStateMachine.BeginTravel(context.Hooks, me, StateShadow.TravelToPoint, FledState);
         }

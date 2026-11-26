@@ -100,7 +100,7 @@ public static class PortalChoiceRules
         CreatureDef? chosen = null;
         if (sum > 0)
         {
-            var running = new long[entries.Count];
+            long[] running = new long[entries.Count];
             long total = 0;
             for (int i = 0; i < entries.Count; i++)
             {

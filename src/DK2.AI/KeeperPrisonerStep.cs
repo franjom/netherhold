@@ -72,7 +72,7 @@ public sealed class KeeperPrisonerStep
             return allowance;
         }
         // 0x004E8210(1, 1): a floor or wall slot, then no creature on a torture device on its tile.
-        List<int> slots = room.FurnitureSlots().ToList();
+        var slots = room.FurnitureSlots().ToList();
         if (slots.Count == 0) return allowance;
         TilePos slot = _view.FromIndex(slots[_rng.NextInt(slots.Count)]);
         if (_view.Creatures.Any(c => c.OnTortureDevice && c.PosX >> 12 == slot.X && c.PosY >> 12 == slot.Y))

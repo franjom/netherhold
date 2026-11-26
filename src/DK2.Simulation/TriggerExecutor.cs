@@ -222,7 +222,7 @@ public sealed class TriggerTree
     private static TriggerPartySlot[] BuildParties(IEnumerable<HeroPartyThing>? parties)
     {
         var slots = new TriggerPartySlot[PartySlotCount];
-        var taken = new bool[PartySlotCount];
+        bool[] taken = new bool[PartySlotCount];
         Array.Fill(slots, TriggerPartySlot.Empty);
 
         foreach (HeroPartyThing party in parties ?? [])

@@ -238,7 +238,7 @@ public static class PlayerActionRoutines
                         else ok = false;
                     }
                 if (!ok || floor == 0 || rock == 0) continue;
-                var key = (rock, DistanceSquared(new TilePos(x + side / 2, y + side / 2), home), y, x);
+                (int rock, long, int y, int x) key = (rock, DistanceSquared(new TilePos(x + side / 2, y + side / 2), home), y, x);
                 if (key.CompareTo(bestKey) < 0) { bestKey = key; best = corner; }
             }
         return best;
@@ -247,7 +247,7 @@ public static class PlayerActionRoutines
     /// <summary>The panel button that selects <paramref name="room"/>, when offered.</summary>
     public static PlayerAction? SelectRoom(PlayerObservation observation, RoomTypeId room)
     {
-        GuiButtonTarget button = GuiButtonTarget.Room(room);
+        var button = GuiButtonTarget.Room(room);
         foreach (GuiButtonTarget panel in observation.Offers.Panels)
             if (panel == button) return new PlayerAction.SelectPanel(button);
         return null;

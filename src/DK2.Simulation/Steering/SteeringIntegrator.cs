@@ -138,7 +138,7 @@ public static class SteeringIntegrator
     public static void PushHistory(SteeringBody body)
     {
         int progress = FollowPathRules.Progress(body);
-        var history = (ushort)(body.PathStuckBuffer << 1);
+        ushort history = (ushort)(body.PathStuckBuffer << 1);
         if (progress <= body.PathLastProgress) history |= 1;
         body.PathStuckBuffer = history;
         body.PathLastProgress = progress;

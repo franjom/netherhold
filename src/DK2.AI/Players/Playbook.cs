@@ -145,7 +145,7 @@ public sealed record Playbook
         Unique("planned rooms", planned.Select(r => r.ToString()));
         foreach (RoomTypeId room in planned)
         {
-            PlaybookItem item = PlaybookItem.Room(room);
+            var item = PlaybookItem.Room(room);
             if (Start.Contains(item)) continue;
             if (MayChange.Any(c => c.Item == item && c.ToAvailable)) warnings.Add($"{item} is planned but only may become available ({string.Join(", ", MayChange.Where(c => c.Item == item && c.ToAvailable).Select(c => c.By))})");
             else problems.Add($"{item} is planned but the level neither offers it at the start nor may make it available");

@@ -73,7 +73,7 @@ public static partial class CreatureStateCoverage
     {
         var rows = new List<StateCoverageRow>(CreatureStateTable.Count);
         AddRows(rows);
-        StateCoverageRow[] byId = new StateCoverageRow[CreatureStateTable.Count];
+        var byId = new StateCoverageRow[CreatureStateTable.Count];
         foreach (StateCoverageRow row in rows)
         {
             if (byId[row.StateId] is not null)

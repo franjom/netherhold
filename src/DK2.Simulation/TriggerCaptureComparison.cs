@@ -15,8 +15,8 @@ public static class TriggerCaptureComparison
         if (oursPath is null) throw new ArgumentNullException(nameof(oursPath));
         if (capturePath is null) throw new ArgumentNullException(nameof(capturePath));
 
-        using var ours = File.OpenText(oursPath);
-        using var capture = File.OpenText(capturePath);
+        using StreamReader ours = File.OpenText(oursPath);
+        using StreamReader capture = File.OpenText(capturePath);
         return Compare(ours, oursPath, capture, capturePath, anchor);
     }
 
@@ -34,9 +34,9 @@ public static class TriggerCaptureComparison
 
         string[] inBoth = eventIds.Where(id => oursData.Events.ContainsKey(id)
             && captureData.Events.ContainsKey(id)).ToArray();
-        List<string> captureOnly = eventIds.Where(id => !oursData.Events.ContainsKey(id)
+        var captureOnly = eventIds.Where(id => !oursData.Events.ContainsKey(id)
             && captureData.Events.ContainsKey(id)).ToList();
-        List<string> oursOnly = eventIds.Where(id => oursData.Events.ContainsKey(id)
+        var oursOnly = eventIds.Where(id => oursData.Events.ContainsKey(id)
             && !captureData.Events.ContainsKey(id)).ToList();
 
         string? anchorId = SelectAnchor(anchor, oursData, captureData);

@@ -16,7 +16,7 @@ public static class PossessionAbilityRules
     {
         var hearts = new HeartSites();
         hearts.Refresh(world, database);
-        var picked = PossessionRules.PickMeleeTarget(world, database, source,
+        PossessionRules.ChainThing? picked = PossessionRules.PickMeleeTarget(world, database, source,
             database.CreatureById(source.CreatureTypeId), aim, hearts);
         return picked is { Class: PossessionRules.ChainClass.Creature, Thing: CreatureState target }
             ? new CreatureId(target.Id) : CreatureId.None;

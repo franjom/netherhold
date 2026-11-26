@@ -60,7 +60,7 @@ public sealed class InputLog
         string path, long lag = 1, long origin = 1, HashSet<byte>? kinds = null)
     {
         if (path is null) throw new ArgumentNullException(nameof(path));
-        using var reader = File.OpenText(path);
+        using StreamReader reader = File.OpenText(path);
         return Read(reader, path, lag, origin, kinds);
     }
 
@@ -96,7 +96,7 @@ public sealed class InputLog
 
     private static InputLog Build(List<Row> rows, HashSet<byte> kinds, long lag, long origin)
     {
-        Claims claims = Claims.From(rows, kinds);
+        var claims = Claims.From(rows, kinds);
         var pool = new Dictionary<(byte Player, TilePos Tile), Occupancy>();
         var pending = new SortedDictionary<long, SortedDictionary<byte, TurnMarks>>();
         var tally = new Counters { Rows = rows.Count };

@@ -191,7 +191,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
     private static ShotState? Cast(SimulationContext context, PlayerId playerId, FpPosition2 point, bool free)
     {
         if (context.Database.KeeperSpell(KeeperSpellName.CreateImp) is not { } spell) return null;
-        var effect = spell.Shot(IsUpgraded(context, playerId, spell));
+        (byte ShotTypeId, int Data1, int Data2) effect = spell.Shot(IsUpgraded(context, playerId, spell));
         if (!context.Database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? definition)) return null;
         ShotState shot = ShotRules.Spawn(context.World, definition, playerId, point.X.Raw, point.Y.Raw, effect.Data1, effect.Data2,
             0, FightTargetKind.None, -1, playerId, -1, point.X.Raw, point.Y.Raw);

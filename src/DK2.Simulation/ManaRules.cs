@@ -131,8 +131,8 @@ public static class ManaRules
     /// <summary>Running terrain rate plus the heart, capped per keeper; indexed like <see cref="WorldState.PlayerAtIndex"/>.</summary>
     public static int[] GainPerSecondByPlayerIndex(WorldState world, GameDatabase database)
     {
-        var gain = new int[world.PlayerCount];
-        var hasHeart = new bool[world.PlayerCount];
+        int[] gain = new int[world.PlayerCount];
+        bool[] hasHeart = new bool[world.PlayerCount];
         byte? heartTerrain = DungeonHeartTerrainId(database);
 
         // owner id -> index into gain, or -1. Tile ownership is a byte, so 256 slots
@@ -210,7 +210,7 @@ public static class ManaRules
     /// which <c>0x004C10E0</c> also holds back from the mana a possession must be paid from.</summary>
     public static int[] ImpAndTrapUpkeepPerSecondByPlayerIndex(WorldState world, GameDatabase database)
     {
-        var upkeep = new int[world.PlayerCount];
+        int[] upkeep = new int[world.PlayerCount];
         Span<int> indexOfOwner = stackalloc int[256];
         indexOfOwner.Fill(-1);
         for (int i = 0; i < world.PlayerCount; i++)

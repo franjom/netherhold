@@ -83,7 +83,7 @@ public static partial class TremorRules
             if (!TryChooseFloor(context, tremor, out TilePos floor)) continue;
             // 0x005105C3, after the view effect and before the tile pass, only for a floor found: no handle, the tile's centre at height 0.
             RequestSound(context, i, ThingSoundEvent.TremorShook, CreatureState.CentreOf(floor.X), CreatureState.CentreOf(floor.Y), 0, voiced: false);
-            foreach (var offset in Neighbors)
+            foreach ((int X, int Y) offset in Neighbors)
             {
                 var at = new TilePos(floor.X + offset.X, floor.Y + offset.Y);
                 if (!context.World.Contains(at)) continue;
@@ -108,7 +108,7 @@ public static partial class TremorRules
         int sample = context.Rng.NextInt(side * side);
         var sampled = new TilePos((tremor.WorldX >> 12) + sample % side - radius,
             (tremor.WorldY >> 12) + sample / side - radius);
-        foreach (var offset in Neighbors)
+        foreach ((int X, int Y) offset in Neighbors)
         {
             var at = new TilePos(sampled.X + offset.X, sampled.Y + offset.Y);
             if (!context.World.Contains(at) || NavBytes.IsSolid(context.Navigation.NavByte(at.X, at.Y))) continue;

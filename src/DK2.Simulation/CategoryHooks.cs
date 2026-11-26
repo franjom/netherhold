@@ -365,7 +365,7 @@ public static class CategoryHooks
 
     private static bool[] OwnSeeds()
     {
-        var byCategory = new bool[CreatureStateTable.CategoryCount];
+        bool[] byCategory = new bool[CreatureStateTable.CategoryCount];
         foreach (HookSlot slot in All)
         {
             if (slot.SeedsCountdown) byCategory[(int)slot.Category] = true;

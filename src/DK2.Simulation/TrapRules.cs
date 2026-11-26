@@ -65,7 +65,7 @@ public static class TrapRules
 
     private static int[] BuildSine()
     {
-        var table = new int[2560];
+        int[] table = new int[2560];
         for (int i = 0; i <= 512; i++) table[i] = (int)(65536.0 * Math.Sin(2.0 * Math.PI * i / 2048.0));
         table[512] = 65536;
         for (int i = 513; i <= 1024; i++) table[i] = table[1024 - i];

@@ -1804,7 +1804,7 @@ public sealed partial class WorldState
         Carry.HashInto(ref hash);
         hash.Add(LocalPlayerId.Value);
         hash.Add(SecretDoorEntries.Count);
-        foreach (var pair in SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
+        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> pair in SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
             .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
         {
             hash.Add(pair.Key.Player.Value);
@@ -1814,7 +1814,7 @@ public sealed partial class WorldState
             foreach (int holder in pair.Value.Holders) hash.Add(holder);
         }
         hash.Add(RepairTaskEntries.Count);
-        foreach (var pair in RepairTaskEntries.OrderBy(e => e.Key.Player.Value)
+        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), RepairTaskEntry> pair in RepairTaskEntries.OrderBy(e => e.Key.Player.Value)
             .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
         {
             hash.Add(pair.Key.Player.Value);

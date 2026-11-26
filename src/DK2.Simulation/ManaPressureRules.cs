@@ -78,14 +78,14 @@ public static class ManaPressureRules
         ushort heartTileX, ushort heartTileY)
     {
         uint workers = 0;
-        foreach (var creature in owned)
+        foreach (ManaRemovalCandidate creature in owned)
             if (creature.EvilWorker) workers++;
         if (workers <= minimumWorkers) return null;
 
         byte lowest = byte.MaxValue;
         int? choice = null;
         bool tied = false;
-        foreach (var creature in owned)
+        foreach (ManaRemovalCandidate creature in owned)
         {
             if (creature.InHand) continue;
             if (creature.Level < lowest)
@@ -98,7 +98,7 @@ public static class ManaPressureRules
         }
         if (choice.HasValue && !tied) return choice;
 
-        foreach (var creature in owned)
+        foreach (ManaRemovalCandidate creature in owned)
             if (!creature.InHand && creature.TypeId == 1 && creature.Idle)
                 return creature.Id;
 
@@ -106,7 +106,7 @@ public static class ManaPressureRules
         int centerY = heartTileY * 4096 + 2048;
         uint farthest = 0;
         choice = null;
-        foreach (var creature in owned)
+        foreach (ManaRemovalCandidate creature in owned)
         {
             if (creature.InHand || creature.TypeId != 1) continue;
             long dx = unchecked(creature.PosX - centerX);

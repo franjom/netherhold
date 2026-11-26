@@ -809,7 +809,7 @@ public sealed partial class ImpTaskSystem
         int best = 0, bestGrade = int.MaxValue;
         for (int k = 0; k < 4; k++)
         {
-            var n = k switch
+            TilePos n = k switch
             {
                 0 => new TilePos(at.X, at.Y - 1),
                 1 => new TilePos(at.X + 1, at.Y),

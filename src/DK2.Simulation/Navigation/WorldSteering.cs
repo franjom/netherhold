@@ -134,7 +134,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     {
         int count = _world.Width * _world.Height;
         if (_scratch.Length != count) _scratch = new byte[count];
-        StructureBlocks structures = StructureBlocks.For(_world, _database);
+        var structures = StructureBlocks.For(_world, _database);
         _structures = structures;
         _platformCentres = structures.HeartCentres;
         FillNavigationBytes(_database, _world, structures, _scratch);
@@ -183,7 +183,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         if (length != count) throw new InvalidDataException($"a routing save of {length} bytes for a map of {count} tiles");
         _routingBytes = SaveReader.Bytes(r, count, "navigation tiles");
         int centres = SaveReader.Count(r, "heart platforms", 4, count);
-        var platforms = new int[centres];
+        int[] platforms = new int[centres];
         for (int i = 0; i < centres; i++) platforms[i] = r.ReadInt32();
         _platformCentres = platforms;
         _mesh = NavMesh.Read(r);
@@ -305,7 +305,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// <summary>Copies the navigation cache without constructing a routing mesh.</summary>
     public static byte[] CaptureNavigationBytes(GameDatabase database, WorldState world)
     {
-        var bytes = new byte[world.TileCount];
+        byte[] bytes = new byte[world.TileCount];
         FillNavigationBytes(database, world, StructureBlocks.For(world, database), bytes);
         return bytes;
     }
@@ -432,7 +432,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         int radius = (heart.Width.Raw >> 1) << 4;
         long dx = (long)target.X - centre.X, dy = (long)target.Y - centre.Y;
         if (dx * dx + dy * dy >= (long)radius * radius) return target;
-        var direction = Fixed16.Normalise(from - centre);
+        Fixed16Vector direction = Fixed16.Normalise(from - centre);
         if (direction == Fixed16Vector.Zero) direction = new Fixed16Vector(Fixed16.One, 0);
         return centre + direction.Scale(radius + (Fixed16.One >> 3));
     }
@@ -508,7 +508,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             return TryRouteTo(creature, (int)x, (int)y, options);
         ResetBodyForRequest(creature);
         creature.RouteOptions = options;
-        var target = ConstrainTarget(creature.Body.Pos, new Fixed16Vector((int)x << 4, (int)y << 4));
+        Fixed16Vector target = ConstrainTarget(creature.Body.Pos, new Fixed16Vector((int)x << 4, (int)y << 4));
         // The one-triangle route's point comes back through the query's 16.8 (0x004D5138-0x004D5147,
         // 0x004D530F-0x004D531C), so it sits on the 1/256-tile grid; the target stays exact (ADR-0719).
         var point = new Fixed16Vector((target.X >> 8) << 8, (target.Y >> 8) << 8);
@@ -719,7 +719,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
                 byte mask = 0;
                 for (int ordinal = 0; ordinal < 3; ordinal++)
                 {
-                    HeartPillarId id = HeartPillarId.For(_world, HeartPillarRules.At(new TilePos(x, y), (HeartPillar)ordinal));
+                    var id = HeartPillarId.For(_world, HeartPillarRules.At(new TilePos(x, y), (HeartPillar)ordinal));
                     if (HeartPillarRules.TryResolve(_world, _database, tile.OwnerPlayerId, id, out _)) mask |= (byte)(1 << ordinal);
                 }
                 _heartPillarMasks[tileIndex] = known = (tick, standing, mask);

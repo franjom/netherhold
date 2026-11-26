@@ -225,7 +225,7 @@ public sealed class PrisonSystem : ISimulationSystem
     private static void Slain(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
-        var keeper = (byte)creature.PrisonOwnerPlayerId;
+        byte keeper = (byte)creature.PrisonOwnerPlayerId;
         TilePos died = creature.Tile;
 
         foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
@@ -281,7 +281,7 @@ public sealed class PrisonSystem : ISimulationSystem
     private static void Raise(SimulationContext context, CreatureState prisoner)
     {
         WorldState world = context.World;
-        var keeper = (byte)prisoner.PrisonOwnerPlayerId;
+        byte keeper = (byte)prisoner.PrisonOwnerPlayerId;
         TilePos at = prisoner.Tile;
 
         byte raises = 0;

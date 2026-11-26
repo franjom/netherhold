@@ -45,7 +45,7 @@ public sealed class RoomLog
     public static RoomLog Read(string path, long lag = 1, long origin = 1)
     {
         if (path is null) throw new ArgumentNullException(nameof(path));
-        using var reader = File.OpenText(path);
+        using StreamReader reader = File.OpenText(path);
         return Read(reader, path, lag, origin);
     }
 

@@ -258,7 +258,7 @@ public static class KeeperAIPersonality
     /// Deviates: ours fills a shortfall with 0.</remarks>
     public static byte[] RoomList(GameDatabase database)
     {
-        var list = new byte[RoomListLength];
+        byte[] list = new byte[RoomListLength];
         int n = 0;
         foreach (RoomDef room in database.Rooms.Values.OrderBy(r => r.RoomId))
         {

@@ -110,7 +110,7 @@ public static class TempleSacrificeRules
         if (match is null)
             return new SacrificeResult(false, FailedSpeechId, SacrificeRewardKind.None, -1);
 
-        SacrificeIngredient[] matched = new SacrificeIngredient[ingredientCount];
+        var matched = new SacrificeIngredient[ingredientCount];
         for (int i = 0; i < ingredientCount; i++)
             matched[ingredientCount - 1 - i] = history.Newest(i);
 

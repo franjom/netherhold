@@ -62,7 +62,7 @@ public static class KeeperSpellRules
         ref PlayerState player = ref world.Player(cast.PlayerId);
         int row = player.Availabilities.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == cast.SpellId);
         AvailabilityState availability = player.Availabilities[row];
-        var effect = spell.Shot(availability.Upgraded);
+        (byte ShotTypeId, int Data1, int Data2) effect = spell.Shot(availability.Upgraded);
         ShotState shot = ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
             target.PosX, target.PosY, effect.Data1, effect.Data2, 0,
             FightTargetKind.Creature, target.Id, target.OwnerPlayerId, -1, target.PosX, target.PosY);
@@ -94,7 +94,7 @@ public static class KeeperSpellRules
         ref PlayerState player = ref world.Player(cast.PlayerId);
         int row = player.Availabilities.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == cast.SpellId);
         AvailabilityState availability = player.Availabilities[row];
-        var effect = spell.Shot(availability.Upgraded);
+        (byte ShotTypeId, int Data1, int Data2) effect = spell.Shot(availability.Upgraded);
         ShotState shot = ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
             cast.X, cast.Y, effect.Data1, effect.Data2, 0, FightTargetKind.None, -1, cast.PlayerId, -1, cast.X, cast.Y);
         ShotRules.RequestTrail(context, shot, default, new Fp32(Fp32.One));
@@ -174,7 +174,7 @@ public static class KeeperSpellRules
         }
         if (spell.TargetSelector is not (4 or 5)) return KeeperSpellRefusal.UnsupportedTargetSelector;
         if (!PlaceTargetAllowed(world, database, cast.PlayerId, spell, at, default)) return KeeperSpellRefusal.Target;
-        var effect = spell.Shot(availability.Upgraded);
+        (byte ShotTypeId, int Data1, int Data2) effect = spell.Shot(availability.Upgraded);
         if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
         if (cast.SpellId == SightOfEvil) return KeeperSpellRefusal.None;
         if (shot.ProcessType is not (ShotRules.CreateObjectProcess or ShotRules.InfernoProcess or ShotRules.TremorProcess or ReaperRules.ProcessType)) return KeeperSpellRefusal.UnsupportedShotProcess;
@@ -352,7 +352,7 @@ public static class KeeperSpellRules
         if (!LocationAllowed(world, database, navigation, cast.PlayerId, spell, target.Tile)) return KeeperSpellRefusal.Location;
         if (spell.TargetSelector is not (1 or 2 or 3 or 6)) return KeeperSpellRefusal.UnsupportedTargetSelector;
         if (!TargetAllowed(world, database, cast.PlayerId, spell, target)) return KeeperSpellRefusal.Target;
-        var effect = spell.Shot(availability.Upgraded);
+        (byte ShotTypeId, int Data1, int Data2) effect = spell.Shot(availability.Upgraded);
         if (!database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? shot)) return KeeperSpellRefusal.MissingShot;
         if (shot.ProcessType is not (ShotRules.LightningProcess or ShotRules.ModifyHealthProcess or ShotRules.ChickenProcess or TurncoatRules.ProcessType or PossessionRules.ProcessType))
             return KeeperSpellRefusal.UnsupportedShotProcess;

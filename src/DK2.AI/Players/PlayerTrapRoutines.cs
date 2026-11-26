@@ -74,7 +74,7 @@ public static class PlayerTrapRoutines
         PlayerTileGrid grid = observation.Tiles;
         PlayerId self = observation.Stamp.Player;
         int width = grid.Width;
-        var distance = new int[width * grid.Height];
+        int[] distance = new int[width * grid.Height];
         Array.Fill(distance, -1);
         var queue = new Queue<TilePos>();
         for (int y = 0; y < grid.Height; y++)
@@ -100,7 +100,7 @@ public static class PlayerTrapRoutines
         }
 
         // Each entry's route walks downhill to the Heart; a route that meets an earlier one follows it from there.
-        var onRoute = new bool[distance.Length];
+        bool[] onRoute = new bool[distance.Length];
         foreach (TilePos entry in entries)
         {
             if (!grid.Contains(entry)) continue;

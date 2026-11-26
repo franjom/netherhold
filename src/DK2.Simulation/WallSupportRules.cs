@@ -37,7 +37,7 @@ public static class WallSupportRules
                 || OwnFloorRules.Touches(database, world, at, world.Tile(at).OwnerPlayerId)) continue;
 
             bool retained = false;
-            foreach (var pair in RetainingPairs)
+            foreach ((TilePos First, TilePos Second) pair in RetainingPairs)
                 if (IsOwnedWall(world, database, Offset(at, pair.First), requireFullNonGold: true)
                     && IsOwnedWall(world, database, Offset(at, pair.Second), requireFullNonGold: true))
                 {

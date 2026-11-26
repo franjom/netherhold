@@ -142,7 +142,7 @@ public static class ChickenMovementRules
     internal static void ReleaseHatcheryBirds(WorldState world, IReadOnlyCollection<int> tiles)
     {
         if (tiles.Count == 0) return;
-        var set = tiles as ISet<int> ?? new HashSet<int>(tiles);
+        ISet<int> set = tiles as ISet<int> ?? new HashSet<int>(tiles);
         foreach (ObjectState bird in world.Objects)
             if (bird.ObjectTypeId == HatcheryRules.ChickenObjectId && set.Contains(bird.HatcheryRoomAnchorTileIndex))
                 UnlinkHatchery(bird);
@@ -295,7 +295,7 @@ public static class ChickenMovementRules
             || (definition.Flags & ObjectFlags.Obstacle) == 0) return false;
         for (int ordinal = 0; ordinal < 3; ordinal++)
         {
-            HeartPillarId id = HeartPillarId.For(world, HeartPillarRules.At(tile, (HeartPillar)ordinal));
+            var id = HeartPillarId.For(world, HeartPillarRules.At(tile, (HeartPillar)ordinal));
             if (HeartPillarRules.TryResolve(world, database, world.Tile(tile).OwnerPlayerId, id, out _)) return true;
         }
         return false;

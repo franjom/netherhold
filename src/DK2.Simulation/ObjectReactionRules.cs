@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
@@ -38,7 +39,7 @@ public static class ObjectReactionRules
             if (target.ObjectTypeId == TrainingDummyObjectId)
                 ThingSoundRules.Request(context, SystemName, target, ThingSoundEvent.StruckDummy);
         }
-        var definition = context.Database.ObjectById(target.ObjectTypeId);
+        ObjectDef? definition = context.Database.ObjectById(target.ObjectTypeId);
         if (definition is not null && target.ProcessAgeTicks > AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(5)))
             target.ProcessCount = 1;
         int sign = target.ProcessEnding ? 1 : -1;

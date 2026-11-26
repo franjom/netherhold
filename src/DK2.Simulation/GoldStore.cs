@@ -263,7 +263,7 @@ public static class GoldStore
         if (captured.Definition.TypeId != RoomTypeId.Treasury) return;
         if (RoomIndex.RoomAt(world, database, captured.TileIndices[0]) is not { } room) return;
         int[] chain = SlabChain.Order(world, captured);
-        var stored = new int[chain.Length];
+        int[] stored = new int[chain.Length];
         for (int i = 0; i < chain.Length; i++)
         {
             ref TileState tile = ref world.TileAtIndex(chain[i]);
@@ -313,7 +313,7 @@ public static class GoldStore
         // One pass over the things: each chain tile's floor piles, oldest first.
         var position = new Dictionary<int, int>(chain.Length);
         for (int i = 0; i < chain.Length; i++) position[chain[i]] = i;
-        List<ObjectState>?[] piles = new List<ObjectState>?[chain.Length];
+        var piles = new List<ObjectState>?[chain.Length];
         foreach (ObjectState thing in world.Objects)
             if (thing.ObjectTypeId == FloorGold.FloorGoldObjectId && !thing.InHand && thing.CarriedByCreatureId < 0
                 && position.TryGetValue(thing.TileIndex, out int at))

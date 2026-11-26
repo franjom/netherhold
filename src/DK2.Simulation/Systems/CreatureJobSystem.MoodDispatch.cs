@@ -78,7 +78,7 @@ public sealed partial class CreatureJobSystem
         int roll = CreatureAngerRules.RollPercent(context.Rng);
         for (int i = 0; i < _ranges.Count; i++)
         {
-            var (job, low, high) = _ranges[i];
+            (JobType job, int low, int high) = _ranges[i];
             if (job != JobType.None && low <= roll && roll <= high && TryStart(job)) return Accepted();
         }
         for (int i = 0; i < _ranges.Count; i++)

@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation.Combat;
 
 namespace DK2.Simulation;
@@ -34,7 +35,7 @@ internal static class PossessedMeleeRules
         if (!creature.PossessedMelee.Active || !context.PossessedMeleePolledThisTick.Add(creature)) return;
         if (!creature.ActionHandlerDone)
         {
-            var definition = context.Database.CreatureById(creature.CreatureTypeId);
+            CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
             if (creature.SwingInProgress && CombatRules.BlowLands(creature, definition, context.Tick.Value))
                 FightRules.LandBlow(context, creature, definition);
             creature.ActionHandlerDone = !creature.SwingInProgress;

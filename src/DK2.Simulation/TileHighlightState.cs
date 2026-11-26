@@ -32,7 +32,7 @@ public sealed partial class TileHighlightState
             TileHighlightSlot slot = _slots[i];
             if (durationTicks == 0 ? slot.ActionPoint != actionPoint
                 : slot.ActionPoint != ActionPointId.None && slot.ActionPoint != actionPoint) continue;
-            var point = durationTicks != 0 ? world.ActionPoints.FirstOrDefault(p => p.Id == actionPoint.Value) : null;
+            ActionPointState? point = durationTicks != 0 ? world.ActionPoints.FirstOrDefault(p => p.Id == actionPoint.Value) : null;
             _slots[i] = new(durationTicks == 0 ? ActionPointId.None : actionPoint, durationTicks,
                 point is null ? slot.Min : new TilePos(point.StartX, point.StartY),
                 point is null ? slot.Max : new TilePos(point.EndX, point.EndY));

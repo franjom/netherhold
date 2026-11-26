@@ -169,27 +169,27 @@ public static class KeeperViewSnapshot
             RoomDef definition = database.RoomById(r.ReadByte());
             PlayerId owner = r.ReadByte();
             int minX = r.ReadInt32(), minY = r.ReadInt32(), maxX = r.ReadInt32(), maxY = r.ReadInt32();
-            var indices = new int[ReadCount(r, 4)];
+            int[] indices = new int[ReadCount(r, 4)];
             for (int j = 0; j < indices.Length; j++)
             {
                 indices[j] = r.ReadInt32();
                 if ((uint)indices[j] >= tiles.Length)
                     throw new InvalidDataException("Room tile is outside the observation.");
             }
-            var slots = new int[ReadCount(r, 4)];
+            int[] slots = new int[ReadCount(r, 4)];
             for (int j = 0; j < slots.Length; j++)
             {
                 slots[j] = r.ReadInt32();
                 if (Array.IndexOf(indices, slots[j]) < 0)
                     throw new InvalidDataException("Floor slot is not a tile of its room.");
             }
-            var chain = new int[indices.Length];
+            int[] chain = new int[indices.Length];
             for (int j = 0; j < chain.Length; j++) chain[j] = r.ReadInt32();
             if (!new HashSet<int>(chain).SetEquals(indices) || chain.Distinct().Count() != chain.Length)
                 throw new InvalidDataException("A room's chain order is not its tiles.");
             int objectListHead = r.ReadInt32();
             bool ruined = r.ReadBoolean();
-            var walls = new int[ReadCount(r, 4)];
+            int[] walls = new int[ReadCount(r, 4)];
             for (int j = 0; j < walls.Length; j++)
             {
                 walls[j] = r.ReadInt32();
@@ -205,18 +205,18 @@ public static class KeeperViewSnapshot
                 (PlayerMessageKind)r.ReadUInt32(), r.ReadInt32(), r.ReadInt32(),
                 r.ReadUInt32(), r.ReadUInt32(), r.ReadBoolean(), r.ReadBoolean());
         var callToArms = new CallToArmsState(r.ReadBoolean(), r.ReadInt32(), r.ReadUInt16(), r.ReadUInt16(), r.ReadUInt32());
-        var statuses = new byte[8];
+        byte[] statuses = new byte[8];
         for (int i = 0; i < statuses.Length; i++) statuses[i] = r.ReadByte();
-        var heartRuined = new bool[8];
+        bool[] heartRuined = new bool[8];
         for (int i = 0; i < heartRuined.Length; i++) heartRuined[i] = r.ReadBoolean();
-        var refused = new int[ReadCount(r, 4)];
+        int[] refused = new int[ReadCount(r, 4)];
         for (int i = 0; i < refused.Length; i++)
         {
             refused[i] = r.ReadInt32();
             if ((uint)refused[i] >= tiles.Length)
                 throw new InvalidDataException("Refused tile is outside the observation.");
         }
-        var sightRefused = new int[ReadCount(r, 4)];
+        int[] sightRefused = new int[ReadCount(r, 4)];
         for (int i = 0; i < sightRefused.Length; i++)
         {
             sightRefused[i] = r.ReadInt32();

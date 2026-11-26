@@ -317,7 +317,7 @@ public sealed class GameSimulation
     /// </summary>
     public ulong StateHash()
     {
-        Hash64 hash = Hash64.Start();
+        var hash = Hash64.Start();
         hash.Add(HashVersion);
         World.HashInto(ref hash);
         _context.Navigation.HashInto(ref hash);

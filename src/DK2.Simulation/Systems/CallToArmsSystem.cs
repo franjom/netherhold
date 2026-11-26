@@ -152,7 +152,7 @@ public sealed class CallToArmsSystem : ISimulationSystem
 
     private static bool AnimationEnded(SimulationContext context, ObjectState flag, int slot)
     {
-        var timing = context.Database.ObjectById(flag.ObjectTypeId)?.ArtSlot(slot) ?? default;
+        CreatureAnimationTiming timing = context.Database.ObjectById(flag.ObjectTypeId)?.ArtSlot(slot) ?? default;
         return timing.ResourceType != 6 || context.Tick.Value - flag.AnimationStartedTick
             >= AnimationTimingRules.FirstCycleHoldTicks(timing);
     }

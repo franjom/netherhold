@@ -888,7 +888,7 @@ public sealed class CampaignPlayer : IPlayerController
                     PlayerTileFlags hazard = grid[first].Flags & (PlayerTileFlags.Water | PlayerTileFlags.Lava);
                     if (hazard is not (PlayerTileFlags.Water or PlayerTileFlags.Lava) || grid[first].Room != default) continue;
                     int k = 0;
-                    var at = first;
+                    TilePos at = first;
                     while (grid.Contains(at) && (grid[at].Flags & PlayerTileFlags.Known) != 0 && (grid[at].Flags & hazard) != 0
                            && grid[at].Room == default && k <= MaxBridgeTiles)
                     {

@@ -29,7 +29,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
     private static void Queue(SimulationContext context, BuildRoomCommand command)
     {
         WorldState world = context.World;
-        if (!world.HasPlayer(command.PlayerId) || !context.Database.Rooms.TryGetValue(command.RoomId, out var room))
+        if (!world.HasPlayer(command.PlayerId) || !context.Database.Rooms.TryGetValue(command.RoomId, out RoomDef? room))
             return;
         HashSet<TilePos>? spans = BridgeRules.IsBridge(room)
             ? RoomRules.SpannableTiles(context.Database, world, command.Tiles, room, command.PlayerId) : null;

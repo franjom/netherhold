@@ -124,7 +124,7 @@ public sealed partial class WorldState
     {
         if (source.RepairTaskEntries.Count == 0 && RepairTaskEntries.Count == 0) return;
         RepairTaskEntries.Clear();
-        foreach (var pair in source.RepairTaskEntries)
+        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), RepairTaskEntry> pair in source.RepairTaskEntries)
         {
             var entry = new RepairTaskEntry();
             Array.Copy(pair.Value.Holders, entry.Holders, entry.Holders.Length);
@@ -134,7 +134,7 @@ public sealed partial class WorldState
 
     private void CopySecretDoorEntries(WorldState source)
     {
-        foreach (var pair in source.SecretDoorEntries)
+        foreach (KeyValuePair<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> pair in source.SecretDoorEntries)
         {
             if (!SecretDoorEntries.TryGetValue(pair.Key, out SecretDoorTaskEntry? entry) || entry.Order != pair.Value.Order)
                 SecretDoorEntries[pair.Key] = entry = new SecretDoorTaskEntry { Order = pair.Value.Order };
@@ -142,9 +142,9 @@ public sealed partial class WorldState
         }
         if (SecretDoorEntries.Count == source.SecretDoorEntries.Count) return;
         _staleSecretDoorKeys ??= [];
-        foreach (var key in SecretDoorEntries.Keys)
+        foreach ((PlayerId Player, TilePos Tile) key in SecretDoorEntries.Keys)
             if (!source.SecretDoorEntries.ContainsKey(key)) _staleSecretDoorKeys.Add(key);
-        foreach (var key in _staleSecretDoorKeys) SecretDoorEntries.Remove(key);
+        foreach ((PlayerId Player, TilePos Tile) key in _staleSecretDoorKeys) SecretDoorEntries.Remove(key);
         _staleSecretDoorKeys.Clear();
     }
 

@@ -322,7 +322,7 @@ public static class HatcheryRules
     /// (<c>0x004E39C0</c>) for a Hatchery: every coop the room placed on <paramref name="tiles"/> goes.</summary>
     internal static void RemoveAutoPlacedCoops(WorldState world, IEnumerable<int> tiles)
     {
-        var set = tiles as ISet<int> ?? new HashSet<int>(tiles);
+        ISet<int> set = tiles as ISet<int> ?? new HashSet<int>(tiles);
         for (int i = world.Objects.Count - 1; i >= 0; i--)
         {
             ObjectState thing = world.Objects[i];

@@ -36,7 +36,7 @@ public sealed partial class NavMesh
     private void InsertRectangles(INavByteGrid grid, int x0, int y0, int x1, int y1, bool skipFloor)
     {
         int w = grid.Width;
-        var covered = new bool[w * grid.Height];
+        bool[] covered = new bool[w * grid.Height];
 
         for (int ry = y0; ry < y1; ry++)
         {
