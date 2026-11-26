@@ -43,9 +43,9 @@ internal static class StatusCommand
         // --- ADRs. Distinct ids, because some are recorded as sub-headings and
         // counting headings double-counts amendments.
         string decisions = Read("docs/DECISIONS.md");
-        int[] adrIds = Regex.Matches(decisions, @"^#{2,3} ADR-(\d{4})", RegexOptions.Multiline)
+        int[] adrIds = [.. Regex.Matches(decisions, @"^#{2,3} ADR-(\d{4})", RegexOptions.Multiline)
             .Select(m => int.Parse(m.Groups[1].Value))
-            .Distinct().OrderBy(n => n).ToArray();
+            .Distinct().OrderBy(n => n)];
 
         // --- research docs
         string researchDir = Path.Combine(root, "docs", "research");

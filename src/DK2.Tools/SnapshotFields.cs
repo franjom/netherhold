@@ -70,7 +70,7 @@ internal static class SnapshotFields
                 }
                 if (item is IEnumerable sequence)
                 {
-                    object?[] entries = sequence.Cast<object?>().ToArray();
+                    object?[] entries = [.. sequence.Cast<object?>()];
                     Put(name + ".$count", entries.Length.ToString(CultureInfo.InvariantCulture));
                     bool set = type.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ISet<>));
                     for (int i = 0; i < entries.Length; i++)

@@ -58,17 +58,17 @@ public static class VerificationLedger
                 string[] adrs = Distinct(Adr.Matches(commentScope + "\n" + researchText));
                 string[] addresses = Distinct(Address.Matches(commentScope));
                 string shortName = symbol.Split('.').Last();
-                string[] testFiles = tests.Where(pair => Regex.IsMatch(pair.Value,
+                string[] testFiles = [.. tests.Where(pair => Regex.IsMatch(pair.Value,
                         @"\b" + Regex.Escape(shortName) + @"\b"))
                     .Select(pair => Path.GetRelativePath(root, pair.Key).Replace('\\', '/'))
-                    .OrderBy(path => path, StringComparer.Ordinal).ToArray();
+                    .OrderBy(path => path, StringComparer.Ordinal)];
 
-                string[] row = new[]
-                {
+                string[] row =
+                [
                     id, relative, symbol, confidence, research,
                     string.Join(";", adrs), string.Join(";", testFiles), string.Join(";", addresses),
                     "", "", "", "", ""
-                };
+                ];
                 if (previous.TryGetValue(id, out List<string>? old))
                 {
                     for (int i = 8; i < row.Length; i++)
@@ -81,7 +81,7 @@ public static class VerificationLedger
             }
         }
 
-        string[] removed = previous.Keys.Except(seen).ToArray();
+        string[] removed = [.. previous.Keys.Except(seen)];
         if (removed.Any(id => previous[id].Skip(8).Any(value => value.Length != 0)))
         {
             Console.Error.WriteLine("Checked ledger rows no longer match source attributes:");
@@ -192,8 +192,8 @@ public static class VerificationLedger
         return source.Length - 1;
     }
 
-    private static string[] Distinct(MatchCollection matches) => matches.Select(match => match.Value)
-        .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToArray();
+    private static string[] Distinct(MatchCollection matches) => [.. matches.Select(match => match.Value)
+        .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value, StringComparer.OrdinalIgnoreCase)];
 
     private static string EscapeCsv(string value) => value.Contains('"') || value.Contains(',') || value.Contains('\n')
         ? "\"" + value.Replace("\"", "\"\"") + "\"" : value;

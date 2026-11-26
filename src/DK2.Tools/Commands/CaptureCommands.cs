@@ -119,7 +119,7 @@ internal static class CaptureCommands
                 throw new InvalidDataException($"'{path}' does not have the live trigger-probe header.");
             }
 
-            return lines.Skip(1).Where(l => l.Length != 0).Select(l => l.Split(',')).ToArray();
+            return [.. lines.Skip(1).Where(l => l.Length != 0).Select(l => l.Split(','))];
         }
 
         try
@@ -152,7 +152,7 @@ internal static class CaptureCommands
 
             Dictionary<int, string[]> left = Index(ReadRows(leftPath), leftPath);
             Dictionary<int, string[]> right = Index(ReadRows(rightPath), rightPath);
-            int[] turns = left.Keys.Intersect(right.Keys).OrderBy(t => t).ToArray();
+            int[] turns = [.. left.Keys.Intersect(right.Keys).OrderBy(t => t)];
             if (turns.Length == 0)
             {
                 Console.Error.WriteLine("the two files share no turn number; nothing to compare.");

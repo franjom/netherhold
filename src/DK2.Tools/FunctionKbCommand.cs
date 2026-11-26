@@ -170,7 +170,7 @@ static class FunctionKbCommand
     }
 
     internal static List<FunctionRecord> Load(Source source, List<string> errors)
-        => source.RecordPaths().Select(p => FunctionKb.Parse(p, source.Lines(p), errors)).ToList();
+        => [.. source.RecordPaths().Select(p => FunctionKb.Parse(p, source.Lines(p), errors))];
 
     static int Check(string root, string[] args)
     {

@@ -30,7 +30,7 @@ internal partial class Program
             ["verification-ledger"] = args => VerificationLedger.Run(args[1..], Repo.FindRepoRoot()),
             ["where"] = AssetCommands.RunWhere,
             ["status"] = StatusCommand.Run,
-            ["kb"] = args => args.Length >= 2 ? FunctionKbCommand.Run(args.Skip(1).ToArray()) : Usage(),
+            ["kb"] = args => args.Length >= 2 ? FunctionKbCommand.Run([.. args.Skip(1)]) : Usage(),
             ["docs"] = DocsCommand.Run,
             ["wiki"] = WikiCommand.Run,
             ["simmatrix"] = SimMatrixCommand.Run,

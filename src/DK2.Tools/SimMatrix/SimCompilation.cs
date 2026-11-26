@@ -48,14 +48,13 @@ internal sealed class SimCompilation
     internal static SimCompilation Load(string root)
     {
         var options = new CSharpParseOptions(LanguageVersion.Preview, DocumentationMode.None);
-        (string project, string path)[] files = Projects
+        (string project, string path)[] files = [.. Projects
             .SelectMany(project => Directory.EnumerateFiles(Path.Combine(root, project), "*.cs", SearchOption.AllDirectories)
                 .Where(path => !IsBuildOutput(Path.GetRelativePath(root, path)))
                 .Select(path => (project, path)))
             // By the relative path with forward slashes: the tree order decides partial members' order, and with
             // it which column reaches a type first, so it must not differ between Windows and Linux.
-            .OrderBy(f => Path.GetRelativePath(root, f.path).Replace(Path.DirectorySeparatorChar, '/'), StringComparer.Ordinal)
-            .ToArray();
+            .OrderBy(f => Path.GetRelativePath(root, f.path).Replace(Path.DirectorySeparatorChar, '/'), StringComparer.Ordinal)];
         var trees = new SyntaxTree[files.Length];
         Parallel.For(0, files.Length, i =>
             trees[i] = CSharpSyntaxTree.ParseText(File.ReadAllText(files[i].path), options, files[i].path));
@@ -71,7 +70,7 @@ internal sealed class SimCompilation
     internal static SimCompilation FromText(params string[] sources)
     {
         var options = new CSharpParseOptions(LanguageVersion.Preview, DocumentationMode.None);
-        SyntaxTree[] trees = sources.Select((text, i) => CSharpSyntaxTree.ParseText(text, options, $"Source{i}.cs")).ToArray();
+        SyntaxTree[] trees = [.. sources.Select((text, i) => CSharpSyntaxTree.ParseText(text, options, $"Source{i}.cs"))];
         return Create(trees, new HashSet<SyntaxTree>(), trees.Length);
     }
 
@@ -93,9 +92,7 @@ internal sealed class SimCompilation
                 allowUnsafe: true,
                 concurrentBuild: true));
 
-        Diagnostic[] errors = compilation.GetDiagnostics()
-            .Where(d => d.Severity == DiagnosticSeverity.Error)
-            .ToArray();
+        Diagnostic[] errors = [.. compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error)];
         if (errors.Length > 0)
         {
             throw new InvalidDataException(

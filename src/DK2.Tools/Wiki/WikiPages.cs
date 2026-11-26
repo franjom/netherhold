@@ -67,8 +67,8 @@ public static partial class WikiPages
             string[] cells = line.Split('|');
             string question = cells.Length > 2 ? cells[2].Trim() : "";
             Match state = StateRx().Match(cells.Length > 3 ? cells[3] : "");
-            string[] cited = NoteRx().Matches(line).Select(n => n.Groups[1].Value).Where(noteNames.Contains)
-                .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+            string[] cited = [.. NoteRx().Matches(line).Select(n => n.Groups[1].Value).Where(noteNames.Contains)
+                .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
             rows.Add(new QuestionRow(m.Groups[1].Value, question,
                 state.Success ? state.Groups[1].Value : "", cited));
         }
@@ -175,7 +175,7 @@ public static partial class WikiPages
             Table(rest);
         }
 
-        int[] gaps = AdrIndex.Gaps(inputs.Adrs).ToArray();
+        int[] gaps = [.. AdrIndex.Gaps(inputs.Adrs)];
         sb.Append("## Numbers not used\n\n");
         sb.Append(gaps.Length == 0 ? "None." : string.Join(", ", gaps.Select(g => g.ToString("D4", CultureInfo.InvariantCulture))) + ".");
         sb.Append(" These numbers were never given to an ADR.\n");
@@ -223,7 +223,7 @@ public static partial class WikiPages
     public static string OpenQuestions(WikiInputs inputs)
     {
         Dictionary<string, IReadOnlyList<string>> noteSystems = NoteSystems(inputs);
-        QuestionRow[] open = inputs.Questions.Where(q => q.IsOpen).ToArray();
+        QuestionRow[] open = [.. inputs.Questions.Where(q => q.IsOpen)];
         Dictionary<string, List<QuestionRow>> groups = Group(open, q => q.CitedNotes.SelectMany(n => noteSystems.TryGetValue(n, out IReadOnlyList<string>? s) ? s : [])
             .Distinct(StringComparer.Ordinal));
         string file = $"{ResearchNotes.Folder}/{ResearchNotes.OpenQuestions}.md";
@@ -264,7 +264,7 @@ public static partial class WikiPages
         return sb.ToString().TrimEnd('\n') + "\n";
     }
 
-    static int QuestionNumber(string id) => int.Parse(new string(id.Skip(1).TakeWhile(char.IsAsciiDigit).ToArray()), CultureInfo.InvariantCulture);
+    static int QuestionNumber(string id) => int.Parse(new string((char[])[.. id.Skip(1).TakeWhile(char.IsAsciiDigit)]), CultureInfo.InvariantCulture);
 
     /// <summary>A record's systems: those of the notes its evidence links point into.</summary>
     static IEnumerable<string> RecordSystems(FunctionRecord r, IReadOnlyDictionary<string, IReadOnlyList<string>> noteSystems)

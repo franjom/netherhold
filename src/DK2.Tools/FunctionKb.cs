@@ -330,7 +330,7 @@ public static partial class FunctionKb
             yield break;
         }
 
-        string[] dates = days.Distinct().Order().Select(d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).ToArray();
+        string[] dates = [.. days.Distinct().Order().Select(d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))];
         if (now.History.Any(h => dates.Contains(h.Date)))
         {
             yield break;

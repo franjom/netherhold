@@ -113,7 +113,7 @@ public sealed class LegalActionFuzzer
             case Action.Build:
                 return BuildRoom(view);
             case Action.Sell:
-                KeeperRoomView[] rooms = view.OwnRooms.Where(r => r.Definition.IsBuildable).ToArray();
+                KeeperRoomView[] rooms = [.. view.OwnRooms.Where(r => r.Definition.IsBuildable)];
                 if (rooms.Length == 0)
                 {
                     return null;
@@ -177,9 +177,9 @@ public sealed class LegalActionFuzzer
     /// the view says can take it.</summary>
     private PlayerCommand? BuildRoom(KeeperView view)
     {
-        RoomDef[] rooms = view.Database.Rooms.Values
+        RoomDef[] rooms = [.. view.Database.Rooms.Values
             .Where(r => r.IsBuildable && Selectable(view, AvailabilityKind.Room, r.RoomId))
-            .OrderBy(r => r.RoomId).ToArray();
+            .OrderBy(r => r.RoomId)];
         if (Pick(rooms) is not RoomDef room)
         {
             return null;
@@ -214,10 +214,10 @@ public sealed class LegalActionFuzzer
     /// the centre of a tile. Create Imp and the Reaper have their own tools.</summary>
     private PlayerCommand? Cast(KeeperView view)
     {
-        KeeperSpellDef[] spells = view.Database.KeeperSpells.Values
+        KeeperSpellDef[] spells = [.. view.Database.KeeperSpells.Values
             .Where(s => s.KeeperSpellId is not (CreateImpSpell or HornedReaperSpell or OneShotReaperSpell)
                 && Selectable(view, AvailabilityKind.Spell, s.KeeperSpellId) && s.ManaCost <= view.Mana)
-            .OrderBy(s => s.KeeperSpellId).ToArray();
+            .OrderBy(s => s.KeeperSpellId)];
         if (Pick(spells) is not KeeperSpellDef spell)
         {
             return null;
@@ -252,7 +252,7 @@ public sealed class LegalActionFuzzer
                 tiles.Add(p);
             }
         }
-        return tiles.ToArray();
+        return [.. tiles];
     }
 
     private T? Pick<T>(T[] items) where T : struct => items.Length == 0 ? null : items[_rng.NextInt(items.Length)];

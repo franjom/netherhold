@@ -49,7 +49,7 @@ internal static class ReplayCommands
             database, map, players.Select(p => p.PlayerId).ToArray());
         // The parties come from THINGS, not TRIGGERS, and without them twenty-four of the
         // world's twenty-five roots are empty and most of a level's script never runs.
-        HeroPartyThing[] parties = things.OfType<HeroPartyThing>().ToArray();
+        HeroPartyThing[] parties = [.. things.OfType<HeroPartyThing>()];
         // And the action points, which carry a root each and the rectangle every area
         // condition measures over. A world with none of them walks no area tree.
         ThingProjection.Place(world, database, things, players.ToDictionary(p => p.PlayerId, p => p.StartingGold));

@@ -199,7 +199,7 @@ internal sealed class ScenarioInputBuilder
     }
 
     private static List<TilePos> ToTiles(List<List<int>> pairs) =>
-        pairs.Where(p => p.Count == 2).Select(p => new TilePos(p[0], p[1])).ToList();
+        [.. pairs.Where(p => p.Count == 2).Select(p => new TilePos(p[0], p[1]))];
 
     /// <summary>Validates the scenario's work entries, dropping and reporting bad ones.</summary>
     public static List<ScenarioWork> ResolveWork(

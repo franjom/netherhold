@@ -129,7 +129,7 @@ static class Repo
             text = text[..^1];
         }
 
-        return text.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
+        return [.. text.Split('\n').Select(l => l.TrimEnd('\r'))];
     }
 
     /// <summary>The author and commit days of the commits in <c>baseRef..HEAD</c> that touch this path,

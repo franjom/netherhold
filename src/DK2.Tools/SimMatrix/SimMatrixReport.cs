@@ -74,8 +74,8 @@ internal static class SimMatrixReport
         sb.Append("The rows that write each column, in tick order; those after \"through a hub\" write it only there.\n\n");
         for (int i = 0; i < StateModel.Columns.Length; i++)
         {
-            SimRow[] core = result.Rows.Where(r => r.Core.Cells[i] == "W").Select(r => r.Row).ToArray();
-            SimRow[] hub = result.Rows.Where(r => r.Core.Cells[i] != "W" && r.Full.Cells[i] == "W").Select(r => r.Row).ToArray();
+            SimRow[] core = [.. result.Rows.Where(r => r.Core.Cells[i] == "W").Select(r => r.Row)];
+            SimRow[] hub = [.. result.Rows.Where(r => r.Core.Cells[i] != "W" && r.Full.Cells[i] == "W").Select(r => r.Row)];
             sb.Append("- **").Append(StateModel.Columns[i]).Append(c, $"** ({core.Length}");
             if (hub.Length > 0)
             {

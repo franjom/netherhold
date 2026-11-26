@@ -314,9 +314,9 @@ public sealed class SgmapDatabase
 
     public SgmapStruct? FindStruct(string name, TextWriter error)
     {
-        SgmapStruct[] matches = Structs.Where(s =>
+        SgmapStruct[] matches = [.. Structs.Where(s =>
             string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(s.Id, name, StringComparison.Ordinal)).ToArray();
+            || string.Equals(s.Id, name, StringComparison.Ordinal))];
         if (matches.Length == 1)
         {
             return matches[0];

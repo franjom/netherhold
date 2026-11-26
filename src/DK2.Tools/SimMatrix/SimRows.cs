@@ -214,11 +214,10 @@ internal static class SimRows
         {
             foreach (SyntaxNode? syntax in property.DeclaringSyntaxReferences.Select(r => r.GetSyntax()))
             {
-                INamedTypeSymbol[] created = syntax.DescendantNodes().OfType<BaseObjectCreationExpressionSyntax>()
+                INamedTypeSymbol[] created = [.. syntax.DescendantNodes().OfType<BaseObjectCreationExpressionSyntax>()
                     .Select(n => Model(n).GetTypeInfo(n).Type).OfType<INamedTypeSymbol>()
                     .Where(t => compilation.HasImplicitConversion(t, property.Type))
-                    .Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default)
-                    .ToArray();
+                    .Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default)];
                 if (created.Length == 1)
                 {
                     return created[0];

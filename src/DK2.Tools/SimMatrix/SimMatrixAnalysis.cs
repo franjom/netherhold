@@ -59,8 +59,7 @@ internal static class SimMatrixAnalysis
         IReadOnlyList<SimRow> rows = SimRows.Read(source);
         var model = new StateModel(index);
 
-        INamedTypeSymbol[] entryFaces = new[] { SimRows.SystemInterface, SimRows.CreatureStepInterface, SimRows.RoomStepInterface }
-            .Select(n => SimRows.Type(compilation, n)).ToArray();
+        INamedTypeSymbol[] entryFaces = [.. new[] { SimRows.SystemInterface, SimRows.CreatureStepInterface, SimRows.RoomStepInterface }.Select(n => SimRows.Type(compilation, n))];
         INamedTypeSymbol sink = SimRows.Type(compilation, EventSinkType);
         IMethodSymbol sinkKey = sink.GetMembers().OfType<IMethodSymbol>().First();
         INamedTypeSymbol triggers = SimRows.Type(compilation, TriggerExecutorType);
@@ -151,7 +150,7 @@ internal static class SimMatrixAnalysis
                 delegates += s.DelegateCalls;
             }
             // Commands are input: what a system "writes" there is the command index's per-tick memo.
-            ISymbol[] memo = writes.Where(k => Place(k) == (FieldPlace.Column, StateModel.CommandsIn)).ToArray();
+            ISymbol[] memo = [.. writes.Where(k => Place(k) == (FieldPlace.Column, StateModel.CommandsIn))];
             writes.ExceptWith(memo);
             reads.UnionWith(memo);
             string[] cells = new string[StateModel.Columns.Length];
@@ -187,14 +186,14 @@ internal static class SimMatrixAnalysis
             : $"{SimRows.Display(key.ContainingType)}.{key.Name}";
         IReadOnlyList<string> Names(IEnumerable<ISymbol> keys) => keys.Select(Name).Distinct().Order(StringComparer.Ordinal).ToArray();
 
-        RowResult[] results = rows.Select((row, i) => new RowResult(row, View(core[i]), View(full[i]))).ToArray();
+        RowResult[] results = [.. rows.Select((row, i) => new RowResult(row, View(core[i]), View(full[i])))];
 
-        HubResult[] hubResults = hubs.Select(h =>
+        HubResult[] hubResults = [.. hubs.Select(h =>
         {
-            IMethodSymbol[] reached = allMethods.Where(h.Contains).ToArray();
+            IMethodSymbol[] reached = [.. allMethods.Where(h.Contains)];
             int methods = Reach(reached, _ => false).Count;
             return new HubResult(h.Name, results.Where(r => r.Full.Hubs.Contains(h.Name)).Select(r => r.Row.Number).ToArray(), methods);
-        }).ToArray();
+        })];
 
         var writers = new Dictionary<string, SortedSet<int>>(StringComparer.Ordinal);
         var columnOf = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -222,11 +221,10 @@ internal static class SimMatrixAnalysis
             }
             }
         }
-        WrittenField[] Listed(bool systemOwned) => writers
+        WrittenField[] Listed(bool systemOwned) => [.. writers
             .Where(p => (columnOf[p.Key] == "") == systemOwned)
             .OrderBy(p => p.Key, StringComparer.Ordinal)
-            .Select(p => new WrittenField(p.Key, columnOf[p.Key], p.Value.ToArray()))
-            .ToArray();
+            .Select(p => new WrittenField(p.Key, columnOf[p.Key], p.Value.ToArray()))];
 
         return new SimMatrixResult(
             source.Files,
@@ -264,8 +262,7 @@ internal static class SimMatrixAnalysis
     {
         (HashSet<string> Writes, HashSet<string> Touched) Data(RowResult row, bool core)
         {
-            RowView[] members = rows.Where(r => r.Row.Number == row.Row.Number || r.Row.Parent == row.Row.Number)
-                .Select(r => core ? r.Core : r.Full).ToArray();
+            RowView[] members = [.. rows.Where(r => r.Row.Number == row.Row.Number || r.Row.Parent == row.Row.Number).Select(r => core ? r.Core : r.Full)];
             var writes = members.SelectMany(v => v.Writes).Where(n => n != "events").ToHashSet(StringComparer.Ordinal);
             var touched = members.SelectMany(v => v.Writes.Concat(v.Reads)).Where(n => n != "events").ToHashSet(StringComparer.Ordinal);
             return (writes, touched);
@@ -280,7 +277,7 @@ internal static class SimMatrixAnalysis
         var pairs = new List<FreePair>();
         foreach (IGrouping<int, RowResult> group in rows.GroupBy(r => r.Row.Parent))
         {
-            RowResult[] siblings = group.ToArray();
+            RowResult[] siblings = [.. group];
             for (int i = 1; i < siblings.Length; i++)
             {
                 bool core = Free(siblings[i - 1], siblings[i], core: true);

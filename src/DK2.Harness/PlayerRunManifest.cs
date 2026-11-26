@@ -178,7 +178,7 @@ public static class PlayerRunManifest
             }
 
             string src = Path.Combine(dir.FullName, "src");
-            List<string> files = Directory.Exists(src) ? Files(src, ".cs", ".csproj", ".props").Select(f => "src/" + f).ToList() : [];
+            List<string> files = Directory.Exists(src) ? [.. Files(src, ".cs", ".csproj", ".props").Select(f => "src/" + f)] : [];
             foreach (string root in new[] { "DK2.slnx", "Directory.Build.props", "global.json" })
             {
                 if (File.Exists(Path.Combine(dir.FullName, root)))

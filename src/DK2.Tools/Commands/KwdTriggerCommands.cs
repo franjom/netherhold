@@ -771,7 +771,7 @@ internal static partial class KwdCommands
 
         // A party subtree starts disabled and only a type 14 that actually ran arms it,
         // so those roots join the walk as they are reached rather than at the start.
-        HeroPartyThing[] parties = things.OfType<HeroPartyThing>().ToArray();
+        HeroPartyThing[] parties = [.. things.OfType<HeroPartyThing>()];
         int before;
         do
         {

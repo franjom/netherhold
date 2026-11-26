@@ -134,10 +134,9 @@ internal static class CoverageCommand
                 }
             }
 
-            string[] missing = named.Distinct(StringComparer.Ordinal)
+            string[] missing = [.. named.Distinct(StringComparer.Ordinal)
                 .Where(c => !c.Split('/', '\\', '.').Any(declared.Contains))
-                .OrderBy(t => t, StringComparer.Ordinal)
-                .ToArray();
+                .OrderBy(t => t, StringComparer.Ordinal)];
 
             if (named.Count == 0)
             {
