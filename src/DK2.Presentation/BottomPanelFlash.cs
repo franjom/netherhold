@@ -31,7 +31,11 @@ public static class BottomPanelFlash
     /// <paramref name="open"/> holds every panel showing (two with a pinned tab), none while collapsed.</summary>
     public static BottomPanelFlashState Resolve(HudFlashTarget? target, BottomPanelOpenSet open, long realMilliseconds)
     {
-        if (target is not HudFlashTarget flash) return BottomPanelFlashState.None;
+        if (target is not HudFlashTarget flash)
+        {
+            return BottomPanelFlashState.None;
+        }
+
         bool dark = ((realMilliseconds / 500) & 1) != 0;
         switch (flash.Category)
         {
@@ -117,7 +121,11 @@ public sealed class BottomPanelSparkles
     {
         for (int i = 0; i < Count; i++)
         {
-            if (++_frame[i] < Frames) continue;
+            if (++_frame[i] < Frames)
+            {
+                continue;
+            }
+
             _frame[i] = 0;
             _x[i] = (byte)_random.NextInt(0xB7F);
             _y[i] = (byte)_random.NextInt(0xB23);

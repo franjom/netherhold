@@ -13,7 +13,11 @@ public readonly record struct MinimapColourClass
 
     public MinimapColourClass(ushort index)
     {
-        if (index >= Count) throw new ArgumentOutOfRangeException(nameof(index));
+        if (index >= Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
         Index = index;
     }
 
@@ -31,10 +35,21 @@ public sealed class MinimapPalette
     public MinimapPalette(ReadOnlySpan<uint> sourceArgbPixels)
     {
         if (sourceArgbPixels.Length < 37)
+        {
             throw new ArgumentException("The minimap palette needs 37 source pixels.", nameof(sourceArgbPixels));
-        for (int i = 0; i < _colours.Length; i++) _colours[i] = 0xFFFFFFFF;
+        }
+
+        for (int i = 0; i < _colours.Length; i++)
+        {
+            _colours[i] = 0xFFFFFFFF;
+        }
+
         _colours[0] = sourceArgbPixels[0] | 0xFF000000;
-        for (int i = 1; i <= 15; i++) _colours[i + 1] = sourceArgbPixels[i] | 0xFF000000;
+        for (int i = 1; i <= 15; i++)
+        {
+            _colours[i + 1] = sourceArgbPixels[i] | 0xFF000000;
+        }
+
         for (int i = 0; i < 7; i++)
         {
             _colours[18 + i] = sourceArgbPixels[16 + i] | 0xFF000000;
@@ -47,10 +62,17 @@ public sealed class MinimapPalette
     /// <see cref="IMinimapAssets.PalettePng"/>): its top row's first 37 pixels, given as RGBA bytes; alpha is ignored.</summary>
     public static MinimapPalette FromTopRow(ReadOnlySpan<byte> rgbaTopRow)
     {
-        if (rgbaTopRow.Length < 37 * 4) throw new InvalidOperationException("Native minimap palette is too short.");
+        if (rgbaTopRow.Length < 37 * 4)
+        {
+            throw new InvalidOperationException("Native minimap palette is too short.");
+        }
+
         Span<uint> pixels = stackalloc uint[37];
         for (int i = 0; i < pixels.Length; i++)
+        {
             pixels[i] = (uint)(rgbaTopRow[i * 4] << 16 | rgbaTopRow[i * 4 + 1] << 8 | rgbaTopRow[i * 4 + 2]);
+        }
+
         return new MinimapPalette(pixels);
     }
 
@@ -58,8 +80,16 @@ public sealed class MinimapPalette
 
     public bool AdvanceNeutralCycle(GameTick tick, PlayerId neutralPlayer)
     {
-        if (tick.Value < 0) throw new ArgumentOutOfRangeException(nameof(tick));
-        if (neutralPlayer.Value > 7) throw new ArgumentOutOfRangeException(nameof(neutralPlayer));
+        if (tick.Value < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(tick));
+        }
+
+        if (neutralPlayer.Value > 7)
+        {
+            throw new ArgumentOutOfRangeException(nameof(neutralPlayer));
+        }
+
         int phase = (int)(tick.Value % 7);
         bool changed = false;
         // Native copies the current bank, including its neutral slot on a self-copy phase.

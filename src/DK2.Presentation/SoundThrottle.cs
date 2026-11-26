@@ -42,7 +42,11 @@ public sealed class SoundThrottle
     public void Reset(uint nowMs)
     {
         Array.Clear(_counters, 0, Counters);
-        foreach (ushort id in Listed) _counters[id] = 1;
+        foreach (ushort id in Listed)
+        {
+            _counters[id] = 1;
+        }
+
         Load = SoundFrameLoad.Normal;
         _stamp = nowMs;
     }
@@ -56,17 +60,34 @@ public sealed class SoundThrottle
         Load = elapsed <= 300 ? SoundFrameLoad.Normal : elapsed < 500 ? SoundFrameLoad.Slow : SoundFrameLoad.Heavy;
         _stamp = nowMs;
         foreach (ushort id in Listed)
-            if (_counters[id] > 1) _counters[id]--;
+        {
+            if (_counters[id] > 1)
+            {
+                _counters[id]--;
+            }
+        }
     }
 
     /// <summary>The gate of both request slots, <c>0x00567810</c> and <c>0x005678F0</c>, with the mode
     /// on. Speech's request runs with it off (<c>0x00568490</c>), which ours does not model.</summary>
     public bool Admit(SoundId id)
     {
-        if (id.Value >= Counters || Load == SoundFrameLoad.Normal) return true;
+        if (id.Value >= Counters || Load == SoundFrameLoad.Normal)
+        {
+            return true;
+        }
+
         byte counter = _counters[id.Value];
-        if (counter == 0) return true;
-        if (Load == SoundFrameLoad.Heavy || counter > 1) return false;
+        if (counter == 0)
+        {
+            return true;
+        }
+
+        if (Load == SoundFrameLoad.Heavy || counter > 1)
+        {
+            return false;
+        }
+
         _rotation = _rotation + 1 == Gaps.Length ? 0 : _rotation + 1;
         _counters[id.Value] = (byte)(Gaps[_rotation] + 1);
         return true;

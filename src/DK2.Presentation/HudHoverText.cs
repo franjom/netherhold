@@ -51,9 +51,17 @@ public sealed class HudHoverText
     /// <param name="resources">The keeper's resources this frame, for the resource strip's texts.</param>
     public HoverTextSnapshot Capture(IHudHoverSources hud, in KeeperResourceSnapshot resources)
     {
-        if (hud is null) throw new ArgumentNullException(nameof(hud));
+        if (hud is null)
+        {
+            throw new ArgumentNullException(nameof(hud));
+        }
+
         int widget = hud.OverviewTextId();
-        if (widget != 0) return Widget(widget);
+        if (widget != 0)
+        {
+            return Widget(widget);
+        }
+
         if (hud.OverviewColumn() is CreatureOverviewType column)
         {
             if (_portraitType != column)
@@ -63,12 +71,31 @@ public sealed class HudHoverText
             }
             return _portrait;
         }
-        if (hud.OverMessageTabs()) return hud.MessageTabsText();
-        if (hud.OverBattleTab()) return hud.BattleTabText();
-        if (hud.OverBottomPanel()) return hud.BottomPanelText();
-        if (HudWidgetText.ForAction(hud.MinimapControl()) is int corner) return Widget(corner);
+        if (hud.OverMessageTabs())
+        {
+            return hud.MessageTabsText();
+        }
+
+        if (hud.OverBattleTab())
+        {
+            return hud.BattleTabText();
+        }
+
+        if (hud.OverBottomPanel())
+        {
+            return hud.BottomPanelText();
+        }
+
+        if (HudWidgetText.ForAction(hud.MinimapControl()) is int corner)
+        {
+            return Widget(corner);
+        }
+
         KeeperResourceKind kind = hud.Resource();
-        if (kind == KeeperResourceKind.None) return HoverTextSnapshot.Empty;
+        if (kind == KeeperResourceKind.None)
+        {
+            return HoverTextSnapshot.Empty;
+        }
         // Compared without the two fields that move every turn (the tick and the payday gauge counting down to it), so a
         // still pointer over the strip rebuilds the text when a resource changes and not on every tick.
         KeeperResourceSnapshot facts = resources with { Tick = default, Payday = default };

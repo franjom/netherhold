@@ -83,7 +83,10 @@ public sealed class RewardTablet
     internal void ReserveSparkles(int pointCount)
     {
         int capacity = SparkleCapacityFor(pointCount);
-        if (capacity > _sparkles.Length) Array.Resize(ref _sparkles, capacity);
+        if (capacity > _sparkles.Length)
+        {
+            Array.Resize(ref _sparkles, capacity);
+        }
     }
 
     /// <summary>The texture a material of <paramref name="textureCount"/> frames shows for an item: the step
@@ -156,6 +159,7 @@ public sealed class RewardTablet
             {
                 Vector3 at = Project(points[i], turn);
                 for (int k = 0; k < SparklesPerPointPerFrame; k++)
+                {
                     Add(new Sparkle
                     {
                         X = X + at.X, Y = Y + at.Y,
@@ -163,13 +167,18 @@ public sealed class RewardTablet
                         VelocityY = (random.Next(SparkleRandomLimit) - SparkleRandomLimit / 2) / (float)SparkleRandomBucketSize,
                         Life = random.Next(SparkleRandomLimit) / SparkleRandomBucketSize + MinimumSparkleLifeFrames,
                     });
+                }
             }
         }
     }
 
     private void Add(in Sparkle sparkle)
     {
-        if (_sparkleCount == _sparkles.Length) Array.Resize(ref _sparkles, _sparkles.Length * 2);
+        if (_sparkleCount == _sparkles.Length)
+        {
+            Array.Resize(ref _sparkles, _sparkles.Length * 2);
+        }
+
         _sparkles[_sparkleCount++] = sparkle;
     }
 
@@ -186,13 +195,20 @@ public sealed class RewardTablet
         for (int i = 0; i < _sparkleCount; i++)
         {
             Sparkle s = _sparkles[i];
-            if (--s.Life == 0) continue;
+            if (--s.Life == 0)
+            {
+                continue;
+            }
+
             s.X += s.VelocityX;
             s.Y += s.VelocityY;
             _sparkles[kept++] = s;
         }
         _sparkleCount = kept;
-        if (now < _startsAt) return;
+        if (now < _startsAt)
+        {
+            return;
+        }
 
         int frame = Frame;
         Angle = 0;
@@ -203,11 +219,26 @@ public sealed class RewardTablet
             Y += (_targetY - Y) / (GrowFrames - frame);
             Scale += (_endScale - Scale) / (GrowFrames - frame);
         }
-        if (frame == GrowFrames) Scale *= 0.95f;
-        if (frame == GrowFrames + 1) Scale = _endScale;
+        if (frame == GrowFrames)
+        {
+            Scale *= 0.95f;
+        }
+
+        if (frame == GrowFrames + 1)
+        {
+            Scale = _endScale;
+        }
+
         Frame = frame + 1;
-        if (Frame <= GrowFrames + 2 || _sparkleCount != 0) return;
+        if (Frame <= GrowFrames + 2 || _sparkleCount != 0)
+        {
+            return;
+        }
+
         if (!_holdArmed) { _holdArmed = true; _holdEnds = now + _holdMilliseconds; }
-        else if (now >= _holdEnds) Done = true;
+        else if (now >= _holdEnds)
+        {
+            Done = true;
+        }
     }
 }

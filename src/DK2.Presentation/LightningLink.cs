@@ -26,13 +26,26 @@ public sealed class LightningLink(ProceduralArtKind kind)
     public LightningEndpoints? Resolve(FpPosition3 shotPoint, LightningTarget target, LightningCaster casterLink = default)
     {
         if (_kind == ProceduralArtKind.FixedLightning)
+        {
             return new(shotPoint, shotPoint with { Z = new(Fp32.One) }, 1);
-        if (_kind is not (ProceduralArtKind.Lightning or ProceduralArtKind.TripleLightning) || !_linked) return null;
+        }
+
+        if (_kind is not (ProceduralArtKind.Lightning or ProceduralArtKind.TripleLightning) || !_linked)
+        {
+            return null;
+        }
+
         if (!target.Exists || target.IsRoom) { _linked = false; return null; }
         if (!_casterLinkCleared)
         {
-            if (casterLink.Point is FpPosition3 caster) shotPoint = shotPoint with { X = caster.X, Y = caster.Y };
-            else if (casterLink.HasLink) _casterLinkCleared = true;
+            if (casterLink.Point is FpPosition3 caster)
+            {
+                shotPoint = shotPoint with { X = caster.X, Y = caster.Y };
+            }
+            else if (casterLink.HasLink)
+            {
+                _casterLinkCleared = true;
+            }
         }
         return new(shotPoint, target.BasePoint, _kind == ProceduralArtKind.TripleLightning ? 3 : 1);
     }
@@ -51,7 +64,11 @@ public sealed class CreatureLightningVisual
             _lastChooserTick = tick;
             _crackle = false;
         }
-        if (tick.Value < _expiresAt.Value && animationInstalled) _crackle = true;
+        if (tick.Value < _expiresAt.Value && animationInstalled)
+        {
+            _crackle = true;
+        }
+
         return _crackle;
     }
 }

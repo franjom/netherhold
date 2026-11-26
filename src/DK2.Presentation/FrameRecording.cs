@@ -69,7 +69,11 @@ public sealed class FrameRecording
 
     public FrameRecording(int capacity)
     {
-        if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity));
+        if (capacity <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(capacity));
+        }
+
         _values = new double[capacity * MetricCount];
         _moving = new bool[capacity];
     }
@@ -114,12 +118,20 @@ public sealed class FrameRecording
         double sum = 0;
         for (int i = 0; i < Count; i++)
         {
-            if (!InPhase(i, phase)) continue;
+            if (!InPhase(i, phase))
+            {
+                continue;
+            }
+
             double value = Value(i, metric);
             scratch[n++] = value;
             sum += value;
         }
-        if (n == 0) return default;
+        if (n == 0)
+        {
+            return default;
+        }
+
         Array.Sort(scratch, 0, n);
         return new FrameStatistics(n, sum / n, Rank(scratch, n, 50), Rank(scratch, n, 95), Rank(scratch, n, 99), scratch[n - 1]);
     }
@@ -129,7 +141,13 @@ public sealed class FrameRecording
     {
         int slow = 0;
         for (int i = 0; i < Count; i++)
-            if (InPhase(i, phase) && Value(i, FrameMetric.FrameMs) > BudgetMilliseconds) slow++;
+        {
+            if (InPhase(i, phase) && Value(i, FrameMetric.FrameMs) > BudgetMilliseconds)
+            {
+                slow++;
+            }
+        }
+
         return slow;
     }
 
@@ -156,7 +174,11 @@ public sealed class FrameRecording
             text.AppendLine();
             text.Append(FormattableString.Invariant(
                 $"  {PhaseName(phase)}: {frames.Count} frames, {SlowFrames(phase)} over {BudgetMilliseconds:0.00} ms"));
-            if (frames.Count == 0) continue;
+            if (frames.Count == 0)
+            {
+                continue;
+            }
+
             text.AppendLine();
             text.Append("    metric                          mean          p50          p95          p99          max");
             for (int m = 0; m < MetricCount; m++)
@@ -179,16 +201,26 @@ public sealed class FrameRecording
         var json = new StringBuilder();
         json.Append("{\n  \"schema\": \"dk2-godot-perf/1\",\n  \"info\": {");
         for (int i = 0; i < info.Count; i++)
+        {
             json.Append(i == 0 ? "\n    " : ",\n    ").Append(Quote(info[i].Key)).Append(": ").Append(Quote(info[i].Value));
+        }
+
         json.Append("\n  },\n  \"arguments\": [");
-        for (int i = 0; i < arguments.Count; i++) json.Append(i == 0 ? "" : ", ").Append(Quote(arguments[i]));
+        for (int i = 0; i < arguments.Count; i++)
+        {
+            json.Append(i == 0 ? "" : ", ").Append(Quote(arguments[i]));
+        }
+
         json.Append("],\n  \"frames\": {\"warmUp\": ").Append(warmUpFrames.ToString(CultureInfo.InvariantCulture))
             .Append(", \"measured\": ").Append(Count.ToString(CultureInfo.InvariantCulture))
             .Append(", \"dropped\": ").Append(Dropped.ToString(CultureInfo.InvariantCulture))
             .Append(", \"longestSlowRun\": ").Append(LongestSlowRun().ToString(CultureInfo.InvariantCulture))
             .Append(", \"budgetMs\": ").Append(Number(BudgetMilliseconds)).Append("},\n  \"counters\": {");
         for (int i = 0; i < counters.Count; i++)
+        {
             json.Append(i == 0 ? "\n    " : ",\n    ").Append(Quote(counters[i].Key)).Append(": ").Append(Number(counters[i].Value));
+        }
+
         json.Append("\n  },\n  \"phases\": {");
         foreach (FramePhase phase in new[] { FramePhase.All, FramePhase.Still, FramePhase.Moving })
         {
@@ -225,9 +257,18 @@ public sealed class FrameRecording
         StringBuilder quoted = new StringBuilder(text.Length + 2).Append('"');
         foreach (char c in text)
         {
-            if (c == '"' || c == '\\') quoted.Append('\\').Append(c);
-            else if (c < ' ') quoted.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
-            else quoted.Append(c);
+            if (c == '"' || c == '\\')
+            {
+                quoted.Append('\\').Append(c);
+            }
+            else if (c < ' ')
+            {
+                quoted.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
+            }
+            else
+            {
+                quoted.Append(c);
+            }
         }
         return quoted.Append('"').ToString();
     }

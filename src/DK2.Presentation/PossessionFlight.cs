@@ -43,7 +43,10 @@ public sealed class PossessionFlight
         _start = _last = nowMilliseconds;
         _end = nowMilliseconds + duration;
         Active = duration > 0;
-        if (!Active) _state = to;
+        if (!Active)
+        {
+            _state = to;
+        }
     }
 
     public void Cancel() => Active = false;
@@ -51,7 +54,11 @@ public sealed class PossessionFlight
     /// <summary>One frame. True on the frame the move lands, when the state is the target's.</summary>
     public bool Step(long nowMilliseconds)
     {
-        if (!Active) return false;
+        if (!Active)
+        {
+            return false;
+        }
+
         if (nowMilliseconds >= _end)
         {
             _state = _target;
@@ -59,7 +66,11 @@ public sealed class PossessionFlight
             return true;
         }
         int elapsed = (int)(nowMilliseconds - _last), remaining = (int)(_end - _last);
-        if (elapsed <= 0) return false;
+        if (elapsed <= 0)
+        {
+            return false;
+        }
+
         _last = nowMilliseconds;
         _state = new CameraFlightState(
             Toward(_state.X, _target.X, elapsed, remaining), Toward(_state.Y, _target.Y, elapsed, remaining),

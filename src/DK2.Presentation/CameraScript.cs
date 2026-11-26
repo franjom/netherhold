@@ -22,13 +22,24 @@ public sealed class CameraScript
     /// <exception cref="ArgumentException">No keys, or frames not strictly increasing from zero or more.</exception>
     public CameraScript(IReadOnlyList<CameraScriptKey> keys)
     {
-        if (keys is null) throw new ArgumentNullException(nameof(keys));
-        if (keys.Count == 0) throw new ArgumentException("A camera script needs a key.", nameof(keys));
+        if (keys is null)
+        {
+            throw new ArgumentNullException(nameof(keys));
+        }
+
+        if (keys.Count == 0)
+        {
+            throw new ArgumentException("A camera script needs a key.", nameof(keys));
+        }
+
         _keys = new CameraScriptKey[keys.Count];
         for (int i = 0; i < keys.Count; i++)
         {
             if (keys[i].Frame < 0 || (i > 0 && keys[i].Frame <= keys[i - 1].Frame))
+            {
                 throw new ArgumentException("Camera script frames must be non-negative and strictly increasing.", nameof(keys));
+            }
+
             _keys[i] = keys[i];
         }
     }
@@ -44,10 +55,20 @@ public sealed class CameraScript
     public Vector3 FocusAt(int frame, Vector3 origin, int mapWidth, int mapHeight)
     {
         int after = 0;
-        while (after < _keys.Length && _keys[after].Frame <= frame) after++;
+        while (after < _keys.Length && _keys[after].Frame <= frame)
+        {
+            after++;
+        }
+
         float x, y;
-        if (after == 0) (x, y) = (_keys[0].X, _keys[0].Y);
-        else if (after == _keys.Length) (x, y) = (_keys[after - 1].X, _keys[after - 1].Y);
+        if (after == 0)
+        {
+            (x, y) = (_keys[0].X, _keys[0].Y);
+        }
+        else if (after == _keys.Length)
+        {
+            (x, y) = (_keys[after - 1].X, _keys[after - 1].Y);
+        }
         else
         {
             CameraScriptKey from = _keys[after - 1], to = _keys[after];
@@ -64,17 +85,37 @@ public sealed class CameraScript
     /// <c>;</c>, each <c>frame:x,y</c>, frames plain decimals strictly increasing, x and y finite signed invariant decimals.</summary>
     public static CameraScript? Parse(string? text)
     {
-        if (text is null || text.Trim().Length == 0) return null;
+        if (text is null || text.Trim().Length == 0)
+        {
+            return null;
+        }
+
         string[] entries = text.Split(';');
         var keys = new CameraScriptKey[entries.Length];
         for (int i = 0; i < entries.Length; i++)
         {
             string[] parts = entries[i].Trim().Split(':');
-            if (parts.Length != 2) return null;
-            if (!int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out int frame)) return null;
-            if (i > 0 && frame <= keys[i - 1].Frame) return null;
+            if (parts.Length != 2)
+            {
+                return null;
+            }
+
+            if (!int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out int frame))
+            {
+                return null;
+            }
+
+            if (i > 0 && frame <= keys[i - 1].Frame)
+            {
+                return null;
+            }
+
             string[] xy = parts[1].Split(',');
-            if (xy.Length != 2 || !Coordinate(xy[0], out float x) || !Coordinate(xy[1], out float y)) return null;
+            if (xy.Length != 2 || !Coordinate(xy[0], out float x) || !Coordinate(xy[1], out float y))
+            {
+                return null;
+            }
+
             keys[i] = new CameraScriptKey(frame, x, y);
         }
         return new CameraScript(keys);

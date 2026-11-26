@@ -50,30 +50,55 @@ public sealed class HeldItemStack
         => Refresh(world, player, null);
     public void Refresh(WorldState world, PlayerId player, LocalPickupFeedback? pending)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         _icons.Clear();
         List<HandItem> hand = world.Player(player).Hand;
         int pendingCount = 0;
         if (pending is not null)
+        {
             foreach (HeldIcon icon in pending.Icons(world, player))
             {
                 pendingCount++;
-                if (_icons.Count < MaxIcons) _icons.Add(icon);
+                if (_icons.Count < MaxIcons)
+                {
+                    _icons.Add(icon);
+                }
             }
+        }
+
         int visibleCount = pendingCount;
         foreach (HandItem item in hand)
-            if (pending?.HidesHeld(player, item) != true) visibleCount++;
+        {
+            if (pending?.HidesHeld(player, item) != true)
+            {
+                visibleCount++;
+            }
+        }
+
         More = visibleCount > MaxIcons;
         for (int i = hand.Count - 1; i >= 0 && _icons.Count < MaxIcons; i--)
         {
             HandItem item = hand[i];
-            if (pending?.HidesHeld(player, item) == true) continue;
+            if (pending?.HidesHeld(player, item) == true)
+            {
+                continue;
+            }
+
             if (item.IsObject)
             {
-                if (world.ObjectById(item.Id) is ObjectState thing) _icons.Add(new HeldIcon(HeldIconKind.Object, thing.ObjectTypeId));
+                if (world.ObjectById(item.Id) is ObjectState thing)
+                {
+                    _icons.Add(new HeldIcon(HeldIconKind.Object, thing.ObjectTypeId));
+                }
             }
             else if (world.CreatureById(item.Id) is CreatureState creature)
+            {
                 _icons.Add(new HeldIcon(HeldIconKind.Creature, creature.CreatureTypeId));
+            }
         }
     }
 
@@ -82,10 +107,26 @@ public sealed class HeldItemStack
     /// (0x0040AFF9..0x0040B00D). Prisoners and a ruined Heart do not promise disposal.</summary>
     public static bool Disposes(WorldState world, GameDatabase database, PlayerId player, HandItem item, TilePos at)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
-        if (item.IsObject || world.CreatureById(item.Id) is not CreatureState creature) return false;
-        if (creature.OwnerPlayerId != player.Value) return false;
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
+        if (item.IsObject || world.CreatureById(item.Id) is not CreatureState creature)
+        {
+            return false;
+        }
+
+        if (creature.OwnerPlayerId != player.Value)
+        {
+            return false;
+        }
+
         HandRules.CreatureLands(world, database, player, creature, at, out bool disposed);
         return disposed;
     }

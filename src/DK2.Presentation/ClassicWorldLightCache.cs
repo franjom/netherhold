@@ -49,8 +49,16 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
 
     public ClassicWorldLightCache(int width, int height)
     {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (width <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
         _width = width; _height = height;
         int count = checked(width * height);
         _terrain = new ClassicPointLight?[count];
@@ -74,21 +82,36 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     public void UpdatePortalLights(IReadOnlyList<PortalLightView> lights)
     {
         List<ObjectSource> entries = _entries[PortalKind];
-        foreach (ObjectSource source in entries) source.Seen = false;
+        foreach (ObjectSource source in entries)
+        {
+            source.Seen = false;
+        }
         // Indexed: a foreach over the interface boxes its enumerator every frame.
-        for (int i = 0; i < lights.Count; i++) Place(PortalKind, lights[i].Id.Value, lights[i].Light, lights[i].Light);
+        for (int i = 0; i < lights.Count; i++)
+        {
+            Place(PortalKind, lights[i].Id.Value, lights[i].Light, lights[i].Light);
+        }
+
         RemoveUnseen(entries);
     }
 
     public void UpdateObjects(IReadOnlyList<ObjectView> objects, float fraction, bool cheapLighting = false)
     {
         List<ObjectSource> entries = _entries[ObjectKind];
-        foreach (ObjectSource source in entries) source.Seen = false;
+        foreach (ObjectSource source in entries)
+        {
+            source.Seen = false;
+        }
+
         for (int i = 0; i < objects.Count; i++)
         {
             ObjectView thing = objects[i];
             // The tile follows the current position; the drawn light, the interpolated one.
-            if (ClassicPointLight.FromObject(thing, cheapLighting) is not ClassicPointLight current) continue;
+            if (ClassicPointLight.FromObject(thing, cheapLighting) is not ClassicPointLight current)
+            {
+                continue;
+            }
+
             Place(ObjectKind, thing.Id, current, ClassicPointLight.FromObject(thing, cheapLighting, fraction)!.Value);
         }
         RemoveUnseen(entries);
@@ -98,10 +121,18 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     public void UpdateEffects(IReadOnlyList<EffectLightView> effects, bool cheapLighting = false)
     {
         List<ObjectSource> entries = _entries[EffectKind];
-        foreach (ObjectSource source in entries) source.Seen = false;
+        foreach (ObjectSource source in entries)
+        {
+            source.Seen = false;
+        }
+
         for (int i = 0; i < effects.Count; i++)
         {
-            if (ClassicPointLight.FromEffect(effects[i], cheapLighting) is not ClassicPointLight light) continue;
+            if (ClassicPointLight.FromEffect(effects[i], cheapLighting) is not ClassicPointLight light)
+            {
+                continue;
+            }
+
             Place(EffectKind, effects[i].Id, light, light);
         }
         RemoveUnseen(entries);
@@ -112,15 +143,27 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     public void UpdateHand(ClassicPointLight? light)
     {
         List<ObjectSource> entries = _entries[HandKind];
-        foreach (ObjectSource source in entries) source.Seen = false;
-        if (light is ClassicPointLight hand) Place(HandKind, 0, hand, hand);
+        foreach (ObjectSource source in entries)
+        {
+            source.Seen = false;
+        }
+
+        if (light is ClassicPointLight hand)
+        {
+            Place(HandKind, 0, hand, hand);
+        }
+
         RemoveUnseen(entries);
     }
 
     private void Place(int kind, int id, ClassicPointLight current, ClassicPointLight drawn)
     {
         var tile = new TilePos((int)Math.Floor(current.Position.X), (int)Math.Floor(-current.Position.Z));
-        if (!Contains(tile)) return;
+        if (!Contains(tile))
+        {
+            return;
+        }
+
         int index = tile.Y * _width + tile.X;
         // An object and an effect may share an id; the kind keeps their sources apart.
         long key = ((long)kind << 32) | (uint)id;
@@ -139,7 +182,11 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
             source.Tile = index;
             _sourceRevision++;
         }
-        if (!source.Light.Equals(drawn)) _sourceRevision++;
+        if (!source.Light.Equals(drawn))
+        {
+            _sourceRevision++;
+        }
+
         source.Light = drawn;
         source.Seen = true;
     }
@@ -149,7 +196,11 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         for (int i = entries.Count - 1; i >= 0; i--)
         {
             ObjectSource source = entries[i];
-            if (source.Seen) continue;
+            if (source.Seen)
+            {
+                continue;
+            }
+
             _objectsByTile[source.Tile]!.Remove(source);
             _objects.Remove(source.Key);
             entries.RemoveAt(i);
@@ -160,21 +211,40 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     public void PrepareFrame(ReadOnlySpan<TilePos> visible)
     {
         TablesUnchanged = false;
-        if (_evictionPending) EvictUntouched();
+        if (_evictionPending)
+        {
+            EvictUntouched();
+        }
+
         bool reuse = _canReuse && _sourceRevision == _gatheredRevision && visible.Length == _visibleCount;
         _canReuse = false;
         _visible.Clear();
         for (int i = 0; i < visible.Length; i++)
         {
             TilePos tile = visible[i];
-            if (!_visible.Add(tile)) throw new ArgumentException("Visible enumeration contains a duplicate tile.", nameof(visible));
-            if (reuse && tile != _visibleTables[i].Tile) reuse = false;
-            if (reuse && _visibleTables[i].Revision != _tableRevisions[i]) reuse = false;
+            if (!_visible.Add(tile))
+            {
+                throw new ArgumentException("Visible enumeration contains a duplicate tile.", nameof(visible));
+            }
+
+            if (reuse && tile != _visibleTables[i].Tile)
+            {
+                reuse = false;
+            }
+
+            if (reuse && _visibleTables[i].Revision != _tableRevisions[i])
+            {
+                reuse = false;
+            }
         }
         _window.Reset();
         Frame = new ClassicLightFrame(unchecked(Frame.Value + 1));
         (_preparedIndices, _previousIndices) = (_previousIndices, _preparedIndices);
-        foreach (int index in _previousIndices) _prepared[index] = false;
+        foreach (int index in _previousIndices)
+        {
+            _prepared[index] = false;
+        }
+
         _preparedIndices.Clear();
         if (reuse)
         {
@@ -196,14 +266,25 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
             int top = _visible.Contains(new TilePos(tile.X, tile.Y - 1)) ? tile.Y : tile.Y - 3;
             int bottom = _visible.Contains(new TilePos(tile.X, tile.Y + 1)) ? tile.Y : tile.Y + 3;
             for (int y = top; y <= bottom; y++)
-            for (int x = left; x <= right; x++) PrepareCell(new TilePos(x, y));
+            {
+                for (int x = left; x <= right; x++)
+                {
+                    PrepareCell(new TilePos(x, y));
+                }
+            }
         }
         (_visibleTables, _previousTables) = (_previousTables, _visibleTables);
         _previousCount = _visibleCount;
         if (_visibleTables.Length < visible.Length)
+        {
             Array.Resize(ref _visibleTables, Math.Max(visible.Length, _visibleTables.Length * 2 + 16));
+        }
+
         if (_tableRevisions.Length < visible.Length)
+        {
             Array.Resize(ref _tableRevisions, _visibleTables.Length);
+        }
+
         _visibleCount = visible.Length;
         bool rebuiltStatic = false;
         for (int index = 0; index < visible.Length; index++)
@@ -211,12 +292,23 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
             TilePos tile = visible[index];
             if (!_tables.TryGetValue(tile, out ClassicLightTable? table))
             {
-                if (_freeTables.Count > 0) (table = _freeTables.Pop()).Reuse(tile);
-                else table = new ClassicLightTable(tile);
+                if (_freeTables.Count > 0)
+                {
+                    (table = _freeTables.Pop()).Reuse(tile);
+                }
+                else
+                {
+                    table = new ClassicLightTable(tile);
+                }
+
                 _tables.Add(tile, table);
             }
             _window.Gather(table, this, Frame);
-            if (table.StaticFrame == Frame) rebuiltStatic = true;
+            if (table.StaticFrame == Frame)
+            {
+                rebuiltStatic = true;
+            }
+
             _visibleTables[index] = table;
             _tableRevisions[index] = table.Revision;
         }
@@ -248,13 +340,27 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         }
         foreach (int index in _previousIndices)
         {
-            if (_prepared[index]) continue;
+            if (_prepared[index])
+            {
+                continue;
+            }
+
             _canReuse = false;
             int x = index % _width, y = index / _width;
             if (!_cells[index].StaticSources.IsEmpty)
+            {
                 for (int ny = y - 3; ny <= y + 3; ny++)
-                for (int nx = x - 3; nx <= x + 3; nx++)
-                    if (_tables.TryGetValue(new TilePos(nx, ny), out ClassicLightTable? near)) near.DropStatic();
+                {
+                    for (int nx = x - 3; nx <= x + 3; nx++)
+                    {
+                        if (_tables.TryGetValue(new TilePos(nx, ny), out ClassicLightTable? near))
+                        {
+                            near.DropStatic();
+                        }
+                    }
+                }
+            }
+
             Free(new TilePos(x, y));
             _cells[index] = default;
             _dirty[index] = true;
@@ -263,7 +369,10 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
 
     private void Free(TilePos tile)
     {
-        if (_tables.Remove(tile, out ClassicLightTable? table)) _freeTables.Push(table);
+        if (_tables.Remove(tile, out ClassicLightTable? table))
+        {
+            _freeTables.Push(table);
+        }
     }
 
     public ClassicLightCacheCell GetCell(TilePos tile) => Contains(tile) ? _cells[tile.Y * _width + tile.X] : default;
@@ -284,9 +393,17 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
 
     private void SetSource(ClassicPointLight?[] inputs, TilePos tile, ClassicPointLight? light)
     {
-        if (!Contains(tile)) throw new ArgumentOutOfRangeException(nameof(tile));
+        if (!Contains(tile))
+        {
+            throw new ArgumentOutOfRangeException(nameof(tile));
+        }
+
         int index = tile.Y * _width + tile.X;
-        if (Nullable.Equals(inputs[index], light)) return;
+        if (Nullable.Equals(inputs[index], light))
+        {
+            return;
+        }
+
         inputs[index] = light;
         _sourceRevision++;
         _dirty[index] = true;
@@ -296,9 +413,17 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
 
     private void PrepareCell(TilePos tile)
     {
-        if (!Contains(tile)) return;
+        if (!Contains(tile))
+        {
+            return;
+        }
+
         int index = tile.Y * _width + tile.X;
-        if (_prepared[index]) return;
+        if (_prepared[index])
+        {
+            return;
+        }
+
         _prepared[index] = true;
         _preparedIndices.Add(index);
         ClassicLightCacheCell cell = _cells[index];
@@ -310,8 +435,15 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
             {
                 buffer ??= _sourceBuffers[index] = new ClassicPointLight[2];
                 int slot = 0;
-                if (_terrain[index] is ClassicPointLight terrain) buffer[slot++] = terrain;
-                if (_torches[index] is ClassicPointLight torch) buffer[slot] = torch;
+                if (_terrain[index] is ClassicPointLight terrain)
+                {
+                    buffer[slot++] = terrain;
+                }
+
+                if (_torches[index] is ClassicPointLight torch)
+                {
+                    buffer[slot] = torch;
+                }
             }
             cell = new(buffer is null ? default : buffer.AsMemory(0, count), default, Frame);
             _dirty[index] = false;
@@ -321,8 +453,14 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         if (dynamicCount > 0)
         {
             if (dynamicBuffer is null || dynamicBuffer.Length < dynamicCount)
+            {
                 dynamicBuffer = _dynamicBuffers[index] = new ClassicPointLight[dynamicCount];
-            for (int i = 0; i < dynamicCount; i++) dynamicBuffer[i] = _objectsByTile[index]![i].Light;
+            }
+
+            for (int i = 0; i < dynamicCount; i++)
+            {
+                dynamicBuffer[i] = _objectsByTile[index]![i].Light;
+            }
         }
         _cells[index] = cell with { DynamicSources = dynamicBuffer is null ? default : dynamicBuffer.AsMemory(0, dynamicCount) };
     }
@@ -331,8 +469,16 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     {
         _window.Reset();
         _objects.Clear();
-        foreach (List<ObjectSource> entries in _entries) entries.Clear();
-        foreach (List<ObjectSource>? sources in _objectsByTile) sources?.Clear();
+        foreach (List<ObjectSource> entries in _entries)
+        {
+            entries.Clear();
+        }
+
+        foreach (List<ObjectSource>? sources in _objectsByTile)
+        {
+            sources?.Clear();
+        }
+
         Array.Clear(_terrain, 0, _terrain.Length);
         Array.Clear(_torches, 0, _torches.Length);
         Array.Clear(_cells, 0, _cells.Length);
@@ -340,7 +486,11 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         Array.Clear(_visibleTables, 0, _visibleTables.Length);
         Array.Clear(_previousTables, 0, _previousTables.Length);
         Array.Fill(_dirty, true);
-        foreach (ClassicLightTable table in _tables.Values) _freeTables.Push(table);
+        foreach (ClassicLightTable table in _tables.Values)
+        {
+            _freeTables.Push(table);
+        }
+
         _preparedIndices.Clear(); _previousIndices.Clear(); _visible.Clear(); _tables.Clear();
         _visibleCount = _previousCount = 0;
         _evictionPending = false;

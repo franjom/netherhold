@@ -63,8 +63,16 @@ public sealed class FrameDriver
     public void UpdateScript(ScriptedViewDirector scriptedView, double nowMilliseconds, WorldState world, PlayerId viewer,
         int ticksPending)
     {
-        if (scriptedView is null) throw new ArgumentNullException(nameof(scriptedView));
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (scriptedView is null)
+        {
+            throw new ArgumentNullException(nameof(scriptedView));
+        }
+
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         scriptedView.Update(nowMilliseconds, world.CurrentTick.Value + ticksPending + Math.Min(_pacer.Debt, 1d),
             world.Player(viewer).PossessedCreatureId != 0 ? CameraModeId.Possession : CameraModeId.Dungeon);
     }
@@ -84,9 +92,17 @@ public sealed class FrameDriver
     /// frame) ends it and the simulation hears it next tick; then the latest glide target, if any.</summary>
     public FrameScriptInput TakeScriptedInput(ScriptedViewDirector scriptedView, PlayerId viewer, bool skipKey)
     {
-        if (scriptedView is null) throw new ArgumentNullException(nameof(scriptedView));
+        if (scriptedView is null)
+        {
+            throw new ArgumentNullException(nameof(scriptedView));
+        }
+
         bool pathWasPlaying = scriptedView.PathPlaying;
-        if (pathWasPlaying && skipKey && scriptedView.Skip()) _pending.Add(new SkipCameraPathCommand(viewer));
+        if (pathWasPlaying && skipKey && scriptedView.Skip())
+        {
+            _pending.Add(new SkipCameraPathCommand(viewer));
+        }
+
         return new FrameScriptInput(pathWasPlaying, scriptedView.TryTakeCameraMove(out TilePos glide) ? glide : null);
     }
 
@@ -98,10 +114,18 @@ public sealed class FrameDriver
         bool ticksPaused, int maxTicksPerFrame, ITurnPoseSource? poses)
     {
         _view.LocalPickups.DrainReadyDrops(world, _pending);
-        if (!(speed > 0f) || ticksPaused) return new FrameTicks(0, InputFrame.Empty, false, 0);
+        if (!(speed > 0f) || ticksPaused)
+        {
+            return new FrameTicks(0, InputFrame.Empty, false, 0);
+        }
+
         double advance = _pacer.Accrue(elapsedSeconds, speed, gameSpeed);
         int ticks = _pacer.Take(maxTicksPerFrame);
-        if (ticks > 0 && poses?.TurnPose(viewer) is PlayerCommand pose) _pending.Insert(0, pose);
+        if (ticks > 0 && poses?.TurnPose(viewer) is PlayerCommand pose)
+        {
+            _pending.Insert(0, pose);
+        }
+
         InputFrame first = TickPacer.FirstInput(ticks, _pending);
         if (first.Commands != null)
         {
@@ -115,7 +139,11 @@ public sealed class FrameDriver
     /// has completed, and the terrain highlights advance to <paramref name="milliseconds"/>.</summary>
     public void AfterTicks(WorldState world, long milliseconds)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         _view.AcknowledgeTagPreviews(world.CurrentTick);
         _view.AdvanceTerrainHighlights(new EffectTime(milliseconds));
     }

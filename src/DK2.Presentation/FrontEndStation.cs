@@ -22,14 +22,26 @@ public sealed class FrontEndStation
     public FrontEndStation(GameSimulation simulation, CampaignProfile profile, bool secretFiveAvailable, PlayerId viewer, ulong seed)
     {
         Simulation = simulation ?? throw new ArgumentNullException(nameof(simulation));
-        if (profile is null) throw new ArgumentNullException(nameof(profile));
+        if (profile is null)
+        {
+            throw new ArgumentNullException(nameof(profile));
+        }
+
         GameDatabase database = simulation.Database;
         IReadOnlyList<FrontEndProp> scenery = FrontEndScenery.Create(simulation.World, database, profile, new SimRandom(seed),
             secretFiveAvailable);
         IReadOnlyList<FrontEndProp> markers = FrontEndScenery.CreateCampaignMarkers(database);
         var all = new FrontEndProp[scenery.Count + markers.Count];
-        for (int i = 0; i < scenery.Count; i++) all[i] = scenery[i];
-        for (int i = 0; i < markers.Count; i++) all[scenery.Count + i] = markers[i];
+        for (int i = 0; i < scenery.Count; i++)
+        {
+            all[i] = scenery[i];
+        }
+
+        for (int i = 0; i < markers.Count; i++)
+        {
+            all[scenery.Count + i] = markers[i];
+        }
+
         BaseScenery = Array.AsReadOnly(all);
         View = new WorldView(database, viewer) { FrontEndScenery = BaseScenery };
         FrontEndHost.FillPickSlots(BaseScenery, _pickSlots);
@@ -40,7 +52,11 @@ public sealed class FrontEndStation
     public static FrontEndStation Open(CampaignLevelData level, CampaignProfile profile, bool secretFiveAvailable, PlayerId viewer,
         ulong seed)
     {
-        if (level is null) throw new ArgumentNullException(nameof(level));
+        if (level is null)
+        {
+            throw new ArgumentNullException(nameof(level));
+        }
+
         return new FrontEndStation(GameSessionStarter.Campaign(level, resumed: null, frontEnd: true, seed, fogOfWarEnabled: false),
             profile, secretFiveAvailable, viewer, seed);
     }
@@ -63,8 +79,16 @@ public sealed class FrontEndStation
     /// base scenery (<see cref="FrontEndScenery.ApplyCampaignMap"/>); returns whether it did, so the caller presents again.</summary>
     public bool Refresh(CampaignMapController map)
     {
-        if (map is null) throw new ArgumentNullException(nameof(map));
-        if (_revision == map.Revision) return false;
+        if (map is null)
+        {
+            throw new ArgumentNullException(nameof(map));
+        }
+
+        if (_revision == map.Revision)
+        {
+            return false;
+        }
+
         _revision = map.Revision;
         View.FrontEndScenery = FrontEndScenery.ApplyCampaignMap(BaseScenery, map);
         return true;

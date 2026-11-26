@@ -15,7 +15,11 @@ public static class EffectGroupParts
     /// the loader that fills DK2's part array is unread (heart-intro.md §3).</summary>
     public static EffectGroupPart[] Of(KmfGroup group)
     {
-        if (group is null) throw new ArgumentNullException(nameof(group));
+        if (group is null)
+        {
+            throw new ArgumentNullException(nameof(group));
+        }
+
         var parts = new EffectGroupPart[group.Elements.Count];
         for (int i = 0; i < parts.Length; i++)
         {

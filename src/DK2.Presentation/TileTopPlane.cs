@@ -28,9 +28,17 @@ public static class TileTopPlane
         distance = 0;
         float along = direction.Y;
         // Mathf.Approximately(along, 0): nothing but a zero or a denormal this small passes.
-        if (Math.Abs(along) < Math.Max(1e-6f * Math.Abs(along), float.Epsilon * 8)) return false;
+        if (Math.Abs(along) < Math.Max(1e-6f * Math.Abs(along), float.Epsilon * 8))
+        {
+            return false;
+        }
+
         distance = (-origin.Y - -height) / along;
-        if (!(distance > 0)) return false;
+        if (!(distance > 0))
+        {
+            return false;
+        }
+
         point = new Vector3(origin.X + direction.X * distance, origin.Y + direction.Y * distance, origin.Z + direction.Z * distance);
         return true;
     }
@@ -39,7 +47,11 @@ public static class TileTopPlane
     /// the plane or the hit lies on another tile.</summary>
     public static FpPosition2? PositionOn(Vector3 origin, Vector3 direction, TilePos tile, bool solid)
     {
-        if (!TryHit(origin, direction, Height(solid), out Vector3 point)) return null;
+        if (!TryHit(origin, direction, Height(solid), out Vector3 point))
+        {
+            return null;
+        }
+
         var position = new FpPosition2(new Fp32((int)MathF.Floor(point.X * Fp32.One)), new Fp32((int)MathF.Floor(-point.Z * Fp32.One)));
         return position.Tile == tile ? position : null;
     }

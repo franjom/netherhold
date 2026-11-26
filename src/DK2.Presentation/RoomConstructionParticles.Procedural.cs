@@ -23,7 +23,11 @@ public sealed partial class RoomConstructionParticles
     {
         effects.Clear();
         foreach (Emitter emitter in _emitters)
+        {
             if (emitter.Definition.ArtResource.Type == 7)
+            {
                 effects.Add(new(new(emitter.Id), emitter.Definition.ArtResource.ProceduralKind, emitter.Request.Position));
+            }
+        }
     }
 }

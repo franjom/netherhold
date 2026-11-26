@@ -97,7 +97,11 @@ public sealed class TerrainPieceKeys
     /// are <see cref="AssetCatalogue.HeroLairPiece"/>.</param>
     internal TerrainPieceKeys(string terrainName, bool heroLair = false)
     {
-        for (int k = 0; k < _beds.Length; k++) _beds[k] = AssetCatalogue.TerrainBed(terrainName, k);
+        for (int k = 0; k < _beds.Length; k++)
+        {
+            _beds[k] = AssetCatalogue.TerrainBed(terrainName, k);
+        }
+
         Side = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainSide);
         Top = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainTop);
         // Art 3, "TOP TAGGED": keyed because the install has it, drawn by nothing (its consumer is
@@ -105,14 +109,25 @@ public sealed class TerrainPieceKeys
         TopTagged = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainTopTagged);
         Floor = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainFloor);
         for (int k = 0; k < _heroFaces.Length; k++)
+        {
             _heroFaces[k] = AssetCatalogue.HeroWallPiece(terrainName, AssetCatalogue.FirstHeroWallPiece + k);
+        }
+
         _heroLair = new AssetRef[heroLair ? AssetCatalogue.HeroLairPieces : 0];
-        for (int k = 0; k < _heroLair.Length; k++) _heroLair[k] = AssetCatalogue.HeroLairPiece(terrainName, k);
+        for (int k = 0; k < _heroLair.Length; k++)
+        {
+            _heroLair[k] = AssetCatalogue.HeroLairPiece(terrainName, k);
+        }
+
         _quarters = new AssetRef[AssetCatalogue.ClaimedSets * AssetCatalogue.ClaimedPieces];
         for (int set = 0; set < AssetCatalogue.ClaimedSets; set++)
+        {
             for (int piece = 0; piece < AssetCatalogue.ClaimedPieces; piece++)
+            {
                 _quarters[(set * AssetCatalogue.ClaimedPieces) + piece] =
                     AssetCatalogue.TerrainQuarter(terrainName, set, piece);
+            }
+        }
     }
 
     public AssetRef Side { get; }
@@ -140,9 +155,24 @@ public sealed class TerrainPieceKeys
         yield return Side;
         yield return Top;
         yield return Floor;
-        foreach (AssetRef quarter in _quarters) yield return quarter;
-        foreach (AssetRef bed in _beds) yield return bed;
-        foreach (AssetRef face in _heroFaces) yield return face;
-        foreach (AssetRef quarter in _heroLair) yield return quarter;
+        foreach (AssetRef quarter in _quarters)
+        {
+            yield return quarter;
+        }
+
+        foreach (AssetRef bed in _beds)
+        {
+            yield return bed;
+        }
+
+        foreach (AssetRef face in _heroFaces)
+        {
+            yield return face;
+        }
+
+        foreach (AssetRef quarter in _heroLair)
+        {
+            yield return quarter;
+        }
     }
 }

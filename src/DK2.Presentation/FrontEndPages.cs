@@ -62,7 +62,14 @@ public static partial class FrontEndPages
     public static FrontEndPageDefinition? Find(FrontEndPage id)
     {
         // A loop, not LINQ: the menu looks its page up every frame and a closure here would allocate each time.
-        for (int i = 0; i < All.Count; i++) if (All[i].Id == id) return All[i];
+        for (int i = 0; i < All.Count; i++)
+        {
+            if (All[i].Id == id)
+            {
+                return All[i];
+            }
+        }
+
         return null;
     }
 }

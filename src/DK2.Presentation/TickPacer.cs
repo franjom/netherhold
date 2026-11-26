@@ -44,10 +44,22 @@ public sealed class TickPacer
     /// <see cref="InputFrame.Empty"/>. The caller clears <paramref name="pending"/> when the result carries commands.</summary>
     public static InputFrame FirstInput(int ticks, IReadOnlyList<PlayerCommand> pending)
     {
-        if (pending is null) throw new ArgumentNullException(nameof(pending));
-        if (ticks <= 0 || pending.Count == 0) return InputFrame.Empty;
+        if (pending is null)
+        {
+            throw new ArgumentNullException(nameof(pending));
+        }
+
+        if (ticks <= 0 || pending.Count == 0)
+        {
+            return InputFrame.Empty;
+        }
+
         var commands = new PlayerCommand[pending.Count];
-        for (int i = 0; i < commands.Length; i++) commands[i] = pending[i];
+        for (int i = 0; i < commands.Length; i++)
+        {
+            commands[i] = pending[i];
+        }
+
         return new InputFrame(commands);
     }
 

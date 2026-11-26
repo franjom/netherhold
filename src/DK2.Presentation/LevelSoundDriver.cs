@@ -65,7 +65,11 @@ public sealed class LevelSoundDriver
     /// <summary>Wire music and the scripted view's speech, Mentor lines and skips.</summary>
     public void WireSpeech(ScriptedViewDirector scriptedView)
     {
-        if (_scriptedView != null) throw new InvalidOperationException("The speech is already wired.");
+        if (_scriptedView != null)
+        {
+            throw new InvalidOperationException("The speech is already wired.");
+        }
+
         _scriptedView = scriptedView ?? throw new ArgumentNullException(nameof(scriptedView));
         _mixer.StartMusic(_database.Level?.SoundTrack ?? 0);
         SoundCategory category = LevelSpeech;
@@ -79,9 +83,19 @@ public sealed class LevelSoundDriver
     /// the screen's centre, null over the HUD or off the map, where the ambience and the listener's point keep their last.</summary>
     public void Update(WorldState world, TilePos? listener, long nowMilliseconds)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         if (WorldSounds != null)
-            while (WorldSounds.TryTake(out SoundRequest sound)) _mixer.Play(sound);
+        {
+            while (WorldSounds.TryTake(out SoundRequest sound))
+            {
+                _mixer.Play(sound);
+            }
+        }
+
         _mixer.FollowVoices(world);
         UpdateAmbience(world, listener);
         _mixer.UpdateThrottle(nowMilliseconds);
@@ -97,7 +111,11 @@ public sealed class LevelSoundDriver
     /// <see cref="Update"/> calls it, and a host that draws the battle tab before it may call it first.</summary>
     public void CaptureMusic(WorldState world)
     {
-        if (_musicTick == world.CurrentTick.Value) return;
+        if (_musicTick == world.CurrentTick.Value)
+        {
+            return;
+        }
+
         _musicTick = world.CurrentTick.Value;
         Music.Capture(world, _database, world.CurrentTick);
         _musicFrame = _musicDirector.AdvanceFrame(_mixer.MusicEnabled, _mixer.SoundQuality);
@@ -108,7 +126,11 @@ public sealed class LevelSoundDriver
     /// reads its camera record), a marked deviation.</summary>
     private void UpdateAmbience(WorldState world, TilePos? listener)
     {
-        if (listener is not TilePos tile) return;
+        if (listener is not TilePos tile)
+        {
+            return;
+        }
+
         _mixer.ListenerFocus = new Vector3(tile.X + .5f, 0f, -(tile.Y + .5f));
         if (listener != _ambienceTile || _ambienceTick != world.CurrentTick.Value)
         {
@@ -123,7 +145,10 @@ public sealed class LevelSoundDriver
     /// <summary>A Heart's beat the scene let through (<see cref="HeartBeatSound"/>).</summary>
     public void HeartBeat(in ObjectView heart)
     {
-        if (HeartBeatSound.For(_heartCategory, heart) is SoundRequest beat) _mixer.Play(beat);
+        if (HeartBeatSound.For(_heartCategory, heart) is SoundRequest beat)
+        {
+            _mixer.Play(beat);
+        }
     }
 
     /// <summary>A creature's footstep at its drawn point in the view's space (<see cref="CreatureFootsteps"/>); the host asks
@@ -131,12 +156,17 @@ public sealed class LevelSoundDriver
     public void Footstep(int creatureId, string category, bool wading, int crossing, Vector3 position)
     {
         if (CreatureFootsteps.For(_categories.Of(category), creatureId, crossing, wading, position) is SoundRequest step)
+        {
             _mixer.Play(step);
+        }
     }
 
     /// <summary>An effect the effect model created: a Casino party's pop (<see cref="PartyPopSound"/>).</summary>
     public void EffectCreated(ViewEffectRequest effect)
     {
-        if (PartyPopSound.For(effect) is SoundRequest pop) _mixer.Play(pop);
+        if (PartyPopSound.For(effect) is SoundRequest pop)
+        {
+            _mixer.Play(pop);
+        }
     }
 }

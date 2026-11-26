@@ -59,7 +59,11 @@ public sealed class TerrainLattice
         get => _highWalls;
         set
         {
-            if (_highWalls == value) return;
+            if (_highWalls == value)
+            {
+                return;
+            }
+
             _highWalls = value;
             InvalidateAll();
         }
@@ -78,7 +82,11 @@ public sealed class TerrainLattice
         get => _possession;
         set
         {
-            if (_possession == value) return;
+            if (_possession == value)
+            {
+                return;
+            }
+
             _possession = value;
             InvalidateAll();
         }
@@ -92,8 +100,15 @@ public sealed class TerrainLattice
     {
         const int reach = LatticeDirtyTracker.ForgetReach;
         for (int ty = y - reach; ty <= y + reach; ty++)
+        {
             for (int tx = x - reach; tx <= x + reach; tx++)
-                if (tx >= -1 && ty >= -1 && tx <= _width - 2 && ty <= _height - 2) _built[IndexOf(tx, ty)] = false;
+            {
+                if (tx >= -1 && ty >= -1 && tx <= _width - 2 && ty <= _height - 2)
+                {
+                    _built[IndexOf(tx, ty)] = false;
+                }
+            }
+        }
     }
 
     /// <summary>Whether the cell of tile (x, y), one of the tiles one beyond the map included, is built (tests).</summary>
@@ -108,8 +123,12 @@ public sealed class TerrainLattice
     public void Prepare(int x0, int y0)
     {
         for (int y = y0 - 1; y <= y0 + 1; y++)
+        {
             for (int x = x0 - 1; x <= x0 + 1; x++)
+            {
                 Cell(x, y);
+            }
+        }
     }
 
     /// <summary>A point of a piece drawn for tile (x0, y0), bent by the 3×3 tiles around it; a point
@@ -118,11 +137,16 @@ public sealed class TerrainLattice
     {
         float u = 2f * (p.X - (x0 - 1)), v = 2f * (p.Y - (y0 - 1)), w = 2f * (p.Z + 2.5f);
         int iu = (int)MathF.Floor(u), iv = (int)MathF.Floor(v), iw = (int)MathF.Floor(w);
-        if (iu < 0 || iu >= 5 || iv < 0 || iv >= 5 || iw < 0 || iw >= 4) return p;
+        if (iu < 0 || iu >= 5 || iv < 0 || iv >= 5 || iw < 0 || iw >= 4)
+        {
+            return p;
+        }
+
         float fu = u - iu, fv = v - iv, fw = w - iw;
 
         Vector3 result = Vector3.Zero;
         for (int du = 0; du < 2; du++)
+        {
             for (int dv = 0; dv < 2; dv++)
             {
                 int column = iu + du, row = iv + dv;
@@ -131,13 +155,19 @@ public sealed class TerrainLattice
                 float weight = (du == 0 ? 1f - fu : fu) * (dv == 0 ? 1f - fv : fv);
                 result += weight * (((1f - fw) * _points[at]) + (fw * _points[at + 1]));
             }
+        }
+
         return result;
     }
 
     private int Cell(int x, int y)
     {
         int index = IndexOf(x, y);
-        if (!_built[index]) Build(x, y, index);
+        if (!_built[index])
+        {
+            Build(x, y, index);
+        }
+
         return index;
     }
 
@@ -150,28 +180,44 @@ public sealed class TerrainLattice
         Span<Vector3> cell = _points.AsSpan(index * Points, Points);
         (float s, float o) = _highWalls || _possession ? (0.5f, 0f) : (0.25f, 0.75f);
         for (int i = 0; i < 2; i++)
+        {
             for (int j = 0; j < 2; j++)
+            {
                 for (int k = 0; k < 5; k++)
+                {
                     cell[(i * 10) + (j * 5) + k] = new Vector3(x + (i * 0.5f), y + (j * 0.5f), -2.5f + (k * s) + o);
+                }
+            }
+        }
 
         // The 3×3 closed tests, n[dy + 1, dx + 1].
         Span<bool> n = stackalloc bool[9];
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
+            {
                 n[((dy + 1) * 3) + dx + 1] = Closed(x + dx, y + dy);
+            }
+        }
 
         Span<Vector3> q = stackalloc Vector3[9];
         for (int layer = 0; layer < 3; layer++)
         {
             Lean(x, y, layer, n, q);
             for (int r = 0; r < 2; r++)
+            {
                 for (int c = 0; c < 2; c++)
                 {
                     Vector3 offset = q[(r * 3) + c];
-                    if (layer == 0) offset.Z += -0.15f - (0.125f * MathF.Sin(((2 * x) + c + (2 * y) + r) * 0.5f));
+                    if (layer == 0)
+                    {
+                        offset.Z += -0.15f - (0.125f * MathF.Sin(((2 * x) + c + (2 * y) + r) * 0.5f));
+                    }
+
                     offset += Wibble(x, y, layer, r, c, n);
                     cell[(c * 10) + (r * 5) + layer + 1] += offset;
                 }
+            }
         }
         _built[index] = true;
     }
@@ -179,17 +225,32 @@ public sealed class TerrainLattice
     // Closed unless in bounds, explored, not solid and without a door (0x0059ECF0).
     private bool Closed(int x, int y)
     {
-        if (!_world.Contains(x, y)) return true;
+        if (!_world.Contains(x, y))
+        {
+            return true;
+        }
+
         TileState tile = _world.Tile(x, y);
-        if (_world.FogOfWarEnabled && !tile.IsExploredBy(_viewer)) return true;
+        if (_world.FogOfWarEnabled && !tile.IsExploredBy(_viewer))
+        {
+            return true;
+        }
+
         return _database.TerrainById(tile.TerrainId).IsSolid || _world.DoorAt(x, y) is not null;
     }
 
     private (int Hw, int Vw, float Hl, float Vl) TileParams(int x, int y, int layer)
     {
-        if (!_world.Contains(x, y)) return (_defaultWibbleH, _defaultWibbleV, 0f, 0f);
+        if (!_world.Contains(x, y))
+        {
+            return (_defaultWibbleH, _defaultWibbleV, 0f, 0f);
+        }
+
         TileState tile = _world.Tile(x, y);
-        if (_world.FogOfWarEnabled && !tile.IsExploredBy(_viewer)) return (_defaultWibbleH, _defaultWibbleV, 0f, 0f);
+        if (_world.FogOfWarEnabled && !tile.IsExploredBy(_viewer))
+        {
+            return (_defaultWibbleH, _defaultWibbleV, 0f, 0f);
+        }
         // A definition not read from a file has no bytes; DK2 would read zeros.
         TerrainWibble t = _database.TerrainById(tile.TerrainId).Wibble ?? default;
         return (t.WibbleH << 7, t.WibbleV << 7, t.LeanH(layer) / 512f, t.LeanV(layer) / 512f);
@@ -242,7 +303,11 @@ public sealed class TerrainLattice
         bool spent = false;
         if (eastPair != westPair)
         {
-            if (northPair != southPair) a *= 1.4f;
+            if (northPair != southPair)
+            {
+                a *= 1.4f;
+            }
+
             point.X += westPair ? -a : a;
             point.Z += z0;
             spent = true;
@@ -250,19 +315,33 @@ public sealed class TerrainLattice
         if (northPair != southPair)
         {
             point.Y += northPair ? -a : a;
-            if (!spent) point.Z += z0;
+            if (!spent)
+            {
+                point.Z += z0;
+            }
         }
     }
 
     // Between two tiles, first then second along x (vertical: false) or y (vertical: true).
     private void Edge(int x, int y, int layer, int r, int c, bool first, bool second, bool vertical, Span<Vector3> q)
     {
-        if (first == second) return;
+        if (first == second)
+        {
+            return;
+        }
+
         (int Hw, int Vw, float Hl, float Vl) p = SubPoint(x, y, layer, r, c);
         ref Vector3 point = ref q[(r * 3) + c];
         float move = first ? -p.Hl : p.Hl;
-        if (vertical) point.Y += move;
-        else point.X += move;
+        if (vertical)
+        {
+            point.Y += move;
+        }
+        else
+        {
+            point.X += move;
+        }
+
         point.Z += -p.Vl;
     }
 
@@ -283,13 +362,27 @@ public sealed class TerrainLattice
             bool northPair = nw | north, southPair = west | centre, westPair = nw | west, eastPair = north | centre;
             if (eastPair != westPair)
             {
-                if (northPair != southPair) push *= 1.4f;
+                if (northPair != southPair)
+                {
+                    push *= 1.4f;
+                }
+
                 d.X += westPair ? -push : push;
             }
-            if (northPair != southPair) d.Y += northPair ? -push : push;
+            if (northPair != southPair)
+            {
+                d.Y += northPair ? -push : push;
+            }
         }
-        else if (r == 0 && c == 1 && north != centre) d.Y += north ? -push : push;
-        else if (r == 1 && c == 0 && west != centre) d.X += west ? -push : push;
+        else if (r == 0 && c == 1 && north != centre)
+        {
+            d.Y += north ? -push : push;
+        }
+        else if (r == 1 && c == 0 && west != centre)
+        {
+            d.X += west ? -push : push;
+        }
+
         return d;
     }
 

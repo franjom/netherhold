@@ -74,8 +74,16 @@ public sealed class WorldPointerInput
     /// <summary>Runs the frame's pointer through the gates; commands are added to <paramref name="pending"/>.</summary>
     public void Queue(in WorldPointerFrame frame, WorldState world, GameDatabase database, List<PlayerCommand> pending)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (pending is null) throw new ArgumentNullException(nameof(pending));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (pending is null)
+        {
+            throw new ArgumentNullException(nameof(pending));
+        }
+
         if (!frame.OrdinaryInput)
         {
             _input.CancelPointerGesture();
@@ -84,23 +92,48 @@ public sealed class WorldPointerInput
         // Possessing, the pointer is the view's: only a modal panel takes its clicks.
         if (frame.Possessing)
         {
-            if (frame.Modal) _presses.Route(frame.Press, world, database, frame.Milliseconds, pending);
+            if (frame.Modal)
+            {
+                _presses.Route(frame.Press, world, database, frame.Milliseconds, pending);
+            }
+
             _input.CancelPointerGesture();
             return;
         }
-        if (_presses.Route(frame.Press, world, database, frame.Milliseconds, pending) || _clicks.Queue(frame.Press, database, pending)) return;
+        if (_presses.Route(frame.Press, world, database, frame.Milliseconds, pending) || _clicks.Queue(frame.Press, database, pending))
+        {
+            return;
+        }
+
         _host.MinimapPress(frame.Press);
         PlayerToolMode tool = _tools.ActiveTool;
         _input.SelectTool(frame.Viewer, tool);
         PointerButtonTransition button = PointerButtonTransition.None;
-        if (frame.Press.Primary) button |= PointerButtonTransition.Pressed;
-        if (frame.PrimaryUp) button |= PointerButtonTransition.Released;
+        if (frame.Press.Primary)
+        {
+            button |= PointerButtonTransition.Pressed;
+        }
+
+        if (frame.PrimaryUp)
+        {
+            button |= PointerButtonTransition.Released;
+        }
 
         PointerButtonTransition secondaryButton = PointerButtonTransition.None;
-        if (frame.Press.Secondary) secondaryButton |= PointerButtonTransition.Pressed;
-        if (frame.SecondaryUp) secondaryButton |= PointerButtonTransition.Released;
+        if (frame.Press.Secondary)
+        {
+            secondaryButton |= PointerButtonTransition.Pressed;
+        }
 
-        if (button == PointerButtonTransition.None && secondaryButton == PointerButtonTransition.None) return;
+        if (frame.SecondaryUp)
+        {
+            secondaryButton |= PointerButtonTransition.Released;
+        }
+
+        if (button == PointerButtonTransition.None && secondaryButton == PointerButtonTransition.None)
+        {
+            return;
+        }
 
         TilePos? tile = _host.PointerTile();
         var intent = new PlayerIntent(
@@ -112,24 +145,39 @@ public sealed class WorldPointerInput
         var snapshot = PlayerInputSnapshot.Capture(
             _view, world, frame.Viewer, database, pointerTile: tile, pendingCommands: pending);
         if (tile is TilePos at && (tool == PlayerToolMode.Hand || tool == PlayerToolMode.Slap))
+        {
             snapshot = snapshot.ForHover(_host.Hover(at));
+        }
+
         InputFrame translated = _input.Translate(intent, snapshot);
         long nowMs = frame.Milliseconds;
         FpPosition2? pointed = intent.PointerPosition ?? (tile is TilePos centred
             ? new FpPosition2(new Fp32(CreatureState.CentreOf(centred.X)), new Fp32(CreatureState.CentreOf(centred.Y)))
             : null);
         if ((button & PointerButtonTransition.Pressed) != 0 && _input.DragFrom(PlayerToolMode.Hand) != null)
+        {
             _cursor?.Play(HandCursorKind.Tag, nowMs, pointed);
+        }
 
         foreach (PlayerCommand command in translated.All)
         {
             // A refused pickup is skipped and a drop deferred onto a pending pickup; a posted pickup gets its held
             // cursor first and its minimap preview after (PickupFlow).
-            if (!_pickups.PostWorldCommand(world, database, command, nowMs, pointed, pending)) continue;
-            if (command is SlapCreatureCommand) _cursor?.Play(HandCursorKind.Slap, nowMs, pointed);
+            if (!_pickups.PostWorldCommand(world, database, command, nowMs, pointed, pending))
+            {
+                continue;
+            }
+
+            if (command is SlapCreatureCommand)
+            {
+                _cursor?.Play(HandCursorKind.Slap, nowMs, pointed);
+            }
             // DK2's click runs the cursor's own permission tests and posts only a permitted cast.
             _hover?.CastPosted(command, nowMs);
-            if (command is TagTilesCommand tag) _view.QueueTagPreview(tag, world.CurrentTick.Next);
+            if (command is TagTilesCommand tag)
+            {
+                _view.QueueTagPreview(tag, world.CurrentTick.Next);
+            }
         }
     }
 }

@@ -388,7 +388,10 @@ public sealed class ScenePresenter
     /// </summary>
     public void Present(WorldState world)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
 
         TilesPushed = 0;
         TilesAsked = 0;
@@ -406,22 +409,50 @@ public sealed class ScenePresenter
         }
 
         TileScope scope;
-        using (Profiler.Scope(Markers.TilesCheck)) scope = StaleTiles(world);
+        using (Profiler.Scope(Markers.TilesCheck))
+        {
+            scope = StaleTiles(world);
+        }
+
         if (scope != TileScope.None)
         {
-            using (Profiler.Scope(Markers.Tiles)) PresentTiles(world, scope == TileScope.All);
-            using (Profiler.Scope(Markers.TilesSnapshot)) SnapshotTiles(world, scope == TileScope.All);
+            using (Profiler.Scope(Markers.Tiles))
+            {
+                PresentTiles(world, scope == TileScope.All);
+            }
+
+            using (Profiler.Scope(Markers.TilesSnapshot))
+            {
+                SnapshotTiles(world, scope == TileScope.All);
+            }
         }
-        using (Profiler.Scope(Markers.Torches)) PresentTorches(world, scope == TileScope.None);
+        using (Profiler.Scope(Markers.Torches))
+        {
+            PresentTorches(world, scope == TileScope.None);
+        }
 
         // Objects before creatures, because a creature stands on an object and
         // the text renderer draws them in that precedence -- one order, decided
         // here, so two renderers cannot disagree about what occludes what.
-        using (Profiler.Scope(Markers.Objects)) PresentObjects(world);
-        using (Profiler.Scope(Markers.Structures)) PresentStructures(world);
-        using (Profiler.Scope(Markers.Creatures)) PresentCreatures(world);
+        using (Profiler.Scope(Markers.Objects))
+        {
+            PresentObjects(world);
+        }
 
-        using (Profiler.Scope(Markers.Flush)) _target.Flush();
+        using (Profiler.Scope(Markers.Structures))
+        {
+            PresentStructures(world);
+        }
+
+        using (Profiler.Scope(Markers.Creatures))
+        {
+            PresentCreatures(world);
+        }
+
+        using (Profiler.Scope(Markers.Flush))
+        {
+            _target.Flush();
+        }
     }
 
     /// <summary>
@@ -463,20 +494,33 @@ public sealed class ScenePresenter
             || (tickChanged && (_view.TileViewsFollowTick(tick) || _view.TileViewsFollowTick(new GameTick(_tickSnapshot))))
             || _ruinedSnapshot != RuinedHearts(world)
             || !CryptsUnchanged(world))
+        {
             return TileScope.All;
+        }
 
         bool tilesChanged = MarkChangedTiles(world, tiles);
         if (!IncrementalTiles)
         {
-            if (tilesChanged) Array.Clear(_staleTiles, 0, _staleTiles.Length);
+            if (tilesChanged)
+            {
+                Array.Clear(_staleTiles, 0, _staleTiles.Length);
+            }
+
             return tilesChanged || tickChanged ? TileScope.All : TileScope.None;
         }
-        if (!tilesChanged && !tickChanged) return TileScope.None;
+        if (!tilesChanged && !tickChanged)
+        {
+            return TileScope.None;
+        }
 
         // The view finds its room facts once a tick, so they can differ only across a tick or for
         // tiles written since; a tile whose facts did not change and no tile near which did shows
         // as it did.
-        if (_view.MarkChangedRoomFacts(world, _factsSnapshot, _staleTiles) | tilesChanged) return TileScope.Some;
+        if (_view.MarkChangedRoomFacts(world, _factsSnapshot, _staleTiles) | tilesChanged)
+        {
+            return TileScope.Some;
+        }
+
         _tickSnapshot = tick.Value;
         return TileScope.None;
     }
@@ -486,18 +530,34 @@ public sealed class ScenePresenter
     private bool MarkChangedTiles(WorldState world, ReadOnlySpan<TileState> tiles)
     {
         ReadOnlySpan<byte> now = MemoryMarshal.AsBytes(tiles), then = MemoryMarshal.AsBytes(_tileSnapshot.AsSpan());
-        if (SameBytes(now, then)) return false;
+        if (SameBytes(now, then))
+        {
+            return false;
+        }
+
         int width = world.Width, height = world.Height, size = now.Length / tiles.Length, row = width * size;
         for (int y = 0; y < height; y++)
         {
-            if (SameBytes(now.Slice(y * row, row), then.Slice(y * row, row))) continue;
+            if (SameBytes(now.Slice(y * row, row), then.Slice(y * row, row)))
+            {
+                continue;
+            }
+
             for (int x = 0; x < width; x++)
             {
                 int at = ((y * width) + x) * size;
-                if (SameBytes(now.Slice(at, size), then.Slice(at, size))) continue;
+                if (SameBytes(now.Slice(at, size), then.Slice(at, size)))
+                {
+                    continue;
+                }
+
                 for (int ty = Math.Max(0, y - TileViewReach); ty <= Math.Min(height - 1, y + TileViewReach); ty++)
+                {
                     for (int tx = Math.Max(0, x - TileViewReach); tx <= Math.Min(width - 1, x + TileViewReach); tx++)
+                    {
                         _staleTiles[(ty * width) + tx] = true;
+                    }
+                }
             }
         }
         return true;
@@ -508,35 +568,81 @@ public sealed class ScenePresenter
     /// elsewhere (Unity's Mono, where the byte-wise one is not vectorised) eight bytes a step.</summary>
     private static bool SameBytes(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
     {
-        if (a.Length != b.Length) return false;
-        if (System.Numerics.Vector.IsHardwareAccelerated) return a.SequenceEqual(b);
+        if (a.Length != b.Length)
+        {
+            return false;
+        }
+
+        if (System.Numerics.Vector.IsHardwareAccelerated)
+        {
+            return a.SequenceEqual(b);
+        }
+
         ReadOnlySpan<ulong> wa = MemoryMarshal.Cast<byte, ulong>(a), wb = MemoryMarshal.Cast<byte, ulong>(b);
         int i = 0;
         for (; i + 4 <= wa.Length; i += 4)
-            if (((wa[i] ^ wb[i]) | (wa[i + 1] ^ wb[i + 1]) | (wa[i + 2] ^ wb[i + 2]) | (wa[i + 3] ^ wb[i + 3])) != 0) return false;
+        {
+            if (((wa[i] ^ wb[i]) | (wa[i + 1] ^ wb[i + 1]) | (wa[i + 2] ^ wb[i + 2]) | (wa[i + 3] ^ wb[i + 3])) != 0)
+            {
+                return false;
+            }
+        }
+
         for (; i < wa.Length; i++)
-            if (wa[i] != wb[i]) return false;
+        {
+            if (wa[i] != wb[i])
+            {
+                return false;
+            }
+        }
+
         for (int j = wa.Length * sizeof(ulong); j < a.Length; j++)
-            if (a[j] != b[j]) return false;
+        {
+            if (a[j] != b[j])
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 
     private bool CryptsUnchanged(WorldState world)
     {
         Crypts(world, _cryptScratch);
-        if (_cryptScratch.Count != _cryptSnapshot.Count) return false;
+        if (_cryptScratch.Count != _cryptSnapshot.Count)
+        {
+            return false;
+        }
+
         for (int i = 0; i < _cryptScratch.Count; i++)
-            if (_cryptScratch[i] != _cryptSnapshot[i]) return false;
+        {
+            if (_cryptScratch[i] != _cryptSnapshot[i])
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 
     private void SnapshotTiles(WorldState world, bool all)
     {
         ReadOnlySpan<TileState> tiles = world.Tiles;
-        if (_tileSnapshot.Length != tiles.Length) _tileSnapshot = new TileState[tiles.Length];
+        if (_tileSnapshot.Length != tiles.Length)
+        {
+            _tileSnapshot = new TileState[tiles.Length];
+        }
+
         tiles.CopyTo(_tileSnapshot);
         if (all)
-            for (int i = 0; i < tiles.Length; i++) _factsSnapshot[i] = _view.RoomFactsOf(world, i);
+        {
+            for (int i = 0; i < tiles.Length; i++)
+            {
+                _factsSnapshot[i] = _view.RoomFactsOf(world, i);
+            }
+        }
+
         Array.Clear(_staleTiles, 0, _staleTiles.Length);
         _fogSnapshot = world.FogOfWarEnabled;
         _doorsSnapshot = world.DoorsVersion;
@@ -553,8 +659,12 @@ public sealed class ScenePresenter
     {
         into.Clear();
         foreach (ObjectState thing in world.Objects)
+        {
             if (thing.ObjectTypeId == AutoFurnitureRules.CryptObjectId)
+            {
                 into.Add(((long)thing.TileIndex << 1) | (thing.InHand ? 1L : 0L));
+            }
+        }
     }
 
     /// <summary>One bit per player slot whose heart is ruined.</summary>
@@ -562,7 +672,13 @@ public sealed class ScenePresenter
     {
         ulong mask = 0;
         for (int i = 0; i < world.PlayerCount && i < 64; i++)
-            if (world.PlayerAtIndex(i).HeartRuined) mask |= 1UL << i;
+        {
+            if (world.PlayerAtIndex(i).HeartRuined)
+            {
+                mask |= 1UL << i;
+            }
+        }
+
         return mask;
     }
 
@@ -573,20 +689,31 @@ public sealed class ScenePresenter
             for (int x = 0; x < world.Width; x++)
             {
                 int index = (y * world.Width) + x;
-                if (!all && !_staleTiles[index]) continue;
+                if (!all && !_staleTiles[index])
+                {
+                    continue;
+                }
+
                 TilesAsked++;
                 TileView tile = _view.TileAt(world, x, y);
                 var visual = new TileVisual(tile);
 
-                if (_tileCreated[index] && _lastTiles[index].Equals(visual)) continue;
+                if (_tileCreated[index] && _lastTiles[index].Equals(visual))
+                {
+                    continue;
+                }
 
                 ResolvedAsset ground = Resolve(tile.Ground);
                 ResolvedAsset furniture = Resolve(tile.Furniture);
 
                 if (_tileCreated[index])
+                {
                     _target.UpdateTile(index, tile, ground, furniture);
+                }
                 else
+                {
                     _target.CreateTile(index, tile, ground, furniture);
+                }
 
                 _lastTiles[index] = visual;
                 _tileCreated[index] = true;
@@ -598,9 +725,17 @@ public sealed class ScenePresenter
     /// <summary>The torches after the tiles they hang on, in floor-tile order.</summary>
     private void PresentTorches(WorldState world, bool tilesUnchanged)
     {
-        if (_torches is null) return;
+        if (_torches is null)
+        {
+            return;
+        }
+
         IReadOnlyList<int> changed = _torches.Update(world);
-        if (tilesUnchanged && changed.Count == 0 && !_redrawTorches) return;
+        if (tilesUnchanged && changed.Count == 0 && !_redrawTorches)
+        {
+            return;
+        }
+
         bool redraw = _redrawTorches;
         _redrawTorches = false;
         int change = 0;
@@ -608,14 +743,28 @@ public sealed class ScenePresenter
         for (int index = 0; index < world.TileCount; index++)
         {
             bool layoutChanged = change < changed.Count && changed[change] == index;
-            if (layoutChanged) change++;
+            if (layoutChanged)
+            {
+                change++;
+            }
+
             bool admitted = _view.CanShowTile(world, new TilePos(index % world.Width, index / world.Width));
             if (admitted && _torches.At(index) is TorchView torch)
             {
-                if (!redraw && !layoutChanged && _torchesDrawn.Contains(index)) continue;
+                if (!redraw && !layoutChanged && _torchesDrawn.Contains(index))
+                {
+                    continue;
+                }
+
                 ResolvedAsset mesh = Resolve(torch.Mesh);
-                if (_torchesDrawn.Add(index)) _target.CreateTorch(index, torch, mesh);
-                else _target.UpdateTorch(index, torch, mesh);
+                if (_torchesDrawn.Add(index))
+                {
+                    _target.CreateTorch(index, torch, mesh);
+                }
+                else
+                {
+                    _target.UpdateTorch(index, torch, mesh);
+                }
             }
             else if (_torchesDrawn.Remove(index))
             {
@@ -640,15 +789,22 @@ public sealed class ScenePresenter
             var visual = new CreatureVisual(creature);
 
             bool known = _lastCreatures.TryGetValue(creature.Id, out CreatureVisual last);
-            if (known && last.Equals(visual)) continue;
+            if (known && last.Equals(visual))
+            {
+                continue;
+            }
 
             ResolvedAsset mesh = Resolve(creature.Mesh);
             ResolvedAsset animation = Resolve(creature.Animation);
 
             if (known)
+            {
                 _target.UpdateCreature(creature.Id, creature, mesh, animation);
+            }
             else
+            {
                 _target.CreateCreature(creature.Id, creature, mesh, animation);
+            }
 
             _lastCreatures[creature.Id] = visual;
             CreaturesPushed++;
@@ -659,7 +815,12 @@ public sealed class ScenePresenter
         // id order so the call sequence is reproducible.
         _goneCreatures.Clear();
         foreach (int id in _lastCreatures.Keys)
-            if (!_seenCreatures.Contains(id)) _goneCreatures.Add(id);
+        {
+            if (!_seenCreatures.Contains(id))
+            {
+                _goneCreatures.Add(id);
+            }
+        }
 
         _goneCreatures.Sort();
 
@@ -673,8 +834,15 @@ public sealed class ScenePresenter
     /// <summary>The simulation's objects, then the view's decorations.</summary>
     private IEnumerable<ObjectView> Scenery(WorldState world)
     {
-        foreach (ObjectView instance in _view.Objects(world)) yield return instance;
-        foreach (ObjectView decoration in _view.Decorations(world)) yield return decoration;
+        foreach (ObjectView instance in _view.Objects(world))
+        {
+            yield return instance;
+        }
+
+        foreach (ObjectView decoration in _view.Decorations(world))
+        {
+            yield return decoration;
+        }
     }
 
     private void PresentStructures(WorldState world)
@@ -685,15 +853,32 @@ public sealed class ScenePresenter
         {
             _seenStructures.Add(structure.Id);
             bool known = _lastStructures.TryGetValue(structure.Id, out StructureView last);
-            if (known && last == structure) continue;
+            if (known && last == structure)
+            {
+                continue;
+            }
+
             ResolvedAsset mesh = Resolve(structure.Mesh);
-            if (known) _target.UpdateStructure(structure.Id, structure, mesh);
-            else _target.CreateStructure(structure.Id, structure, mesh);
+            if (known)
+            {
+                _target.UpdateStructure(structure.Id, structure, mesh);
+            }
+            else
+            {
+                _target.CreateStructure(structure.Id, structure, mesh);
+            }
+
             _lastStructures[structure.Id] = structure;
         }
         _goneStructures.Clear();
         foreach (StructureId id in _lastStructures.Keys)
-            if (!_seenStructures.Contains(id)) _goneStructures.Add(id);
+        {
+            if (!_seenStructures.Contains(id))
+            {
+                _goneStructures.Add(id);
+            }
+        }
+
         _goneStructures.Sort(StructureIdOrder.Instance);
         foreach (StructureId id in _goneStructures)
         {
@@ -722,14 +907,21 @@ public sealed class ScenePresenter
             var visual = new ObjectVisual(instance);
 
             bool known = _lastObjects.TryGetValue(instance.Id, out ObjectVisual last);
-            if (known && last.Equals(visual)) continue;
+            if (known && last.Equals(visual))
+            {
+                continue;
+            }
 
             ResolvedAsset mesh = Resolve(instance.Mesh);
 
             if (known)
+            {
                 _target.UpdateObject(instance.Id, instance, mesh);
+            }
             else
+            {
                 _target.CreateObject(instance.Id, instance, mesh);
+            }
 
             _lastObjects[instance.Id] = visual;
             ObjectsPushed++;
@@ -740,7 +932,12 @@ public sealed class ScenePresenter
         // sequence is reproducible.
         _goneObjects.Clear();
         foreach (int id in _lastObjects.Keys)
-            if (!_seenObjects.Contains(id)) _goneObjects.Add(id);
+        {
+            if (!_seenObjects.Contains(id))
+            {
+                _goneObjects.Add(id);
+            }
+        }
 
         _goneObjects.Sort();
 
@@ -762,9 +959,15 @@ public sealed class ScenePresenter
     /// </summary>
     private ResolvedAsset Resolve(AssetRef reference)
     {
-        if (reference.IsEmpty) return default;
+        if (reference.IsEmpty)
+        {
+            return default;
+        }
 
-        if (_assets.TryResolve(reference, out ResolvedAsset asset)) return asset;
+        if (_assets.TryResolve(reference, out ResolvedAsset asset))
+        {
+            return asset;
+        }
 
         throw new InvalidOperationException(
             $"nothing resolved '{reference}'. With a placeholder in the chain this cannot " +

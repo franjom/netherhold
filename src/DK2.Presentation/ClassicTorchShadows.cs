@@ -39,10 +39,22 @@ public sealed class ClassicShadowSourceSelector
     public void Offer(int key, Vector3 position)
     {
         float squared = Vector3.DistanceSquared(_centre, position);
-        if (squared >= ClassicMeshShadow.MaximumDistance * ClassicMeshShadow.MaximumDistance) return;
+        if (squared >= ClassicMeshShadow.MaximumDistance * ClassicMeshShadow.MaximumDistance)
+        {
+            return;
+        }
+
         int slot = 0;
-        while (slot < _count && (_distances[slot] < squared || (_distances[slot] == squared && _keys[slot] < key))) slot++;
-        if (slot >= Kept) return;
+        while (slot < _count && (_distances[slot] < squared || (_distances[slot] == squared && _keys[slot] < key)))
+        {
+            slot++;
+        }
+
+        if (slot >= Kept)
+        {
+            return;
+        }
+
         for (int j = Math.Min(_count, Kept - 1); j > slot; j--)
         {
             _distances[j] = _distances[j - 1];
@@ -59,7 +71,13 @@ public sealed class ClassicShadowSourceSelector
     public float FadeFor(int key)
     {
         for (int i = 0; i < Count; i++)
-            if (_keys[i] == key) return FadeDistance;
+        {
+            if (_keys[i] == key)
+            {
+                return FadeDistance;
+            }
+        }
+
         return 0f;
     }
 }
@@ -80,17 +98,41 @@ public static class ClassicTorchShadowSlots
     public static int Choose(Vector3 focus, ReadOnlySpan<int> keys, ReadOnlySpan<Vector3> positions, float reach,
         ReadOnlySpan<int> held, float hysteresis, Span<int> chosen)
     {
-        if (keys.Length != positions.Length) throw new ArgumentException("One key per torch position.", nameof(keys));
-        if (hysteresis < 0) throw new ArgumentOutOfRangeException(nameof(hysteresis));
+        if (keys.Length != positions.Length)
+        {
+            throw new ArgumentException("One key per torch position.", nameof(keys));
+        }
+
+        if (hysteresis < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(hysteresis));
+        }
+
         int count = 0;
         for (int i = 0; i < positions.Length; i++)
         {
             float distance = Distance(focus, keys[i], positions[i], held, hysteresis);
-            if (!(distance <= reach)) continue;
+            if (!(distance <= reach))
+            {
+                continue;
+            }
+
             int slot = 0;
-            while (slot < count && Before(focus, keys, positions, held, hysteresis, chosen[slot], distance, keys[i])) slot++;
-            if (slot >= chosen.Length) continue;
-            for (int j = Math.Min(count, chosen.Length - 1); j > slot; j--) chosen[j] = chosen[j - 1];
+            while (slot < count && Before(focus, keys, positions, held, hysteresis, chosen[slot], distance, keys[i]))
+            {
+                slot++;
+            }
+
+            if (slot >= chosen.Length)
+            {
+                continue;
+            }
+
+            for (int j = Math.Min(count, chosen.Length - 1); j > slot; j--)
+            {
+                chosen[j] = chosen[j - 1];
+            }
+
             chosen[slot] = i;
             count = Math.Min(count + 1, chosen.Length);
         }

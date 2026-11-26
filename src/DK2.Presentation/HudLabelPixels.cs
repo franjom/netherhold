@@ -25,15 +25,21 @@ public static class HudLabelPixels
         {
             BitmapGlyph glyph = label.Font.Find(item.Character)!;
             for (int y = 0; y < item.InkBounds.Height; y++)
+            {
                 for (int x = 0; x < item.InkBounds.Width; x++)
                 {
                     int targetX = (int)(item.InkBounds.X - geometry.InkBounds.X) + x + padding;
                     int targetY = (int)(item.InkBounds.Y - geometry.InkBounds.Y) + y + padding;
                     byte alpha = (byte)(glyph.Pixels[((int)item.SourceInkBounds.Y + y) * glyph.Width + (int)item.SourceInkBounds.X + x] * 17);
                     int at = (targetY * width + targetX) * 4;
-                    if (alpha <= pixels[at + 3]) continue;
+                    if (alpha <= pixels[at + 3])
+                    {
+                        continue;
+                    }
+
                     pixels[at] = 255; pixels[at + 1] = 255; pixels[at + 2] = 255; pixels[at + 3] = alpha;
                 }
+            }
         }
         return new RgbaImage(width, height, pixels);
     }
@@ -44,7 +50,10 @@ public static class HudLabelPixels
         int width = image.Width + 2 * padding, height = image.Height + 2 * padding;
         byte[] padded = new byte[width * height * 4];
         for (int y = 0; y < image.Height; y++)
+        {
             Buffer.BlockCopy(image.Pixels, y * image.Width * 4, padded, ((y + padding) * width + padding) * 4, image.Width * 4);
+        }
+
         return new RgbaImage(width, height, padded);
     }
 
@@ -61,7 +70,11 @@ public static class HudLabelPixels
     public static RgbaImage Quarter(RgbaImage full, int quarters)
     {
         byte[] pixels = (byte[])full.Pixels.Clone();
-        for (int at = 3; at < pixels.Length; at += 4) pixels[at] = (byte)(pixels[at] * quarters / 4);
+        for (int at = 3; at < pixels.Length; at += 4)
+        {
+            pixels[at] = (byte)(pixels[at] * quarters / 4);
+        }
+
         return new RgbaImage(full.Width, full.Height, pixels);
     }
 }

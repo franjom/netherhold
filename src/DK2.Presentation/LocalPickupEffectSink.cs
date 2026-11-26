@@ -9,7 +9,11 @@ public sealed class LocalPickupEffectSink(LocalPickupFeedback feedback, ISimulat
 {
     public void Emit(in SimEvent simEvent)
     {
-        if (simEvent.System == "Hand" && simEvent.EffectRequest is { } effect && feedback.ConsumeDust(effect)) return;
+        if (simEvent.System == "Hand" && simEvent.EffectRequest is { } effect && feedback.ConsumeDust(effect))
+        {
+            return;
+        }
+
         downstream.Emit(simEvent);
     }
 }

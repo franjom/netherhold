@@ -96,7 +96,11 @@ public sealed class ClassicHudControls
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hud-visibility.md#result-and-special-player-state-binary-2026-10-24")]
     public void UpdateResult(HudResultState result, CameraModeId camera = default)
     {
-        if (camera != CameraModeId.ScriptedPath) InputSuppressed = false;
+        if (camera != CameraModeId.ScriptedPath)
+        {
+            InputSuppressed = false;
+        }
+
         if (result.HasResult && !result.Continued)
         {
             InputSuppressed = true;
@@ -111,11 +115,23 @@ public sealed class ClassicHudControls
 
     public void Apply(ClassicHudAction action)
     {
-        if (InputSuppressed) return;
-        if (FullMapVisible && action != ClassicHudAction.ToggleFullMap) return;
+        if (InputSuppressed)
+        {
+            return;
+        }
+
+        if (FullMapVisible && action != ClassicHudAction.ToggleFullMap)
+        {
+            return;
+        }
+
         if (OptionsVisible && action is ClassicHudAction.ToggleGui or ClassicHudAction.ToggleFullMap
             or ClassicHudAction.NavigateHeart or ClassicHudAction.NavigatePortal or ClassicHudAction.NavigateFight or ClassicHudAction.SelectQuery or ClassicHudAction.SelectSell
-            or ClassicHudAction.ZoomIn or ClassicHudAction.ZoomOut) return;
+            or ClassicHudAction.ZoomIn or ClassicHudAction.ZoomOut)
+        {
+            return;
+        }
+
         switch (action)
         {
             case ClassicHudAction.ToggleGui: GuiVisible = !GuiVisible; break;
@@ -125,37 +141,77 @@ public sealed class ClassicHudControls
                 OptionsPage = ClassicOptionsPage.Root;
                 Confirmation = ClassicSessionAction.None; GuiVisible = true; break;
             case ClassicHudAction.ShowObjective:
-                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root) OptionsPage = ClassicOptionsPage.Objective;
+                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root)
+                {
+                    OptionsPage = ClassicOptionsPage.Objective;
+                }
+
                 break;
             case ClassicHudAction.CloseObjective:
-                if (ObjectiveVisible) OptionsPage = ClassicOptionsPage.Root;
+                if (ObjectiveVisible)
+                {
+                    OptionsPage = ClassicOptionsPage.Root;
+                }
+
                 break;
             case ClassicHudAction.BackToOptions:
                 if (OptionsVisible) { OptionsPage = ClassicOptionsPage.Root; Confirmation = ClassicSessionAction.None; }
                 break;
             case ClassicHudAction.EndGame:
-                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root) OptionsPage = ClassicOptionsPage.Exit;
+                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root)
+                {
+                    OptionsPage = ClassicOptionsPage.Exit;
+                }
+
                 break;
             case ClassicHudAction.OpenGameOptions:
-                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root) OptionsPage = ClassicOptionsPage.GameOptions;
+                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root)
+                {
+                    OptionsPage = ClassicOptionsPage.GameOptions;
+                }
+
                 break;
             case ClassicHudAction.OpenSave:
-                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root) OptionsPage = ClassicOptionsPage.Save;
+                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root)
+                {
+                    OptionsPage = ClassicOptionsPage.Save;
+                }
+
                 break;
             case ClassicHudAction.OpenLoad:
-                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root) OptionsPage = ClassicOptionsPage.Load;
+                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root)
+                {
+                    OptionsPage = ClassicOptionsPage.Load;
+                }
+
                 break;
             case ClassicHudAction.RestartLevel:
-                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root) Confirm(ClassicSessionAction.Restart);
+                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root)
+                {
+                    Confirm(ClassicSessionAction.Restart);
+                }
+
                 break;
             case ClassicHudAction.ReturnToMenu:
-                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Exit) Confirm(ClassicSessionAction.ReturnToMenu);
+                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Exit)
+                {
+                    Confirm(ClassicSessionAction.ReturnToMenu);
+                }
+
                 break;
             case ClassicHudAction.QuitGame:
-                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Exit) Confirm(ClassicSessionAction.Quit);
+                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Exit)
+                {
+                    Confirm(ClassicSessionAction.Quit);
+                }
+
                 break;
             case ClassicHudAction.Confirm:
-                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Confirmation) _sessionAction = Confirmation;
+                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Confirmation)
+                {
+                    _sessionAction = Confirmation;
+                }
+
                 break;
             case ClassicHudAction.CancelConfirmation:
                 if (OptionsVisible && OptionsPage == ClassicOptionsPage.Confirmation)
@@ -181,11 +237,31 @@ public static class ClassicHudControlLayout
 {
     public static ClassicHudAction ActionAt(Vector2 point, bool secondary)
     {
-        if (MinimapControlLayout.IsMagnifier(point)) return secondary ? ClassicHudAction.ZoomOut : ClassicHudAction.ZoomIn;
-        if (secondary) return ClassicHudAction.None;
-        if (In(point, 8, 584, 40, 616)) return ClassicHudAction.SelectQuery;
-        if (In(point, 155.2f, 584, 187.2f, 616)) return ClassicHudAction.SelectSell;
-        if (In(point, 8, 728, 40, 760)) return ClassicHudAction.ToggleOptions;
+        if (MinimapControlLayout.IsMagnifier(point))
+        {
+            return secondary ? ClassicHudAction.ZoomOut : ClassicHudAction.ZoomIn;
+        }
+
+        if (secondary)
+        {
+            return ClassicHudAction.None;
+        }
+
+        if (In(point, 8, 584, 40, 616))
+        {
+            return ClassicHudAction.SelectQuery;
+        }
+
+        if (In(point, 155.2f, 584, 187.2f, 616))
+        {
+            return ClassicHudAction.SelectSell;
+        }
+
+        if (In(point, 8, 728, 40, 760))
+        {
+            return ClassicHudAction.ToggleOptions;
+        }
+
         return ClassicHudAction.None;
     }
     /// <summary>The GUI button (game action 0x72, ADR-0670) a minimap corner's action posts: the magnifier's either click,

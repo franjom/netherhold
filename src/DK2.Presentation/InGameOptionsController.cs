@@ -14,14 +14,22 @@ public sealed class InGameOptionsController
     public InGameOptionsPage Page { get; private set; }
     public void Open()
     {
-        if (!_hud.OptionsVisible) return;
+        if (!_hud.OptionsVisible)
+        {
+            return;
+        }
+
         _hud.Apply(ClassicHudAction.OpenGameOptions); Page = InGameOptionsPage.Root;
     }
     public bool Navigate(InGameOptionsPage page)
     {
         bool allowed = Page == InGameOptionsPage.Root && page is InGameOptionsPage.Graphics or InGameOptionsPage.Sound or InGameOptionsPage.Controls
             || Page == InGameOptionsPage.Controls && page == InGameOptionsPage.Keyboard;
-        if (!allowed) return false;
+        if (!allowed)
+        {
+            return false;
+        }
+
         Page = page;
         Settings.Enter(page switch { InGameOptionsPage.Graphics => FrontEndPage.Graphics, InGameOptionsPage.Sound => FrontEndPage.Sound,
             _ => FrontEndPage.Controls }, OptionsApplicationMode.InGame);
@@ -36,11 +44,18 @@ public sealed class InGameOptionsController
     }
     public void Continue()
     {
-        Hide(); if (_hud.GameOptionsVisible) _hud.Apply(ClassicHudAction.ToggleOptions);
+        Hide(); if (_hud.GameOptionsVisible)
+        {
+            _hud.Apply(ClassicHudAction.ToggleOptions);
+        }
     }
     public void Hide()
     {
-        if (Settings.Page != FrontEndPage.None) Settings.Accept();
+        if (Settings.Page != FrontEndPage.None)
+        {
+            Settings.Accept();
+        }
+
         Page = InGameOptionsPage.None;
     }
     public bool CanNavigate(InGameOptionsPage page) => page is InGameOptionsPage.Graphics or InGameOptionsPage.Sound or InGameOptionsPage.Controls or InGameOptionsPage.Keyboard;

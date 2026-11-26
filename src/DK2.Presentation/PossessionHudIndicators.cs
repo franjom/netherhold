@@ -40,16 +40,26 @@ public sealed class PossessionHudIndicators
             if (room)
             {
                 HudImage icon = _art.Icon(new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, shown.NextRoomTypeId));
-                if (!icon.IsNone) Quad(frame, icon, new(x + 128, y, 128, 128));
+                if (!icon.IsNone)
+                {
+                    Quad(frame, icon, new(x + 128, y, 128, 128));
+                }
+
                 continue;
             }
             if (indicator != HudIndicator.SlapsRemaining)
+            {
                 Quad(frame, "GUI\\Windows\\gold-bg-01", new(x + 256, y, 188, 128));
+            }
+
             switch (indicator)
             {
                 case HudIndicator.TimeRemaining:
                     foreach ((string digits, int slots) in HudIndicatorLayout.TimeRemainingDigits(shown.TimeLimitTurns, SimulationTiming.OriginalTicksPerGameSecond))
+                    {
                         Digits(frame, screen, digits, slots, x, y + 40);
+                    }
+
                     break;
                 case HudIndicator.Score: Digits(frame, screen, shown.ScoreValue.ToString(CultureInfo.InvariantCulture), 10, x, y + 40); break;
                 case HudIndicator.HeroesKilled: Digits(frame, screen, shown.HeroesDestroyed.ToString(CultureInfo.InvariantCulture), 10, x, y + 40); break;
@@ -59,8 +69,10 @@ public sealed class PossessionHudIndicators
         }
         float xScale = PossessionHud.ContentXScale(layout);
         foreach (HudDraw draw in frame.Draws)
+        {
             target.Add(draw with { Rect = draw.Rect with { X = draw.Rect.X * xScale, Width = draw.Rect.Width * xScale },
                 Clip = draw.Clip is HudRect clip ? clip with { X = clip.X * xScale, Width = clip.Width * xScale } : null });
+        }
     }
 
     private static void Digits(HudFrame frame, HudScreen screen, string text, int slots, int x, float y)
@@ -68,7 +80,9 @@ public sealed class PossessionHudIndicators
         int start = HudIndicatorLayout.AlignedStart(text.Length, slots);
         string family = screen.Width >= 640 ? "GUI\\Icons\\i-" : "GUI\\Icons\\lo-";
         for (int i = 0; i < text.Length; i++)
+        {
             Quad(frame, text[i] == '-' ? "GUI\\Icons\\I--" : family + text[i], new(x + (start + i) * 40, y, 48, 48));
+        }
     }
 
     private void Holder(HudFrame frame, HudScreen screen, PlayerId player, int x, float y)
@@ -80,8 +94,14 @@ public sealed class PossessionHudIndicators
         else
         {
             _scroll += _forward ? 1 : -1;
-            if (_scroll > overflow) _forward = false;
-            else if (_scroll < 0) _forward = true;
+            if (_scroll > overflow)
+            {
+                _forward = false;
+            }
+            else if (_scroll < 0)
+            {
+                _forward = true;
+            }
         }
         int down = screen.Height == 300 ? 2 : 16;
         var window = new HudRect(x + 160, y + down, 260, 128 - down);

@@ -79,13 +79,19 @@ public sealed class TextRenderer
     /// about the world.</para></summary>
     public string Render(WorldState world, int originX, int originY, int width, int height)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
 
         var creatures = new Dictionary<int, CreatureView>();
         foreach (CreatureView creature in _view.Creatures(world))
         {
             TilePos at = creature.Tile;
-            if (!world.Contains(at)) continue;
+            if (!world.Contains(at))
+            {
+                continue;
+            }
             // Later creatures overwrite earlier ones on the same tile, which
             // matches "spawn order is behaviour" without pretending a character
             // cell can show two things.
@@ -95,7 +101,11 @@ public sealed class TextRenderer
         var objects = new Dictionary<int, ObjectView>();
         foreach (ObjectView instance in _view.Objects(world))
         {
-            if (!world.Contains(instance.Tile)) continue;
+            if (!world.Contains(instance.Tile))
+            {
+                continue;
+            }
+
             objects[(instance.Tile.Y * world.Width) + instance.Tile.X] = instance;
         }
 
@@ -150,8 +160,15 @@ public sealed class TextRenderer
     /// </summary>
     public char GlyphFor(TileView tile)
     {
-        if (tile.Tagged) return TaggedGlyph;
-        if (tile.GoldHeld > 0) return GoldGlyph;
+        if (tile.Tagged)
+        {
+            return TaggedGlyph;
+        }
+
+        if (tile.GoldHeld > 0)
+        {
+            return GoldGlyph;
+        }
 
         if (tile.Solid)
         {

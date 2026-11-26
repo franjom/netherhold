@@ -33,7 +33,9 @@ public sealed class OptionsHud
         foreach (ClassicOptionsAction action in new[] { ClassicOptionsAction.ContinueGame, ClassicOptionsAction.LevelObjective,
             ClassicOptionsAction.Back, ClassicOptionsAction.EndGame, ClassicOptionsAction.RestartLevel, ClassicOptionsAction.ReturnToMenu,
             ClassicOptionsAction.QuitGame, ClassicOptionsAction.Confirm, ClassicOptionsAction.Cancel })
+        {
             SetSupported(action, true);
+        }
     }
 
     private IReadOnlyList<ClassicOptionsEntry> Entries => ClassicOptionsLayout.ForPage(_page);
@@ -42,7 +44,11 @@ public sealed class OptionsHud
 
     /// <summary>An unsupported action's entry is greyed and takes no press.</summary>
     public void SetSupported(ClassicOptionsAction action, bool supported)
-    { if (action != ClassicOptionsAction.None) _supported[(int)action] = supported; }
+    { if (action != ClassicOptionsAction.None)
+        {
+            _supported[(int)action] = supported;
+        }
+    }
 
     /// <summary>Whether an entry with this action takes a press; never for <see cref="ClassicOptionsAction.None"/>.</summary>
     public bool Supported(ClassicOptionsAction action) => action != ClassicOptionsAction.None && _supported[(int)action];
@@ -76,20 +82,30 @@ public sealed class OptionsHud
 
     public void SetPage(ClassicOptionsPage page, ClassicSessionAction confirmation)
     {
-        if (_page == page && _confirmation == confirmation) return;
+        if (_page == page && _confirmation == confirmation)
+        {
+            return;
+        }
+
         _page = page; _confirmation = confirmation; _height = 0;
     }
 
     /// <summary>The supported entry under a point in virtual units.</summary>
     public ClassicOptionsAction ActionAt(float x, float y)
     {
-        if (!_visible) return ClassicOptionsAction.None;
+        if (!_visible)
+        {
+            return ClassicOptionsAction.None;
+        }
+
         IReadOnlyList<ClassicOptionsEntry> entries = Entries;
         for (int i = 0; i < entries.Count; i++)
         {
             ClassicOptionsEntry entry = entries[i];
             if (_supported[(int)entry.Action] && new HudRect(entry.X * Unit, entry.Y * Unit, entry.Width * Unit, EntryHeight).Contains(x, y))
+            {
                 return entry.Action;
+            }
         }
         return ClassicOptionsAction.None;
     }
@@ -97,11 +113,23 @@ public sealed class OptionsHud
     /// <param name="pointer">The pointer in virtual units: the entry under it is lit.</param>
     public void Build(HudScreen screen, (float X, float Y) pointer, HudFrame frame)
     {
-        if (!_visible || screen.Height <= 0) return;
-        if (_height != screen.Height) Set(screen);
+        if (!_visible || screen.Height <= 0)
+        {
+            return;
+        }
+
+        if (_height != screen.Height)
+        {
+            Set(screen);
+        }
+
         ClassicOptionsAction hover = ActionAt(pointer.X, pointer.Y);
         int first = _page == ClassicOptionsPage.Objective ? 0 : 1;
-        if (first == 1) frame.Add(new HudDraw(HudDrawKind.Quad, HudImage.Of(_labels[0].Text), _labels[0].Rect, HudColor.White));
+        if (first == 1)
+        {
+            frame.Add(new HudDraw(HudDrawKind.Quad, HudImage.Of(_labels[0].Text), _labels[0].Rect, HudColor.White));
+        }
+
         for (int i = 0; i < Entries.Count; i++)
         {
             ClassicOptionsAction action = Entries[i].Action;
@@ -116,8 +144,15 @@ public sealed class OptionsHud
     {
         _height = screen.Height; _labels.Clear();
         BitmapFont font = _font(screen.Height);
-        if (_page != ClassicOptionsPage.Objective) Label(screen, font, ClassicOptionsLayout.TitleFor(_page, _confirmation), 8, 72);
-        foreach (ClassicOptionsEntry entry in Entries) Label(screen, font, entry.TextId, entry.X, entry.Y);
+        if (_page != ClassicOptionsPage.Objective)
+        {
+            Label(screen, font, ClassicOptionsLayout.TitleFor(_page, _confirmation), 8, 72);
+        }
+
+        foreach (ClassicOptionsEntry entry in Entries)
+        {
+            Label(screen, font, entry.TextId, entry.X, entry.Y);
+        }
     }
 
     private void Label(HudScreen screen, BitmapFont font, uint id, float x, float y)

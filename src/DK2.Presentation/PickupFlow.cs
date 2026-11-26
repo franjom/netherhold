@@ -38,12 +38,27 @@ public sealed class PickupFlow
     public bool PickUpFromOverview(WorldState world, GameDatabase database, PlayerId viewer, CreatureQueryTarget target,
         CreatureOverview overview, long milliseconds, List<PlayerCommand> output)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (overview is null) throw new ArgumentNullException(nameof(overview));
-        if (output is null) throw new ArgumentNullException(nameof(output));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (overview is null)
+        {
+            throw new ArgumentNullException(nameof(overview));
+        }
+
+        if (output is null)
+        {
+            throw new ArgumentNullException(nameof(output));
+        }
+
         var command = new PickUpCreatureCommand(viewer, target.Value);
         if (!_view.LocalPickups.TryQueue(world, database, command.PlayerId, new CreatureId(command.CreatureId), milliseconds))
+        {
             return false;
+        }
+
         _cursor?.Play(HandCursorKind.HoldThing, milliseconds);
         output.Add(command);
         _view.QueueMinimapPickupPreview(command, world.CurrentTick.Next);
@@ -58,19 +73,38 @@ public sealed class PickupFlow
     public bool PostWorldCommand(WorldState world, GameDatabase database, PlayerCommand command, long milliseconds,
         FpPosition2? pointed, List<PlayerCommand> output)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (command is null) throw new ArgumentNullException(nameof(command));
-        if (output is null) throw new ArgumentNullException(nameof(output));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (command is null)
+        {
+            throw new ArgumentNullException(nameof(command));
+        }
+
+        if (output is null)
+        {
+            throw new ArgumentNullException(nameof(output));
+        }
+
         if (command is PickUpCreatureCommand pickup)
         {
             if (!_view.LocalPickups.TryQueue(world, database, pickup.PlayerId, new CreatureId(pickup.CreatureId), milliseconds))
+            {
                 return false;
+            }
+
             _cursor?.Play(HandCursorKind.HoldThing, milliseconds, pointed);
             output.Add(pickup);
             _view.QueueMinimapPickupPreview(pickup, world.CurrentTick.Next);
             return true;
         }
-        if (command is DropCommand drop && _view.LocalPickups.TryQueueDrop(drop)) return false;
+        if (command is DropCommand drop && _view.LocalPickups.TryQueueDrop(drop))
+        {
+            return false;
+        }
+
         output.Add(command);
         return true;
     }

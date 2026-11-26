@@ -39,8 +39,16 @@ public readonly record struct SoundDistanceMapping(float Minimum, float Maximum,
     /// <c>min / (min + scale × (d − min))</c>; DK2's mapping gives 4 / (d + 2), 2 / (tiles + 1).</summary>
     public float Factor(float distanceUnits)
     {
-        if (distanceUnits > Maximum) return 0f;
-        if (distanceUnits <= Minimum || Scale == 0f) return 1f;
+        if (distanceUnits > Maximum)
+        {
+            return 0f;
+        }
+
+        if (distanceUnits <= Minimum || Scale == 0f)
+        {
+            return 1f;
+        }
+
         return Minimum / (Minimum + (Scale * (distanceUnits - Minimum)));
     }
 
@@ -78,7 +86,13 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
         {
             var groups = new Dictionary<SoundId, SoundGroup>(map.Groups.Count);
             foreach (SoundGroup group in map.Groups)
-                if (!groups.ContainsKey(group.Id)) groups.Add(group.Id, group);
+            {
+                if (!groups.ContainsKey(group.Id))
+                {
+                    groups.Add(group.Id, group);
+                }
+            }
+
             _groups = groups;
         }
         return _groups.TryGetValue(id, out SoundGroup? found) ? found : null;
@@ -103,8 +117,16 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
     public SoundDistanceMapping? DistanceMappingOf(SoundId id)
     {
         SoundGroup? group = Group(id);
-        if (group is not { Items.Count: > 0 }) return null;
-        if ((System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(group.Unknown0x08.AsSpan(8)) & 0x200) != 0) return null;
+        if (group is not { Items.Count: > 0 })
+        {
+            return null;
+        }
+
+        if ((System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(group.Unknown0x08.AsSpan(8)) & 0x200) != 0)
+        {
+            return null;
+        }
+
         return SoundDistanceMapping.Of(group.Items[0]);
     }
 
@@ -127,10 +149,22 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
         into.Clear();
         foreach (SoundGroup group in map.Groups)
         {
-            if (group.Id != id) continue;
+            if (group.Id != id)
+            {
+                continue;
+            }
+
             foreach (SoundItem item in group.Items)
+            {
                 foreach (SoundSample sample in item.Sounds)
-                    if (Locate(banks, sample) is ResolvedSound found) into.Add(found);
+                {
+                    if (Locate(banks, sample) is ResolvedSound found)
+                    {
+                        into.Add(found);
+                    }
+                }
+            }
+
             return;
         }
     }
@@ -139,23 +173,36 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
     public static ResolvedSound? Locate(BankMap banks, SoundSample sample)
     {
         int bank = sample.Archive.Value - 1;
-        if (bank < 0 || bank >= banks.Archives.Count || sample.Index == 0 || sample.Index > int.MaxValue) return null;
+        if (bank < 0 || bank >= banks.Archives.Count || sample.Index == 0 || sample.Index > int.MaxValue)
+        {
+            return null;
+        }
+
         return new ResolvedSound(banks.Archives[bank].Name, new SoundEntryId((int)sample.Index - 1));
     }
 
     public ResolvedSound? ResolveItem(SoundItem item, SoundRand random)
     {
-        if (item.Sounds.Count == 0) return null;
+        if (item.Sounds.Count == 0)
+        {
+            return null;
+        }
+
         SoundSample sample = item.Sounds[0];
         if (item.Sounds.Count > 1)
         {
             uint draw = random.Next() >> 16;
             foreach (SoundSample candidate in item.Sounds)
+            {
                 if (draw <= candidate.CumulativeWeight) { sample = candidate; break; }
+            }
         }
         int bank = sample.Archive.Value - 1;
         if (bank < 0 || bank >= banks.Archives.Count || sample.Index == 0 || sample.Index > int.MaxValue)
+        {
             throw new InvalidDataException("Sound map sample references an invalid archive or entry.");
+        }
+
         return new ResolvedSound(banks.Archives[bank].Name, new SoundEntryId((int)sample.Index - 1));
     }
 }

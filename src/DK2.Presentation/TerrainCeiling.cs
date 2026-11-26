@@ -55,11 +55,19 @@ public static class TerrainCeiling
     {
         ReadOnlySpan<TileState> tiles = world.Tiles;
         for (int i = 0; i < tiles.Length; i++)
+        {
             closed[i] = database.TerrainById(tiles[i].TerrainId).IsSolid;
+        }
+
         foreach (ObjectState thing in world.Objects)
+        {
             if (thing.TileLink.IsLinked && !thing.InHand && thing.CarriedByCreatureId < 0
                 && database.ObjectById(thing.ObjectTypeId) is { } definition && (definition.Flags & ObjectFlags.Pillar) != 0)
+            {
                 closed[thing.TileLink.TileIndex] = true;
+            }
+        }
+
         RoomPillarLayout.MarkClosed(world, database, closed);
     }
 
@@ -70,7 +78,11 @@ public static class TerrainCeiling
     /// beside a map edge that is not solid. Outside the map the nibble is 0.</summary>
     public static int Nibble(int width, int height, ReadOnlySpan<bool> closed, int x, int y)
     {
-        if ((uint)x >= (uint)width || (uint)y >= (uint)height) return 0;
+        if ((uint)x >= (uint)width || (uint)y >= (uint)height)
+        {
+            return 0;
+        }
+
         int best = NoneFound;
         for (int b = y - Reach; b < y + Reach && best > 0; b++)
         {
@@ -79,8 +91,15 @@ public static class TerrainCeiling
             {
                 int dx = a >= x ? a - x : x - a - 1;
                 int distance = (dx * dx) + (dy * dy);
-                if (distance >= best || distance > FarthestCounted) continue;
-                if ((uint)a >= (uint)width || (uint)b >= (uint)height || closed[(b * width) + a]) best = distance;
+                if (distance >= best || distance > FarthestCounted)
+                {
+                    continue;
+                }
+
+                if ((uint)a >= (uint)width || (uint)b >= (uint)height || closed[(b * width) + a])
+                {
+                    best = distance;
+                }
             }
         }
         return NibbleOfDistance[best];
@@ -98,21 +117,42 @@ public static class TerrainCeiling
         int n00 = Nibble(width, height, closed, x, y), n10 = Nibble(width, height, closed, x + 1, y);
         int n01 = Nibble(width, height, closed, x, y + 1), n11 = Nibble(width, height, closed, x + 1, y + 1);
         for (int r = 0; r < 3; r++)
+        {
             for (int c = 0; c < 3; c++)
             {
                 int s = ((2 - c) * (2 - r) * n00) + ((2 - c) * r * n01) + (c * (2 - r) * n10) + (c * r * n11);
                 z[(3 * r) + c] = ((s * s) - (128 * s) - 4096) / 2048f;
             }
+        }
+
         Limit(ref z[4]);
-        if (Has(width, height, closed, x, y - 1)) Limit(ref z[1]);
-        if (Has(width, height, closed, x - 1, y)) Limit(ref z[3]);
-        if (Has(width, height, closed, x + 1, y)) Limit(ref z[5]);
-        if (Has(width, height, closed, x, y + 1)) Limit(ref z[7]);
+        if (Has(width, height, closed, x, y - 1))
+        {
+            Limit(ref z[1]);
+        }
+
+        if (Has(width, height, closed, x - 1, y))
+        {
+            Limit(ref z[3]);
+        }
+
+        if (Has(width, height, closed, x + 1, y))
+        {
+            Limit(ref z[5]);
+        }
+
+        if (Has(width, height, closed, x, y + 1))
+        {
+            Limit(ref z[7]);
+        }
     }
 
     private static void Limit(ref float z)
     {
-        if (z > OpenLimit) z = OpenLimit;
+        if (z > OpenLimit)
+        {
+            z = OpenLimit;
+        }
     }
 
     private static byte[] BuildTriangles()
@@ -120,6 +160,7 @@ public static class TerrainCeiling
         byte[] triangles = new byte[24];
         int at = 0;
         for (int i = 0; i < 2; i++)
+        {
             for (int j = 0; j < 2; j++)
             {
                 byte v00 = (byte)((3 * i) + j), v01 = (byte)(v00 + 1), v10 = (byte)(v00 + 3), v11 = (byte)(v00 + 4);
@@ -129,6 +170,8 @@ public static class TerrainCeiling
                 quad.CopyTo(triangles.AsSpan(at));
                 at += 6;
             }
+        }
+
         return triangles;
     }
 
@@ -139,7 +182,11 @@ public static class TerrainCeiling
         for (int d = 0; d <= NoneFound; d++)
         {
             int root = 0;
-            while ((root + 1) * (root + 1) <= 16 * d) root++;
+            while ((root + 1) * (root + 1) <= 16 * d)
+            {
+                root++;
+            }
+
             nibbles[d] = (byte)Math.Min(15, root);
         }
         return nibbles;

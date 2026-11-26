@@ -21,8 +21,16 @@ public sealed class InstallFrontEndSources : IFrontEndMenuSources, IDisposable
     /// <param name="decodePng">Decodes a FrontEnd.WAD PNG to top-down RGBA rows.</param>
     public InstallFrontEndSources(string install, Func<byte[], RgbaImage> decodePng)
     {
-        if (install == null) throw new ArgumentNullException(nameof(install));
-        if (decodePng == null) throw new ArgumentNullException(nameof(decodePng));
+        if (install == null)
+        {
+            throw new ArgumentNullException(nameof(install));
+        }
+
+        if (decodePng == null)
+        {
+            throw new ArgumentNullException(nameof(decodePng));
+        }
+
         Hud = new InstallHudSources(install);
         _images = new WadImageSource(WadArchive.Open(Path.Combine(install, "Data", "FrontEnd.WAD")), decodePng);
         _imageIndex = new WadDirectoryIndex(_images.Entries);

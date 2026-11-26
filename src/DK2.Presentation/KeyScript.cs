@@ -24,19 +24,45 @@ public sealed class KeyScript
     /// <summary>The script from its text, or null when the text is empty or any tap is malformed.</summary>
     public static KeyScript? Parse(string? text)
     {
-        if (text is null || text.Trim().Length == 0) return null;
+        if (text is null || text.Trim().Length == 0)
+        {
+            return null;
+        }
+
         string[] entries = text.Split(';');
         var keys = new KeyScriptKey[entries.Length];
         for (int i = 0; i < entries.Length; i++)
         {
             string[] parts = entries[i].Trim().Split(':');
-            if (parts.Length != 2) return null;
-            if (!int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out int frame)) return null;
-            if (i > 0 && frame < keys[i - 1].Frame) return null;
+            if (parts.Length != 2)
+            {
+                return null;
+            }
+
+            if (!int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out int frame))
+            {
+                return null;
+            }
+
+            if (i > 0 && frame < keys[i - 1].Frame)
+            {
+                return null;
+            }
+
             string name = parts[1];
-            if (name.Length == 0) return null;
+            if (name.Length == 0)
+            {
+                return null;
+            }
+
             foreach (char c in name)
-                if (c is not (>= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9')) return null;
+            {
+                if (c is not (>= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9'))
+                {
+                    return null;
+                }
+            }
+
             keys[i] = new KeyScriptKey(frame, name);
         }
         return new KeyScript(keys);
@@ -47,7 +73,11 @@ public sealed class KeyScript
     public int FirstAtOrAfter(int frame, int start = 0)
     {
         int i = Math.Max(0, start);
-        while (i < _keys.Length && _keys[i].Frame < frame) i++;
+        while (i < _keys.Length && _keys[i].Frame < frame)
+        {
+            i++;
+        }
+
         return i;
     }
 }

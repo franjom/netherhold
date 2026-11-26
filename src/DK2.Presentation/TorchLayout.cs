@@ -139,7 +139,11 @@ public sealed class TorchLayout
     /// </summary>
     public IReadOnlyList<int> Update(WorldState world)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         _changed.Clear();
         _phases.Clear();
 
@@ -148,7 +152,11 @@ public sealed class TorchLayout
             _torches = new TorchView?[world.TileCount];
             _terrain = new byte[world.TileCount];
             _width = world.Width;
-            for (int i = 0; i < _terrain.Length; i++) _terrain[i] = world.TileAtIndex(i).TerrainId;
+            for (int i = 0; i < _terrain.Length; i++)
+            {
+                _terrain[i] = world.TileAtIndex(i).TerrainId;
+            }
+
             LayOut(world);
         }
         else
@@ -156,11 +164,18 @@ public sealed class TorchLayout
             for (int i = 0; i < _terrain.Length; i++)
             {
                 byte now = world.TileAtIndex(i).TerrainId;
-                if (now == _terrain[i]) continue;
+                if (now == _terrain[i])
+                {
+                    continue;
+                }
+
                 bool roomChanged = RoomOf(_terrain[i]) != RoomOf(now);
                 _terrain[i] = now;
                 TerrainSet(world, i % _width, i / _width);
-                if (roomChanged) Recolour(world, i % _width, i / _width);
+                if (roomChanged)
+                {
+                    Recolour(world, i % _width, i / _width);
+                }
             }
         }
 
@@ -179,8 +194,16 @@ public sealed class TorchLayout
         // 0x0050BB63..0x0050BB83, before the torch pass: a level room's negative phase becomes 0.
         _levelStart = true;
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
-                if (Qualifies(world, x, y)) Refresh(world, x, y);
+            {
+                if (Qualifies(world, x, y))
+                {
+                    Refresh(world, x, y);
+                }
+            }
+        }
+
         _levelStart = false;
     }
 
@@ -193,9 +216,20 @@ public sealed class TorchLayout
         if (!Solid(world, x, y))
         {
             for (int d = 0; d < 4; d++)
-                if (Qualifies(world, x + Dx[d], y + Dy[d])) Refresh(world, x + Dx[d], y + Dy[d]);
+            {
+                if (Qualifies(world, x + Dx[d], y + Dy[d]))
+                {
+                    Refresh(world, x + Dx[d], y + Dy[d]);
+                }
+            }
+
             for (int d = 0; d < 4; d++)
-                if (Qualifies(world, x + (2 * Dx[d]), y + (2 * Dy[d]))) Refresh(world, x + (2 * Dx[d]), y + (2 * Dy[d]));
+            {
+                if (Qualifies(world, x + (2 * Dx[d]), y + (2 * Dy[d])))
+                {
+                    Refresh(world, x + (2 * Dx[d]), y + (2 * Dy[d]));
+                }
+            }
         }
 
         Refresh(world, x, y);
@@ -210,9 +244,17 @@ public sealed class TorchLayout
         {
             for (int tx = x - 1; tx <= x + 1; tx++)
             {
-                if (!world.Contains(tx, ty)) continue;
+                if (!world.Contains(tx, ty))
+                {
+                    continue;
+                }
+
                 int index = (ty * _width) + tx;
-                if (_torches[index] is not TorchView torch) continue;
+                if (_torches[index] is not TorchView torch)
+                {
+                    continue;
+                }
+
                 (int red, int green, int blue) = ColourOf(world, tx, ty);
                 Set(index, new TorchView(index, torch.Wall, torch.PosX, torch.PosY, torch.Height, torch.Yaw,
                     red, green, blue, torch.Intensity, torch.Radius, torch.Mesh));
@@ -223,19 +265,32 @@ public sealed class TorchLayout
     /// <summary><c>0x00439B90</c> for the wall at (x, y).</summary>
     private void Refresh(WorldState world, int x, int y)
     {
-        if (!world.Contains(x, y)) return;
+        if (!world.Contains(x, y))
+        {
+            return;
+        }
 
         // A tile that is now solid loses the torch it held as a floor.
-        if (Solid(world, x, y)) Set((y * _width) + x, null);
+        if (Solid(world, x, y))
+        {
+            Set((y * _width) + x, null);
+        }
 
         if (!Qualifies(world, x, y))
         {
             for (int d = 0; d < 4; d++)
             {
                 int fx = x + Dx[d], fy = y + Dy[d];
-                if (!world.Contains(fx, fy)) continue;
+                if (!world.Contains(fx, fy))
+                {
+                    continue;
+                }
+
                 int floor = (fy * _width) + fx;
-                if (_torches[floor] is TorchView torch && torch.Wall == new TilePos(x, y)) Set(floor, null);
+                if (_torches[floor] is TorchView torch && torch.Wall == new TilePos(x, y))
+                {
+                    Set(floor, null);
+                }
             }
 
             return;
@@ -244,10 +299,17 @@ public sealed class TorchLayout
         for (int d = 0; d < 4; d++)
         {
             int fx = x + Dx[d], fy = y + Dy[d];
-            if (!world.Contains(fx, fy) || Solid(world, fx, fy)) continue;
+            if (!world.Contains(fx, fy) || Solid(world, fx, fy))
+            {
+                continue;
+            }
+
             int floor = (fy * _width) + fx;
             if (_torches[floor] is not null || !ParityPasses(world, d, fx, fy) || world.DoorAt(fx, fy) is not null)
+            {
                 continue;
+            }
+
             Set(floor, Create(world, floor, fx, fy, x, y, d));
         }
     }
@@ -293,12 +355,19 @@ public sealed class TorchLayout
                 && RoomIndex.RoomAt(world, _database, floor) is { } room)
             {
                 phases = RoomWallPhases.Of(world, _database, room);
-                foreach (int tile in room.TileIndices) _phases[tile] = phases;
+                foreach (int tile in room.TileIndices)
+                {
+                    _phases[tile] = phases;
+                }
             }
             phase = face % 2 == 0 ? phases.NorthSouth : phases.EastWest;
             if (phase < 0)
             {
-                if (!_levelStart) return false;
+                if (!_levelStart)
+                {
+                    return false;
+                }
+
                 phase = 0;
             }
         }
@@ -314,7 +383,11 @@ public sealed class TorchLayout
     private void Set(int floor, TorchView? torch)
     {
         TorchView? before = _torches[floor];
-        if (before.HasValue == torch.HasValue && (!before.HasValue || before.Value.Equals(torch!.Value))) return;
+        if (before.HasValue == torch.HasValue && (!before.HasValue || before.Value.Equals(torch!.Value)))
+        {
+            return;
+        }
+
         _torches[floor] = torch;
         _changed.Add(floor);
     }

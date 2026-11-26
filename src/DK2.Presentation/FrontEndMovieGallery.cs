@@ -29,8 +29,14 @@ public sealed class FrontEndMovieGallery
         {
             bool unlocked = movie == 0;
             for (byte slot = 1; slot <= 24; slot++)
+            {
                 if (profile.PlayerLevelStatus[slot - 1] == CampaignLevelStatus.Won
-                    && CampaignCutscene.LevelNumber(new CampaignSlot(slot)) == movie) unlocked = true;
+                    && CampaignCutscene.LevelNumber(new CampaignSlot(slot)) == movie)
+                {
+                    unlocked = true;
+                }
+            }
+
             string path = movie == 0 ? "Data/Movies/Intro.tgq" : movie == 20 ? "Data/Movies/Outro.tgq"
                 : $"Data/Movies/CutSceneLevel{movie}.tgq";
             bool available = unlocked && _exists(path);

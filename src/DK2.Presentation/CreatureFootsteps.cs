@@ -25,7 +25,11 @@ public static class CreatureFootsteps
     /// <summary>As the overload with the data's name, with its category already made (<see cref="SoundCategoryNames"/>), so a step allocates nothing.</summary>
     public static SoundRequest? For(SoundCategory category, int creatureId, int crossing, bool wading, Vector3 position)
     {
-        if (crossing is not (1 or 2) || category.IsNone) return null;
+        if (crossing is not (1 or 2) || category.IsNone)
+        {
+            return null;
+        }
+
         uint id = (wading, crossing) switch
         {
             (false, 1) => Walk,

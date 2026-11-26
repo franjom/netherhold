@@ -56,7 +56,13 @@ public sealed class TerrainTileGeometry
     internal int SlotOf(in TerrainMaterialKey key)
     {
         for (int i = 0; i < KeyCount; i++)
-            if (_keys[i].Equals(key)) return i;
+        {
+            if (_keys[i].Equals(key))
+            {
+                return i;
+            }
+        }
+
         if (KeyCount == _keys.Length)
         {
             Array.Resize(ref _keys, KeyCount * 2);
@@ -69,7 +75,11 @@ public sealed class TerrainTileGeometry
 
     internal void EnsureVertices(int needed)
     {
-        if (_positions.Length >= needed) return;
+        if (_positions.Length >= needed)
+        {
+            return;
+        }
+
         int size = Math.Max(needed, _positions.Length * 2);
         Array.Resize(ref _positions, size);
         Array.Resize(ref _normals, size);
@@ -91,7 +101,11 @@ public sealed class TerrainIndexList
 
     internal void Add(int value)
     {
-        if (Count == _items.Length) Array.Resize(ref _items, Count * 2);
+        if (Count == _items.Length)
+        {
+            Array.Resize(ref _items, Count * 2);
+        }
+
         _items[Count++] = value;
     }
 }

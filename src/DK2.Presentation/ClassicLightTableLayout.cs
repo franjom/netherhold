@@ -27,8 +27,16 @@ public static class ClassicLightTableLayout
     /// and the layer (the tile's row).</summary>
     public static (int X, int Row, int Layer) Texel(TilePos tile, int texel)
     {
-        if ((uint)texel >= TexelsPerTile) throw new ArgumentOutOfRangeException(nameof(texel));
-        if (tile.X < 0 || tile.Y < 0) throw new ArgumentOutOfRangeException(nameof(tile));
+        if ((uint)texel >= TexelsPerTile)
+        {
+            throw new ArgumentOutOfRangeException(nameof(texel));
+        }
+
+        if (tile.X < 0 || tile.Y < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(tile));
+        }
+
         return ((tile.X % TilesPerTextureRow * TexelsPerTile) + texel, tile.X / TilesPerTextureRow, tile.Y);
     }
 

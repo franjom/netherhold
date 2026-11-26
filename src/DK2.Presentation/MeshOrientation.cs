@@ -42,14 +42,22 @@ public static class MeshOrientation
     public static float LerpAngle(float from, float to, float fraction)
     {
         float delta = Repeat(to - from, 360f);
-        if (delta > 180f) delta -= 360f;
+        if (delta > 180f)
+        {
+            delta -= 360f;
+        }
+
         return from + delta * PoseInterpolator.Clamp01(fraction);
     }
 
     private static float Repeat(float value, float length)
     {
         float wrapped = value - (float)Math.Floor(value / length) * length;
-        if (wrapped < 0f) return 0f;
+        if (wrapped < 0f)
+        {
+            return 0f;
+        }
+
         return wrapped > length ? length : wrapped;
     }
 }

@@ -17,7 +17,11 @@ public static class AnchoredVolume
     /// <param name="focus">The camera's point in the same space, or none, which gives full volume.</param>
     public static float Of(Vector3 anchor, Vector3? focus)
     {
-        if (focus is not { } at) return 1f;
+        if (focus is not { } at)
+        {
+            return 1f;
+        }
+
         float distance = Math.Min(Math.Max(Math.Abs(anchor.X - at.X), Math.Abs(anchor.Z - at.Z)), Tiles);
         return 1f - (distance / Tiles);
     }

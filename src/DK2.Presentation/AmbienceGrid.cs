@@ -39,14 +39,20 @@ public static class AmbienceGrid
     /// at least <see cref="Side"/> squared, so a frame that rebuilds the grid allocates nothing.</summary>
     public static void Cells(WorldState world, GameDatabase database, PlayerId viewer, TilePos listener, string[] cells)
     {
-        if (cells is null || cells.Length < Side * Side) throw new ArgumentException("The grid needs 121 cells.", nameof(cells));
+        if (cells is null || cells.Length < Side * Side)
+        {
+            throw new ArgumentException("The grid needs 121 cells.", nameof(cells));
+        }
+
         for (int row = 0; row < Side; row++)
+        {
             for (int column = 0; column < Side; column++)
             {
                 int x = listener.X - Reach + column, y = listener.Y - Reach + row;
                 cells[(row * Side) + column] = world.Contains(new TilePos(x, y)) && world.Tile(x, y).IsExploredBy(viewer)
                     ? database.TerrainById(world.Tile(x, y).TerrainId).SoundCategory : "";
             }
+        }
     }
 
     /// <summary>An emitter for each of the two heaviest categories in <paramref name="cells"/> (by cell count) among those <paramref name="hasAmbience"/> says have the ambient group.</summary>
@@ -61,20 +67,40 @@ public static class AmbienceGrid
     /// allocating: the grid is rebuilt every turn while the camera rests.</summary>
     public static void Emitters(string[] cells, TilePos listener, Func<string, bool> hasAmbience, List<Emitter> into)
     {
-        if (cells is null) throw new ArgumentNullException(nameof(cells));
-        if (hasAmbience is null) throw new ArgumentNullException(nameof(hasAmbience));
-        if (into is null) throw new ArgumentNullException(nameof(into));
+        if (cells is null)
+        {
+            throw new ArgumentNullException(nameof(cells));
+        }
+
+        if (hasAmbience is null)
+        {
+            throw new ArgumentNullException(nameof(hasAmbience));
+        }
+
+        if (into is null)
+        {
+            throw new ArgumentNullException(nameof(into));
+        }
+
         into.Clear();
         Span<int> counts = cells.Length <= Side * Side ? stackalloc int[Side * Side] : new int[cells.Length];
         for (int i = 0; i < cells.Length; i++)
         {
             string category = cells[i];
-            if (category.Length == 0 || SeenBefore(cells, i) || !hasAmbience(category)) continue;
+            if (category.Length == 0 || SeenBefore(cells, i) || !hasAmbience(category))
+            {
+                continue;
+            }
+
             float x = 0, y = 0;
             int count = 0;
             for (int j = i; j < cells.Length; j++)
             {
-                if (cells[j] != category) continue;
+                if (cells[j] != category)
+                {
+                    continue;
+                }
+
                 x += listener.X - Reach + (j % Side) + .5f;
                 y += listener.Y - Reach + (j / Side) + .5f;
                 count++;
@@ -84,7 +110,11 @@ public static class AmbienceGrid
         }
         // 0x00609CE0 pops the best two records from a heap ordered by tile count and weight, and the pass keeps those categories only (the loop bound
         // at +0x28 is unread but at most two). The comparator and its tie-break are unread: ours ranks by cell count, the first seen winning a tie (INFERRED).
-        if (into.Count <= MaxEmitters) return;
+        if (into.Count <= MaxEmitters)
+        {
+            return;
+        }
+
         int first = Heaviest(counts.Slice(0, into.Count), -1), second = Heaviest(counts.Slice(0, into.Count), first);
         Emitter best = into[first], next = into[second];
         into.Clear();
@@ -96,7 +126,13 @@ public static class AmbienceGrid
     {
         string category = cells[index];
         for (int i = 0; i < index; i++)
-            if (cells[i] == category) return true;
+        {
+            if (cells[i] == category)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -105,7 +141,13 @@ public static class AmbienceGrid
     {
         int best = -1;
         for (int i = 0; i < counts.Length; i++)
-            if (i != skip && (best < 0 || counts[i] > counts[best])) best = i;
+        {
+            if (i != skip && (best < 0 || counts[i] > counts[best]))
+            {
+                best = i;
+            }
+        }
+
         return best;
     }
 }

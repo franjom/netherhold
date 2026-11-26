@@ -16,11 +16,18 @@ public sealed class SoundCategoryNames
     /// <summary>The category, <see cref="SoundCategory.None"/> for a null or empty name.</summary>
     public SoundCategory Of(string? name)
     {
-        if (string.IsNullOrEmpty(name)) return SoundCategory.None;
+        if (string.IsNullOrEmpty(name))
+        {
+            return SoundCategory.None;
+        }
+
         lock (_lower)
         {
             if (!_lower.TryGetValue(name!, out SoundCategory category))
+            {
                 _lower.Add(name!, category = new SoundCategory(name!.ToLowerInvariant()));
+            }
+
             return category;
         }
     }

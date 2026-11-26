@@ -50,7 +50,11 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
 
     public static CampaignResults? Build(CampaignProfile profile, CampaignSlot played)
     {
-        if (profile.PlayerStatisticsValid[StatisticsRow] == 0 || played == CampaignSlot.None) return null;
+        if (profile.PlayerStatisticsValid[StatisticsRow] == 0 || played == CampaignSlot.None)
+        {
+            return null;
+        }
+
         var b = LevelStatisticsBlock.FromDwords(profile.PlayerStatistics, StatisticsRow);
         uint seconds = b.TimeTaken, hours = seconds / 3600;
         string time = hours != 0 ? $"{hours:00} : {seconds / 60 % 60:00}" : $"{seconds / 60:00} : {seconds % 60:00}";
@@ -74,7 +78,11 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
             new CampaignResultCell(1636, attempts.ToString()),
         };
         uint overall = 0;
-        for (int slot = 0; slot < 25; slot++) overall += profile.TotalEvilRating[slot];
+        for (int slot = 0; slot < 25; slot++)
+        {
+            overall += profile.TotalEvilRating[slot];
+        }
+
         int found = (sbyte)b.SpecialsFound, missed = (sbyte)b.SpecialsMissed;
         // In mode 1 the page prints the slot's Total Evil Rating (0x00561CC0), not its own sum.
         return new(cells, KeeperRank.TitleTextId(profile.PlayerValues[StatisticsRow]), profile.TotalEvilRating[played.Value - 1])
@@ -114,8 +122,16 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
         for (int i = Math.Max(0, first); i < Math.Min(Cells.Count, first + ListedRows); i++)
         {
             CampaignResultCell cell = Cells[i];
-            if (cell.LabelTextId == HiddenRowLabel) continue;
-            if (y >= bottom) yield break;
+            if (cell.LabelTextId == HiddenRowLabel)
+            {
+                continue;
+            }
+
+            if (y >= bottom)
+            {
+                yield break;
+            }
+
             float height = Math.Min(list.Height, bottom - y);
             yield return new(new(list.X, y, list.Width, height), cell.LabelTextId, null, FrontEndTextColour.Label);
             yield return new(new(list.X + 250 * 4, y, list.Width - 250 * 4, height), cell.ValueTextId,

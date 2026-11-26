@@ -30,13 +30,21 @@ public sealed class HiScoreStore
     /// <summary>Writes every table the map changes to <see cref="Path"/>.</summary>
     public void Track(CampaignMapController map)
     {
-        if (map is null) throw new ArgumentNullException(nameof(map));
+        if (map is null)
+        {
+            throw new ArgumentNullException(nameof(map));
+        }
+
         map.HiScoresChanged += rows => HiScoresFile.Save(Path, rows);
     }
 
     private static IReadOnlyList<HiScoreEntry>? Read(string candidate, Action<string>? unreadable)
     {
-        try { if (File.Exists(candidate)) return HiScoresFile.Read(File.ReadAllBytes(candidate)); }
+        try { if (File.Exists(candidate))
+            {
+                return HiScoresFile.Read(File.ReadAllBytes(candidate));
+            }
+        }
         catch (InvalidDataException) { unreadable?.Invoke(candidate); }
         return null;
     }

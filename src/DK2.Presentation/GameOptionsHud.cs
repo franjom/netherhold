@@ -82,8 +82,16 @@ public sealed class GameOptionsHud
 
     public void Show(bool visible)
     {
-        if (visible && !_visible) Model.Open();
-        if (!visible && _visible) Model.Hide();
+        if (visible && !_visible)
+        {
+            Model.Open();
+        }
+
+        if (!visible && _visible)
+        {
+            Model.Hide();
+        }
+
         if (!visible) { _dragging = false; Release(); }
         _visible = visible;
     }
@@ -92,11 +100,23 @@ public sealed class GameOptionsHud
     public void Build(HudScreen screen, (float X, float Y) pointer, HudFrame frame)
     {
         _hits.Clear();
-        if (!_visible || screen.Height <= 0) return;
+        if (!_visible || screen.Height <= 0)
+        {
+            return;
+        }
+
         OptionsPagesController settings = Model.Settings;
         if (Model.Page != _shown || _height != screen.Height || !_dragging &&
-            (!ReferenceEquals(_shownSettings, settings.Pending) || settings.CapturingAction != _shownCapture)) Set(screen);
-        if (_barHeld != 0) _keyScroll.Step(_barHeld);
+            (!ReferenceEquals(_shownSettings, settings.Pending) || settings.CapturingAction != _shownCapture))
+        {
+            Set(screen);
+        }
+
+        if (_barHeld != 0)
+        {
+            _keyScroll.Step(_barHeld);
+        }
+
         float px = pointer.X / Unit, py = pointer.Y / Unit;
         for (int i = 0; i < _parts.Count; i++)
         {
@@ -106,11 +126,18 @@ public sealed class GameOptionsHud
                 case InGameOptionsWidgetKind.Slider: Slider(part, i, frame); break;
                 case InGameOptionsWidgetKind.KeyboardList: Keys(screen, frame); break;
                 default:
-                    if (part.Text == null) break;
+                    if (part.Text == null)
+                    {
+                        break;
+                    }
                     // A held press keeps other labels unlit, as pointer capture kept their enter events away.
                     bool lit = part.Press != null && _hold == Hold.None && Contains(part.Rect, px, py);
                     Quad(frame, HudImage.Of(part.Text), part.Rect, HudColor.Grey(lit ? (byte)255 : part.Tint));
-                    if (part.Press != null) _hits.Add((Virtual(part.Rect), Hit.Label, i));
+                    if (part.Press != null)
+                    {
+                        _hits.Add((Virtual(part.Rect), Hit.Label, i));
+                    }
+
                     break;
             }
         }
@@ -123,7 +150,11 @@ public sealed class GameOptionsHud
         bool resetKeys = _shown != InGameOptionsPage.Keyboard || _height != screen.Height;
         _parts.Clear(); _rows.Clear(); _dragging = false; _hasKeys = false; _barHeld = 0; _hold = Hold.None;
         _shown = Model.Page; _shownSettings = settings.Pending; _shownCapture = settings.CapturingAction; _height = screen.Height;
-        if (_shown == InGameOptionsPage.None) return;
+        if (_shown == InGameOptionsPage.None)
+        {
+            return;
+        }
+
         BitmapFont font = _font(screen.Height);
         foreach (InGameOptionsWidget widget in ClassicGameOptionsLayout.ForPage(_shown))
         {
@@ -132,19 +163,38 @@ public sealed class GameOptionsHud
                 : widget.Kind != InGameOptionsWidgetKind.Navigate || Model.CanNavigate(widget.Destination);
             var part = new Part { Widget = widget, Enabled = enabled };
             _parts.Add(part);
-            if (widget.Kind == InGameOptionsWidgetKind.Slider) continue;
+            if (widget.Kind == InGameOptionsWidgetKind.Slider)
+            {
+                continue;
+            }
+
             if (widget.Kind == InGameOptionsWidgetKind.KeyboardList) { KeyRows(screen, font, widget.Bounds, resetKeys); continue; }
             string value = widget.TextId != 0 ? _text(widget.TextId) : setting ? SettingText(widget.Setting.Value) : "Unavailable";
             if (enabled)
             {
-                if (widget.Kind == InGameOptionsWidgetKind.Navigate) part.Press = () => Model.Navigate(widget.Destination);
-                if (widget.Kind == InGameOptionsWidgetKind.Back) part.Press = Model.Back;
-                if (widget.Kind == InGameOptionsWidgetKind.Continue) part.Press = Model.Continue;
-                if (widget.Kind == InGameOptionsWidgetKind.Value) part.Press = () =>
+                if (widget.Kind == InGameOptionsWidgetKind.Navigate)
+                {
+                    part.Press = () => Model.Navigate(widget.Destination);
+                }
+
+                if (widget.Kind == InGameOptionsWidgetKind.Back)
+                {
+                    part.Press = Model.Back;
+                }
+
+                if (widget.Kind == InGameOptionsWidgetKind.Continue)
+                {
+                    part.Press = Model.Continue;
+                }
+
+                if (widget.Kind == InGameOptionsWidgetKind.Value)
+                {
+                    part.Press = () =>
                 {
                     ushort id = widget.Setting.Value; int old = Model.Settings.Value(id);
                     Model.Settings.SetWidget(id, id == 133 ? old % 3 + 1 : old == 0 ? 1 : 0);
                 };
+                }
             }
             part.Text = new HudText(font, value, 0);
             (int width, int height) = HudTextPixels.Measure(part.Text);
@@ -163,7 +213,11 @@ public sealed class GameOptionsHud
     {
         _hasKeys = true; _keyBounds = bounds;
         _keyLine = font.LineHeight * 768f / screen.Height;
-        if (reset) _keyScroll.Reset((int)Math.Ceiling(KeyboardSetup.Actions.Count * _keyLine), (int)bounds.Height);
+        if (reset)
+        {
+            _keyScroll.Reset((int)Math.Ceiling(KeyboardSetup.Actions.Count * _keyLine), (int)bounds.Height);
+        }
+
         foreach (KeyboardAction entry in KeyboardSetup.Actions)
         {
             GameKeyBinding binding = Model.Settings.Pending.Binding(entry.Action);
@@ -177,7 +231,11 @@ public sealed class GameOptionsHud
     /// <summary>A key list cell's text and its measured size; none for an empty cell.</summary>
     private static (HudText Text, int Width, int Height)? Cell(BitmapFont font, string value)
     {
-        if (value.Length == 0) return null;
+        if (value.Length == 0)
+        {
+            return null;
+        }
+
         var text = new HudText(font, value, 0);
         (int width, int height) = HudTextPixels.Measure(text);
         return (text, width, height);
@@ -196,7 +254,11 @@ public sealed class GameOptionsHud
         var thumb = new FrontEndRect(box.X + t * (box.Width - side), box.Y, side, side);
         Quad(frame, SliderTrack, box, tint); Quad(frame, SliderLeft, left, tint);
         Quad(frame, SliderRight, right, tint); Quad(frame, SliderThumb, thumb, tint);
-        if (!part.Enabled) return;
+        if (!part.Enabled)
+        {
+            return;
+        }
+
         _hits.Add((Virtual(box), Hit.Track, index)); _hits.Add((Virtual(left), Hit.Left, index));
         _hits.Add((Virtual(right), Hit.Right, index)); _hits.Add((Virtual(thumb), Hit.Thumb, index));
     }
@@ -210,19 +272,33 @@ public sealed class GameOptionsHud
         for (int i = 0; i < _rows.Count; i++)
         {
             float top = bounds.Y + i * _keyLine - _keyScroll.Position;
-            if (top + _keyLine <= bounds.Y || top >= bounds.Y + bounds.Height) continue;
+            if (top + _keyLine <= bounds.Y || top >= bounds.Y + bounds.Height)
+            {
+                continue;
+            }
+
             ((HudText Text, int Width, int Height)?[] cells, bool enabled, _) = _rows[i];
             var tint = HudColor.Grey(enabled ? Normal : Dim);
             for (int c = 0; c < 3; c++)
             {
                 float cellRight = c < 2 ? CellLeft[c + 1] : bounds.Width;
                 var cell = new FrontEndRect(bounds.X + CellLeft[c], top, cellRight - CellLeft[c], _keyLine);
-                if (cells[c] is not var (text, width, height)) continue;
-                if (!HudQuads.Cut(Virtual(cell), new HudRect(0, 0, 1, 1), clip, out HudRect window, out _)) continue;
+                if (cells[c] is not var (text, width, height))
+                {
+                    continue;
+                }
+
+                if (!HudQuads.Cut(Virtual(cell), new HudRect(0, 0, 1, 1), clip, out HudRect window, out _))
+                {
+                    continue;
+                }
+
                 HudQuads.Clipped(frame, HudImage.Of(text), new HudRect(cell.X * Unit, cell.Y * Unit, screen.Virtual(width), screen.Virtual(height)), window, tint);
             }
             if (enabled && HudQuads.Cut(Virtual(new FrontEndRect(bounds.X, top, bounds.Width, _keyLine)), new HudRect(0, 0, 1, 1), clip, out HudRect row, out _))
+            {
                 _hits.Add((row, Hit.KeyRow, i));
+            }
         }
         float x = bounds.X + bounds.Width;
         var up = new FrontEndRect(x, bounds.Y, BarSide, BarSide);
@@ -241,9 +317,17 @@ public sealed class GameOptionsHud
     /// <summary>A primary press; true when the panel took it.</summary>
     public bool PointerDown(float x, float y, int button)
     {
-        if (!_visible || button != 0) return false;
+        if (!_visible || button != 0)
+        {
+            return false;
+        }
+
         int at = HitAt(x, y);
-        if (at < 0) return false;
+        if (at < 0)
+        {
+            return false;
+        }
+
         (_, Hit kind, int index) = _hits[at];
         switch (kind)
         {
@@ -252,7 +336,11 @@ public sealed class GameOptionsHud
             case Hit.Track:
             case Hit.Thumb:
                 _dragging = true; _hold = Hold.Slider; _holdIndex = index;
-                if (kind == Hit.Thumb) Model.Settings.BeginSliderDrag(_parts[index].Widget.Setting.Value);
+                if (kind == Hit.Thumb)
+                {
+                    Model.Settings.BeginSliderDrag(_parts[index].Widget.Setting.Value);
+                }
+
                 SetSlider(index, x);
                 break;
             case Hit.Left: Nudge(index, -1); break;
@@ -272,9 +360,14 @@ public sealed class GameOptionsHud
     /// <summary>A held slider follows the pointer; the key list's held thumb drags the list.</summary>
     public void PointerMove(float x, float y)
     {
-        if (_hold == Hold.Slider) SetSlider(_holdIndex, x);
+        if (_hold == Hold.Slider)
+        {
+            SetSlider(_holdIndex, x);
+        }
         else if (_hold == Hold.KeyThumb && _hasKeys)
+        {
             _keyScroll.DragTo((int)((y / Unit - _keyBounds.Y) * Unit), (int)(_keyBounds.Height * Unit));
+        }
     }
 
     public void PointerUp() => Release();
@@ -305,7 +398,13 @@ public sealed class GameOptionsHud
     public HudRect? WidgetRect(int nativeIndex)
     {
         foreach (Part part in _parts)
-            if (part.Widget.NativeIndex == nativeIndex) return Virtual(part.Text != null ? part.Rect : part.Widget.Bounds);
+        {
+            if (part.Widget.NativeIndex == nativeIndex)
+            {
+                return Virtual(part.Text != null ? part.Rect : part.Widget.Bounds);
+            }
+        }
+
         return null;
     }
 
@@ -313,24 +412,43 @@ public sealed class GameOptionsHud
     public HudRect? SliderRect(ushort setting)
     {
         foreach (Part part in _parts)
-            if (part.Widget.Kind == InGameOptionsWidgetKind.Slider && part.Widget.Setting.Value == setting) return Virtual(part.Widget.Bounds);
+        {
+            if (part.Widget.Kind == InGameOptionsWidgetKind.Slider && part.Widget.Setting.Value == setting)
+            {
+                return Virtual(part.Widget.Bounds);
+            }
+        }
+
         return null;
     }
 
     /// <summary>For automation: a key row where the list is scrolled now, in virtual units.</summary>
     public HudRect? KeyRowRect(GameAction action)
     {
-        if (!_hasKeys) return null;
+        if (!_hasKeys)
+        {
+            return null;
+        }
+
         for (int i = 0; i < _rows.Count; i++)
+        {
             if (_rows[i].Action == action)
+            {
                 return Virtual(new FrontEndRect(_keyBounds.X, _keyBounds.Y + i * _keyLine - _keyScroll.Position, _keyBounds.Width, _keyLine));
+            }
+        }
+
         return null;
     }
 
     /// <summary>For automation: the key list's thumb and its track, in virtual units.</summary>
     public (HudRect Thumb, HudRect Track)? KeyBar()
     {
-        if (!_hasKeys) return null;
+        if (!_hasKeys)
+        {
+            return null;
+        }
+
         float x = _keyBounds.X + _keyBounds.Width;
         (int top, int height) = _keyScroll.Thumb((int)(_keyBounds.Height * Unit));
         return (Virtual(new FrontEndRect(x, _keyBounds.Y + top / Unit, BarSide, height / Unit)),
@@ -340,7 +458,14 @@ public sealed class GameOptionsHud
     /// <summary>The topmost hit region at a point, or -1.</summary>
     private int HitAt(float x, float y)
     {
-        for (int i = _hits.Count - 1; i >= 0; i--) if (_hits[i].Rect.Contains(x, y)) return i;
+        for (int i = _hits.Count - 1; i >= 0; i--)
+        {
+            if (_hits[i].Rect.Contains(x, y))
+            {
+                return i;
+            }
+        }
+
         return -1;
     }
 

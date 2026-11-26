@@ -39,9 +39,22 @@ public sealed class PlacementCursorHud
         yield return HeldItemStack.MoreIconName;
         yield return HeldItemStack.DisposeIconName;
         foreach (PlacementIcon icon in Enum.GetValues(typeof(PlacementIcon)))
-            if (IconName(icon) is string name) yield return name;
-        foreach (string digit in WideDigits) yield return digit;
-        foreach (string digit in NarrowDigits) yield return digit;
+        {
+            if (IconName(icon) is string name)
+            {
+                yield return name;
+            }
+        }
+
+        foreach (string digit in WideDigits)
+        {
+            yield return digit;
+        }
+
+        foreach (string digit in NarrowDigits)
+        {
+            yield return digit;
+        }
     }
 
     /// <summary>The tool's cursor icon, or null for <see cref="PlacementIcon.Spell"/> (its own art), <see cref="PlacementIcon.Held"/>
@@ -70,7 +83,11 @@ public sealed class PlacementCursorHud
     public void Build(HudFrame frame, in PlacementFeedback feedback, Vector2 pointer, int screenWidth, int screenHeight,
         bool overHud, HeldItemStack? held = null, HandCursorKind handKind = HandCursorKind.Point)
     {
-        if (frame is null) throw new ArgumentNullException(nameof(frame));
+        if (frame is null)
+        {
+            throw new ArgumentNullException(nameof(frame));
+        }
+
         var screen = new HudScreen(screenWidth, screenHeight);
         float width = screenWidth, height = screenHeight;
         Vector2 anchor = HandCursor.OverlayAnchor(handKind, pointer, screenHeight, overHud);
@@ -82,17 +99,32 @@ public sealed class PlacementCursorHud
         {
             BuildHeld(frame, screen, held, feedback.Dispose, x, y, size, scale);
             // 0x0040CFE0 leaves the No Go anchor at icon 0 moved by (-2, +2); bit 0x04 hides it.
-            if (feedback.NoGo && !feedback.Dispose) Quad(frame, screen, NoGoIconName, x - 2 * scale, y + 2 * scale, size, HudColor.White);
+            if (feedback.NoGo && !feedback.Dispose)
+            {
+                Quad(frame, screen, NoGoIconName, x - 2 * scale, y + 2 * scale, size, HudColor.White);
+            }
+
             return;
         }
         string? iconName = feedback.Icon == PlacementIcon.Spell ? SpellIcon(feedback.SpellId) : IconName(feedback.Icon);
-        if (iconName == null) return;
+        if (iconName == null)
+        {
+            return;
+        }
+
         Quad(frame, screen, iconName, x, y, size, HudColor.White);
         // 0x0040D310 draws the spell's art at the same anchor and size, then moves the No Go anchor by (-2, +2) unscaled
         // pixels, scaled here as the price is (HYPOTHESIS); it draws no price.
         float shift = feedback.Icon == PlacementIcon.Spell ? 2 * scale : 0;
-        if (feedback.NoGo) Quad(frame, screen, NoGoIconName, x - shift, y + shift, size, HudColor.White);
-        if (feedback.Price == 0 || feedback.Icon == PlacementIcon.Spell) return;
+        if (feedback.NoGo)
+        {
+            Quad(frame, screen, NoGoIconName, x - shift, y + shift, size, HudColor.White);
+        }
+
+        if (feedback.Price == 0 || feedback.Icon == PlacementIcon.Spell)
+        {
+            return;
+        }
         // 0x00415650 mode 0 (48 square, 40 advance, i- digits from 640 wide), on screen as our gold counter scales it
         // (H/1920): fitted, not read.
         string[] family = width >= 640 ? WideDigits : NarrowDigits;
@@ -100,8 +132,10 @@ public sealed class PlacementCursorHud
         HudColor colour = PriceColour(feedback.Price, feedback.Affordable);
         float glyph = 48 * height / 1920f, advance = 40 * height / 1920f;
         for (int i = 0; i < count; i++)
+        {
             frame.Add(new HudDraw(HudDrawKind.Quad, family[_digits[i]],
                 Rect(screen, x + 30 * scale + i * advance, y + 10 * scale, glyph), colour));
+        }
     }
 
     private string? SpellIcon(byte spellId)
@@ -125,9 +159,16 @@ public sealed class PlacementCursorHud
                 (int ox, int oy) = HeldItemStack.Offset(i);
                 Quad(frame, screen, name, x + ox * scale, y + oy * scale, size, HudColor.White);
             }
-            if (i == 0 && bin) Quad(frame, screen, HeldItemStack.DisposeIconName, x - 2 * scale, y, size, HudColor.White);
+            if (i == 0 && bin)
+            {
+                Quad(frame, screen, HeldItemStack.DisposeIconName, x - 2 * scale, y, size, HudColor.White);
+            }
         }
-        if (!held.More) return;
+        if (!held.More)
+        {
+            return;
+        }
+
         (int mx, int my) = HeldItemStack.Offset(HeldItemStack.MaxIcons);
         Quad(frame, screen, HeldItemStack.MoreIconName, x + mx * scale, y + my * scale, size, HudColor.White);
     }
@@ -137,10 +178,18 @@ public sealed class PlacementCursorHud
     private int PriceDigits(long magnitude)
     {
         int count = 0;
-        for (long rest = magnitude; count == 0 || rest > 0; rest /= 10) count++;
+        for (long rest = magnitude; count == 0 || rest > 0; rest /= 10)
+        {
+            count++;
+        }
+
         count = Math.Min(count, MaxDigits);
         long value = magnitude;
-        for (int i = count - 1; i >= 0; i--, value /= 10) _digits[i] = (int)(value % 10);
+        for (int i = count - 1; i >= 0; i--, value /= 10)
+        {
+            _digits[i] = (int)(value % 10);
+        }
+
         return count;
     }
 
@@ -153,7 +202,11 @@ public sealed class PlacementCursorHud
     private static string[] Digits(string family)
     {
         string[] names = new string[10];
-        for (int i = 0; i < 10; i++) names[i] = family + (char)('0' + i);
+        for (int i = 0; i < 10; i++)
+        {
+            names[i] = family + (char)('0' + i);
+        }
+
         return names;
     }
 }

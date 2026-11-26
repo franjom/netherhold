@@ -20,12 +20,32 @@ public static class KeeperResourceInteraction
 {
     public static KeeperResourceKind HitTest(Vector2 fromTopLeft, float viewportHeight)
     {
-        if (viewportHeight <= 0) return KeeperResourceKind.None;
+        if (viewportHeight <= 0)
+        {
+            return KeeperResourceKind.None;
+        }
+
         Vector2 point = fromTopLeft * (1920f / viewportHeight);
-        if (Inside(point, 28, 48, 100, 100)) return KeeperResourceKind.Heart;
-        if (Inside(point, 140, 20, 360, 88)) return KeeperResourceKind.Mana;
-        if (Inside(point, 540, 48, 100, 100)) return KeeperResourceKind.Payday;
-        if (Inside(point, 680, 20, 400, 88)) return KeeperResourceKind.Gold;
+        if (Inside(point, 28, 48, 100, 100))
+        {
+            return KeeperResourceKind.Heart;
+        }
+
+        if (Inside(point, 140, 20, 360, 88))
+        {
+            return KeeperResourceKind.Mana;
+        }
+
+        if (Inside(point, 540, 48, 100, 100))
+        {
+            return KeeperResourceKind.Payday;
+        }
+
+        if (Inside(point, 680, 20, 400, 88))
+        {
+            return KeeperResourceKind.Gold;
+        }
+
         return KeeperResourceKind.None;
     }
 
@@ -47,7 +67,11 @@ public static class KeeperResourceInteraction
         Func<uint, string> resolve)
     {
         int id = TooltipTextId(kind);
-        if (id == 0) return HoverTextSnapshot.Empty;
+        if (id == 0)
+        {
+            return HoverTextSnapshot.Empty;
+        }
+
         string description = resolve((uint)(id + 1));
         if (kind == KeeperResourceKind.Heart)
         {
@@ -57,7 +81,10 @@ public static class KeeperResourceInteraction
                         .ToString(CultureInfo.InvariantCulture));
         }
         else if (kind == KeeperResourceKind.Payday)
+        {
             description = WorldHoverText.Substitute(description, 20, snapshot.WageBill.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
         return new HoverTextSnapshot(description, resolve((uint)id),
             new WorldHoverHit(WorldHoverKind.Widget, default, id));
     }

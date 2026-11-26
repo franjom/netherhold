@@ -25,13 +25,19 @@ internal static class RoomPillarLayout
     {
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (!ObjectType(room.Definition.TypeId).HasValue) continue;
+            if (!ObjectType(room.Definition.TypeId).HasValue)
+            {
+                continue;
+            }
+
             foreach (int index in room.TileIndices)
+            {
                 foreach (int _ in AutoFurnitureRules.RoomPillarCorners(world, room, new TilePos(index % world.Width, index / world.Width)))
                 {
                     closed[index] = true;
                     break;
                 }
+            }
         }
     }
 }

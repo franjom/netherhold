@@ -82,9 +82,17 @@ public sealed class FrameJournalSession
     /// the frame journal with the header <paramref name="header"/> builds. A failure warns and leaves the journal off.</summary>
     public void Open(string? root, string folderName, Func<IReadOnlyDictionary<string, string>> header)
     {
-        if (header is null) throw new ArgumentNullException(nameof(header));
+        if (header is null)
+        {
+            throw new ArgumentNullException(nameof(header));
+        }
+
         Resolved = true;
-        if (string.IsNullOrWhiteSpace(root)) return;
+        if (string.IsNullOrWhiteSpace(root))
+        {
+            return;
+        }
+
         try
         {
             _folder = Path.Combine(root, folderName);
@@ -103,30 +111,46 @@ public sealed class FrameJournalSession
     /// <summary>Starts a frame from the host's raw sample and its queue; nothing while the journal is off.</summary>
     public void BeginFrame(FrameInputRecord raw, IReadOnlyList<PlayerCommand> pending)
     {
-        if (_frames != null) _recorder.BeginFrame(raw, pending);
+        if (_frames != null)
+        {
+            _recorder.BeginFrame(raw, pending);
+        }
     }
 
     public void Intent(in PlayerIntent intent)
     {
-        if (_frames != null) _recorder.Intent(intent);
+        if (_frames != null)
+        {
+            _recorder.Intent(intent);
+        }
     }
 
     /// <summary>Called just before the pending queue is handed to a tick and cleared.</summary>
     public void HandOff(IReadOnlyList<PlayerCommand> pending)
     {
-        if (_frames != null) _recorder.HandOff(pending);
+        if (_frames != null)
+        {
+            _recorder.HandOff(pending);
+        }
     }
 
     /// <summary>The frame's first tick and its tick count.</summary>
     public void Ticks(GameTick start, int ticks)
     {
-        if (_frames != null) _recorder.Ticks(start, ticks);
+        if (_frames != null)
+        {
+            _recorder.Ticks(start, ticks);
+        }
     }
 
     /// <summary>Ends the frame and writes its record (Unity's <c>LateUpdate</c>).</summary>
     public void EndFrame(IReadOnlyList<PlayerCommand> pending, double tickDebt)
     {
-        if (_frames == null) return;
+        if (_frames == null)
+        {
+            return;
+        }
+
         Write(_recorder.EndFrame(pending, tickDebt));
     }
 
@@ -134,10 +158,18 @@ public sealed class FrameJournalSession
     /// first one (its header is the frame journal's and the start tick, then the starting hash) and writes the frame.</summary>
     public void BeforeTick(long tick, in InputFrame input, GameSimulation simulation)
     {
-        if (_frames == null || _ticksFailed) return;
+        if (_frames == null || _ticksFailed)
+        {
+            return;
+        }
+
         try
         {
-            if (_ticks == null) OpenTicks(simulation);
+            if (_ticks == null)
+            {
+                OpenTicks(simulation);
+            }
+
             _ticks!.WriteFrame(tick, input);
         }
         catch (Exception ex)
@@ -149,7 +181,11 @@ public sealed class FrameJournalSession
     /// <summary>On the tick thread: the hash once <paramref name="tick"/> ticks have run.</summary>
     public void AfterTick(long tick, GameSimulation simulation)
     {
-        if (_frames == null || _ticksFailed) return;
+        if (_frames == null || _ticksFailed)
+        {
+            return;
+        }
+
         try
         {
             _ticks!.WriteHash(tick, simulation.StateHash());
@@ -163,8 +199,16 @@ public sealed class FrameJournalSession
     /// <summary>On the tick thread: a tick threw; the tick journal ends with the failure and stops.</summary>
     public void TickFailed(Exception failure, GameSimulation simulation)
     {
-        if (failure is null) throw new ArgumentNullException(nameof(failure));
-        if (_ticks == null || _ticksFailed) return;
+        if (failure is null)
+        {
+            throw new ArgumentNullException(nameof(failure));
+        }
+
+        if (_ticks == null || _ticksFailed)
+        {
+            return;
+        }
+
         try
         {
             long tick = simulation.World.CurrentTick.Value;
@@ -181,10 +225,17 @@ public sealed class FrameJournalSession
     /// inside the frame, before its end), ends both journals and closes the files.</summary>
     public void Close(string reason, IReadOnlyList<PlayerCommand> pending, double tickDebt, GameSimulation? simulation)
     {
-        if (_frames != null) Write(_recorder.EndFrame(pending, tickDebt));
+        if (_frames != null)
+        {
+            Write(_recorder.EndFrame(pending, tickDebt));
+        }
+
         Close(ref _ticks, ref _ticksFile, w =>
         {
-            if (!_ticksFailed && simulation != null) w.WriteEnd(simulation.World.CurrentTick.Value, reason);
+            if (!_ticksFailed && simulation != null)
+            {
+                w.WriteEnd(simulation.World.CurrentTick.Value, reason);
+            }
         });
         Close(ref _frames, ref _framesFile, w => w.WriteEnd(_framesWritten, reason));
     }
@@ -202,7 +253,11 @@ public sealed class FrameJournalSession
 
     private void Write(FrameInputRecord? frame)
     {
-        if (frame == null || _frames == null) return;
+        if (frame == null || _frames == null)
+        {
+            return;
+        }
+
         try
         {
             _frames.Write(frame);

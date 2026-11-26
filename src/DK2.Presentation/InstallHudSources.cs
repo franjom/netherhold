@@ -51,13 +51,21 @@ public sealed class InstallHudSources : IDisposable
     /// <see cref="PrefetchFonts"/> is waited for.</summary>
     public BitmapFont Font(string file)
     {
-        if (_fonts.TryGetValue(file, out BitmapFont? font)) return font;
+        if (_fonts.TryGetValue(file, out BitmapFont? font))
+        {
+            return font;
+        }
+
         if (_pendingFonts.TryGetValue(file, out Task<BitmapFont>? pending))
         {
             _pendingFonts.Remove(file);
             font = pending.GetAwaiter().GetResult();
         }
-        else font = Bf4FontReader.Open(Path.Combine(TextDirectory, file));
+        else
+        {
+            font = Bf4FontReader.Open(Path.Combine(TextDirectory, file));
+        }
+
         _fonts.Add(file, font);
         return font;
     }
@@ -68,7 +76,11 @@ public sealed class InstallHudSources : IDisposable
     {
         foreach (string file in files)
         {
-            if (_fonts.ContainsKey(file) || _pendingFonts.ContainsKey(file)) continue;
+            if (_fonts.ContainsKey(file) || _pendingFonts.ContainsKey(file))
+            {
+                continue;
+            }
+
             string path = Path.Combine(TextDirectory, file);
             _pendingFonts.Add(file, Task.Run(() => Bf4FontReader.Open(path)));
         }

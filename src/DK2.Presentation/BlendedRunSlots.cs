@@ -58,12 +58,22 @@ public sealed class BlendedRunSlots<TMaterial> where TMaterial : class
             _revision = stream.GeometryRevision;
             _stream = stream;
             Collect(stream.Vertices);
-            foreach (BlendedRunSlot<TMaterial> slot in _slots) slot.Forget();
+            foreach (BlendedRunSlot<TMaterial> slot in _slots)
+            {
+                slot.Forget();
+            }
         }
-        foreach (BlendedRunSlot<TMaterial> slot in _slots) slot.Drawn = false;
+        foreach (BlendedRunSlot<TMaterial> slot in _slots)
+        {
+            slot.Drawn = false;
+        }
+
         _drawn.Clear();
         IReadOnlyList<TriangleDepthOrderBuffer.Run> runs = stream.Runs;
-        if (_assigned.Length < runs.Count) _assigned = new BlendedRunSlot<TMaterial>?[Math.Max(runs.Count, _assigned.Length * 2)];
+        if (_assigned.Length < runs.Count)
+        {
+            _assigned = new BlendedRunSlot<TMaterial>?[Math.Max(runs.Count, _assigned.Length * 2)];
+        }
         // First every run claims the slot that last drew its first corner, then the rest take free slots nobody claimed,
         // so a run appearing or splitting moves no other run off the vertices its slot holds.
         for (int i = 0; i < runs.Count; i++)
@@ -76,10 +86,16 @@ public sealed class BlendedRunSlots<TMaterial> where TMaterial : class
                 owner.Drawn = true;
                 _assigned[i] = owner;
             }
-            else _assigned[i] = null;
+            else
+            {
+                _assigned[i] = null;
+            }
         }
         for (int i = 0; i < runs.Count; i++)
+        {
             _assigned[i] ??= TakeFree(stream.Material(runs[i].MaterialIndex));
+        }
+
         ReadOnlySpan<BlendedVertex> vertices = Vertices;
         float previous = float.PositiveInfinity;
         for (int i = 0; i < runs.Count; i++)
@@ -91,14 +107,20 @@ public sealed class BlendedRunSlots<TMaterial> where TMaterial : class
             slot.Fill(run.Triangles, vertices, eye);
             // A clamped key differs from the run's own distance only where the distance off the view axis disagrees with
             // the stream's order along it, and by at most KeyStep a run (drift accumulates only over such a series).
-            if (slot.TagOverlay) slot.Distance = slot.NearestDistance;
+            if (slot.TagOverlay)
+            {
+                slot.Distance = slot.NearestDistance;
+            }
             else
             {
                 slot.Distance = Math.Min(slot.NearestDistance, previous - KeyStep);
                 previous = slot.Distance;
             }
             _drawn.Add(slot);
-            for (int t = 0; t < run.Triangles.Count; t++) _owner[run.Triangles[t].A] = slot.Id;
+            for (int t = 0; t < run.Triangles.Count; t++)
+            {
+                _owner[run.Triangles[t].A] = slot.Id;
+            }
         }
     }
 
@@ -110,7 +132,11 @@ public sealed class BlendedRunSlots<TMaterial> where TMaterial : class
             _vertices = new BlendedVertex[_vertexCount];
             _owner = new int[_vertexCount];
         }
-        for (int i = 0; i < _vertexCount; i++) _vertices[i] = vertices[i];
+        for (int i = 0; i < _vertexCount; i++)
+        {
+            _vertices[i] = vertices[i];
+        }
+
         Array.Fill(_owner, -1, 0, _vertexCount);
     }
 
@@ -122,11 +148,14 @@ public sealed class BlendedRunSlots<TMaterial> where TMaterial : class
             _pools.Add(material, pool);
         }
         foreach (BlendedRunSlot<TMaterial> free in pool)
+        {
             if (!free.Drawn)
             {
                 free.Drawn = true;
                 return free;
             }
+        }
+
         var made = new BlendedRunSlot<TMaterial>(_slots.Count, material) { Drawn = true };
         _slots.Add(made);
         pool.Add(made);
@@ -205,7 +234,11 @@ public sealed class BlendedRunSlot<TMaterial> where TMaterial : class
         if (_indices.Length < count)
         {
             int capacity = Math.Max(48, _indices.Length);
-            while (capacity < count) capacity <<= 1;
+            while (capacity < count)
+            {
+                capacity <<= 1;
+            }
+
             Array.Resize(ref _indices, capacity);
         }
         bool changed = _forgotten || count != IndexCount;
@@ -251,7 +284,11 @@ public sealed class BlendedRunSlot<TMaterial> where TMaterial : class
 
     private bool Put(int at, int index)
     {
-        if (_indices[at] == index) return false;
+        if (_indices[at] == index)
+        {
+            return false;
+        }
+
         _indices[at] = index;
         return true;
     }
@@ -263,7 +300,10 @@ public sealed class BlendedRunSlot<TMaterial> where TMaterial : class
             index = _vertices.Count;
             _slotVertexOf.Add(streamVertex, index);
             _vertices.Add(streamVertex);
-            if (_touched.Length <= index) Array.Resize(ref _touched, Math.Max(64, _touched.Length * 2));
+            if (_touched.Length <= index)
+            {
+                Array.Resize(ref _touched, Math.Max(64, _touched.Length * 2));
+            }
         }
         if (_touched[index] != _epoch)
         {

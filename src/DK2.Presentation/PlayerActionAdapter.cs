@@ -46,7 +46,11 @@ public sealed class PlayerActionAdapter
 
     public PlayerActionAdapter(GameDatabase database, PlayerId player)
     {
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
         _player = player;
         _rubberBand = PlacementCursor.RubberBandLimit(database);
     }
@@ -55,15 +59,37 @@ public sealed class PlayerActionAdapter
 
     public PlayerActionResolution Resolve(PlayerObservationCapture capture, PlayerAction action)
     {
-        if (capture is null) throw new ArgumentNullException(nameof(capture));
-        if (action is null) throw new ArgumentNullException(nameof(action));
-        PlayerObservation observation = capture.Observation;
-        if (observation.Stamp.Player != _player) throw new ArgumentException("The capture is another player's.", nameof(capture));
+        if (capture is null)
+        {
+            throw new ArgumentNullException(nameof(capture));
+        }
 
-        if (observation.Phase == PlayerPhase.Ended) return PlayerActionResolution.Refused(PlayerRefusalReason.Terminal);
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        PlayerObservation observation = capture.Observation;
+        if (observation.Stamp.Player != _player)
+        {
+            throw new ArgumentException("The capture is another player's.", nameof(capture));
+        }
+
+        if (observation.Phase == PlayerPhase.Ended)
+        {
+            return PlayerActionResolution.Refused(PlayerRefusalReason.Terminal);
+        }
+
         bool intro = observation.Phase == PlayerPhase.Intro;
-        if (intro != (action is PlayerAction.SkipIntro)) return PlayerActionResolution.Refused(PlayerRefusalReason.WrongPhase);
-        if ((observation.Offers.Actions & action.Kind) == 0) return PlayerActionResolution.Refused(PlayerRefusalReason.NotOffered);
+        if (intro != (action is PlayerAction.SkipIntro))
+        {
+            return PlayerActionResolution.Refused(PlayerRefusalReason.WrongPhase);
+        }
+
+        if ((observation.Offers.Actions & action.Kind) == 0)
+        {
+            return PlayerActionResolution.Refused(PlayerRefusalReason.NotOffered);
+        }
 
         PlayerTileGrid tiles = observation.Tiles;
         switch (action)
@@ -71,11 +97,22 @@ public sealed class PlayerActionAdapter
             case PlayerAction.SkipIntro:
                 return PlayerActionResolution.Of(new SkipCameraPathCommand(_player));
             case PlayerAction.TagArea tag:
-                if (!tiles.Contains(tag.From) || !tiles.Contains(tag.To)) return OutOfBounds;
+                if (!tiles.Contains(tag.From) || !tiles.Contains(tag.To))
+                {
+                    return OutOfBounds;
+                }
+
                 return PlayerActionResolution.Of(TagTilesCommand.Rect(_player, tag.From.X, tag.From.Y, tag.To.X, tag.To.Y, !tag.Untag));
             case PlayerAction.BuildRoom build:
-                if (!tiles.Contains(build.From) || !tiles.Contains(build.To)) return OutOfBounds;
-                if (!Offered(observation.Offers.Rooms, build.Room)) return NotOffered;
+                if (!tiles.Contains(build.From) || !tiles.Contains(build.To))
+                {
+                    return OutOfBounds;
+                }
+
+                if (!Offered(observation.Offers.Rooms, build.Room))
+                {
+                    return NotOffered;
+                }
                 // The release pulls the far corner toward the anchor, as the dragged build does.
                 TilePos end = PlacementCursor.ClampDrag(build.From, build.To, _rubberBand);
                 return PlayerActionResolution.Of(BuildRoomCommand.Rect(_player, build.Room, build.From.X, build.From.Y, end.X, end.Y));
@@ -83,12 +120,18 @@ public sealed class PlayerActionAdapter
                 return Contains(observation.Offers.Panels, panel.Button)
                     ? PlayerActionResolution.Of(new GuiButtonCommand(_player, panel.Button)) : NotOffered;
             case PlayerAction.DropAt drop:
-                if (!tiles.Contains(drop.Tile)) return OutOfBounds;
+                if (!tiles.Contains(drop.Tile))
+                {
+                    return OutOfBounds;
+                }
                 // A drop onto a creature feeds or pays it (HandSystem.DropObject reads the id).
                 int onto = capture.TryFindCreatureAt(drop.Tile, out PlayerInputTarget under) ? under.Id : 0;
                 return PlayerActionResolution.Of(new DropCommand(_player, drop.Tile, onto));
             case PlayerAction.CreateImpAt imp:
-                if (!tiles.Contains(imp.Tile)) return OutOfBounds;
+                if (!tiles.Contains(imp.Tile))
+                {
+                    return OutOfBounds;
+                }
                 // A pointer with no ground point casts at the tile centre (PlayerInputTranslator).
                 return PlayerActionResolution.Of(new CreateImpCommand(_player, new FpPosition2(
                     new Fp32(CreatureState.CentreOf(imp.Tile.X)), new Fp32(CreatureState.CentreOf(imp.Tile.Y)))));
@@ -123,16 +166,38 @@ public sealed class PlayerActionAdapter
     private PlayerActionResolution Cast(PlayerObservationCapture capture, PlayerAction.CastSpell cast)
     {
         PlayerSpellOffer? offer = null;
-        foreach (PlayerSpellOffer s in capture.Observation.Offers.Spells) if (s.Spell == cast.Spell) offer = s;
-        if (offer is not PlayerSpellOffer spell || spell.Spell == BottomPanelView.CreateImpSpellId) return NotOffered;
-        if ((cast.Target is null) == (cast.Tile is null) || spell.OnCreature != cast.Target is not null) return NotOffered;
+        foreach (PlayerSpellOffer s in capture.Observation.Offers.Spells)
+        {
+            if (s.Spell == cast.Spell)
+            {
+                offer = s;
+            }
+        }
+
+        if (offer is not PlayerSpellOffer spell || spell.Spell == BottomPanelView.CreateImpSpellId)
+        {
+            return NotOffered;
+        }
+
+        if ((cast.Target is null) == (cast.Tile is null) || spell.OnCreature != cast.Target is not null)
+        {
+            return NotOffered;
+        }
+
         if (cast.Tile is TilePos tile)
         {
-            if (!capture.Observation.Tiles.Contains(tile)) return OutOfBounds;
+            if (!capture.Observation.Tiles.Contains(tile))
+            {
+                return OutOfBounds;
+            }
+
             return PlayerActionResolution.Of(new CastSpellAtPlaceCommand(_player, cast.Spell, CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y)));
         }
         if (!capture.TryResolve(cast.Target!.Value, out PlayerInputTarget target))
+        {
             return PlayerActionResolution.Refused(PlayerRefusalReason.UnknownHandle);
+        }
+
         return target.Kind == PlayerInputTargetKind.Creature
             ? PlayerActionResolution.Of(new CastSpellOnCreatureCommand(_player, cast.Spell, target.Id)) : NotOffered;
     }
@@ -143,8 +208,18 @@ public sealed class PlayerActionAdapter
     {
         bool offered = false;
         foreach (PlayerWorkshopOffer offer in observation.Offers.Workshop)
-            if (offer.Kind == kind && offer.Id == id && !offer.NeedsWorkshop) offered = true;
-        if (!offered) return NotOffered;
+        {
+            if (offer.Kind == kind && offer.Id == id && !offer.NeedsWorkshop)
+            {
+                offered = true;
+            }
+        }
+
+        if (!offered)
+        {
+            return NotOffered;
+        }
+
         return observation.Tiles.Contains(tile) ? PlayerActionResolution.Of(command()) : OutOfBounds;
     }
 
@@ -155,20 +230,41 @@ public sealed class PlayerActionAdapter
         PlayerThingActions needed, Func<PlayerInputTarget, PlayerCommand?> command)
     {
         if (!capture.TryResolve(handle, out PlayerInputTarget target))
+        {
             return PlayerActionResolution.Refused(PlayerRefusalReason.UnknownHandle);
-        if ((capture.Observation.Things[handle.Ordinal].Actions & needed) == 0) return NotOffered;
+        }
+
+        if ((capture.Observation.Things[handle.Ordinal].Actions & needed) == 0)
+        {
+            return NotOffered;
+        }
+
         return command(target) is PlayerCommand built ? PlayerActionResolution.Of(built) : NotOffered;
     }
 
     private static bool Offered(IReadOnlyList<PlayerRoomOffer> rooms, RoomTypeId room)
     {
-        for (int i = 0; i < rooms.Count; i++) if (rooms[i].Room == room) return true;
+        for (int i = 0; i < rooms.Count; i++)
+        {
+            if (rooms[i].Room == room)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
     private static bool Contains(IReadOnlyList<GuiButtonTarget> panels, GuiButtonTarget button)
     {
-        for (int i = 0; i < panels.Count; i++) if (panels[i] == button) return true;
+        for (int i = 0; i < panels.Count; i++)
+        {
+            if (panels[i] == button)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 }

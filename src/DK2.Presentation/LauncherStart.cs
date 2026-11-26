@@ -29,9 +29,21 @@ public static class LauncherStartRule
     /// start, no saved "start directly" or no install found shows it.</summary>
     public static LauncherStart Decide(LauncherStartFacts facts)
     {
-        if (facts.LauncherRequested) return LauncherStart.ShowLauncher;
-        if (facts.Automated) return LauncherStart.StartAsBefore;
-        if (facts.ShiftHeld || !facts.StartDirectly || !facts.InstallFound) return LauncherStart.ShowLauncher;
+        if (facts.LauncherRequested)
+        {
+            return LauncherStart.ShowLauncher;
+        }
+
+        if (facts.Automated)
+        {
+            return LauncherStart.StartAsBefore;
+        }
+
+        if (facts.ShiftHeld || !facts.StartDirectly || !facts.InstallFound)
+        {
+            return LauncherStart.ShowLauncher;
+        }
+
         return LauncherStart.StartWithSavedScreen;
     }
 
@@ -41,23 +53,56 @@ public static class LauncherStartRule
     public static bool IsAutomated(IReadOnlyList<string> engineArgs, IReadOnlyList<string> userArgs, bool headless,
         bool movieMaker)
     {
-        if (engineArgs is null) throw new ArgumentNullException(nameof(engineArgs));
-        if (userArgs is null) throw new ArgumentNullException(nameof(userArgs));
-        if (headless || movieMaker) return true;
+        if (engineArgs is null)
+        {
+            throw new ArgumentNullException(nameof(engineArgs));
+        }
+
+        if (userArgs is null)
+        {
+            throw new ArgumentNullException(nameof(userArgs));
+        }
+
+        if (headless || movieMaker)
+        {
+            return true;
+        }
+
         foreach (string arg in engineArgs)
+        {
             if (!arg.StartsWith("-", StringComparison.Ordinal)
                 && (arg.EndsWith(".tscn", StringComparison.OrdinalIgnoreCase) || arg.EndsWith(".scn", StringComparison.OrdinalIgnoreCase)))
+            {
                 return true;
+            }
+        }
+
         foreach (string arg in userArgs)
-            if (arg is "--play-movie" or "--level" or "--dk2-save") return true;
+        {
+            if (arg is "--play-movie" or "--level" or "--dk2-save")
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
     public static bool Requested(IReadOnlyList<string> userArgs)
     {
-        if (userArgs is null) throw new ArgumentNullException(nameof(userArgs));
+        if (userArgs is null)
+        {
+            throw new ArgumentNullException(nameof(userArgs));
+        }
+
         foreach (string arg in userArgs)
-            if (arg == LauncherArgument) return true;
+        {
+            if (arg == LauncherArgument)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 }

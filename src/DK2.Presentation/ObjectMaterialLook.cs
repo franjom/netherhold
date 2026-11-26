@@ -31,7 +31,11 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
     /// the material has none or names no environment texture.</summary>
     public static ObjectMaterialLook? EnvironmentPass(KmfMaterial? kmf)
     {
-        if (kmf is null || !kmf.HasEnvironmentPass || string.IsNullOrEmpty(kmf.EnvironmentTextureName)) return null;
+        if (kmf is null || !kmf.HasEnvironmentPass || string.IsNullOrEmpty(kmf.EnvironmentTextureName))
+        {
+            return null;
+        }
+
         float light = kmf.EnvironmentPassLight;
         return new ObjectMaterialLook(kmf.EnvironmentTextureName, KmfBlend.Additive, false, false,
             new Vector4(light, light, light, 1f), Vector3.Zero, EnvironmentMapped: true);
@@ -95,8 +99,16 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
     /// <c>0x00581797</c>).</summary>
     public ObjectMaterialLook Faded(byte alpha)
     {
-        if (alpha == byte.MaxValue) return this;
-        if (EnvironmentMapped) return this with { Colour = Vector4.Zero };
+        if (alpha == byte.MaxValue)
+        {
+            return this;
+        }
+
+        if (EnvironmentMapped)
+        {
+            return this with { Colour = Vector4.Zero };
+        }
+
         return FadeShape() with { Colour = Colour with { W = FadeAlpha(alpha) } };
     }
 
@@ -124,8 +136,16 @@ public static class ObjectModelPasses
     /// (<see cref="ObjectMaterialLook.EnvironmentPass"/>) in submesh order, so a submesh index keeps its meaning.</summary>
     public static void Build(IReadOnlyList<KmfMaterial> materials, int submeshCount, Fp32? texturePhase, List<ObjectPass> into)
     {
-        if (materials is null) throw new ArgumentNullException(nameof(materials));
-        if (into is null) throw new ArgumentNullException(nameof(into));
+        if (materials is null)
+        {
+            throw new ArgumentNullException(nameof(materials));
+        }
+
+        if (into is null)
+        {
+            throw new ArgumentNullException(nameof(into));
+        }
+
         into.Clear();
         for (int i = 0; i < submeshCount; i++)
         {
@@ -134,8 +154,12 @@ public static class ObjectModelPasses
                 : ClassicMaterialRecipe.FromKmf(kmf))));
         }
         for (int i = 0; i < submeshCount; i++)
+        {
             if (i < materials.Count && ObjectMaterialLook.EnvironmentPass(materials[i]) is ObjectMaterialLook environment)
+            {
                 into.Add(new ObjectPass(i, environment));
+            }
+        }
     }
 
     /// <summary>A material at a texture phase (a Heart's decay, an object's <see cref="ObjectView.TexturePhase"/>): the

@@ -34,24 +34,40 @@ public sealed partial class RoomConstructionParticles
                 break;
             case 18 when (effect.Flags & 0x40) != 0:
                 for (int pass = 0; pass < effect.ElementsPerTurn >> 2; pass++)
+                {
                     for (int slot = Math.Min(3, effect.GenerateIds.Count - 1); slot >= 0; slot--)
+                    {
                         if (effect.GenerateIds[slot] != 0)
+                        {
                             SpawnFreeEffect(effect.GenerateIds[slot], emitter.Request,
                                 emitter.Request.Position, new((ushort)_random.NextInt(2048)));
+                        }
+                    }
+                }
+
                 break;
             case 6:
                 ushort first = effect.GenerateIds.FirstOrDefault();
                 ushort last = effect.GenerateIds.LastOrDefault(id => id != 0);
-                if (last < first || first == 0) break;
+                if (last < first || first == 0)
+                {
+                    break;
+                }
+
                 for (int pass = 0; pass < effect.ElementsPerTurn; pass++)
                 {
                     ushort id = (ushort)(first + _random.NextInt(last - first + 1));
                     var heading = new Dk2Angle((ushort)((_random.NextInt(64) - 32) & 2047));
                     if (_database.EffectElements.TryGetValue(id, out EffectElementDef? element))
+                    {
                         EmitElement(element, effect, emitter.Request with { Heading = heading }, null, emitter, exactOrigin: true);
+                    }
                 }
                 if (emitter.Age % 3 == 0)
+                {
                     SpawnFreeEffect(effect.OuterOriginRange, emitter.Request, emitter.Request.Position, default);
+                }
+
                 break;
             case 3:
                 GenerateTileBurst(emitter);
@@ -71,18 +87,33 @@ public sealed partial class RoomConstructionParticles
     {
         EffectDef effect = emitter.Definition;
         ushort first = effect.GenerateIds.FirstOrDefault();
-        if (first == 0 || !_database.EffectElements.TryGetValue(first, out EffectElementDef? zero)) return;
+        if (first == 0 || !_database.EffectElements.TryGetValue(first, out EffectElementDef? zero))
+        {
+            return;
+        }
+
         int amount = emitter.Request.Amount ?? 0;
         int digits = 1;
-        for (int rest = amount / 10; rest > 0; rest /= 10) digits++;
+        for (int rest = amount / 10; rest > 0; rest /= 10)
+        {
+            digits++;
+        }
+
         int width = zero.MaxScale;
         int offset = digits / 2 * width;
         ViewEffectRequest at = emitter.Request with { Heading = default };
         for (int digit = 0; digit < digits; digit++, amount /= 10, offset -= width)
         {
-            if (!_database.EffectElements.TryGetValue((ushort)(first + amount % 10), out EffectElementDef? element)) return;
+            if (!_database.EffectElements.TryGetValue((ushort)(first + amount % 10), out EffectElementDef? element))
+            {
+                return;
+            }
+
             ConstructionParticle? particle = EmitElement(element, effect, at, null, emitter, exactOrigin: true);
-            if (particle == null) continue;
+            if (particle == null)
+            {
+                continue;
+            }
             // The digits are alpha sprites with RGB 0,0,0, so all they show is their tile's light (Q609).
             particle.ScreenOffsetXRaw = offset;
         }
@@ -101,13 +132,25 @@ public sealed partial class RoomConstructionParticles
                 FpPosition3 at = emitter.Request.Position;
                 at = new(new(at.X.Raw + _random.NextInt(range) + offset),
                     new(at.Y.Raw + _random.NextInt(range) + offset), new(at.Z.Raw + 4096));
-                if (!_database.EffectElements.TryGetValue(id, out EffectElementDef? element)) continue;
+                if (!_database.EffectElements.TryGetValue(id, out EffectElementDef? element))
+                {
+                    continue;
+                }
+
                 ConstructionParticle? child = EmitElement(element, effect,
                     emitter.Request with { Position = at, Heading = heading }, null, emitter, exactOrigin: true);
-                if (child == null) continue;
+                if (child == null)
+                {
+                    continue;
+                }
+
                 int xy = DrawInclusive(effect.MinSpeedXy, effect.MaxSpeedXy);
                 int z = DrawInclusive(effect.MinSpeedYz, effect.MaxSpeedYz);
-                if (xy == 0 && z == 0) continue;
+                if (xy == 0 && z == 0)
+                {
+                    continue;
+                }
+
                 double angle = _random.NextInt(2048) * Math.PI / 1024;
                 child.VelocityX += (int)(xy * Math.Sin(angle));
                 child.VelocityY -= (int)(xy * Math.Cos(angle));
@@ -115,7 +158,11 @@ public sealed partial class RoomConstructionParticles
             }
         }
         Burst(first, effect.ElementsPerTurn, 2048, 1024);
-        if (emitter.Age is > 8 and < 72) Burst(last, effect.ElementsPerTurn * 8, 4096, 0);
+        if (emitter.Age is > 8 and < 72)
+        {
+            Burst(last, effect.ElementsPerTurn * 8, 4096, 0);
+        }
+
         if (emitter.Age is > 12 and < 56 && _random.NextInt(15) == 0)
         {
             FpPosition3 at = emitter.Request.Position;
@@ -127,7 +174,10 @@ public sealed partial class RoomConstructionParticles
 
     private void SpawnFreeEffect(ushort id, ViewEffectRequest source, FpPosition3 at, Dk2Angle heading)
     {
-        if (id == 0 || !_database.Effects.TryGetValue(id, out EffectDef? definition) || !SupportsEffect(definition)) return;
+        if (id == 0 || !_database.Effects.TryGetValue(id, out EffectDef? definition) || !SupportsEffect(definition))
+        {
+            return;
+        }
         // Generation, contact children and element NextEffect use view slot94, the ungated
         // allocator; only caller requests and teardown use slot90's visibility test.
         ViewEffectRequest request = FreeRequest(source, new(id), at, heading) with { Visibility = EffectVisibility.Ungated };
@@ -137,7 +187,9 @@ public sealed partial class RoomConstructionParticles
     private void SpawnElementNext(ConstructionParticle particle)
     {
         if (_parents.TryGetValue(particle, out Emitter? parent))
+        {
             SpawnFreeEffect(particle.Definition.NextEffectId, parent.Request,
                 new(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw)), new((ushort)particle.HeadingRaw));
+        }
     }
 }

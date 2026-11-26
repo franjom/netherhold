@@ -18,8 +18,16 @@ public static class PlayerNames
     {
         var names = new Dictionary<byte, string>();
         if (players != null)
+        {
             foreach (PlayerDef player in players)
-                if (!string.IsNullOrEmpty(player.Name)) names[player.PlayerId] = player.Name;
+            {
+                if (!string.IsNullOrEmpty(player.Name))
+                {
+                    names[player.PlayerId] = player.Name;
+                }
+            }
+        }
+
         return id => names.TryGetValue(id, out string? name) ? name
             : id == PlayerIds.Good ? "Good Player" : id == PlayerIds.Neutral ? "Neutral Player" : "Keeper " + id;
     }

@@ -21,14 +21,26 @@ public sealed class RoomNavigation
     /// no type is left out.</summary>
     public static void Entries(WorldState world, GameDatabase database, List<RoomNavigationEntry> into)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (into is null) throw new ArgumentNullException(nameof(into));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (into is null)
+        {
+            throw new ArgumentNullException(nameof(into));
+        }
+
         into.Clear();
         IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, database);
         for (int i = 0; i < rooms.Count; i++)
         {
             RoomInstance room = rooms[i];
-            if (room.Definition.TypeId is not RoomTypeId roomType) continue;
+            if (room.Definition.TypeId is not RoomTypeId roomType)
+            {
+                continue;
+            }
+
             TilePos identity = world.TilePosition(room.TileIndices[0]);
             into.Add(new RoomNavigationEntry(identity, new PlayerId(room.OwnerPlayerId), roomType,
                 new TilePos(room.CentreFieldX, room.CentreFieldY)));
@@ -41,15 +53,35 @@ public sealed class RoomNavigation
         for (int i = 0; i < rooms.Count; i++)
         {
             RoomNavigationEntry room = rooms[i];
-            if (room.Owner != _viewer || room.Type != type) continue;
-            if (first < 0) first = i;
-            if (room.Identity == _last) previous = i;
+            if (room.Owner != _viewer || room.Type != type)
+            {
+                continue;
+            }
+
+            if (first < 0)
+            {
+                first = i;
+            }
+
+            if (room.Identity == _last)
+            {
+                previous = i;
+            }
         }
         int chosen = first;
         if (previous >= 0)
+        {
             for (int i = previous + 1; i < rooms.Count; i++)
+            {
                 if (rooms[i].Owner == _viewer && rooms[i].Type == type) { chosen = i; break; }
-        if (chosen < 0) return null;
+            }
+        }
+
+        if (chosen < 0)
+        {
+            return null;
+        }
+
         _last = rooms[chosen].Identity;
         return rooms[chosen].Focus;
     }

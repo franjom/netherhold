@@ -74,7 +74,11 @@ public sealed class WinScreen
     {
         byte[] bytes = new byte[5];
         level.NextRewards.Span[..Math.Min(4, level.NextRewards.Length)].CopyTo(bytes);
-        if (level.Unknown_6403.Length > 3) bytes[4] = level.Unknown_6403.Span[3];
+        if (level.Unknown_6403.Length > 3)
+        {
+            bytes[4] = level.Unknown_6403.Span[3];
+        }
+
         return bytes;
     }
 
@@ -109,7 +113,11 @@ public sealed class WinScreen
             return;
         }
         Current = Items[id];
-        if (Items[id].SpeechTextId != 0) SpeechRequested?.Invoke(Items[id].SpeechTextId);
+        if (Items[id].SpeechTextId != 0)
+        {
+            SpeechRequested?.Invoke(Items[id].SpeechTextId);
+        }
+
         Tablet.Restart();
         _nextTabletFrame = now;
         // With speech audio off the line lasts as a subtitle does (SubtitleQueue).
@@ -122,20 +130,43 @@ public sealed class WinScreen
     /// <returns>True on the frame the continue (action 134) is due.</returns>
     public bool Update(double now, bool cameraOnPath, bool continueRequested, bool? speechPlaying = null)
     {
-        if (!Started || cameraOnPath) return false;
+        if (!Started || cameraOnPath)
+        {
+            return false;
+        }
+
         if (!Done)
         {
             // More than four frames late, the clock restarts; up to four late, the missed frames are drawn.
-            if (now - _nextTabletFrame > 4 * TabletFrameMilliseconds) _nextTabletFrame = now;
+            if (now - _nextTabletFrame > 4 * TabletFrameMilliseconds)
+            {
+                _nextTabletFrame = now;
+            }
+
             for (; now >= _nextTabletFrame; _nextTabletFrame += TabletFrameMilliseconds)
+            {
                 Tablet.DrawFrame(now, _tabletPoints, _random);
-            if ((speechPlaying ?? now < _speechEnds) || !Tablet.Done) return false;
+            }
+
+            if ((speechPlaying ?? now < _speechEnds) || !Tablet.Done)
+            {
+                return false;
+            }
+
             _step++;
             Show(now);
             return false;
         }
-        if (_deadline == 0) _deadline = now + ContinueDelayMilliseconds;
-        if (now < _deadline) return false;
+        if (_deadline == 0)
+        {
+            _deadline = now + ContinueDelayMilliseconds;
+        }
+
+        if (now < _deadline)
+        {
+            return false;
+        }
+
         _deadline = now + ContinueDelayMilliseconds;
         return continueRequested;
     }

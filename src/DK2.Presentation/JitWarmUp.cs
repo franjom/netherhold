@@ -21,24 +21,52 @@ public static class JitWarmUp
     /// early, between two methods, when <paramref name="stop"/> is set.</summary>
     public static int Prepare(IEnumerable<Assembly> assemblies, Func<bool>? stop = null)
     {
-        if (assemblies is null) throw new ArgumentNullException(nameof(assemblies));
+        if (assemblies is null)
+        {
+            throw new ArgumentNullException(nameof(assemblies));
+        }
+
         return Prepare(assemblies.SelectMany(TypesOf), stop);
     }
 
     /// <summary>Compiles every method of <paramref name="types"/>, as <see cref="Prepare(IEnumerable{Assembly}, Func{bool}?)"/> does.</summary>
     public static int Prepare(IEnumerable<Type> types, Func<bool>? stop = null)
     {
-        if (types is null) throw new ArgumentNullException(nameof(types));
+        if (types is null)
+        {
+            throw new ArgumentNullException(nameof(types));
+        }
+
         int prepared = 0;
         foreach (Type type in types)
         {
-            if (type.ContainsGenericParameters || type.IsInterface) continue;
+            if (type.ContainsGenericParameters || type.IsInterface)
+            {
+                continue;
+            }
+
             foreach (MethodBase method in Methods(type))
             {
-                if (stop?.Invoke() == true) return prepared;
-                if (method.IsAbstract || method.ContainsGenericParameters) continue;
-                if ((method.Attributes & MethodAttributes.PinvokeImpl) != 0) continue;
-                if ((method.GetMethodImplementationFlags() & (MethodImplAttributes.InternalCall | MethodImplAttributes.Runtime)) != 0) continue;
+                if (stop?.Invoke() == true)
+                {
+                    return prepared;
+                }
+
+                if (method.IsAbstract || method.ContainsGenericParameters)
+                {
+                    continue;
+                }
+
+                if ((method.Attributes & MethodAttributes.PinvokeImpl) != 0)
+                {
+                    continue;
+                }
+
+                if ((method.GetMethodImplementationFlags() & (MethodImplAttributes.InternalCall | MethodImplAttributes.Runtime)) != 0)
+                {
+                    continue;
+                }
+
                 try
                 {
                     RuntimeHelpers.PrepareMethod(method.MethodHandle);

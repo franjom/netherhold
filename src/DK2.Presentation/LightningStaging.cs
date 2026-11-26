@@ -35,53 +35,103 @@ public sealed class LightningStaging
         WorldState world = simulation.World;
         GameDatabase database = simulation.Database;
         var heroes = new PlayerId(PlayerIds.Good);
-        if (!world.HasPlayer(viewer) || !world.HasPlayer(heroes)) return null;
+        if (!world.HasPlayer(viewer) || !world.HasPlayer(heroes))
+        {
+            return null;
+        }
+
         CreatureDef? mistress = null, monk = null;
         foreach (CreatureDef definition in database.Creatures.Values)
         {
-            if (definition.Name == "Mistress") mistress = definition;
-            if (definition.Name == "Monk") monk = definition;
+            if (definition.Name == "Mistress")
+            {
+                mistress = definition;
+            }
+
+            if (definition.Name == "Monk")
+            {
+                monk = definition;
+            }
         }
         if (mistress is null || monk is null || database.ObjectById(IncreaseLevelSpecial)?.IsSpecial != true
-            || database.ObjectById(ManaBoostSpecial)?.IsSpecial != true) return null;
+            || database.ObjectById(ManaBoostSpecial)?.IsSpecial != true)
+        {
+            return null;
+        }
+
         TilePos? start = null, end = null;
         // Prefer a target on plain floor in front of the room geometry, which can hide its crackle.
         for (int y = world.Height - 1; y >= 0 && !start.HasValue; y--)
+        {
             for (int x = 0; x < world.Width && !start.HasValue; x++)
             {
                 var targetAt = new TilePos(x, y);
                 if (!DryFloor(world, database, viewer, targetAt)
-                    || database.RoomByTerrain(world.Tile(targetAt).TerrainId) is not null) continue;
+                    || database.RoomByTerrain(world.Tile(targetAt).TerrainId) is not null)
+                {
+                    continue;
+                }
+
                 for (int side = 0; side < 4; side++)
                 {
                     int dx = side == 0 ? 1 : side == 1 ? -1 : 0;
                     int dy = side == 2 ? 1 : side == 3 ? -1 : 0;
                     var middle = new TilePos(x + dx, y + dy);
                     var casterAt = new TilePos(x + 2 * dx, y + 2 * dy);
-                    if (!DryFloor(world, database, viewer, middle) || !DryFloor(world, database, viewer, casterAt)) continue;
+                    if (!DryFloor(world, database, viewer, middle) || !DryFloor(world, database, viewer, casterAt))
+                    {
+                        continue;
+                    }
+
                     start = casterAt; end = targetAt; break;
                 }
             }
+        }
+
         foreach (CreatureState creature in world.OwnedCreatures(viewer))
         {
-            if (start.HasValue) break;
-            if (!DryFloor(world, database, viewer, creature.Tile)) continue;
+            if (start.HasValue)
+            {
+                break;
+            }
+
+            if (!DryFloor(world, database, viewer, creature.Tile))
+            {
+                continue;
+            }
+
             for (int side = 0; side < 4; side++)
             {
                 int dx = side == 0 ? 1 : side == 1 ? -1 : 0;
                 int dy = side == 2 ? 1 : side == 3 ? -1 : 0;
                 var middle = new TilePos(creature.Tile.X + dx, creature.Tile.Y + dy);
                 var other = new TilePos(creature.Tile.X + 2 * dx, creature.Tile.Y + 2 * dy);
-                if (!DryFloor(world, database, viewer, middle) || !DryFloor(world, database, viewer, other)) continue;
+                if (!DryFloor(world, database, viewer, middle) || !DryFloor(world, database, viewer, other))
+                {
+                    continue;
+                }
+
                 start = creature.Tile; end = other; break;
             }
         }
-        if (start is not TilePos a || end is not TilePos b) return null;
+        if (start is not TilePos a || end is not TilePos b)
+        {
+            return null;
+        }
+
         CreatureState? caster = world.TrySpawnCreature(database, new CreatureTypeId(mistress.CreatureId), viewer, a);
-        if (caster is null) return null;
+        if (caster is null)
+        {
+            return null;
+        }
+
         var targetType = new CreatureTypeId(monk.CreatureId);
         CreatureState? target = world.TrySpawnCreature(database, targetType, heroes, b);
-        if (target is null) return null;
+        if (target is null)
+        {
+            return null;
+        }
+
         for (int i = 0; i < 4; i++)
         {
             ObjectState special = world.SpawnObject(database, i == 3 ? ManaBoostSpecial : IncreaseLevelSpecial,
@@ -100,13 +150,20 @@ public sealed class LightningStaging
         KeeperSpellDef? spell = database.KeeperSpellById(KeeperSpellRules.Thunderbolt);
         if (_thunderboltPosted || world.CurrentTick.Value < _thunderboltAfter.Value
             || spell is null || world.Player(_viewer).Mana < spell.ManaCost
-            || !DryFloor(world, database, _viewer, TargetTile)) return false;
+            || !DryFloor(world, database, _viewer, TargetTile))
+        {
+            return false;
+        }
+
         CreatureState? target = world.TrySpawnCreature(database, _targetType, new PlayerId(PlayerIds.Good), TargetTile);
         if (target is null) { _thunderboltPosted = true; return false; }
         var command = new CastSpellOnCreatureCommand(_viewer, KeeperSpellRules.Thunderbolt, target.Id);
         _thunderboltPosted = true;
         if (KeeperSpellRules.CanCast(world, database, simulation.Navigation, world.CurrentTick, command) != KeeperSpellRefusal.None)
+        {
             return false;
+        }
+
         commands.Add(command);
         return true;
     }

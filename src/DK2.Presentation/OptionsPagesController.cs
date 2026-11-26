@@ -24,20 +24,40 @@ public sealed class OptionsPagesController
     public GameAction? CapturingAction { get; private set; }
     public bool BeginKeyCapture(GameAction action)
     {
-        if (Page != FrontEndPage.Controls || !KeyboardSetup.IsBuilt(action)) return false;
+        if (Page != FrontEndPage.Controls || !KeyboardSetup.IsBuilt(action))
+        {
+            return false;
+        }
+
         CapturingAction = action; return true;
     }
     public bool CaptureKey(KeyScanCode key, KeyModifiers modifiers)
     {
         int scanCode = key.Value;
-        if (CapturingAction is not GameAction action || scanCode <= 0 || scanCode >= 256) return false;
-        if ((modifiers & ~KeyModifiers.All) != 0) return false;
+        if (CapturingAction is not GameAction action || scanCode <= 0 || scanCode >= 256)
+        {
+            return false;
+        }
+
+        if ((modifiers & ~KeyModifiers.All) != 0)
+        {
+            return false;
+        }
+
         if (action is GameAction.ScrollUp or GameAction.ScrollDown or GameAction.ScrollLeft or GameAction.ScrollRight
-            && modifiers != KeyModifiers.None) return false;
+            && modifiers != KeyModifiers.None)
+        {
+            return false;
+        }
+
         if (action is GameAction.CameraModifier or GameAction.FastScroll)
         {
             KeyModifiers pairModifiers = modifiers & (KeyModifiers.Control | KeyModifiers.Shift);
-            if (pairModifiers is not KeyModifiers.Control and not KeyModifiers.Shift) return false;
+            if (pairModifiers is not KeyModifiers.Control and not KeyModifiers.Shift)
+            {
+                return false;
+            }
+
             GameAction other = action == GameAction.CameraModifier ? GameAction.FastScroll : GameAction.CameraModifier;
             int scan = pairModifiers == KeyModifiers.Control ? 0x1D : 0x2A;
             Edit(s => s with { Bindings = s.Bindings.Where(b => b.Action != action && b.Action != other)
@@ -45,7 +65,11 @@ public sealed class OptionsPagesController
         }
         else
         {
-            if (scanCode is 0x2A or 0x36 or 0x1D or 0x9D or 0x38 or 0xB8 || modifiers == KeyModifiers.All) return false;
+            if (scanCode is 0x2A or 0x36 or 0x1D or 0x9D or 0x38 or 0xB8 || modifiers == KeyModifiers.All)
+            {
+                return false;
+            }
+
             Edit(s =>
             {
                 var bindings = s.Bindings.Where(b => b.Action != action).ToList();
@@ -66,10 +90,20 @@ public sealed class OptionsPagesController
     /// whether one was bound.</summary>
     public bool CapturePressedKey(GameBindingInput keys)
     {
-        if (CapturingAction == null) return false;
+        if (CapturingAction == null)
+        {
+            return false;
+        }
+
         KeyModifiers modifiers = keys.Modifiers;
         for (int scan = 1; scan < 256; scan++)
-            if (keys.KeyPressed(new KeyScanCode(scan)) && CaptureKey(new KeyScanCode(scan), modifiers)) return true;
+        {
+            if (keys.KeyPressed(new KeyScanCode(scan)) && CaptureKey(new KeyScanCode(scan), modifiers))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
     public void CancelKeyCapture() => CapturingAction = null;
@@ -85,8 +119,16 @@ public sealed class OptionsPagesController
     /// sound the speech, music and effects sliders only. Returns whether <paramref name="id"/> is a slider (a held one asks nothing more).</summary>
     public bool BeginSliderDrag(ushort id)
     {
-        if (!Supports(id) || id is 133 or 900 || Range(id).Maximum <= 1) return false;
-        if (_dragging) return true;
+        if (!Supports(id) || id is 133 or 900 || Range(id).Maximum <= 1)
+        {
+            return false;
+        }
+
+        if (_dragging)
+        {
+            return true;
+        }
+
         _dragging = true;
         SoundRequest? request = id switch
         {
@@ -102,9 +144,17 @@ public sealed class OptionsPagesController
     /// <summary>The release: the page's object stops the handle it kept and clears it.</summary>
     public void EndSliderDrag()
     {
-        if (!_dragging) return;
+        if (!_dragging)
+        {
+            return;
+        }
+
         _dragging = false;
-        if (!_dragVoiced) return;
+        if (!_dragVoiced)
+        {
+            return;
+        }
+
         _dragVoiced = false;
         Sounds.Add(new SoundRequest(SoundCategory.None, default, Voice: SliderVoice, Stop: true));
     }
@@ -112,7 +162,11 @@ public sealed class OptionsPagesController
     private static SoundRequest Request(string category, uint id) => new(new SoundCategory(category), new SoundId(id), Voice: SliderVoice);
     public void Enter(FrontEndPage page, OptionsApplicationMode applicationMode = OptionsApplicationMode.FrontEnd)
     {
-        if (Page == page && _applicationMode == applicationMode) return;
+        if (Page == page && _applicationMode == applicationMode)
+        {
+            return;
+        }
+
         _applicationMode = applicationMode;
         CapturingAction = null; Page = page; _entry = Current.Clamped(); Pending = Current;
     }
@@ -122,7 +176,9 @@ public sealed class OptionsPagesController
         if (_applicationMode == OptionsApplicationMode.InGame) { Apply(Pending); SaveRequested?.Invoke(Current); }
         else if (Page == FrontEndPage.Sound) { Apply(Pending); SaveRequested?.Invoke(Current); }
         else if (Page == FrontEndPage.Controls)
+        {
             Apply(Current with { MouseSensitivity = Pending.MouseSensitivity, Bindings = Pending.Bindings });
+        }
     }
     public void Accept()
     {
@@ -133,12 +189,22 @@ public sealed class OptionsPagesController
     {
         EndSliderDrag();
         if (Page == FrontEndPage.Sound)
+        {
             Apply(Current with { MasterVolume = _entry.MasterVolume, SpeechVolume = _entry.SpeechVolume,
                 MusicVolume = _entry.MusicVolume, SoundEffectVolume = _entry.SoundEffectVolume,
                 Headphones = _entry.Headphones, QSound = _entry.QSound,
                 EnvironmentalEffects = _entry.EnvironmentalEffects, SoundQuality = _entry.SoundQuality });
-        else if (Page == FrontEndPage.Controls) Apply(_entry);
-        if (Page == FrontEndPage.Sound || Page == FrontEndPage.Controls) SaveRequested?.Invoke(Current);
+        }
+        else if (Page == FrontEndPage.Controls)
+        {
+            Apply(_entry);
+        }
+
+        if (Page == FrontEndPage.Sound || Page == FrontEndPage.Controls)
+        {
+            SaveRequested?.Invoke(Current);
+        }
+
         CapturingAction = null; Pending = Current; Page = FrontEndPage.None;
     }
     private void Apply(GameSettings settings) { Current = settings; Applied?.Invoke(Current); }
@@ -147,7 +213,11 @@ public sealed class OptionsPagesController
         ushort id = widget.Id.Value;
         if (id is 129 or 146 or 159) { Accept(); return true; }
         if (id is 130 or 147 or 160) { Cancel(); return true; }
-        if (Range(id).Maximum > 1 && id != 133) return Supports(id);
+        if (Range(id).Maximum > 1 && id != 133)
+        {
+            return Supports(id);
+        }
+
         return SetWidget(id, id == 133 ? Value(id) % 3 + 1 : Value(id) == 0 ? 1 : 0);
     }
     public bool Supports(ushort id) => id is 900 or 126 or 133 or 139 or 141 or 143 or 144
@@ -170,9 +240,17 @@ public sealed class OptionsPagesController
     };
     public bool SetWidget(ushort id, int value)
     {
-        if (!Supports(id)) return false;
+        if (!Supports(id))
+        {
+            return false;
+        }
+
         (int lo, int hi) = Range(id); value = Math.Clamp(value, lo, hi);
-        if (Value(id) == value) return true;
+        if (Value(id) == value)
+        {
+            return true;
+        }
+
         Edit(s => id switch
         {
             900 => s with { UiScale = value }, 116 => s with { WaterTranslucency = value != 0 }, 118 => s with { EnvironmentMapping = value != 0 },

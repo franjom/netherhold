@@ -18,7 +18,11 @@ public static class PossessionEntryEffect
     {
         KeeperSpellDef? spell = database.KeeperSpellById(PossessionSpellId);
         if (spell == null || !database.Shots.TryGetValue(spell.Shot(upgraded: false).ShotTypeId, out ShotDef? shot)
-            || shot.CreationEffectId == 0) return null;
+            || shot.CreationEffectId == 0)
+        {
+            return null;
+        }
+
         var point = new FpPosition3(new(target.PosX), new(target.PosY), new(Fp32.One + target.PosZ));
         return new ViewEffectRequest(new EffectId(shot.CreationEffectId), owner, point)
         {

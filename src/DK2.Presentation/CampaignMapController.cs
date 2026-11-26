@@ -59,16 +59,36 @@ public sealed class CampaignMapController : IDisposable
     public bool StartNew() => BeginMap(CampaignProgression.NewCampaign(Profile));
     private bool BeginMap(CampaignProfile profile)
     {
-        if (_session.PathPlaying || !_session.TryTransition(new(FrontEndPath.EntryToTable, FrontEndState.CampaignMap))) return false;
-        if (!ReferenceEquals(profile, Profile)) ChangeProfile(profile);
+        if (_session.PathPlaying || !_session.TryTransition(new(FrontEndPath.EntryToTable, FrontEndState.CampaignMap)))
+        {
+            return false;
+        }
+
+        if (!ReferenceEquals(profile, Profile))
+        {
+            ChangeProfile(profile);
+        }
+
         EnterMap(); return true;
     }
     public void Hover(CampaignSlot slot)
     {
         CampaignSlot next = IsAtMap && CampaignProgression.CanSelect(Profile, slot, SecretFiveAvailable) ? slot : CampaignSlot.None;
-        if (Hovered == next) return;
-        if (Hovered.IsCampaign) _markerPhases[Hovered.Value - 1] = 0;
-        if (next.IsCampaign) _markerPhases[next.Value - 1] = 0xfff;
+        if (Hovered == next)
+        {
+            return;
+        }
+
+        if (Hovered.IsCampaign)
+        {
+            _markerPhases[Hovered.Value - 1] = 0;
+        }
+
+        if (next.IsCampaign)
+        {
+            _markerPhases[next.Value - 1] = 0xfff;
+        }
+
         Hovered = next; Revision++;
         // A hovered land still below its top (z <= creation z + 0x1040) that was armed asks the sound once and disarms (0x00538D00 at 0x00538FA1 and 0x005390AE).
         if (next != CampaignSlot.None && _armed[next.Value - 1] && _lift[next.Value - 1] <= LiftLimit)
@@ -82,32 +102,55 @@ public sealed class CampaignMapController : IDisposable
         Hover(slot);
         bool pressed = primaryHeld && !_held;
         _held = primaryHeld;
-        if (pressed && Hovered != CampaignSlot.None) Select(Hovered);
+        if (pressed && Hovered != CampaignSlot.None)
+        {
+            Select(Hovered);
+        }
     }
     public bool Select(CampaignSlot slot)
     {
-        if (!IsAtMap || !CampaignProgression.CanSelect(Profile, slot, SecretFiveAvailable)) return false;
-        if (!_session.TryTransition(new(FrontEndPath.TableToBriefing, FrontEndState.PrepareCampaign))) return false;
+        if (!IsAtMap || !CampaignProgression.CanSelect(Profile, slot, SecretFiveAvailable))
+        {
+            return false;
+        }
+
+        if (!_session.TryTransition(new(FrontEndPath.TableToBriefing, FrontEndState.PrepareCampaign)))
+        {
+            return false;
+        }
+
         _selected = slot; Briefing = null; Hovered = CampaignSlot.None;
         ChangeProfile(Profile with { SecretLevelNumber = slot.IsSecret ? (uint)(slot.Value - 25) : 0 });
         Revision++; return true;
     }
     public bool BackToMap()
     {
-        if (_session.Page != FrontEndPage.Briefing) return false;
+        if (_session.Page != FrontEndPage.Briefing)
+        {
+            return false;
+        }
+
         Briefing = null; _selected = CampaignSlot.None;
         return _session.TryTransition(new(FrontEndPath.BriefingToTable, FrontEndState.CampaignMap));
     }
     public bool BackToMenu()
     {
-        if (!IsAtMap) return false;
+        if (!IsAtMap)
+        {
+            return false;
+        }
+
         bool changed = _session.TryTransition(new(FrontEndPath.TableToEntry, FrontEndState.SinglePlayerReady));
         if (changed) { Hovered = CampaignSlot.None; Revision++; }
         return changed;
     }
     public bool Launch()
     {
-        if (_session.Page != FrontEndPage.Briefing || Briefing is null || LaunchRequested is null) return false;
+        if (_session.Page != FrontEndPage.Briefing || Briefing is null || LaunchRequested is null)
+        {
+            return false;
+        }
+
         LaunchRequested.Invoke(Briefing.Slot); return true;
     }
     public bool CanLaunch => LaunchRequested is not null && Briefing is not null;
@@ -117,10 +160,18 @@ public sealed class CampaignMapController : IDisposable
     /// path 254 returns to the map (state 0x12).</summary>
     public bool AcceptResults()
     {
-        if (_session.Page != FrontEndPage.CampaignResults || _session.PathPlaying) return false;
+        if (_session.Page != FrontEndPage.CampaignResults || _session.PathPlaying)
+        {
+            return false;
+        }
+
         CampaignSlot played = _selected;
         CampaignProfile advanced = CampaignProgression.AdvanceAfterResults(Profile);
-        if (!ReferenceEquals(advanced, Profile)) ChangeProfile(advanced);
+        if (!ReferenceEquals(advanced, Profile))
+        {
+            ChangeProfile(advanced);
+        }
+
         uint rating = played == CampaignSlot.None ? 0 : Profile.TotalEvilRating[played.Value - 1];
         bool won = LevelStatisticsBlock.FromDwords(Profile.PlayerStatistics, PlayerIds.FirstKeeper).LevelWon;
         if (played != CampaignSlot.None && won && HiScoreTable.Qualifies(HiScores, rating))
@@ -136,14 +187,22 @@ public sealed class CampaignMapController : IDisposable
 
     public bool TypeEntry(char character)
     {
-        if (EntryRow < 0 || char.IsControl(character) || HiScores[EntryRow].Name.Length >= HiScoreTable.MaxText) return false;
+        if (EntryRow < 0 || char.IsControl(character) || HiScores[EntryRow].Name.Length >= HiScoreTable.MaxText)
+        {
+            return false;
+        }
+
         SetEntryName(HiScores[EntryRow].Name + character); return true;
     }
 
     public bool EraseEntry()
     {
         string name = EntryRow < 0 ? "" : HiScores[EntryRow].Name;
-        if (name.Length == 0) return false;
+        if (name.Length == 0)
+        {
+            return false;
+        }
+
         SetEntryName(name.Substring(0, name.Length - 1)); return true;
     }
 
@@ -151,7 +210,11 @@ public sealed class CampaignMapController : IDisposable
     /// saved (0x0053E610) and path 254 returns to the map.</summary>
     public bool CommitEntry()
     {
-        if (EntryRow < 0 || _session.PathPlaying) return false;
+        if (EntryRow < 0 || _session.PathPlaying)
+        {
+            return false;
+        }
+
         EntryRow = -1;
         HiScoresChanged?.Invoke(HiScores);
         return FlyBackToMap();
@@ -166,7 +229,11 @@ public sealed class CampaignMapController : IDisposable
 
     private bool FlyBackToMap()
     {
-        if (!_session.TryTransition(new(FrontEndPath.BriefingToTable, FrontEndState.CampaignMapEnter))) return false;
+        if (!_session.TryTransition(new(FrontEndPath.BriefingToTable, FrontEndState.CampaignMapEnter)))
+        {
+            return false;
+        }
+
         Briefing = null; Results = null; _selected = CampaignSlot.None;
         Revision++; return true;
     }
@@ -194,12 +261,19 @@ public sealed class CampaignMapController : IDisposable
     }
     private void ApplyLandPhases()
     {
-        for (int i = 0; i < 30; i++) _landPhases[i] = i < 25 && Profile.PlayerLevelStatus[i]
+        for (int i = 0; i < 30; i++)
+        {
+            _landPhases[i] = i < 25 && Profile.PlayerLevelStatus[i]
             is CampaignLevelStatus.Won or CampaignLevelStatus.ClosedBranch ? 0x55a : 0;
+        }
     }
     private void OnOperation(FrontEndOperation operation)
     {
-        if (operation == FrontEndOperation.EnterCampaignMap) EnterMap();
+        if (operation == FrontEndOperation.EnterCampaignMap)
+        {
+            EnterMap();
+        }
+
         if (operation is FrontEndOperation.CampaignMapFrame or FrontEndOperation.EnterCampaignMap)
         {
             _session.TryShowPage(FrontEndPage.CampaignMap);
@@ -227,21 +301,47 @@ public sealed class CampaignMapController : IDisposable
             IReadOnlyList<int> routes = RouteSlots(Profile.LevelNumber);
         if (elapsed < 10000)
         {
-            if (routes.Count == 0) _entered = _session.Now - TimeSpan.FromSeconds(10);
-            else foreach (int slot in routes) SetPhase(_landPhases, slot - 1, _blink);
-        }
+            if (routes.Count == 0)
+                {
+                    _entered = _session.Now - TimeSpan.FromSeconds(10);
+                }
+                else
+                {
+                    foreach (int slot in routes)
+                    {
+                        SetPhase(_landPhases, slot - 1, _blink);
+                    }
+                }
+            }
         else
         {
             if (_introPending)
             {
-                if (_blink == 0) foreach (int slot in routes) SetPhase(_landPhases, slot - 1, 0);
-                else _blink = 0;
-                _introPending = false;
+                if (_blink == 0)
+                    {
+                        foreach (int slot in routes)
+                        {
+                            SetPhase(_landPhases, slot - 1, 0);
+                        }
+                    }
+                    else
+                    {
+                        _blink = 0;
+                    }
+
+                    _introPending = false;
             }
             if (Hovered == CampaignSlot.None)
-                for (int i = 0; i < 24; i++)
-                    if (Profile.PlayerLevelStatus[i] == CampaignLevelStatus.Open) SetPhase(_markerPhases, i, _blink);
-        }
+                {
+                    for (int i = 0; i < 24; i++)
+                    {
+                        if (Profile.PlayerLevelStatus[i] == CampaignLevelStatus.Open)
+                        {
+                            SetPhase(_markerPhases, i, _blink);
+                        }
+                    }
+                }
+            }
         _blink = ((long)(_session.Now - _entered).TotalMilliseconds / 200 & 1) != 0 ? 0xfff : 0;
         }
         // 0x00538D00 raises the hovered land 8 units a frame; 0x004A35E0 lowers the others 8 units an object
@@ -251,7 +351,11 @@ public sealed class CampaignMapController : IDisposable
         for (int i = 0; i < _lift.Length; i++)
         {
             bool hovered = IsAtMap && Hovered.Value == i + 1;
-            if (!hovered) _armed[i] = true;
+            if (!hovered)
+            {
+                _armed[i] = true;
+            }
+
             int lift = hovered ? Math.Min(0x48, _lift[i] + 8) : Math.Max(0, _lift[i] - 8);
             if (lift != _lift[i]) { _lift[i] = lift; Revision++; }
         }

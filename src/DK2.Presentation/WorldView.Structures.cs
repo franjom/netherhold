@@ -55,14 +55,22 @@ public sealed partial class WorldView
 
     public IEnumerable<StructureView> Structures(WorldState world)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         foreach (DoorState door in world.Doors)
         {
             var tile = new TilePos(door.X, door.Y);
             if (!world.Contains(tile.X, tile.Y) || !IsVisible(world, tile)
                 || (door.UnderConstruction && door.PlayerId != _viewingPlayerId)
                 || IsHiddenSecretDoor(world, tile.X, tile.Y)
-                || !_database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)) continue;
+                || !_database.Doors.TryGetValue(door.DoorId, out DoorDef? definition))
+            {
+                continue;
+            }
+
             yield return new StructureView(new StructureId(StructureKind.Door, door.Id), tile,
                 new PlayerId(door.PlayerId), AssetRef.ForDoor(definition.Name, door.Open),
                 door.Orientation == 0 ? 0x200 : 0, door.UnderConstruction, FloorHeight(world, tile.X, tile.Y))
@@ -80,7 +88,11 @@ public sealed partial class WorldView
             var tile = new TilePos(trap.X, trap.Y);
             if (!world.Contains(tile.X, tile.Y) || !IsVisible(world, tile)
                 || ((trap.Hidden || trap.UnderConstruction) && trap.PlayerId != _viewingPlayerId)
-                || !_database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition)) continue;
+                || !_database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition))
+            {
+                continue;
+            }
+
             yield return new StructureView(new StructureId(StructureKind.Trap, trap.Id), tile,
                 new PlayerId(trap.PlayerId), AssetRef.ForTrap(definition.Name), trap.Heading,
                 trap.UnderConstruction, FloorHeight(world, tile.X, tile.Y))
@@ -100,7 +112,11 @@ public sealed partial class WorldView
     /// alternate turns, a door blue on even turns and a trap red (<c>0x004A6B70</c>, <c>0x004A9F10</c>).</summary>
     public BlueprintTint PlanTint(WorldState world, StructureKind kind, PlayerId owner)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         long turn = world.CurrentTick.Value;
         if (!ReferenceEquals(world, _planWorkshopWorld) || turn != _planWorkshopTick || owner != _planWorkshopPlayer)
         {
@@ -110,7 +126,11 @@ public sealed partial class WorldView
             _planWorkshopPlayer = owner;
             _planWorkshopOwned = OwnsWorkshopTile(world, owner);
         }
-        if (_planWorkshopOwned) return BlueprintTint.Blue;
+        if (_planWorkshopOwned)
+        {
+            return BlueprintTint.Blue;
+        }
+
         bool even = (turn & 1) == 0;
         return even == (kind == StructureKind.Door) ? BlueprintTint.Blue : BlueprintTint.Red;
     }
@@ -118,12 +138,18 @@ public sealed partial class WorldView
     private bool OwnsWorkshopTile(WorldState world, PlayerId owner)
     {
         for (int y = 0; y < world.Height; y++)
-        for (int x = 0; x < world.Width; x++)
+        {
+            for (int x = 0; x < world.Width; x++)
         {
             ref TileState tile = ref world.Tile(new TilePos(x, y));
             if (tile.OwnerPlayerId == owner.Value && _database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? room)
-                && room.RoomId == (byte)RoomTypeId.Workshop) return true;
+                && room.RoomId == (byte)RoomTypeId.Workshop)
+                {
+                    return true;
+                }
+            }
         }
+
         return false;
     }
 }

@@ -127,7 +127,10 @@ public sealed class FrameInputJournalWriter : IDisposable
         _w.Write(FrameInputJournal.FrameRecord);
         _w.Write((int)_buffer.Length);
         _w.Write(_buffer.GetBuffer(), 0, (int)_buffer.Length);
-        if (frame.Intents.Count > 0 || frame.Commands.Count > 0 || ++_unflushed >= FlushEveryFrames) Flush();
+        if (frame.Intents.Count > 0 || frame.Commands.Count > 0 || ++_unflushed >= FlushEveryFrames)
+        {
+            Flush();
+        }
     }
 
     /// <summary>Closes the journal with how the session ended.</summary>
@@ -188,11 +191,22 @@ public sealed class FrameInputJournal
         var header = new Dictionary<string, string>(StringComparer.Ordinal);
         try
         {
-            if (r.ReadUInt32() != Magic) throw new InvalidDataException("not a frame input journal");
+            if (r.ReadUInt32() != Magic)
+            {
+                throw new InvalidDataException("not a frame input journal");
+            }
+
             int format = r.ReadInt32();
-            if (format != FormatVersion) throw new InvalidDataException($"frame input journal format {format}, expected {FormatVersion}");
+            if (format != FormatVersion)
+            {
+                throw new InvalidDataException($"frame input journal format {format}, expected {FormatVersion}");
+            }
+
             int count = r.ReadInt32();
-            for (int i = 0; i < count; i++) header[r.ReadString()] = r.ReadString();
+            for (int i = 0; i < count; i++)
+            {
+                header[r.ReadString()] = r.ReadString();
+            }
         }
         catch (EndOfStreamException)
         {
@@ -207,7 +221,11 @@ public sealed class FrameInputJournal
         while (true)
         {
             int tag = stream.ReadByte();
-            if (tag < 0) return new FrameInputJournal(header, frames, null, null);
+            if (tag < 0)
+            {
+                return new FrameInputJournal(header, frames, null, null);
+            }
+
             try
             {
                 switch (tag)
@@ -215,9 +233,16 @@ public sealed class FrameInputJournal
                     case FrameRecord:
                         int length = StreamCount.Read(r, 1);
                         byte[] payload = r.ReadBytes(length);
-                        if (payload.Length < length) return new FrameInputJournal(header, frames, null, null);
+                        if (payload.Length < length)
+                        {
+                            return new FrameInputJournal(header, frames, null, null);
+                        }
+
                         using (var record = new BinaryReader(new MemoryStream(payload), Encoding.UTF8))
+                        {
                             frames.Add(Decode(record));
+                        }
+
                         break;
                     case EndRecord:
                         long written = r.ReadInt64();
@@ -243,7 +268,11 @@ public sealed class FrameInputJournal
         w.Write(f.UnscaledDeltaSeconds);
         w.Write((byte)f.Mode);
         w.Write(f.TickAtStart.HasValue);
-        if (f.TickAtStart is GameTick tick) w.Write(tick.Value);
+        if (f.TickAtStart is GameTick tick)
+        {
+            w.Write(tick.Value);
+        }
+
         w.Write(f.TicksRun);
         w.Write(f.CommandsHandedToTick);
         w.Write(f.TickDebtAfter);
@@ -263,7 +292,11 @@ public sealed class FrameInputJournal
         w.Write((byte)f.Hud);
         w.Write((byte)f.ActiveTool);
         w.Write(f.Intents.Count);
-        foreach (PlayerIntent intent in f.Intents) Intent(w, intent);
+        foreach (PlayerIntent intent in f.Intents)
+        {
+            Intent(w, intent);
+        }
+
         w.Write(f.Commands.Count);
         foreach (QueuedCommand queued in f.Commands)
         {
@@ -304,7 +337,10 @@ public sealed class FrameInputJournal
     private static void Keys(BinaryWriter w, IReadOnlyList<HostKey> keys)
     {
         w.Write(keys.Count);
-        foreach (HostKey key in keys) w.Write(key.Code);
+        foreach (HostKey key in keys)
+        {
+            w.Write(key.Code);
+        }
     }
 
     private static HostKey[] ReadKeys(BinaryReader r) => Repeat(r, sizeof(int), b => new HostKey(b.ReadInt32()));
@@ -316,7 +352,11 @@ public sealed class FrameInputJournal
     {
         int count = StreamCount.Read(r, minBytesPerItem);
         var items = new T[count];
-        for (int i = 0; i < count; i++) items[i] = read(r);
+        for (int i = 0; i < count; i++)
+        {
+            items[i] = read(r);
+        }
+
         return items;
     }
 

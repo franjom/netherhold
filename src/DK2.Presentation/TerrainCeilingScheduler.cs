@@ -98,14 +98,20 @@ public sealed class TerrainCeilingScheduler
     private void MarkChanged()
     {
         for (int i = 0; i < _changed.Count; i++)
+        {
             MarkDirty(_changed[i] % _width, _changed[i] / _width, TerrainCeiling.ChangeReach);
+        }
     }
 
     /// <summary>Fills <paramref name="geometry"/> with a chunk that waits to be built and returns true;
     /// false leaves it as it was. An empty geometry is a chunk with no open tile.</summary>
     public bool TryBuild(int chunk, TerrainCeilingGeometry geometry)
     {
-        if (!_dirty[chunk]) return false;
+        if (!_dirty[chunk])
+        {
+            return false;
+        }
+
         _dirty[chunk] = false;
         _dirtyCount--;
         geometry.Clear();
@@ -113,9 +119,14 @@ public sealed class TerrainCeilingScheduler
         ReadOnlySpan<byte> triangles = TerrainCeiling.Triangles;
         int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
         for (int y = y0; y < Math.Min(y0 + ChunkSize, _height); y++)
+        {
             for (int x = x0; x < Math.Min(x0 + ChunkSize, _width); x++)
             {
-                if (!_field.Has(x, y)) continue;
+                if (!_field.Has(x, y))
+                {
+                    continue;
+                }
+
                 _field.Piece(x, y, _lattice, _piecePositions, _pieceNormals);
                 int start = geometry.Positions.Count;
                 var anchor = new Vector2((y * _width) + x, RoofAnchor);
@@ -129,8 +140,13 @@ public sealed class TerrainCeilingScheduler
                     geometry.Uvs.Add(new Vector2(u, v));
                     geometry.LightAnchors.Add(anchor);
                 }
-                for (int i = 0; i < triangles.Length; i++) geometry.Triangles.Add(start + triangles[i]);
+                for (int i = 0; i < triangles.Length; i++)
+                {
+                    geometry.Triangles.Add(start + triangles[i]);
+                }
             }
+        }
+
         return true;
     }
 
@@ -147,12 +163,18 @@ public sealed class TerrainCeilingScheduler
         int x0 = Math.Max(0, x - reach) / ChunkSize, x1 = Math.Min(_width - 1, x + reach) / ChunkSize;
         int y0 = Math.Max(0, y - reach) / ChunkSize, y1 = Math.Min(_height - 1, y + reach) / ChunkSize;
         for (int cy = y0; cy <= y1; cy++)
+        {
             for (int cx = x0; cx <= x1; cx++)
             {
                 int chunk = (cy * _chunksX) + cx;
-                if (_dirty[chunk]) continue;
+                if (_dirty[chunk])
+                {
+                    continue;
+                }
+
                 _dirty[chunk] = true;
                 _dirtyCount++;
             }
+        }
     }
 }

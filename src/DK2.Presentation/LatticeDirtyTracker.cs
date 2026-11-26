@@ -24,8 +24,16 @@ public sealed class LatticeDirtyTracker
 
     public LatticeDirtyTracker(int width, int height)
     {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (width <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
         _width = width;
         _height = height;
         _touched = new bool[width * height];
@@ -45,8 +53,16 @@ public sealed class LatticeDirtyTracker
     public bool TouchedNear(TilePos wall)
     {
         for (int y = Math.Max(0, wall.Y - TorchReach); y <= Math.Min(_height - 1, wall.Y + TorchReach); y++)
+        {
             for (int x = Math.Max(0, wall.X - TorchReach); x <= Math.Min(_width - 1, wall.X + TorchReach); x++)
-                if (_touched[(y * _width) + x]) return true;
+            {
+                if (_touched[(y * _width) + x])
+                {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 

@@ -30,9 +30,17 @@ public sealed class PossessionControls
     /// that spell slot, its spell id is not zero and the creature has reached its level.</summary>
     public void SelectSpell(int slot, CreatureDef definition, int level)
     {
-        if (slot < 0 || slot >= definition.Spells.Count) return;
+        if (slot < 0 || slot >= definition.Spells.Count)
+        {
+            return;
+        }
+
         CreatureSpellSlot spell = definition.Spells[slot];
-        if (spell.CreatureSpellId == 0 || spell.LevelAvailable > level) return;
+        if (spell.CreatureSpellId == 0 || spell.LevelAvailable > level)
+        {
+            return;
+        }
+
         Selection = (byte)(slot << 3);
     }
 
@@ -51,7 +59,10 @@ public sealed class PossessionControls
     /// <summary>Binding 11 selects hypnosis only for kind 5 (<c>0x0040FDA0</c>).</summary>
     public void SelectSecondary(CreatureDef definition)
     {
-        if (definition.SecondaryAbility == PossessionAbilityKind.Hypnosis) Selection = 4;
+        if (definition.SecondaryAbility == PossessionAbilityKind.Hypnosis)
+        {
+            Selection = 4;
+        }
     }
     /// <summary>The built immediate primary arms: form, sneak at the camera tile and prayer.</summary>
     public PlayerCommand? UsePrimary(PlayerId player, PossessionView view, CreatureDef definition) =>
@@ -68,9 +79,19 @@ public sealed class PossessionControls
     /// <summary>Sniper's client gate (<c>0x0040FDF0</c>): multiplier above one and an unlocked nonzero slot.</summary>
     public static bool CanToggleSniper(CreatureDef definition, int level)
     {
-        if ((uint)definition.SniperZoom.Raw >> 12 <= 1) return false;
+        if ((uint)definition.SniperZoom.Raw >> 12 <= 1)
+        {
+            return false;
+        }
+
         for (int i = 0; i < Math.Min(3, definition.Spells.Count); i++)
-            if (definition.Spells[i].CreatureSpellId != 0 && definition.Spells[i].LevelAvailable <= level) return true;
+        {
+            if (definition.Spells[i].CreatureSpellId != 0 && definition.Spells[i].LevelAvailable <= level)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
     /// <summary>Special hypnosis selection takes precedence over the ordinary action-26 fall-through.</summary>

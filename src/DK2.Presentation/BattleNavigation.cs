@@ -18,11 +18,13 @@ public sealed class BattleNavigation(PlayerId viewer)
         {
             var slot = new BattleViewSlot((Last.Value + step) & 7);
             foreach (BattleViewSnapshot battle in battles)
+            {
                 if (battle.Slot == slot && battle.MemberCount > 0 && battle.Owners.Contains(viewer))
                 {
                     Last = slot;
                     return battle.Centre;
                 }
+            }
         }
         Last = BattleViewSlot.None;
         return null;

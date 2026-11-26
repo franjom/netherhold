@@ -22,7 +22,9 @@ public sealed class TerrainPiece
         Triangles = triangles ?? throw new ArgumentNullException(nameof(triangles));
         Recipes = recipes ?? throw new ArgumentNullException(nameof(recipes));
         if (normals.Length != positions.Length || uvs.Length != positions.Length || recipes.Length != triangles.Count)
+        {
             throw new ArgumentException("A piece needs one normal and UV a position and one recipe a triangle list.");
+        }
     }
 
     public Vector3[] Positions { get; }
@@ -42,7 +44,10 @@ public sealed class TerrainPiece
         var source = RenderMesh.FromModel(model);
         var recipes = new ClassicMaterialRecipe[source.Triangles.Count];
         for (int i = 0; i < recipes.Length; i++)
+        {
             recipes[i] = ClassicMaterialRecipe.FromKmf(i < model.Materials.Count ? model.Materials[i] : null, textureIndex);
+        }
+
         return new TerrainPiece([.. source.Positions], [.. source.Normals], [.. source.Uvs], source.Triangles, recipes);
     }
 }
@@ -65,8 +70,16 @@ public sealed class InstallTerrainPieces : ITerrainPieceSource
 
     public TerrainPiece? Piece(AssetRef key, int textureIndex = -1)
     {
-        if (textureIndex < 0) textureIndex = 0;
-        if (_pieces.TryGetValue((key, textureIndex), out TerrainPiece? cached)) return cached;
+        if (textureIndex < 0)
+        {
+            textureIndex = 0;
+        }
+
+        if (_pieces.TryGetValue((key, textureIndex), out TerrainPiece? cached))
+        {
+            return cached;
+        }
+
         TerrainPiece? piece = _art.TryResolve(key, out ResolvedAsset asset) && _art.TryLoadModel(asset, out KmfModel model)
             ? TerrainPiece.FromModel(model, textureIndex) : null;
         _pieces[(key, textureIndex)] = piece;

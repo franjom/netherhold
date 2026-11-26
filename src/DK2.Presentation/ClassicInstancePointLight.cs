@@ -30,12 +30,24 @@ public readonly record struct ClassicInstancePointLight
         Vector3 toLight = source.Position - instancePosition;
         float distanceSquared = (toLight.X * toLight.X + toLight.Y * toLight.Y) + toLight.Z * toLight.Z;
         float radiusSquared = source.Radius * source.Radius;
-        if (source.Radius <= 0 || distanceSquared >= radiusSquared) return default;
+        if (source.Radius <= 0 || distanceSquared >= radiusSquared)
+        {
+            return default;
+        }
+
         int index = (int)Math.Round(distanceSquared * 16.0 - 0.49999f, MidpointRounding.ToEven);
-        if ((uint)index >= 256) throw new ArgumentOutOfRangeException(nameof(instancePosition), "Native light lookup has 256 bins.");
+        if ((uint)index >= 256)
+        {
+            throw new ArgumentOutOfRangeException(nameof(instancePosition), "Native light lookup has 256 bins.");
+        }
+
         float lookup = 0.25f + 16f / index;
         float attenuation = (radiusSquared - distanceSquared) * lookup * (1f / radiusSquared);
-        if (!(attenuation > 0)) return default;
+        if (!(attenuation > 0))
+        {
+            return default;
+        }
+
         Vector3 direction = new(
             directionTransform.M11 * toLight.X + directionTransform.M12 * toLight.Y + directionTransform.M13 * toLight.Z,
             directionTransform.M21 * toLight.X + directionTransform.M22 * toLight.Y + directionTransform.M23 * toLight.Z,
@@ -45,13 +57,24 @@ public readonly record struct ClassicInstancePointLight
 
     public Vector3 ContributionAt(Vector3 vertexDisplacement, Vector3 normal)
     {
-        if (!(Attenuation > 0)) return Vector3.Zero;
+        if (!(Attenuation > 0))
+        {
+            return Vector3.Zero;
+        }
+
         Vector3 toLight = Direction - vertexDisplacement;
         float incidence = ((toLight.X * normal.X + toLight.Z * normal.Z) + toLight.Y * normal.Y) * Intensity;
-        if (BitConverter.SingleToInt32Bits(incidence) < 0) return Vector3.Zero;
+        if (BitConverter.SingleToInt32Bits(incidence) < 0)
+        {
+            return Vector3.Zero;
+        }
+
         float factor = incidence * Attenuation;
         if (float.IsNaN(factor))
+        {
             throw new NotSupportedException("Native zero-incidence singular-bin propagation depends on the FPU exception mask.");
+        }
+
         return Colour * (factor <= 1f ? factor : 1f);
     }
 }

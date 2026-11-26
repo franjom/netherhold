@@ -51,7 +51,11 @@ public static class HudWidgetText
 
     public static HoverTextSnapshot Hover(int textId, Func<uint, string> resolve)
     {
-        if (resolve is null) throw new ArgumentNullException(nameof(resolve));
+        if (resolve is null)
+        {
+            throw new ArgumentNullException(nameof(resolve));
+        }
+
         int status = StatusTextId(textId);
         return new HoverTextSnapshot(status == 0 ? "" : resolve((uint)status), resolve((uint)textId),
             new WorldHoverHit(WorldHoverKind.Widget, default, textId));

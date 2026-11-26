@@ -58,9 +58,17 @@ public sealed class CampaignCutsceneRunner(ICampaignCutsceneHost host)
     /// <param name="title">The title's text by Speech.str id, asked only for a title it has (<see cref="SpeechText"/>).</param>
     public void Begin(CampaignProfile profile, string install, Func<uint, string?> title, float now)
     {
-        if (title is null) throw new ArgumentNullException(nameof(title));
+        if (title is null)
+        {
+            throw new ArgumentNullException(nameof(title));
+        }
+
         Cutscene = CampaignCutscene.AfterLevel(profile);
-        if (Cutscene == null) return;
+        if (Cutscene == null)
+        {
+            return;
+        }
+
         _install = install;
         Title = Cutscene.TitleTextId != 0 ? title(Cutscene.TitleTextId) : null;
         _titlePhase = Title == null ? 3 : 0;
@@ -79,10 +87,18 @@ public sealed class CampaignCutsceneRunner(ICampaignCutsceneHost host)
     /// <returns>False once the front end may run: with nothing playing, or on the frame the last movie has ended.</returns>
     public bool Update(float now)
     {
-        if (Cutscene == null) return false;
+        if (Cutscene == null)
+        {
+            return false;
+        }
+
         if (_titlePhase < 3)
         {
-            if (now < _titleEnds) return true;
+            if (now < _titleEnds)
+            {
+                return true;
+            }
+
             if (_titlePhase == 0)
             {
                 _host.QueueSpeech(TitleSpeech!.Value);
@@ -91,14 +107,22 @@ public sealed class CampaignCutsceneRunner(ICampaignCutsceneHost host)
             }
             if (_titlePhase == 1)
             {
-                if (_host.SpeechBusy) return true;
+                if (_host.SpeechBusy)
+                {
+                    return true;
+                }
+
                 _titlePhase = 2;
                 _titleEnds = now + CampaignCutscene.PauseMilliseconds / 1000f;
                 return true;
             }
             _titlePhase = 3;
         }
-        if (_host.MoviePlaying) return true;
+        if (_host.MoviePlaying)
+        {
+            return true;
+        }
+
         if (++_movie < Cutscene.Movies.Count)
         {
             _host.PlayMovie(Cutscene.Movies[_movie], _install!);

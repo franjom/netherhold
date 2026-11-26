@@ -56,7 +56,10 @@ public sealed class WorldHoverPicker
     {
         terrainDistance = 0;
         if (!TileTopPlane.TryHit(origin, direction, TileTopPlane.Height(solid), out pointerGround, out float distance))
+        {
             return false;
+        }
+
         terrainDistance = distance + TerrainMargin;
         return true;
     }
@@ -100,10 +103,17 @@ public sealed class WorldHoverPicker
         probe = default;
         float depth = Dot(Subtract(centre, _ray.Origin), _ray.ViewForward);
         float along = Dot(_ray.Direction, _ray.ViewForward);
-        if (along <= 0f) return false;
+        if (along <= 0f)
+        {
+            return false;
+        }
+
         float rayDistance = depth / along;
         if (!HoverPickRules.CircleHolds(depth, radius, SquaredLength(Subtract(centre, PointAlong(rayDistance)))))
+        {
             return false;
+        }
+
         probe = new HoverPickProbe(depth, rayDistance);
         return true;
     }
@@ -114,7 +124,11 @@ public sealed class WorldHoverPicker
     public bool Admits(WorldHoverHit candidate, in HoverPickProbe probe, float? boundsEntry)
     {
         float entryDistance = boundsEntry ?? probe.RayDistance;
-        if (entryDistance >= TerrainDistance) return false;
+        if (entryDistance >= TerrainDistance)
+        {
+            return false;
+        }
+
         return _rendered == null || _rendered(candidate.Kind, candidate.EntityId);
     }
 
@@ -128,10 +142,18 @@ public sealed class WorldHoverPicker
     public bool TryAdmit(WorldHoverHit candidate, in PickBox bounds, PickSphere? sphere, out HoverPickProbe probe)
     {
         probe = default;
-        if (_frustum is ViewFrustum frustum && frustum.Excludes(bounds)) return false;
+        if (_frustum is ViewFrustum frustum && frustum.Excludes(bounds))
+        {
+            return false;
+        }
+
         Vector3 centre = sphere?.Centre ?? bounds.Centre;
         float radius = sphere?.Radius ?? MathF.Sqrt(SquaredLength(bounds.Extents));
-        if (!Holds(centre, radius, out probe)) return false;
+        if (!Holds(centre, radius, out probe))
+        {
+            return false;
+        }
+
         return Admits(candidate, probe, bounds.RayEntry(_ray.Origin, _ray.Direction));
     }
 
@@ -186,14 +208,21 @@ public sealed class WorldHoverPicker
             new Fp32((int)(-_pointerGround.Z * Fp32.One)), new Fp32(0));
         int closestObject = HoverPickRules.FallbackObjectRadius(_objectsOnly);
         for (int y = _tile.Y - 1; y <= _tile.Y + 1; y++)
+        {
             for (int x = _tile.X - 1; x <= _tile.X + 1; x++)
             {
                 var at = new TilePos(x, y);
                 foreach (SweepEntry creature in _sweepCreatures)
+                {
                     if (!_objectsOnly && creature.Tile == at && Distance(pointer, creature.Position) < Fp32.One / 2
                         && (_fallback == null || _fallback(WorldHoverKind.Creature, creature.Id)))
+                    {
                         return new WorldHoverHit(WorldHoverKind.Creature, creature.Tile, creature.Id);
+                    }
+                }
+
                 foreach (SweepEntry thing in _sweepObjects)
+                {
                     if (thing.Tile == at && (_fallback == null || _fallback(WorldHoverKind.Object, thing.Id)))
                     {
                         int distance = Distance(pointer, thing.Position);
@@ -203,7 +232,10 @@ public sealed class WorldHoverPicker
                             hit = new WorldHoverHit(WorldHoverKind.Object, thing.Tile, thing.Id);
                         }
                     }
+                }
             }
+        }
+
         return hit.Kind == WorldHoverKind.Object && _resolves != null && !_resolves(hit)
             ? new WorldHoverHit(WorldHoverKind.Tile, _tile) : hit;
     }
@@ -218,14 +250,26 @@ public sealed class WorldHoverPicker
         Vector3 ab = Subtract(b, a), ac = Subtract(c, a);
         Vector3 p = Cross(direction, ac);
         float det = Dot(ab, p);
-        if (det > -1e-9f && det < 1e-9f) return false;
+        if (det > -1e-9f && det < 1e-9f)
+        {
+            return false;
+        }
+
         float inv = 1f / det;
         Vector3 s = Subtract(origin, a);
         float u = Dot(s, p) * inv;
-        if (u < 0f || u > 1f) return false;
+        if (u < 0f || u > 1f)
+        {
+            return false;
+        }
+
         Vector3 q = Cross(s, ab);
         float v = Dot(direction, q) * inv;
-        if (v < 0f || u + v > 1f) return false;
+        if (v < 0f || u + v > 1f)
+        {
+            return false;
+        }
+
         distance = Dot(ac, q) * inv;
         return distance > 0f;
     }

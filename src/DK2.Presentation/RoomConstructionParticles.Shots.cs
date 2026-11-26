@@ -19,7 +19,11 @@ public readonly record struct ShotEffectAttachment(bool ShotExists, FpPosition3?
     public static ShotEffectAttachment Resolve(WorldState world, WorldSteering navigation, ShotId id, float fraction)
     {
         ShotState? shot = world.ShotById(id.Value);
-        if (shot == null) return Gone;
+        if (shot == null)
+        {
+            return Gone;
+        }
+
         FpPosition3 current = shot.ViewPosition, previous = shot.PreviousViewPosition ?? current;
         float t = Math.Clamp(fraction, 0, 1);
         var point = new FpPosition3(new Fp32(previous.X.Raw + (int)((current.X.Raw - previous.X.Raw) * t)),
@@ -36,11 +40,19 @@ public sealed partial class RoomConstructionParticles
 {
     private void FollowShotAttachments()
     {
-        if (_shotAttachment == null) return;
+        if (_shotAttachment == null)
+        {
+            return;
+        }
+
         foreach (Emitter emitter in _emitters)
         {
             ViewEffectRequest request = emitter.Request;
-            if (request.AttachedShotId == ShotId.None) continue;
+            if (request.AttachedShotId == ShotId.None)
+            {
+                continue;
+            }
+
             ShotEffectAttachment found = _shotAttachment(request.AttachedShotId);
             if (!found.ShotExists)
             {
@@ -51,7 +63,11 @@ public sealed partial class RoomConstructionParticles
                     for (int i = _particles.Count - 1; i >= 0; i--)
                     {
                         ConstructionParticle particle = _particles[i];
-                        if (!_parents.TryGetValue(particle, out Emitter? parent) || parent != emitter) continue;
+                        if (!_parents.TryGetValue(particle, out Emitter? parent) || parent != emitter)
+                        {
+                            continue;
+                        }
+
                         _parents.Remove(particle);
                         _particles.RemoveAt(i);
                         emitter.ChildCount--;

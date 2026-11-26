@@ -48,17 +48,29 @@ public static class FrontEndBriefingImages
             yield return new(FrontEndBriefingImage.FirstShot, 20, 110);
             if (mode == 3)
             {
-                for (int y = 148; y < 328; y += 30) yield return new(FrontEndBriefingImage.Load01, 61, y);
+                for (int y = 148; y < 328; y += 30)
+                {
+                    yield return new(FrontEndBriefingImage.Load01, 61, y);
+                }
+
                 yield break;
             }
             yield return new(FrontEndBriefingImage.Objective00, 184, 110);
             yield return new(FrontEndBriefingImage.Objective01, 184, 147);
             yield break;
         }
-        if (section != 3) yield break;
+        if (section != 3)
+        {
+            yield break;
+        }
+
         if (secretOrSpecial)
         {
-            if (mode == 1) yield return new(FrontEndBriefingImage.Objective03, 184, 242);
+            if (mode == 1)
+            {
+                yield return new(FrontEndBriefingImage.Objective03, 184, 242);
+            }
+
             yield break;
         }
         yield return new(FrontEndBriefingImage.SecondShot, 20, 242);
@@ -67,7 +79,13 @@ public static class FrontEndBriefingImages
             yield return new(FrontEndBriefingImage.Objective00, 184, 242);
             yield return new(FrontEndBriefingImage.Objective02, 184, 279);
         }
-        else if (mode == 1) yield return new(FrontEndBriefingImage.Objective03, 184, 242);
-        else if (mode is 2 or 4) yield return new(FrontEndBriefingImage.Objective04, 0, 242);
+        else if (mode == 1)
+        {
+            yield return new(FrontEndBriefingImage.Objective03, 184, 242);
+        }
+        else if (mode is 2 or 4)
+        {
+            yield return new(FrontEndBriefingImage.Objective04, 0, 242);
+        }
     }
 }

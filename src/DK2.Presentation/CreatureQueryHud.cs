@@ -36,11 +36,23 @@ public sealed class CreatureQueryHud
     public void Build(HudScreen screen, CreatureQuerySnapshot snapshot, HudVisibility visibility, bool otherPanelOpen, HudFrame frame)
     {
         _visible = visibility.ShowNormalHud && !otherPanelOpen && !string.IsNullOrEmpty(snapshot.Text);
-        if (!_visible) return;
-        if (_source != snapshot.Text || _height != screen.Height) Set(screen, snapshot.Text);
+        if (!_visible)
+        {
+            return;
+        }
+
+        if (_source != snapshot.Text || _height != screen.Height)
+        {
+            Set(screen, snapshot.Text);
+        }
+
         HudRect text = new(Text.X, Text.Y, screen.Virtual(_size.Width), screen.Virtual(_size.Height));
         HudQuads.Clipped(frame, HudImage.Of(_text!), text, Text, HudColor.White);
-        if (!_overflow) return;
+        if (!_overflow)
+        {
+            return;
+        }
+
         const float x = 2136, y = 1000, w = TextScrollBar.Width, h = 288, arrow = TextScrollBar.Arrow;
         Quad(frame, Up, new HudRect(x, y, w, arrow));
         Quad(frame, Track, new HudRect(x, y + arrow, w, h - 2 * arrow));
@@ -59,7 +71,11 @@ public sealed class CreatureQueryHud
         _text = new HudText(font, source, Math.Max(1, (int)((Text.Width - TextScrollBar.Width) * pixels)));
         _size = HudTextPixels.Measure(_text);
         _overflow = _size.Height > Text.Height * pixels;
-        if (_overflow) return;
+        if (_overflow)
+        {
+            return;
+        }
+
         _text = new HudText(font, source, Math.Max(1, (int)(Text.Width * pixels)));
         _size = HudTextPixels.Measure(_text);
     }

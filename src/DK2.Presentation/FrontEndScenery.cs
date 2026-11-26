@@ -18,30 +18,63 @@ public static class FrontEndScenery
     public static IReadOnlyList<FrontEndProp> Create(WorldState world, GameDatabase database,
         CampaignProfile profile, SimRandom visualRandom, bool secretFiveVisible = false)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
-        if (profile is null) throw new ArgumentNullException(nameof(profile));
-        if (visualRandom is null) throw new ArgumentNullException(nameof(visualRandom));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
+        if (profile is null)
+        {
+            throw new ArgumentNullException(nameof(profile));
+        }
+
+        if (visualRandom is null)
+        {
+            throw new ArgumentNullException(nameof(visualRandom));
+        }
+
         var props = new List<FrontEndProp>();
         foreach (RoomInstance room in RoomIndex.Build(world, database))
         {
-            if (room.Definition.TypeId != RoomTypeId.HeroGateFrontEnd) continue;
+            if (room.Definition.TypeId != RoomTypeId.HeroGateFrontEnd)
+            {
+                continue;
+            }
+
             int[] slabs = SlabChain.Order(world, room);
             for (int index = 0; index < slabs.Length; index++)
             {
                 var tile = new TilePos(slabs[index] % world.Width, slabs[index] / world.Width);
                 PlayerId owner = new(room.OwnerPlayerId);
                 if (index is 0 or 3 or 6 or 9 or 5 or 8 or 11 or 14)
+                {
                     AddObject(132, index is 0 or 3 or 6 or 9 ? 0x400 : 0, animated: true);
+                }
+
                 if (index is 1 or 7) { AddObject(89, 0x400, true); AddObject(134, 0x400, true); }
                 if (index is 4 or 10) { AddObject(135, 0x400, true); AddObject(136, 0x400, true); }
-                if (index == 1) AddObject(131, 0x400, false);
+                if (index == 1)
+                {
+                    AddObject(131, 0x400, false);
+                }
+
                 if (index == 3)
+                {
                     foreach (PetDungeonMapPiece piece in Enum.GetValues(typeof(PetDungeonMapPiece)))
+                    {
                         props.Add(new FrontEndProp(View(133, FrontEndAssets.PetDungeonPiece(piece), 0x600, 0x19A,
                                 retainLight: piece == PetDungeonMapPiece.First),
                             PetDungeonPiece: piece));
+                    }
+                }
+
                 if (index == 10)
+                {
                     foreach (FrontEndMapPiece piece in Enum.GetValues(typeof(FrontEndMapPiece)))
                     {
                         int secret = (int)piece - (int)FrontEndMapPiece.Secret1;
@@ -49,6 +82,8 @@ public static class FrontEndScenery
                         props.Add(new FrontEndProp(View(102, FrontEndAssets.CampaignPiece(piece), 0x400,
                             retainLight: piece == FrontEndMapPiece.Level1), visible, piece));
                     }
+                }
+
                 void AddObject(byte type, int heading, bool animated)
                 {
                     ObjectDef definition = database.ObjectById(type)
@@ -86,9 +121,19 @@ public static class FrontEndScenery
         return Array.AsReadOnly(original.Select(prop =>
         {
             CampaignMapVisual visual;
-            if (prop.MapPiece is FrontEndMapPiece piece) visual = map.LandVisual(new CampaignSlot((byte)piece));
-            else if (prop.MarkerSlot is CampaignSlot slot) visual = map.MarkerVisual(slot);
-            else return prop;
+            if (prop.MapPiece is FrontEndMapPiece piece)
+            {
+                visual = map.LandVisual(new CampaignSlot((byte)piece));
+            }
+            else if (prop.MarkerSlot is CampaignSlot slot)
+            {
+                visual = map.MarkerVisual(slot);
+            }
+            else
+            {
+                return prop;
+            }
+
             ObjectView v = prop.View;
             var view = new ObjectView(v.Id, v.ObjectTypeId, new PlayerId(v.OwnerPlayerId), v.Tile, v.Mesh, v.GoldHeld,
                 v.PosX, v.PosY, v.Height + visual.Lift, v.Heading, v.Scale, v.Pitch, v.Roll,

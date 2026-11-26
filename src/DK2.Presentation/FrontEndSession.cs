@@ -34,7 +34,11 @@ public sealed class FrontEndSession
 
     public void Update(TimeSpan now)
     {
-        if (now < _now) throw new ArgumentOutOfRangeException(nameof(now), "Front-end time cannot run backwards.");
+        if (now < _now)
+        {
+            throw new ArgumentOutOfRangeException(nameof(now), "Front-end time cannot run backwards.");
+        }
+
         _now = now;
         _path?.Seek(1 + (now - _pathStarted).TotalSeconds * SimulationTiming.TicksPerSecond);
         Apply(_flow.Update(PathPlaying));
@@ -43,9 +47,17 @@ public sealed class FrontEndSession
 
     public bool TryTransition(FrontEndTransition transition)
     {
-        if (PathPlaying) return false;
+        if (PathPlaying)
+        {
+            return false;
+        }
+
         IReadOnlyList<KcsFrame>? frames = _loadPath(transition.Path);
-        if (frames is null || frames.Count == 0) return false;
+        if (frames is null || frames.Count == 0)
+        {
+            return false;
+        }
+
         CameraPathPlayback nextPath = NewPath(transition.Path, frames);
         _flow.BeginTransition(transition);
         _path = nextPath;
@@ -56,7 +68,11 @@ public sealed class FrontEndSession
 
     public bool TryShowPage(FrontEndPage page)
     {
-        if (PathPlaying) return false;
+        if (PathPlaying)
+        {
+            return false;
+        }
+
         SetPage(page);
         return true;
     }
@@ -66,18 +82,33 @@ public sealed class FrontEndSession
         if (step.StartPath is FrontEndPath path)
         {
             IReadOnlyList<KcsFrame>? frames = _loadPath(path);
-            if (frames is null || frames.Count == 0) throw new InvalidOperationException($"Missing front-end camera path {(int)path}.");
+            if (frames is null || frames.Count == 0)
+            {
+                throw new InvalidOperationException($"Missing front-end camera path {(int)path}.");
+            }
+
             _path = NewPath(path, frames);
             _pathStarted = _now;
             SetPage(FrontEndPage.None);
         }
-        if (step.ShowPage is FrontEndPage page) SetPage(page);
-        if (step.Operation != FrontEndOperation.None) OperationRequested?.Invoke(step.Operation);
+        if (step.ShowPage is FrontEndPage page)
+        {
+            SetPage(page);
+        }
+
+        if (step.Operation != FrontEndOperation.None)
+        {
+            OperationRequested?.Invoke(step.Operation);
+        }
     }
 
     private void SetPage(FrontEndPage page)
     {
-        if (Page == page) return;
+        if (Page == page)
+        {
+            return;
+        }
+
         Page = page;
         PageChanged?.Invoke(page);
     }

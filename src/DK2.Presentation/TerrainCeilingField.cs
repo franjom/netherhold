@@ -44,27 +44,38 @@ public sealed class TerrainCeilingField
         {
             closed.CopyTo(_closed);
             for (int y = 0; y < _height; y++)
+            {
                 for (int x = 0; x < _width; x++)
+                {
                     _nibbles[(y * _width) + x] = (byte)TerrainCeiling.Nibble(_width, _height, _closed, x, y);
+                }
+            }
+
             _filled = true;
             return true;
         }
 
         int first = changed.Count;
         for (int i = 0; i < _closed.Length; i++)
+        {
             if (_closed[i] != closed[i])
             {
                 _closed[i] = closed[i];
                 changed.Add(i);
             }
+        }
 
         // A tile's nibble reads the closed tiles from 4 before it to 3 after it.
         for (int i = first; i < changed.Count; i++)
         {
             int x = changed[i] % _width, y = changed[i] / _width;
             for (int b = Math.Max(0, y - 3); b <= Math.Min(_height - 1, y + 4); b++)
+            {
                 for (int a = Math.Max(0, x - 3); a <= Math.Min(_width - 1, x + 4); a++)
+                {
                     _nibbles[(b * _width) + a] = (byte)TerrainCeiling.Nibble(_width, _height, _closed, a, b);
+                }
+            }
         }
         return changed.Count > first;
     }
@@ -81,7 +92,10 @@ public sealed class TerrainCeilingField
         int s = ((2 - c) * (2 - r) * Nibble(x, y)) + ((2 - c) * r * Nibble(x, y + 1))
             + (c * (2 - r) * Nibble(x + 1, y)) + (c * r * Nibble(x + 1, y + 1));
         float z = ((s * s) - (128 * s) - 4096) / 2048f;
-        if (z <= TerrainCeiling.OpenLimit || (r | c) == 0 || !Has(x, y)) return z;
+        if (z <= TerrainCeiling.OpenLimit || (r | c) == 0 || !Has(x, y))
+        {
+            return z;
+        }
         // A centre, or an edge's midpoint with an open tile on its other side too.
         bool held = (r & c) == 1 || (r == 0 ? Has(x, y - 1) : Has(x - 1, y));
         return held ? TerrainCeiling.OpenLimit : z;
@@ -94,6 +108,7 @@ public sealed class TerrainCeilingField
     public void Piece(int x, int y, TerrainLattice? lattice, Span<Vector3> positions, Span<Vector3> normals)
     {
         for (int r = 0; r < 3; r++)
+        {
             for (int c = 0; c < 3; c++)
             {
                 int gx = (2 * x) + c, gy = (2 * y) + r, at = (3 * r) + c;
@@ -102,6 +117,7 @@ public sealed class TerrainCeilingField
                 normals[at] = Vector3.Normalize(new Vector3(
                     Height(gx - 1, gy) - Height(gx + 1, gy), Height(gx, gy - 1) - Height(gx, gy + 1), 1f));
             }
+        }
     }
 
     private int Nibble(int x, int y) =>

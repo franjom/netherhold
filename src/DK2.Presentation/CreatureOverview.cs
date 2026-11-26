@@ -65,32 +65,73 @@ public sealed class CreatureOverview
     public void Capture(WorldState world)
     {
         _settled.Clear();
-        foreach(KeyValuePair<int, GameTick> pair in _pending) if(pair.Value<=world.CurrentTick) _settled.Add(pair.Key);
-        foreach(int id in _settled) _pending.Remove(id);
+        foreach(KeyValuePair<int, GameTick> pair in _pending)
+        {
+            if (pair.Value<=world.CurrentTick)
+            {
+                _settled.Add(pair.Key);
+            }
+        }
+
+        foreach (int id in _settled)
+        {
+            _pending.Remove(id);
+        }
+
         Array.Clear(_owned,0,_owned.Length);Array.Clear(_counts,0,_counts.Length);
         Array.Clear(_filteredCounts,0,_filteredCounts.Length);
         int idle=0,busy=0,fighting=0;
         foreach(CreatureState creature in world.Creatures)
         {
-            if(creature.OwnerPlayerId!=_viewer || !CreatureStateMachine.HasState(creature)) continue;
+            if(creature.OwnerPlayerId!=_viewer || !CreatureStateMachine.HasState(creature))
+            {
+                continue;
+            }
+
             byte type=ResolvedType(creature);
             _owned[type]++;
             if(creature.Dk2StateId!=193 && !Suppressed(creature))
             {
                 _counts[type]++;
                 int activity=CreatureActivityRules.JobCode(_database.CreatureById(creature.CreatureTypeId),creature);
-                if(activity<28) _filteredCounts[type*28+activity]++;
-                _filteredCounts[type*28+(creature.Mood==CreatureMood.Angry?25:creature.Mood==CreatureMood.Unhappy?26:27)]++;
-                if(activity!=5 && activity!=20 && activity!=21) _filteredCounts[type*28+23]++;
-                if(activity!=4 && activity!=22) _filteredCounts[type*28+24]++;
-                if(type==_worker)
+                if(activity<28)
                 {
-                    if(creature.WorkerIdle || creature.LastTaskKind==ImpTaskKind.Reinforce) idle++;
+                    _filteredCounts[type*28+activity]++;
+                }
+
+                _filteredCounts[type*28+(creature.Mood==CreatureMood.Angry?25:creature.Mood==CreatureMood.Unhappy?26:27)]++;
+                if(activity!=5 && activity!=20 && activity!=21)
+                {
+                    _filteredCounts[type*28+23]++;
+                }
+
+                if (activity!=4 && activity!=22)
+                {
+                    _filteredCounts[type*28+24]++;
+                }
+
+                if (type==_worker)
+                {
+                    if(creature.WorkerIdle || creature.LastTaskKind==ImpTaskKind.Reinforce)
+                    {
+                        idle++;
+                    }
                     else
                     {
                         CreatureStateCategory category=CreatureStateTable.Get(creature.Dk2StateId).Category;
-                        if(category==CreatureStateCategory.Movement) category=CreatureStateTable.Get(creature.UtilityNewState).Category;
-                        if(category==CreatureStateCategory.Combat) fighting++;else busy++;
+                        if(category==CreatureStateCategory.Movement)
+                        {
+                            category =CreatureStateTable.Get(creature.UtilityNewState).Category;
+                        }
+
+                        if (category==CreatureStateCategory.Combat)
+                        {
+                            fighting++;
+                        }
+                        else
+                        {
+                            busy++;
+                        }
                     }
                 }
             }
@@ -98,12 +139,18 @@ public sealed class CreatureOverview
         WorkerCounts=new(_counts[_worker],idle,busy,fighting);
         _entries.Clear();
         foreach(CreatureOverviewEntry entry in _all)
-            if(entry.Type.Value==_worker || _owned[entry.Type.Value]!=0)
+        {
+            if (entry.Type.Value==_worker || _owned[entry.Type.Value]!=0)
             { entry.Count=_counts[entry.Type.Value];_entries.Add(entry); }
+        }
     }
     public CreatureOverviewAction Select(WorldState world,CreatureOverviewType type,CreatureOverviewSelection selection,CreatureOverviewFilter filter=CreatureOverviewFilter.All)
     {
-        if(!world.HasPlayer(_viewer)) return default;
+        if(!world.HasPlayer(_viewer))
+        {
+            return default;
+        }
+
         bool focus=selection==CreatureOverviewSelection.FocusNext;
         CreatureQueryTarget previous=focus?_lastFocus:_lastPickup[type.Value];
         CreatureState? first=null,after=null,extreme=null;
@@ -116,23 +163,49 @@ public sealed class CreatureOverview
             if(eligible)
             {
                 first??=creature;
-                if(passed) after??=creature;
-                if(extreme==null || selection==CreatureOverviewSelection.PickupLowestLevel && creature.Level<extreme.Level
-                    || selection==CreatureOverviewSelection.PickupHighestLevel && creature.Level>extreme.Level) extreme=creature;
+                if(passed)
+                {
+                    after ??=creature;
+                }
+
+                if (extreme==null || selection==CreatureOverviewSelection.PickupLowestLevel && creature.Level<extreme.Level
+                    || selection==CreatureOverviewSelection.PickupHighestLevel && creature.Level>extreme.Level)
+                {
+                    extreme =creature;
+                }
             }
-            if(creature.Id==previous.Value) passed=true;
+            if(creature.Id==previous.Value)
+            {
+                passed =true;
+            }
         }
         CreatureState? chosen=selection is CreatureOverviewSelection.PickupLowestLevel or CreatureOverviewSelection.PickupHighestLevel
             ?extreme:after??first;
-        if(chosen==null) return default;
+        if(chosen==null)
+        {
+            return default;
+        }
+
         var target=new CreatureQueryTarget(chosen.Id);
-        if(focus) _lastFocus=target;else _lastPickup[type.Value]=target;
+        if(focus)
+        {
+            _lastFocus =target;
+        }
+        else
+        {
+            _lastPickup[type.Value]=target;
+        }
+
         return new(focus?CreatureOverviewActionKind.Focus:CreatureOverviewActionKind.Pickup,target,
             new(new(chosen.PosX),new(chosen.PosY),new(chosen.PosZ)));
     }
     private static bool MatchesFilter(CreatureDef definition,CreatureState creature,CreatureOverviewFilter filter)
     {
-        if(filter==CreatureOverviewFilter.All) return true;
+        if(filter==CreatureOverviewFilter.All)
+        {
+            return true;
+        }
+
         int activity=CreatureActivityRules.JobCode(definition,creature);
         return filter switch
         {

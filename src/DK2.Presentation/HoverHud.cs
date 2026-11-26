@@ -52,14 +52,20 @@ public sealed class HoverHud
     public static IEnumerable<HudImage> Images()
     {
         yield return Bar; yield return Cap;
-        foreach (HudImage piece in Pieces) yield return piece;
+        foreach (HudImage piece in Pieces)
+        {
+            yield return piece;
+        }
     }
 
     /// <summary>Hiding the HUD also resets the tooltip's wait, so it waits again when shown.</summary>
     public void SetVisibility(HudVisibility visibility, long ms)
     {
         _visible = visibility.ShowNormalHud; _allowInput = visibility.AllowOrdinaryInput;
-        if (!_visible) _delay.Visible(HoverTextSnapshot.Empty, ms);
+        if (!_visible)
+        {
+            _delay.Visible(HoverTextSnapshot.Empty, ms);
+        }
     }
 
     /// <summary>The wooden bar: the whole width, behind the Heart, mana and gold panels, as in DK2.</summary>
@@ -94,7 +100,11 @@ public sealed class HoverHud
     {
         float seconds = _lastMs < 0 ? 0 : Math.Max(0, ms - _lastMs) / 1000f;
         _lastMs = ms;
-        if (!_visible) return;
+        if (!_visible)
+        {
+            return;
+        }
+
         bool fontChanged = Fonts(screen.Height);
         _screen = screen;
         BitmapFont statusFont = _statusFont!, tooltipFont = _tooltipFont!;
@@ -115,13 +125,19 @@ public sealed class HoverHud
         BuildBar(screen, bar);
         BuildStatus(screen, seconds, top);
         if (_delay.Visible(snapshot, ms, ShowCreatureTooltip))
+        {
             BuildTooltip(screen, bottom, pointer, cursorReach, top);
+        }
     }
 
     /// <summary>The fonts for the screen height; true when they changed.</summary>
     private bool Fonts(int height)
     {
-        if (_statusFont != null && _fontHeight == height) return false;
+        if (_statusFont != null && _fontHeight == height)
+        {
+            return false;
+        }
+
         BitmapFont status = _font(InterfaceFonts.HudTextFileName(height)), tooltip = _font(InterfaceFonts.HudTooltipFileName(height));
         bool changed = !ReferenceEquals(status, _statusFont) || !ReferenceEquals(tooltip, _tooltipFont);
         _statusFont = status; _tooltipFont = tooltip; _fontHeight = height;
@@ -153,8 +169,16 @@ public sealed class HoverHud
             if (_scroll >= overflow) { _scroll = overflow; _scrollForward = false; }
             if (_scroll <= 0) { _scroll = 0; _scrollForward = true; }
         }
-        else _scroll = 0;
-        if (_status!.Text.Length == 0) return;
+        else
+        {
+            _scroll = 0;
+        }
+
+        if (_status!.Text.Length == 0)
+        {
+            return;
+        }
+
         var clip = new HudRect(clipLeft, strip.Y, Math.Min(clipWidth, strip.X + strip.Width - clipLeft), strip.Height);
         var text = new HudRect(clipLeft - screen.Virtual(_scroll), strip.Y + (strip.Height - screen.Virtual(height)) / 2,
             screen.Virtual(width), screen.Virtual(height));
@@ -168,19 +192,28 @@ public sealed class HoverHud
     /// so the offsets follow it. It flips left of the pointer near the right edge.</summary>
     private void BuildTooltip(HudScreen screen, float bottom, (float X, float Y) pointer, float cursorReach, HudFrame frame)
     {
-        if (_tooltip!.Text.Length == 0) return;
+        if (_tooltip!.Text.Length == 0)
+        {
+            return;
+        }
+
         float scale = screen.Scale, screenWidth = screen.Width, statusHeight = StatusHeight(screen) * scale;
         (int textWidth, int textHeight) = _tooltipSize;
         float padding = Math.Max(4, InterfaceFonts.HudTooltipPixels(screen.Height));
         float width = Math.Min(screenWidth, textWidth + padding * 2), height = textHeight + padding * 2;
         float unit = screen.Height / 480f, cursorX = pointer.X * scale, cursorY = pointer.Y * scale;
         float x = cursorX + (cursorReach + 18) * unit;
-        if (x + width > screenWidth - 40 * unit) x = cursorX - width - 30 * unit;
+        if (x + width > screenWidth - 40 * unit)
+        {
+            x = cursorX - width - 30 * unit;
+        }
+
         x = Math.Clamp(x, 0, Math.Max(0, screenWidth - width));
         float y = Math.Clamp(cursorY - _tooltipFont!.LineHeight, statusHeight, Math.Max(statusHeight, bottom * scale - height - 10));
         float border = Math.Min(padding, Math.Min(width, height) / 2);
         for (int row = 0; row < 3; row++)
-        for (int column = 0; column < 3; column++)
+        {
+            for (int column = 0; column < 3; column++)
         {
             float left = column == 0 ? 0 : column == 1 ? border : width - border;
             float up = row == 0 ? 0 : row == 1 ? border : height - border;
@@ -188,6 +221,8 @@ public sealed class HoverHud
             frame.Add(new HudDraw(HudDrawKind.Quad, Pieces[row * 3 + column],
                 new HudRect((x + left) / scale, (y + up) / scale, w / scale, h / scale), HudColor.White));
         }
+        }
+
         frame.Add(new HudDraw(HudDrawKind.Quad, HudImage.Of(_tooltip),
             new HudRect((x + (width - textWidth) / 2) / scale, (y + padding) / scale, textWidth / scale, textHeight / scale), HudColor.White));
     }

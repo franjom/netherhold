@@ -80,19 +80,35 @@ public sealed class HudPressRouter
     /// nothing. Commands are added to <paramref name="output"/>; <paramref name="milliseconds"/> is the host's wall clock.</summary>
     public bool Route(in HudPress press, WorldState world, GameDatabase database, long milliseconds, List<PlayerCommand> output)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (output is null) throw new ArgumentNullException(nameof(output));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (output is null)
+        {
+            throw new ArgumentNullException(nameof(output));
+        }
+
         if (_controls.FullMapVisible)
         {
             FullMapPress fullMap = FullMapHud.Press(press.Primary, press.Secondary);
-            if (fullMap == FullMapPress.GoToTile) _host.GoToFullMapTile();
+            if (fullMap == FullMapPress.GoToTile)
+            {
+                _host.GoToFullMapTile();
+            }
+
             _host.ApplyHudAction(FullMapHud.Action(fullMap));
             return true;
         }
         if (_controls.OptionsVisible)
         {
             if (_controls.GameOptionsVisible) { _host.PollGameOptionsKeyboard(); return true; }
-            if (press.Primary) PressOptions(_host.OptionsActionAtPointer());
+            if (press.Primary)
+            {
+                PressOptions(_host.OptionsActionAtPointer());
+            }
+
             return true;
         }
         if (_host.TryPressOverview(press, out CreatureOverviewRequest request))
@@ -100,8 +116,14 @@ public sealed class HudPressRouter
             CreatureOverviewAction selected = _overview.Select(world, request.Type, request.Selection, request.Filter);
             // A refused pickup still takes the press (the step-2 audit's open point; the world click skips instead).
             if (selected.Kind == CreatureOverviewActionKind.Pickup)
+            {
                 _pickups.PickUpFromOverview(world, database, _viewer, selected.Target, _overview, milliseconds, output);
-            else if (selected.Kind == CreatureOverviewActionKind.Focus) _host.FocusCreature(selected.Position);
+            }
+            else if (selected.Kind == CreatureOverviewActionKind.Focus)
+            {
+                _host.FocusCreature(selected.Position);
+            }
+
             return true;
         }
         ClassicHudAction minimap = _host.PressMinimap(press);
@@ -126,9 +148,16 @@ public sealed class HudPressRouter
     /// for taken and handed to the host.</summary>
     public void PressOptions(ClassicOptionsAction action)
     {
-        if (OptionsHud.RefreshesSaves(action)) _host.RefreshSaves();
+        if (OptionsHud.RefreshesSaves(action))
+        {
+            _host.RefreshSaves();
+        }
+
         _host.ApplyHudAction(OptionsHud.HudAction(action));
         ClassicSessionAction session = _controls.TakeSessionAction();
-        if (session != ClassicSessionAction.None) _host.StartSession(session);
+        if (session != ClassicSessionAction.None)
+        {
+            _host.StartSession(session);
+        }
     }
 }

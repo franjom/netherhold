@@ -65,11 +65,19 @@ public readonly record struct MinimapCameraView(Vector3 Position, Vector3 Forwar
     /// any corner's ray misses the plane.</summary>
     public bool TryFloorCorners(Span<Vector2> corners)
     {
-        if (corners.Length < 4) throw new ArgumentException("Four corners required.", nameof(corners));
+        if (corners.Length < 4)
+        {
+            throw new ArgumentException("Four corners required.", nameof(corners));
+        }
+
         for (int i = 0; i < 4; i++)
         {
             if (!TileTopPlane.TryHit(Position, RayDirection(i == 1 || i == 2 ? 1 : 0, i < 2 ? 1 : 0), TileHeights.Floor,
-                    out Vector3 ground)) return false;
+                    out Vector3 ground))
+            {
+                return false;
+            }
+
             corners[i] = new Vector2(ground.X, -ground.Z);
         }
         return true;

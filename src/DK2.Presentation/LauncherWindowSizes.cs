@@ -31,8 +31,18 @@ public static class LauncherWindowSizes
     {
         var fitting = new List<LauncherWindowSize>();
         foreach (LauncherWindowSize size in Candidates)
-            if (Fits(size, screenWidth, screenHeight)) fitting.Add(size);
-        if (fitting.Count == 0) fitting.Add(Candidates[Candidates.Length - 1]);
+        {
+            if (Fits(size, screenWidth, screenHeight))
+            {
+                fitting.Add(size);
+            }
+        }
+
+        if (fitting.Count == 0)
+        {
+            fitting.Add(Candidates[Candidates.Length - 1]);
+        }
+
         return fitting;
     }
 
@@ -44,9 +54,14 @@ public static class LauncherWindowSizes
     public static LauncherWindowSize Default(int screenWidth, int screenHeight)
     {
         foreach (LauncherWindowSize size in Candidates)
+        {
             if (size.IsWide && size.Width * 100 <= screenWidth * DefaultPercent
                 && size.Height * 100 <= screenHeight * DefaultPercent)
+            {
                 return size;
+            }
+        }
+
         return Candidates[Candidates.Length - 1];
     }
 
@@ -63,7 +78,11 @@ public static class LauncherWindowSizes
         if (index < 0)
         {
             index = 0;
-            while (index < sizes.Count && Larger(sizes[index], chosen)) index++;
+            while (index < sizes.Count && Larger(sizes[index], chosen))
+            {
+                index++;
+            }
+
             sizes.Insert(index, chosen);
         }
         return (sizes, index);
@@ -76,7 +95,10 @@ public static class LauncherWindowSizes
         float scale = Math.Max(1f, (float)Math.Round(dpi / 96f * 4f) / 4f);
         while (scale > 1f && (LauncherSize.Width * scale > screenWidth
                               || LauncherSize.Height * scale + FrameAllowance > screenHeight))
+        {
             scale -= .25f;
+        }
+
         return scale;
     }
 

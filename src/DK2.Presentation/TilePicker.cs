@@ -50,11 +50,21 @@ public static class TilePicker
         float solidHeight,
         float openHeight)
     {
-        if (view is null) throw new ArgumentNullException(nameof(view));
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (view is null)
+        {
+            throw new ArgumentNullException(nameof(view));
+        }
+
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
 
         // Only a ray on its way down can land on the dungeon floor.
-        if (!(ray.DirectionY < 0f)) return null;
+        if (!(ray.DirectionY < 0f))
+        {
+            return null;
+        }
 
         int x = (int)MathF.Floor(ray.OriginX);
         int z = (int)MathF.Floor(ray.OriginZ);
@@ -77,11 +87,17 @@ public static class TilePicker
             if (world.Contains(x, z))
             {
                 float height = view.TileAt(world, x, z).Solid ? solidHeight : openHeight;
-                if (exitY <= height) return new TilePos(x, z);
+                if (exitY <= height)
+                {
+                    return new TilePos(x, z);
+                }
             }
 
             // Below the lowest thing it could have hit, and still falling.
-            if (exitY < 0f) return null;
+            if (exitY < 0f)
+            {
+                return null;
+            }
 
             if (nextX <= nextZ) { x += stepX; nextX += spanX; }
             else { z += stepZ; nextZ += spanZ; }

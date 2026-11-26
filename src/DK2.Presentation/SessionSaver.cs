@@ -30,11 +30,31 @@ public sealed class SessionSaver
     /// flight). Refreshes <paramref name="saves"/> after the write and returns the file written.</summary>
     public string Save(GameSimulation simulation, CampaignCarry carry, SessionContext context, SaveSlotsView saves)
     {
-        if (simulation is null) throw new ArgumentNullException(nameof(simulation));
-        if (context is null) throw new ArgumentNullException(nameof(context));
-        if (saves is null) throw new ArgumentNullException(nameof(saves));
-        if (_profiles.Profile == null) _loadProfile();
-        if (context.PlayedSlot != CampaignSlot.None) context.ApplyCarry(_profiles, carry);
+        if (simulation is null)
+        {
+            throw new ArgumentNullException(nameof(simulation));
+        }
+
+        if (context is null)
+        {
+            throw new ArgumentNullException(nameof(context));
+        }
+
+        if (saves is null)
+        {
+            throw new ArgumentNullException(nameof(saves));
+        }
+
+        if (_profiles.Profile == null)
+        {
+            _loadProfile();
+        }
+
+        if (context.PlayedSlot != CampaignSlot.None)
+        {
+            context.ApplyCarry(_profiles, carry);
+        }
+
         string path = SavedSessionFile.PathForName(saves.Directory, saves.Name);
         var header = new SavedSessionHeader(context.LevelName, (byte)context.Mode, (ushort)context.ReturnPage,
             _utcClock(), saves.Name);

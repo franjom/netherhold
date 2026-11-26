@@ -100,7 +100,11 @@ public sealed class EffectQuadBuffer
 
     internal void CloseQuad(int first)
     {
-        if (IndexCount + 6 > _indices.Length) Array.Resize(ref _indices, _indices.Length * 2);
+        if (IndexCount + 6 > _indices.Length)
+        {
+            Array.Resize(ref _indices, _indices.Length * 2);
+        }
+
         _indices[IndexCount++] = first; _indices[IndexCount++] = first + 1; _indices[IndexCount++] = first + 2;
         _indices[IndexCount++] = first; _indices[IndexCount++] = first + 2; _indices[IndexCount++] = first + 3;
     }
@@ -173,7 +177,11 @@ public sealed class EffectDrawList
         Fraction = Model.Advance();
         Model.CollectLights(_lights);
         IReadOnlyList<EffectLightView> shots = ShotBodies.Lights;
-        for (int i = 0; i < shots.Count; i++) _lights.Add(shots[i]);
+        for (int i = 0; i < shots.Count; i++)
+        {
+            _lights.Add(shots[i]);
+        }
+
         return _lights;
     }
 
@@ -182,9 +190,16 @@ public sealed class EffectDrawList
     /// <summary>The key a particle's render resources are cached under: its parent's sprite, else its element's art.</summary>
     public AssetRef GroupKey(ConstructionParticle source)
     {
-        if (!source.SpriteAsset.IsEmpty) return source.SpriteAsset;
+        if (!source.SpriteAsset.IsEmpty)
+        {
+            return source.SpriteAsset;
+        }
+
         if (!_keys.TryGetValue(source.Definition, out AssetRef key))
+        {
             _keys.Add(source.Definition, key = AssetRef.ForEffectElement(source.Definition.Name));
+        }
+
         return key;
     }
 
@@ -192,7 +207,11 @@ public sealed class EffectDrawList
     public static EffectGroupKind Classify(EffectElementDef definition, string? meshEntry)
     {
         byte type = definition.ArtResource.Type;
-        if (meshEntry == null && type == 6) return EffectGroupKind.AnimatedMesh;
+        if (meshEntry == null && type == 6)
+        {
+            return EffectGroupKind.AnimatedMesh;
+        }
+
         return meshEntry != null || type == 5 || type == 6 ? EffectGroupKind.Mesh : EffectGroupKind.Sprite;
     }
 
@@ -234,14 +253,24 @@ public sealed class EffectDrawList
     /// the default setting (classic-lighting.md section 8) and is not added.</summary>
     public EffectColour SpriteColour(ConstructionParticle source, Vector3 position)
     {
-        if (!source.TakesLight) return Tint(source);
+        if (!source.TakesLight)
+        {
+            return Tint(source);
+        }
+
         TileLightLookup? lights = TileLights;
         // Without classic lighting there are no tables: a lit sprite keeps its tint, and one whose tint is black
         // (the digits, a cannonball) draws its art plain rather than vanishing.
         if (lights == null)
+        {
             return (source.Red | source.Green | source.Blue) == 0 ? EffectColour.White : Tint(source);
+        }
         // A tile drawn without a table this frame has no lights, as DK2's empty list: base colour alone.
-        if (!lights(new TilePos(source.XRaw >> 12, source.YRaw >> 12), out ClassicLightTable table)) return Tint(source);
+        if (!lights(new TilePos(source.XRaw >> 12, source.YRaw >> 12), out ClassicLightTable table))
+        {
+            return Tint(source);
+        }
+
         (byte red, byte green, byte blue) = SpriteLighting.Lit(source.Red, source.Green, source.Blue, table.Lights, position);
         return new EffectColour(red, green, blue);
     }
@@ -257,9 +286,16 @@ public sealed class EffectDrawList
         // 0x0059C360 with art flag 0x40 offsets the quad by half its height in camera space; that it lifts the
         // sprite onto its point (flames, splashes) is STRONGLY INFERRED from the quad's UVs (v grows with camera y,
         // D3D's v runs down) and the art.
-        if (shape.StandsOnPoint) position += cameraUp * (height * 0.5f);
+        if (shape.StandsOnPoint)
+        {
+            position += cameraUp * (height * 0.5f);
+        }
         // A floating amount's digit sits beside its neighbours in camera space (0x0059C360's +0x57).
-        if (source.ScreenOffsetXRaw != 0) position += cameraRight * (source.ScreenOffsetXRaw / 4096f);
+        if (source.ScreenOffsetXRaw != 0)
+        {
+            position += cameraRight * (source.ScreenOffsetXRaw / 4096f);
+        }
+
         return new EffectBillboard(position, width, height, colour);
     }
 

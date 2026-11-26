@@ -26,7 +26,11 @@ public readonly record struct DungeonHeartVisual(Fp32 PhaseStep, Fp32 VerticalSc
 
     public static int TextureIndex(Fp32 phase, int textureCount)
     {
-        if (textureCount <= 0) return 0;
+        if (textureCount <= 0)
+        {
+            return 0;
+        }
+
         float rounded = (float)((double)textureCount * phase.Raw / Fp32.One + 1d / 1024 - (double)0.49999f + 12582912);
         int index = (BitConverter.SingleToInt32Bits(rounded) & 0x7FFFFF) - 0x400000;
         return Math.Clamp(index, 0, textureCount - 1);

@@ -30,11 +30,25 @@ public sealed class LocalPickupFeedback
         Advance(world, milliseconds);
         CreatureState? creature = world.CreatureById(creatureId.Value);
         if (!world.HasPlayer(player) || creature is null || creature.Health < 1 || Contains(creatureId)
-            || !HandRules.CanPickUp(world, database, creature, player)) return false;
+            || !HandRules.CanPickUp(world, database, creature, player))
+        {
+            return false;
+        }
+
         int count = world.Player(player).Hand.Count;
         foreach (Pending pending in _pending)
-            if (pending.Player == player) count++;
-        if (count >= HandRules.Capacity(database)) return false;
+        {
+            if (pending.Player == player)
+            {
+                count++;
+            }
+        }
+
+        if (count >= HandRules.Capacity(database))
+        {
+            return false;
+        }
+
         _pending.Add(new Pending(player, creatureId.Value, creature.CreatureTypeId, milliseconds));
         if (DustRequested is { } requestDust)
         {
@@ -54,7 +68,10 @@ public sealed class LocalPickupFeedback
             CreatureState? creature = world.CreatureById(pending.Id);
             bool held = IsHeld(world, pending);
             if (creature is null || held && pending.Drop is null
-                || !held && (pending.DropDispatched || milliseconds - pending.Milliseconds >= 2001)) _pending.RemoveAt(i);
+                || !held && (pending.DropDispatched || milliseconds - pending.Milliseconds >= 2001))
+            {
+                _pending.RemoveAt(i);
+            }
         }
     }
     public IEnumerable<HeldIcon> Icons(WorldState world, PlayerId player)
@@ -63,17 +80,22 @@ public sealed class LocalPickupFeedback
         {
             Pending pending = _pending[i];
             if (pending.Player == player && pending.Drop is null && !IsHeld(world, pending))
+            {
                 yield return new HeldIcon(HeldIconKind.Creature, pending.Type);
+            }
         }
     }
     public bool TryQueueDrop(DropCommand command)
     {
         for (int i = _pending.Count - 1; i >= 0; i--)
+        {
             if (_pending[i].Player == command.PlayerId && _pending[i].Drop is null)
             {
                 _pending[i].Drop = command;
                 return true;
             }
+        }
+
         return false;
     }
     public void DrainReadyDrops(WorldState world, List<PlayerCommand> output)
@@ -91,22 +113,46 @@ public sealed class LocalPickupFeedback
         && _pending.Exists(p => p.Player == player && p.Id == item.Id && p.Drop is not null);
     public bool HasVisiblePendingItems(WorldState world, PlayerId player)
     {
-        foreach (HeldIcon icon in Icons(world, player)) return true;
+        foreach (HeldIcon icon in Icons(world, player))
+        {
+            return true;
+        }
+
         return false;
     }
     public bool HasVisibleItems(WorldState world, PlayerId player)
     {
-        if (HasVisiblePendingItems(world, player)) return true;
+        if (HasVisiblePendingItems(world, player))
+        {
+            return true;
+        }
+
         if (world.HasPlayer(player))
+        {
             foreach (HandItem item in world.Player(player).Hand)
-                if (!HidesHeld(player, item)) return true;
+            {
+                if (!HidesHeld(player, item))
+                {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
     public bool HoldingGold(WorldState world, PlayerId player)
     {
-        if (HasVisiblePendingItems(world, player) || !world.HasPlayer(player)) return false;
+        if (HasVisiblePendingItems(world, player) || !world.HasPlayer(player))
+        {
+            return false;
+        }
+
         List<HandItem> hand = world.Player(player).Hand;
-        if (hand.Count == 0) return false;
+        if (hand.Count == 0)
+        {
+            return false;
+        }
+
         HandItem item = hand[hand.Count - 1];
         return item.IsObject && world.ObjectById(item.Id) is ObjectState thing
             && thing.ObjectTypeId is 1 or 2 or 3;
@@ -115,9 +161,17 @@ public sealed class LocalPickupFeedback
         && world.Player(pending.Player).Hand.Exists(item => !item.IsObject && item.Id == pending.Id);
     internal bool ConsumeDust(ViewEffectRequest request)
     {
-        if (request.EffectId.Value != MovementDustSystem.FootDustEffectId || request.SourceCreatureId == CreatureId.None) return false;
+        if (request.EffectId.Value != MovementDustSystem.FootDustEffectId || request.SourceCreatureId == CreatureId.None)
+        {
+            return false;
+        }
+
         int index = _dust.FindIndex(p => p.Player == request.Owner && p.Creature == request.SourceCreatureId);
-        if (index < 0) return false;
+        if (index < 0)
+        {
+            return false;
+        }
+
         _dust.RemoveAt(index);
         return true;
     }

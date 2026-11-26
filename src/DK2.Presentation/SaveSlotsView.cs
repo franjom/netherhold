@@ -27,12 +27,23 @@ public sealed class SaveSlotsView
         string? path = Selected?.Path;
         Entries = _list();
         SelectedIndex = -1;
-        for (int i = 0; i < Entries.Count; i++) if (Entries[i].Path == path) SelectedIndex = i;
+        for (int i = 0; i < Entries.Count; i++)
+        {
+            if (Entries[i].Path == path)
+            {
+                SelectedIndex = i;
+            }
+        }
+
         Revision++;
     }
     public bool Select(int index)
     {
-        if ((uint)index >= (uint)Entries.Count) return false;
+        if ((uint)index >= (uint)Entries.Count)
+        {
+            return false;
+        }
+
         SelectedIndex = index; Name = Entries[index].DisplayName; Revision++;
         return true;
     }

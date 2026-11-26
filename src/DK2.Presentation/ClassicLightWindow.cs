@@ -39,7 +39,10 @@ public sealed class ClassicLightWindow
         PrepareCells(table, cache);
         bool refreshStatic = _dirtyColumns != 0;
         Rebuild(table, refreshStatic);
-        if (refreshStatic) table.CompleteStatic(frame);
+        if (refreshStatic)
+        {
+            table.CompleteStatic(frame);
+        }
     }
 
     /// <summary>Call before each visible-tile enumeration, even if its first tile follows the previous one.</summary>
@@ -52,24 +55,44 @@ public sealed class ClassicLightWindow
 
     private void PrepareCells(ClassicLightTable table, IClassicLightCache cache)
     {
-        if (table is null) throw new ArgumentNullException(nameof(table));
-        if (cache is null) throw new ArgumentNullException(nameof(cache));
+        if (table is null)
+        {
+            throw new ArgumentNullException(nameof(table));
+        }
+
+        if (cache is null)
+        {
+            throw new ArgumentNullException(nameof(cache));
+        }
+
         TilePos target = table.Tile;
         if (_initialized && target.Y == _previous.Y && target.X == _previous.X + 1)
         {
             _columns[_cursor] = target.X + Border;
             _dirtyColumns &= ~(1 << _cursor);
-            for (int row = 0; row < Side; row++) ReadCell(table, cache, row, _cursor);
+            for (int row = 0; row < Side; row++)
+            {
+                ReadCell(table, cache, row, _cursor);
+            }
+
             _cursor = (_cursor + 1) % Side;
         }
         else
         {
             for (int column = 0; column < Side; column++)
+            {
                 _columns[column] = target.X - Border + column;
+            }
+
             _cursor = 0;
             _dirtyColumns = 0;
             for (int row = 0; row < Side; row++)
-            for (int column = 0; column < Side; column++) ReadCell(table, cache, row, column);
+            {
+                for (int column = 0; column < Side; column++)
+                {
+                    ReadCell(table, cache, row, column);
+                }
+            }
         }
         _previous = target;
         _initialized = true;
@@ -79,7 +102,10 @@ public sealed class ClassicLightWindow
     {
         ClassicLightCacheCell cell = cache.GetCell(new TilePos(_columns[column], table.Tile.Y - Border + row));
         _cells[row * Side + column] = cell;
-        if (cell.BuildFrame.Value > table.StaticFrame.Value) _dirtyColumns |= 1 << column;
+        if (cell.BuildFrame.Value > table.StaticFrame.Value)
+        {
+            _dirtyColumns |= 1 << column;
+        }
     }
 
     private void Rebuild(ClassicLightTable table, bool refreshStatic)
@@ -89,12 +115,20 @@ public sealed class ClassicLightWindow
         {
             table.BeginStatic();
             for (int row = 0; row < Side; row++)
-            for (int column = 0; column < Side; column++)
-                table.AppendStatic(_cells[row * Side + column].StaticSources.Span);
+            {
+                for (int column = 0; column < Side; column++)
+                {
+                    table.AppendStatic(_cells[row * Side + column].StaticSources.Span);
+                }
+            }
         }
         table.BeginDynamic();
         for (int column = 0; column < Side; column++)
-        for (int row = 0; row < Side; row++)
-            table.AppendDynamic(_cells[row * Side + column].DynamicSources.Span);
+        {
+            for (int row = 0; row < Side; row++)
+            {
+                table.AppendDynamic(_cells[row * Side + column].DynamicSources.Span);
+            }
+        }
     }
 }

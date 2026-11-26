@@ -24,18 +24,36 @@ public static class RoomWallPhases
 
     public static (int NorthSouth, int EastWest) Of(WorldState world, GameDatabase database, RoomInstance room)
     {
-        if (BridgeRules.IsBridge(room.Definition)) return (0, 0);
+        if (BridgeRules.IsBridge(room.Definition))
+        {
+            return (0, 0);
+        }
+
         int northSouth = -1, eastWest = -1, width = world.Width;
         foreach (int tile in SlabChain.Order(world, room))
         {
             int x = tile % width, y = tile / width;
             for (int side = 0; side < 4; side++)
             {
-                if (!StraightWall(world, database, room, x, y, side)) continue;
-                if ((side & 1) == 0) { if (northSouth < 0) northSouth = x & 1; }
-                else if (eastWest < 0) eastWest = 1 - (y & 1);
+                if (!StraightWall(world, database, room, x, y, side))
+                {
+                    continue;
+                }
+
+                if ((side & 1) == 0) { if (northSouth < 0)
+                    {
+                        northSouth = x & 1;
+                    }
+                }
+                else if (eastWest < 0)
+                {
+                    eastWest = 1 - (y & 1);
+                }
             }
-            if (northSouth >= 0 && eastWest >= 0) break;
+            if (northSouth >= 0 && eastWest >= 0)
+            {
+                break;
+            }
         }
         return (northSouth, eastWest);
     }
@@ -54,7 +72,11 @@ public static class RoomWallPhases
 
     private static bool WallTile(WorldState world, GameDatabase database, int x, int y, bool solid)
     {
-        if (!world.Contains(x, y)) return false;
+        if (!world.Contains(x, y))
+        {
+            return false;
+        }
+
         TerrainDef terrain = database.TerrainById(world.Tile(x, y).TerrainId);
         return ((terrain.Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls) && (!solid || terrain.IsSolid);
     }

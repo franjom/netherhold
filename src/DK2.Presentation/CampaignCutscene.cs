@@ -45,11 +45,23 @@ public sealed record CampaignCutscene(uint TitleTextId, uint SpeechId, IReadOnly
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/campaign-map-and-progression.md")]
     public static CampaignCutscene? AfterLevel(CampaignProfile profile)
     {
-        if (profile.SecretLevelNumber != 0) return null;
+        if (profile.SecretLevelNumber != 0)
+        {
+            return null;
+        }
+
         int slot = profile.LevelNumber;
-        if (slot is < 1 or > 24 || profile.PlayerLevelStatus[slot - 1] != CampaignLevelStatus.Won) return null;
+        if (slot is < 1 or > 24 || profile.PlayerLevelStatus[slot - 1] != CampaignLevelStatus.Won)
+        {
+            return null;
+        }
+
         int level = LevelNumber(new CampaignSlot(slot));
-        if (level == 20) return new(0, 0, new[] { "Data/Movies/Outro.tgq", "Data/Movies/BullfrogOutro.tgq" });
+        if (level == 20)
+        {
+            return new(0, 0, new[] { "Data/Movies/Outro.tgq", "Data/Movies/BullfrogOutro.tgq" });
+        }
+
         uint title = TitleIds[level];
         return new(title, title + 1, new[] { $"Data/Movies/CutSceneLevel{level}.tgq" });
     }

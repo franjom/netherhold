@@ -64,8 +64,16 @@ public sealed class FrameTelemetry
 
     public FrameTelemetry(long frequency, int capacity = DefaultCapacity)
     {
-        if (frequency <= 0) throw new ArgumentOutOfRangeException(nameof(frequency));
-        if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity));
+        if (frequency <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(frequency));
+        }
+
+        if (capacity <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(capacity));
+        }
+
         _frequency = frequency;
         _rows = new Row[capacity];
         _parts = new double[capacity * PartCount];
@@ -92,21 +100,35 @@ public sealed class FrameTelemetry
             _collections = gen0Collections;
             _frameMs = 0;
         }
-        else _frameMs = Milliseconds(_frameStart, now);
+        else
+        {
+            _frameMs = Milliseconds(_frameStart, now);
+        }
+
         _frameStart = now;
-        if (Count < _rows.Length) Array.Clear(_parts, Count * PartCount, PartCount);
+        if (Count < _rows.Length)
+        {
+            Array.Clear(_parts, Count * PartCount, PartCount);
+        }
     }
 
     /// <summary>Adds the time from <paramref name="started"/> to <paramref name="now"/> to one part of this frame.</summary>
     public void Spent(FrameTelemetryPart part, long started, long now)
     {
-        if (Count < _rows.Length) _parts[Count * PartCount + (int)part] += Milliseconds(started, now);
+        if (Count < _rows.Length)
+        {
+            _parts[Count * PartCount + (int)part] += Milliseconds(started, now);
+        }
     }
 
     /// <summary>Ends the frame <see cref="BeginFrame"/> started: its row is kept, or counted in <see cref="Dropped"/>.</summary>
     public void EndFrame(long now, in FrameTelemetryEnd end)
     {
-        if (_playStart < 0) throw new InvalidOperationException("EndFrame before the first BeginFrame.");
+        if (_playStart < 0)
+        {
+            throw new InvalidOperationException("EndFrame before the first BeginFrame.");
+        }
+
         if (Count == _rows.Length)
         {
             Dropped++;
@@ -132,7 +154,11 @@ public sealed class FrameTelemetry
     /// and the camera to 4). A frame's <c>frame_ms</c> is the interval ending as it began; its parts are its own work.</summary>
     public void WriteCsv(TextWriter writer)
     {
-        if (writer is null) throw new ArgumentNullException(nameof(writer));
+        if (writer is null)
+        {
+            throw new ArgumentNullException(nameof(writer));
+        }
+
         writer.Write(Header);
         writer.Write('\n');
         for (int i = 0; i < Count; i++)
@@ -146,7 +172,10 @@ public sealed class FrameTelemetry
             writer.Write(row.Ticks.ToString(Invariant));
             Write(writer, row.TickMs, "F3");
             for (int part = (int)FrameTelemetryPart.Sound; part <= (int)FrameTelemetryPart.Animation; part++)
+            {
                 Write(writer, _parts[i * PartCount + part], "F3");
+            }
+
             Write(writer, row.RebuildMs, "F3");
             Write(writer, _parts[i * PartCount + (int)FrameTelemetryPart.Lights], "F3");
             Write(writer, _parts[i * PartCount + (int)FrameTelemetryPart.Hud], "F3");
@@ -164,10 +193,21 @@ public sealed class FrameTelemetry
     /// level, seed, sample count and play seconds, as <c>key=value</c> lines.</summary>
     public void WriteMetadata(TextWriter writer, IEnumerable<KeyValuePair<string, string>> engine, string level, ulong seed)
     {
-        if (writer is null) throw new ArgumentNullException(nameof(writer));
-        if (engine is null) throw new ArgumentNullException(nameof(engine));
+        if (writer is null)
+        {
+            throw new ArgumentNullException(nameof(writer));
+        }
+
+        if (engine is null)
+        {
+            throw new ArgumentNullException(nameof(engine));
+        }
+
         foreach (KeyValuePair<string, string> pair in engine)
+        {
             writer.Write(pair.Key + "=" + pair.Value + "\n");
+        }
+
         writer.Write("Level=" + level + "\nSeed=" + seed.ToString(Invariant) + "\nSamples=" + Count.ToString(Invariant)
             + "\nDropped=" + Dropped.ToString(Invariant) + "\nPlaySeconds=" + PlaySeconds.ToString("F1", Invariant) + "\n");
     }

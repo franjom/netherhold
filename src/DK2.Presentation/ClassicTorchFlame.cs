@@ -25,7 +25,11 @@ public static class ClassicTorchFlame
     {
         FpPosition3 raw = Position(torch);
         var point = new Vector3(raw.X.Raw / 4096f, raw.Y.Raw / 4096f, -raw.Z.Raw / 4096f);
-        if (lattice != null) point = lattice.Deform(point, torch.Wall.X, torch.Wall.Y);
+        if (lattice != null)
+        {
+            point = lattice.Deform(point, torch.Wall.X, torch.Wall.Y);
+        }
+
         return new Vector3(point.X, -point.Z, -point.Y);
     }
 }
@@ -41,7 +45,10 @@ public sealed class ClassicTorchFlamePhases
     public int OffsetOf(int floorTileIndex)
     {
         if (!_offsets.TryGetValue(floorTileIndex, out int offset))
+        {
             _offsets.Add(floorTileIndex, offset = _random.NextInt(4096));
+        }
+
         return offset;
     }
 

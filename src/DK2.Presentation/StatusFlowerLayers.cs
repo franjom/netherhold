@@ -32,13 +32,28 @@ public static class StatusFlowerLayers
     /// returns how many.</summary>
     public static int Build(in StatusFlower flower, Span<StatusFlowerLayer> layers)
     {
-        if (flower.Dollar) return 0;
+        if (flower.Dollar)
+        {
+            return 0;
+        }
+
         int count = 0;
         if (flower.DrawRing)
+        {
             layers[count++] = new StatusFlowerLayer(Rings[Math.Clamp(flower.Ring, 0, 5)], 0, NoWedge, Ring: true);
+        }
+
         layers[count++] = new StatusFlowerLayer(flower.Centre, 1, flower.ExperienceArcs ? flower.Experience : NoWedge, Ring: false);
-        if (flower.Imprison) layers[count++] = new StatusFlowerLayer("Imprison", 2, NoWedge, Ring: false);
-        if (flower.Objective != null) layers[count++] = new StatusFlowerLayer(flower.Objective, 3, NoWedge, Ring: false);
+        if (flower.Imprison)
+        {
+            layers[count++] = new StatusFlowerLayer("Imprison", 2, NoWedge, Ring: false);
+        }
+
+        if (flower.Objective != null)
+        {
+            layers[count++] = new StatusFlowerLayer(flower.Objective, 3, NoWedge, Ring: false);
+        }
+
         return count;
     }
 }

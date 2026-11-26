@@ -46,9 +46,16 @@ public sealed class LightningBolts(uint seed)
     public IReadOnlyList<LightningPathBuffer> BuildInto(Vector3 start, Vector3 end,
         LightningAmplitude amplitude = LightningAmplitude.Shot)
     {
-        if (!Finite(start) || !Finite(end)) throw new ArgumentOutOfRangeException(nameof(end));
+        if (!Finite(start) || !Finite(end))
+        {
+            throw new ArgumentOutOfRangeException(nameof(end));
+        }
+
         if (amplitude is not (LightningAmplitude.Shot or LightningAmplitude.Creature))
+        {
             throw new ArgumentOutOfRangeException(nameof(amplitude));
+        }
+
         _paths.Clear();
         _usedPaths = 0;
         BoltInto(start, end, amplitude);
@@ -57,7 +64,11 @@ public sealed class LightningBolts(uint seed)
 
     private void BoltInto(Vector3 start, Vector3 end, LightningAmplitude amplitude)
     {
-        if (_usedPaths == _pool.Count) _pool.Add(new LightningPathBuffer());
+        if (_usedPaths == _pool.Count)
+        {
+            _pool.Add(new LightningPathBuffer());
+        }
+
         LightningPathBuffer path = _pool[_usedPaths++];
         List<Vector3> nodes = path.Points;
         nodes.Clear();
@@ -69,7 +80,11 @@ public sealed class LightningBolts(uint seed)
         {
             Vector3 last = nodes[nodes.Count - 1];
             int count = 1;
-            for (int i = 2; i < nodes.Count - 1; i += 2) nodes[count++] = nodes[i];
+            for (int i = 2; i < nodes.Count - 1; i += 2)
+            {
+                nodes[count++] = nodes[i];
+            }
+
             nodes[count++] = last;
             nodes.RemoveRange(count, nodes.Count - count);
         }
@@ -90,14 +105,23 @@ public sealed class LightningBolts(uint seed)
         SubdivideInto(path, left, middle, end, forkScale, amplitude);
         SubdivideInto(path, middle, right, end, forkScale, amplitude);
         if (forkScale > .2f && _random.Next15() < 256 / forkScale)
+        {
             BoltInto(middle, end + Jitter(forkScale), amplitude);
+        }
     }
 
     public IReadOnlyList<LightningPath> Build(Vector3 start, Vector3 end, LightningAmplitude amplitude = LightningAmplitude.Shot)
     {
-        if (!Finite(start) || !Finite(end)) throw new ArgumentOutOfRangeException(nameof(end));
+        if (!Finite(start) || !Finite(end))
+        {
+            throw new ArgumentOutOfRangeException(nameof(end));
+        }
+
         if (amplitude is not (LightningAmplitude.Shot or LightningAmplitude.Creature))
+        {
             throw new ArgumentOutOfRangeException(nameof(amplitude));
+        }
+
         var paths = new List<LightningPath>();
         Bolt(start, end);
         return paths;
@@ -112,7 +136,11 @@ public sealed class LightningBolts(uint seed)
             while (nodes.Count > 32)
             {
                 var thinned = new List<Vector3> { nodes[0] };
-                for (int i = 2; i < nodes.Count - 1; i += 2) thinned.Add(nodes[i]);
+                for (int i = 2; i < nodes.Count - 1; i += 2)
+                {
+                    thinned.Add(nodes[i]);
+                }
+
                 thinned.Add(nodes[^1]);
                 nodes = thinned;
             }
@@ -131,7 +159,9 @@ public sealed class LightningBolts(uint seed)
                 Subdivide(left, middle);
                 Subdivide(middle, right);
                 if (forkScale > .2f && _random.Next15() < 256 / forkScale)
+                {
                     Bolt(middle, b + Jitter(forkScale));
+                }
             }
         }
     }

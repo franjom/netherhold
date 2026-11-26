@@ -22,8 +22,16 @@ public sealed class InstallPossessionHudArt
         const int size = 5449;
         foreach (KwdChunk chunk in KwdReader.ReadFile(Path.Combine(install, "Data", "editor", "Creatures.kwd")))
         {
-            if (chunk.Type != KwdRecordType.Creatures) continue;
-            if (chunk.Content.Length != chunk.ItemCount * size) throw new InvalidDataException("Unexpected creature HUD record size.");
+            if (chunk.Type != KwdRecordType.Creatures)
+            {
+                continue;
+            }
+
+            if (chunk.Content.Length != chunk.ItemCount * size)
+            {
+                throw new InvalidDataException("Unexpected creature HUD record size.");
+            }
+
             for (int at = 0; at < chunk.Content.Length; at += size)
             {
                 string Name(int offset) => Encoding.ASCII.GetString(chunk.Content, at + offset, 64).TrimEnd('\0');

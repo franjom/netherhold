@@ -63,9 +63,21 @@ public static class StatusFlowerRules
     /// dying (<c>+0x3E6</c> bit 21) and foreign owners always, then the own creature's reasons.</summary>
     public static bool Shows(in StatusFlowerFacts facts)
     {
-        if (facts.Never) return false;
-        if (facts.ViewerPossessing) return facts.Hovered;
-        if (facts.Dying || !facts.Own) return true;
+        if (facts.Never)
+        {
+            return false;
+        }
+
+        if (facts.ViewerPossessing)
+        {
+            return facts.Hovered;
+        }
+
+        if (facts.Dying || !facts.Own)
+        {
+            return true;
+        }
+
         return facts.InCombat || facts.Mood is CreatureMood.Unhappy or CreatureMood.Angry
             || facts.BelowSixthHealth || facts.InWindow || facts.MarkedForRemoval;
     }
@@ -75,7 +87,11 @@ public static class StatusFlowerRules
     /// <c>SL-0(6 − step)</c>, five down to one.</summary>
     public static int RemovalStep(uint stamp, GameTick turn)
     {
-        if (stamp == 0) return 0;
+        if (stamp == 0)
+        {
+            return 0;
+        }
+
         const uint rate = SimulationTiming.TicksPerSecond;
         uint now = (uint)turn.Value;
         return stamp + rate * 5 <= now ? 5 : (int)((now - stamp) / rate + 1);
@@ -117,7 +133,11 @@ public static class StatusFlowerRules
         float distance = toEye.Length();
         float step = layer * lift;
         float anchorDepth = System.Numerics.Vector3.Dot(anchor - eye, forward);
-        if (step <= 0 || distance <= step * 2 || anchorDepth <= 1e-6f) return (anchor, 1f);
+        if (step <= 0 || distance <= step * 2 || anchorDepth <= 1e-6f)
+        {
+            return (anchor, 1f);
+        }
+
         System.Numerics.Vector3 position = anchor + toEye * (step / distance);
         return (position, System.Numerics.Vector3.Dot(position - eye, forward) / anchorDepth);
     }
@@ -151,7 +171,11 @@ public static class StatusFlowerRules
     /// past a level.</summary>
     public static float ExperienceShare(int experience, int needed)
     {
-        if (needed <= 0) return 0;
+        if (needed <= 0)
+        {
+            return 0;
+        }
+
         long fixedShare = ((long)experience << 12) / needed;
         return ((fixedShare / 2) & 0x7FF) / 2048f;
     }
@@ -264,12 +288,36 @@ public static class StatusFlowerCentre
     public static string? Status(bool hero, bool dying, bool stunned, bool fearless, int currentFear, int fearThreshold,
         byte? heroSlotValue = null, bool leaving = false, bool carriesPortalGem = false)
     {
-        if (hero) return heroSlotValue switch { null => null, 2 => "SJ-Prison", 3 => "SJ-Torture", _ => "SJ-Fighting" };
-        if (dying) return "SJ-Unconscious";
-        if (stunned) return "SJ-Stunned";
-        if (leaving) return "SJ-Leaving";
-        if (!fearless && fearThreshold < currentFear) return "ST-Fear";
-        if (carriesPortalGem) return "S-Gem";
+        if (hero)
+        {
+            return heroSlotValue switch { null => null, 2 => "SJ-Prison", 3 => "SJ-Torture", _ => "SJ-Fighting" };
+        }
+
+        if (dying)
+        {
+            return "SJ-Unconscious";
+        }
+
+        if (stunned)
+        {
+            return "SJ-Stunned";
+        }
+
+        if (leaving)
+        {
+            return "SJ-Leaving";
+        }
+
+        if (!fearless && fearThreshold < currentFear)
+        {
+            return "ST-Fear";
+        }
+
+        if (carriesPortalGem)
+        {
+            return "S-Gem";
+        }
+
         return null;
     }
 
@@ -288,7 +336,11 @@ public static class StatusFlowerCentre
     /// category, worker states by id; null where DK2 falls back to the level.</summary>
     public static string? Job(bool droppedOnARoomRecently, CreatureStateCategory category, int stateId)
     {
-        if (droppedOnARoomRecently) return "SJ-No_Go";
+        if (droppedOnARoomRecently)
+        {
+            return "SJ-No_Go";
+        }
+
         return category switch
         {
             CreatureStateCategory.WorkerJob => stateId switch
@@ -325,7 +377,13 @@ public static class StatusFlowerCentre
     {
         AngerBucket best = 0;
         for (AngerBucket bucket = AngerBucket.Company; bucket <= AngerBucket.Treatment; bucket++)
-            if (anger[bucket] > anger[best]) best = bucket;
+        {
+            if (anger[bucket] > anger[best])
+            {
+                best = bucket;
+            }
+        }
+
         return best;
     }
 }
@@ -375,16 +433,28 @@ public sealed class StatusFlowers
             _hoverUntil.Clear(); _health.Clear(); _centre.Clear(); _world = world;
         }
         // 0x005956E0's renderer-wide timers: the blink phase and the neutral palette step.
-        if (_blinkUntil < milliseconds) _blinkUntil = milliseconds + StatusFlowerRules.CycleMs;
+        if (_blinkUntil < milliseconds)
+        {
+            _blinkUntil = milliseconds + StatusFlowerRules.CycleMs;
+        }
+
         if (_paletteUntil < milliseconds)
         {
-            if (++_paletteIndex > 7) _paletteIndex = 1;
+            if (++_paletteIndex > 7)
+            {
+                _paletteIndex = 1;
+            }
+
             _paletteUntil = milliseconds + StatusFlowerRules.CycleMs;
         }
         _shown.Clear();
         _capture++;
         var until = new GameTick(turn.Value + StatusFlowerRules.WindowTicks);
-        if (hovered != CreatureQueryTarget.None) _hoverUntil[hovered.Value] = until;
+        if (hovered != CreatureQueryTarget.None)
+        {
+            _hoverUntil[hovered.Value] = until;
+        }
+
         bool possessing = world.Player(_viewer).PossessedCreatureId != 0;
         // Before our first tick, DK2 is already on turn 1; afterwards the settled tick is its turn.
         uint flowerTurn = unchecked((uint)Math.Max(1, turn.Value));
@@ -409,7 +479,11 @@ public sealed class StatusFlowers
                 InWindow: healthWindow || hoverWindow
                     || flowerTurn <= creature.StatusFlowerUntilTurn,
                 MarkedForRemoval: creature.ManaRemovalStamp != 0);
-            if (!StatusFlowerRules.Shows(facts)) continue;
+            if (!StatusFlowerRules.Shows(facts))
+            {
+                continue;
+            }
+
             if (creature.JackpotDeadlineTicks != 0)
             {
                 _shown.Add(new StatusFlower(creature.Id, creature.Level, new PlayerId(creature.OwnerPlayerId),
@@ -423,7 +497,11 @@ public sealed class StatusFlowers
             (byte red, byte green, byte blue) = ClassicKeeperPalette.Colour(
                 new PlayerId(neutral ? Math.Max(_paletteIndex, (byte)1) : creature.OwnerPlayerId));
             var colour = new StatusFlowerColour(red, green, blue);
-            if (blink && !neutral) colour = StatusFlowerRules.Blinked(colour, milliseconds, _blinkUntil);
+            if (blink && !neutral)
+            {
+                colour = StatusFlowerRules.Blinked(colour, milliseconds, _blinkUntil);
+            }
+
             int maxHealth = CreatureHealthRules.MaxHealth(_database, definition, creature);
             // 0x00491B40 searches the world's slots for any creature; only heroes are put in them.
             byte? slot = HeroSlotValue(world, creature.Id);
@@ -449,7 +527,13 @@ public sealed class StatusFlowers
     private static byte? HeroSlotValue(WorldState world, int creatureId)
     {
         foreach (HeroSlot slot in world.HeroSlots)
-            if (slot.CreatureId == creatureId) return slot.Value;
+        {
+            if (slot.CreatureId == creatureId)
+            {
+                return slot.Value;
+            }
+        }
+
         return null;
     }
 
@@ -457,9 +541,17 @@ public sealed class StatusFlowers
     /// creature is a floor slot (Room_IsFloorSlot); a cell with no room is taken as not one.</summary>
     private StatusFlowerTortureLift TortureLift(WorldState world, CreatureState creature)
     {
-        if (NeedRules.ResolvedCategory(creature) != CreatureStateCategory.Torture) return StatusFlowerTortureLift.None;
+        if (NeedRules.ResolvedCategory(creature) != CreatureStateCategory.Torture)
+        {
+            return StatusFlowerTortureLift.None;
+        }
+
         TilePos at = creature.Tile;
-        if (!world.Contains(at)) return StatusFlowerTortureLift.OffFloorSlot;
+        if (!world.Contains(at))
+        {
+            return StatusFlowerTortureLift.OffFloorSlot;
+        }
+
         int index = (at.Y * world.Width) + at.X;
         return RoomIndex.RoomAt(world, _database, index) is { } room && AutoFurnitureRules.IsFloorSlot(world, room, index)
             ? StatusFlowerTortureLift.OnFloorSlot : StatusFlowerTortureLift.OffFloorSlot;
@@ -510,7 +602,11 @@ public sealed class StatusFlowers
     private GameTick Observe(CreatureState creature, GameTick until)
     {
         bool known = _health.TryGetValue(creature.Id, out HealthWatch watch);
-        if (known && watch.Health != creature.Health) watch.Until = until;
+        if (known && watch.Health != creature.Health)
+        {
+            watch.Until = until;
+        }
+
         watch.Health = creature.Health;
         watch.SeenAt = _capture;
         _health[creature.Id] = watch;
@@ -521,15 +617,44 @@ public sealed class StatusFlowers
     {
         _stale.Clear();
         foreach (KeyValuePair<int, HealthWatch> entry in _health)
-            if (entry.Value.SeenAt != _capture) _stale.Add(entry.Key);
-        foreach (int id in _stale) _health.Remove(id);
+        {
+            if (entry.Value.SeenAt != _capture)
+            {
+                _stale.Add(entry.Key);
+            }
+        }
+
+        foreach (int id in _stale)
+        {
+            _health.Remove(id);
+        }
+
         _stale.Clear();
         foreach (KeyValuePair<int, GameTick> entry in _hoverUntil)
-            if (entry.Value <= turn) _stale.Add(entry.Key);
-        foreach (int id in _stale) _hoverUntil.Remove(id);
+        {
+            if (entry.Value <= turn)
+            {
+                _stale.Add(entry.Key);
+            }
+        }
+
+        foreach (int id in _stale)
+        {
+            _hoverUntil.Remove(id);
+        }
+
         _stale.Clear();
         foreach (int id in _centre.Keys)
-            if (!_health.ContainsKey(id)) _stale.Add(id);
-        foreach (int id in _stale) _centre.Remove(id);
+        {
+            if (!_health.ContainsKey(id))
+            {
+                _stale.Add(id);
+            }
+        }
+
+        foreach (int id in _stale)
+        {
+            _centre.Remove(id);
+        }
     }
 }

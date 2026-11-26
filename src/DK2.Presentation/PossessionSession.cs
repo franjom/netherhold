@@ -115,8 +115,14 @@ public sealed class PossessionSession : ITurnPoseSource
         _sniper.Step(input.ClockMilliseconds);
         while (_colourEvents.Count > 0)
         {
-            if (_colourEvents.Dequeue() == PossessionColourEvent.Damaged) Colours.Damage(input.ClockMilliseconds);
-            else Colours.Thaw(input.ClockMilliseconds);
+            if (_colourEvents.Dequeue() == PossessionColourEvent.Damaged)
+            {
+                Colours.Damage(input.ClockMilliseconds);
+            }
+            else
+            {
+                Colours.Thaw(input.ClockMilliseconds);
+            }
         }
         int id = world.Player(viewer).PossessedCreatureId;
         CreatureState? creature = id != 0 ? world.CreatureById(id) : null;
@@ -133,15 +139,27 @@ public sealed class PossessionSession : ITurnPoseSource
                 Reset();
                 // The death view is asked for only from mode 2 (0x0044283F), for a death that leaves its body (0x00488095).
                 if (ordinary != null && landed && world.CreatureById(endedId) is { Health: <= 0 } body)
+                {
                     BeginDeath(from, body, world, input.ClockMilliseconds);
-                else if (ordinary != null) focus = BeginFlyOut(from, ordinary, ordinaryFocus, world, input.ClockMilliseconds);
-                else Colours.Leave(input.ClockMilliseconds);
+                }
+                else if (ordinary != null)
+                {
+                    focus = BeginFlyOut(from, ordinary, ordinaryFocus, world, input.ClockMilliseconds);
+                }
+                else
+                {
+                    Colours.Leave(input.ClockMilliseconds);
+                }
             }
             switch (_ending)
             {
                 case Ending.Dying:
                     _flight.Step(input.ClockMilliseconds);
-                    if (!_flight.Active) (_ending, _deadSince) = (Ending.Dead, input.ClockMilliseconds);
+                    if (!_flight.Active)
+                    {
+                        (_ending, _deadSince) = (Ending.Dead, input.ClockMilliseconds);
+                    }
+
                     break;
                 // Camera_Update's mode-11 arm: 2000 ms after the move, the pitch is zeroed and the kept ordinary mode asked for.
                 case Ending.Dead when ordinary == null:
@@ -154,7 +172,11 @@ public sealed class PossessionSession : ITurnPoseSource
                     break;
                 case Ending.Out:
                     _flight.Step(input.ClockMilliseconds);
-                    if (!_flight.Active) _ending = Ending.None;
+                    if (!_flight.Active)
+                    {
+                        _ending = Ending.None;
+                    }
+
                     break;
             }
             return new PossessionUpdate(false, ended, focus);
@@ -168,7 +190,11 @@ public sealed class PossessionSession : ITurnPoseSource
             _boundWorld = world;
             _boundTick = world.CurrentTick.Value;
         }
-        if (!ReferenceEquals(_colourSource, creature)) ObserveColours(creature);
+        if (!ReferenceEquals(_colourSource, creature))
+        {
+            ObserveColours(creature);
+        }
+
         _possessed = creature;
         if (entered)
         {
@@ -180,9 +206,15 @@ public sealed class PossessionSession : ITurnPoseSource
             _mouse = default;
             // DK2 flies the camera to the eye in a timed move (Camera_SetMode 0x0044ACE0). Remake choice: a move out still running is turned round.
             if (ordinary != null)
+            {
                 _flight.Start(_ending == Ending.None ? ordinary.State(ordinaryFocus) : _flight.Active ? _flight.State : _flight.Target,
                     PossessionFlight.FirstPerson(_view, _preset), input.ClockMilliseconds);
-            else _flight.Cancel();
+            }
+            else
+            {
+                _flight.Cancel();
+            }
+
             Colours.Enter(_database.CreatureById(creature.CreatureTypeId).PossessionColourKind,
                 input.ClockMilliseconds, input.ClockMilliseconds + (ordinary != null ? PossessionFlight.BetweenClasses : 0));
             _ending = Ending.None;
@@ -190,7 +222,11 @@ public sealed class PossessionSession : ITurnPoseSource
 
         // The first-person step, the look and the once-a-turn pose are mode 2's: none runs until the move lands.
         bool flying = _flight.Active;
-        if (flying) _flight.Step(input.ClockMilliseconds);
+        if (flying)
+        {
+            _flight.Step(input.ClockMilliseconds);
+        }
+
         bool lockedBefore = PointerLockWanted;
         PointerLockWanted = input.Allowed;
         if (flying)
@@ -199,7 +235,11 @@ public sealed class PossessionSession : ITurnPoseSource
             _mouse = default;
             _held = uint.MaxValue;
         }
-        else if (input.Allowed) Step(creature, viewer, input, lookAllowed: lockedBefore, commands, sounds);
+        else if (input.Allowed)
+        {
+            Step(creature, viewer, input, lookAllowed: lockedBefore, commands, sounds);
+        }
+
         return new PossessionUpdate(entered, false, null);
     }
 
@@ -207,8 +247,15 @@ public sealed class PossessionSession : ITurnPoseSource
         ICollection<PlayerCommand> commands, ICollection<SoundRequest> sounds)
     {
         // The right button leaves: the owner's recollection (2026-11-14); the binary's sender of the leave action is unread.
-        if (input.SecondaryReleased) commands.Add(new LeavePossessionCommand(viewer));
-        if (_world!.Frozen) return;
+        if (input.SecondaryReleased)
+        {
+            commands.Add(new LeavePossessionCommand(viewer));
+        }
+
+        if (_world!.Frozen)
+        {
+            return;
+        }
 
         // Remake choice: only the frames the step runs count as its time, and the remainder of a millisecond is carried.
         _milliseconds += input.FrameMilliseconds;
@@ -217,7 +264,11 @@ public sealed class PossessionSession : ITurnPoseSource
 
         // Remake choice: one pixel of host pointer travel is one unit of DK2's mouse delta, whose units are unread.
         // The frame the pointer is first held on is skipped: its delta is the jump to the middle.
-        if (lookAllowed) _mouse += GameBindingInput.HostPointerDelta(input.PointerDelta, input.MouseSensitivity);
+        if (lookAllowed)
+        {
+            _mouse += GameBindingInput.HostPointerDelta(input.PointerDelta, input.MouseSensitivity);
+        }
+
         int mouseX = (int)MathF.Round(_mouse.X), mouseY = (int)MathF.Round(_mouse.Y);
         _mouse -= new Vector2(mouseX, mouseY);
 
@@ -230,10 +281,17 @@ public sealed class PossessionSession : ITurnPoseSource
         // The body's creeping bit is the presented world's and lags the command by a turn: one command a change.
         if (frame.SetCreeping is bool creep)
         {
-            if (_creepingSent != creep) commands.Add(new SetCreepingCommand(viewer, creep));
+            if (_creepingSent != creep)
+            {
+                commands.Add(new SetCreepingCommand(viewer, creep));
+            }
+
             _creepingSent = creep;
         }
-        else _creepingSent = null;
+        else
+        {
+            _creepingSent = null;
+        }
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         Footstep(frame.LeftFoot, definition, sounds);
@@ -242,16 +300,42 @@ public sealed class PossessionSession : ITurnPoseSource
         // Remake choice: a press is the key going down whatever else is held, so Fire works while Run or Creep is.
         uint held = 0;
         foreach (GameAction action in PressActions)
-            if (keys.Held(action)) held |= 1u << (int)action;
+        {
+            if (keys.Held(action))
+            {
+                held |= 1u << (int)action;
+            }
+        }
+
         uint pressed = held & ~_held;
         _held = held;
         bool Pressed(GameAction action) => (pressed & (1u << (int)action)) != 0;
 
-        if (Pressed(GameAction.Melee)) _controls.SelectMelee();
-        if (Pressed(GameAction.Spell1)) _controls.SelectSpell(0, definition, creature.Level);
-        if (Pressed(GameAction.Spell2)) _controls.SelectSpell(1, definition, creature.Level);
-        if (Pressed(GameAction.Spell3)) _controls.SelectSpell(2, definition, creature.Level);
-        if (Pressed(GameAction.SelectAlly)) _controls.SelectFollowers();
+        if (Pressed(GameAction.Melee))
+        {
+            _controls.SelectMelee();
+        }
+
+        if (Pressed(GameAction.Spell1))
+        {
+            _controls.SelectSpell(0, definition, creature.Level);
+        }
+
+        if (Pressed(GameAction.Spell2))
+        {
+            _controls.SelectSpell(1, definition, creature.Level);
+        }
+
+        if (Pressed(GameAction.Spell3))
+        {
+            _controls.SelectSpell(2, definition, creature.Level);
+        }
+
+        if (Pressed(GameAction.SelectAlly))
+        {
+            _controls.SelectFollowers();
+        }
+
         if (Pressed(GameAction.PrimaryAbility))
         {
             CreatureId target = definition.PrimaryAbility == PossessionAbilityKind.Fear
@@ -263,11 +347,22 @@ public sealed class PossessionSession : ITurnPoseSource
                 Foreground.Begin(definition.FirstPersonPrimary, definition.FirstPersonFramesPerSecond, input.ClockMilliseconds);
             }
         }
-        if (Pressed(GameAction.SecondaryAbility)) _controls.SelectSecondary(definition);
+        if (Pressed(GameAction.SecondaryAbility))
+        {
+            _controls.SelectSecondary(definition);
+        }
+
         if (Pressed(GameAction.PickLock)
             && PossessionControls.PickLock(_boundWorld!, _database, viewer, _view, creature) is { } open)
+        {
             commands.Add(open);
-        if (Pressed(GameAction.RemoveAlly)) commands.Add(new DismissFollowersCommand(viewer));
+        }
+
+        if (Pressed(GameAction.RemoveAlly))
+        {
+            commands.Add(new DismissFollowersCommand(viewer));
+        }
+
         if (Pressed(GameAction.Sniper) && PossessionControls.CanToggleSniper(definition, creature.Level))
         {
             _sniper.Toggle(definition.SniperZoom, creature.SniperMode, input.ClockMilliseconds);
@@ -283,7 +378,9 @@ public sealed class PossessionSession : ITurnPoseSource
     private static void Footstep(PossessionFootstep? step, CreatureDef definition, ICollection<SoundRequest> sounds)
     {
         if (step.HasValue && PossessionFootsteps.For(definition.SoundCategory, step.Value) is SoundRequest request)
+        {
             sounds.Add(request);
+        }
     }
 
     /// <summary>Starts the move back to the ordinary camera (Camera_SetMode's ordinary arm): the
@@ -331,7 +428,11 @@ public sealed class PossessionSession : ITurnPoseSource
     /// simulation clears possession; object-possession bridge delivery is not yet wired.</summary>
     public bool RequestObjectDeathView(WorldState world, long clockMilliseconds)
     {
-        if (!Possessing || _flight.Active) return false;
+        if (!Possessing || _flight.Active)
+        {
+            return false;
+        }
+
         CameraFlightState from = PossessionFlight.FirstPerson(_view,
             _preset with { Lens = _sniper.Lens, ViewDistance = _sniper.ViewDistance });
         Fp32 floor = new(FloorHeightRules.At(world, _database, from.X, from.Y));
@@ -389,10 +490,17 @@ public sealed class PossessionSession : ITurnPoseSource
     }
     private void ObserveColours(CreatureState? creature)
     {
-        if (_colourSource != null) _colourSource.PossessionColourChanged -= OnColour;
+        if (_colourSource != null)
+        {
+            _colourSource.PossessionColourChanged -= OnColour;
+        }
+
         _colourEvents.Clear();
         _colourSource = creature;
-        if (_colourSource != null) _colourSource.PossessionColourChanged += OnColour;
+        if (_colourSource != null)
+        {
+            _colourSource.PossessionColourChanged += OnColour;
+        }
     }
     private void OnColour(PossessionColourEvent notification) => _colourEvents.Enqueue(notification);
 }

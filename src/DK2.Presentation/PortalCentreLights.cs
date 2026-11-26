@@ -33,7 +33,11 @@ public sealed class PortalCentreLights
     public IReadOnlyList<PortalLightView> Advance(EffectTime now, bool cheapLighting = false)
     {
         long elapsed = now.Milliseconds - _anchorMilliseconds;
-        if (elapsed < 0) throw new ArgumentOutOfRangeException(nameof(now));
+        if (elapsed < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(now));
+        }
+
         if (elapsed > 50)
         {
             _anchorMilliseconds += elapsed / 50 * 50;
@@ -43,8 +47,14 @@ public sealed class PortalCentreLights
                 // The native bit4 pulse swaps the stored green and blue (0x0043A2E0).
                 source.Colour = new((byte)(255 * q >> 8), (byte)(26 * q >> 8), (byte)(33 * q >> 8));
                 source.Phase += source.Rising ? 10 : -10;
-                if (source.Phase > 249) source.Rising = false;
-                else if (source.Phase < 11) source.Rising = true;
+                if (source.Phase > 249)
+                {
+                    source.Rising = false;
+                }
+                else if (source.Phase < 11)
+                {
+                    source.Rising = true;
+                }
             }
         }
         _lights.Clear();

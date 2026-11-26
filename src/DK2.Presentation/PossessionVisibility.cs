@@ -43,7 +43,10 @@ public sealed class PossessionVisibility
         foreach (TilePos tile in polygonTiles)
         {
             int mx = tile.X - _tileX + MapCentre, my = tile.Y - _tileY + MapCentre;
-            if ((uint)mx < MapSize && (uint)my < MapSize) _inPolygon[(mx * MapSize) + my] = true;
+            if ((uint)mx < MapSize && (uint)my < MapSize)
+            {
+                _inPolygon[(mx * MapSize) + my] = true;
+            }
         }
         _open.Clear();
         _open.Add((0, Turn));
@@ -53,10 +56,25 @@ public sealed class PossessionVisibility
         // The polygon ends the walk; the map of it cannot hold a ring past its own half width.
         for (int r = 1; r < MapCentre && (north || south || west || east); r++)
         {
-            if (north) north = Row(_tileY - r, r);
-            if (south) south = Row(_tileY + r, r);
-            if (west) west = Column(_tileX - r, r);
-            if (east) east = Column(_tileX + r, r);
+            if (north)
+            {
+                north = Row(_tileY - r, r);
+            }
+
+            if (south)
+            {
+                south = Row(_tileY + r, r);
+            }
+
+            if (west)
+            {
+                west = Column(_tileX - r, r);
+            }
+
+            if (east)
+            {
+                east = Column(_tileX + r, r);
+            }
         }
     }
 
@@ -93,15 +111,37 @@ public sealed class PossessionVisibility
         int centre = Angle(dx, dy);
         // Half a quarter turn over the distance: wider than the tile really is.
         int half = (int)((1 << 21) / Math.Sqrt((dx * dx) + (dy * dy)));
-        if (!Open(centre - half, centre + half)) return inPolygon;
+        if (!Open(centre - half, centre + half))
+        {
+            return inPolygon;
+        }
 
-        if (inPolygon) _tiles.Add(new TilePos(x, y));
+        if (inPolygon)
+        {
+            _tiles.Add(new TilePos(x, y));
+        }
+
         if (Blocks(x, y))
         {
-            if (Blocks(x + 1, y)) Close(Angle(x + 1 - _eyeX, y + 0.5 - _eyeY), centre);
-            if (Blocks(x, y + 1)) Close(Angle(x + 0.5 - _eyeX, y + 1 - _eyeY), centre);
-            if (Blocks(x - 1, y)) Close(Angle(x - _eyeX, y + 0.5 - _eyeY), centre);
-            if (Blocks(x, y - 1)) Close(Angle(x + 0.5 - _eyeX, y - _eyeY), centre);
+            if (Blocks(x + 1, y))
+            {
+                Close(Angle(x + 1 - _eyeX, y + 0.5 - _eyeY), centre);
+            }
+
+            if (Blocks(x, y + 1))
+            {
+                Close(Angle(x + 0.5 - _eyeX, y + 1 - _eyeY), centre);
+            }
+
+            if (Blocks(x - 1, y))
+            {
+                Close(Angle(x - _eyeX, y + 0.5 - _eyeY), centre);
+            }
+
+            if (Blocks(x, y - 1))
+            {
+                Close(Angle(x + 0.5 - _eyeX, y - _eyeY), centre);
+            }
         }
         return inPolygon;
     }
@@ -114,9 +154,21 @@ public sealed class PossessionVisibility
 
     private static (int Low, int High, bool Wraps) Arc(int a, int b)
     {
-        if (a != Turn) a &= AngleMask;
-        if (b != Turn) b &= AngleMask;
-        if (a > b) (a, b) = (b, a);
+        if (a != Turn)
+        {
+            a &= AngleMask;
+        }
+
+        if (b != Turn)
+        {
+            b &= AngleMask;
+        }
+
+        if (a > b)
+        {
+            (a, b) = (b, a);
+        }
+
         return (a, b, b - a > HalfTurn);
     }
 
@@ -130,7 +182,13 @@ public sealed class PossessionVisibility
     private bool Overlaps(int low, int high)
     {
         foreach ((int start, int end) in _open)
-            if (low < end && high > start) return true;
+        {
+            if (low < end && high > start)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -142,7 +200,10 @@ public sealed class PossessionVisibility
             Remove(0, low);
             Remove(high, Turn);
         }
-        else Remove(low, high);
+        else
+        {
+            Remove(low, high);
+        }
     }
 
     // The removed interval is closed: a node it covers goes, one it clips is trimmed, one it cuts is split.
@@ -151,10 +212,23 @@ public sealed class PossessionVisibility
         for (int i = _open.Count - 1; i >= 0; i--)
         {
             (int start, int end) = _open[i];
-            if (low > end || high < start) continue;
-            if (low <= start && high >= end) _open.RemoveAt(i);
-            else if (low <= start) _open[i] = (high, end);
-            else if (high >= end) _open[i] = (start, low);
+            if (low > end || high < start)
+            {
+                continue;
+            }
+
+            if (low <= start && high >= end)
+            {
+                _open.RemoveAt(i);
+            }
+            else if (low <= start)
+            {
+                _open[i] = (high, end);
+            }
+            else if (high >= end)
+            {
+                _open[i] = (start, low);
+            }
             else
             {
                 _open[i] = (start, low);

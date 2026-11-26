@@ -26,7 +26,11 @@ public static class SpriteLighting
         ReadOnlySpan<ClassicPointLight> lights, Vector3 centre)
     {
         var sum = new Vector3(red / 255f, green / 255f, blue / 255f);
-        foreach (ClassicPointLight light in lights) sum += light.RadialAt(centre);
+        foreach (ClassicPointLight light in lights)
+        {
+            sum += light.RadialAt(centre);
+        }
+
         return (Channel(sum.X), Channel(sum.Y), Channel(sum.Z));
     }
 

@@ -39,25 +39,50 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
 
     public void Capture(WorldState world, GameDatabase database, GameTick tick)
     {
-        if (_lastTick == tick.Value) return;
+        if (_lastTick == tick.Value)
+        {
+            return;
+        }
+
         _lastTick = tick.Value;
         foreach (CreatureState creature in world.Creatures)
         {
-            if (!CreatureStateMachine.HasState(creature)) continue;
+            if (!CreatureStateMachine.HasState(creature))
+            {
+                continue;
+            }
+
             int state = creature.Dk2StateId;
             bool moving = CreatureStateTable.Get(state).Category == CreatureStateCategory.Movement;
             int resume = moving ? creature.UtilityNewState : state;
             (int state, int resume) current = (state, resume);
             if (!_previous.TryGetValue(creature.Id, out (int State, int Resume) previous) || previous != current)
-                if (moving && resume is 164 or 180 or 184 || state == 186) music.Raise(MusicLevel.Raid);
+            {
+                if (moving && resume is 164 or 180 or 184 || state == 186)
+                {
+                    music.Raise(MusicLevel.Raid);
+                }
+            }
+
             _previous[creature.Id] = current;
             if (database.Creatures.TryGetValue(creature.CreatureTypeId, out CreatureDef? definition)
                 && (definition.Flags & CreatureFlags.IsHorny) != 0)
-                if ((world.Player(creature.OwnerPlayerId).Finale.Flags & FinaleRules.SequenceStarted) != 0) music.Set(MusicLevel.Silent);
-                else music.Raise(MusicLevel.Reaper);
+            {
+                if ((world.Player(creature.OwnerPlayerId).Finale.Flags & FinaleRules.SequenceStarted) != 0)
+                {
+                    music.Set(MusicLevel.Silent);
+                }
+                else
+                {
+                    music.Raise(MusicLevel.Reaper);
+                }
+            }
         }
         if (tick.Value + 1 == HeartIntroRules.StartTurn(database) + HeartIntroRules.SequenceSeconds * SimulationTiming.TicksPerSecond)
+        {
             music.Set(MusicLevel.Silent);
+        }
+
         foreach (Battle battle in _battles)
         {
             int threat = 0;
@@ -65,7 +90,11 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
             // copy is the battle's own list, kept between ticks.
             List<int> ids = battle.Scratch;
             ids.Clear();
-            foreach (int member in battle.Members.Keys) ids.Add(member);
+            foreach (int member in battle.Members.Keys)
+            {
+                ids.Add(member);
+            }
+
             for (int i = 0; i < ids.Count; i++)
             {
                 int id = ids[i];
@@ -76,24 +105,44 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
                 { battle.Members.Remove(id); continue; }
                 if (fighting && creature.OwnerPlayerId != viewer
                     && database.Creatures.TryGetValue(creature.CreatureTypeId, out CreatureDef? definition))
+                {
                     threat += FearRules.ThreatAtLevel(database, definition, creature.Level);
+                }
             }
             Recenter(battle, world);
-            if (threat >= database[VariableTypeId.MusicLevelFourThreatThreshold]) music.Raise(MusicLevel.Reaper);
-            else if (threat >= database[VariableTypeId.MusicLevelThreeThreatThreshold]) music.Raise(MusicLevel.LargeBattle);
-            else if (threat >= database[VariableTypeId.MusicLevelTwoThreatThreshold]) music.Raise(MusicLevel.Battle);
+            if (threat >= database[VariableTypeId.MusicLevelFourThreatThreshold])
+            {
+                music.Raise(MusicLevel.Reaper);
+            }
+            else if (threat >= database[VariableTypeId.MusicLevelThreeThreatThreshold])
+            {
+                music.Raise(MusicLevel.LargeBattle);
+            }
+            else if (threat >= database[VariableTypeId.MusicLevelTwoThreatThreshold])
+            {
+                music.Raise(MusicLevel.Battle);
+            }
         }
         for (byte owner = 0; owner < 8; owner++)
         {
             var player = new PlayerId(owner);
-            if (!world.HasPlayer(player)) continue;
+            if (!world.HasPlayer(player))
+            {
+                continue;
+            }
+
             foreach (CreatureState creature in world.OwnedCreatures(player))
             {
                 if (!Fighting(creature) || InABattle(creature.Id)
-                    || creature.FightTargetKind != FightTargetKind.Creature || world.CreatureById(creature.FightTargetId) is null) continue;
+                    || creature.FightTargetKind != FightTargetKind.Creature || world.CreatureById(creature.FightTargetId) is null)
+                {
+                    continue;
+                }
+
                 Battle? nearest = null;
                 long distance = long.MaxValue;
                 foreach (Battle battle in _battles)
+                {
                     if (battle.Members.Count != 0)
                     {
                         long dx = Math.Abs((long)battle.X - creature.PosX) / 4;
@@ -101,10 +150,15 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
                         long squared = (dx * dx >> 12) + (dy * dy >> 12);
                         if (squared < distance) { distance = squared; nearest = battle; }
                     }
+                }
+
                 Battle chosen = nearest is not null && distance <= 0x1900 ? nearest
                     : FirstEmptyBattle() ?? nearest!;
                 if (creature.OwnerPlayerId == viewer && !HoldsCreatureOf(chosen, world, viewer))
+                {
                     ViewerBattleEntries++;
+                }
+
                 chosen.Members.Add(creature.Id, tick.Value + 4 * SimulationTiming.TicksPerSecond);
                 Recenter(chosen, world);
             }
@@ -113,7 +167,11 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
         {
             Battle battle = _battles[i];
             PlayerMask owners = PlayerMask.None;
-            foreach (int id in battle.Members.Keys) owners = owners.With(world.CreatureById(id)!.OwnerPlayerId);
+            foreach (int id in battle.Members.Keys)
+            {
+                owners = owners.With(world.CreatureById(id)!.OwnerPlayerId);
+            }
+
             _snapshots[i] = new BattleViewSnapshot(new BattleViewSlot(i),
                 new TilePos(battle.X / Fp32.One, battle.Y / Fp32.One), owners, battle.Members.Count);
         }
@@ -123,21 +181,39 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
     private bool InABattle(int creatureId)
     {
         for (int i = 0; i < _battles.Length; i++)
-            if (_battles[i].Members.ContainsKey(creatureId)) return true;
+        {
+            if (_battles[i].Members.ContainsKey(creatureId))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
     private Battle? FirstEmptyBattle()
     {
         for (int i = 0; i < _battles.Length; i++)
-            if (_battles[i].Members.Count == 0) return _battles[i];
+        {
+            if (_battles[i].Members.Count == 0)
+            {
+                return _battles[i];
+            }
+        }
+
         return null;
     }
 
     private static bool HoldsCreatureOf(Battle battle, WorldState world, PlayerId owner)
     {
         foreach (int id in battle.Members.Keys)
-            if (world.CreatureById(id)!.OwnerPlayerId == owner) return true;
+        {
+            if (world.CreatureById(id)!.OwnerPlayerId == owner)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 

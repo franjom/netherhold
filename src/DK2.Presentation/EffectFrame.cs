@@ -32,16 +32,27 @@ public sealed class EffectFrame
     public void AfterPresent(WorldState world)
     {
         _step = Step.Presented;
-        if (_gems == null) return;
+        if (_gems == null)
+        {
+            return;
+        }
+
         _gemRequests.Clear();
         _gems.Collect(world, _gemRequests);
-        for (int i = 0; i < _gemRequests.Count; i++) _effects.Model.Request(_gemRequests[i]);
+        for (int i = 0; i < _gemRequests.Count; i++)
+        {
+            _effects.Model.Request(_gemRequests[i]);
+        }
     }
 
     /// <summary>Step 2, the scene frame's requests (a Heart's mana effect, a gem carrier's sparkle), in the frame's order.</summary>
     public void RequestFromScene(in ViewEffectRequest request)
     {
-        if (_step != Step.Presented) throw new InvalidOperationException("A scene request came before the present's.");
+        if (_step != Step.Presented)
+        {
+            throw new InvalidOperationException("A scene request came before the present's.");
+        }
+
         _effects.Model.Request(request);
     }
 
@@ -49,7 +60,11 @@ public sealed class EffectFrame
     /// lights (<see cref="EffectDrawList.Advance"/>).</summary>
     public IReadOnlyList<EffectLightView> Advance(IReadOnlyList<ShotState> shots, float fraction)
     {
-        if (_step != Step.Presented) throw new InvalidOperationException("The effects advanced before the present's requests.");
+        if (_step != Step.Presented)
+        {
+            throw new InvalidOperationException("The effects advanced before the present's requests.");
+        }
+
         _step = Step.Advanced;
         _effects.CaptureShots(shots, fraction);
         return _effects.Advance();

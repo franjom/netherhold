@@ -59,8 +59,16 @@ public sealed class WorldClickCommands
     /// translated. Commands are added to <paramref name="output"/>.</summary>
     public bool Queue(in HudPress press, GameDatabase database, List<PlayerCommand> output)
     {
-        if (database is null) throw new ArgumentNullException(nameof(database));
-        if (output is null) throw new ArgumentNullException(nameof(output));
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
+        if (output is null)
+        {
+            throw new ArgumentNullException(nameof(output));
+        }
+
         if (_tools.QueryTool)
         {
             if (_query.Target == CreatureQueryTarget.None && press.Primary && !_host.PointerOverHud()
@@ -73,35 +81,76 @@ public sealed class WorldClickCommands
                     _host.FollowQueriedCreature();
                 }
             }
-            if (press.Secondary) _tools.CancelQueryByRightClick(_query);
+            if (press.Secondary)
+            {
+                _tools.CancelQueryByRightClick(_query);
+            }
+
             return true;
         }
         if (press.Secondary && (_tools.Tool != DungeonToolMode.Hand || _tools.PanelChoice != null))
         {
-            if (_input.DragFrom(_tools.ActiveTool) != null) _input.CancelPointerGesture();
-            else _tools.CancelToolByRightClick(_panel);
+            if (_input.DragFrom(_tools.ActiveTool) != null)
+            {
+                _input.CancelPointerGesture();
+            }
+            else
+            {
+                _tools.CancelToolByRightClick(_panel);
+            }
+
             return true;
         }
         if (_tools.PanelChoice is not BottomPanelChoiceKey choice || choice.Kind == BottomPanelChoiceKind.Room
-            || choice.Kind == BottomPanelChoiceKind.Spell && choice.Value == 4) return false;
-        if (!press.Primary || _host.PointerOverHud()) return true;
-        if (_host.PointerTile() is not TilePos tile) return true;
+            || choice.Kind == BottomPanelChoiceKind.Spell && choice.Value == 4)
+        {
+            return false;
+        }
+
+        if (!press.Primary || _host.PointerOverHud())
+        {
+            return true;
+        }
+
+        if (_host.PointerTile() is not TilePos tile)
+        {
+            return true;
+        }
         // Without a Workshop DK2's hand places no door or trap (0x0040849F, 0x00408586).
-        if (_panel.Choice(choice)?.NeedsWorkshop == true) return true;
-        if (choice.Kind == BottomPanelChoiceKind.Door) output.Add(new PlaceDoorCommand(_viewer, tile, choice.Value));
-        else if (choice.Kind == BottomPanelChoiceKind.Trap) output.Add(new PlaceTrapCommand(_viewer, tile, choice.Value));
+        if (_panel.Choice(choice)?.NeedsWorkshop == true)
+        {
+            return true;
+        }
+
+        if (choice.Kind == BottomPanelChoiceKind.Door)
+        {
+            output.Add(new PlaceDoorCommand(_viewer, tile, choice.Value));
+        }
+        else if (choice.Kind == BottomPanelChoiceKind.Trap)
+        {
+            output.Add(new PlaceTrapCommand(_viewer, tile, choice.Value));
+        }
         else
         {
             KeeperSpellDef? spell = database.KeeperSpellById(choice.Value);
-            if (spell == null) return true;
+            if (spell == null)
+            {
+                return true;
+            }
+
             if (KeeperSpellRules.TargetsAThing(spell.TargetSelector))
             {
                 WorldHoverHit hit = _host.Hover(tile);
                 if (hit.Kind == WorldHoverKind.Creature)
+                {
                     output.Add(new CastSpellOnCreatureCommand(_viewer, choice.Value, hit.EntityId));
+                }
             }
-            else output.Add(new CastSpellAtPlaceCommand(_viewer, choice.Value,
+            else
+            {
+                output.Add(new CastSpellAtPlaceCommand(_viewer, choice.Value,
                 CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y)));
+            }
         }
         return true;
     }

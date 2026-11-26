@@ -40,7 +40,11 @@ public readonly record struct BlendedItemRect(float MinX, float MinY, float MaxX
         System.Numerics.Matrix4x4 m = viewProjection;
         float w = m.M41 * centre.X + m.M42 * centre.Y + m.M43 * centre.Z + m.M44;
         float dw = radius * Length(m.M41, m.M42, m.M43);
-        if (!(w - dw > 0f)) return Everywhere;
+        if (!(w - dw > 0f))
+        {
+            return Everywhere;
+        }
+
         float x = m.M11 * centre.X + m.M12 * centre.Y + m.M13 * centre.Z + m.M14;
         float y = m.M21 * centre.X + m.M22 * centre.Y + m.M23 * centre.Z + m.M24;
         float dx = radius * Length(m.M11, m.M12, m.M13), dy = radius * Length(m.M21, m.M22, m.M23);
@@ -132,11 +136,30 @@ public sealed class BlendedItemOrder
     /// <paramref name="runs"/> runs, so a level allocates nothing once open while it stays within them.</summary>
     public void EnsureCapacity(int entries, int draws, int runs)
     {
-        if (_entries.Length < entries) Resize(entries);
-        if (_draws.Length < draws) Array.Resize(ref _draws, draws);
-        if (_fill.Length < draws) Array.Resize(ref _fill, draws);
-        if (_segments.Capacity < draws) _segments.Capacity = draws;
-        if (_runs.Length < runs) Array.Resize(ref _runs, runs);
+        if (_entries.Length < entries)
+        {
+            Resize(entries);
+        }
+
+        if (_draws.Length < draws)
+        {
+            Array.Resize(ref _draws, draws);
+        }
+
+        if (_fill.Length < draws)
+        {
+            Array.Resize(ref _fill, draws);
+        }
+
+        if (_segments.Capacity < draws)
+        {
+            _segments.Capacity = draws;
+        }
+
+        if (_runs.Length < runs)
+        {
+            Array.Resize(ref _runs, runs);
+        }
     }
 
     /// <summary>The least gap two keys need to keep their order through the renderer's sort at
@@ -157,8 +180,15 @@ public sealed class BlendedItemOrder
     public void AddRun(float distance)
     {
         if (_runCount > 0 && !(distance < _runs[_runCount - 1]))
+        {
             throw new ArgumentException("Run keys must fall back to front.", nameof(distance));
-        if (_runCount == _runs.Length) Array.Resize(ref _runs, Math.Max(16, _runs.Length * 2));
+        }
+
+        if (_runCount == _runs.Length)
+        {
+            Array.Resize(ref _runs, Math.Max(16, _runs.Length * 2));
+        }
+
         _runs[_runCount++] = distance;
     }
 
@@ -175,8 +205,16 @@ public sealed class BlendedItemOrder
     /// counted from 0 since <see cref="ClearItems"/>.</summary>
     public int Add(int batch, float distance, BlendedItemBlend blend, in BlendedItemRect rect)
     {
-        if (batch == BarrierBatch) throw new ArgumentOutOfRangeException(nameof(batch));
-        if (_total == _entries.Length) Resize(Math.Max(64, _entries.Length * 2));
+        if (batch == BarrierBatch)
+        {
+            throw new ArgumentOutOfRangeException(nameof(batch));
+        }
+
+        if (_total == _entries.Length)
+        {
+            Resize(Math.Max(64, _entries.Length * 2));
+        }
+
         _entries[_total++] = new Entry(_count, batch, distance, blend, rect);
         return _count++;
     }
@@ -191,7 +229,11 @@ public sealed class BlendedItemOrder
     /// <see cref="ClearItems"/>.</summary>
     public void AddBarrier(float distance, in BlendedItemRect rect, BlendedItemBlend blend = BlendedItemBlend.Ordered)
     {
-        if (_total == _entries.Length) Resize(Math.Max(64, _entries.Length * 2));
+        if (_total == _entries.Length)
+        {
+            Resize(Math.Max(64, _entries.Length * 2));
+        }
+
         _entries[_total++] = new Entry(-1, BarrierBatch, distance, blend, rect);
     }
 
@@ -209,7 +251,11 @@ public sealed class BlendedItemOrder
     {
         _segments.Clear();
         _drawCount = 0;
-        if (_count == 0) return;
+        if (_count == 0)
+        {
+            return;
+        }
+
         SortBackToFront();
         int run = 0, gapStart = 0;
         for (int i = 0; i < _total; i++)
@@ -217,8 +263,16 @@ public sealed class BlendedItemOrder
             ref readonly Entry entry = ref _entries[i];
             int passed = run;
             // A run draws before an item no farther than its key; an item never moves past one.
-            while (run < _runCount && _runs[run] >= entry.Distance) run++;
-            if (run != passed) gapStart = _drawCount;
+            while (run < _runCount && _runs[run] >= entry.Distance)
+            {
+                run++;
+            }
+
+            if (run != passed)
+            {
+                gapStart = _drawCount;
+            }
+
             bool ordered = entry.Blend == BlendedItemBlend.Ordered;
             if (entry.Batch == BarrierBatch)
             {
@@ -240,7 +294,10 @@ public sealed class BlendedItemOrder
                     target = d;
                     break;
                 }
-                if ((ordered || draw.Ordered) && draw.Rect.Overlaps(entry.Rect)) break;
+                if ((ordered || draw.Ordered) && draw.Rect.Overlaps(entry.Rect))
+                {
+                    break;
+                }
             }
             if (target < 0)
             {
@@ -258,23 +315,40 @@ public sealed class BlendedItemOrder
         }
         KeyDraws();
         // Each draw's items, back to front, from its start; a barrier draws nothing here.
-        if (_fill.Length < _drawCount) Array.Resize(ref _fill, Math.Max(_drawCount, _fill.Length * 2));
+        if (_fill.Length < _drawCount)
+        {
+            Array.Resize(ref _fill, Math.Max(_drawCount, _fill.Length * 2));
+        }
+
         int start = 0;
         for (int d = 0; d < _drawCount; d++)
         {
             ref readonly Draw draw = ref _draws[d];
             _fill[d] = start;
-            if (draw.Barrier) continue;
+            if (draw.Barrier)
+            {
+                continue;
+            }
+
             _segments.Add(new BlendedItemSegment(draw.Batch, start, draw.Count, draw.Key));
             start += draw.Count;
         }
         for (int i = 0; i < _total; i++)
-            if (_segmentOf[i] >= 0) _items[_fill[_segmentOf[i]]++] = _entries[i].Index;
+        {
+            if (_segmentOf[i] >= 0)
+            {
+                _items[_fill[_segmentOf[i]]++] = _entries[i].Index;
+            }
+        }
     }
 
     private ref Draw NewDraw()
     {
-        if (_drawCount == _draws.Length) Array.Resize(ref _draws, Math.Max(32, _draws.Length * 2));
+        if (_drawCount == _draws.Length)
+        {
+            Array.Resize(ref _draws, Math.Max(32, _draws.Length * 2));
+        }
+
         return ref _draws[_drawCount++];
     }
 
@@ -291,7 +365,11 @@ public sealed class BlendedItemOrder
                 continue;
             }
             int gap = _draws[first].Gap, end = first;
-            while (end < _drawCount && _draws[end].Gap == gap && !_draws[end].Barrier) end++;
+            while (end < _drawCount && _draws[end].Gap == gap && !_draws[end].Barrier)
+            {
+                end++;
+            }
+
             float upper = first > 0 && _draws[first - 1].Gap == gap ? _draws[first - 1].Key
                 : gap > 0 ? _runs[gap - 1] : float.PositiveInfinity;
             float lower = end < _drawCount && _draws[end].Gap == gap ? _draws[end].Key
@@ -301,11 +379,19 @@ public sealed class BlendedItemOrder
             for (int d = first; d < end; d++)
             {
                 float key = Math.Min(_draws[d].First, previous - KeyGap);
-                if (!(key - lower >= KeyGap)) fits = false;
+                if (!(key - lower >= KeyGap))
+                {
+                    fits = false;
+                }
+
                 _draws[d].Key = key;
                 previous = key;
             }
-            if (!fits) Spread(first, end, float.IsPositiveInfinity(upper) ? _draws[first].First + KeyGap : upper, lower);
+            if (!fits)
+            {
+                Spread(first, end, float.IsPositiveInfinity(upper) ? _draws[first].First + KeyGap : upper, lower);
+            }
+
             first = end;
         }
     }
@@ -320,11 +406,18 @@ public sealed class BlendedItemOrder
         float gap = MinimumGap(top);
         if (step >= gap)
         {
-            for (int d = first; d < end; d++) _draws[d].Key = top - step * (d - first + 1);
+            for (int d = first; d < end; d++)
+            {
+                _draws[d].Key = top - step * (d - first + 1);
+            }
+
             return;
         }
         float floor = lower + gap < top - gap ? lower + gap : (top + lower) * 0.5f;
-        for (int d = first; d < end; d++) _draws[d].Key = Math.Max(floor, top - gap * (d - first + 1));
+        for (int d = first; d < end; d++)
+        {
+            _draws[d].Key = Math.Max(floor, top - gap * (d - first + 1));
+        }
     }
 
     // A bottom-up merge sort, farthest first: stable, so equal distances keep the order added (Array.Sort with a comparer
@@ -338,12 +431,26 @@ public sealed class BlendedItemOrder
             {
                 int middle = Math.Min(left + width, _total), right = Math.Min(left + 2 * width, _total);
                 int i = left, j = middle, k = left;
-                while (i < middle && j < right) to[k++] = from[j].Distance > from[i].Distance ? from[j++] : from[i++];
-                while (i < middle) to[k++] = from[i++];
-                while (j < right) to[k++] = from[j++];
+                while (i < middle && j < right)
+                {
+                    to[k++] = from[j].Distance > from[i].Distance ? from[j++] : from[i++];
+                }
+
+                while (i < middle)
+                {
+                    to[k++] = from[i++];
+                }
+
+                while (j < right)
+                {
+                    to[k++] = from[j++];
+                }
             }
             (from, to) = (to, from);
         }
-        if (!ReferenceEquals(from, _entries)) Array.Copy(from, _entries, _total);
+        if (!ReferenceEquals(from, _entries))
+        {
+            Array.Copy(from, _entries, _total);
+        }
     }
 }

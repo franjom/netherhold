@@ -21,7 +21,11 @@ public sealed partial class WorldView
 
     public void QueueMinimapPickupPreview(PickUpCreatureCommand command, GameTick appliesAt)
     {
-        if (command.PlayerId != _viewingPlayerId) return;
+        if (command.PlayerId != _viewingPlayerId)
+        {
+            return;
+        }
+
         _minimapPickups[command.CreatureId] = appliesAt;
         PreviewVersion++;
     }
@@ -31,8 +35,18 @@ public sealed partial class WorldView
         output.Clear();
         _settledMinimapPickups.Clear();
         foreach (KeyValuePair<int, GameTick> pending in _minimapPickups)
-            if (pending.Value <= world.CurrentTick) _settledMinimapPickups.Add(pending.Key);
-        foreach (int id in _settledMinimapPickups) _minimapPickups.Remove(id);
+        {
+            if (pending.Value <= world.CurrentTick)
+            {
+                _settledMinimapPickups.Add(pending.Key);
+            }
+        }
+
+        foreach (int id in _settledMinimapPickups)
+        {
+            _minimapPickups.Remove(id);
+        }
+
         var bounds = MinimapMapBounds.Fit(world.Width, world.Height);
         MinimapHeartTile = null;
         if (_minimapHeartWorld != world)
@@ -58,7 +72,11 @@ public sealed partial class WorldView
             for (int i = 0; i < rooms.Count; i++)
             {
                 RoomInstance room = rooms[i];
-                if (room.Definition.TypeId != RoomTypeId.GuardRoom || room.OwnerPlayerId != _viewingPlayerId) continue;
+                if (room.Definition.TypeId != RoomTypeId.GuardRoom || room.OwnerPlayerId != _viewingPlayerId)
+                {
+                    continue;
+                }
+
                 var minimum = new TilePos(Math.Clamp(room.MinX - distance, 1, world.Width - 1),
                     Math.Clamp(room.MinY - distance, 1, world.Height - 1));
                 var maximum = new TilePos(Math.Clamp(room.MaxX + distance, 1, world.Width - 1),
@@ -70,7 +88,10 @@ public sealed partial class WorldView
         for (int p = 0; p < world.PlayerCount; p++)
         {
             PlayerId owner = world.PlayerAtIndex(p).PlayerId;
-            if (owner != _viewingPlayerId) AddCreatures(owner);
+            if (owner != _viewingPlayerId)
+            {
+                AddCreatures(owner);
+            }
         }
         for (int p = 0; p < world.PlayerCount; p++)
         {
@@ -78,20 +99,36 @@ public sealed partial class WorldView
             for (int i = 0; i < world.Traps.Count; i++)
             {
                 TrapState trap = world.Traps[i];
-                if (trap.PlayerId != owner) continue;
+                if (trap.PlayerId != owner)
+                {
+                    continue;
+                }
+
                 FpPosition3 position = new(new(trap.PosX), new(trap.PosY), new(0));
                 Add(MinimapMarkerKind.Trap, position,
                     owner, trap.Hidden ? MinimapMarkerFlags.Hidden : 0);
-                if (owner != _viewingPlayerId) continue;
-                if (!_database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition)) continue;
+                if (owner != _viewingPlayerId)
+                {
+                    continue;
+                }
+
+                if (!_database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition))
+                {
+                    continue;
+                }
+
                 if (definition.ShotTypeId == 13)
                 {
                     if (MinimapMarkerRules.IsAlarmRingActive(world.CurrentTick, new(trap.RechargeAt)))
+                    {
                         output.Add(MinimapMarkerRules.AlarmRing(position, world.CurrentTick));
+                    }
                 }
                 else if ((definition.Flags & TrapRules.GuardPostBranch) != 0 && !trap.UnderConstruction)
+                {
                     output.Add(MinimapMarkerRules.ReportingRing(position,
                         ReportingDistance(VariableTypeId.GuardPostReportingDistanceTiles), bounds, world.Width));
+                }
             }
         }
         for (int p = 0; p < world.PlayerCount; p++)
@@ -100,7 +137,11 @@ public sealed partial class WorldView
             for (int i = 0; i < world.Doors.Count; i++)
             {
                 DoorState door = world.Doors[i];
-                if (door.PlayerId != owner) continue;
+                if (door.PlayerId != owner)
+                {
+                    continue;
+                }
+
                 Add(door.Orientation == 0 ? MinimapMarkerKind.VerticalDoor : MinimapMarkerKind.HorizontalDoor,
                     new(new((door.X << 12) + 0x800), new((door.Y << 12) + 0x800), new(0)), owner, 0);
             }
@@ -111,25 +152,45 @@ public sealed partial class WorldView
             for (int i = 0; i < world.Creatures.Count; i++)
             {
                 CreatureState creature = world.Creatures[i];
-                if (creature.OwnerPlayerId != owner) continue;
+                if (creature.OwnerPlayerId != owner)
+                {
+                    continue;
+                }
+
                 MinimapMarkerFlags flags = _minimapPickups.ContainsKey(creature.Id) ? MinimapMarkerFlags.PickupPending : 0;
                 if (world.HasPlayer(_viewingPlayerId) && world.Player(_viewingPlayerId).Hand.Contains(HandItem.Of(creature)))
+                {
                     flags |= MinimapMarkerFlags.InViewerHand;
+                }
+
                 FpPosition3 position = new(new(creature.PosX), new(creature.PosY), new(creature.PosZ));
                 int before = output.Count;
                 Add(MinimapMarkerKind.Creature, position, owner, flags);
                 if (output.Count != before && owner == _viewingPlayerId && creature.Possessed)
+                {
                     output.Add(MinimapMarkerRules.PossessionRing(position, world.CurrentTick));
+                }
             }
         }
 
         void Add(MinimapMarkerKind kind, FpPosition3 position, PlayerId owner, MinimapMarkerFlags flags)
         {
             var tile = new TilePos(position.X.Raw >> 12, position.Y.Raw >> 12);
-            if (!world.Contains(tile.X, tile.Y)) return;
-            if (!world.FogOfWarEnabled || world.Tile(tile).IsExploredBy(_viewingPlayerId)) flags |= MinimapMarkerFlags.Explored;
+            if (!world.Contains(tile.X, tile.Y))
+            {
+                return;
+            }
+
+            if (!world.FogOfWarEnabled || world.Tile(tile).IsExploredBy(_viewingPlayerId))
+            {
+                flags |= MinimapMarkerFlags.Explored;
+            }
+
             var facts = new MinimapMarkerFacts(kind, position, owner, flags);
-            if (MinimapMarkerRules.TryCreate(facts, _viewingPlayerId, world.CurrentTick, palette, out MinimapMarker marker)) output.Add(marker);
+            if (MinimapMarkerRules.TryCreate(facts, _viewingPlayerId, world.CurrentTick, palette, out MinimapMarker marker))
+            {
+                output.Add(marker);
+            }
         }
     }
 
@@ -141,7 +202,11 @@ public sealed partial class WorldView
     /// map.</summary>
     private void FindMinimapHeart(WorldState world, IReadOnlyList<RoomInstance>? rooms)
     {
-        if (!_minimapHeartTerrain.HasValue) return;
+        if (!_minimapHeartTerrain.HasValue)
+        {
+            return;
+        }
+
         int minX = world.Width, minY = world.Height, maxX = -1, maxY = -1;
         if (rooms is not null)
         {
@@ -149,21 +214,37 @@ public sealed partial class WorldView
             {
                 RoomInstance room = rooms[i];
                 if (room.OwnerPlayerId != _viewingPlayerId
-                    || world.TileAtIndex(room.Tiles[0]).TerrainId != _minimapHeartTerrain.Value) continue;
+                    || world.TileAtIndex(room.Tiles[0]).TerrainId != _minimapHeartTerrain.Value)
+                {
+                    continue;
+                }
+
                 minX = Math.Min(minX, room.MinX); minY = Math.Min(minY, room.MinY);
                 maxX = Math.Max(maxX, room.MaxX); maxY = Math.Max(maxY, room.MaxY);
             }
         }
         else
+        {
             for (int y = 0; y < world.Height; y++)
+            {
                 for (int x = 0; x < world.Width; x++)
                 {
                     TileState tile = world.Tile(x, y);
-                    if (tile.OwnerPlayerId != _viewingPlayerId || tile.TerrainId != _minimapHeartTerrain.Value) continue;
+                    if (tile.OwnerPlayerId != _viewingPlayerId || tile.TerrainId != _minimapHeartTerrain.Value)
+                    {
+                        continue;
+                    }
+
                     minX = Math.Min(minX, x); minY = Math.Min(minY, y);
                     maxX = Math.Max(maxX, x); maxY = Math.Max(maxY, y);
                 }
-        if (maxX >= 0) _minimapHeartTile = new((minX + maxX) / 2, (minY + maxY) / 2);
+            }
+        }
+
+        if (maxX >= 0)
+        {
+            _minimapHeartTile = new((minX + maxX) / 2, (minY + maxY) / 2);
+        }
     }
 
     private static FpPosition3 TileCentre(TilePos position) =>

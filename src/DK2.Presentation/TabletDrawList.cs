@@ -18,7 +18,13 @@ public sealed class TabletMesh
         KmfMesh mesh = model.Mesh ?? throw new ArgumentException("The tablet model has no mesh.", nameof(model));
         var points = new List<Vector3>(model.ControlPoints.Count);
         foreach (KmfControlPoint control in model.ControlPoints)
-            if (control.Vertex < model.Geometry.Count) points.Add(model.Geometry[(int)control.Vertex]);
+        {
+            if (control.Vertex < model.Geometry.Count)
+            {
+                points.Add(model.Geometry[(int)control.Vertex]);
+            }
+        }
+
         Points = points.ToArray();
         bool front = false;
         foreach (KmfPrimitive primitive in mesh.Primitives)
@@ -26,7 +32,11 @@ public sealed class TabletMesh
             IReadOnlyList<byte> indices = primitive.IndicesByDetailLevel[0];
             VertexCapacity += indices.Count / 3 * 3;
             // The front is the material with the item frames; at rest it faces the viewer. The first one counts.
-            if (front || model.Materials[(int)primitive.MaterialIndex].TextureNames.Count < 2 || indices.Count < 3) continue;
+            if (front || model.Materials[(int)primitive.MaterialIndex].TextureNames.Count < 2 || indices.Count < 3)
+            {
+                continue;
+            }
+
             Vector3 a = primitive.Vertices[indices[0]].Position, b = primitive.Vertices[indices[1]].Position,
                 c = primitive.Vertices[indices[2]].Position;
             FrontWinding = Math.Sign((b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X));
@@ -86,7 +96,11 @@ public sealed class TabletDrawList
     /// <param name="screenHeight">The screen's height in pixels, which sets the reference unit.</param>
     public void Build(RewardTablet tablet, byte itemId, float originX, float originY, int screenHeight)
     {
-        if (tablet is null) throw new ArgumentNullException(nameof(tablet));
+        if (tablet is null)
+        {
+            throw new ArgumentNullException(nameof(tablet));
+        }
+
         _vertexCount = 0; _batchCount = 0; _sparkleCount = 0;
         float unit = screenHeight / ReferenceHeight;
         float cx = originX + tablet.X * unit, cy = originY + tablet.Y * unit;
@@ -96,14 +110,22 @@ public sealed class TabletDrawList
         {
             KmfPrimitive primitive = primitives[p];
             IReadOnlyList<string> textures = Mesh.Model.Materials[(int)primitive.MaterialIndex].TextureNames;
-            if (textures.Count == 0) continue;
+            if (textures.Count == 0)
+            {
+                continue;
+            }
+
             int first = _vertexCount;
             IReadOnlyList<byte> indices = primitive.IndicesByDetailLevel[0];
             for (int i = 0; i + 2 < indices.Count; i += 3)
             {
                 KmfVertex a = primitive.Vertices[indices[i]], b = primitive.Vertices[indices[i + 1]], c = primitive.Vertices[indices[i + 2]];
                 Vector3 pa = tablet.Project(a.Position, turn), pb = tablet.Project(b.Position, turn), pc = tablet.Project(c.Position, turn);
-                if (Math.Sign((pb.X - pa.X) * (pc.Y - pa.Y) - (pb.Y - pa.Y) * (pc.X - pa.X)) != Mesh.FrontWinding) continue;
+                if (Math.Sign((pb.X - pa.X) * (pc.Y - pa.Y) - (pb.Y - pa.Y) * (pc.X - pa.X)) != Mesh.FrontWinding)
+                {
+                    continue;
+                }
+
                 Add(a, pa, cx, cy, unit);
                 Add(b, pb, cx, cy, unit);
                 Add(c, pc, cx, cy, unit);
@@ -111,9 +133,15 @@ public sealed class TabletDrawList
             _batches[_batchCount++] = new TabletBatch(textures[RewardTablet.TextureFrame(textures.Count, itemId)], first, _vertexCount - first);
         }
         ReadOnlySpan<RewardTablet.Sparkle> sparkles = tablet.Sparkles;
-        if (sparkles.Length > _sparkles.Length) _sparkles = new TabletSparkleQuad[sparkles.Length];
+        if (sparkles.Length > _sparkles.Length)
+        {
+            _sparkles = new TabletSparkleQuad[sparkles.Length];
+        }
+
         foreach (RewardTablet.Sparkle s in sparkles)
+        {
             _sparkles[_sparkleCount++] = new TabletSparkleQuad(originX + s.X * unit, originY + s.Y * unit, s.Life * unit / 2);
+        }
     }
 
     private void Add(KmfVertex vertex, Vector3 at, float cx, float cy, float unit) =>

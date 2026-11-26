@@ -75,24 +75,43 @@ public sealed class BottomPanelHud
         _art = art ?? throw new ArgumentNullException(nameof(art));
         _view = view ?? throw new ArgumentNullException(nameof(view));
         _elements = new Element[64 + 16 + 2 + 4 * 4 + SlotCount * 5 + MaxPanels * 2 + 4 + 2 + BottomPanelSparkles.Count];
-        for (int i = 0; i < _fills.Length; i++) _fills[i] = Picture("GUI\\Windows\\Panel-BG");
+        for (int i = 0; i < _fills.Length; i++)
+        {
+            _fills[i] = Picture("GUI\\Windows\\Panel-BG");
+        }
         // The tab strip's background 0x00418EE0: Bar-00 (resource +0x798) tiled across, then
         // Bar-02 (+0x16E3) and Bar-03 (+0x16FE) at the strip's top; under the tabs.
-        for (int i = 0; i < _rail.Length; i++) _rail[i] = Picture("GUI\\Windows\\Bar-00");
+        for (int i = 0; i < _rail.Length; i++)
+        {
+            _rail[i] = Picture("GUI\\Windows\\Bar-00");
+        }
+
         _railMetal = Picture("GUI\\Windows\\Bar-02");
         _railEnd = Picture("GUI\\Windows\\Bar-03");
         string[] tabs = { "t-creatures", "t-rooms", "t-spells", "t-workshop" };
-        for (int i = 0; i < 4; i++) _tabs[i] = Interactive("GUI\\Tabs\\" + tabs[i], TabAction + i);
+        for (int i = 0; i < 4; i++)
+        {
+            _tabs[i] = Interactive("GUI\\Tabs\\" + tabs[i], TabAction + i);
+        }
         // The selected tab draws its widget's alternate art (+0x40: catalogue 173/174/175/178)
         // over the icon; unselected tabs are not dimmed.
         string[] selected = { "selected-creature", "selected-room", "selected-spell", "selected-workshop" };
-        for (int i = 0; i < 4; i++) _tabSelected[i] = Picture("GUI\\Icons\\" + selected[i]);
+        for (int i = 0; i < 4; i++)
+        {
+            _tabSelected[i] = Picture("GUI\\Icons\\" + selected[i]);
+        }
         // A pinned tab draws catalogue 8, gui\icons\tab-lock, at layer 3: over the selected overlay
         // (layer 4), under the hover (layer 2) (0x00412260).
-        for (int i = 0; i < 4; i++) _tabLock[i] = Picture("GUI\\Icons\\tab-lock");
+        for (int i = 0; i < 4; i++)
+        {
+            _tabLock[i] = Picture("GUI\\Icons\\tab-lock");
+        }
         // A hovered tab gets catalogue 121, gui\icons\hilight, drawn last with render flag 8
         // (0x00412260 at 0x00412900..0x0041294F), read as additive.
-        for (int i = 0; i < 4; i++) _tabHover[i] = Picture(Hilight, HudBlend.Additive);
+        for (int i = 0; i < 4; i++)
+        {
+            _tabHover[i] = Picture(Hilight, HudBlend.Additive);
+        }
         // Order is draw order: recharge/manufacture sector (depth 0.7/0.6) over the icon, the selection
         // (layer 5) over it, the hover (layer 4) over that, and the research sector (depth 0.4) in front
         // (panel-indicators.md §5).
@@ -112,9 +131,15 @@ public sealed class BottomPanelHud
         _reaperBackground = Picture("GUI\\Spells\\reaper_talisman-00");
         _reaper = Interactive("GUI\\Spells\\reaper_talisman-01", ReaperAction);
         _reaperBlink = Picture(default);
-        for (int i = 0; i < 2; i++) _timerImages[i] = Picture(default);
+        for (int i = 0; i < 2; i++)
+        {
+            _timerImages[i] = Picture(default);
+        }
         // The flash's sparkles draw last, in front of the flashing widget (tab-alerts.md section 2).
-        for (int i = 0; i < _sparkles.Length; i++) _sparkles[i] = Picture(default, HudBlend.Additive);
+        for (int i = 0; i < _sparkles.Length; i++)
+        {
+            _sparkles[i] = Picture(default, HudBlend.Additive);
+        }
     }
 
     public event Action<BottomPanelSelection>? Selected;
@@ -156,7 +181,11 @@ public sealed class BottomPanelHud
     public void SetVisibility(HudVisibility visibility)
     {
         _visible = visibility.ShowNormalHud; _allowInput = visibility.AllowOrdinaryInput;
-        if (!_visible || !_allowInput) CancelPointerGesture();
+        if (!_visible || !_allowInput)
+        {
+            CancelPointerGesture();
+        }
+
         if (!_visible || !_allowInput) { _hovered = -1; SetDescription(""); }
     }
 
@@ -189,10 +218,21 @@ public sealed class BottomPanelHud
     private void ClickTab(BottomPanelCategory category, bool shiftOnly, bool clicked = true)
     {
         CancelPointerGesture();
-        if (clicked) GuiButton?.Invoke(GuiButtonPairs.ForTab(category));   // 0x00416C36, before any expansion
+        if (clicked)
+        {
+            GuiButton?.Invoke(GuiButtonPairs.ForTab(category));   // 0x00416C36, before any expansion
+        }
+
         bool wasOpen = _tabState.Open.Contains(category);
-        if (_tabState.Click(category, shiftOnly)) CollapsedChanged?.Invoke(false);
-        if (!wasOpen) _page[(int)category] = 0;
+        if (_tabState.Click(category, shiftOnly))
+        {
+            CollapsedChanged?.Invoke(false);
+        }
+
+        if (!wasOpen)
+        {
+            _page[(int)category] = 0;
+        }
     }
 
     /// <summary>Lays the panel out for a screen <paramref name="virtualWidth"/> units wide and writes its
@@ -200,12 +240,19 @@ public sealed class BottomPanelHud
     public void Build(float virtualWidth, long realMilliseconds, HudFrame frame)
     {
         _width = virtualWidth;
-        if (!_visible) return;
+        if (!_visible)
+        {
+            return;
+        }
+
         Layout(realMilliseconds);
         for (int i = 0; i < _count; i++)
         {
             ref Element e = ref _elements[i];
-            if (e.Show) frame.Add(new HudDraw(e.Kind, e.Image, e.Rect, e.Tint, e.Blend, e.Percent));
+            if (e.Show)
+            {
+                frame.Add(new HudDraw(e.Kind, e.Image, e.Rect, e.Tint, e.Blend, e.Percent));
+            }
         }
     }
 
@@ -219,7 +266,10 @@ public sealed class BottomPanelHud
             float left = i * fillSize;
             ref Element fill = ref _elements[_fills[i]];
             fill.Show = left < _width;
-            if (fill.Show) fill.Rect = new HudRect(left, 1600 + Drop, Math.Min(fillSize, _width - left), 300);
+            if (fill.Show)
+            {
+                fill.Rect = new HudRect(left, 1600 + Drop, Math.Min(fillSize, _width - left), 300);
+            }
         }
         // Wood tiles are U(512,88) from x 0, a quarter-tile below the strip's top (read). The
         // metal pair covers the last 480 virtual units from x 2080 (the 0x820 constant); its
@@ -230,7 +280,10 @@ public sealed class BottomPanelHud
             float left = railLeft + i * tile;
             ref Element rail = ref _elements[_rail[i]];
             rail.Show = left < metalLeft;
-            if (rail.Show) rail.Rect = new HudRect(left, 1460 + Drop + 22, Math.Min(tile, metalLeft - left), 88);
+            if (rail.Show)
+            {
+                rail.Rect = new HudRect(left, 1460 + Drop + 22, Math.Min(tile, metalLeft - left), 88);
+            }
         }
         Place(_railMetal, new HudRect(metalLeft, 1460 + Drop, 240, 128));
         Place(_railEnd, new HudRect(metalLeft + 240, 1460 + Drop, 240, 128));
@@ -250,7 +303,10 @@ public sealed class BottomPanelHud
             tabElement.Rect = tab; tabElement.Show = tabShown;
             // 0x00412579: a flashing tab draws its chime test; the tabs carry sound slots 1..4 (Rooms, Spells, Workshop, Creatures).
             if (tabShown && flash.Tab == category && _chime.Draw(flash.Dark, GamePaused))
+            {
                 _tabState.Sounds.Add(FlashChime.Request(GuiSoundSlots.OfTab(category)));
+            }
+
             tabElement.Tint = flash.Dark && flash.Tab == category ? Dark
                 : _view.TabDimmed(category) ? HudColor.Grey(128) : HudColor.White;
             // The selected overlay draws for every category whose menu is visible (0x00412890).
@@ -264,11 +320,18 @@ public sealed class BottomPanelHud
         for (int c = 0; c < 4 && _panelCount < MaxPanels; c++)
         {
             var category = (BottomPanelCategory)c;
-            if (BottomPanelLayout.PanelOf(category, open, _tabState.Pinned) is not BottomPanelRect area) continue;
+            if (BottomPanelLayout.PanelOf(category, open, _tabState.Pinned) is not BottomPanelRect area)
+            {
+                continue;
+            }
+
             _panelCategory[_panelCount] = category; _panelArea[_panelCount] = area; _panelCount++;
         }
         for (int p = 0; p < MaxPanels; p++)
+        {
             LayoutPanel(p, flash, ref sparkleOn, ref sparkleSize);
+        }
+
         LayoutSparkles(sparkleOn, sparkleSize);
         RefreshHover();
         LayoutReaper(now);
@@ -288,11 +351,19 @@ public sealed class BottomPanelHud
         if (items)
         {
             for (int i = 0; i < _view.Choices.Count; i++)
-            { BottomPanelChoice choice = _view.Choices[i]; if (choice.Visible && choice.Category == category) count++; }
+            { BottomPanelChoice choice = _view.Choices[i]; if (choice.Visible && choice.Category == category)
+                {
+                    count++;
+                }
+            }
             count += stored.Count;
         }
         BottomPanelGrid grid = items ? BottomPanelLayout.Grid(area.Width, count) : default;
-        if (items) _panelSlot[panel] = grid.SoundSlot;
+        if (items)
+        {
+            _panelSlot[panel] = grid.SoundSlot;
+        }
+
         int pageSize = Math.Min(PanelSlots, grid.PageSize), c = (int)category;
         if (items)
         {
@@ -301,15 +372,39 @@ public sealed class BottomPanelHud
             for (int choiceIndex = 0; choiceIndex < _view.Choices.Count && index < pageSize; choiceIndex++)
             {
                 BottomPanelChoice choice = _view.Choices[choiceIndex];
-                if (!choice.Visible || choice.Category != category) continue;
-                if (visible++ < skip) continue;
+                if (!choice.Visible || choice.Category != category)
+                {
+                    continue;
+                }
+
+                if (visible++ < skip)
+                {
+                    continue;
+                }
+
                 _slots[first + index++] = choice;
             }
             for (int k = 0; k < stored.Count && index < pageSize; k++)
-                if (visible++ >= skip) _slots[first + index++] = stored[k];
-            while (index < PanelSlots) _slots[first + index++] = null;
+            {
+                if (visible++ >= skip)
+                {
+                    _slots[first + index++] = stored[k];
+                }
+            }
+
+            while (index < PanelSlots)
+            {
+                _slots[first + index++] = null;
+            }
         }
-        else for (int k = 0; k < PanelSlots; k++) _slots[first + k] = null;
+        else
+        {
+            for (int k = 0; k < PanelSlots; k++)
+            {
+                _slots[first + k] = null;
+            }
+        }
+
         for (int k = 0; k < PanelSlots; k++)
         {
             int i = first + k;
@@ -331,7 +426,11 @@ public sealed class BottomPanelHud
             int progress = marks.RechargePercent ?? marks.ManufacturePercent ?? 0;
             _elements[_progress[i]].Show = progress != 0;
             _elements[_research[i]].Show = marks.ResearchPercent.HasValue;
-            if (choice == null) continue;
+            if (choice == null)
+            {
+                continue;
+            }
+
             BottomPanelRect cell = grid.Slot(area, k);
             // An upgraded spell draws its record's second icon, the gold-rimmed -2 art (panel-indicators.md §5).
             string? iconName = !choice.Unknown ? (choice.Upgraded ? _art.UpgradedIcon(choice.Key) : null) ?? _art.Icon(choice.Key)
@@ -346,7 +445,10 @@ public sealed class BottomPanelHud
             if (flashing)
             {
                 sparkleOn = cell; sparkleSize = BottomPanelSparkles.SizeFor(grid.WidgetBank);
-                if (_chime.Draw(flash.Dark, GamePaused)) _tabState.Sounds.Add(FlashChime.Request(grid.SoundSlot));
+                if (_chime.Draw(flash.Dark, GamePaused))
+                {
+                    _tabState.Sounds.Add(FlashChime.Request(grid.SoundSlot));
+                }
             }
             icon.Tint = recharging ? RechargeTint
                 : choice.NeedsWorkshop ? HudColor.Grey(128)
@@ -354,13 +456,27 @@ public sealed class BottomPanelHud
                 : flashing && flash.Dark ? Dark
                 : !choice.Selectable || choice.Affordable ? HudColor.White : HudColor.Grey(100);
             icon.Rect = cell;
-            if (hovered) hover.Rect = cell;
-            if (progress != 0) SetSector(_progress[i], cell, iconImage, HudColor.White, progress);
+            if (hovered)
+            {
+                hover.Rect = cell;
+            }
+
+            if (progress != 0)
+            {
+                SetSector(_progress[i], cell, iconImage, HudColor.White, progress);
+            }
+
             if (marks.ResearchPercent is byte studied)
             {
                 // State 2 cuts the slot's own icon: "tba" at availability 2, the real icon at 4.
-                if (marks.ResearchOnUnknown) SetSector(_research[i], cell, iconImage, ResearchUnknownTint, studied);
-                else SetSector(_research[i], cell, "GUI\\Icons\\Gold_Frame", HudColor.White, studied);
+                if (marks.ResearchOnUnknown)
+                {
+                    SetSector(_research[i], cell, iconImage, ResearchUnknownTint, studied);
+                }
+                else
+                {
+                    SetSector(_research[i], cell, "GUI\\Icons\\Gold_Frame", HudColor.White, studied);
+                }
             }
             if (choice.Selected)
             {
@@ -373,7 +489,11 @@ public sealed class BottomPanelHud
             icon.Enabled = _allowInput;
         }
         _elements[_previous[panel]].Show = _elements[_next[panel]].Show = items;
-        if (!items) return;
+        if (!items)
+        {
+            return;
+        }
+
         Place(_previous[panel], BottomPanelLayout.PreviousPage(area));
         Place(_next[panel], BottomPanelLayout.NextPage(area));
         _elements[_previous[panel]].Tint = _page[c] > 0 ? HudColor.White : HudColor.Grey(128);
@@ -421,10 +541,18 @@ public sealed class BottomPanelHud
         ref Element first = ref _elements[_timerImages[0]];
         ref Element second = ref _elements[_timerImages[1]];
         first.Show = timer; second.Show = twoDigits;
-        if (!timer) return;
+        if (!timer)
+        {
+            return;
+        }
+
         first.Image = Digit(twoDigits ? seconds!.Value / 10 : seconds!.Value);
         first.Rect = new HudRect(reaperBounds.X + (twoDigits ? 0 : 64), reaperBounds.Y + 72, 128, 128);
-        if (!twoDigits) return;
+        if (!twoDigits)
+        {
+            return;
+        }
+
         second.Image = Digit(seconds.Value % 10);
         second.Rect = new HudRect(reaperBounds.X + 128, reaperBounds.Y + 72, 128, 128);
     }
@@ -448,7 +576,11 @@ public sealed class BottomPanelHud
             int frame = _sparkleState.Frame(i);
             ref Element sparkle = ref _elements[_sparkles[i]];
             sparkle.Show = widget.HasValue;
-            if (widget is not BottomPanelRect at) continue;
+            if (widget is not BottomPanelRect at)
+            {
+                continue;
+            }
+
             sparkle.Image = SparkleFrames[frame];
             int half = size / 2;
             sparkle.Rect = new HudRect(at.X + _sparkleState.X(i) % at.Width - half, at.Y + _sparkleState.Y(i) % at.Height - half, size, size);
@@ -460,11 +592,18 @@ public sealed class BottomPanelHud
     /// <summary>The interactive element under the point, front first; -1 for none.</summary>
     public int HitAction(float x, float y)
     {
-        if (!_visible) return -1;
+        if (!_visible)
+        {
+            return -1;
+        }
+
         for (int i = _count - 1; i >= 0; i--)
         {
             ref Element e = ref _elements[i];
-            if (e.Action >= 0 && e.Show && e.Enabled && e.Rect.Contains(x, y)) return e.Action;
+            if (e.Action >= 0 && e.Show && e.Enabled && e.Rect.Contains(x, y))
+            {
+                return e.Action;
+            }
         }
         return -1;
     }
@@ -473,11 +612,23 @@ public sealed class BottomPanelHud
     public bool PointerDown(float x, float y, int button)
     {
         int action = HitAction(x, y);
-        if (action < 0 || !_allowInput || button != 0 && button != 1) return false;
+        if (action < 0 || !_allowInput || button != 0 && button != 1)
+        {
+            return false;
+        }
+
         bool slot = action < SlotCount && _slots[action] != null;
         bool roomSecondary = button == 1 && slot && _slots[action]!.Kind == BottomPanelChoiceKind.Room;
-        if (button == 1 && !roomSecondary) return false;
-        if (button == 0 && slot) _view.PressChoice(_slots[action]!.Key, _panelSlot[action / PanelSlots]);
+        if (button == 1 && !roomSecondary)
+        {
+            return false;
+        }
+
+        if (button == 0 && slot)
+        {
+            _view.PressChoice(_slots[action]!.Key, _panelSlot[action / PanelSlots]);
+        }
+
         _pressed = action; _pressedButton = button; _captured = true;
         return true;
     }
@@ -485,20 +636,46 @@ public sealed class BottomPanelHud
     /// <summary>The captured button came up: the press acts when it is released over the widget it began on.</summary>
     public bool PointerUp(float x, float y, int button, bool shift, bool ctrl, bool alt)
     {
-        if (!_captured || button != _pressedButton) return false;
+        if (!_captured || button != _pressedButton)
+        {
+            return false;
+        }
+
         int action = _pressed;
         bool secondary = _pressedButton == 1;
         bool inside = ElementOf(action) is int pressed && _elements[pressed].Rect.Contains(x, y);
         CancelPointerGesture();
-        if (!inside || !_allowInput) return true;
+        if (!inside || !_allowInput)
+        {
+            return true;
+        }
+
         if (secondary)
         {
             BottomPanelChoice? room = _slots[action];
-            if (room == null || !room.Visible) return true;
-            if (GuiButtonPairs.ForSecondary(room) is GuiButtonTarget target) GuiButton?.Invoke(target);
-            if (room.Kind == BottomPanelChoiceKind.Room) NavigateRoom?.Invoke((RoomTypeId)room.Key.Value);
-            else if (room.Kind == BottomPanelChoiceKind.Door) NavigateDoor?.Invoke(room.Key.Value);
-            else if (room.Kind == BottomPanelChoiceKind.Trap) NavigateTrap?.Invoke(room.Key.Value);
+            if (room == null || !room.Visible)
+            {
+                return true;
+            }
+
+            if (GuiButtonPairs.ForSecondary(room) is GuiButtonTarget target)
+            {
+                GuiButton?.Invoke(target);
+            }
+
+            if (room.Kind == BottomPanelChoiceKind.Room)
+            {
+                NavigateRoom?.Invoke((RoomTypeId)room.Key.Value);
+            }
+            else if (room.Kind == BottomPanelChoiceKind.Door)
+            {
+                NavigateDoor?.Invoke(room.Key.Value);
+            }
+            else if (room.Kind == BottomPanelChoiceKind.Trap)
+            {
+                NavigateTrap?.Invoke(room.Key.Value);
+            }
+
             return true;
         }
         if (action == ResizeAction)
@@ -511,15 +688,31 @@ public sealed class BottomPanelHud
         }
         else if (action == ReaperAction)
         {
-            if (_view.Reaper != null && _view.Select(_view.Reaper.Key)) Selected?.Invoke(_view.Selection);
+            if (_view.Reaper != null && _view.Select(_view.Reaper.Key))
+            {
+                Selected?.Invoke(_view.Selection);
+            }
         }
         // 0x00416C20 pins with the modifier mask 0x005B2A50 == 1: Shift without Ctrl or Alt.
-        else if (action >= TabAction && action < TabAction + 4) ClickTab((BottomPanelCategory)(action - TabAction), shift && !ctrl && !alt);
-        else if (action >= PageAction && action < PageAction + 2 * MaxPanels) Page((action - PageAction) / 2, (action & 1) == 0 ? -1 : 1);
-        else if (_slots[action] is { Kind: BottomPanelChoiceKind.Special } special) SpecialChosen?.Invoke(special);
+        else if (action >= TabAction && action < TabAction + 4)
+        {
+            ClickTab((BottomPanelCategory)(action - TabAction), shift && !ctrl && !alt);
+        }
+        else if (action >= PageAction && action < PageAction + 2 * MaxPanels)
+        {
+            Page((action - PageAction) / 2, (action & 1) == 0 ? -1 : 1);
+        }
+        else if (_slots[action] is { Kind: BottomPanelChoiceKind.Special } special)
+        {
+            SpecialChosen?.Invoke(special);
+        }
         else if (_slots[action] is BottomPanelChoice choice && _view.Select(choice.Key))
         {
-            if (GuiButtonPairs.ForSelection(choice) is GuiButtonTarget selected) GuiButton?.Invoke(selected);
+            if (GuiButtonPairs.ForSelection(choice) is GuiButtonTarget selected)
+            {
+                GuiButton?.Invoke(selected);
+            }
+
             Selected?.Invoke(_view.Selection);
         }
         return true;
@@ -529,33 +722,64 @@ public sealed class BottomPanelHud
     public void PointerMove(float x, float y)
     {
         _pointerX = x; _pointerY = y; _pointerKnown = true;
-        if (_captured) return;
+        if (_captured)
+        {
+            return;
+        }
+
         int action = HitAction(x, y);
-        if (action == _hovered) return;
-        if (_hovered >= 0) Leave();
-        if (action >= 0) Enter(action);
+        if (action == _hovered)
+        {
+            return;
+        }
+
+        if (_hovered >= 0)
+        {
+            Leave();
+        }
+
+        if (action >= 0)
+        {
+            Enter(action);
+        }
     }
 
     /// <summary>The pointer left every interactive element.</summary>
     public void PointerLeave()
     {
         _pointerKnown = false;
-        if (!_captured && _hovered >= 0) Leave();
+        if (!_captured && _hovered >= 0)
+        {
+            Leave();
+        }
     }
 
     /// <summary>Hover again at the last pointer position after the layout moved under a still pointer
     /// (the Resize button dropping, a page turning), as retained UI re-picks after a layout change.</summary>
     public void Repick()
     {
-        if (_pointerKnown) PointerMove(_pointerX, _pointerY);
+        if (_pointerKnown)
+        {
+            PointerMove(_pointerX, _pointerY);
+        }
     }
 
     /// <summary>The wheel pages the panel under the pointer (ours; DK2's wheel paging is unread).</summary>
     public bool Wheel(float x, float y, float deltaY)
     {
-        if (HitAction(x, y) < 0 || !_allowInput || Collapsed || !Bounds.Contains(x, y)) return false;
+        if (HitAction(x, y) < 0 || !_allowInput || Collapsed || !Bounds.Contains(x, y))
+        {
+            return false;
+        }
+
         for (int p = 0; p < _panelCount; p++)
-            if (((HudRect)_panelArea[p]).Contains(x, y)) Page(p, deltaY > 0 ? 1 : -1);
+        {
+            if (((HudRect)_panelArea[p]).Contains(x, y))
+            {
+                Page(p, deltaY > 0 ? 1 : -1);
+            }
+        }
+
         return true;
     }
 
@@ -563,11 +787,21 @@ public sealed class BottomPanelHud
     {
         _hovered = action; _hoverChoice = null;
         if (action >= TabAction && action < TabAction + 4)
+        {
             _widgetHover = HudWidgetText.Hover(HudWidgetText.Tab((BottomPanelCategory)(action - TabAction)), _art.Text);
-        else if (action == ResizeAction) _widgetHover = HudWidgetText.Hover(HudWidgetText.ResizePanel, _art.Text);
+        }
+        else if (action == ResizeAction)
+        {
+            _widgetHover = HudWidgetText.Hover(HudWidgetText.ResizePanel, _art.Text);
+        }
         else if (action == ReaperAction)
+        {
             SetDescription(_art.Text(_view.Reaper?.Selectable != true ? 0x8C4u : _view.ReaperOneShotReady ? 0x8BFu : 0x8BEu));
-        else RefreshHover();
+        }
+        else
+        {
+            RefreshHover();
+        }
     }
 
     private void Leave()
@@ -577,7 +811,11 @@ public sealed class BottomPanelHud
 
     private void Page(int panel, int step)
     {
-        if (panel >= _panelCount || _panelCategory[panel] == BottomPanelCategory.Creatures) return;
+        if (panel >= _panelCount || _panelCategory[panel] == BottomPanelCategory.Creatures)
+        {
+            return;
+        }
+
         int c = (int)_panelCategory[panel];
         _page[c] = Math.Min(Math.Max(_page[c] + step, 0), _pages[c] - 1);
     }
@@ -586,10 +824,18 @@ public sealed class BottomPanelHud
 
     private void RefreshHover()
     {
-        if (_hovered < 0 || _hovered >= SlotCount) return;
+        if (_hovered < 0 || _hovered >= SlotCount)
+        {
+            return;
+        }
+
         BottomPanelChoice? choice = _slots[_hovered];
         if (choice == null) { _hoverChoice = null; SetDescription(""); return; }
-        if (_hoverChoice == choice && _hoverCost == choice.Cost && _hoverUnknown == choice.Unknown) return;
+        if (_hoverChoice == choice && _hoverCost == choice.Cost && _hoverUnknown == choice.Unknown)
+        {
+            return;
+        }
+
         _hoverChoice = choice; _hoverCost = choice.Cost; _hoverUnknown = choice.Unknown;
         // Interface_FormatCostPopup (0x0042EA70): a stored special shows its plain name.
         SetDescription(choice.Unknown ? "?" : choice.Kind == BottomPanelChoiceKind.Special ? choice.Name

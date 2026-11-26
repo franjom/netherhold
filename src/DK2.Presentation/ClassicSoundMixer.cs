@@ -104,8 +104,15 @@ public sealed class ClassicSoundMixer : IDisposable
         SoundMaps maps = _assets.Maps(category);
         SoundGroup? group = null;
         foreach (SoundGroup candidate in maps.Effects.Groups)
+        {
             if (candidate.Id == groupId) { group = candidate; break; }
-        if (group == null) return null;
+        }
+
+        if (group == null)
+        {
+            return null;
+        }
+
         var samples = new PcmAudioQueue(StreamRate);
         return new LinkedChannel(_output.CreateStream(role, samples), samples, new MusicSegmentPicker(group, _random.Next),
             new SoundResolver(maps.Banks, maps.Effects));
@@ -113,8 +120,15 @@ public sealed class ClassicSoundMixer : IDisposable
 
     public void UpdateMusic(MusicFrame frame)
     {
-        if (_music != null) Fill(_music, frame.MusicIntensity);
-        if (_ambience != null) Fill(_ambience, frame.AmbienceIntensity);
+        if (_music != null)
+        {
+            Fill(_music, frame.MusicIntensity);
+        }
+
+        if (_ambience != null)
+        {
+            Fill(_ambience, frame.AmbienceIntensity);
+        }
     }
 
     /// <summary>The next segment is picked when a second of audio is left; its decode (up to 270 ms for a minute-long segment)
@@ -125,30 +139,60 @@ public sealed class ClassicSoundMixer : IDisposable
         channel.Picker.SetIntensity(intensity);
         if (channel.Decoding is ResolvedSound decoding)
         {
-            if (!_decoder.TryGet(decoding, out PcmClip? decoded)) return;
+            if (!_decoder.TryGet(decoding, out PcmClip? decoded))
+            {
+                return;
+            }
+
             channel.Decoding = null;
-            if (decoded != null) channel.Samples.Enqueue(decoded, channel.DecodingGain);
+            if (decoded != null)
+            {
+                channel.Samples.Enqueue(decoded, channel.DecodingGain);
+            }
+
             return;
         }
-        if (channel.Samples.RemainingFrames > StreamRate) return;
+        if (channel.Samples.RemainingFrames > StreamRate)
+        {
+            return;
+        }
+
         SoundItem? item = channel.Picker.Pick();
-        if (item == null) return;
+        if (item == null)
+        {
+            return;
+        }
+
         ResolvedSound? reference = channel.Resolver.ResolveItem(item, _random);
-        if (!reference.HasValue) return;
+        if (!reference.HasValue)
+        {
+            return;
+        }
+
         float gain = item.Unknown0x08.Length >= 5 ? item.Unknown0x08[4] / 100f : 1;
         if (!_decoder.TryGet(reference.Value, out PcmClip? clip)) { channel.Decoding = reference; channel.DecodingGain = gain; return; }
-        if (clip != null) channel.Samples.Enqueue(clip, gain);
+        if (clip != null)
+        {
+            channel.Samples.Enqueue(clip, gain);
+        }
     }
 
     public void QueueSpeech(SoundCategory category, SoundId id, bool clearWaiting = false, bool subtitle = false)
     {
-        if (clearWaiting) _speechQueue.ClearWaiting();
+        if (clearWaiting)
+        {
+            _speechQueue.ClearWaiting();
+        }
+
         if (_speechOn && _speechQueue.Enqueue(new SoundRequest(category, id, Subtitle: subtitle)))
         {
             // The line's clips start decoding now, while it waits its turn (at least a second after the line before), so a
             // queued line plays on time. The variant is still drawn when it plays.
             Resolver(category).SamplesOf(id, _warm);
-            for (int i = 0; i < _warm.Count; i++) _decoder.TryGet(_warm[i], out _);
+            for (int i = 0; i < _warm.Count; i++)
+            {
+                _decoder.TryGet(_warm[i], out _);
+            }
         }
     }
 
@@ -156,7 +200,11 @@ public sealed class ClassicSoundMixer : IDisposable
     public void QueueSpeech(SoundRequests requests)
     {
         IReadOnlyList<SoundRequest> pending = requests.Pending;
-        for (int i = 0; i < pending.Count; i++) QueueSpeech(pending[i].Category, pending[i].Id, subtitle: pending[i].Subtitle);
+        for (int i = 0; i < pending.Count; i++)
+        {
+            QueueSpeech(pending[i].Category, pending[i].Id, subtitle: pending[i].Subtitle);
+        }
+
         requests.Clear();
     }
 
@@ -177,7 +225,11 @@ public sealed class ClassicSoundMixer : IDisposable
         SoundRequest? next = _speechDecoding ?? _speechQueue.Update(nowMilliseconds, _speech.Engine.IsPlaying);
         _speechDecoding = null;
         ResolvedSound? reference = null;
-        if (next.HasValue) reference = _speechReference ?? Resolver(next.Value.Category).Resolve(next.Value.Id, _random);
+        if (next.HasValue)
+        {
+            reference = _speechReference ?? Resolver(next.Value.Category).Resolve(next.Value.Id, _random);
+        }
+
         _speechReference = null;
         if (reference.HasValue)
         {
@@ -195,7 +247,11 @@ public sealed class ClassicSoundMixer : IDisposable
             }
         }
         bool speaking = _speech.Engine.IsPlaying;
-        if (speaking == _ducked) return;
+        if (speaking == _ducked)
+        {
+            return;
+        }
+
         _ducked = speaking;
         ApplyVolumes();
     }
@@ -207,7 +263,11 @@ public sealed class ClassicSoundMixer : IDisposable
         _speechVolume = Clamp01(speech / 100f);
         _musicPercent = Math.Min(Math.Max(music, 0), 100);
         _effectPercent = Math.Min(Math.Max(effects, 0), 100);
-        if (!speechOn && _speechOn) StopSpeech(Now);
+        if (!speechOn && _speechOn)
+        {
+            StopSpeech(Now);
+        }
+
         _speechOn = speechOn;
         _musicOn = musicOn;
         _effectsOn = effectsOn;
@@ -218,7 +278,11 @@ public sealed class ClassicSoundMixer : IDisposable
 
     private void ApplyVolumes()
     {
-        for (int i = 0; i < _effects.Count; i++) _effects[i].SetVolume(EffectGain(_effects[i]));
+        for (int i = 0; i < _effects.Count; i++)
+        {
+            _effects[i].SetVolume(EffectGain(_effects[i]));
+        }
+
         _speech.SetVolume(_speechOn ? _master * _speechVolume : 0);
         _music?.Stream.SetVolume(_musicOn ? _master * MusicVolume : 0);
         _ambience?.Stream.SetVolume(_effectsOn ? _master * EffectVolume : 0);
@@ -230,7 +294,11 @@ public sealed class ClassicSoundMixer : IDisposable
     public void Play(SoundRequests requests)
     {
         IReadOnlyList<SoundRequest> pending = requests.Pending;
-        for (int i = 0; i < pending.Count; i++) Play(pending[i]);
+        for (int i = 0; i < pending.Count; i++)
+        {
+            Play(pending[i]);
+        }
+
         requests.Clear();
     }
 
@@ -245,26 +313,51 @@ public sealed class ClassicSoundMixer : IDisposable
             if (stopped != null) { stopped.Engine.Stop(); stopped.FollowAnchor = null; }
             return;
         }
-        if (!_effectsOn || request.Category.IsNone) return;
+        if (!_effectsOn || request.Category.IsNone)
+        {
+            return;
+        }
         // The same sound already waiting on its voice is that request still on its way, not a new one (the ambient pass asks
         // each frame until its bed plays).
-        if (request.Voice != SoundVoiceId.None && IsDecoding(request.Voice, request.Id)) return;
-        if (!_throttle.Admit(request.Id)) return;
+        if (request.Voice != SoundVoiceId.None && IsDecoding(request.Voice, request.Id))
+        {
+            return;
+        }
+
+        if (!_throttle.Admit(request.Id))
+        {
+            return;
+        }
+
         SoundResolver resolver = Resolver(request.Category);
         SoundPriority? priority = resolver.PriorityOf(request.Id);
-        if (!priority.HasValue || _voices.CanRetain(request.Voice, priority.Value, s_playing)) return;
+        if (!priority.HasValue || _voices.CanRetain(request.Voice, priority.Value, s_playing))
+        {
+            return;
+        }
         // A sound waiting for its decode holds its voice as a playing one would.
         if (request.Voice != SoundVoiceId.None && DecodingPriority(request.Voice) is SoundPriority waiting
-            && waiting.Value >= priority.Value.Value) return;
+            && waiting.Value >= priority.Value.Value)
+        {
+            return;
+        }
+
         ResolvedSound? reference = resolver.Resolve(request.Id, _random);
-        if (!reference.HasValue) return;
+        if (!reference.HasValue)
+        {
+            return;
+        }
+
         if (!_decoder.TryGet(reference.Value, out PcmClip? clip))
         {
             DropDecoding(request.Voice);
             _decoding.Add(new DecodingSound(request, reference.Value, priority.Value, unchecked((uint)Now)));
             return;
         }
-        if (clip != null) Start(request, reference.Value, clip, resolver, priority.Value);
+        if (clip != null)
+        {
+            Start(request, reference.Value, clip, resolver, priority.Value);
+        }
     }
 
     /// <summary>A sound whose clip was not decoded when it was asked for: it plays when the decode is done
@@ -281,22 +374,43 @@ public sealed class ClassicSoundMixer : IDisposable
     private bool IsDecoding(SoundVoiceId voice, SoundId id)
     {
         for (int i = 0; i < _decoding.Count; i++)
-            if (_decoding[i].Request.Voice == voice && _decoding[i].Request.Id == id) return true;
+        {
+            if (_decoding[i].Request.Voice == voice && _decoding[i].Request.Id == id)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
     private SoundPriority? DecodingPriority(SoundVoiceId voice)
     {
         for (int i = 0; i < _decoding.Count; i++)
-            if (_decoding[i].Request.Voice == voice) return _decoding[i].Priority;
+        {
+            if (_decoding[i].Request.Voice == voice)
+            {
+                return _decoding[i].Priority;
+            }
+        }
+
         return null;
     }
 
     private void DropDecoding(SoundVoiceId voice)
     {
-        if (voice == SoundVoiceId.None) return;
+        if (voice == SoundVoiceId.None)
+        {
+            return;
+        }
+
         for (int i = _decoding.Count - 1; i >= 0; i--)
-            if (_decoding[i].Request.Voice == voice) _decoding.RemoveAt(i);
+        {
+            if (_decoding[i].Request.Voice == voice)
+            {
+                _decoding.RemoveAt(i);
+            }
+        }
     }
 
     /// <summary>Once a frame, before the frame's own requests: starts the sounds whose clips have finished decoding, and
@@ -305,18 +419,32 @@ public sealed class ClassicSoundMixer : IDisposable
     public void PlayDecoded(long nowMilliseconds)
     {
         Now = nowMilliseconds;
-        while (_decoder.TryTakeFailure(out string failure)) _output.Warn("sound clip could not be decoded - " + failure);
-        if (_decoding.Count == 0) return;
+        while (_decoder.TryTakeFailure(out string failure))
+        {
+            _output.Warn("sound clip could not be decoded - " + failure);
+        }
+
+        if (_decoding.Count == 0)
+        {
+            return;
+        }
+
         uint now = unchecked((uint)nowMilliseconds);
         for (int i = 0; i < _decoding.Count; i++)
         {
             DecodingSound waiting = _decoding[i];
             bool ready = _decoder.TryGet(waiting.Reference, out PcmClip? clip);
             bool late = now - waiting.Since > MaxDecodeWaitMs;
-            if (!ready && !late) continue;
+            if (!ready && !late)
+            {
+                continue;
+            }
+
             _decoding.RemoveAt(i--);
             if (ready && !late && clip != null && _effectsOn)
+            {
                 Start(waiting.Request, waiting.Reference, clip, Resolver(waiting.Request.Category), waiting.Priority);
+            }
         }
     }
 
@@ -377,7 +505,13 @@ public sealed class ClassicSoundMixer : IDisposable
     private Source? IdleEffect()
     {
         for (int i = 0; i < _effects.Count; i++)
-            if (!_effects[i].Engine.IsPlaying) return _effects[i];
+        {
+            if (!_effects[i].Engine.IsPlaying)
+            {
+                return _effects[i];
+            }
+        }
+
         return null;
     }
 
@@ -416,21 +550,29 @@ public sealed class ClassicSoundMixer : IDisposable
             AmbienceGrid.Emitter emitter = emitters[i];
             _terrainBedsWanted.Add(emitter.Category);
             if (!_terrainBeds.TryGetValue(emitter.Category, out SoundVoiceId voice))
+            {
                 _terrainBeds[emitter.Category] = voice = new SoundVoiceId(0x80000000u | (0x7Eu << 24) | (uint)_terrainBeds.Count);
+            }
+
             if (_voices.TryGet(voice, out _, out Source? source) && source != null && source.Engine.IsPlaying)
             {
                 source.Flat = new Vector2(emitter.Position.X, emitter.Position.Z);
                 Place(source);
                 source.SetVolume(EffectGain(source));
             }
-            else Play(new SoundRequest(Category(emitter.Category), new SoundId(0x2EA), emitter.Position, voice));
+            else
+            {
+                Play(new SoundRequest(Category(emitter.Category), new SoundId(0x2EA), emitter.Position, voice));
+            }
         }
         foreach (KeyValuePair<string, SoundVoiceId> entry in _terrainBeds)
+        {
             if (!_terrainBedsWanted.Contains(entry.Key))
             {
                 DropDecoding(entry.Value);
                 _voices.Release(entry.Value)?.Engine.Stop();
             }
+        }
     }
 
     /// <summary>DK2 replays a playing handle at its thing's position on each update of the thing (slot +0x30, which returns 0
@@ -443,22 +585,40 @@ public sealed class ClassicSoundMixer : IDisposable
         for (int i = 0; i < _live.Count; i++)
         {
             SoundVoiceId voice = _live[i];
-            if (!_voices.TryGet(voice, out _, out Source? source) || source == null) continue;
-            if (source.FollowAnchor is Vector3 anchor) source.AnchorGain = AnchoredVolume.Of(anchor, ListenerFocus);
+            if (!_voices.TryGet(voice, out _, out Source? source) || source == null)
+            {
+                continue;
+            }
+
+            if (source.FollowAnchor is Vector3 anchor)
+            {
+                source.AnchorGain = AnchoredVolume.Of(anchor, ListenerFocus);
+            }
+
             VoiceLocator.Fate fate = VoiceLocator.Locate(world, voice, out float x, out _, out float z);
             if (fate == VoiceLocator.Fate.Gone)
             {
-                if (!source.Loop) continue;
+                if (!source.Loop)
+                {
+                    continue;
+                }
+
                 source.Engine.Stop();
                 _voices.Release(voice);
             }
             else if (fate == VoiceLocator.Fate.Moves && source.Engine.IsPlaying)
+            {
                 source.Flat = new Vector2(x, z);
+            }
         }
         for (int i = 0; i < _effects.Count; i++)
         {
             Source source = _effects[i];
-            if (!source.Engine.IsPlaying) continue;
+            if (!source.Engine.IsPlaying)
+            {
+                continue;
+            }
+
             Place(source);
             source.SetVolume(EffectGain(source));
         }
@@ -477,7 +637,11 @@ public sealed class ClassicSoundMixer : IDisposable
 
     public void Dispose()
     {
-        for (int i = 0; i < _effects.Count; i++) _effects[i].Engine.Stop();
+        for (int i = 0; i < _effects.Count; i++)
+        {
+            _effects[i].Engine.Stop();
+        }
+
         _speech.Engine.Stop();
         _music?.Stream.Dispose();
         _ambience?.Stream.Dispose();
@@ -502,14 +666,22 @@ public sealed class ClassicSoundMixer : IDisposable
 
         public void SetVolume(float volume)
         {
-            if (volume == _volume) return;
+            if (volume == _volume)
+            {
+                return;
+            }
+
             _volume = volume;
             Engine.SetVolume(volume);
         }
 
         public void PlaceEngine(Vector2? offset)
         {
-            if (_placed && offset == _offset) return;
+            if (_placed && offset == _offset)
+            {
+                return;
+            }
+
             _placed = true;
             _offset = offset;
             Engine.Place(offset);

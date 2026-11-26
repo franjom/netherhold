@@ -32,7 +32,10 @@ public sealed record SessionContext(string LevelName, GameSessionMode Mode, Fron
     {
         GameSessionRequest? request = resumed ?? launched;
         if (request is not null)
+        {
             return new SessionContext(request.LevelName, request.Mode, request.ReturnPage) { ImportedTerrain = request.ImportedTerrain };
+        }
+
         string level = levelArgument ?? "Level1";
         return new SessionContext(level, GameSessionMode.Campaign,
             fromMap ? GameSessionRequest.Campaign(level).ReturnPage : FrontEndPage.None);
@@ -55,19 +58,35 @@ public sealed record SessionContext(string LevelName, GameSessionMode Mode, Fron
     /// Nothing happens while <paramref name="carry"/> equals <see cref="CarryApplied"/>.</summary>
     public void ApplyCarry(CampaignProfileStore profiles, CampaignCarry carry)
     {
-        if (profiles is null) throw new ArgumentNullException(nameof(profiles));
+        if (profiles is null)
+        {
+            throw new ArgumentNullException(nameof(profiles));
+        }
+
         CampaignCarry applied = CarryApplied;
         if (carry.HiddenLandFound == applied.HiddenLandFound && carry.TransferStored == applied.TransferStored
             && carry.TransferCreatureTypeId == applied.TransferCreatureTypeId
-            && carry.TransferCreatureLevel == applied.TransferCreatureLevel) return;
+            && carry.TransferCreatureLevel == applied.TransferCreatureLevel)
+        {
+            return;
+        }
+
         for (int i = applied.HiddenLandFound; i < carry.HiddenLandFound; i++)
+        {
             if (profiles.Profile!.LevelNumber is >= 1 and <= 30)
+            {
                 profiles.Profile = CampaignProgression.LocateHiddenLand(profiles.Profile, new CampaignSlot(profiles.Profile.LevelNumber));
+            }
+        }
+
         if (carry.TransferStored)
+        {
             profiles.Profile = profiles.Profile! with
             {
                 TransferCreatureId = carry.TransferCreatureTypeId, TransferCreatureLevel = carry.TransferCreatureLevel,
             };
+        }
+
         CarryApplied = carry;
         profiles.Save();
     }

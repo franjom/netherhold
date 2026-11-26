@@ -91,9 +91,16 @@ public static class HoverPickRules
             case WorldHoverKind.Trap: return Resolves(hit.Kind, world.TrapById(hit.EntityId)?.PlayerId, viewer);
             case WorldHoverKind.Object:
                 if (world.ObjectById(hit.EntityId) is { } thing)
+                {
                     return (uint)thing.TileIndex < (uint)world.Tiles.Length
                         && ResolvesObject(thing.OwnerPlayerId, world.TileAtIndex(thing.TileIndex).OwnerPlayerId, viewer);
-                if (!WorldView.IsStorePile(hit.EntityId) || !world.Contains(hit.Tile)) return false;
+                }
+
+                if (!WorldView.IsStorePile(hit.EntityId) || !world.Contains(hit.Tile))
+                {
+                    return false;
+                }
+
                 byte roomOwner = world.Tile(hit.Tile).OwnerPlayerId;
                 return ResolvesObject(roomOwner, roomOwner, viewer);
             default: return true;

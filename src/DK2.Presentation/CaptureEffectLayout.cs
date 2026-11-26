@@ -20,9 +20,17 @@ public static class CaptureEffectLayout
 
     public static CaptureEdges Boundary(WorldState world, GameDatabase database, ViewEffectRequest request)
     {
-        if (request.EffectId.Value != RoomEffectId || !world.Contains(request.Tile)) return CaptureEdges.All;
+        if (request.EffectId.Value != RoomEffectId || !world.Contains(request.Tile))
+        {
+            return CaptureEdges.All;
+        }
+
         RoomDef? room = database.RoomByTerrain(world.Tile(request.Tile).TerrainId);
-        if (room == null) return CaptureEdges.All;
+        if (room == null)
+        {
+            return CaptureEdges.All;
+        }
+
         PlayerId owner = new(world.Tile(request.Tile).OwnerPlayerId);
         CaptureEdges edges = CaptureEdges.None;
         Check(new(request.Tile.X - 1, request.Tile.Y), CaptureEdges.West);
@@ -35,7 +43,10 @@ public static class CaptureEffectLayout
         {
             if (!world.Contains(neighbour)
                 || database.RoomByTerrain(world.Tile(neighbour).TerrainId)?.TypeId != room.TypeId
-                || world.Tile(neighbour).OwnerPlayerId != owner.Value) edges |= edge;
+                || world.Tile(neighbour).OwnerPlayerId != owner.Value)
+            {
+                edges |= edge;
+            }
         }
     }
 }

@@ -28,8 +28,16 @@ public sealed class SoundClipDecoder
     /// while it is not, after starting its decode on a worker. Allocation-free once the clip is decoded.</summary>
     public bool TryGet(ResolvedSound reference, out PcmClip? clip)
     {
-        if (_ready.TryGetValue(reference, out clip)) return true;
-        if (_decoding.TryAdd(reference, 0)) StartDecode(reference);
+        if (_ready.TryGetValue(reference, out clip))
+        {
+            return true;
+        }
+
+        if (_decoding.TryAdd(reference, 0))
+        {
+            StartDecode(reference);
+        }
+
         return false;
     }
 
@@ -59,7 +67,13 @@ public sealed class SoundClipDecoder
         }
         var todo = new List<ResolvedSound>(samples.Count);
         foreach (ResolvedSound reference in samples)
-            if (!_ready.ContainsKey(reference) && _decoding.TryAdd(reference, 0)) todo.Add(reference);
+        {
+            if (!_ready.ContainsKey(reference) && _decoding.TryAdd(reference, 0))
+            {
+                todo.Add(reference);
+            }
+        }
+
         Parallel.ForEach(todo, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, workers) }, Decode);
     });
 
@@ -68,17 +82,35 @@ public sealed class SoundClipDecoder
     public Task Prefetch(IReadOnlyList<ResolvedSound> references) => Task.Run(() =>
     {
         foreach (ResolvedSound reference in references)
-            if (!_ready.ContainsKey(reference) && _decoding.TryAdd(reference, 0)) Decode(reference);
+        {
+            if (!_ready.ContainsKey(reference) && _decoding.TryAdd(reference, 0))
+            {
+                Decode(reference);
+            }
+        }
     });
 
     private void SamplesOf(SoundCategory category, HashSet<ResolvedSound> into)
     {
-        if (category.IsNone) return;
+        if (category.IsNone)
+        {
+            return;
+        }
+
         SoundMaps maps = _assets.Maps(category);
         foreach (SoundGroup group in maps.Effects.Groups)
+        {
             foreach (SoundItem item in group.Items)
+            {
                 foreach (SoundSample sample in item.Sounds)
-                    if (SoundResolver.Locate(maps.Banks, sample) is ResolvedSound found) into.Add(found);
+                {
+                    if (SoundResolver.Locate(maps.Banks, sample) is ResolvedSound found)
+                    {
+                        into.Add(found);
+                    }
+                }
+            }
+        }
     }
 
     private void Decode(ResolvedSound reference)
@@ -95,7 +127,11 @@ public sealed class SoundClipDecoder
             // A worker has no caller to throw to; the clip is kept as silence so it is not decoded again.
             _failures.Enqueue($"{reference.Archive}:{reference.Entry.Value}: {error.Message}");
         }
-        if (clip != null) Interlocked.Add(ref _decodedSamples, clip.Samples.Length);
+        if (clip != null)
+        {
+            Interlocked.Add(ref _decodedSamples, clip.Samples.Length);
+        }
+
         _ready[reference] = clip;
         _decoding.TryRemove(reference, out _);
     }

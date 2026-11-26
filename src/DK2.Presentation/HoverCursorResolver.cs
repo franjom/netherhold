@@ -67,7 +67,11 @@ public sealed class HoverCursorResolver
     /// <summary>The hover of an unexplored tile, under fog: the bare tile, which the adapter returns without picking; else null.</summary>
     public static WorldHoverHit? FogHit(WorldState world, PlayerId viewer, TilePos tile)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         return world.FogOfWarEnabled && !world.Tile(tile).IsExploredBy(viewer) ? new WorldHoverHit(WorldHoverKind.Tile, tile) : null;
     }
 
@@ -82,11 +86,19 @@ public sealed class HoverCursorResolver
     /// pointer's hit on the tile's top plane (TileHeights), or the tile's centre when that misses.</summary>
     public static bool TryHandLightPoint(WorldState world, in WorldHoverHit hit, out Vector2 point)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState creature)
+        {
             point = new Vector2(creature.PosX / (float)Fp32.One, creature.PosY / (float)Fp32.One);
+        }
         else if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is ObjectState thing)
+        {
             point = new Vector2(thing.PosX / (float)Fp32.One, thing.PosY / (float)Fp32.One);
+        }
         // A store pile stands for DK2's Gold Pile 1, a real thing there: its point, the tile centre
         // (WorldView.StorePiles places it with no offset).
         else if (hit.Kind == WorldHoverKind.Object && WorldView.IsStorePile(hit.EntityId))
@@ -95,7 +107,9 @@ public sealed class HoverCursorResolver
             point = new Vector2(pile % world.Width + .5f, pile / world.Width + .5f);
         }
         else if (hit.Kind == WorldHoverKind.Door || hit.Kind == WorldHoverKind.Trap)
+        {
             point = new Vector2(hit.Tile.X + .5f, hit.Tile.Y + .5f);
+        }
         else { point = default; return false; }
         return true;
     }
@@ -106,7 +120,11 @@ public sealed class HoverCursorResolver
     public static ClassicPointLight? HandLight(WorldState world, PlayerId viewer, in WorldHoverHit hit, Vector2 point,
         bool cheapLighting)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         bool explored = !world.FogOfWarEnabled || world.Tile(hit.Tile).IsExploredBy(viewer);
         return ClassicPointLight.FromHand(point.X, point.Y, hit.Kind != WorldHoverKind.Tile, explored, world.Width, world.Height,
             cheapLighting);
@@ -116,15 +134,26 @@ public sealed class HoverCursorResolver
     /// click runs the cursor's own permission tests and posts only a permitted cast; ours posts it and only skips the hand.</summary>
     public void CastPosted(PlayerCommand command, long milliseconds)
     {
-        if (!SpellRefused && HudToolState.CastSpellId(command) is byte cast) _spellCast.Play(cast, milliseconds);
+        if (!SpellRefused && HudToolState.CastSpellId(command) is byte cast)
+        {
+            _spellCast.Play(cast, milliseconds);
+        }
     }
 
     /// <summary>This frame's feedback. Advances the hand's transients (<see cref="HandCursorFeedback.Resolve"/> or
     /// <see cref="HandCursorFeedback.Advance"/>), whose sounds the host then plays or clears, and the cast hand.</summary>
     public HoverFeedback Resolve(WorldState world, GameDatabase database, INavByteGrid navigation, in HoverCursorInput frame)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
         PlayerToolMode active = _tools.ActiveTool;
         HandCursorKind cursor = HandCursorKind.Point;
         PlacementFeedback placement = PlacementFeedback.None;
@@ -138,15 +167,23 @@ public sealed class HoverCursorResolver
             sound = CreatureHoverSound.For(world, database, hit, _viewer);
             bool pickup = false;
             // The flower's hover stamp reads the same hover id as the tint, in any tool (0x0043B7F1).
-            if (hit.Kind == WorldHoverKind.Creature) hovered = new CreatureQueryTarget(hit.EntityId);
+            if (hit.Kind == WorldHoverKind.Creature)
+            {
+                hovered = new CreatureQueryTarget(hit.EntityId);
+            }
+
             if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState creature)
+            {
                 pickup = HandRules.CanPickUp(world, database, creature, _viewer);
+            }
             else if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is ObjectState obj)
+            {
                 // A special is clicked to activate, never lifted (Hand_Click 0x00407AF1); the pointing hand over
                 // it is the owner's observation, its producer unread (specials.md).
                 pickup = database.ObjectById(obj.ObjectTypeId)?.IsSpecial != true
                     && HandRules.CanPickUpObject(world, database, obj, _viewer)
                     && HandRules.MayReachObject(world, database, obj, _viewer);
+            }
             else if (hit.Kind == WorldHoverKind.Object && WorldView.IsStorePile(hit.EntityId))
             {
                 // A Treasury or Heart pile, lifted whole from its own tile (gold-hover-and-sparkle.md §4).
@@ -156,7 +193,9 @@ public sealed class HoverCursorResolver
             }
             bool dig = HandCursor.ShowsDig(world, database, tile, _viewer);
             if (active == PlayerToolMode.Hand)
+            {
                 cursor = HandCursor.ForHover(hit.Kind == WorldHoverKind.Tile, dig, pickup);
+            }
             // Only the Hand's hover id is tinted: own pickable creatures, own pickable or
             // slappable objects and loose gold on own land, own doors and traps (0x0040C290).
             if (active == PlayerToolMode.Hand && HoverTint.Applies(world, database, hit, _viewer))
@@ -166,7 +205,9 @@ public sealed class HoverCursorResolver
             }
             // In room mode a diggable tile keeps the pickaxe and draws no icon (0x0040B210).
             if (!(active == PlayerToolMode.BuildRoom && dig))
+            {
                 placement = _tools.Placement(world, database, navigation, _viewer, tile, hit, frame.Gold, _input, _panel);
+            }
             // The arms test the dig tag on a tile hover target (+0x1084 == 1, +0x1088 bit 0).
             placement = HoverCaged(placement, world, database, tile, hit.Kind == WorldHoverKind.Tile && dig);
             placement = HeldIcons(placement, world, database, tile, hit.Kind == WorldHoverKind.Tile && dig);
@@ -182,25 +223,46 @@ public sealed class HoverCursorResolver
             // 0x0040CAE0 for every tool that draws an icon, Query included (0x0040CDD9..0x0040CDE1).
             PlacementFeedback over = _tools.Placement(world, database, navigation, _viewer, null, default, frame.Gold, _input, _panel);
             if (over.Icon != PlacementIcon.None)
+            {
                 placement = new PlacementFeedback(null, false, over.Price, over.Icon, true, over.Affordable, over.SpellId);
+            }
         }
         // A keeper spell's tool (mode 8) clears the contextual channel and requests state 12, the
         // pointing finger, every frame until the spell is cancelled (0x0040B7F0); over the GUI
         // 0x0040BBE0 asks SmallPoint instead and never runs the spell arm.
         bool spellArmed = _tools.SpellArmed(_input);
-        if (!spellArmed) _spellCast.Cancel();
+        if (!spellArmed)
+        {
+            _spellCast.Cancel();
+        }
         else if (!frame.OverHud)
+        {
             cursor = _spellCast.Showing(frame.Milliseconds) ? HandCursorKind.SpellCast : HandCursorKind.SpellPoint;
+        }
+
         SpellRefused = placement.NoGo;
         bool holding = _view.LocalPickups.HasVisibleItems(world, _viewer);
-        if (!holding && placement.Icon == PlacementIcon.Held) placement = PlacementFeedback.None;
+        if (!holding && placement.Icon == PlacementIcon.Held)
+        {
+            placement = PlacementFeedback.None;
+        }
+
         if (holding && placement.Icon == PlacementIcon.None && active == PlayerToolMode.Hand)
+        {
             placement = new PlacementFeedback(placement.Cage, placement.Valid, placement.Price,
                 PlacementIcon.Held, placement.NoGo, placement.Affordable);
+        }
+
         if (active == PlayerToolMode.Hand && !_tools.QueryTool && !_controls.Modal && !spellArmed)
+        {
             cursor = _cursor.Resolve(cursor, holding, _view.LocalPickups.HoldingGold(world, _viewer), frame.PrimaryHeld,
                 frame.Milliseconds, frame.PointerWorld);
-        else _cursor.Advance(frame.Milliseconds, frame.PointerWorld);
+        }
+        else
+        {
+            _cursor.Advance(frame.Milliseconds, frame.PointerWorld);
+        }
+
         return new HoverFeedback(cursor, placement, hovered, sound, tinted, blended);
     }
 
@@ -213,10 +275,22 @@ public sealed class HoverCursorResolver
     private PlacementFeedback HoverCaged(in PlacementFeedback feedback, WorldState world, GameDatabase database, TilePos at, bool dig)
     {
         if (feedback.Cage is not null || _controls.Modal || world.Player(_viewer).PossessedCreatureId != 0
-            || _tools.CageTool is not HoverCageTool tool) return feedback;
+            || _tools.CageTool is not HoverCageTool tool)
+        {
+            return feedback;
+        }
+
         bool holds = world.Player(_viewer).Hand.Count != 0;
-        if (!PlacementCursor.HoverCageShows(tool, dig, holds)) return feedback;
-        if (tool == HoverCageTool.Hand && !dig) return PlacementCursor.HandDrop(world, database, _viewer, at);
+        if (!PlacementCursor.HoverCageShows(tool, dig, holds))
+        {
+            return feedback;
+        }
+
+        if (tool == HoverCageTool.Hand && !dig)
+        {
+            return PlacementCursor.HandDrop(world, database, _viewer, at);
+        }
+
         return new PlacementFeedback(PlacementCursor.HoverCage(at, world.Width, world.Height),
             PlacementCursor.HoverCageBlue(tool, dig, feedback.Valid), feedback.Price, feedback.Icon, feedback.NoGo, feedback.Affordable,
             feedback.SpellId);
@@ -231,7 +305,11 @@ public sealed class HoverCursorResolver
     private PlacementFeedback HeldIcons(in PlacementFeedback feedback, WorldState world, GameDatabase database, TilePos at, bool dig)
     {
         if (feedback.Icon == PlacementIcon.Held || dig || _controls.OptionsVisible || _tools.ActiveTool != PlayerToolMode.Hand
-            || _tools.QueryTool || _tools.PanelChoice is not null || world.Player(_viewer).Hand.Count == 0) return feedback;
+            || _tools.QueryTool || _tools.PanelChoice is not null || world.Player(_viewer).Hand.Count == 0)
+        {
+            return feedback;
+        }
+
         PlacementFeedback held = PlacementCursor.HandDrop(world, database, _viewer, at);
         return new PlacementFeedback(feedback.Cage, feedback.Valid, 0, PlacementIcon.Held, held.NoGo, true, 0, held.Dispose);
     }

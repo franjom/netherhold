@@ -13,9 +13,21 @@ public static class MinimapCameraFootprint
     public static bool TryBuild(ReadOnlySpan<Vector2> groundCorners, int mapWidth, int mapHeight,
         float headingRadians, Span<Vector2> vertices)
     {
-        if (groundCorners.Length != 4 || vertices.Length < 8) throw new ArgumentException("Four corners and eight output vertices required.");
-        if (mapWidth <= 0 || mapHeight <= 0) throw new ArgumentOutOfRangeException(nameof(mapWidth));
-        if (!Finite(headingRadians)) return false;
+        if (groundCorners.Length != 4 || vertices.Length < 8)
+        {
+            throw new ArgumentException("Four corners and eight output vertices required.");
+        }
+
+        if (mapWidth <= 0 || mapHeight <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(mapWidth));
+        }
+
+        if (!Finite(headingRadians))
+        {
+            return false;
+        }
+
         float scale = .703125f * -82.4f / (MathF.Sin(1.5f * MathF.PI - .4266275f) * .5f)
             / Math.Max(mapWidth, mapHeight);
         float cosine = MathF.Cos(headingRadians), sine = MathF.Sin(headingRadians);
@@ -25,11 +37,19 @@ public static class MinimapCameraFootprint
             Vector2 p = groundCorners[i] - new Vector2(mapWidth * .5f, mapHeight * .5f);
             p = new Vector2(cosine * p.X + sine * p.Y, -sine * p.X + cosine * p.Y) * scale
                 + new Vector2(95.2f, 672);
-            if (!Finite(p.X) || !Finite(p.Y)) return false;
+            if (!Finite(p.X) || !Finite(p.Y))
+            {
+                return false;
+            }
+
             vertices[i * 2] = p;
             centre += p * .25f;
         }
-        if (!Finite(centre.X) || !Finite(centre.Y)) return false;
+        if (!Finite(centre.X) || !Finite(centre.Y))
+        {
+            return false;
+        }
+
         for (int i = 0; i < 4; i++)
         {
             Vector2 p = vertices[i * 2];
@@ -54,7 +74,10 @@ public static class MinimapCameraFootprint
     public static void Triangles(ReadOnlySpan<Vector2> vertices, Span<HudVertex> triangles)
     {
         if (vertices.Length < 8 || triangles.Length < TriangleVertices)
+        {
             throw new ArgumentException("Eight vertices and room for the triangle list required.");
+        }
+
         for (int i = 0; i < TriangleVertices; i++)
         {
             int k = Indices[i];

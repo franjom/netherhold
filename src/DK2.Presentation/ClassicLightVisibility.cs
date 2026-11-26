@@ -29,13 +29,25 @@ public static class ClassicLightVisibility
         ClassicVisibilityHeightRange? heights = null)
     {
         if (viewport.Width <= 0 || viewport.Height <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(viewport));
+        }
+
         if (!(nativeViewDistance > 0) || float.IsInfinity(nativeViewDistance))
+        {
             throw new ArgumentOutOfRangeException(nameof(nativeViewDistance));
+        }
+
         if (!(pose.VerticalFieldOfView > 0 && pose.VerticalFieldOfView < 180))
+        {
             throw new ArgumentOutOfRangeException(nameof(pose));
+        }
+
         ClassicVisibilityHeightRange slab = heights ?? ClassicVisibilityHeightRange.Native;
-        if (!(slab.Minimum <= slab.Maximum)) throw new ArgumentOutOfRangeException(nameof(heights));
+        if (!(slab.Minimum <= slab.Maximum))
+        {
+            throw new ArgumentOutOfRangeException(nameof(heights));
+        }
 
         float focal = (float)(viewport.Height / (2 * Math.Tan(pose.VerticalFieldOfView * Math.PI / 360)));
         float halfX = viewport.Width * 0.5f / focal;
@@ -63,19 +75,34 @@ public static class ClassicLightVisibility
         AddCrossings(points, slab.Maximum, crossings);
         points.InsertRange(0, crossings);
         for (int i = points.Count - 1; i >= 0; i--)
-            if (points[i].Z < slab.Minimum || points[i].Z > slab.Maximum) points.RemoveAt(i);
+        {
+            if (points[i].Z < slab.Minimum || points[i].Z > slab.Maximum)
+            {
+                points.RemoveAt(i);
+            }
+        }
+
         for (int i = 0; i < points.Count;)
         {
             bool duplicate = false;
             for (int j = i + 1; j < points.Count; j++)
+            {
                 if (Math.Abs(points[i].X - points[j].X) < 0.01f
                     && Math.Abs(points[i].Y - points[j].Y) < 0.01f)
                 {
                     duplicate = true;
                     break;
                 }
-            if (duplicate) points.RemoveAt(i);
-            else i++;
+            }
+
+            if (duplicate)
+            {
+                points.RemoveAt(i);
+            }
+            else
+            {
+                i++;
+            }
         }
         List<TilePos> boundary = buffer.Boundary;
         WrapBoundary(points, boundary);
@@ -89,7 +116,11 @@ public static class ClassicLightVisibility
     {
         TilePos[] buffer = Array.Empty<TilePos>();
         int count = EnumerateTiles(polygon, ref buffer);
-        if (count == buffer.Length) return buffer;
+        if (count == buffer.Length)
+        {
+            return buffer;
+        }
+
         var tiles = new TilePos[count];
         Array.Copy(buffer, tiles, count);
         return tiles;
@@ -99,11 +130,19 @@ public static class ClassicLightVisibility
     /// returns how many were written. A camera that moves every frame then allocates nothing.</summary>
     public static int EnumerateTiles(ReadOnlySpan<TilePos> polygon, ref TilePos[] buffer)
     {
-        if (polygon.Length == 0) return 0;
+        if (polygon.Length == 0)
+        {
+            return 0;
+        }
+
         int minimum = 0, maximumY = polygon[0].Y;
         for (int i = 1; i < polygon.Length; i++)
         {
-            if (polygon[i].Y < polygon[minimum].Y) minimum = i;
+            if (polygon[i].Y < polygon[minimum].Y)
+            {
+                minimum = i;
+            }
+
             maximumY = Math.Max(maximumY, polygon[i].Y);
         }
         int count = 0;
@@ -116,8 +155,15 @@ public static class ClassicLightVisibility
             int first = Math.Min(leftX >> 16, rightX >> 16);
             int last = Math.Max(leftX >> 16, rightX >> 16);
             if (count + (last - first + 1) > buffer.Length)
+            {
                 Array.Resize(ref buffer, Math.Max(buffer.Length * 2, count + (last - first + 1) + 256));
-            for (int x = first; x <= last; x++) buffer[count++] = new TilePos(x, y);
+            }
+
+            for (int x = first; x <= last; x++)
+            {
+                buffer[count++] = new TilePos(x, y);
+            }
+
             leftX = unchecked(leftX + leftStep);
             rightX = unchecked(rightX + rightStep);
         }
@@ -127,7 +173,11 @@ public static class ClassicLightVisibility
     private static void AdvanceEdge(ReadOnlySpan<TilePos> polygon, int y, int direction,
         ref int end, ref int x, ref int step)
     {
-        if (polygon[end].Y > y) return;
+        if (polygon[end].Y > y)
+        {
+            return;
+        }
+
         int start;
         do
         {
@@ -141,23 +191,39 @@ public static class ClassicLightVisibility
     private static void AddCrossings(List<Vector3> points, float height, List<Vector3> crossings)
     {
         for (int i = 0; i < points.Count; i++)
+        {
             for (int j = i + 1; j < points.Count; j++)
             {
                 Vector3 a = points[i], b = points[j];
-                if (!((a.Z < height && height < b.Z) || (b.Z < height && height < a.Z))) continue;
+                if (!((a.Z < height && height < b.Z) || (b.Z < height && height < a.Z)))
+                {
+                    continue;
+                }
+
                 float ratio = (1f / (b.Z - a.Z)) * (height - a.Z);
                 Vector3 point = a + (b - a) * ratio;
                 crossings.Add(new Vector3(point.X, point.Y, height));
             }
+        }
     }
 
     private static void WrapBoundary(List<Vector3> points, List<TilePos> polygon)
     {
         polygon.Clear();
-        if (points.Count == 0) return;
+        if (points.Count == 0)
+        {
+            return;
+        }
+
         int start = 0;
         for (int i = 1; i < points.Count; i++)
-            if (points[i].Y < points[start].Y) start = i;
+        {
+            if (points[i].Y < points[start].Y)
+            {
+                start = i;
+            }
+        }
+
         polygon.Add(ToTile(points[start]));
         int current = start;
         float previousAngle = 0;
@@ -167,7 +233,11 @@ public static class ClassicLightVisibility
             float smallest = 1000, nextAngle = 0;
             for (int i = 0; i < points.Count; i++)
             {
-                if (i == current) continue;
+                if (i == current)
+                {
+                    continue;
+                }
+
                 double dx = (double)points[i].X - points[current].X;
                 double dy = (double)points[i].Y - points[current].Y;
                 float angle = dy == 0 && dx >= 0 ? 0 : (float)(Math.Atan2(-dy, -dx) + (float)Math.PI);
@@ -179,7 +249,11 @@ public static class ClassicLightVisibility
                     nextAngle = angle;
                 }
             }
-            if (next == start) return;
+            if (next == start)
+            {
+                return;
+            }
+
             polygon.Add(ToTile(points[next]));
             current = next;
             previousAngle = nextAngle;

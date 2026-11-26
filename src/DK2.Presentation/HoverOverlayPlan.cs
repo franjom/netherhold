@@ -53,6 +53,9 @@ public sealed class HoverOverlayPlan
     /// <summary>Records a drawn overlay: a creature is red for the rest of the frame.</summary>
     public void Drawn(in HoverOverlayDraw draw)
     {
-        if (draw.Hit.Kind == WorldHoverKind.Creature) _redCreatures.Add(draw.Hit.EntityId);
+        if (draw.Hit.Kind == WorldHoverKind.Creature)
+        {
+            _redCreatures.Add(draw.Hit.EntityId);
+        }
     }
 }

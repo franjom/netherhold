@@ -21,8 +21,16 @@ public readonly record struct HudGaugeFraction(int Value, int Maximum)
 {
     public bool Contains(Vector2 fromCentre)
     {
-        if (Maximum <= 0 || Value <= 0) return false;
-        if (Value >= Maximum) return true;
+        if (Maximum <= 0 || Value <= 0)
+        {
+            return false;
+        }
+
+        if (Value >= Maximum)
+        {
+            return true;
+        }
+
         return Angle(fromCentre) <= Limit;
     }
 
@@ -30,7 +38,11 @@ public readonly record struct HudGaugeFraction(int Value, int Maximum)
     public static double Angle(Vector2 fromCentre)
     {
         double angle = Math.Atan2(fromCentre.X, -fromCentre.Y);
-        if (angle < 0) angle += Math.PI * 2;
+        if (angle < 0)
+        {
+            angle += Math.PI * 2;
+        }
+
         return angle;
     }
 
@@ -72,29 +84,48 @@ public sealed class KeeperResourceView
         _world = world; _tick = world.CurrentTick;
         _healthDisplayed = false;
         _snapshot = default;
-        if (!world.HasPlayer(_viewer)) return _snapshot;
+        if (!world.HasPlayer(_viewer))
+        {
+            return _snapshot;
+        }
+
         int index = 0;
-        while (world.PlayerAtIndex(index).PlayerId != _viewer) index++;
+        while (world.PlayerAtIndex(index).PlayerId != _viewer)
+        {
+            index++;
+        }
+
         int[] income = ManaRules.GainPerSecondByPlayerIndex(world, _database);
         int[] upkeep = ManaRules.UpkeepPerSecondByPlayerIndex(world, _database, world.CurrentTick);
         byte? heartTerrain = ManaRules.DungeonHeartTerrainId(_database);
         int minX = world.Width, minY = world.Height, maxX = -1, maxY = -1;
         for (int i = 0; i < world.TileCount; i++)
+        {
             if (world.TileAtIndex(i).OwnerPlayerId == _viewer && world.TileAtIndex(i).TerrainId == heartTerrain)
             {
                 int x = i % world.Width, y = i / world.Width;
                 minX = Math.Min(minX, x); minY = Math.Min(minY, y);
                 maxX = Math.Max(maxX, x); maxY = Math.Max(maxY, y);
             }
+        }
+
         bool hasHeart = maxX >= 0;
         TilePos? heartTile = hasHeart ? new TilePos((minX + maxX) / 2, (minY + maxY) / 2) : null;
         ref PlayerState player = ref world.Player(_viewer);
         int health = hasHeart ? player.HeartHealth : 0;
-        if (displayHealth) ObserveHealth(health);
+        if (displayHealth)
+        {
+            ObserveHealth(health);
+        }
+
         long remaining = player.NextPaydayTick.Value - _tick.Value;
         long interval = player.NextPaydayTick.Value - player.LastPaydayTick.Value;
         long cutoff = _database[VariableTypeId.PayDayCutOffTimeSeconds];
-        if (cutoff == 0) cutoff = 100;
+        if (cutoff == 0)
+        {
+            cutoff = 100;
+        }
+
         _snapshot = new KeeperResourceSnapshot(new(GoldStore.Total(world, _viewer)),
             new(player.Mana), new(income[index]), new(upkeep[index]),
             new(hasHeart ? player.HeartHealth : 0, _database[VariableTypeId.DungeonHeartObjectHealth]),
@@ -107,7 +138,10 @@ public sealed class KeeperResourceView
     private void ObserveHealth(int health)
     {
         if (health < _lastHealth)
+        {
             _alarmUntil = new GameTick(_tick.Value + 3 * SimulationTiming.TicksPerSecond);
+        }
+
         _lastHealth = health;
         _healthDisplayed = true;
     }

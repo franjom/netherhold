@@ -31,7 +31,11 @@ public static class HudTriangles
     public static int ClipToCircle(ReadOnlySpan<HudVertex> triangles, float centreX, float centreY, float radius,
         Span<HudVertex> into)
     {
-        if (triangles.Length % 3 != 0) throw new ArgumentException("Whole triangles required.", nameof(triangles));
+        if (triangles.Length % 3 != 0)
+        {
+            throw new ArgumentException("Whole triangles required.", nameof(triangles));
+        }
+
         Span<HudVertex> a = stackalloc HudVertex[CircleSides + 3], b = stackalloc HudVertex[CircleSides + 3];
         float squared = radius * radius;
         int written = 0;
@@ -82,7 +86,11 @@ public static class HudTriangles
                 into[count++] = new HudVertex(previous.X + (current.X - previous.X) * s, previous.Y + (current.Y - previous.Y) * s,
                     previous.U + (current.U - previous.U) * s, previous.V + (current.V - previous.V) * s);
             }
-            if (currentOut <= 0) into[count++] = current;
+            if (currentOut <= 0)
+            {
+                into[count++] = current;
+            }
+
             previous = current; previousOut = currentOut;
         }
         return count;

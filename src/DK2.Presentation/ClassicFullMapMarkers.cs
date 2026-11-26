@@ -20,7 +20,11 @@ public static class ClassicFullMapMarkers
     public static bool TryRoom(RoomTypeId roomType, TilePos centre, bool explored, out MinimapMarker marker)
     {
         marker = default;
-        if (!explored || RoomArt(roomType) == null) return false;
+        if (!explored || RoomArt(roomType) == null)
+        {
+            return false;
+        }
+
         marker = new(MinimapMarkerKind.FullMapRoom,
             new FpPosition3(new Fp32(centre.X * Fp32.One), new Fp32(centre.Y * Fp32.One), default),
             0xffffffff, RoomType: roomType);
@@ -31,7 +35,11 @@ public static class ClassicFullMapMarkers
         MinimapPalette palette, out MinimapMarker marker)
     {
         marker = default;
-        if (inHand || !explored || owner.Value > 7) return false;
+        if (inHand || !explored || owner.Value > 7)
+        {
+            return false;
+        }
+
         marker = new(MinimapMarkerKind.FullMapCreature, position, palette.Colours[17 + owner.Value]);
         return true;
     }

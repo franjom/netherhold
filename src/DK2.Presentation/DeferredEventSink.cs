@@ -20,6 +20,9 @@ public sealed class DeferredEventSink(ISimulationEventSink downstream) : ISimula
     /// <summary>Hands every queued event to the downstream sink, in order. Frame thread only.</summary>
     public void Replay()
     {
-        while (_pending.TryDequeue(out SimEvent simEvent)) downstream.Emit(simEvent);
+        while (_pending.TryDequeue(out SimEvent simEvent))
+        {
+            downstream.Emit(simEvent);
+        }
     }
 }

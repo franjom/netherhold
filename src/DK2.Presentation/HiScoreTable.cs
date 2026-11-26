@@ -26,7 +26,13 @@ public static class HiScoreTable
     public static int Position(IReadOnlyList<HiScoreEntry> rows, uint rating)
     {
         for (int i = 0; i < Rows; i++)
-            if (rows[i].EvilRating <= rating) return i;
+        {
+            if (rows[i].EvilRating <= rating)
+            {
+                return i;
+            }
+        }
+
         return -1;
     }
 
@@ -42,7 +48,11 @@ public static class HiScoreTable
     /// secret level its briefing string 1 (through 0x00553B90, unread, so truncation is ours).</summary>
     public static string Label(CampaignSlot slot, string secretName)
     {
-        if (slot.IsSecret) return secretName.Length > MaxText ? secretName.Substring(0, MaxText) : secretName;
+        if (slot.IsSecret)
+        {
+            return secretName.Length > MaxText ? secretName.Substring(0, MaxText) : secretName;
+        }
+
         return slot.Value switch
         {
             6 => "6a", 7 => "6b", 12 => "11a", 13 => "11b", 14 => "11c", 18 => "15a", 19 => "15b",

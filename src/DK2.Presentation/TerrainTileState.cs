@@ -36,9 +36,21 @@ public static class TerrainTileState
     public static Vector3 AddedLight(in ClassicMaterialRecipe recipe, Vector4 own, Vector4 tag, Vector4 tint, bool quarter)
     {
         Vector3 added = new(recipe.AddedLight);
-        if (!recipe.TakesAddedLight) return added;
-        if (((int)own.Z & 2) != 0) return added + TerrainMaterialLook.RedLight;
-        if (((int)tag.Z & 1) != 0) return added + TerrainMaterialLook.TagTint;
+        if (!recipe.TakesAddedLight)
+        {
+            return added;
+        }
+
+        if (((int)own.Z & 2) != 0)
+        {
+            return added + TerrainMaterialLook.RedLight;
+        }
+
+        if (((int)tag.Z & 1) != 0)
+        {
+            return added + TerrainMaterialLook.TagTint;
+        }
+
         TerrainLightColour colour = DecodeColour(quarter ? tint.Y : tint.X);
         return added + new Vector3(colour.Red / 255f, colour.Green / 255f, colour.Blue / 255f);
     }

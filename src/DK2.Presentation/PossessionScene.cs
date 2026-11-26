@@ -23,7 +23,11 @@ public static class PossessionScene
     {
         bool latched = Latched(world, viewer);
         view.SetPossessionView(latched);
-        if (lattice == null || lattice.Possession == latched) return;
+        if (lattice == null || lattice.Possession == latched)
+        {
+            return;
+        }
+
         terrain?.JoinBuild();
         lattice.Possession = latched;
     }

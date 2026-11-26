@@ -25,10 +25,18 @@ public sealed class MinimapDiscGeometry
         _quads.Clear();
         var map = new MapRaster(grid.Width, grid.Height, zoom, focus);
         for (int i = 0; i < markers.Count; i++)
-            if (Place(markers[i], map, out MinimapDiscQuad quad)) _quads.Add(quad);
+        {
+            if (Place(markers[i], map, out MinimapDiscQuad quad))
+            {
+                _quads.Add(quad);
+            }
+        }
+
         int dots = heart.HasValue ? MinimapHeartTrail.Build(heart.Value, focus, zoom, tick, _trail) : 0;
         for (int i = 0; i < dots; i++)
+        {
             _quads.Add(new(MinimapQuadKind.Solid, new(_trail[i].X + .5f, _trail[i].Y + .5f), Vector2.One, 0, 0xFFFFFFFF));
+        }
     }
 
     private readonly struct MapRaster
@@ -65,7 +73,11 @@ public sealed class MinimapDiscGeometry
             originY = 64 + (marker.Position.Y.Raw >> (12 - map.Level)) - map.FocusY;
         }
         int radius = marker.RadiusRasterPixels;
-        if (!map.WholeMap && marker.ReportingDistanceTiles >= 0) radius = marker.ReportingDistanceTiles * (1 << map.Level);
+        if (!map.WholeMap && marker.ReportingDistanceTiles >= 0)
+        {
+            radius = marker.ReportingDistanceTiles * (1 << map.Level);
+        }
+
         switch (marker.Kind)
         {
             case MinimapMarkerKind.VerticalDoor:
@@ -81,8 +93,12 @@ public sealed class MinimapDiscGeometry
                 int spanX, spanY;
                 if (map.WholeMap) { spanX = map.FitX(tileX + axisX) - originX; spanY = map.FitY(tileY + axisY) - originY; }
                 else { spanX = axisX << map.Level; spanY = axisY << map.Level; }
-                if (spanX * axisX + spanY * axisY <= 0) return false;
-                float width = Math.Max(1 - axisX, spanX), height = Math.Max(1 - axisY, spanY);
+                if (spanX * axisX + spanY * axisY <= 0)
+                    {
+                        return false;
+                    }
+
+                    float width = Math.Max(1 - axisX, spanX), height = Math.Max(1 - axisY, spanY);
                 shape = new(MinimapQuadKind.Solid, new(originX + width * .5f, originY + height * .5f), new(width, height), 0, marker.ColourArgb);
                 return true;
             }
@@ -103,8 +119,12 @@ public sealed class MinimapDiscGeometry
                     endY = 64 + (marker.EndPosition.Y.Raw >> (12 - map.Level)) - map.FocusY;
                 }
                 int width = Math.Max(endX - originX, 0), height = Math.Max(endY - originY, 0);
-                if (width == 0 || height == 0) return false;
-                shape = new(MinimapQuadKind.Border, new(originX + width * .5f, originY + height * .5f), new(width, height), 0, marker.ColourArgb);
+                if (width == 0 || height == 0)
+                    {
+                        return false;
+                    }
+
+                    shape = new(MinimapQuadKind.Border, new(originX + width * .5f, originY + height * .5f), new(width, height), 0, marker.ColourArgb);
                 return true;
             }
             case MinimapMarkerKind.Creature:

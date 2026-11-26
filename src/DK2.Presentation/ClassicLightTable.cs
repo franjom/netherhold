@@ -60,7 +60,10 @@ public sealed class ClassicLightTable
     internal void AppendStatic(ReadOnlySpan<ClassicPointLight> candidates)
     {
         foreach (ClassicPointLight candidate in candidates)
+        {
             Consider(candidate, firstSlot: 0, capacity: MaximumStaticSources);
+        }
+
         StaticCount = Count;
     }
 
@@ -80,7 +83,9 @@ public sealed class ClassicLightTable
     internal void AppendDynamic(ReadOnlySpan<ClassicPointLight> candidates)
     {
         foreach (ClassicPointLight candidate in candidates)
+        {
             Consider(candidate, firstSlot: StaticCount, capacity: MaximumSources);
+        }
     }
 
     private void Consider(ClassicPointLight candidate, int firstSlot, int capacity)
@@ -89,17 +94,33 @@ public sealed class ClassicLightTable
         float dz = candidate.Position.Z + _tile.Y + .5f;
         float distanceSquared = dx * dx + dz * dz;
         float reach = candidate.Radius + 1;
-        if (!(distanceSquared < reach * reach)) return;
+        if (!(distanceSquared < reach * reach))
+        {
+            return;
+        }
 
         int slot = Count;
         if (Count == capacity)
         {
             slot = firstSlot;
             for (int index = firstSlot + 1; index < Count; index++)
-                if (_distancesSquared[index] > _distancesSquared[slot]) slot = index;
-            if (!(distanceSquared < _distancesSquared[slot])) return;
+            {
+                if (_distancesSquared[index] > _distancesSquared[slot])
+                {
+                    slot = index;
+                }
+            }
+
+            if (!(distanceSquared < _distancesSquared[slot]))
+            {
+                return;
+            }
         }
-        else Count++;
+        else
+        {
+            Count++;
+        }
+
         _lights[slot] = candidate;
         _distancesSquared[slot] = distanceSquared;
     }

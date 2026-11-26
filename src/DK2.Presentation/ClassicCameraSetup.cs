@@ -47,7 +47,11 @@ public sealed class ClassicCameraSetup
     public static ClassicCameraSetup Create(CameraThing preset, float zoomOutLimitScale, int ticksPerSecond, int scrollSpeed,
         IReadOnlyList<PlayerDef>? players, PlayerId viewer, int mapWidth, int mapHeight)
     {
-        if (preset is null) throw new ArgumentNullException(nameof(preset));
+        if (preset is null)
+        {
+            throw new ArgumentNullException(nameof(preset));
+        }
+
         var camera = new ClassicCamera(preset with { MaxZoom = ZoomOutLimit(preset.MaxZoom, zoomOutLimitScale) },
             initialYaw: ClassicCamera.LevelStartYaw) { ReferenceScreenWidth = ReferenceScreenWidth };
         var controls = new ClassicCameraControls(camera, ticksPerSecond, scrollSpeed, CameraFocus.Bounds(mapWidth, mapHeight));
@@ -56,9 +60,19 @@ public sealed class ClassicCameraSetup
 
     private static CameraThing? Find(IReadOnlyList<CameraThing> presets, ushort cameraId)
     {
-        if (presets is null) throw new ArgumentNullException(nameof(presets));
+        if (presets is null)
+        {
+            throw new ArgumentNullException(nameof(presets));
+        }
+
         for (int i = 0; i < presets.Count; i++)
-            if (presets[i].CameraId == cameraId) return presets[i];
+        {
+            if (presets[i].CameraId == cameraId)
+            {
+                return presets[i];
+            }
+        }
+
         return null;
     }
 }

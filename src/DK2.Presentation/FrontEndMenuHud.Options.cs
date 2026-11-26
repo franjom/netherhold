@@ -22,7 +22,14 @@ public sealed partial class FrontEndMenuHud
 
     private FrontEndWidget? WidgetById(ushort id)
     {
-        foreach (FrontEndWidget widget in _widgets) if (widget.Id.Value == id) return widget;
+        foreach (FrontEndWidget widget in _widgets)
+        {
+            if (widget.Id.Value == id)
+            {
+                return widget;
+            }
+        }
+
         return null;
     }
 
@@ -31,7 +38,11 @@ public sealed partial class FrontEndMenuHud
     private void UpdateOptionsPointer(FrontEndPointer pointer, int wheel, double now)
     {
         OptionsPagesController? options = Model.Options;
-        if (options == null || Model.Page != options.Page) return;
+        if (options == null || Model.Page != options.Page)
+        {
+            return;
+        }
+
         bool press = pointer.PrimaryHeld && !_optionHeld; _optionHeld = pointer.PrimaryHeld;
         var point = new FrontEndPoint(pointer.X, pointer.Y);
         if (Model.Page == FrontEndPage.Controls && _keysBar != null)
@@ -39,7 +50,11 @@ public sealed partial class FrontEndMenuHud
             FrontEndRect box = LabelBox(WidgetById(150)!);
             if (box.Contains(point))
             {
-                for (int i = 0; i < Math.Abs(wheel); i++) _keysBar.Bar.Step(-Math.Sign(wheel));
+                for (int i = 0; i < Math.Abs(wheel); i++)
+                {
+                    _keysBar.Bar.Step(-Math.Sign(wheel));
+                }
+
                 _keysFirst = _keysBar.Bar.Position;
                 if (press)
                 {
@@ -55,15 +70,26 @@ public sealed partial class FrontEndMenuHud
         {
             FrontEndWidget widget = i < _widgets.Count ? _widgets[i] : _resultWidgets[i - _widgets.Count];
             ushort id = widget.Id.Value;
-            if (!options.Supports(id) || options.Range(id).Maximum <= 1 || id == 133) continue;
+            if (!options.Supports(id) || options.Range(id).Maximum <= 1 || id == 133)
+            {
+                continue;
+            }
+
             FrontEndRect box = LabelBox(widget);
-            if (_dragSlider != id && (!press || !box.Inflate(5).Contains(point))) continue;
+            if (_dragSlider != id && (!press || !box.Inflate(5).Contains(point)))
+            {
+                continue;
+            }
+
             (int lo, int hi) = options.Range(id);
             // Only a press on the thumb grabs it (state 3) and starts the test sound; the track and arrows are other states, silent.
             if (_dragSlider != id)
             {
                 (int thumbWidth, int thumbHeight) = RequireSize(SliderButtonArt);
-                if (SliderThumb.Rect(box, thumbWidth, thumbHeight, options.Value(id), lo, hi).Contains(point)) options.BeginSliderDrag(id);
+                if (SliderThumb.Rect(box, thumbWidth, thumbHeight, options.Value(id), lo, hi).Contains(point))
+                {
+                    options.BeginSliderDrag(id);
+                }
             }
             _dragSlider = id;
             float t = Math.Clamp((point.X - box.X) / box.Width, 0f, 1f);
@@ -75,14 +101,22 @@ public sealed partial class FrontEndMenuHud
     {
         _shownOptions = Model.Options?.Pending; _shownKeysFirst = _keysFirst;
         _shownCapturing = Model.Options?.CapturingAction;
-        if (Model.Options == null || Model.Page != Model.Options.Page) return;
+        if (Model.Options == null || Model.Page != Model.Options.Page)
+        {
+            return;
+        }
+
         foreach (FrontEndWidget widget in _widgets)
         {
             ushort id = widget.Id.Value;
             string? text = id == 133 ? _sources.Text(new uint[] { 0, 1443, 281, 1442 }[Model.Options.Pending.SoundQuality])
                 : id == 135 ? _sources.Text(Model.Options.Pending.Headphones ? 1465u : 111u)
                 : id == 676 || id == 677 || id == 678 ? _sources.Text(Model.Options.Value(id) == 0 ? 110u : 109u) : null;
-            if (text == null) continue;
+            if (text == null)
+            {
+                continue;
+            }
+
             AddLabel(widget, text, FrontEndLabelStyles.FontFor(FrontEndDrawKind.OptionText),
                 FrontEndTextAlignment.Left, FrontEndVerticalAlignment.Centre, false);
         }
@@ -140,14 +174,26 @@ public sealed partial class FrontEndMenuHud
     private void DrawOptions(HudFrame frame)
     {
         OptionsPagesController? options = Model.Options;
-        if (options == null || Model.Page != options.Page) return;
-        if (Model.Page == FrontEndPage.Controls && _keysBar != null) DrawBar(frame, _keysBar);
+        if (options == null || Model.Page != options.Page)
+        {
+            return;
+        }
+
+        if (Model.Page == FrontEndPage.Controls && _keysBar != null)
+        {
+            DrawBar(frame, _keysBar);
+        }
+
         for (int i = 0; i < _widgets.Count + _resultWidgets.Count; i++)
         {
             FrontEndWidget widget = i < _widgets.Count ? _widgets[i] : _resultWidgets[i - _widgets.Count];
             ushort id = widget.Id.Value;
             bool unavailable = id == 116 || id == 118 || id == 128;
-            if (!options.Supports(id) && !unavailable) continue;
+            if (!options.Supports(id) && !unavailable)
+            {
+                continue;
+            }
+
             HudColor tint = unavailable ? new HudColor(255, 255, 255, Faded) : HudColor.White;
             FrontEndRect box = LabelBox(widget);
             (int lo, int hi) = options.Range(id);
@@ -161,7 +207,9 @@ public sealed partial class FrontEndMenuHud
                 frame.Add(new HudDraw(HudDrawKind.Quad, SliderButton, Virtual(new FrontEndRect(x, box.Y + (box.Height - height) / 2, width, height)), tint));
             }
             else if ((id != 133 && id != 135 && id < 676) || id == 674)
+            {
                 frame.Add(new HudDraw(HudDrawKind.Quad, options.Value(id) != 0 ? ButtonOn : ButtonOff, Virtual(box), tint));
+            }
         }
     }
 }

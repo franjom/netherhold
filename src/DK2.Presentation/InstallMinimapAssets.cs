@@ -52,8 +52,12 @@ public sealed class InstallMinimapAssets : IMinimapAssets
             CameraFootprint = load(MinimapHud.FootprintArt);
             North = load(MinimapHud.NorthArt);
             for (int i = 0; i < 4; i++)
+            {
                 for (int active = 0; active < 2; active++)
+                {
                     _corners[i * 2 + active] = load(MinimapHud.CornerArt((MinimapCorner)i, active != 0));
+                }
+            }
         }
         finally
         {
@@ -62,7 +66,11 @@ public sealed class InstallMinimapAssets : IMinimapAssets
     }
     public RgbaImage Corner(MinimapCorner corner, bool active)
     {
-        if ((uint)corner > 3) throw new ArgumentOutOfRangeException(nameof(corner));
+        if ((uint)corner > 3)
+        {
+            throw new ArgumentOutOfRangeException(nameof(corner));
+        }
+
         return _corners[(int)corner * 2 + (active ? 1 : 0)];
     }
 }

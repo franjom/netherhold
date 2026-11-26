@@ -26,14 +26,26 @@ public sealed class InstallCreatureOverviewArt
     /// <param name="text">A <c>Text.str</c> string by id.</param>
     public InstallCreatureOverviewArt(string install, GameDatabase database, Func<string, RgbaImage> image, Func<uint, string> text)
     {
-        if (install is null) throw new ArgumentNullException(nameof(install));
+        if (install is null)
+        {
+            throw new ArgumentNullException(nameof(install));
+        }
+
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _image = image ?? throw new ArgumentNullException(nameof(image));
         _text = text ?? throw new ArgumentNullException(nameof(text));
         foreach (KwdChunk chunk in KwdReader.ReadFile(Path.Combine(install, "Data", "Editor", "Creatures.kwd")))
         {
-            if (chunk.Type != KwdRecordType.Creatures || chunk.ItemCount == 0) continue;
-            if (chunk.Content.Length != chunk.ItemCount * RecordSize) throw new InvalidDataException("Unexpected creature portrait record size.");
+            if (chunk.Type != KwdRecordType.Creatures || chunk.ItemCount == 0)
+            {
+                continue;
+            }
+
+            if (chunk.Content.Length != chunk.ItemCount * RecordSize)
+            {
+                throw new InvalidDataException("Unexpected creature portrait record size.");
+            }
+
             for (int i = 0; i < chunk.ItemCount; i++)
             {
                 int at = i * RecordSize; byte id = chunk.Content[at + 0xF4B];

@@ -29,8 +29,16 @@ public static class HandCursor
     /// native tag gate is unread, so the two are not yet reconciled.</summary>
     public static bool ShowsDig(WorldState world, GameDatabase database, TilePos tile, PlayerId viewer)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
         TileState state = world.Tile(tile);
         return state.IsTaggedBy(viewer)
             || world.FogOfWarEnabled && !state.IsExploredBy(viewer)
@@ -80,7 +88,11 @@ public static class HandCursor
     public static Vector2 Anchor(HandCursorKind kind, int frame)
     {
         HandCursorSprite sprite = Sprite(kind);
-        if ((uint)frame >= (uint)sprite.FrameCount) throw new ArgumentOutOfRangeException(nameof(frame));
+        if ((uint)frame >= (uint)sprite.FrameCount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(frame));
+        }
+
         return kind switch
         {
             HandCursorKind.Point => PointRestingTip,
@@ -98,7 +110,10 @@ public static class HandCursor
         HandCursorSprite sprite = Sprite(kind);
         float least = float.MaxValue;
         for (int frame = 0; frame < sprite.FrameCount; frame++)
+        {
             least = Math.Min(least, Anchor(kind, frame).X);
+        }
+
         return sprite.FrameSize.X - least;
     }
 
@@ -106,7 +121,11 @@ public static class HandCursor
     /// uniformly by height/480 (ART_DIRECTION §13). The world pick stays at the pointer.</summary>
     public static HandCursorPlacement Place(HandCursorKind kind, int frame, Vector2 pointerPixels, int screenHeight)
     {
-        if (screenHeight <= 0) throw new ArgumentOutOfRangeException(nameof(screenHeight));
+        if (screenHeight <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(screenHeight));
+        }
+
         HandCursorSprite sprite = Sprite(kind);
         float scale = screenHeight / 480f;
         return new(pointerPixels - Anchor(kind, frame) * scale, sprite.FrameSize * scale);
@@ -117,8 +136,16 @@ public static class HandCursor
     public static Vector2 OverlayAnchor(HandCursorKind kind, Vector2 pointerPixels, int screenHeight,
         bool overHud = false)
     {
-        if (screenHeight <= 0) throw new ArgumentOutOfRangeException(nameof(screenHeight));
-        if (kind == HandCursorKind.Default) kind = HandCursorKind.Point;
+        if (screenHeight <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(screenHeight));
+        }
+
+        if (kind == HandCursorKind.Default)
+        {
+            kind = HandCursorKind.Point;
+        }
+
         Vector2 relative = Sprite(kind).Hotspot - Anchor(kind, 0) + new Vector2(overHud ? 42 : 82, 10);
         return pointerPixels + relative * (screenHeight / 480f);
     }
@@ -155,17 +182,27 @@ public sealed class HandCursorFeedback
         // callback has no such guard, and keep replacing the slap here (ours has one transient).
         if (kind is HandCursorKind.Slap or HandCursorKind.Tag && _transient == HandCursorKind.Slap
             && FrameOf(milliseconds) <= SlapSoundFrame)
+        {
             return;
+        }
+
         _transient = kind;
         _startedAt = milliseconds;
-        if (kind == HandCursorKind.Tag && pointer is FpPosition2 at) Sounds.Add(HandSound(0xEC, at));
+        if (kind == HandCursorKind.Tag && pointer is FpPosition2 at)
+        {
+            Sounds.Add(HandSound(0xEC, at));
+        }
     }
 
     /// <summary>The per-frame step of the cursor channel (<c>0x0040AAE0</c>): the slap's sound at frame 3,
     /// and its completion, which clears the latch.</summary>
     public void Advance(long milliseconds, FpPosition2? pointer = null)
     {
-        if (_transient != HandCursorKind.Slap) return;
+        if (_transient != HandCursorKind.Slap)
+        {
+            return;
+        }
+
         long frame = FrameOf(milliseconds);
         if (!_slapSounded && frame >= SlapSoundFrame && pointer is FpPosition2 at)
         {
@@ -183,8 +220,15 @@ public sealed class HandCursorFeedback
         {
             HandCursorSprite sprite = HandCursor.Sprite(_transient);
             if (Math.Max(0, milliseconds - _startedAt) * sprite.FramesPerSecond < sprite.FrameCount * 1000L)
+            {
                 return _transient;
-            if (_transient == HandCursorKind.Tag && primaryHeld) return HandCursorKind.Tagging;
+            }
+
+            if (_transient == HandCursorKind.Tag && primaryHeld)
+            {
+                return HandCursorKind.Tagging;
+            }
+
             _transient = HandCursorKind.Default;
         }
         return holding ? gold ? HandCursorKind.HoldGold : HandCursorKind.HoldThing : hover;
@@ -209,7 +253,10 @@ public sealed class SpellCastCursor
 
     public void Play(byte spellId, long milliseconds)
     {
-        if (spellId != PossessionSpellId) _startedAt = milliseconds;
+        if (spellId != PossessionSpellId)
+        {
+            _startedAt = milliseconds;
+        }
     }
 
     public void Cancel() => _startedAt = -1;
@@ -217,9 +264,17 @@ public sealed class SpellCastCursor
     /// <summary>Whether the cast hand is still playing at <paramref name="milliseconds"/>; once it is done it clears.</summary>
     public bool Showing(long milliseconds)
     {
-        if (_startedAt < 0) return false;
+        if (_startedAt < 0)
+        {
+            return false;
+        }
+
         HandCursorSprite sprite = HandCursor.Sprite(HandCursorKind.SpellCast);
-        if (Math.Max(0, milliseconds - _startedAt) * sprite.FramesPerSecond < sprite.FrameCount * 1000L) return true;
+        if (Math.Max(0, milliseconds - _startedAt) * sprite.FramesPerSecond < sprite.FrameCount * 1000L)
+        {
+            return true;
+        }
+
         _startedAt = -1;
         return false;
     }

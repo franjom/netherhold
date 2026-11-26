@@ -14,8 +14,16 @@ public sealed class FullMapImage
 
     public FullMapImage(int width, int height)
     {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (width <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
         Width = width; Height = height;
         _pixels = new byte[checked(width * height * 4)];
     }
@@ -29,9 +37,21 @@ public sealed class FullMapImage
     /// <returns>Whether any pixel changed, so an unchanged image need not be uploaded.</returns>
     public bool Update(MinimapClassGrid grid, MinimapPalette palette)
     {
-        if (grid is null) throw new ArgumentNullException(nameof(grid));
-        if (palette is null) throw new ArgumentNullException(nameof(palette));
-        if (grid.Width != Width || grid.Height != Height) throw new ArgumentException("The grid is not the image's size.", nameof(grid));
+        if (grid is null)
+        {
+            throw new ArgumentNullException(nameof(grid));
+        }
+
+        if (palette is null)
+        {
+            throw new ArgumentNullException(nameof(palette));
+        }
+
+        if (grid.Width != Width || grid.Height != Height)
+        {
+            throw new ArgumentException("The grid is not the image's size.", nameof(grid));
+        }
+
         ReadOnlySpan<MinimapColourClass> cells = grid.Cells;
         ReadOnlySpan<uint> colours = palette.Colours;
         ushort unknown = MinimapColourClass.Unknown.Index;
@@ -41,7 +61,11 @@ public sealed class FullMapImage
             ushort colourClass = cells[i].Index;
             uint argb = colourClass == unknown ? Black : colours[colourClass] | Black;
             byte r = (byte)(argb >> 16), g = (byte)(argb >> 8), b = (byte)argb;
-            if (_pixels[p] == r && _pixels[p + 1] == g && _pixels[p + 2] == b && _pixels[p + 3] == 0xFF) continue;
+            if (_pixels[p] == r && _pixels[p + 1] == g && _pixels[p + 2] == b && _pixels[p + 3] == 0xFF)
+            {
+                continue;
+            }
+
             _pixels[p] = r; _pixels[p + 1] = g; _pixels[p + 2] = b; _pixels[p + 3] = 0xFF;
             changed = true;
         }

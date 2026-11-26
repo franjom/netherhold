@@ -35,15 +35,45 @@ public sealed partial class WorldView
         }
 
         PlayerTileFlags flags = PlayerTileFlags.Known;
-        if (terrain.IsSolid) flags |= PlayerTileFlags.Solid;
-        if (terrain.IsTaggable) flags |= PlayerTileFlags.Diggable;
-        if (terrain.GoldValue != 0) flags |= PlayerTileFlags.GoldSeam;
-        if (terrain.IsWater) flags |= PlayerTileFlags.Water;
-        if (terrain.IsLava) flags |= PlayerTileFlags.Lava;
-        if (ShowsTag(tile, terrain, x, y)) flags |= PlayerTileFlags.Tagged;
-        if (!admitted) return new PlayerTile(flags, default, default);
+        if (terrain.IsSolid)
+        {
+            flags |= PlayerTileFlags.Solid;
+        }
+
+        if (terrain.IsTaggable)
+        {
+            flags |= PlayerTileFlags.Diggable;
+        }
+
+        if (terrain.GoldValue != 0)
+        {
+            flags |= PlayerTileFlags.GoldSeam;
+        }
+
+        if (terrain.IsWater)
+        {
+            flags |= PlayerTileFlags.Water;
+        }
+
+        if (terrain.IsLava)
+        {
+            flags |= PlayerTileFlags.Lava;
+        }
+
+        if (ShowsTag(tile, terrain, x, y))
+        {
+            flags |= PlayerTileFlags.Tagged;
+        }
+
+        if (!admitted)
+        {
+            return new PlayerTile(flags, default, default);
+        }
         // A player sees its own traps and blueprints; another keeper's stay hidden.
-        if (world.Traps.Count > 0 && world.TrapAt(x, y, new PlayerId(_viewingPlayerId)) is not null) flags |= PlayerTileFlags.OwnTrap;
+        if (world.Traps.Count > 0 && world.TrapAt(x, y, new PlayerId(_viewingPlayerId)) is not null)
+        {
+            flags |= PlayerTileFlags.OwnTrap;
+        }
 
         PlayerId owner = terrain.IsOwnable ? tile.OwnerPlayerId : (byte)0;
         RoomTypeId room = _database.RoomByTerrain(tile.TerrainId)?.TypeId ?? default;
@@ -61,7 +91,11 @@ public sealed partial class WorldView
         {
             var tile = new TilePos(trap.X, trap.Y);
             if (trap.PlayerId == _viewingPlayerId || trap.Hidden || trap.UnderConstruction || !world.Contains(tile.X, tile.Y)
-                || !IsVisible(world, tile) || !_database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition)) continue;
+                || !IsVisible(world, tile) || !_database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition))
+            {
+                continue;
+            }
+
             int reach = definition.TriggerType == TrapRules.TileSelector ? 0
                 : definition.RangeTiles + ((definition.Flags & TrapRules.TurnsToTarget) != 0 ? 2 : 0);
             into.Add(new PlayerVisibleTrap(tile, trap.TrapId, new PlayerId(trap.PlayerId), reach));

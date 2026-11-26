@@ -58,7 +58,11 @@ public sealed class CameraPathPlayback
     /// <c>startTick + 1</c>, where the path is on its first frame.</param>
     public CameraPathPlayback(int pathId, IReadOnlyList<KcsFrame> frames, TilePos tile, long startTick = 0)
     {
-        if (frames is null || frames.Count == 0) throw new ArgumentException("A path needs a frame.", nameof(frames));
+        if (frames is null || frames.Count == 0)
+        {
+            throw new ArgumentException("A path needs a frame.", nameof(frames));
+        }
+
         PathId = pathId;
         StartTick = startTick;
         _frames = frames;
@@ -79,14 +83,25 @@ public sealed class CameraPathPlayback
     /// <param name="renderTick">The drawn world's tick plus its fraction toward the next.</param>
     public void Seek(double renderTick)
     {
-        if (Finished) return;
+        if (Finished)
+        {
+            return;
+        }
+
         double position = _first + 0.5 + Math.Max(0, renderTick - (StartTick + 1)) * FramesPerTick;
         // The camera never runs backwards, as DK2's accumulator cannot.
-        if (position <= _frame + _remainder) return;
+        if (position <= _frame + _remainder)
+        {
+            return;
+        }
+
         int frame = (int)position;
         _frame = frame;
         _remainder = (float)(position - frame);
-        if (_frame >= _frames.Count - 1) Finished = true;
+        if (_frame >= _frames.Count - 1)
+        {
+            Finished = true;
+        }
     }
 
     /// <summary>The renderer's camera-path branch (<c>0x00598880</c>): frame i and i + 1 lerped by
@@ -146,7 +161,11 @@ public sealed class CinematicLetterbox
     public float Bar(double now)
     {
         // Multiple consumers of this frame must not turn blend completion into an idle frame.
-        if (now == _sampledAt) return _bar;
+        if (now == _sampledAt)
+        {
+            return _bar;
+        }
+
         _sampledAt = now;
         return _bar = Sample(now);
     }
@@ -180,14 +199,20 @@ public sealed class CinematicLetterbox
     {
         _ = Bar(now);
         _count = unchecked((short)(_count + 1));
-        if (animate) BlendTo(BarFraction, now);
+        if (animate)
+        {
+            BlendTo(BarFraction, now);
+        }
     }
 
     public void Lower(double now, bool animate = true)
     {
         _ = Bar(now);
         _count = unchecked((short)(_count - 1));
-        if (animate && _count == 0) BlendTo(0, now);
+        if (animate && _count == 0)
+        {
+            BlendTo(0, now);
+        }
     }
 
     /// <summary>Game action <c>0x74</c> with 2 (<c>0x004426F0</c>): off whatever raised it.</summary>
@@ -195,13 +220,20 @@ public sealed class CinematicLetterbox
     {
         _ = Bar(now);
         _count = 0;
-        if (animate) BlendTo(0, now);
+        if (animate)
+        {
+            BlendTo(0, now);
+        }
     }
 
     private void BlendTo(float target, double now, double duration = BlendMilliseconds)
     {
         // 0x0044D320 starts no blend when the destination rect already is the target.
-        if (target == _to) return;
+        if (target == _to)
+        {
+            return;
+        }
+
         _from = Bar(now);
         _to = target;
         _start = now;
@@ -229,7 +261,10 @@ public sealed class SubtitleQueue
 
     public void Enqueue(int line, int characters)
     {
-        if (_queue.Count < Slots) _queue.Enqueue((line, characters * MillisecondsPerCharacter));
+        if (_queue.Count < Slots)
+        {
+            _queue.Enqueue((line, characters * MillisecondsPerCharacter));
+        }
     }
 
     /// <summary>The skip's clear: the waiting lines and the gap's clock go (after <c>0x00568140</c>,
@@ -240,7 +275,10 @@ public sealed class SubtitleQueue
     {
         _queue.Clear();
         _lastCleared = 0;
-        if (endShown) Current = -1;
+        if (endShown)
+        {
+            Current = -1;
+        }
     }
 
     public void Update(double now)

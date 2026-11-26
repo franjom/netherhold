@@ -20,7 +20,11 @@ public sealed class GemSparkleGate
     public bool TryPass(CreatureId creature, EffectTime now)
     {
         long quantum = now.Milliseconds / QuantumMilliseconds;
-        if (_quanta.TryGetValue(creature, out long last) && quantum <= last) return false;
+        if (_quanta.TryGetValue(creature, out long last) && quantum <= last)
+        {
+            return false;
+        }
+
         _quanta[creature] = quantum;
         return true;
     }

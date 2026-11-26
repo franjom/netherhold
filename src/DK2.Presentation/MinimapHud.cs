@@ -77,7 +77,11 @@ public sealed class MinimapHud
     /// <summary>A corner's art file, in the engine-texture archive.</summary>
     public static string CornerArt(MinimapCorner corner, bool active)
     {
-        if ((uint)corner > 3) throw new ArgumentOutOfRangeException(nameof(corner));
+        if ((uint)corner > 3)
+        {
+            throw new ArgumentOutOfRangeException(nameof(corner));
+        }
+
         return Corners[(int)corner * 2 + (active ? 1 : 0)];
     }
 
@@ -87,7 +91,10 @@ public sealed class MinimapHud
         yield return FrameArt;
         yield return NorthArt;
         yield return FootprintArt;
-        foreach (string corner in Corners) yield return corner;
+        foreach (string corner in Corners)
+        {
+            yield return corner;
+        }
     }
 
     private static string[] BuildCorners()
@@ -107,7 +114,11 @@ public sealed class MinimapHud
     /// <summary>The corner action a press at a point in virtual units takes; None while the HUD or input is off.</summary>
     public ClassicHudAction CornerPress(float x, float y, bool primary, bool secondary)
     {
-        if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput || !primary && !secondary) return ClassicHudAction.None;
+        if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput || !primary && !secondary)
+        {
+            return ClassicHudAction.None;
+        }
+
         return ClassicHudControlLayout.ActionAt(Reference(x, y), !primary);
     }
 
@@ -118,9 +129,25 @@ public sealed class MinimapHud
     /// <summary>A press on the magnifier zooms: in on the primary button, out on the secondary.</summary>
     public bool ZoomPress(float x, float y, bool primary, bool secondary)
     {
-        if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput || !primary && !secondary) return false;
-        if (!MinimapControlLayout.IsMagnifier(Reference(x, y))) return false;
-        if (primary) ZoomIn(); else ZoomOut();
+        if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput || !primary && !secondary)
+        {
+            return false;
+        }
+
+        if (!MinimapControlLayout.IsMagnifier(Reference(x, y)))
+        {
+            return false;
+        }
+
+        if (primary)
+        {
+            ZoomIn();
+        }
+        else
+        {
+            ZoomOut();
+        }
+
         return true;
     }
 
@@ -128,7 +155,11 @@ public sealed class MinimapHud
     public bool TryNavigate(float x, float y, FpPosition3 focus, Dk2Angle heading, out TilePos target)
     {
         target = default;
-        if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput) return false;
+        if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput)
+        {
+            return false;
+        }
+
         return MinimapNavigation.TryResolve(Reference(x, y), new MinimapNavigationView(_grid.Width, _grid.Height, _zoom, focus, heading), out target);
     }
 
@@ -146,7 +177,10 @@ public sealed class MinimapHud
         _footprintCount = 0;
         if (view is not MinimapCameraView camera || !camera.TryFloorCorners(_corners)
             || !MinimapCameraFootprint.TryBuild(_corners, MapWidth, MapHeight, camera.YawDegrees * (MathF.PI / 180f), _ribbon))
+        {
             return;
+        }
+
         MinimapCameraFootprint.Triangles(_ribbon, _ribbonTriangles);
         _footprintCount = HudTriangles.ClipToCircle(_ribbonTriangles, Disc.X + Disc.Width / 2, Disc.Y + Disc.Height / 2,
             Disc.Width / 2, _footprint);
@@ -161,14 +195,21 @@ public sealed class MinimapHud
     public bool Capture(WorldState world, WorldView view, INavByteGrid navigation, out bool paletteChanged)
     {
         paletteChanged = false;
-        if (_capturedWorld == world && _capturedTick == world.CurrentTick.Value && _capturedPreview == view.PreviewVersion) return false;
+        if (_capturedWorld == world && _capturedTick == world.CurrentTick.Value && _capturedPreview == view.PreviewVersion)
+        {
+            return false;
+        }
+
         _capturedWorld = world; _capturedTick = world.CurrentTick.Value; _capturedPreview = view.PreviewVersion;
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
             {
                 var at = new TilePos(x, y);
                 _grid.Set(at, view.MinimapColourAt(world, navigation, at));
             }
+        }
+
         paletteChanged = Palette.AdvanceNeutralCycle(world.CurrentTick, PlayerIds.Neutral);
         view.CaptureMinimapMarkers(world, Palette, _markers);
         return true;
@@ -183,7 +224,11 @@ public sealed class MinimapHud
     public ClassicHudAction Press(float x, float y, bool primary, bool secondary, FpPosition3 focus, Dk2Angle heading)
     {
         ClassicHudAction corner = CornerPress(x, y, primary, secondary);
-        if (corner != ClassicHudAction.None) return corner;
+        if (corner != ClassicHudAction.None)
+        {
+            return corner;
+        }
+
         return secondary && TryNavigate(x, y, focus, heading, out _) ? ClassicHudAction.ToggleFullMap : ClassicHudAction.None;
     }
 
@@ -203,12 +248,19 @@ public sealed class MinimapHud
     /// <summary>The possession frame has empty corner panels and accepts no corner hover state.</summary>
     public void BuildPossession(HudScaleLayout layout, Dk2Angle heading, HudFrame frame)
     {
-        if (!_visibility.ShowNormalHud || layout.Height <= 0) return;
+        if (!_visibility.ShowNormalHud || layout.Height <= 0)
+        {
+            return;
+        }
+
         if (_zoom.IsWholeMap && _footprintCount > 0)
         {
             float scale = PossessionHud.ContentXScale(layout), shift = 1920 / layout.Factor - 1920;
             for (int i = 0; i < _footprintCount; i++)
+            {
                 _possessionFootprint[i] = _footprint[i] with { X = _footprint[i].X * scale, Y = _footprint[i].Y + shift };
+            }
+
             frame.AddTriangles(FootprintArt, new ReadOnlySpan<HudVertex>(_possessionFootprint, 0, _footprintCount), HudColor.White);
         }
         HudQuads.Clipped(frame, PossessionFrameArt, PossessionRect(FrameRect, layout), PossessionRect(FrameClip, layout), HudColor.White);
@@ -227,18 +279,27 @@ public sealed class MinimapHud
     /// <param name="heading">The camera's heading, which places the north sprite on the ring.</param>
     public void Build(HudScreen screen, (float X, float Y) pointer, Dk2Angle heading, HudFrame frame)
     {
-        if (!_visibility.ShowNormalHud || screen.Height <= 0) return;
+        if (!_visibility.ShowNormalHud || screen.Height <= 0)
+        {
+            return;
+        }
         // Draw over the disc and under the frame. The native z-order is
         // unread (minimap-rendering.md). Whole map only.
         if (_zoom.IsWholeMap && _footprintCount > 0)
+        {
             frame.AddTriangles(FootprintArt, new ReadOnlySpan<HudVertex>(_footprint, 0, _footprintCount), HudColor.White);
+        }
+
         HudQuads.Clipped(frame, FrameArt, FrameRect, FrameClip, HudColor.White);
         ClassicHudAction hover = ClassicHudControlLayout.ActionAt(Reference(pointer.X, pointer.Y), false);
         for (int i = 0; i < 4; i++)
         {
             ClassicHudAction action = CornerActions[i];
             bool active = i == 2 ? _optionsVisible : i < 2 && _selected == action;
-            if (!active && hover != action) continue;
+            if (!active && hover != action)
+            {
+                continue;
+            }
             // Measured, not read: each 32-texel corner is drawn at the frame's 1.6 units a texel over the frame's own
             // corner art, at texels (0,0), (79,0), (0,78) and (79,78), found by matching the sprites against
             // gui/map/map. A candidate sprite renderer, 0x0059B0C0, sizes sprites by resource size times render

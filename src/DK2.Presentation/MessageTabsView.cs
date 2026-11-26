@@ -48,7 +48,10 @@ public sealed class MessageTabsView
     /// <summary>Suppresses automatic speech while retaining the notification and its tab.</summary>
     public void SuppressSpeech(PlayerMessage message)
     {
-        if (message.PlayerId == _viewer) _heard.Add(message.Id);
+        if (message.PlayerId == _viewer)
+        {
+            _heard.Add(message.Id);
+        }
     }
     private readonly HashSet<uint> _heard = new();
     private readonly bool[] _slidingSlots = new bool[RecordsExamined];
@@ -66,41 +69,81 @@ public sealed class MessageTabsView
 
     public void Capture(WorldState world, long nowMilliseconds, HudVisibility visibility)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         _tabs.Clear();
         _live.Clear();
         bool flashTurn = ((world.CurrentTick.Value + 1) & 1) != 0;   // DK2's turn is our tick plus one (ADR-0119)
         int examined = 0;
         foreach (PlayerMessage message in world.Messages.Entries)
         {
-            if (message.PlayerId != _viewer) continue;
+            if (message.PlayerId != _viewer)
+            {
+                continue;
+            }
+
             _live[message.Id] = message;
             if (_heard.Add(message.Id) && message.Kind is not (PlayerMessageKind.ScriptedSpeech or PlayerMessageKind.CreatureIntroduction))
             {
                 int reference = ReferenceAtPost(world, message);
-                if (reference < -10000) Speech.Add(new SoundRequest(SoundCategory.Mentor, new SoundId((uint)(-reference - 9999))));
+                if (reference < -10000)
+                {
+                    Speech.Add(new SoundRequest(SoundCategory.Mentor, new SoundId((uint)(-reference - 9999))));
+                }
             }
             // Keep first-observation time while 0x00403E27 skips the HUD update. DK2 stamps
             // insertion (0x004C4600); hiding must not restart that 640 ms window.
-            if (!_stamps.TryGetValue(message.Id, out long stamp)) _stamps[message.Id] = stamp = nowMilliseconds;
-            if (!_references.ContainsKey(message.Id)) _references[message.Id] = ReferenceAtPost(world, message);
-            if (!visibility.ShowNormalHud || examined++ >= RecordsExamined) continue;
-            if (!message.NeedsTab || _dismissed.Contains(message.Id)) continue;
+            if (!_stamps.TryGetValue(message.Id, out long stamp))
+            {
+                _stamps[message.Id] = stamp = nowMilliseconds;
+            }
+
+            if (!_references.ContainsKey(message.Id))
+            {
+                _references[message.Id] = ReferenceAtPost(world, message);
+            }
+
+            if (!visibility.ShowNormalHud || examined++ >= RecordsExamined)
+            {
+                continue;
+            }
+
+            if (!message.NeedsTab || _dismissed.Contains(message.Id))
+            {
+                continue;
+            }
+
             int slot = _tabs.Count;
             long age = (nowMilliseconds - stamp) / 10;
             int x = (slot + 1) * SlotWidth + (age < SlideSteps ? SlideStart - SlideStep * (int)age : 0);
             bool sliding = age < SlideSteps;
             if (sliding || _slidingSlots[slot])
+            {
                 Sounds.Add(new SoundRequest(new SoundCategory("gui_message_bar"),
                     new SoundId(!sliding ? 0x322u : _slidingSlots[slot] ? 0x321u : 0x320u), Voice: new SoundVoiceId((uint)slot + 1)));
+            }
+
             _slidingSlots[slot] = sliding;
             int frame = slot == Hovered ? 1 : flashTurn && !_opened.Contains(message.Id) ? 2 : 0;
             _tabs.Add(new MessageTab(message.Id, MessageTypeTable.Graphic((int)message.Kind), frame, x));
         }
         _gone.Clear();
-        foreach (uint id in _stamps.Keys) if (!_live.ContainsKey(id)) _gone.Add(id);
+        foreach (uint id in _stamps.Keys)
+        {
+            if (!_live.ContainsKey(id))
+            {
+                _gone.Add(id);
+            }
+        }
+
         foreach (uint id in _gone) { _stamps.Remove(id); _dismissed.Remove(id); _opened.Remove(id); _references.Remove(id); }
-        if (Open is PlayerMessage open && !_live.ContainsKey(open.Id)) Open = null;
+        if (Open is PlayerMessage open && !_live.ContainsKey(open.Id))
+        {
+            Open = null;
+        }
     }
 
     /// <summary>A record of the viewer's seen at the last capture, or null.</summary>
@@ -109,7 +152,11 @@ public sealed class MessageTabsView
     /// <summary>0x00423F50, a left click: the message is opened (its flash stops) and menu40 shows it.</summary>
     public void OpenTab(int slot)
     {
-        if ((uint)slot >= (uint)_tabs.Count || !_live.TryGetValue(_tabs[slot].MessageId, out PlayerMessage message)) return;
+        if ((uint)slot >= (uint)_tabs.Count || !_live.TryGetValue(_tabs[slot].MessageId, out PlayerMessage message))
+        {
+            return;
+        }
+
         _opened.Add(message.Id);
         Open = message;
     }
@@ -117,16 +164,27 @@ public sealed class MessageTabsView
     /// <summary>0x00424220, a right click: the tab goes, and menu40 closes if it shows that message.</summary>
     public void DismissTab(int slot)
     {
-        if ((uint)slot >= (uint)_tabs.Count) return;
+        if ((uint)slot >= (uint)_tabs.Count)
+        {
+            return;
+        }
+
         uint id = _tabs[slot].MessageId;
         _dismissed.Add(id);
-        if (Open?.Id == id) Open = null;
+        if (Open?.Id == id)
+        {
+            Open = null;
+        }
     }
 
     /// <summary>menu40's exit button (0x00424790): dismiss the open message and close.</summary>
     public void DismissOpen()
     {
-        if (Open is PlayerMessage open) _dismissed.Add(open.Id);
+        if (Open is PlayerMessage open)
+        {
+            _dismissed.Add(open.Id);
+        }
+
         Open = null;
     }
 
@@ -159,7 +217,11 @@ public sealed class MessageTabsView
     /// (the Heart), none of which our queue posts.</summary>
     public (float X, float Y)? Location(WorldState world, in PlayerMessage message)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         switch ((int)message.Kind)
         {
             case 1: case 3: case 11: case 12: case 29: case 38: case 47:
@@ -183,10 +245,17 @@ public sealed class MessageTabsView
     /// is keyed on message id and tick only, so one view serves one world.</summary>
     public (float X, float Y)? LocationOncePerTick(WorldState world, in PlayerMessage message)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         GameTick tick = world.CurrentTick;
         if (_locatedId != message.Id || _locatedTick != tick)
+        {
             (_locatedId, _locatedTick, _located) = (message.Id, tick, Location(world, message));
+        }
+
         return _located;
     }
 
@@ -200,7 +269,11 @@ public sealed class MessageTabsView
 
     private (float, float)? RoomAt(WorldState world, int firstSlab)
     {
-        if (_database is null || (uint)firstSlab >= (uint)(world.Width * world.Height)) return null;
+        if (_database is null || (uint)firstSlab >= (uint)(world.Width * world.Height))
+        {
+            return null;
+        }
+
         return RoomIndex.RoomAt(world, _database, firstSlab) is RoomInstance room
             ? (room.CentreFieldX + .5f, room.CentreFieldY + .5f) : null;
     }
@@ -213,12 +286,21 @@ public sealed class MessageTabsView
     {
         if (_database is not null && message.Kind == PlayerMessageKind.CreatureLeft
             && _database.Creatures.TryGetValue((byte)message.Data1, out CreatureDef? left))
+        {
             return -10000 - left.LeftSpeechId;
+        }
+
         if (_database is null || message.Kind is not (PlayerMessageKind.CreatureUnhappy or PlayerMessageKind.CreatureAngry))
+        {
             return StringReference(message);
+        }
+
         if (world.CreatureById((int)message.Data2) is not CreatureState creature
             || !_database.Creatures.TryGetValue(creature.CreatureTypeId, out CreatureDef? definition))
+        {
             return StringReference(message);
+        }
+
         int speech = message.Kind == PlayerMessageKind.CreatureUnhappy ? definition.UnhappySpeechId : definition.AngrySpeechId;
         return -9999 - (speech + 1 + (int)message.Data1);
     }

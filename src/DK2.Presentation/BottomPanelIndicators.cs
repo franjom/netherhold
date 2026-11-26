@@ -32,12 +32,23 @@ public static class BottomPanelProgress
     /// exactly "CanCast passes the cooldown" at the same tick.</summary>
     public static byte RechargePercent(long lastCastTick, long now, int cooldownRaw)
     {
-        if (lastCastTick == 0) return 100;
+        if (lastCastTick == 0)
+        {
+            return 100;
+        }
+
         long cooldown = (uint)unchecked(cooldownRaw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
         long elapsed = now - lastCastTick;
-        if (elapsed >= cooldown) return 100;
+        if (elapsed >= cooldown)
+        {
+            return 100;
+        }
         // DK2 divides by zero here only for a zero cooldown with a negative elapsed; ours cannot rewind.
-        if (cooldown == 0) return 100;
+        if (cooldown == 0)
+        {
+            return 100;
+        }
+
         return unchecked((byte)((0x64000 / cooldown * elapsed) >> 12));
     }
 

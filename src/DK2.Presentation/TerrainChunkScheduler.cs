@@ -88,8 +88,16 @@ public sealed class TerrainChunkScheduler
         Func<double>? now, bool stateTexture = false)
     {
         _stateTexture = stateTexture;
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (width <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
         Builder = new TerrainTileBuilder(pieces, width, height, lattice, stateTexture);
         _lattice = lattice;
         _width = width;
@@ -153,12 +161,23 @@ public sealed class TerrainChunkScheduler
             int x = tileIndex % _width, y = tileIndex / _width;
             _lattice.Invalidate(x, y);
             for (int ty = Math.Max(0, y - StaleReach); ty <= Math.Min(_height - 1, y + StaleReach); ty++)
+            {
                 for (int tx = Math.Max(0, x - StaleReach); tx <= Math.Min(_width - 1, x + StaleReach); tx++)
+                {
                     MarkStale((ty * _width) + tx);
+                }
+            }
         }
-        else if (draws || _drawn[tileIndex]) MarkStale(tileIndex);
+        else if (draws || _drawn[tileIndex])
+        {
+            MarkStale(tileIndex);
+        }
+
         if (!_stateTexture && (tile.Tagged != _tiles[tileIndex].Tagged || tile.AmbientTint != _tiles[tileIndex].AmbientTint))
+        {
             MarkNeighboursStale(tileIndex);
+        }
+
         _tiles[tileIndex] = tile;
         _drawn[tileIndex] = draws;
         return draws;
@@ -169,9 +188,17 @@ public sealed class TerrainChunkScheduler
     /// stays dirty. While a build runs under a budget the flush only waits for the next one.</summary>
     public void Flush(ITerrainChunkSink sink)
     {
-        if (sink is null) throw new ArgumentNullException(nameof(sink));
+        if (sink is null)
+        {
+            throw new ArgumentNullException(nameof(sink));
+        }
+
         LastFlushMilliseconds = 0;
-        if (_dirtyCount == 0) return;
+        if (_dirtyCount == 0)
+        {
+            return;
+        }
+
         double start = _now();
         bool budgeted = FlushBudgetMilliseconds > 0 && _shownCount > 0;
         if (_buildTask != null)
@@ -186,16 +213,40 @@ public sealed class TerrainChunkScheduler
 
         int count = 0;
         for (int chunk = 0; chunk < _dirty.Length; chunk++)
-            if (_dirty[chunk]) _order[count++] = chunk;
-        if (budgeted) StartBuild(count);
-        else BuildInline(count);
+        {
+            if (_dirty[chunk])
+            {
+                _order[count++] = chunk;
+            }
+        }
+
+        if (budgeted)
+        {
+            StartBuild(count);
+        }
+        else
+        {
+            BuildInline(count);
+        }
 
         for (int i = 0; i < count; i++)
         {
-            if (budgeted && _dirtyCount < count && _now() - start >= FlushBudgetMilliseconds) break;
+            if (budgeted && _dirtyCount < count && _now() - start >= FlushBudgetMilliseconds)
+            {
+                break;
+            }
+
             int chunk = _order[i];
-            if (AnyStale(chunk)) continue;
-            using (Profiler.Scope(Markers.Rebuild)) Upload(chunk, sink);
+            if (AnyStale(chunk))
+            {
+                continue;
+            }
+
+            using (Profiler.Scope(Markers.Rebuild))
+            {
+                Upload(chunk, sink);
+            }
+
             _dirty[chunk] = false;
             _dirtyCount--;
         }
@@ -222,7 +273,11 @@ public sealed class TerrainChunkScheduler
     public void JoinBuild()
     {
         Task? build = _buildTask;
-        if (build == null) return;
+        if (build == null)
+        {
+            return;
+        }
+
         using (Profiler.Scope(Markers.Join))
         {
             _buildTask = null;
@@ -232,9 +287,17 @@ public sealed class TerrainChunkScheduler
             }
             finally
             {
-                for (int i = 0; i < _buildingCount; i++) _stale[_building[i]] = false;
+                for (int i = 0; i < _buildingCount; i++)
+                {
+                    _stale[_building[i]] = false;
+                }
+
                 _buildingCount = 0;
-                for (int i = 0; i < _packingCount; i++) _packed[_packing[i]] = true;
+                for (int i = 0; i < _packingCount; i++)
+                {
+                    _packed[_packing[i]] = true;
+                }
+
                 _packingCount = 0;
             }
         }
@@ -261,10 +324,25 @@ public sealed class TerrainChunkScheduler
     private void MarkNeighboursStale(int tileIndex)
     {
         int x = tileIndex % _width, y = tileIndex / _width;
-        if (x > 0) MarkStale(tileIndex - 1);
-        if (x < _width - 1) MarkStale(tileIndex + 1);
-        if (y > 0) MarkStale(tileIndex - _width);
-        if (y < _height - 1) MarkStale(tileIndex + _width);
+        if (x > 0)
+        {
+            MarkStale(tileIndex - 1);
+        }
+
+        if (x < _width - 1)
+        {
+            MarkStale(tileIndex + 1);
+        }
+
+        if (y > 0)
+        {
+            MarkStale(tileIndex - _width);
+        }
+
+        if (y < _height - 1)
+        {
+            MarkStale(tileIndex + _width);
+        }
     }
 
     private void MarkStale(int tileIndex)
@@ -272,7 +350,11 @@ public sealed class TerrainChunkScheduler
         _stale[tileIndex] = true;
         int chunk = ChunkOf(tileIndex);
         _packed[chunk] = false;
-        if (_dirty[chunk]) return;
+        if (_dirty[chunk])
+        {
+            return;
+        }
+
         _dirty[chunk] = true;
         _dirtyCount++;
     }
@@ -281,8 +363,16 @@ public sealed class TerrainChunkScheduler
     {
         int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
         for (int y = y0; y < Math.Min(y0 + ChunkSize, _height); y++)
+        {
             for (int x = x0; x < Math.Min(x0 + ChunkSize, _width); x++)
-                if (_stale[(y * _width) + x]) return true;
+            {
+                if (_stale[(y * _width) + x])
+                {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
@@ -296,10 +386,15 @@ public sealed class TerrainChunkScheduler
             int chunk = _order[i];
             int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
             for (int y = y0; y < Math.Min(y0 + ChunkSize, _height); y++)
+            {
                 for (int x = x0; x < Math.Min(x0 + ChunkSize, _width); x++)
                 {
                     int index = (y * _width) + x;
-                    if (!_stale[index]) continue;
+                    if (!_stale[index])
+                    {
+                        continue;
+                    }
+
                     if (!_drawn[index])
                     {
                         _stale[index] = false;
@@ -308,6 +403,7 @@ public sealed class TerrainChunkScheduler
                     Builder.Prepare(x, y, _tiles, _geometry[index] ??= new TerrainTileGeometry());
                     _building[_buildingCount++] = index;
                 }
+            }
         }
     }
 
@@ -315,7 +411,11 @@ public sealed class TerrainChunkScheduler
     {
         PrepareStale(count);
         PlanPacking(count);
-        if (_buildingCount == 0) return;
+        if (_buildingCount == 0)
+        {
+            return;
+        }
+
         _buildTask = Task.Run(_buildPending);
     }
 
@@ -328,9 +428,17 @@ public sealed class TerrainChunkScheduler
             BuildPending();
             PackPending();
         }
-        for (int i = 0; i < _buildingCount; i++) _stale[_building[i]] = false;
+        for (int i = 0; i < _buildingCount; i++)
+        {
+            _stale[_building[i]] = false;
+        }
+
         _buildingCount = 0;
-        for (int i = 0; i < _packingCount; i++) _packed[_packing[i]] = true;
+        for (int i = 0; i < _packingCount; i++)
+        {
+            _packed[_packing[i]] = true;
+        }
+
         _packingCount = 0;
     }
 
@@ -343,7 +451,10 @@ public sealed class TerrainChunkScheduler
 
     private void BuildPending()
     {
-        for (int i = 0; i < _buildingCount; i++) Builder.Build(_geometry[_building[i]]!);
+        for (int i = 0; i < _buildingCount; i++)
+        {
+            Builder.Build(_geometry[_building[i]]!);
+        }
     }
 
     /// <summary>After <see cref="PrepareStale"/>: the dirty chunks not packed since their last change. One with a tile
@@ -351,12 +462,23 @@ public sealed class TerrainChunkScheduler
     /// changed tiles all stopped drawing is packed here, so it uploads in this flush as without a packer.</summary>
     private void PlanPacking(int count)
     {
-        if (Packer == null) return;
+        if (Packer == null)
+        {
+            return;
+        }
+
         for (int i = 0; i < count; i++)
         {
             int chunk = _order[i];
-            if (_packed[chunk]) continue;
-            if (AnyStale(chunk)) _packing[_packingCount++] = chunk;
+            if (_packed[chunk])
+            {
+                continue;
+            }
+
+            if (AnyStale(chunk))
+            {
+                _packing[_packingCount++] = chunk;
+            }
             else
             {
                 Pack(chunk);
@@ -367,7 +489,10 @@ public sealed class TerrainChunkScheduler
 
     private void PackPending()
     {
-        for (int i = 0; i < _packingCount; i++) Pack(_packing[i]);
+        for (int i = 0; i < _packingCount; i++)
+        {
+            Pack(_packing[i]);
+        }
     }
 
     private void Pack(int chunk)
@@ -375,11 +500,17 @@ public sealed class TerrainChunkScheduler
         int count = 0;
         int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
         for (int y = y0; y < Math.Min(y0 + ChunkSize, _height); y++)
+        {
             for (int x = x0; x < Math.Min(x0 + ChunkSize, _width); x++)
             {
                 int index = (y * _width) + x;
-                if (_drawn[index] && _geometry[index] is TerrainTileGeometry geometry) _packTiles[count++] = geometry;
+                if (_drawn[index] && _geometry[index] is TerrainTileGeometry geometry)
+                {
+                    _packTiles[count++] = geometry;
+                }
             }
+        }
+
         Packer!.PackChunk(chunk, new ReadOnlySpan<TerrainTileGeometry>(_packTiles, 0, count));
     }
 
@@ -389,15 +520,26 @@ public sealed class TerrainChunkScheduler
         bool shows = false;
         int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
         for (int y = y0; y < Math.Min(y0 + ChunkSize, _height); y++)
+        {
             for (int x = x0; x < Math.Min(x0 + ChunkSize, _width); x++)
             {
                 int index = (y * _width) + x;
-                if (!_drawn[index] || _geometry[index] is not TerrainTileGeometry geometry) continue;
+                if (!_drawn[index] || _geometry[index] is not TerrainTileGeometry geometry)
+                {
+                    continue;
+                }
+
                 sink.AddTile(index, geometry);
                 shows |= geometry.VertexCount > 0;
             }
+        }
+
         sink.EndChunk(chunk);
-        if (shows != _shown[chunk]) _shownCount += shows ? 1 : -1;
+        if (shows != _shown[chunk])
+        {
+            _shownCount += shows ? 1 : -1;
+        }
+
         _shown[chunk] = shows;
     }
 }

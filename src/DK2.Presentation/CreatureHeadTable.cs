@@ -21,8 +21,14 @@ public sealed class CreatureHeadTable
 
     public void Set(CreatureId creature, FpPosition3? head)
     {
-        if (_heads.TryGetValue(creature, out Slot? slot)) slot.Write(head);
-        else _heads[creature] = new Slot(head);
+        if (_heads.TryGetValue(creature, out Slot? slot))
+        {
+            slot.Write(head);
+        }
+        else
+        {
+            _heads[creature] = new Slot(head);
+        }
     }
 
     public void Remove(CreatureId creature) => _heads.TryRemove(creature, out _);
@@ -33,7 +39,11 @@ public sealed class CreatureHeadTable
     /// found for a clip without one or another point.</summary>
     public EffectAttachment Attachment(CreatureId creature, uint point)
     {
-        if (!_heads.TryGetValue(creature, out Slot? slot)) return EffectAttachment.Gone;
+        if (!_heads.TryGetValue(creature, out Slot? slot))
+        {
+            return EffectAttachment.Gone;
+        }
+
         FpPosition3? head = slot.Read();
         return point == KmfControlPoint.Head && head.HasValue ? EffectAttachment.At(head.Value) : EffectAttachment.NotFound;
     }
@@ -45,12 +55,18 @@ public sealed class CreatureHeadTable
 
         public FpPosition3? Read()
         {
-            lock (this) return _head;
+            lock (this)
+            {
+                return _head;
+            }
         }
 
         public void Write(FpPosition3? head)
         {
-            lock (this) _head = head;
+            lock (this)
+            {
+                _head = head;
+            }
         }
     }
 }

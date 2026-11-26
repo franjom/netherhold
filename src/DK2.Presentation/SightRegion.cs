@@ -13,7 +13,11 @@ public readonly record struct SightRegion
 {
     public SightRegion(GameTick start, TilePos position, int durationTicks, int radiusTiles, int width, int height)
     {
-        if (durationTicks <= 16) throw new ArgumentOutOfRangeException(nameof(durationTicks));
+        if (durationTicks <= 16)
+        {
+            throw new ArgumentOutOfRangeException(nameof(durationTicks));
+        }
+
         Start = start;
         DurationTicks = durationTicks;
         int radius = Math.Max(0, Math.Min(7, radiusTiles));
@@ -43,11 +47,18 @@ public readonly record struct SightRegion
         // Nullable SightRegion represents absence; simulation tick zero is a valid start.
         if (elapsed < 0 || elapsed > DurationTicks
             || position.X < Lower.X || position.X >= Upper.X || position.Y < Lower.Y || position.Y >= Upper.Y)
+        {
             return byte.MaxValue;
+        }
+
         int plateau = (DurationTicks - 16) / 2;
         int phase = (int)Math.Min(plateau, Math.Min(elapsed, DurationTicks - elapsed));
         int reach = phase * 1280 / plateau;
-        if (reach == 0) return byte.MaxValue;
+        if (reach == 0)
+        {
+            return byte.MaxValue;
+        }
+
         int dx = (position.X - (Lower.X + Upper.X) / 2) * 256;
         int dy = (position.Y - (Lower.Y + Upper.Y) / 2) * 256;
         int distance = IntegerMath.SquareRoot(unchecked((uint)(dx * dx + dy * dy)));

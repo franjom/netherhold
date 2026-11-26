@@ -35,7 +35,11 @@ public sealed class InstallBottomPanelArt : IBottomPanelArt, IDisposable
     public InstallBottomPanelArt(InstallHudSources sources, GameDatabase database)
     {
         _sources = sources ?? throw new ArgumentNullException(nameof(sources));
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
         string install = sources.Install;
         _strings = sources.Strings;
         Dk2ArtCatalogue art = sources.Catalogue;
@@ -43,16 +47,26 @@ public sealed class InstallBottomPanelArt : IBottomPanelArt, IDisposable
         {
             var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, room.RoomId);
             _names[key] = _strings.Resolve(room.NameStringId);
-            if (art.Rooms.TryGetValue(room.RoomId, out IReadOnlyList<Dk2ArtResource>? resources)) _icons[key] = resources[0].Name;
+            if (art.Rooms.TryGetValue(room.RoomId, out IReadOnlyList<Dk2ArtResource>? resources))
+            {
+                _icons[key] = resources[0].Name;
+            }
         }
         // A stored special's slot draws runtime art slot 0, file art #1, the GuiIconResource
         // (0x00412FC0 installs the definition itself; object-drawing.md §2).
         foreach (ObjectDef special in database.Objects.Values)
         {
-            if (!special.IsSpecial) continue;
+            if (!special.IsSpecial)
+            {
+                continue;
+            }
+
             var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Special, special.ObjectId);
             _names[key] = _strings.Resolve(special.NameStringId);
-            if (art.Objects.TryGetValue(special.ObjectId, out IReadOnlyList<Dk2ArtResource>? resources) && resources.Count > 1) _icons[key] = resources[1].Name;
+            if (art.Objects.TryGetValue(special.ObjectId, out IReadOnlyList<Dk2ArtResource>? resources) && resources.Count > 1)
+            {
+                _icons[key] = resources[1].Name;
+            }
         }
         Read(install, "KeeperSpells", KwdRecordType.KeeperSpells, 406, 0xEE, 0xE6, BottomPanelChoiceKind.Spell);
         Read(install, "Doors", KwdRecordType.Doors, 616, 0x244, 0x23C, BottomPanelChoiceKind.Door);
@@ -64,8 +78,16 @@ public sealed class InstallBottomPanelArt : IBottomPanelArt, IDisposable
     {
         foreach (KwdChunk chunk in KwdReader.ReadFile(Path.Combine(install, "Data", "editor", file + ".kwd")))
         {
-            if (chunk.Type != type) continue;
-            if (chunk.Content.Length != chunk.ItemCount * size) throw new InvalidDataException("Unexpected interface definition size.");
+            if (chunk.Type != type)
+            {
+                continue;
+            }
+
+            if (chunk.Content.Length != chunk.ItemCount * size)
+            {
+                throw new InvalidDataException("Unexpected interface definition size.");
+            }
+
             for (int at = 0; at < chunk.Content.Length; at += size)
             {
                 byte[] data = chunk.Content;
@@ -75,13 +97,24 @@ public sealed class InstallBottomPanelArt : IBottomPanelArt, IDisposable
                 _order[key] = data[at + orderOffset];
                 int start = at + (kind == BottomPanelChoiceKind.Spell ? 0x20 : 0x74);
                 int end = start;
-                while (end < start + 64 && data[end] != 0) end++;
+                while (end < start + 64 && data[end] != 0)
+                {
+                    end++;
+                }
+
                 _icons[key] = Encoding.ASCII.GetString(data, start, end - start);
                 if (kind == BottomPanelChoiceKind.Spell)
                 {
                     int upgraded = at + 0x120, stop = upgraded;
-                    while (stop < upgraded + 64 && data[stop] != 0) stop++;
-                    if (stop > upgraded) _upgradedIcons[key] = Encoding.ASCII.GetString(data, upgraded, stop - upgraded);
+                    while (stop < upgraded + 64 && data[stop] != 0)
+                    {
+                        stop++;
+                    }
+
+                    if (stop > upgraded)
+                    {
+                        _upgradedIcons[key] = Encoding.ASCII.GetString(data, upgraded, stop - upgraded);
+                    }
                 }
             }
         }
@@ -98,6 +131,9 @@ public sealed class InstallBottomPanelArt : IBottomPanelArt, IDisposable
 
     public void Dispose()
     {
-        if (_owned) _sources.Dispose();
+        if (_owned)
+        {
+            _sources.Dispose();
+        }
     }
 }

@@ -18,7 +18,11 @@ public static class PointerGestures
     /// panel or no cursor feedback passes null.</summary>
     public static void CancelAll(IPointerGestureHolder? panel, PlayerInputTranslator input, HandCursorFeedback? feedback)
     {
-        if (input is null) throw new ArgumentNullException(nameof(input));
+        if (input is null)
+        {
+            throw new ArgumentNullException(nameof(input));
+        }
+
         panel?.CancelPointerGesture();
         input.CancelPointerGesture();
         feedback?.Reset();

@@ -58,7 +58,11 @@ public sealed class MoviePlayback : IDisposable
             _audio = new EaAudioStream(_timeline);
             _delayFrames = (long)Math.Round(StartDelaySeconds * SampleRate);
         }
-        if (_timeline.VideoFrames.Count == 0) return;
+        if (_timeline.VideoFrames.Count == 0)
+        {
+            return;
+        }
+
         (Width, Height) = TqiDecoder.FrameSize(movie.Payload(_timeline.VideoFrames[0]));
         _shownPixels = new byte[Width * Height * 4];
         _aheadPixels = new byte[_shownPixels.Length];
@@ -129,7 +133,11 @@ public sealed class MoviePlayback : IDisposable
     /// <summary>Ends the movie when <paramref name="input"/> skips it; true if it did.</summary>
     public bool Press(MovieInput input)
     {
-        if (Finished || !Skips(input)) return false;
+        if (Finished || !Skips(input))
+        {
+            return false;
+        }
+
         Skipped = true;
         Finished = true;
         return true;
@@ -144,8 +152,15 @@ public sealed class MoviePlayback : IDisposable
             int frames = interleaved.Length / 2;
             int silent = (int)Math.Min(frames, Math.Max(0, _delayFrames - _delivered));
             interleaved.Slice(0, silent * 2).Clear();
-            if (_audio != null) _audio.Read(interleaved.Slice(silent * 2));
-            else interleaved.Slice(silent * 2).Clear();
+            if (_audio != null)
+            {
+                _audio.Read(interleaved.Slice(silent * 2));
+            }
+            else
+            {
+                interleaved.Slice(silent * 2).Clear();
+            }
+
             _delivered += frames;
         }
     }
@@ -157,7 +172,11 @@ public sealed class MoviePlayback : IDisposable
     /// <returns>True when <see cref="Pixels"/> holds a new frame to upload.</returns>
     public bool Update(double seconds, long audioFramesPlayed)
     {
-        if (Finished) return false;
+        if (Finished)
+        {
+            return false;
+        }
+
         int showable;
         bool audioDone;
         long played = -1;
@@ -183,7 +202,11 @@ public sealed class MoviePlayback : IDisposable
             if (changed && HasAudio)
             {
                 double lagMs = (played - _timeline.DueAudioFrame(next)) * 1000.0 / SampleRate;
-                if (_framesShown == 1) _lagMsFirst = lagMs;
+                if (_framesShown == 1)
+                {
+                    _lagMsFirst = lagMs;
+                }
+
                 _lagMsLast = lagMs;
                 _lagMsSum += lagMs;
                 _lagMsMax = Math.Max(_lagMsMax, lagMs);
@@ -191,7 +214,11 @@ public sealed class MoviePlayback : IDisposable
             }
         }
 
-        if (Failure != null || audioDone && _shown >= _timeline.VideoFrames.Count - 1) Finished = true;
+        if (Failure != null || audioDone && _shown >= _timeline.VideoFrames.Count - 1)
+        {
+            Finished = true;
+        }
+
         return changed;
     }
 
@@ -200,10 +227,22 @@ public sealed class MoviePlayback : IDisposable
     public string Summary()
     {
         string head = $"DK2 movie {Name}: {_framesShown} of {FrameCount} frames shown, {_framesDropped} dropped";
-        if (Skipped) head += ", skipped";
-        if (_framesShown == 0) return head;
+        if (Skipped)
+        {
+            head += ", skipped";
+        }
+
+        if (_framesShown == 0)
+        {
+            return head;
+        }
+
         head += FormattableString.Invariant($"; decode {_decodeMsSum / _framesShown:F2} ms average, {_decodeMsMax:F2} ms max");
-        if (!HasAudio) return head;
+        if (!HasAudio)
+        {
+            return head;
+        }
+
         return head + FormattableString.Invariant($"; shown {_lagMsSum / _framesShown:F1} ms average after due by the audio clock ") +
                FormattableString.Invariant($"({_lagMsMin:F1} to {_lagMsMax:F1} ms), drift {_lagMsLast - _lagMsFirst:F1} ms first to last frame");
     }
@@ -221,9 +260,17 @@ public sealed class MoviePlayback : IDisposable
     private void DecodeAhead(int index)
     {
         _aheadIndex = -1;
-        if (index >= _timeline.VideoFrames.Count || _decodeError != null) return;
+        if (index >= _timeline.VideoFrames.Count || _decodeError != null)
+        {
+            return;
+        }
+
         (int width, int height) = TqiDecoder.FrameSize(_timeline.Movie.Payload(_timeline.VideoFrames[index]));
-        if (width != Width || height != Height) return; // a size change is not expected in DK2's movies
+        if (width != Width || height != Height)
+        {
+            return; // a size change is not expected in DK2's movies
+        }
+
         _aheadIndex = index;
         _requested = index;
         _decoded.Reset();
@@ -235,7 +282,11 @@ public sealed class MoviePlayback : IDisposable
         while (true)
         {
             _request.WaitOne();
-            if (_stopping) return;
+            if (_stopping)
+            {
+                return;
+            }
+
             long start = Stopwatch.GetTimestamp();
             try { _decoder.Decode(_timeline.Movie.Payload(_timeline.VideoFrames[_requested]), _aheadPixels); }
             catch (Exception ex) when (ex is InvalidDataException or ArgumentException or IndexOutOfRangeException) { _decodeError = ex; }
@@ -247,13 +298,21 @@ public sealed class MoviePlayback : IDisposable
     private bool ShowFrame(int index)
     {
         _shown = index;
-        if (_aheadIndex < 0) return false;
+        if (_aheadIndex < 0)
+        {
+            return false;
+        }
+
         _decoded.WaitOne(); // waits only while the worker is still decoding
         if (_aheadIndex != index)
         {
             // Frames were dropped past the one decoded ahead: decode the due one now.
             DecodeAhead(index);
-            if (_aheadIndex < 0) return false;
+            if (_aheadIndex < 0)
+            {
+                return false;
+            }
+
             _decoded.WaitOne();
         }
         if (_decodeError != null)

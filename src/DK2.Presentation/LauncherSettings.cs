@@ -50,13 +50,21 @@ public sealed record LauncherSettings
 
     public static LauncherSettings Parse(string text)
     {
-        if (text is null) throw new ArgumentNullException(nameof(text));
+        if (text is null)
+        {
+            throw new ArgumentNullException(nameof(text));
+        }
+
         LauncherSettings settings = Default;
         foreach (string raw in text.Split('\n'))
         {
             string line = raw.Trim();
             int equals = line.IndexOf('=');
-            if (line.Length == 0 || line[0] == '#' || equals <= 0) continue;
+            if (line.Length == 0 || line[0] == '#' || equals <= 0)
+            {
+                continue;
+            }
+
             string key = line.Substring(0, equals).Trim().ToLowerInvariant();
             string value = line.Substring(equals + 1).Trim();
             settings = key switch
@@ -80,8 +88,11 @@ public sealed record LauncherSettings
         text.Append("menu_font=").Append(MenuFont ?? "").Append('\n');
         text.Append("screen=").Append(ScreenName(Screen)).Append('\n');
         if (WindowSize is LauncherWindowSize size)
+        {
             text.Append("window=").Append(size.Width.ToString(CultureInfo.InvariantCulture)).Append('x')
                 .Append(size.Height.ToString(CultureInfo.InvariantCulture)).Append('\n');
+        }
+
         text.Append("start_directly=").Append(StartDirectly ? "true" : "false").Append('\n');
         return text.ToString();
     }
@@ -113,7 +124,11 @@ public sealed record LauncherSettings
     private static LauncherWindowSize? ParseSize(string value)
     {
         int x = value.IndexOf('x');
-        if (x <= 0) return null;
+        if (x <= 0)
+        {
+            return null;
+        }
+
         return Side(value.Substring(0, x)) is int width && Side(value.Substring(x + 1)) is int height
             ? new LauncherWindowSize(width, height) : null;
     }
@@ -131,7 +146,11 @@ public static class LauncherSettingsFile
 
     public static string PathFor(IReadOnlyList<string> args, string userRoot)
     {
-        if (userRoot is null) throw new ArgumentNullException(nameof(userRoot));
+        if (userRoot is null)
+        {
+            throw new ArgumentNullException(nameof(userRoot));
+        }
+
         string? named = LaunchArguments.Value(args, Argument);
         return string.IsNullOrWhiteSpace(named) ? Path.Combine(userRoot, LauncherSettings.FileName) : named!;
     }
@@ -143,9 +162,17 @@ public static class LauncherSettingsFile
 
     public static void Save(string path, LauncherSettings settings)
     {
-        if (settings is null) throw new ArgumentNullException(nameof(settings));
+        if (settings is null)
+        {
+            throw new ArgumentNullException(nameof(settings));
+        }
+
         string? folder = Path.GetDirectoryName(Path.GetFullPath(path));
-        if (!string.IsNullOrEmpty(folder)) Directory.CreateDirectory(folder);
+        if (!string.IsNullOrEmpty(folder))
+        {
+            Directory.CreateDirectory(folder);
+        }
+
         File.WriteAllText(path, settings.Format(), new UTF8Encoding(false));
     }
 }

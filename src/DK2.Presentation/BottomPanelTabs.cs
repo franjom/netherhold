@@ -55,7 +55,11 @@ public sealed class BottomPanelTabs
     {
         bool expanded = Collapsed;
         Sounds.Add(new SoundRequest(CategorySound(category), new SoundId(0x104)));
-        if (expanded) Sounds.Add(new SoundRequest(CategorySound(category), new SoundId(0x138)));
+        if (expanded)
+        {
+            Sounds.Add(new SoundRequest(CategorySound(category), new SoundId(0x138)));
+        }
+
         Collapsed = false;
         if (!shiftOnly)
         {
@@ -67,7 +71,11 @@ public sealed class BottomPanelTabs
         else if (Pinned == category)
         {
             // Unpin: the panel closes only when another category menu is open.
-            if (_remembered.Count > 1) _remembered = _remembered.Without(category);
+            if (_remembered.Count > 1)
+            {
+                _remembered = _remembered.Without(category);
+            }
+
             Pinned = null;
         }
         else if (Pinned is null)

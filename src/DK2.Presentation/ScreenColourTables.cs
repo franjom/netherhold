@@ -20,7 +20,11 @@ public static class ScreenColourTables
     /// <summary>An unknown kind retains the previous table, as the native jump table does.</summary>
     public static void Build(ScreenColourKind kind, double gamma, ushort[] table)
     {
-        if ((byte)kind > 15) return;
+        if ((byte)kind > 15)
+        {
+            return;
+        }
+
         double exponent = 1 / Math.Clamp(gamma, 0.5, 2);
         const double third = (double)(1f / 3f), pi = (double)MathF.PI;
         for (int i = 0; i < ChannelSize; i++)
@@ -43,19 +47,46 @@ public static class ScreenColourTables
                 case ScreenColourKind.ThreeBands:
                     double threeInput = (float)g;
                     r = green = b = 0;
-                    if (g < 1d / 3) b = (float)Math.Sin(pi * threeInput * 3);
-                    else if (threeInput < 2d / 3) green = Math.Sin((threeInput - 1d / 3) * (pi * 3));
-                    else r = green = b = (float)Math.Sin((threeInput - 2d / 3) * (pi * 3) * 0.5);
+                    if (g < 1d / 3)
+                    {
+                        b = (float)Math.Sin(pi * threeInput * 3);
+                    }
+                    else if (threeInput < 2d / 3)
+                    {
+                        green = Math.Sin((threeInput - 1d / 3) * (pi * 3));
+                    }
+                    else
+                    {
+                        r = green = b = (float)Math.Sin((threeInput - 2d / 3) * (pi * 3) * 0.5);
+                    }
+
                     break;
                 case ScreenColourKind.FourBands:
                 case ScreenColourKind.FourBandsSwapped:
                     double fourInput = (float)g;
                     r = green = b = 0;
-                    if (g < 0.25) b = (float)Math.Sin(pi * fourInput * 4);
-                    else if (fourInput < 0.5) r = (float)Math.Sin((fourInput - 0.25) * (pi * 4));
-                    else if (fourInput < 0.75) green = Math.Sin((fourInput - 0.5) * (pi * 4));
-                    else r = green = b = (float)Math.Sin((fourInput - 0.75) * (pi * 4) * 0.5);
-                    if (kind == ScreenColourKind.FourBandsSwapped) (r, green) = (green, r);
+                    if (g < 0.25)
+                    {
+                        b = (float)Math.Sin(pi * fourInput * 4);
+                    }
+                    else if (fourInput < 0.5)
+                    {
+                        r = (float)Math.Sin((fourInput - 0.25) * (pi * 4));
+                    }
+                    else if (fourInput < 0.75)
+                    {
+                        green = Math.Sin((fourInput - 0.5) * (pi * 4));
+                    }
+                    else
+                    {
+                        r = green = b = (float)Math.Sin((fourInput - 0.75) * (pi * 4) * 0.5);
+                    }
+
+                    if (kind == ScreenColourKind.FourBandsSwapped)
+                    {
+                        (r, green) = (green, r);
+                    }
+
                     break;
             }
             table[i] = Word(r);

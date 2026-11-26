@@ -18,7 +18,11 @@ public sealed record LightningRibbon(IReadOnlyList<Vector3> Vertices, IReadOnlyL
     public static void Append(IReadOnlyList<Vector3> nodes, List<Vector3> vertices,
         List<Vector2> uvs, List<int> triangles)
     {
-        if (nodes.Count < 2) return;
+        if (nodes.Count < 2)
+        {
+            return;
+        }
+
         Vector3[]? rented = null;
         Span<Vector3> sides = nodes.Count <= StackSideLimit
             ? stackalloc Vector3[StackSideLimit]
@@ -48,7 +52,10 @@ public sealed record LightningRibbon(IReadOnlyList<Vector3> Vertices, IReadOnlyL
         }
         finally
         {
-            if (rented is not null) ArrayPool<Vector3>.Shared.Return(rented);
+            if (rented is not null)
+            {
+                ArrayPool<Vector3>.Shared.Return(rented);
+            }
         }
     }
 

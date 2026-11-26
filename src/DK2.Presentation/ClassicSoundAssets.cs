@@ -64,6 +64,8 @@ public sealed class InstallClassicSoundAssets : IClassicSoundAssets
         if (string.IsNullOrWhiteSpace(name) || name.Any(c => !(char.IsLetterOrDigit(c) || c == '_'
             || allowSeparator && (c == '/' || c == '\\')))
             || name[0] == '/' || name[0] == '\\')
+        {
             throw new ArgumentException("Invalid sound asset name.", nameof(name));
+        }
     }
 }

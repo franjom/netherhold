@@ -42,7 +42,10 @@ public sealed class SessionLoader
         var mode = (GameSessionMode)session.Header.GameMode;
         bool supportedMode = mode == GameSessionMode.Campaign || mode == GameSessionMode.ImportedTerrain && TerrainImportsSupported;
         if (!supportedMode || !Enum.IsDefined(typeof(FrontEndPage), session.Header.ReturnPageId))
+        {
             throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "This saved session has an unsupported game mode or return page.");
+        }
+
         string name = session.Header.LevelName;
         CampaignLevelData level;
         try { level = _loadLevel(name); }
@@ -53,10 +56,16 @@ public sealed class SessionLoader
         TriggerTree? tree = mode == GameSessionMode.Campaign
             ? CampaignSimulationFactory.Triggers(level.Level, level.Players, level.Things, level.Triggers) : null;
         GameSimulation simulation = WorldSnapshot.LoadGame(session.Snapshot, level.Database, SimulationSystems.Default(), tree);
-        if (_profiles.Path == null) _loadProfile();
+        if (_profiles.Path == null)
+        {
+            _loadProfile();
+        }
         // A store left with no file (an adapter's fallback for an unreadable profile) cannot take the saved profile.
         if (_profiles.Path == null)
+        {
             throw new IOException("The campaign profile could not be read, so a save cannot be loaded.");
+        }
+
         CampaignProfileFile.Save(_profiles.Path, session.Profile);
         return GameSessionRequest.Resumed(new SessionResume(session, simulation));
     }

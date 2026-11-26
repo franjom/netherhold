@@ -27,7 +27,11 @@ public sealed class PossessionHudView
         bool firstPersonCameraSettled, PossessionCarryState carry = PossessionCarryState.Empty)
     {
         CreatureState? creature = world.CreatureById(world.Player(viewer).PossessedCreatureId);
-        if (creature == null || creature.OwnerPlayerId != viewer) return null;
+        if (creature == null || creature.OwnerPlayerId != viewer)
+        {
+            return null;
+        }
+
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         CreatureOverviewType type = new(creature.CreatureTypeId);
         var icons = new List<PossessionHudIcon>();
@@ -56,22 +60,37 @@ public sealed class PossessionHudView
             1 => "throw-mode", 2 => "sniper-mode", 3 => "bat-mode", 6 => "sneak-mode", 7 => "pray-mode", _ => "",
         };
         if ((byte)definition.PrimaryAbility == 1)
+        {
             icons.Add(ThrowIcon(carry, selected: false) with { Role = PossessionHudIconRole.PrimaryAbility });
+        }
         else if (special.Length != 0)
+        {
             icons.Add(new("GUI\\Icons\\1st-person\\" + special, 100, (byte)definition.PrimaryAbility switch
             {
                 2 => creature.SniperMode, 3 => creature.PossessionFlightForm,
                 6 => creature.SneakingAs != 0, 7 => creature.PossessionPraying, _ => false,
             }) { Role = PossessionHudIconRole.PrimaryAbility });
+        }
+
         if ((byte)definition.SecondaryAbility == 5)
+        {
             icons.Add(new("GUI\\Icons\\1st-person\\hypnotise-mode", 100,
                 creature.HypnotisedCreatureId != 0) { Role = PossessionHudIconRole.SecondaryAbility });
+        }
+
         icons.Add(new("GUI\\Icons\\1st-person\\group-mode", 100, !controls.Melee && controls.Slot == 3)
             { Role = PossessionHudIconRole.Group });
         var followers = new List<string>();
         foreach (CreatureState other in world.OwnedCreatures(viewer))
-            if (other.FollowLeaderId != 0) followers.Add(_art.Portrait(new(other.CreatureTypeId)));
+        {
+            if (other.FollowLeaderId != 0)
+            {
+                followers.Add(_art.Portrait(new(other.CreatureTypeId)));
+            }
+        }
+
         if (creature.CreatureTypeId != 0)
+        {
             _creatureOverlay = creature.CreatureTypeId switch
             {
                 13 or 28 => "GUI\\Filters\\F-Knight",
@@ -80,10 +99,24 @@ public sealed class PossessionHudView
                 12 => "GUI\\Filters\\F-FireFly",
                 _ => null,
             };
+        }
+
         var overlays = new List<string>(3);
-        if (creature.SniperMode) overlays.Add("GUI\\Filters\\F-Sniper");
-        if (firstPersonCameraSettled && _creatureOverlay != null) overlays.Add(_creatureOverlay);
-        if (creature.FrozenTicks != 0) overlays.Add("GUI\\Filters\\F-Frozen");
+        if (creature.SniperMode)
+        {
+            overlays.Add("GUI\\Filters\\F-Sniper");
+        }
+
+        if (firstPersonCameraSettled && _creatureOverlay != null)
+        {
+            overlays.Add(_creatureOverlay);
+        }
+
+        if (creature.FrozenTicks != 0)
+        {
+            overlays.Add("GUI\\Filters\\F-Frozen");
+        }
+
         int maxHealth = CreatureHealthRules.MaxHealth(_database, definition, creature);
         return new(_art.Icon(type), maxHealth <= 0 ? 0 : (int)Math.Min(100L, 100L * Math.Max(0, creature.Health) / maxHealth),
             new(creature.GoldHeld), icons, followers) { Overlays = overlays, CarriedGoldIcon = _art.GoldIcon };
@@ -97,8 +130,16 @@ public sealed class PossessionHudView
     public static int Recharge(GameTick now, long stamp, int intervalTicks)
     {
         // Native stamps start at zero; -1 is the simulation's never-used marker.
-        if (stamp == -1) stamp = 0;
-        if (intervalTicks <= 0 || now.Value - stamp >= intervalTicks) return 100;
+        if (stamp == -1)
+        {
+            stamp = 0;
+        }
+
+        if (intervalTicks <= 0 || now.Value - stamp >= intervalTicks)
+        {
+            return 100;
+        }
+
         int reciprocal = (int)((100L << 24) / ((long)intervalTicks << 12));
         return Math.Clamp((int)((now.Value - stamp) * reciprocal >> 12), 0, 100);
     }

@@ -14,7 +14,11 @@ public sealed class HeartPulseGate
     public bool ConsumePendingBeat(EffectTime now)
     {
         if (!_lastConsumed.HasValue) { _lastConsumed = now; return false; }
-        if (now.Milliseconds - _lastConsumed.Value.Milliseconds <= 1000) return false;
+        if (now.Milliseconds - _lastConsumed.Value.Milliseconds <= 1000)
+        {
+            return false;
+        }
+
         _lastConsumed = now;
         return true;
     }

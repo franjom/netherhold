@@ -43,13 +43,24 @@ public sealed class PointerScript
     /// <exception cref="ArgumentException">No keys, or frames not strictly increasing.</exception>
     public PointerScript(IReadOnlyList<PointerScriptKey> keys)
     {
-        if (keys is null) throw new ArgumentNullException(nameof(keys));
-        if (keys.Count == 0) throw new ArgumentException("A pointer script needs a key.", nameof(keys));
+        if (keys is null)
+        {
+            throw new ArgumentNullException(nameof(keys));
+        }
+
+        if (keys.Count == 0)
+        {
+            throw new ArgumentException("A pointer script needs a key.", nameof(keys));
+        }
+
         _keys = new PointerScriptKey[keys.Count];
         for (int i = 0; i < keys.Count; i++)
         {
             if (keys[i].Frame < 0 || (i > 0 && keys[i].Frame <= keys[i - 1].Frame))
+            {
                 throw new ArgumentException("Pointer script frames must be non-negative and strictly increasing.", nameof(keys));
+            }
+
             _keys[i] = keys[i];
         }
     }
@@ -65,16 +76,42 @@ public sealed class PointerScript
         while (after < _keys.Length && _keys[after].Frame <= frame)
         {
             PointerScriptButtons buttons = _keys[after].Buttons;
-            if ((buttons & PointerScriptButtons.PrimaryDown) != 0) primary = true;
-            if ((buttons & PointerScriptButtons.PrimaryUp) != 0) primary = false;
-            if ((buttons & PointerScriptButtons.SecondaryDown) != 0) secondary = true;
-            if ((buttons & PointerScriptButtons.SecondaryUp) != 0) secondary = false;
-            if (_keys[after].Frame == frame) changes = buttons;
+            if ((buttons & PointerScriptButtons.PrimaryDown) != 0)
+            {
+                primary = true;
+            }
+
+            if ((buttons & PointerScriptButtons.PrimaryUp) != 0)
+            {
+                primary = false;
+            }
+
+            if ((buttons & PointerScriptButtons.SecondaryDown) != 0)
+            {
+                secondary = true;
+            }
+
+            if ((buttons & PointerScriptButtons.SecondaryUp) != 0)
+            {
+                secondary = false;
+            }
+
+            if (_keys[after].Frame == frame)
+            {
+                changes = buttons;
+            }
+
             after++;
         }
         Vector2 position;
-        if (after == 0) position = new Vector2(_keys[0].X, _keys[0].Y);
-        else if (after == _keys.Length) position = new Vector2(_keys[^1].X, _keys[^1].Y);
+        if (after == 0)
+        {
+            position = new Vector2(_keys[0].X, _keys[0].Y);
+        }
+        else if (after == _keys.Length)
+        {
+            position = new Vector2(_keys[^1].X, _keys[^1].Y);
+        }
         else
         {
             PointerScriptKey from = _keys[after - 1], to = _keys[after];

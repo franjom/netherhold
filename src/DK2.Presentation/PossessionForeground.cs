@@ -45,17 +45,34 @@ public sealed class PossessionForeground
         PossessionForegroundKind kind;
         if (controls.Melee)
         {
-            if (!CombatRules.SwingMayBegin(database, creature, definition, tick)) return;
-            if (definition.FirstPersonMelee2 != PossessionForegroundKind.None) _alternate = !_alternate;
+            if (!CombatRules.SwingMayBegin(database, creature, definition, tick))
+            {
+                return;
+            }
+
+            if (definition.FirstPersonMelee2 != PossessionForegroundKind.None)
+            {
+                _alternate = !_alternate;
+            }
+
             kind = _alternate ? definition.FirstPersonMelee2 : definition.FirstPersonMelee1;
         }
         else if ((controls.Selection & 6) == 4 && definition.SecondaryAbility == PossessionAbilityKind.Hypnosis)
+        {
             kind = definition.FirstPersonSecondary;
+        }
         else
         {
-            if (controls.Slot == 3 || !SpellRules.CanCast(database, creature, definition, controls.Slot, tick)) return;
+            if (controls.Slot == 3 || !SpellRules.CanCast(database, creature, definition, controls.Slot, tick))
+            {
+                return;
+            }
+
             kind = definition.FirstPersonSpell;
-            if (kind == PossessionForegroundKind.None) return;
+            if (kind == PossessionForegroundKind.None)
+            {
+                return;
+            }
         }
         Begin(kind, definition.FirstPersonFramesPerSecond, milliseconds);
     }
@@ -63,7 +80,11 @@ public sealed class PossessionForeground
     public PossessionForegroundSample Sample(long milliseconds)
     {
         string? resource = Resource(_kind);
-        if (resource == null) return default;
+        if (resource == null)
+        {
+            return default;
+        }
+
         byte brightness = 255;
         if (_fade is long fade)
         {
@@ -75,7 +96,10 @@ public sealed class PossessionForeground
         if (_fade == null)
         {
             if (milliseconds > _deadline) { _fade = milliseconds; _phase = 4095 / 4096f; }
-            else _phase = ((milliseconds - _start) * 4096 / (_deadline - _start)) / 4096f;
+            else
+            {
+                _phase = ((milliseconds - _start) * 4096 / (_deadline - _start)) / 4096f;
+            }
         }
         return sample;
     }
@@ -86,21 +110,37 @@ public sealed class PossessionForeground
     public void Build(InstallArtProvider art, int width, int height, long milliseconds, HudFrame frame)
     {
         PossessionForegroundSample sample = Sample(milliseconds);
-        if (sample.Resource == null) return;
+        if (sample.Resource == null)
+        {
+            return;
+        }
+
         if (!_clips.TryGetValue(sample.Resource, out Clip? clip))
         {
             clip = art.TryResolveEntry(sample.Resource, out ResolvedAsset asset) && art.TryLoadModel(asset, out KmfModel model)
                 && model.Animation is { IsComplete: true } ? new Clip(model) : null;
             _clips.Add(sample.Resource, clip);
         }
-        if (clip == null) return;
+        if (clip == null)
+        {
+            return;
+        }
+
         clip.Animation.Sample(sample.Phase, loop: false, clip.Positions);
         for (int material = 0; material < clip.Model.Materials.Count; material++)
         {
             KmfMaterial texture = clip.Model.Materials[material];
-            if (texture.TextureNames.Count == 0) continue;
+            if (texture.TextureNames.Count == 0)
+            {
+                continue;
+            }
+
             int[] indices = clip.Animation.Mesh.Triangles[material];
-            if (clip.Triangles.Length < indices.Length) clip.Triangles = new HudVertex[indices.Length];
+            if (clip.Triangles.Length < indices.Length)
+            {
+                clip.Triangles = new HudVertex[indices.Length];
+            }
+
             for (int i = 0; i < indices.Length; i++)
             {
                 int index = indices[i];

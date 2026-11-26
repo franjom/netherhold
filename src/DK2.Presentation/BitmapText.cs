@@ -87,7 +87,13 @@ public static class InterfaceFonts
     {
         int chosen = IngameSizes[0];
         foreach (int size in IngameSizes)
-            if (size <= HudTooltipPixels(screenHeight)) chosen = size;
+        {
+            if (size <= HudTooltipPixels(screenHeight))
+            {
+                chosen = size;
+            }
+        }
+
         return chosen;
     }
 
@@ -95,7 +101,13 @@ public static class InterfaceFonts
     {
         int chosen = IngameSizes[0];
         foreach (int size in IngameSizes)
-            if (size * divisor <= screenHeight) chosen = size;
+        {
+            if (size * divisor <= screenHeight)
+            {
+                chosen = size;
+            }
+        }
+
         return $"FONT_INGAME{chosen}.bf4";
     }
 
@@ -115,7 +127,11 @@ public static class BitmapTextLayout
     public static int Measure(BitmapFont font, string text)
     {
         int width = 0;
-        foreach (char c in text) width += font.Find(c)?.Advance ?? 0;
+        foreach (char c in text)
+        {
+            width += font.Find(c)?.Advance ?? 0;
+        }
+
         return width;
     }
 
@@ -135,7 +151,11 @@ public static class BitmapTextLayout
             int first = lines.Count;
             foreach (string word in paragraph.Split(' '))
             {
-                if (!started && word.Length == 0) continue;
+                if (!started && word.Length == 0)
+                {
+                    continue;
+                }
+
                 string candidate = started ? line + " " + word : word;
                 if (Measure(font, candidate) <= maxWidth)
                 {
@@ -153,14 +173,22 @@ public static class BitmapTextLayout
                 while (line.Length > 1 && Measure(font, line) > maxWidth)
                 {
                     int fit = 1;
-                    while (fit < line.Length && Measure(font, line[..(fit + 1)]) <= maxWidth) fit++;
+                    while (fit < line.Length && Measure(font, line[..(fit + 1)]) <= maxWidth)
+                    {
+                        fit++;
+                    }
+
                     lines.Add(new BitmapTextLine(line[..fit], Measure(font, line[..fit])));
                     line = line[fit..];
                 }
             }
             // A paragraph that ended in an overflowing space has nothing left; an empty
             // paragraph still makes its blank line.
-            if (!started && lines.Count > first) continue;
+            if (!started && lines.Count > first)
+            {
+                continue;
+            }
+
             line = line.TrimEnd(' ');
             lines.Add(new BitmapTextLine(line, Measure(font, line)));
         }
@@ -231,7 +259,11 @@ public readonly struct PlacedBitmapGlyphs(BitmapFont font, HudRect box, IReadOnl
             {
                 if (_char >= _text.Length)
                 {
-                    if (++_line >= _lines.Count) return false;
+                    if (++_line >= _lines.Count)
+                    {
+                        return false;
+                    }
+
                     BitmapTextLine line = _lines[_line];
                     _text = line.Text;
                     _char = 0;
@@ -240,10 +272,18 @@ public readonly struct PlacedBitmapGlyphs(BitmapFont font, HudRect box, IReadOnl
                     continue;
                 }
                 BitmapGlyph? glyph = _font.Find(_text[_char++]);
-                if (glyph == null) continue;
+                if (glyph == null)
+                {
+                    continue;
+                }
+
                 float pen = _pen;
                 _pen += glyph.Advance * _scale;
-                if (glyph.Width <= 0) continue;
+                if (glyph.Width <= 0)
+                {
+                    continue;
+                }
+
                 Current = new PlacedBitmapGlyph(glyph, new HudRect(
                     MathF.Round(pen + glyph.OffsetX * _scale), MathF.Round(_y + glyph.OffsetY * _scale),
                     glyph.Width * _scale, glyph.Height * _scale));
@@ -278,7 +318,11 @@ public sealed class BitmapTextBlock
     {
         if (font == null || text == null)
         {
-            if (Font == null) return false;
+            if (Font == null)
+            {
+                return false;
+            }
+
             Font = null;
             Text = null;
             _lines = [];
@@ -287,8 +331,16 @@ public sealed class BitmapTextBlock
         }
         int wrapWidth = BitmapTextPlacement.WrapWidth(box.Width, scale);
         bool rewrap = !ReferenceEquals(font, Font) || wrapWidth != _wrapWidth || !string.Equals(text, Text, StringComparison.Ordinal);
-        if (!rewrap && box == Box && scale == Scale) return false;
-        if (rewrap) _lines = BitmapTextLayout.Wrap(font, text, wrapWidth);
+        if (!rewrap && box == Box && scale == Scale)
+        {
+            return false;
+        }
+
+        if (rewrap)
+        {
+            _lines = BitmapTextLayout.Wrap(font, text, wrapWidth);
+        }
+
         Font = font;
         Text = text;
         Box = box;

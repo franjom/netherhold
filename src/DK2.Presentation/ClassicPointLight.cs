@@ -45,7 +45,10 @@ public readonly record struct ClassicPointLight
     public static ClassicPointLight FromTorch(in TorchView torch, ClassicLightFlags flags)
     {
         if (torch.Radius < 0 || torch.Radius > TorchLayout.MaxRadius)
+        {
             throw new ArgumentOutOfRangeException(nameof(torch), "Torch radius must already satisfy the native clamp.");
+        }
+
         return new ClassicPointLight(
             new Vector3(torch.PosX / (float)Fp32.One, torch.Height / (float)Fp32.One, -torch.PosY / (float)Fp32.One),
             new Vector3(torch.Red / 255f, torch.Green / 255f, torch.Blue / 255f),
@@ -55,7 +58,11 @@ public readonly record struct ClassicPointLight
     public static ClassicPointLight? FromObject(in ObjectView thing, bool cheapLighting = false, float fraction = 1)
     {
         KwdLight? light = thing.Light;
-        if (light is null) return null;
+        if (light is null)
+        {
+            return null;
+        }
+
         float t = Math.Max(0, Math.Min(1, fraction));
         return FromDescriptor(light, new PlayerId(thing.OwnerPlayerId),
             thing.PreviousPosX + ((float)thing.PosX - thing.PreviousPosX) * t,
@@ -82,7 +89,11 @@ public readonly record struct ClassicPointLight
         bool cheapLighting = false)
     {
         int tileX = (int)Math.Floor(x), tileY = (int)Math.Floor(y);
-        if (!explored || tileX <= 0 || tileY <= 0 || tileX >= mapWidth - 1 || tileY >= mapHeight - 1) return null;
+        if (!explored || tileX <= 0 || tileY <= 0 || tileX >= mapWidth - 1 || tileY >= mapHeight - 1)
+        {
+            return null;
+        }
+
         const float channel = 511 / 255f;
         return new ClassicPointLight(new Vector3(x, (raised ? 0x1E00 : 0x1C00) / (float)Fp32.One, -y),
             new Vector3(channel, channel, channel), intensity: 255 / 128f, radius: 0x1C00 / (float)Fp32.One,
@@ -94,10 +105,18 @@ public readonly record struct ClassicPointLight
     private static ClassicPointLight? FromDescriptor(KwdLight light, PlayerId owner, float x, float y, float height,
         int intensity, int rampStep, int rampSteps, bool cheapLighting)
     {
-        if ((light.Flags & 1) == 0 && (light.Red | light.Green | light.Blue) == 0) return null;
+        if ((light.Flags & 1) == 0 && (light.Red | light.Green | light.Blue) == 0)
+        {
+            return null;
+        }
+
         uint radius = unchecked((uint)light.Radius << 1) / 3;
         radius = Math.Min(radius, 10112u);
-        if (radius == 0) return null;
+        if (radius == 0)
+        {
+            return null;
+        }
+
         int red = light.Red + ((light.Flags & 0x800) != 0 ? 256 : 0);
         int green = light.Green + ((light.Flags & 0x1000) != 0 ? 256 : 0);
         int blue = light.Blue + ((light.Flags & 0x2000) != 0 ? 256 : 0);
@@ -108,7 +127,11 @@ public readonly record struct ClassicPointLight
             green = Math.Max(32, green * colour.Green / 255);
             blue = Math.Max(32, blue * colour.Blue / 255);
         }
-        if (rampSteps <= 0) throw new ArgumentOutOfRangeException(nameof(rampSteps));
+        if (rampSteps <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(rampSteps));
+        }
+
         red = red * rampStep / rampSteps;
         green = green * rampStep / rampSteps;
         blue = blue * rampStep / rampSteps;
@@ -124,10 +147,22 @@ public readonly record struct ClassicPointLight
     public Vector3 RadialAt(Vector3 sample)
     {
         float distanceSquared = (Position - sample).LengthSquared(), radiusSquared = Radius * Radius;
-        if (Radius <= 0 || distanceSquared >= radiusSquared) return Vector3.Zero;
+        if (Radius <= 0 || distanceSquared >= radiusSquared)
+        {
+            return Vector3.Zero;
+        }
+
         int index = (int)Math.Round(distanceSquared * 16.0 - 0.49999f, MidpointRounding.ToEven);
-        if (index <= 0) return Colour;
-        if (index >= 256) return Vector3.Zero;
+        if (index <= 0)
+        {
+            return Colour;
+        }
+
+        if (index >= 256)
+        {
+            return Vector3.Zero;
+        }
+
         float factor = Intensity * (0.25f + 16f / index) * (radiusSquared - distanceSquared) / radiusSquared;
         return Colour * (factor <= 1f ? factor : 1f);
     }
@@ -136,17 +171,32 @@ public readonly record struct ClassicPointLight
     {
         Vector3 toLight = Position - vertex;
         float distanceSquared = toLight.LengthSquared(), radiusSquared = Radius * Radius;
-        if (Radius <= 0 || distanceSquared >= radiusSquared) return Vector3.Zero;
+        if (Radius <= 0 || distanceSquared >= radiusSquared)
+        {
+            return Vector3.Zero;
+        }
+
         float incidence = Vector3.Dot(normal, toLight) * Intensity;
-        if (BitConverter.SingleToInt32Bits(incidence) < 0) return Vector3.Zero;
+        if (BitConverter.SingleToInt32Bits(incidence) < 0)
+        {
+            return Vector3.Zero;
+        }
 
         int index = (int)Math.Round(distanceSquared * 16.0 - 0.49999f, MidpointRounding.ToEven);
         if (index == 0)
         {
-            if (incidence > 0) return Colour;
+            if (incidence > 0)
+            {
+                return Colour;
+            }
+
             throw new NotSupportedException("Native zero-incidence singular-bin propagation depends on the FPU exception mask.");
         }
-        if ((uint)index >= 256) throw new ArgumentOutOfRangeException(nameof(vertex), "Native light lookup has 256 bins.");
+        if ((uint)index >= 256)
+        {
+            throw new ArgumentOutOfRangeException(nameof(vertex), "Native light lookup has 256 bins.");
+        }
+
         float lookup = 0.25f + 16f / index;
         float factor = incidence * lookup * (radiusSquared - distanceSquared) / radiusSquared;
         return Colour * (factor <= 1f ? factor : 1f);

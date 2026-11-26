@@ -20,9 +20,17 @@ public static class LevelWarmUp
     /// builds the real one, and returns the state hash it ends with.</summary>
     public static ulong Run(CampaignLevelData level, ulong seed, bool fogOfWarEnabled, int ticks = Ticks)
     {
-        if (level is null) throw new ArgumentNullException(nameof(level));
+        if (level is null)
+        {
+            throw new ArgumentNullException(nameof(level));
+        }
+
         GameSimulation simulation = level.CreateSimulation(seed, fogOfWarEnabled);
-        for (int i = 0; i < ticks; i++) simulation.Tick(InputFrame.Empty);
+        for (int i = 0; i < ticks; i++)
+        {
+            simulation.Tick(InputFrame.Empty);
+        }
+
         return simulation.StateHash();
     }
 }

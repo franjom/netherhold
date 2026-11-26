@@ -29,11 +29,15 @@ public sealed class ShotBodyParticles
         _random = new(seed);
         _visible = visible;
         foreach (ShotDef shot in database.Shots.Values)
+        {
             if (shot.MeshResource.Type is 1 or 2 or 3 or 5 or 6)
+            {
                 _definitions.Add(shot.ShotId, new EffectElementDef([])
                 {
                     Name = shot.Name, ArtResource = shot.MeshResource, ScaleRatio = Fp32.One,
                 });
+            }
+        }
     }
 
     public IReadOnlyList<ConstructionParticle> Particles => _particles;
@@ -45,26 +49,53 @@ public sealed class ShotBodyParticles
         _particles.Clear(); _lights.Clear(); _live.Clear();
         foreach (ShotState shot in shots)
         {
-            if (shot.Health <= 0 || !_database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition)) continue;
+            if (shot.Health <= 0 || !_database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition))
+            {
+                continue;
+            }
+
             FpPosition3 point = Interpolate(shot.PreviousViewPosition ?? shot.ViewPosition, shot.ViewPosition, fraction);
             KwdLight light = definition.Light;
             if ((light.Flags & 1) != 0)
+            {
                 _lights.Add(new(-shot.Id, light, new PlayerId(shot.OwnerPlayerId), point.X.Raw, point.Y.Raw, point.Z.Raw, 1, 1));
-            if (!_definitions.TryGetValue(shot.ShotTypeId, out EffectElementDef? element)) continue;
+            }
+
+            if (!_definitions.TryGetValue(shot.ShotTypeId, out EffectElementDef? element))
+            {
+                continue;
+            }
+
             var id = new ShotId(shot.Id); _live.Add(id);
             if (!_bodies.TryGetValue(id, out ConstructionParticle? body))
+            {
                 _bodies.Add(id, body = Create(element, definition));
+            }
+
             body.XRaw = body.PreviousXRaw = point.X.Raw;
             body.YRaw = body.PreviousYRaw = point.Y.Raw;
             body.HeightRaw = body.PreviousHeightRaw = point.Z.Raw;
             body.HeadingRaw = body.PreviousHeadingRaw = shot.ViewHeading.Value;
             body.VisualUpdates = shot.Age;
             SetPhase(body, shot.Age, fraction);
-            if (_visible == null || _visible(shot)) _particles.Add(body);
+            if (_visible == null || _visible(shot))
+            {
+                _particles.Add(body);
+            }
         }
         _removed.Clear();
-        foreach (ShotId id in _bodies.Keys) if (!_live.Contains(id)) _removed.Add(id);
-        foreach (ShotId id in _removed) _bodies.Remove(id);
+        foreach (ShotId id in _bodies.Keys)
+        {
+            if (!_live.Contains(id))
+            {
+                _removed.Add(id);
+            }
+        }
+
+        foreach (ShotId id in _removed)
+        {
+            _bodies.Remove(id);
+        }
     }
 
     public static FpPosition3 Interpolate(FpPosition3 previous, FpPosition3 current, float fraction)
@@ -110,7 +141,11 @@ public sealed class ShotBodyParticles
             int phase = body.InitialPhase + (int)(updates * step);
             body.TexturePhaseRawOverride = (art.Flags & 0x80) != 0 ? Math.Min(4096, phase) : phase & 4095;
         }
-        if (art.Type != 6) return;
+        if (art.Type != 6)
+        {
+            return;
+        }
+
         int frames = Word(art, 0), fps = Word(art, 4);
         int duration = fps == 0 ? 0 : (int)((long)frames * 4096 / fps);
         int rate = duration <= 0 ? 0 : (int)Math.Min(4095,

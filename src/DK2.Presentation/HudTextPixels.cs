@@ -30,19 +30,34 @@ public static class HudTextPixels
             int pen = Indent(text, lines[row], widest);
             foreach (char c in lines[row].Text)
             {
-                BitmapGlyph? glyph = font.Find(c); if (glyph == null) continue;
+                BitmapGlyph? glyph = font.Find(c); if (glyph == null)
+                {
+                    continue;
+                }
+
                 for (int y = 0; y < glyph.Height; y++)
-                for (int x = 0; x < glyph.Width; x++)
+                {
+                    for (int x = 0; x < glyph.Width; x++)
                 {
                     int px = pen + glyph.OffsetX + x, py = row * font.LineHeight + y + glyph.OffsetY - minY;
                     // Glyph boxes overlap (a j reaches back under the letter before it): keep the stronger
                     // ink instead of letting one glyph's blank pixels erase its neighbour.
-                    if ((uint)px >= (uint)width || (uint)py >= (uint)height) continue;
-                    int at = (py * width + px) * 4;
+                    if ((uint)px >= (uint)width || (uint)py >= (uint)height)
+                        {
+                            continue;
+                        }
+
+                        int at = (py * width + px) * 4;
                     byte alpha = (byte)(glyph.Pixels[y * glyph.Width + x] * 17);
-                    if (alpha <= pixels[at + 3]) continue;
-                    pixels[at] = pixels[at + 1] = pixels[at + 2] = 255; pixels[at + 3] = alpha;
+                    if (alpha <= pixels[at + 3])
+                        {
+                            continue;
+                        }
+
+                        pixels[at] = pixels[at + 1] = pixels[at + 2] = 255; pixels[at + 3] = alpha;
                 }
+                }
+
                 pen += glyph.Advance;
             }
         }
@@ -65,13 +80,21 @@ public static class HudTextPixels
             int pen = Indent(text, lines[row], widest);
             foreach (char c in lines[row].Text)
             {
-                BitmapGlyph? glyph = font.Find(c); if (glyph == null) continue;
+                BitmapGlyph? glyph = font.Find(c); if (glyph == null)
+                {
+                    continue;
+                }
+
                 int px = pen + glyph.OffsetX, py = row * font.LineHeight + glyph.OffsetY - minY;
                 pen += glyph.Advance;
                 // Render's clip to the image, then the box shrunk to its ink: a blank glyph adds no piece.
                 int left = Math.Max(0, -px), top = Math.Max(0, -py);
                 int right = Math.Min(glyph.Width, width - px), bottom = Math.Min(glyph.Height, height - py);
-                if (!Ink(glyph, ref left, ref top, ref right, ref bottom)) continue;
+                if (!Ink(glyph, ref left, ref top, ref right, ref bottom))
+                {
+                    continue;
+                }
+
                 into.Add(new HudTextPiece(glyph, left, top, px + left, py + top, right - left, bottom - top));
             }
         }
@@ -83,12 +106,23 @@ public static class HudTextPixels
     {
         int l = int.MaxValue, t = int.MaxValue, r = int.MinValue, b = int.MinValue;
         for (int y = top; y < bottom; y++)
+        {
             for (int x = left; x < right; x++)
             {
-                if (glyph.Pixels[y * glyph.Width + x] == 0) continue;
+                if (glyph.Pixels[y * glyph.Width + x] == 0)
+                {
+                    continue;
+                }
+
                 l = Math.Min(l, x); r = Math.Max(r, x + 1); t = Math.Min(t, y); b = Math.Max(b, y + 1);
             }
-        if (r <= l) return false;
+        }
+
+        if (r <= l)
+        {
+            return false;
+        }
+
         left = l; top = t; right = r; bottom = b;
         return true;
     }
@@ -100,27 +134,46 @@ public static class HudTextPixels
         byte[] alpha = new byte[width * height];
         bool shared = false;
         foreach (HudTextPiece p in pieces)
+        {
             for (int y = p.Y; y < p.Y + p.Height; y++)
+            {
                 for (int x = p.X; x < p.X + p.Width; x++)
                 {
                     byte a = p.Alpha(x, y);
-                    if (a == 0) continue;
+                    if (a == 0)
+                    {
+                        continue;
+                    }
+
                     shared |= alpha[y * width + x] != 0;
                     alpha[y * width + x] = Math.Max(alpha[y * width + x], a);
                 }
-        if (!shared) return;
+            }
+        }
+
+        if (!shared)
+        {
+            return;
+        }
+
         Array.Clear(alpha, 0, alpha.Length);
         int[] owner = new int[width * height];
         for (int i = 0; i < pieces.Count; i++)
         {
             HudTextPiece p = pieces[i];
             for (int y = p.Y; y < p.Y + p.Height; y++)
+            {
                 for (int x = p.X; x < p.X + p.Width; x++)
                 {
                     byte a = p.Alpha(x, y);
-                    if (a <= alpha[y * width + x]) continue;
+                    if (a <= alpha[y * width + x])
+                    {
+                        continue;
+                    }
+
                     alpha[y * width + x] = a; owner[y * width + x] = i;
                 }
+            }
         }
         var resolved = new List<HudTextPiece>(pieces.Count);
         for (int i = 0; i < pieces.Count; i++)
@@ -128,8 +181,13 @@ public static class HudTextPixels
             HudTextPiece p = pieces[i];
             bool loses = false;
             for (int y = p.Y; y < p.Y + p.Height && !loses; y++)
+            {
                 for (int x = p.X; x < p.X + p.Width && !loses; x++)
+                {
                     loses = p.Alpha(x, y) > 0 && owner[y * width + x] != i;
+                }
+            }
+
             if (!loses) { resolved.Add(p); continue; }
             for (int y = p.Y; y < p.Y + p.Height; y++)
             {
@@ -137,9 +195,16 @@ public static class HudTextPixels
                 for (int x = p.X; x <= p.X + p.Width; x++)
                 {
                     bool cut = x == p.X + p.Width || p.Alpha(x, y) > 0 && owner[y * width + x] != i;
-                    if (!cut) continue;
+                    if (!cut)
+                    {
+                        continue;
+                    }
+
                     if (x > start)
+                    {
                         resolved.Add(new HudTextPiece(p.Glyph, p.SourceX + start - p.X, p.SourceY + y - p.Y, start, y, x - start, 1));
+                    }
+
                     start = x + 1;
                 }
             }
@@ -158,7 +223,11 @@ public static class HudTextPixels
             int pen = Indent(text, line, widest);
             foreach (char c in line.Text)
             {
-                BitmapGlyph? glyph = font.Find(c); if (glyph == null) continue;
+                BitmapGlyph? glyph = font.Find(c); if (glyph == null)
+                {
+                    continue;
+                }
+
                 width = Math.Max(width, pen + glyph.OffsetX + glyph.Width);
                 minY = Math.Min(minY, glyph.OffsetY); maxY = Math.Max(maxY, glyph.OffsetY + glyph.Height);
                 pen += glyph.Advance;
@@ -169,9 +238,17 @@ public static class HudTextPixels
 
     private static int Widest(HudText text, IReadOnlyList<BitmapTextLine> lines)
     {
-        if (!text.Centred) return 0;
+        if (!text.Centred)
+        {
+            return 0;
+        }
+
         int widest = 0;
-        foreach (BitmapTextLine line in lines) widest = Math.Max(widest, line.Width);
+        foreach (BitmapTextLine line in lines)
+        {
+            widest = Math.Max(widest, line.Width);
+        }
+
         return widest;
     }
 

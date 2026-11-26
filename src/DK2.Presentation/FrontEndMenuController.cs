@@ -53,7 +53,11 @@ public sealed class FrontEndMenuController : IDisposable
 
     public bool IsEnabled(FrontEndWidget widget)
     {
-        if (_session.PathPlaying) return false;
+        if (_session.PathPlaying)
+        {
+            return false;
+        }
+
         ushort id = widget.Id.Value;
         return Page switch
         {
@@ -92,12 +96,19 @@ public sealed class FrontEndMenuController : IDisposable
         // Loops, not foreach and LINQ: this runs every frame, and an enumerator and a closure here allocate each time.
         IReadOnlyList<FrontEndWidget> widgets = Widgets;
         for (int i = 0; i < widgets.Count; i++)
+        {
             if (IsEnabled(widgets[i]) && _hitBounds(widgets[i]).Contains(point))
             { _underPointer = widgets[i].Id; break; }
+        }
+
         if (_underPointer is FrontEndWidgetId hovered)
         {
             int first = 0;
-            while (widgets[first].Id != hovered) first++;
+            while (widgets[first].Id != hovered)
+            {
+                first++;
+            }
+
             if (widgets[first].Draw == FrontEndDrawKind.Label)
             {
                 HoverState state = Hover(hovered);
@@ -107,35 +118,63 @@ public sealed class FrontEndMenuController : IDisposable
         }
         bool pressed = pointer.PrimaryHeld && !_held;
         _held = pointer.PrimaryHeld;
-        if (pressed && _underPointer is FrontEndWidgetId clicked) Activate(clicked);
+        if (pressed && _underPointer is FrontEndWidgetId clicked)
+        {
+            Activate(clicked);
+        }
     }
 
     public void AdvanceFrame()
     {
         foreach (HoverState state in _hover.Values)
-            if (state.Fade >= 0 && --state.Fade < 0) state.SoundPlayed = false;
+        {
+            if (state.Fade >= 0 && --state.Fade < 0)
+            {
+                state.SoundPlayed = false;
+            }
+        }
     }
 
     public bool Activate(FrontEndWidgetId id)
     {
         FrontEndWidget? widget = Widgets.FirstOrDefault(w => w.Id == id);
-        if (widget is null || !IsEnabled(widget)) return false;
+        if (widget is null || !IsEnabled(widget))
+        {
+            return false;
+        }
+
         int sound = widget.SoundSlot switch { 32 => 0x30a, 33 => 0x30b, 34 => 0x30c, 35 => 0x30d, 36 => 0x30e, _ => 0 };
         // Sound slot 32 is the FRONT_END record of the table 0x006AC8C4 and 33..36 are OBJECT_FE_PARCHMENT's (record k's name sits at +4 of its own 0x30 bytes).
-        if (sound != 0) RequestSound(sound, widget.SoundSlot == 32 ? SoundCategory.FrontEnd : SoundCategory.FrontEndClick);
+        if (sound != 0)
+        {
+            RequestSound(sound, widget.SoundSlot == 32 ? SoundCategory.FrontEnd : SoundCategory.FrontEndClick);
+        }
+
         if (Page == FrontEndPage.Dialog)
         {
             if (id.Value == 667)
             {
-                if (Dialog!.Kind == FrontEndDialogKind.ResetCampaign) return Campaign!.StartNew();
+                if (Dialog!.Kind == FrontEndDialogKind.ResetCampaign)
+                {
+                    return Campaign!.StartNew();
+                }
+
                 QuitRequested?.Invoke();
             }
-            else _session.TryShowPage(Dialog!.ReturnPage);
+            else
+            {
+                _session.TryShowPage(Dialog!.ReturnPage);
+            }
+
             return true;
         }
         if (Page == FrontEndPage.Movies)
         {
-            if (id.Value == 65) return _session.TryShowPage(FrontEndPage.Extras);
+            if (id.Value == 65)
+            {
+                return _session.TryShowPage(FrontEndPage.Extras);
+            }
+
             MovieRequested?.Invoke(Movies!.Entries[Movies.FirstRow + id.Value - 53].Path);
             return true;
         }
@@ -148,15 +187,38 @@ public sealed class FrontEndMenuController : IDisposable
         }
         if (Campaign is not null)
         {
-            if (Page == FrontEndPage.CampaignMap) return Campaign.BackToMenu();
-            if (Page == FrontEndPage.Briefing) return id.Value == 169 ? Campaign.BackToMap() : Campaign.Launch();
-            if (Page == FrontEndPage.CampaignResults) return Campaign.AcceptResults();
+            if (Page == FrontEndPage.CampaignMap)
+            {
+                return Campaign.BackToMenu();
+            }
+
+            if (Page == FrontEndPage.Briefing)
+            {
+                return id.Value == 169 ? Campaign.BackToMap() : Campaign.Launch();
+            }
+
+            if (Page == FrontEndPage.CampaignResults)
+            {
+                return Campaign.AcceptResults();
+            }
             // During name entry the page's accept finishes it (DK2 finishes from the edit field).
-            if (Page == FrontEndPage.HighScores && Campaign.EntryRow >= 0) return Campaign.CommitEntry();
-            if (Page == FrontEndPage.SinglePlayer && id.Value == 567) return Campaign.Continue();
+            if (Page == FrontEndPage.HighScores && Campaign.EntryRow >= 0)
+            {
+                return Campaign.CommitEntry();
+            }
+
+            if (Page == FrontEndPage.SinglePlayer && id.Value == 567)
+            {
+                return Campaign.Continue();
+            }
+
             if (Page == FrontEndPage.SinglePlayer && id.Value == 6)
             {
-                if (!CampaignProgression.NeedsResetConfirmation(Campaign.Profile)) return Campaign.StartNew();
+                if (!CampaignProgression.NeedsResetConfirmation(Campaign.Profile))
+                {
+                    return Campaign.StartNew();
+                }
+
                 Dialog = new(140, 2847, FrontEndPage.SinglePlayer, FrontEndDialogKind.ResetCampaign, 15);
                 return _session.TryShowPage(FrontEndPage.Dialog);
             }
@@ -164,11 +226,17 @@ public sealed class FrontEndMenuController : IDisposable
         if (Page is FrontEndPage.Graphics or FrontEndPage.Sound or FrontEndPage.Controls && Options is not null)
         {
             Options.Activate(widget);
-            if (widget.Draw is not FrontEndDrawKind.Accept and not FrontEndDrawKind.Cancel) return true;
+            if (widget.Draw is not FrontEndDrawKind.Accept and not FrontEndDrawKind.Cancel)
+            {
+                return true;
+            }
         }
         FrontEndAction action = widget.Primary;
         if (action.Kind == FrontEndActionKind.SwapPage)
+        {
             return _session.TryShowPage(action.Arguments.NextPage);
+        }
+
         if (action.Kind == FrontEndActionKind.Station)
         {
             FrontEndTransition? transition = action.Arguments.Command switch
@@ -180,7 +248,11 @@ public sealed class FrontEndMenuController : IDisposable
                 16 => new(FrontEndPath.ExtrasToEntry, FrontEndState.ReturnMain),
                 _ => null,
             };
-            if (transition.HasValue) return _session.TryTransition(transition.Value);
+            if (transition.HasValue)
+            {
+                return _session.TryTransition(transition.Value);
+            }
+
             if (action.Arguments.Command == 8)
             {
                 Dialog = new(28, 15, FrontEndPage.Main);
@@ -191,25 +263,44 @@ public sealed class FrontEndMenuController : IDisposable
         {
             // D0x41 points widget 47's show-page (+0x59) at page 6, which the press then shows (0x00528610).
             if (Page == FrontEndPage.HighScores && action.Arguments.Command == 0x41)
+            {
                 return _session.TryShowPage(FrontEndPage.Extras);
+            }
+
             if (Page is FrontEndPage.Graphics or FrontEndPage.Sound or FrontEndPage.Controls)
+            {
                 return _session.TryShowPage(FrontEndPage.Options);
+            }
+
             if (action.Arguments.NextPage != FrontEndPage.None)
+            {
                 return _session.TryShowPage(action.Arguments.NextPage);
+            }
         }
         return false;
     }
 
     private HoverState Hover(FrontEndWidgetId id)
     {
-        if (!_hover.TryGetValue(id, out HoverState? state)) _hover.Add(id, state = new());
+        if (!_hover.TryGetValue(id, out HoverState? state))
+        {
+            _hover.Add(id, state = new());
+        }
+
         return state;
     }
     private void PageChanged(FrontEndPage page)
     {
         _underPointer = null; _hover.Clear();
-        if (page is FrontEndPage.Graphics or FrontEndPage.Sound or FrontEndPage.Controls) Options?.Enter(page);
-        if (page != FrontEndPage.Dialog) Dialog = null;
+        if (page is FrontEndPage.Graphics or FrontEndPage.Sound or FrontEndPage.Controls)
+        {
+            Options?.Enter(page);
+        }
+
+        if (page != FrontEndPage.Dialog)
+        {
+            Dialog = null;
+        }
     }
     public void Dispose() => _session.PageChanged -= PageChanged;
 }

@@ -33,7 +33,11 @@ public sealed class PossessionSniper(CameraThing preset)
     }
     public void Step(long clockMilliseconds)
     {
-        if (_endMilliseconds == 0) return;
+        if (_endMilliseconds == 0)
+        {
+            return;
+        }
+
         if (clockMilliseconds >= _endMilliseconds)
         {
             Lens = _target;

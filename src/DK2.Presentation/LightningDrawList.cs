@@ -61,11 +61,22 @@ public sealed class LightningDrawList
         {
             ShotState shot = world.Shots[shotIndex];
             if (!database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition)
-                || definition.MeshResource.Type != 7) continue;
+                || definition.MeshResource.Type != 7)
+            {
+                continue;
+            }
+
             var id = new ShotId(shot.Id); _liveShots.Add(id);
-            if (!view.CanShowTile(world, new TilePos(shot.PosX >> 12, shot.PosY >> 12))) continue;
+            if (!view.CanShowTile(world, new TilePos(shot.PosX >> 12, shot.PosY >> 12)))
+            {
+                continue;
+            }
+
             if (!_links.TryGetValue(id, out LightningLink? link))
+            {
                 _links.Add(id, link = RentLink(definition.MeshResource.ProceduralKind));
+            }
+
             FpPosition3 current = shot.ViewPosition, previous = shot.PreviousViewPosition ?? current;
             var at = new FpPosition3(new Fp32((int)Lerp(previous.X.Raw, current.X.Raw, fraction)),
                 new Fp32((int)Lerp(previous.Y.Raw, current.Y.Raw, fraction)),
@@ -73,14 +84,27 @@ public sealed class LightningDrawList
             FpPosition3? casterPoint = null;
             CreatureState? caster = world.CreatureById(shot.CasterId);
             if (caster != null && !CreatureDeathRules.IsCorpse(caster))
+            {
                 casterPoint = new FpPosition3(new Fp32((int)Lerp(caster.LastPosX, caster.PosX, fraction)),
                     new Fp32((int)Lerp(caster.LastPosY, caster.PosY, fraction)), default);
+            }
+
             LightningEndpoints? endpoints = link.Resolve(at, Target(world, database, view, shot),
                 new LightningCaster(shot.CasterId != 0, casterPoint));
-            if (endpoints.HasValue) Add(endpoints.Value);
+            if (endpoints.HasValue)
+            {
+                Add(endpoints.Value);
+            }
         }
         _removed.Clear();
-        foreach (ShotId id in _links.Keys) if (!_liveShots.Contains(id)) _removed.Add(id);
+        foreach (ShotId id in _links.Keys)
+        {
+            if (!_liveShots.Contains(id))
+            {
+                _removed.Add(id);
+            }
+        }
+
         foreach (ShotId id in _removed)
         {
             _freeLinks.Add(_links[id]);
@@ -96,23 +120,39 @@ public sealed class LightningDrawList
             case FightTargetKind.Creature:
             case FightTargetKind.Body:
                 CreatureState? creature = world.CreatureById(shot.TargetId);
-                if (creature == null || shot.TargetKind == FightTargetKind.Creature && CreatureDeathRules.IsCorpse(creature)) return default;
+                if (creature == null || shot.TargetKind == FightTargetKind.Creature && CreatureDeathRules.IsCorpse(creature))
+                {
+                    return default;
+                }
+
                 point = new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
                 return new LightningTarget(true, false, new FpPosition3(point.X, point.Y,
                     new Fp32(view.GroundHeightAt(world, point).Raw + creature.PosZ)));
             case FightTargetKind.Door:
                 DoorState? door = world.DoorById(shot.TargetId);
-                if (door == null) return default;
+                if (door == null)
+                {
+                    return default;
+                }
+
                 point = new FpPosition3(new Fp32(CreatureState.CentreOf(door.X)), new Fp32(CreatureState.CentreOf(door.Y)), default);
                 break;
             case FightTargetKind.Trap:
                 TrapState? trap = world.TrapById(shot.TargetId);
-                if (trap == null) return default;
+                if (trap == null)
+                {
+                    return default;
+                }
+
                 point = new FpPosition3(new Fp32(trap.PosX), new Fp32(trap.PosY), default);
                 break;
             case FightTargetKind.Heart:
                 if (!TryResolveHeartPillar(world, database, new PlayerId(shot.TargetPlayerId),
-                    new HeartPillarId(shot.TargetId), out HeartPillarTarget pillar)) return default;
+                    new HeartPillarId(shot.TargetId), out HeartPillarTarget pillar))
+                {
+                    return default;
+                }
+
                 point = new FpPosition3(pillar.X, pillar.Y, default);
                 break;
             case FightTargetKind.Shot:
@@ -128,18 +168,33 @@ public sealed class LightningDrawList
         HeartPillarId id, out HeartPillarTarget target)
     {
         target = default;
-        if (id.Value < 0 || id.Value / 3 >= world.TileCount) return false;
+        if (id.Value < 0 || id.Value / 3 >= world.TileCount)
+        {
+            return false;
+        }
+
         bool standing = false;
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
-            if (player.PlayerId == owner) standing = !player.HeartRuined && player.HeartHealth > 0;
+            if (player.PlayerId == owner)
+            {
+                standing = !player.HeartRuined && player.HeartHealth > 0;
+            }
         }
-        if (!standing) return false;
+        if (!standing)
+        {
+            return false;
+        }
+
         int tile = id.Value / 3;
         if (world.TileAtIndex(tile).OwnerPlayerId != owner
             || database.RoomByTerrain(world.TileAtIndex(tile).TerrainId)?.TypeId != RoomTypeId.DungeonHeart
-            || RoomIndex.RoomAt(world, database, tile) is not { } room) return false;
+            || RoomIndex.RoomAt(world, database, tile) is not { } room)
+        {
+            return false;
+        }
+
         int ordinal = id.Value % 3;
         int position = ordinal == 0 ? 7 : ordinal == 1 ? 16 : 18;
         // HeartPillarRules.TryResolve sorts a fresh slab array. Count this tile's rank in
@@ -148,9 +203,16 @@ public sealed class LightningDrawList
         for (int i = 0; i < room.TileIndices.Count; i++)
         {
             int other = room.TileIndices[i], otherOrder = world.TileAtIndex(other).SlabOrder;
-            if (otherOrder < order || otherOrder == order && other < tile) rank++;
+            if (otherOrder < order || otherOrder == order && other < tile)
+            {
+                rank++;
+            }
         }
-        if (position >= room.TileIndices.Count || rank != position) return false;
+        if (position >= room.TileIndices.Count || rank != position)
+        {
+            return false;
+        }
+
         target = HeartPillarRules.At(new TilePos(tile % world.Width, tile / world.Width), (HeartPillar)ordinal);
         return true;
     }
@@ -159,11 +221,15 @@ public sealed class LightningDrawList
     {
         _effects.CollectProceduralEffects(_procedural);
         foreach (ProceduralEffectView effect in _procedural)
+        {
             if (effect.Kind == ProceduralArtKind.Lightning || effect.Kind == ProceduralArtKind.TripleLightning
                 || effect.Kind == ProceduralArtKind.FixedLightning)
+            {
                 Add(new LightningEndpoints(effect.Position,
                     new FpPosition3(effect.Position.X, effect.Position.Y, new Fp32(Fp32.One)),
                     effect.Kind == ProceduralArtKind.TripleLightning ? 3 : 1));
+            }
+        }
     }
 
 
@@ -177,11 +243,17 @@ public sealed class LightningDrawList
     {
         _pairs.ChooseInto(controls, _segments);
         foreach (LightningSegment segment in _segments)
+        {
             AddBolt(segment.Start, segment.End, LightningAmplitude.Creature);
+        }
     }
     private LightningLink RentLink(ProceduralArtKind kind)
     {
-        if (_freeLinks.Count == 0) return new(kind);
+        if (_freeLinks.Count == 0)
+        {
+            return new(kind);
+        }
+
         int last = _freeLinks.Count - 1;
         LightningLink link = _freeLinks[last];
         _freeLinks.RemoveAt(last);
@@ -191,11 +263,17 @@ public sealed class LightningDrawList
     private void Add(LightningEndpoints endpoints)
     {
         for (int i = 0; i < endpoints.BoltCount; i++)
+        {
             AddBolt(Tiles(endpoints.Start), Tiles(endpoints.End), LightningAmplitude.Shot);
+        }
     }
     private void AddBolt(Vector3 start, Vector3 end, LightningAmplitude amplitude)
     {
-        if (!_hasCamera) return;
+        if (!_hasCamera)
+        {
+            return;
+        }
+
         Vector3 renderStart = new(start.X, start.Z, -start.Y), renderEnd = new(end.X, end.Z, -end.Y);
         Vector3 a = _nativeCamera is null ? Transform(renderStart, _view) : _nativeCamera.ToCamera(renderStart);
         Vector3 b = _nativeCamera is null ? Transform(renderEnd, _view) : _nativeCamera.ToCamera(renderEnd);
@@ -205,7 +283,9 @@ public sealed class LightningDrawList
             int offset = _vertices.Count;
             LightningRibbon.Append(paths[p].Nodes, _vertices, _uvs, _triangles);
             for (int i = offset; i < _vertices.Count; i++)
+            {
                 _vertices[i] = _nativeCamera is null ? Transform(_vertices[i], _camera) : _nativeCamera.ToWorld(_vertices[i]);
+            }
         }
     }
     // Keep Unity MultiplyPoint3x4's scalar operation order; SIMD Transform can round differently.

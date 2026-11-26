@@ -129,16 +129,25 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         if (simEvent.ElectrifiedCreature is CreatureId creature)
         {
             if (!_creatureLightning.TryGetValue(creature, out CreatureLightningVisual? visual))
+            {
                 _creatureLightning.Add(creature, visual = new CreatureLightningVisual());
+            }
+
             visual.Ignite(simEvent.Tick);
         }
         if (simEvent.EffectRequest is ViewEffectRequest request)
+        {
             Request(request);
+        }
         else if (simEvent.ConstructionEffect is RoomConstructionEffect construction)
         {
             if ((_visible != null && !_visible(construction))
                 || !_database.Effects.TryGetValue(RoomConstructionEffect.DefinitionId, out EffectDef? definition)
-                || definition.GenerationType != 4) return;
+                || definition.GenerationType != 4)
+            {
+                return;
+            }
+
             AdvanceTo(_clock());
             var point = new FpPosition3(new(CreatureState.CentreOf(construction.Tile.X)),
                 new(CreatureState.CentreOf(construction.Tile.Y) - 128), construction.Height);
@@ -153,11 +162,23 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                 + (_creatureGroundHeight?.Invoke(incoming.GroundCreatureId) ?? _floorHeight(incoming.GroundAnchor ?? incoming.Position)).Raw) },
                 HeightSpace = EffectHeightSpace.Absolute } : incoming;
         // 0x00441060 floats an amount for the local viewer only; a null viewer shows every player's.
-        if (request.Amount.HasValue && _viewer is PlayerId viewer && request.Owner != viewer) return;
+        if (request.Amount.HasValue && _viewer is PlayerId viewer && request.Owner != viewer)
+        {
+            return;
+        }
+
         if (!_database.Effects.TryGetValue(request.EffectId.Value, out EffectDef? definition)
-            || !AllowsEffect(request, definition)) return;
+            || !AllowsEffect(request, definition))
+        {
+            return;
+        }
+
         EffectCreated?.Invoke(request);
-        if (!SupportsEffect(definition)) return;
+        if (!SupportsEffect(definition))
+        {
+            return;
+        }
+
         AdvanceTo(_clock());
         if (request.EffectId.Value == HeartIntroRules.StartLevelEffectId)
         {
@@ -165,14 +186,21 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                 _clock().Milliseconds + HeartIntroRules.SequenceSeconds * 1000);
             _heartsWaitingForPlugBurst.Add(request.Owner);
         }
-        if (HeartPlugBlocksMana(request)) return;
+        if (HeartPlugBlocksMana(request))
+        {
+            return;
+        }
+
         AddEmitterChain(definition, request);
     }
     /// <summary>Shows local pickup feedback on the click frame, before the next effect-clock step.</summary>
     public void RequestPickupDust(in ViewEffectRequest request)
     {
         if (request.EffectId.Value != MovementDustSystem.FootDustEffectId)
+        {
             throw new ArgumentException("Pickup feedback requires dust.", nameof(request));
+        }
+
         int previousId = _lastEmitterId;
         Request(request);
         for (int i = _emitters.Count - 1; i >= 0 && _emitters[i].Id > previousId; i--)
@@ -191,16 +219,29 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
 
     private bool HeartPlugBlocksMana(ViewEffectRequest request)
     {
-        if (!_heartManaEffects.Contains(request.EffectId.Value)) return false;
+        if (!_heartManaEffects.Contains(request.EffectId.Value))
+        {
+            return false;
+        }
+
         if (_heartRevealReadyAt.TryGetValue(request.Owner, out EffectTime readyAt)
             && (_clock().Milliseconds < readyAt.Milliseconds
-                || _heartsWaitingForPlugBurst.Contains(request.Owner))) return true;
+                || _heartsWaitingForPlugBurst.Contains(request.Owner)))
+        {
+            return true;
+        }
         // The opening uses its own clock: wait for the intact/cracked lid (heart-intro.md section 2),
         // including its last child, rather than letting a simulation turn expose mana through it.
         foreach (Emitter emitter in _emitters)
+        {
             if (emitter.Request.Owner == request.Owner && (emitter.Definition.Flags & 0x40) == 0
                 && (emitter.Definition.GenerateIds.Contains((ushort)406)
-                    || emitter.Definition.GenerateIds.Contains((ushort)403))) return true;
+                    || emitter.Definition.GenerateIds.Contains((ushort)403)))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -212,9 +253,15 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         EffectDef? next = definition;
         for (int link = 0; next != null && link < LongestChain; link++)
         {
-            if (!SupportsEffect(next)) break;
+            if (!SupportsEffect(next))
+            {
+                break;
+            }
+
             if (next.EffectId == HeartPlugGroupExplosionEffectId)
+            {
                 _heartsWaitingForPlugBurst.Remove(request.Owner);
+            }
             // Only the instance the caller was handed is tied to a thing (0x004810E0 writes its +0x133).
             Emitter emitter = CreateEmitter(next, link == 0
                 ? request with { EffectId = new EffectId(next.EffectId) }
@@ -236,9 +283,17 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         EffectDef effect = emitter.Definition;
         if (effect.ArtResource.Type != 8 || _groupParts == null || effect.GenerateIds.Count == 0
             || effect.GenerateIds[0] == 0
-            || !_database.EffectElements.TryGetValue(effect.GenerateIds[0], out EffectElementDef? element)) return;
+            || !_database.EffectElements.TryGetValue(effect.GenerateIds[0], out EffectElementDef? element))
+        {
+            return;
+        }
+
         IReadOnlyList<EffectGroupPart>? parts = _groupParts(effect.ArtResource.Name);
-        if (parts == null) return;
+        if (parts == null)
+        {
+            return;
+        }
+
         foreach (EffectGroupPart part in parts)
         {
             FpPosition3 at = emitter.Request.Position;
@@ -248,7 +303,11 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                     new(at.Z.Raw + part.OffsetHeightRaw)),
             };
             ConstructionParticle? particle = EmitElement(element, effect, request, null, emitter, atExactPoint: true);
-            if (particle == null) continue;
+            if (particle == null)
+            {
+                continue;
+            }
+
             particle.HeadingRaw = particle.PreviousHeadingRaw = (particle.HeadingRaw + 0x400) & 2047;
             particle.MeshEntry = part.MeshEntry;
         }
@@ -258,7 +317,11 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     {
         FpPosition3 point = request.Position;
         int floor = _floorHeight(point).Raw;
-        if (point.Z.Raw < floor) point = point with { Z = new(floor) };
+        if (point.Z.Raw < floor)
+        {
+            point = point with { Z = new(floor) };
+        }
+
         double direction = request.Heading.Raw * Math.PI / 1024;
         int health = DrawInclusive(definition.MinHp, definition.MaxHp);
         int speed = DrawInclusive(definition.MinSpeedXy, definition.MaxSpeedXy);
@@ -276,14 +339,22 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         {
             if ((definition.Flags & 0x800) != 0)
             {
-                if (fade != 0) (emitter.Ramp, emitter.RampSteps, emitter.RampCounter) = (LightRamp.In, fade, 0);
+                if (fade != 0)
+                {
+                    (emitter.Ramp, emitter.RampSteps, emitter.RampCounter) = (LightRamp.In, fade, 0);
+                }
             }
             else if ((definition.Flags & 0x1000) != 0)
             {
-                if (fade != 0) (emitter.Ramp, emitter.RampSteps, emitter.RampCounter) = (LightRamp.Out, fade, fade);
+                if (fade != 0)
+                {
+                    (emitter.Ramp, emitter.RampSteps, emitter.RampCounter) = (LightRamp.Out, fade, fade);
+                }
             }
             else if ((definition.Flags & 0x2000) != 0 && fade > 1)
+            {
                 (emitter.Ramp, emitter.RampSteps, emitter.RampCounter) = (LightRamp.InThenOut, fade >> 1, 0);
+            }
         }
         emitter.RampShown = emitter.RampSteps;
         return emitter;
@@ -295,12 +366,27 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         CaptureEdges? edges = _captureAtEdges
             && effect.EffectId == CaptureEffectLayout.RoomEffectId
             ? captureBoundary ?? _captureEdges?.Invoke(request) ?? CaptureEdges.All : null;
-        if (edges == CaptureEdges.None) return;
+        if (edges == CaptureEdges.None)
+        {
+            return;
+        }
         // 0x004386F0: a nonzero GenerateRandomness lets a wave through one update in (value + 1).
-        if (effect.GenerateRandomness != 0 && _random.NextInt(effect.GenerateRandomness + 1) != 0) return;
+        if (effect.GenerateRandomness != 0 && _random.NextInt(effect.GenerateRandomness + 1) != 0)
+        {
+            return;
+        }
+
         int lastSlot = effect.GenerateIds.Count - 1;
-        while (lastSlot >= 0 && effect.GenerateIds[lastSlot] == 0) lastSlot--;
-        if (lastSlot < 0) return;
+        while (lastSlot >= 0 && effect.GenerateIds[lastSlot] == 0)
+        {
+            lastSlot--;
+        }
+
+        if (lastSlot < 0)
+        {
+            return;
+        }
+
         void EmitSlot(int slot)
         {
             if ((effect.Flags & 0x40) != 0)
@@ -323,20 +409,30 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                         RemoveWithShot = false,
                     });
                     if ((effect.Flags & 0x100) != 0 && _emitters.Count > start)
+                    {
                         AddInheritedVelocity(_emitters[start], parent, request);
+                    }
                 }
                 return;
             }
             if (_database.EffectElements.TryGetValue(effect.GenerateIds[slot], out EffectElementDef? element))
+            {
                 EmitElement(element, effect, request, edges, parent, inheritVelocity: (effect.Flags & 0x100) != 0);
+            }
         }
         for (int pass = 0; pass < effect.ElementsPerTurn; pass++)
         {
             if ((effect.Flags & 0x400) != 0)
+            {
                 EmitSlot(_random.NextInt(lastSlot + 1));
+            }
             else
+            {
                 for (int slot = lastSlot; slot >= 0; slot--)
+                {
                     EmitSlot(slot);
+                }
+            }
         }
     }
 
@@ -371,8 +467,11 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         int speed = DrawInclusive(element.MinSpeedXy, element.MaxSpeedXy);
         int velocityHeading = _random.NextInt(2048);
         if (effect.DirectionalSpread != 0)
+        {
             velocityHeading = (heading + _random.NextInt(effect.DirectionalSpread * 8)
                 - effect.DirectionalSpread * 4) & 2047;
+        }
+
         double direction = velocityHeading * Math.PI / 1024;
         int frames = element.ArtResource.Unknown_0044.Length >= 10
             ? BitConverter.ToUInt16(element.ArtResource.Unknown_0044.ToArray(), 8) : 0;
@@ -401,7 +500,10 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             HeadingRaw = heading, PreviousHeadingRaw = heading,
         };
         if ((element.Flags & 0x40) != 0)
+        {
             particle.HeadingRaw = particle.PreviousHeadingRaw = FlightHeading(particle.VelocityX, particle.VelocityY);
+        }
+
         if (inheritVelocity)
         {
             FpPosition3 carried = request.CarriedVelocity ?? default;
@@ -440,11 +542,21 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         if (edges.HasValue)
         {
             int count = 0;
-            for (int bit = 1; bit <= 8; bit <<= 1) if (((int)edges.Value & bit) != 0) count++;
+            for (int bit = 1; bit <= 8; bit <<= 1)
+            {
+                if (((int)edges.Value & bit) != 0)
+                {
+                    count++;
+                }
+            }
+
             int selected = _random.NextInt(count);
             CaptureEdges edge = CaptureEdges.None;
             for (int bit = 1; bit <= 8; bit <<= 1)
+            {
                 if (((int)edges.Value & bit) != 0 && selected-- == 0) { edge = (CaptureEdges)bit; break; }
+            }
+
             int along = DrawExclusive(-1984, 1985);
             particle.XRaw = request.Position.X.Raw + (edge == CaptureEdges.West ? -1984
                 : edge == CaptureEdges.East ? 1984 : along);
@@ -498,8 +610,16 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     public float AdvanceTo(EffectTime now)
     {
         long elapsedMilliseconds = now.Milliseconds - _lastUpdateMilliseconds;
-        if (elapsedMilliseconds < 0) throw new ArgumentOutOfRangeException(nameof(now));
-        if (elapsedMilliseconds <= 50) return elapsedMilliseconds / 50f;
+        if (elapsedMilliseconds < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(now));
+        }
+
+        if (elapsedMilliseconds <= 50)
+        {
+            return elapsedMilliseconds / 50f;
+        }
+
         int elapsedUpdates = checked((int)(elapsedMilliseconds / 50));
         _lastUpdateMilliseconds += elapsedUpdates * 50L;
         FollowAttachments();
@@ -557,24 +677,40 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             {
                 if (_captureAtEdges && !emitter.CaptureBoundary.HasValue
                     && emitter.Definition.EffectId == CaptureEffectLayout.RoomEffectId)
+                {
                     emitter.CaptureBoundary = _captureEdges?.Invoke(emitter.Request) ?? CaptureEdges.All;
+                }
+
                 Generate(emitter);
             }
-            if (emitter.Request.AttachedShotId == ShotId.None) emitter.Health -= elapsedUpdates;
+            if (emitter.Request.AttachedShotId == ShotId.None)
+            {
+                emitter.Health -= elapsedUpdates;
+            }
         }
         foreach (ConstructionParticle particle in _particles)
+        {
             if (particle.IsEmitterArt && _parents.TryGetValue(particle, out Emitter? parent))
             {
                 particle.XRaw = parent.Request.Position.X.Raw;
                 particle.YRaw = parent.Request.Position.Y.Raw;
                 particle.HeightRaw = parent.Request.Position.Z.Raw;
             }
+        }
         // The view update (0x0043BFE0) updates every effect, then every light (0x0043A2E0), then
         // removes the spent effects, whose lights go with them (0x004354F0, slot +0xA8 0x00439A20).
         // An effect created by a removal is first lit as created and stepped on the next update.
         foreach (Emitter emitter in _emitters)
+        {
             if (emitter.HasLight)
-                for (int update = 0; update < elapsedUpdates; update++) StepLightRamp(emitter);
+            {
+                for (int update = 0; update < elapsedUpdates; update++)
+                {
+                    StepLightRamp(emitter);
+                }
+            }
+        }
+
         for (int i = _emitters.Count - 1; i >= 0; i--)
         {
             Emitter emitter = _emitters[i];
@@ -592,7 +728,10 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                         AttachedCreatureId = 0, AttachPoint = 0, Visibility = EffectVisibility.Gated,
                         CarriedVelocity = null, SecondPoint = emitter.Request.Position, RemoveWithShot = false,
                     };
-                    if (AllowsEffect(request, death)) AddEmitterChain(death, request);
+                    if (AllowsEffect(request, death))
+                    {
+                        AddEmitterChain(death, request);
+                    }
                 }
             }
         }
@@ -606,28 +745,51 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     private void FollowAttachments()
     {
         FollowShotAttachments();
-        if (_attachment == null) return;
+        if (_attachment == null)
+        {
+            return;
+        }
+
         Dictionary<Emitter, (int X, int Y, int Z)>? moved = null;
         foreach (Emitter emitter in _emitters)
         {
             ViewEffectRequest request = emitter.Request;
-            if (request.AttachedCreatureId == 0) continue;
+            if (request.AttachedCreatureId == 0)
+            {
+                continue;
+            }
+
             EffectAttachment found = _attachment(request.AttachedCreatureId, request.AttachPoint);
             if (!found.CreatureExists)
             {
                 emitter.Request = request with { AttachedCreatureId = 0, AttachPoint = 0 };
                 continue;
             }
-            if (found.Point is not FpPosition3 point) continue;
+            if (found.Point is not FpPosition3 point)
+            {
+                continue;
+            }
+
             (int X, int Y, int Z) step = (point.X.Raw - request.Position.X.Raw, point.Y.Raw - request.Position.Y.Raw,
                 point.Z.Raw - request.Position.Z.Raw);
             emitter.Request = request with { Position = point };
-            if (step != default) (moved ??= [])[emitter] = step;
+            if (step != default)
+            {
+                (moved ??= [])[emitter] = step;
+            }
         }
-        if (moved == null) return;
+        if (moved == null)
+        {
+            return;
+        }
+
         foreach (ConstructionParticle particle in _particles)
         {
-            if (!_parents.TryGetValue(particle, out Emitter? parent) || !moved.TryGetValue(parent, out (int X, int Y, int Z) step)) continue;
+            if (!_parents.TryGetValue(particle, out Emitter? parent) || !moved.TryGetValue(parent, out (int X, int Y, int Z) step))
+            {
+                continue;
+            }
+
             particle.XRaw += step.X;
             particle.YRaw += step.Y;
             particle.HeightRaw += step.Z;
@@ -637,9 +799,17 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     private bool ApplyFloorContact(ConstructionParticle particle, bool initializing = false)
     {
         int floor = _floorHeight(new(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw))).Raw;
-        if (particle.HeightRaw >= floor) return true;
+        if (particle.HeightRaw >= floor)
+        {
+            return true;
+        }
+
         SpawnContactElement(particle, floorContact: true);
-        if ((particle.Definition.Flags & 1) != 0 && !initializing) return false;
+        if ((particle.Definition.Flags & 1) != 0 && !initializing)
+        {
+            return false;
+        }
+
         particle.HeadingSpinRaw = particle.PitchSpinRaw = particle.RollSpinRaw = 0;
         if ((particle.Definition.Flags & 16) != 0)
         {
@@ -669,19 +839,38 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                 null, parent, particle);
         }
         _particles.RemoveAt(index);
-        if (_parents.Remove(particle) && parent != null) parent.ChildCount--;
+        if (_parents.Remove(particle) && parent != null)
+        {
+            parent.ChildCount--;
+        }
     }
 
     private void ApplyParentMotion(ConstructionParticle particle)
     {
-        if (!_parents.TryGetValue(particle, out Emitter? parent)) return;
-        if (_captureAtEdges && parent.CaptureBoundary.HasValue) return;
+        if (!_parents.TryGetValue(particle, out Emitter? parent))
+        {
+            return;
+        }
+
+        if (_captureAtEdges && parent.CaptureBoundary.HasValue)
+        {
+            return;
+        }
+
         int dx = particle.XRaw - parent.Request.Position.X.Raw;
         int dy = particle.YRaw - parent.Request.Position.Y.Raw;
         int whirlpool = unchecked((short)parent.Definition.WhirlpoolRate);
-        if (whirlpool > 127) whirlpool -= 256;
+        if (whirlpool > 127)
+        {
+            whirlpool -= 256;
+        }
+
         int circular = unchecked((short)parent.Definition.CircularPathRate);
-        if (circular > 127) circular -= 256;
+        if (circular > 127)
+        {
+            circular -= 256;
+        }
+
         int angle = whirlpool == 0 ? 0
             : (whirlpool * 16 << 7) / ((dx >> 5) * (dx >> 5) + 128 + (dy >> 5) * (dy >> 5));
         (int x, int y) first = RotateRelative((dx, dy),
@@ -701,7 +890,11 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
 
     private void ApplyFallingSway(ConstructionParticle particle)
     {
-        if ((particle.Definition.Flags & 16) == 0) return;
+        if ((particle.Definition.Flags & 16) == 0)
+        {
+            return;
+        }
+
         int floor = _floorHeight(new(new(particle.PreviousXRaw), new(particle.PreviousYRaw),
             new(particle.PreviousHeightRaw))).Raw;
         if (particle.PreviousHeightRaw > floor)
@@ -759,13 +952,26 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             case LightRamp.InThenOut:
                 emitter.RampShown = emitter.RampCounter;
                 if (emitter.RampCounter == emitter.RampSteps)
+                {
                     emitter.Ramp = emitter.Ramp == LightRamp.In ? LightRamp.Steady : LightRamp.Out;
-                else emitter.RampCounter++;
+                }
+                else
+                {
+                    emitter.RampCounter++;
+                }
+
                 break;
             case LightRamp.Out:
                 emitter.RampShown = emitter.RampCounter;
-                if (emitter.RampCounter != 0) emitter.RampCounter--;
-                else emitter.Ramp = LightRamp.Steady;
+                if (emitter.RampCounter != 0)
+                {
+                    emitter.RampCounter--;
+                }
+                else
+                {
+                    emitter.Ramp = LightRamp.Steady;
+                }
+
                 break;
         }
     }
@@ -773,11 +979,19 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     /// <summary>The light of every effect instance that has one, this update.</summary>
     public void CollectLights(List<EffectLightView> lights)
     {
-        if (lights == null) throw new ArgumentNullException(nameof(lights));
+        if (lights == null)
+        {
+            throw new ArgumentNullException(nameof(lights));
+        }
+
         lights.Clear();
         foreach (Emitter emitter in _emitters)
         {
-            if (!emitter.HasLight) continue;
+            if (!emitter.HasLight)
+            {
+                continue;
+            }
+
             FpPosition3 at = emitter.Request.Position;
             lights.Add(new EffectLightView(emitter.Id, emitter.Definition.Light, emitter.Request.Owner,
                 at.X.Raw, at.Y.Raw, at.Z.Raw, emitter.RampShown, emitter.RampSteps));
@@ -873,8 +1087,16 @@ public sealed class ConstructionParticle
     {
         get
         {
-            if (TexturePhaseRawOverride.HasValue) return TexturePhaseRawOverride.Value;
-            if ((Definition.ArtResource.Flags & 4) == 0 || FrameDuration <= 0) return 0;
+            if (TexturePhaseRawOverride.HasValue)
+            {
+                return TexturePhaseRawOverride.Value;
+            }
+
+            if ((Definition.ArtResource.Flags & 4) == 0 || FrameDuration <= 0)
+            {
+                return 0;
+            }
+
             int phase = InitialPhase + VisualUpdates * (4096 / FrameDuration);
             return (Definition.ArtResource.Flags & 0x80) != 0 ? Math.Min(4096, phase) : phase & 4095;
         }
@@ -900,8 +1122,16 @@ public sealed class ConstructionParticle
     {
         int distance = ScaleTarget - InitialScale;
         int reach = distance / _parentScaleStep;
-        if (reach * _parentScaleStep != distance) reach++;
-        if (VisualUpdates < reach) return InitialScale + _parentScaleStep * VisualUpdates;
+        if (reach * _parentScaleStep != distance)
+        {
+            reach++;
+        }
+
+        if (VisualUpdates < reach)
+        {
+            return InitialScale + _parentScaleStep * VisualUpdates;
+        }
+
         int fall = _parentScaleReturns && _parentScaleStep > 0 ? ScaleTarget / _parentScaleSteps : 0;
         return Math.Max(0, ScaleTarget - fall * (VisualUpdates - reach));
     }

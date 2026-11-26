@@ -26,16 +26,31 @@ public static class CreatureHoverSound
 
     public static SoundRequest? For(WorldState world, GameDatabase database, WorldHoverHit hit, PlayerId viewer)
     {
-        if (hit.Kind != WorldHoverKind.Creature || world.CurrentTick.Value % TurnPeriod != 0) return null;
+        if (hit.Kind != WorldHoverKind.Creature || world.CurrentTick.Value % TurnPeriod != 0)
+        {
+            return null;
+        }
+
         if (world.CreatureById(hit.EntityId) is not { } creature || creature.OwnerPlayerId != viewer
-            || !HandRules.HasPickupPermission(world, database, creature, viewer)) return null;
+            || !HandRules.HasPickupPermission(world, database, creature, viewer))
+        {
+            return null;
+        }
+
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         uint word = 0;
         if (CreatureCurrentAction.IsRunning(creature, world.CurrentTick))
+        {
             word = CreatureActionTable.SoundWord(CreatureCurrentAction.IndexOf(creature, definition, world.CurrentTick));
+        }
+
         if (word == 0)
         {
-            if (creature.HeldPlace.IsHeld) return null;
+            if (creature.HeldPlace.IsHeld)
+            {
+                return null;
+            }
+
             word = CreatureAngerRules.MoodOf(definition, creature) switch
             {
                 CreatureMood.Content => 0xCA,
@@ -43,7 +58,11 @@ public static class CreatureHoverSound
                 _ => 0xCC,
             };
         }
-        if (definition.SoundCategory.Length == 0) return null;
+        if (definition.SoundCategory.Length == 0)
+        {
+            return null;
+        }
+
         return new SoundRequest(new SoundCategory(definition.SoundCategory.ToLowerInvariant()), new SoundId(word),
             new Vector3(creature.PosX / 4096f, creature.PosZ / 4096f, -creature.PosY / 4096f),
             WorldSoundDirector.CreatureVoice(creature.Id));

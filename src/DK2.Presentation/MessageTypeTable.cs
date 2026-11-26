@@ -17,11 +17,24 @@ public static class MessageTypeTable
     /// <summary>The string reference for a type and variant; a type past the table reads row 0.</summary>
     public static int StringReference(int type, int variant)
     {
-        if ((uint)type >= Count) type = 0;
+        if ((uint)type >= Count)
+        {
+            type = 0;
+        }
+
         int first = VariantStart[type];
-        if (first < 0) return Strings[type];
+        if (first < 0)
+        {
+            return Strings[type];
+        }
+
         for (int i = first; ; i++)
-            if (Variants[i * 2] == 0 || Variants[i * 2] == variant) return Variants[i * 2 + 1];
+        {
+            if (Variants[i * 2] == 0 || Variants[i * 2] == variant)
+            {
+                return Variants[i * 2 + 1];
+            }
+        }
     }
 
     /// <summary>The tab's graphic family, 1..6 (row field <c>+6</c>; 0 reads as 1).</summary>

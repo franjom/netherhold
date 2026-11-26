@@ -28,20 +28,51 @@ public static class MinimapTileClassifier
     {
         TerrainDef terrain = facts.Terrain;
         MinimapTileFlags flags = facts.Flags;
-        if ((flags & MinimapTileFlags.DigHighlighted) != 0) return MinimapColourClass.Tagged;
+        if ((flags & MinimapTileFlags.DigHighlighted) != 0)
+        {
+            return MinimapColourClass.Tagged;
+        }
+
         bool scannedReveal = (flags & MinimapTileFlags.Scanned) != 0 && terrain.IsRevealedThroughFog;
-        if ((flags & MinimapTileFlags.Explored) == 0 && !scannedReveal) return MinimapColourClass.Unknown;
-        if (facts.Room == RoomTypeId.DungeonHeart) return OwnedClass(35, facts.Owner);
+        if ((flags & MinimapTileFlags.Explored) == 0 && !scannedReveal)
+        {
+            return MinimapColourClass.Unknown;
+        }
+
+        if (facts.Room == RoomTypeId.DungeonHeart)
+        {
+            return OwnedClass(35, facts.Owner);
+        }
+
         if (facts.Owner.Value is not PlayerIds.Unowned and not PlayerIds.Neutral)
+        {
             return OwnedClass((flags & MinimapTileFlags.NavigationSolid) != 0 ? 17 : 26, facts.Owner);
-        if (facts.Room.HasValue) return OwnedClass(26, facts.Owner);
+        }
+
+        if (facts.Room.HasValue)
+        {
+            return OwnedClass(26, facts.Owner);
+        }
+
         if (terrain.IsSolid)
         {
-            if (terrain.GoldValue != 0) return new MinimapColourClass((ushort)(terrain.IsImpenetrable ? 5 : 7));
+            if (terrain.GoldValue != 0)
+            {
+                return new MinimapColourClass((ushort)(terrain.IsImpenetrable ? 5 : 7));
+            }
+
             return terrain.IsImpenetrable ? MinimapColourClass.Unknown : new MinimapColourClass(4);
         }
-        if (terrain.IsWater) return new MinimapColourClass(9);
-        if (terrain.IsLava) return new MinimapColourClass(11);
+        if (terrain.IsWater)
+        {
+            return new MinimapColourClass(9);
+        }
+
+        if (terrain.IsLava)
+        {
+            return new MinimapColourClass(11);
+        }
+
         return new MinimapColourClass((ushort)(TileWorkRules.HealsIntoAnother(terrain) ? 2 : 0));
     }
 

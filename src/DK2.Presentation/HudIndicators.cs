@@ -45,15 +45,26 @@ public readonly record struct HudIndicatorSnapshot(
     /// slaps (<c>+0xEE6</c>) and HeroesDestroyed (<c>+0x14A</c>) the boxes count.</summary>
     public static HudIndicatorSnapshot Capture(WorldState world, LevelDef? level, PlayerId viewer)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (!world.HasPlayer(viewer)) return Capture(world.Triggers, level);
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (!world.HasPlayer(viewer))
+        {
+            return Capture(world.Triggers, level);
+        }
+
         ref PlayerState player = ref world.Player(viewer);
         return Capture(world.Triggers, level, player.SlapCount, player.HeroesDestroyed);
     }
 
     public static HudIndicatorSnapshot Capture(TriggerState triggers, LevelDef? level, int slaps = 0, int heroesDestroyed = 0)
     {
-        if (triggers is null) throw new ArgumentNullException(nameof(triggers));
+        if (triggers is null)
+        {
+            throw new ArgumentNullException(nameof(triggers));
+        }
         // 0x00427870 draws MaximumSlaps - slaps and 0x00427BA0 hides the box below zero; MaximumSlaps
         // starts at -1, so it shows only once action 50 sets a limit.
         int slapsLeft = unchecked(triggers.MaximumSlaps - slaps);
@@ -97,9 +108,16 @@ public static class HudIndicatorLayout
         int x = Left, y = FirstTop;
         foreach (HudIndicator indicator in Order)
         {
-            if (!shown.Shows(indicator)) continue;
+            if (!shown.Shows(indicator))
+            {
+                continue;
+            }
+
             placed.Add((indicator, x, y));
-            if (stacked) y -= RowHeight;
+            if (stacked)
+            {
+                y -= RowHeight;
+            }
             else { x += Width(indicator); y = panelTop - RowHeight; }
         }
         return placed;
@@ -132,13 +150,29 @@ public static class HudIndicatorLayout
     /// minutes and the seconds' tens left out until a larger part is non-zero.</summary>
     public static IReadOnlyList<(string Digits, int Slots)> TimeRemainingDigits(int turns, int turnsPerSecond)
     {
-        if (turnsPerSecond <= 0) throw new ArgumentOutOfRangeException(nameof(turnsPerSecond));
+        if (turnsPerSecond <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(turnsPerSecond));
+        }
+
         uint seconds = (uint)((long)(uint)(turns - 1 + turnsPerSecond) / turnsPerSecond);
         uint minutes = seconds / 60, rest = seconds % 60;
         var parts = new List<(string, int)>(4) { (Digit(rest % 10), 10) };
-        if (rest / 10 != 0 || minutes != 0) parts.Add((Digit(rest / 10), 9));
-        if (minutes % 10 != 0 || minutes / 10 != 0) parts.Add((Digit(minutes % 10), 7));
-        if (minutes / 10 != 0) parts.Add(((minutes / 10).ToString(System.Globalization.CultureInfo.InvariantCulture), 6));
+        if (rest / 10 != 0 || minutes != 0)
+        {
+            parts.Add((Digit(rest / 10), 9));
+        }
+
+        if (minutes % 10 != 0 || minutes / 10 != 0)
+        {
+            parts.Add((Digit(minutes % 10), 7));
+        }
+
+        if (minutes / 10 != 0)
+        {
+            parts.Add(((minutes / 10).ToString(System.Globalization.CultureInfo.InvariantCulture), 6));
+        }
+
         return parts;
     }
 

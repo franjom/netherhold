@@ -63,23 +63,42 @@ public sealed class HudToolState
     /// list changes nothing.</summary>
     public void SelectKnownRoom(IEnumerable<RoomTypeId> rooms)
     {
-        if (rooms is null) throw new ArgumentNullException(nameof(rooms));
+        if (rooms is null)
+        {
+            throw new ArgumentNullException(nameof(rooms));
+        }
+
         bool any = false;
         RoomTypeId lowest = default;
         foreach (RoomTypeId room in rooms)
         {
-            if (room == SelectedRoomId) return;
-            if (!any || (byte)room < (byte)lowest) lowest = room;
+            if (room == SelectedRoomId)
+            {
+                return;
+            }
+
+            if (!any || (byte)room < (byte)lowest)
+            {
+                lowest = room;
+            }
+
             any = true;
         }
-        if (any) SelectedRoomId = lowest;
+        if (any)
+        {
+            SelectedRoomId = lowest;
+        }
     }
 
     /// <summary>A bottom panel choice (BottomPanelHud.Selected): the world drag and any pending special are dropped, the
     /// query is cleared and the corner deselected, and the selection's tool is taken (its room with the build tool).</summary>
     public void SelectPanelChoice(in BottomPanelSelection selection, PlayerInputTranslator input, CreatureQueryView? query)
     {
-        if (input is null) throw new ArgumentNullException(nameof(input));
+        if (input is null)
+        {
+            throw new ArgumentNullException(nameof(input));
+        }
+
         input.CancelPointerGesture();
         input.CancelTool();
         PanelChoice = selection.Choice;
@@ -87,7 +106,10 @@ public sealed class HudToolState
         QueryTool = false; SelectedCorner = ClassicHudAction.None;
         Tool = selection.Tool == PlayerToolMode.BuildRoom ? DungeonToolMode.BuildRoom
             : selection.Tool == PlayerToolMode.CreateImp ? DungeonToolMode.CreateImp : DungeonToolMode.Hand;
-        if (selection.Tool == PlayerToolMode.BuildRoom) SelectedRoomId = selection.Room;
+        if (selection.Tool == PlayerToolMode.BuildRoom)
+        {
+            SelectedRoomId = selection.Room;
+        }
     }
 
     /// <summary>A stored special's slot (<see cref="PlayerInputTranslator.ChooseStoredSpecial(PlayerId, int, byte, BottomPanelView)"/>):
@@ -95,8 +117,16 @@ public sealed class HudToolState
     /// tool and the corner are dropped and the tool returns to the hand. No <see cref="PlayerInputTranslator.CancelTool"/>.</summary>
     public PlayerCommand? ActivateStoredSpecial(PlayerId viewer, int objectId, byte typeId, PlayerInputTranslator input, BottomPanelView panel)
     {
-        if (input is null) throw new ArgumentNullException(nameof(input));
-        if (input.ChooseStoredSpecial(viewer, objectId, typeId, panel) is PlayerCommand command) return command;
+        if (input is null)
+        {
+            throw new ArgumentNullException(nameof(input));
+        }
+
+        if (input.ChooseStoredSpecial(viewer, objectId, typeId, panel) is PlayerCommand command)
+        {
+            return command;
+        }
+
         PanelChoice = null;
         QueryTool = false; SelectedCorner = ClassicHudAction.None;
         Tool = DungeonToolMode.Hand;
@@ -106,7 +136,11 @@ public sealed class HudToolState
     /// <inheritdoc cref="ActivateStoredSpecial(PlayerId, int, byte, PlayerInputTranslator, BottomPanelView)"/>
     public PlayerCommand? ActivateStoredSpecial(PlayerId viewer, BottomPanelChoice special, PlayerInputTranslator input, BottomPanelView panel)
     {
-        if (special is null) throw new ArgumentNullException(nameof(special));
+        if (special is null)
+        {
+            throw new ArgumentNullException(nameof(special));
+        }
+
         return ActivateStoredSpecial(viewer, special.ObjectId, special.Key.Value, input, panel);
     }
 
@@ -115,8 +149,16 @@ public sealed class HudToolState
     /// The world drag is the router's to cancel, and the query target is kept.</summary>
     public void SelectCorner(ClassicHudAction corner, PlayerInputTranslator input, BottomPanelView panel)
     {
-        if (input is null) throw new ArgumentNullException(nameof(input));
-        if (panel is null) throw new ArgumentNullException(nameof(panel));
+        if (input is null)
+        {
+            throw new ArgumentNullException(nameof(input));
+        }
+
+        if (panel is null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
+
         PanelChoice = null; SelectedCorner = corner;
         input.CancelTool();
         QueryTool = corner == ClassicHudAction.SelectQuery;
@@ -128,7 +170,11 @@ public sealed class HudToolState
     /// dropped and the hand taken, which the panel shows. The corner stays selected, and a pending special stays.</summary>
     public void ResetAfterGoldWithdraw(BottomPanelView panel)
     {
-        if (panel is null) throw new ArgumentNullException(nameof(panel));
+        if (panel is null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
+
         PanelChoice = null; QueryTool = false; Tool = DungeonToolMode.Hand;
         panel.SelectTool(PlayerToolMode.Hand);
     }
@@ -137,7 +183,11 @@ public sealed class HudToolState
     /// dropped and the hand taken. The choice, the panel and a pending special are not touched.</summary>
     public void CancelQueryByRightClick(CreatureQueryView query)
     {
-        if (query is null) throw new ArgumentNullException(nameof(query));
+        if (query is null)
+        {
+            throw new ArgumentNullException(nameof(query));
+        }
+
         query.Clear(); QueryTool = false;
         SelectedCorner = ClassicHudAction.None; Tool = DungeonToolMode.Hand;
     }
@@ -146,7 +196,11 @@ public sealed class HudToolState
     /// dropped and the hand taken, which the panel shows. The query tool and a pending special are kept.</summary>
     public void CancelToolByRightClick(BottomPanelView panel)
     {
-        if (panel is null) throw new ArgumentNullException(nameof(panel));
+        if (panel is null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
+
         PanelChoice = null; Tool = DungeonToolMode.Hand; SelectedCorner = ClassicHudAction.None;
         panel.SelectTool(PlayerToolMode.Hand);
     }
@@ -178,8 +232,16 @@ public sealed class HudToolState
                 // Create Imp is a keeper spell, DK2's mode 8.
                 case PlayerToolMode.CreateImp: return HoverCageTool.SpellOrQuery;
                 case PlayerToolMode.Hand:
-                    if (QueryTool) return HoverCageTool.SpellOrQuery;
-                    if (PanelChoice is not BottomPanelChoiceKey choice) return HoverCageTool.Hand;
+                    if (QueryTool)
+                    {
+                        return HoverCageTool.SpellOrQuery;
+                    }
+
+                    if (PanelChoice is not BottomPanelChoiceKey choice)
+                    {
+                        return HoverCageTool.Hand;
+                    }
+
                     return choice.Kind == BottomPanelChoiceKind.Door ? HoverCageTool.Door
                         : choice.Kind == BottomPanelChoiceKind.Trap ? HoverCageTool.Trap
                         : choice.Kind == BottomPanelChoiceKind.Spell ? HoverCageTool.SpellOrQuery : HoverCageTool.Hand;
@@ -194,34 +256,81 @@ public sealed class HudToolState
     public PlacementFeedback Placement(WorldState world, GameDatabase database, INavByteGrid navigation, PlayerId viewer,
         TilePos? tile, WorldHoverHit hit, int gold, PlayerInputTranslator input, BottomPanelView panel)
     {
-        if (database is null) throw new ArgumentNullException(nameof(database));
-        if (input is null) throw new ArgumentNullException(nameof(input));
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
+        if (input is null)
+        {
+            throw new ArgumentNullException(nameof(input));
+        }
+
         PlayerToolMode active = ActiveTool;
         if (active == PlayerToolMode.BuildRoom)
         {
             if (tile is not TilePos at || !database.Rooms.TryGetValue(SelectedRoomId, out RoomDef? room))
+            {
                 return tile is null ? new PlacementFeedback(null, false, 0, PlacementIcon.PlaceRoom, true, true) : PlacementFeedback.None;
+            }
+
             return PlacementCursor.Room(world, database, viewer, room, at, input.DragFrom(PlayerToolMode.BuildRoom), gold);
         }
         if (active == PlayerToolMode.SellRoom)
         {
-            if (tile is not TilePos at) return new PlacementFeedback(null, false, 0, PlacementIcon.Sell, true, true);
+            if (tile is not TilePos at)
+            {
+                return new PlacementFeedback(null, false, 0, PlacementIcon.Sell, true, true);
+            }
+
             return PlacementCursor.Sell(world, database, viewer, at, input.DragFrom(PlayerToolMode.SellRoom));
         }
         if (active == PlayerToolMode.CreateImp)
+        {
             return PlacementCursor.CreateImp(world, database, navigation, viewer, 4, tile);
-        if (active != PlayerToolMode.Hand) return PlacementFeedback.None;
-        if (input.Targeting is SpecialTargeting targeting) return PlacementCursor.Targeting(targeting);
-        if (QueryTool) return PlacementCursor.Query();
-        if (PanelChoice is not BottomPanelChoiceKey choice) return PlacementFeedback.None;
+        }
+
+        if (active != PlayerToolMode.Hand)
+        {
+            return PlacementFeedback.None;
+        }
+
+        if (input.Targeting is SpecialTargeting targeting)
+        {
+            return PlacementCursor.Targeting(targeting);
+        }
+
+        if (QueryTool)
+        {
+            return PlacementCursor.Query();
+        }
+
+        if (PanelChoice is not BottomPanelChoiceKey choice)
+        {
+            return PlacementFeedback.None;
+        }
+
         if (choice.Kind == BottomPanelChoiceKind.Spell)
+        {
             return PlacementCursor.Spell(world, database, navigation, viewer, choice.Value, tile, hit);
-        if (panel is null) throw new ArgumentNullException(nameof(panel));
+        }
+
+        if (panel is null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
+
         bool workshop = panel.Choice(choice)?.NeedsWorkshop != true;
         if (choice.Kind == BottomPanelChoiceKind.Door && database.Doors.TryGetValue(choice.Value, out DoorDef? door))
+        {
             return PlacementCursor.Door(world, database, viewer, door, tile, workshop, gold);
+        }
+
         if (choice.Kind == BottomPanelChoiceKind.Trap && database.Traps.TryGetValue(choice.Value, out TrapDef? trap))
+        {
             return PlacementCursor.Trap(world, database, viewer, trap, tile, workshop, gold);
+        }
+
         return PlacementFeedback.None;
     }
 }

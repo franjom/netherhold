@@ -47,9 +47,17 @@ public sealed class CampaignProfileStore
         Path = path;
         CampaignProfile loaded = CampaignProfileFile.LoadOrCreate(path, _import);
         CampaignProfile profile = CampaignProgression.EnsureOpenMap(loaded);
-        if (RepairsAfterLevel(mode, returnPage)) profile = CampaignProgression.RepairAfterLevel(profile);
+        if (RepairsAfterLevel(mode, returnPage))
+        {
+            profile = CampaignProgression.RepairAfterLevel(profile);
+        }
+
         Profile = profile;
-        if (!ReferenceEquals(loaded, profile)) CampaignProfileFile.Save(path, profile);
+        if (!ReferenceEquals(loaded, profile))
+        {
+            CampaignProfileFile.Save(path, profile);
+        }
+
         SecretFiveAvailable = CampaignMoon.IsSecretFiveAvailable(CampaignMoon.PhaseAt(_localClock()));
         return profile;
     }
@@ -67,19 +75,29 @@ public sealed class CampaignProfileStore
     /// <summary>Writes the live profile to its file; after <see cref="Adopt"/>, which has none, it stays in memory only.</summary>
     public void Save()
     {
-        if (Path != null) CampaignProfileFile.Save(Path, Profile!);
+        if (Path != null)
+        {
+            CampaignProfileFile.Save(Path, Profile!);
+        }
     }
 
     /// <summary>Keeps every profile the map changes: it becomes the live one, <see cref="Changed"/> runs, then the file
     /// is written (not after <see cref="Adopt"/>, which has none).</summary>
     public void Track(CampaignMapController map)
     {
-        if (map is null) throw new ArgumentNullException(nameof(map));
+        if (map is null)
+        {
+            throw new ArgumentNullException(nameof(map));
+        }
+
         map.ProfileChanged += profile =>
         {
             Profile = profile;
             Changed?.Invoke(profile);
-            if (Path != null) CampaignProfileFile.Save(Path, profile);
+            if (Path != null)
+            {
+                CampaignProfileFile.Save(Path, profile);
+            }
         };
     }
 }

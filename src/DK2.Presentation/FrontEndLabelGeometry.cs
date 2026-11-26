@@ -21,8 +21,16 @@ public sealed class FrontEndLabelGeometry
 
     public static FrontEndLabelGeometry Measure(BitmapFont font, string text, int wrapWidth = 0)
     {
-        if (font is null) throw new ArgumentNullException(nameof(font));
-        if (text is null) throw new ArgumentNullException(nameof(text));
+        if (font is null)
+        {
+            throw new ArgumentNullException(nameof(font));
+        }
+
+        if (text is null)
+        {
+            throw new ArgumentNullException(nameof(text));
+        }
+
         var glyphs = new List<FrontEndGlyph>();
         int pen = 0, left = int.MaxValue, top = int.MaxValue, right = int.MinValue, bottom = int.MinValue;
         IReadOnlyList<string> lines = Lines(font, text, wrapWidth);
@@ -33,12 +41,21 @@ public sealed class FrontEndLabelGeometry
             foreach (char character in line)
             {
                 BitmapGlyph? glyph = font.Find(character);
-                if (glyph is null) continue;
+                if (glyph is null)
+                {
+                    continue;
+                }
+
                 int x0 = glyph.Width, y0 = glyph.Height, x1 = -1, y1 = -1;
                 for (int y = 0; y < glyph.Height; y++)
+                {
                     for (int x = 0; x < glyph.Width; x++)
+                    {
                         if (glyph.Pixels[y * glyph.Width + x] != 0)
                         { x0 = Math.Min(x0, x); y0 = Math.Min(y0, y); x1 = Math.Max(x1, x); y1 = Math.Max(y1, y); }
+                    }
+                }
+
                 if (x1 >= x0)
                 {
                     var ink = new FrontEndRect(pen + glyph.OffsetX + x0, lineIndex * font.LineHeight + glyph.OffsetY + y0, x1 - x0 + 1, y1 - y0 + 1);
@@ -67,7 +84,11 @@ public sealed class FrontEndLabelGeometry
                 while (length < remaining.Length)
                 {
                     int next = font.Find(remaining[length])?.Advance ?? 0;
-                    if (width > 0 && length > 0 && advance + next > width) break;
+                    if (width > 0 && length > 0 && advance + next > width)
+                    {
+                        break;
+                    }
+
                     advance += next; length++;
                 }
                 if (length == remaining.Length) { lines.Add(remaining); break; }

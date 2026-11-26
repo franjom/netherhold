@@ -36,7 +36,10 @@ public sealed class PossessionHighlight
     {
         if (!session.Possessing || !session.SettledPossessionCamera
             || !world.HasPlayer(viewer) || world.CreatureById(world.Player(viewer).PossessedCreatureId) is not { } creature)
+        {
             return null;
+        }
+
         if (!ReferenceEquals(world, _world))
         {
             _world = world;

@@ -35,8 +35,18 @@ public static class HudPointerMap
         where TPanels : IHudPointerPanels
     {
         for (HudPointerPanel panel = HudPointerPanel.Minimap; panel < HudPointerPanel.CreatureQuery; panel++)
-            if (panels.Contains(panel)) return true;
-        if (fullMapVisible) return true;
+        {
+            if (panels.Contains(panel))
+            {
+                return true;
+            }
+        }
+
+        if (fullMapVisible)
+        {
+            return true;
+        }
+
         return queryHasTarget && !modal && panels.Contains(HudPointerPanel.CreatureQuery);
     }
 }

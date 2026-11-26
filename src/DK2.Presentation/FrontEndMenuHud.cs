@@ -151,10 +151,26 @@ public sealed partial class FrontEndMenuHud : IDisposable
 
     private (int Width, int Height)? Size(string name)
     {
-        if (_sizes.TryGetValue(name, out (int, int) known)) return known;
-        if (_missing.Contains(name)) return null;
+        if (_sizes.TryGetValue(name, out (int, int) known))
+        {
+            return known;
+        }
+
+        if (_missing.Contains(name))
+        {
+            return null;
+        }
+
         (int, int)? size = _sources.ImageSize(name);
-        if (size is (int, int) found) _sizes.Add(name, found); else _missing.Add(name);
+        if (size is (int, int) found)
+        {
+            _sizes.Add(name, found);
+        }
+        else
+        {
+            _missing.Add(name);
+        }
+
         return size;
     }
 
@@ -175,7 +191,10 @@ public sealed partial class FrontEndMenuHud : IDisposable
     /// before reading input and again before <see cref="Build"/>.</summary>
     public void Sync()
     {
-        if (_shown != Model.Page || ContentChanged) RebuildLabels();
+        if (_shown != Model.Page || ContentChanged)
+        {
+            RebuildLabels();
+        }
     }
 
     /// <summary>One front-end update: the pointer, the lists' scroll bars and the hover fades.
@@ -213,7 +232,11 @@ public sealed partial class FrontEndMenuHud : IDisposable
     /// <summary>One GUI update of page 26's scroll bar: its input, then its hover glow (0x005507E0, 0x00551BA0).</summary>
     private void UpdateResultsBar(FrontEndPointer pointer, double now)
     {
-        if (Model.Page != FrontEndPage.CampaignResults || _resultsBar == null) return;
+        if (Model.Page != FrontEndPage.CampaignResults || _resultsBar == null)
+        {
+            return;
+        }
+
         var point = new FrontEndPoint(pointer.X, pointer.Y);
         _resultsBar.Update(point, pointer.PrimaryHeld, now);
         _resultsBar.Frame(_resultsBar.HitTest(point));
@@ -223,7 +246,11 @@ public sealed partial class FrontEndMenuHud : IDisposable
     {
         _labels.Clear(); _shown = Model.Page;
         _widgets = Model.Widgets;
-        if (!ReferenceEquals(_shownResults, Model.Campaign?.Results)) _resultsBar = null;
+        if (!ReferenceEquals(_shownResults, Model.Campaign?.Results))
+        {
+            _resultsBar = null;
+        }
+
         FrontEndWidget? list = FirstOfKind(FrontEndDrawKind.StatisticsRows);
         if (_resultsBar == null && list != null && Model.Campaign?.Results != null)
         {
@@ -238,7 +265,11 @@ public sealed partial class FrontEndMenuHud : IDisposable
         foreach (FrontEndWidget widget in _widgets)
         {
             if (Model.Page == FrontEndPage.Graphics && Model.Options != null
-                && (widget.Id.Value >= 119 && widget.Id.Value <= 124 || widget.Id.Value == 679 || widget.Id.Value == 680)) continue;
+                && (widget.Id.Value >= 119 && widget.Id.Value <= 124 || widget.Id.Value == 679 || widget.Id.Value == 680))
+            {
+                continue;
+            }
+
             uint textId = widget.TextId;
             string? text = null;
             bool clip = false;
@@ -255,10 +286,22 @@ public sealed partial class FrontEndMenuHud : IDisposable
             }
             else if (Model.Dialog != null)
             {
-                if (widget.Id.Value == 684) textId = Model.Dialog.TitleTextId;
-                else if (widget.Id.Value == 686) textId = Model.Dialog.BodyTextId;
-                else if (widget.Id.Value == 666) textId = Model.Dialog.SecondaryTextId;
-                else continue;
+                if (widget.Id.Value == 684)
+                {
+                    textId = Model.Dialog.TitleTextId;
+                }
+                else if (widget.Id.Value == 686)
+                {
+                    textId = Model.Dialog.BodyTextId;
+                }
+                else if (widget.Id.Value == 666)
+                {
+                    textId = Model.Dialog.SecondaryTextId;
+                }
+                else
+                {
+                    continue;
+                }
             }
             else if (widget.Draw == FrontEndDrawKind.BriefingSection && Model.Campaign?.Briefing is CampaignBriefing briefing)
             {
@@ -280,23 +323,46 @@ public sealed partial class FrontEndMenuHud : IDisposable
                 vertical = heading ? FrontEndVerticalAlignment.Centre : FrontEndVerticalAlignment.Top;
                 clip = true;
             }
-            else if (!FrontEndLabelStyles.IsText(widget.Draw)) continue;
-            if (text == null && textId == 0) continue;
+            else if (!FrontEndLabelStyles.IsText(widget.Draw))
+            {
+                continue;
+            }
+
+            if (text == null && textId == 0)
+            {
+                continue;
+            }
+
             AddLabel(widget, text ?? _sources.Text(textId), fontSpec, alignment, vertical, clip);
         }
         _resultWidgets.Clear();
         if (Model.Page == FrontEndPage.CampaignResults && Model.Campaign?.Results is CampaignResults results)
+        {
             AddResultLabels(FirstOfKind(FrontEndDrawKind.StatisticsRows), results);
+        }
+
         if (Model.Page == FrontEndPage.HighScores && Model.Campaign != null)
+        {
             foreach (FrontEndWidget row in _widgets.Where(w => w.Draw == FrontEndDrawKind.HiScoreRow))
+            {
                 AddHiScoreLabels(row, Model.Campaign);
+            }
+        }
+
         RebuildOptionLabels();
         RebuildBriefingImages();
     }
 
     private FrontEndWidget? FirstOfKind(FrontEndDrawKind kind)
     {
-        foreach (FrontEndWidget widget in _widgets) if (widget.Draw == kind) return widget;
+        foreach (FrontEndWidget widget in _widgets)
+        {
+            if (widget.Draw == kind)
+            {
+                return widget;
+            }
+        }
+
         return null;
     }
 
@@ -305,10 +371,18 @@ public sealed partial class FrontEndMenuHud : IDisposable
     private void RebuildBriefingImages()
     {
         _briefingImages.Clear();
-        if (Model.Campaign?.Briefing is not CampaignBriefing briefing) return;
+        if (Model.Campaign?.Briefing is not CampaignBriefing briefing)
+        {
+            return;
+        }
+
         foreach (FrontEndWidget section in _widgets)
         {
-            if (section.Draw != FrontEndDrawKind.BriefingSection) continue;
+            if (section.Draw != FrontEndDrawKind.BriefingSection)
+            {
+                continue;
+            }
+
             foreach (FrontEndPlacedImage placed in FrontEndBriefingImages.For(section.DrawArgument1, section.DrawArgument2, briefing.IsSecretOrSpecial))
             {
                 string name = placed.Image switch
@@ -317,7 +391,11 @@ public sealed partial class FrontEndMenuHud : IDisposable
                     FrontEndBriefingImage.SecondShot => FrontEndBriefingImages.ShotArtName(briefing.Slot, CampaignObjectiveShot.Second),
                     _ => FrontEndBriefingImages.ArtName(placed.Image)!,
                 };
-                if (Size(name) is not (int width, int height)) continue;
+                if (Size(name) is not (int width, int height))
+                {
+                    continue;
+                }
+
                 _briefingImages.Add((name, Virtual(new FrontEndRect(placed.X, placed.Y, width, height))));
             }
         }
@@ -341,7 +419,10 @@ public sealed partial class FrontEndMenuHud : IDisposable
         if (widget.Draw == FrontEndDrawKind.Label)
         {
             label.Glow = new HudImage[4];
-            for (int frame = 0; frame < 4; frame++) label.Glow[frame] = HudImage.Of(shape, (byte)(frame + 1));
+            for (int frame = 0; frame < 4; frame++)
+            {
+                label.Glow[frame] = HudImage.Of(shape, (byte)(frame + 1));
+            }
         }
         _labels.Add(widget.Id, label);
     }
@@ -374,7 +455,11 @@ public sealed partial class FrontEndMenuHud : IDisposable
             return;
         }
         int index = (int)row.DrawArgument1;
-        if (index >= campaign.HiScores.Count) return;
+        if (index >= campaign.HiScores.Count)
+        {
+            return;
+        }
+
         HiScoreEntry entry = campaign.HiScores[index];
         uint colour = ColourIndex(index == campaign.EntryRow ? FrontEndTextColour.Red
             : index == 0 ? FrontEndTextColour.Label : FrontEndTextColour.Grey);
@@ -382,16 +467,30 @@ public sealed partial class FrontEndMenuHud : IDisposable
         Cell(Column(150, 270), entry.EvilRating.ToString(), colour, FrontEndTextAlignment.Centre);
         Cell(Column(270, 410), entry.LevelLabel, colour, FrontEndTextAlignment.Centre);
         string name = index == campaign.EntryRow ? entry.Name + "_" : entry.Name;
-        if (name.Length > 0) Cell(Column(410, 639), name, colour, FrontEndTextAlignment.Left);
+        if (name.Length > 0)
+        {
+            Cell(Column(410, 639), name, colour, FrontEndTextAlignment.Left);
+        }
     }
 
     /// <summary>Page 26: 0x0053CAF0's summary at its fixed boxes, then 0x0053D270's rows in the list
     /// widget, clipped to it.</summary>
     private void AddResultLabels(FrontEndWidget? list, CampaignResults results)
     {
-        foreach (CampaignResultText text in results.Summary()) ResultCell(text, false);
-        if (list == null) return;
-        foreach (CampaignResultText text in results.Rows(list.DrawRect, ResultsFirstRow)) ResultCell(text, true);
+        foreach (CampaignResultText text in results.Summary())
+        {
+            ResultCell(text, false);
+        }
+
+        if (list == null)
+        {
+            return;
+        }
+
+        foreach (CampaignResultText text in results.Rows(list.DrawRect, ResultsFirstRow))
+        {
+            ResultCell(text, true);
+        }
     }
 
     private void ResultCell(CampaignResultText text, bool clip) =>
@@ -412,13 +511,36 @@ public sealed partial class FrontEndMenuHud : IDisposable
     public void Build(HudFrame frame)
     {
         Sync();
-        if (_shown == FrontEndPage.None) return;
+        if (_shown == FrontEndPage.None)
+        {
+            return;
+        }
+
         foreach ((HudImage image, HudRect rect) in _briefingImages)
+        {
             frame.Add(new HudDraw(HudDrawKind.Quad, image, rect, HudColor.White));
-        for (int i = 0; i < _widgets.Count; i++) DrawWidget(frame, _widgets[i]);
-        for (int i = 0; i < _resultWidgets.Count; i++) DrawWidget(frame, _resultWidgets[i]);
-        if (Model.Page == FrontEndPage.CampaignResults && _resultsBar != null) DrawBar(frame, _resultsBar);
-        if (Model.Page == FrontEndPage.Movies && _movieBar != null) DrawBar(frame, _movieBar);
+        }
+
+        for (int i = 0; i < _widgets.Count; i++)
+        {
+            DrawWidget(frame, _widgets[i]);
+        }
+
+        for (int i = 0; i < _resultWidgets.Count; i++)
+        {
+            DrawWidget(frame, _resultWidgets[i]);
+        }
+
+        if (Model.Page == FrontEndPage.CampaignResults && _resultsBar != null)
+        {
+            DrawBar(frame, _resultsBar);
+        }
+
+        if (Model.Page == FrontEndPage.Movies && _movieBar != null)
+        {
+            DrawBar(frame, _movieBar);
+        }
+
         DrawOptions(frame);
     }
 
@@ -434,7 +556,10 @@ public sealed partial class FrontEndMenuHud : IDisposable
             bool unsupportedGraphics = Model.Page == FrontEndPage.Graphics && (widget.Id.Value == 115 || widget.Id.Value == 117 || widget.Id.Value == 127);
             byte alpha = unsupportedKey || unsupportedGraphics || widget.Id.Value == 901 ? Dim : state.Enabled || decoration ? (byte)255 : Dim;
             if (state.GlowFrame >= 0 && label.Glow != null)
+            {
                 frame.Add(new HudDraw(HudDrawKind.Quad, label.Glow[state.GlowFrame], Virtual(label.Ink.Inflate(HudLabel.GlowPadding)), HudColor.White));
+            }
+
             frame.Add(new HudDraw(HudDrawKind.Quad, label.Image, Virtual(label.Ink), LabelColour(widget, state.Hovered, alpha), Clip: label.ClipRect));
         }
         else if (widget.Draw == FrontEndDrawKind.Logo)
@@ -446,7 +571,10 @@ public sealed partial class FrontEndMenuHud : IDisposable
         {
             MovieGalleryEntry row = Model.Movies.Entries[Model.Movies.FirstRow + widget.Id.Value - 53];
             frame.Add(new HudDraw(HudDrawKind.Quad, row.Thumbnail, Virtual(rect), HudColor.White));
-            if (state.Hovered) frame.Add(new HudDraw(HudDrawKind.Quad, MovieHighlight, Virtual(rect), HudColor.White));
+            if (state.Hovered)
+            {
+                frame.Add(new HudDraw(HudDrawKind.Quad, MovieHighlight, Virtual(rect), HudColor.White));
+            }
         }
         else if (widget.Draw == FrontEndDrawKind.Accept || widget.Draw == FrontEndDrawKind.Cancel)
         {
@@ -465,7 +593,11 @@ public sealed partial class FrontEndMenuHud : IDisposable
         for (int part = 0; part < art.Length; part++)
         {
             int glow = bar.GlowFrame(part);
-            if (glow < 0) continue;
+            if (glow < 0)
+            {
+                continue;
+            }
+
             (int width, int height) = RequireSize(art[part]);
             FrontEndPoint origin = bar.ArtOrigin(part);
             const int pad = FrontEndScrollBar.GlowPadding;
@@ -492,9 +624,16 @@ public sealed partial class FrontEndMenuHud : IDisposable
 
     private static HudColor LabelColour(FrontEndWidget widget, bool hovered, byte alpha)
     {
-        if (widget.Draw == FrontEndDrawKind.Title || widget.Draw == FrontEndDrawKind.BriefingSection && widget.DrawArgument2 == 1) return new HudColor(255, 176, 51, alpha);
+        if (widget.Draw == FrontEndDrawKind.Title || widget.Draw == FrontEndDrawKind.BriefingSection && widget.DrawArgument2 == 1)
+        {
+            return new HudColor(255, 176, 51, alpha);
+        }
+
         if (widget.Draw == FrontEndDrawKind.Label)
+        {
             return hovered ? new HudColor(255, 255, 255, alpha) : new HudColor(191, 191, 191, alpha);
+        }
+
         switch (widget.DrawArgument2 >> 16)
         {
             case 1: return new HudColor(253, 242, 167, alpha);

@@ -25,24 +25,40 @@ public static class VoiceLocator
     {
         x = z = 0;
         height = null;
-        if ((voice.Value & 0x80000000u) == 0) return Fate.Static;
+        if ((voice.Value & 0x80000000u) == 0)
+        {
+            return Fate.Static;
+        }
+
         var kind = (SoundSourceKind)((voice.Value >> 24) & 0x7F);
         int id = (int)(voice.Value & 0x00FFFFFFu);
         switch (kind)
         {
             case SoundSourceKind.Creature:
-                if (world.CreatureById(id) is not { } creature) return Fate.Gone;
+                if (world.CreatureById(id) is not { } creature)
+                {
+                    return Fate.Gone;
+                }
+
                 (x, height, z) = (creature.PosX / 4096f, creature.PosZ / 4096f, -creature.PosY / 4096f);
                 return Fate.Moves;
             case SoundSourceKind.Object:
-                if (world.ObjectById(id) is not { } thing) return Fate.Gone;
+                if (world.ObjectById(id) is not { } thing)
+                {
+                    return Fate.Gone;
+                }
+
                 bool placed = thing.PosX != 0 || thing.PosY != 0;
                 x = (placed ? thing.PosX : CreatureState.CentreOf(thing.TileIndex % world.Width)) / 4096f;
                 z = -(placed ? thing.PosY : CreatureState.CentreOf(thing.TileIndex / world.Width)) / 4096f;
                 return Fate.Moves;
             case SoundSourceKind.Shot:
             case SoundSourceKind.ShotSecond:
-                if (world.ShotById(id) is not { } shot) return Fate.Gone;
+                if (world.ShotById(id) is not { } shot)
+                {
+                    return Fate.Gone;
+                }
+
                 FpPosition3 at = shot.ViewPosition;
                 (x, height, z) = (at.X.Raw / 4096f, at.Z.Raw / 4096f, -at.Y.Raw / 4096f);
                 return Fate.Moves;

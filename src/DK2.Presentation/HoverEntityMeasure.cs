@@ -20,8 +20,16 @@ public readonly record struct PickBox(Vector3 Min, Vector3 Max)
     /// <summary>The box around <paramref name="points"/>; an empty list gives the empty box at the origin.</summary>
     public static PickBox Around(IReadOnlyList<Vector3> points)
     {
-        if (points is null) throw new ArgumentNullException(nameof(points));
-        if (points.Count == 0) return default;
+        if (points is null)
+        {
+            throw new ArgumentNullException(nameof(points));
+        }
+
+        if (points.Count == 0)
+        {
+            return default;
+        }
+
         Vector3 low = points[0], high = points[0];
         for (int i = 1; i < points.Count; i++)
         {
@@ -56,15 +64,26 @@ public readonly record struct PickBox(Vector3 Min, Vector3 Max)
         if (!Slab(origin.X, direction.X, Min.X, Max.X, ref near, ref far)
             || !Slab(origin.Y, direction.Y, Min.Y, Max.Y, ref near, ref far)
             || !Slab(origin.Z, direction.Z, Min.Z, Max.Z, ref near, ref far))
+        {
             return null;
+        }
+
         return far < 0f ? null : near;
     }
 
     private static bool Slab(float origin, float direction, float low, float high, ref float near, ref float far)
     {
-        if (direction == 0f) return origin >= low && origin <= high;
+        if (direction == 0f)
+        {
+            return origin >= low && origin <= high;
+        }
+
         float a = (low - origin) / direction, b = (high - origin) / direction;
-        if (a > b) (a, b) = (b, a);
+        if (a > b)
+        {
+            (a, b) = (b, a);
+        }
+
         near = Math.Max(near, a);
         far = Math.Min(far, b);
         return near <= far;
@@ -82,7 +101,11 @@ public readonly record struct PickSphere(Vector3 Centre, float Radius)
     /// into UV2); null for a model with neither.</summary>
     public static PickSphere? Of(KmfModel model)
     {
-        if (model is null) throw new ArgumentNullException(nameof(model));
+        if (model is null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
         KmfMesh? bounds = model.Animation is { IsComplete: true } animation ? animation.Frames[0] : model.Mesh;
         return bounds is null ? null : new PickSphere(RenderMesh.ToRenderFrame(bounds.Origin), bounds.BoundsScale);
     }
@@ -105,16 +128,27 @@ public static class PickTriangles
     public static bool TryNearest(IReadOnlyList<Vector3> positions, IReadOnlyList<int> triangles, Vector3 origin,
         Vector3 direction, ref float nearest)
     {
-        if (positions is null) throw new ArgumentNullException(nameof(positions));
-        if (triangles is null) throw new ArgumentNullException(nameof(triangles));
+        if (positions is null)
+        {
+            throw new ArgumentNullException(nameof(positions));
+        }
+
+        if (triangles is null)
+        {
+            throw new ArgumentNullException(nameof(triangles));
+        }
+
         bool found = false;
         for (int i = 0; i + 2 < triangles.Count; i += 3)
+        {
             if (WorldHoverPicker.TryHitTriangle(origin, direction, positions[triangles[i]], positions[triangles[i + 1]],
                     positions[triangles[i + 2]], out float t) && t < nearest)
             {
                 nearest = t;
                 found = true;
             }
+        }
+
         return found;
     }
 

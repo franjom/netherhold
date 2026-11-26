@@ -120,10 +120,26 @@ public static class BattleTabView
     public static BattleTabClick Click(BattleTabButton button, int mouse, ClassicHudControls controls, WorldState world,
         GameDatabase database, PlayerId viewer, ThingNavigation traps, List<ThingNavigationEntry> scratch)
     {
-        if (controls is null) throw new ArgumentNullException(nameof(controls));
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (traps is null) throw new ArgumentNullException(nameof(traps));
-        if (controls.InputSuppressed || controls.Modal) return default;
+        if (controls is null)
+        {
+            throw new ArgumentNullException(nameof(controls));
+        }
+
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (traps is null)
+        {
+            throw new ArgumentNullException(nameof(traps));
+        }
+
+        if (controls.InputSuppressed || controls.Modal)
+        {
+            return default;
+        }
+
         switch (Action(button, mouse))
         {
             case BattleTabAction.ZoomToBattle:
@@ -165,7 +181,13 @@ public static class BattleTabView
     public static bool BattleShows(IReadOnlyList<BattleViewSnapshot> battles, PlayerId viewer)
     {
         for (int i = 0; i < battles.Count; i++)
-            if (battles[i].MemberCount > 0 && battles[i].Owners.Contains(viewer)) return true;
+        {
+            if (battles[i].MemberCount > 0 && battles[i].Owners.Contains(viewer))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -174,7 +196,11 @@ public static class BattleTabView
     /// or 14). The flag's kind is not tested.</summary>
     public static bool CallToArmsShows(WorldState world, PlayerId viewer)
     {
-        if (!world.HasPlayer(viewer)) return false;
+        if (!world.HasPlayer(viewer))
+        {
+            return false;
+        }
+
         CallToArmsState call = world.Player(viewer).CallToArms;
         return call.On && world.ObjectById(call.ObjectId) is { InHand: false } flag
             && flag.ProcessState is CallToArmsRules.Activated or CallToArmsRules.Recalling;
@@ -194,7 +220,10 @@ public static class BattleTabView
         for (int i = 0; i < traps.Count; i++)
         {
             TrapState trap = traps[i];
-            if (trap.PlayerId == viewer.Value && IsAlarm(database, trap) && Ringing(trap, tick)) return true;
+            if (trap.PlayerId == viewer.Value && IsAlarm(database, trap) && Ringing(trap, tick))
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -236,9 +265,16 @@ public sealed class BattleTabHoverText
 
     public HoverTextSnapshot For(BattleTabButton hovered)
     {
-        if (hovered != BattleTabButton.Battle) return HoverTextSnapshot.Empty;
+        if (hovered != BattleTabButton.Battle)
+        {
+            return HoverTextSnapshot.Empty;
+        }
+
         if (_battle.TooltipName == null)
+        {
             _battle = new HoverTextSnapshot(_text(BattleTabView.BattleStatusText), _text(BattleTabView.BattleText), default);
+        }
+
         return _battle;
     }
 }

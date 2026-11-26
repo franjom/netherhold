@@ -68,10 +68,26 @@ public sealed class FrontEndScrollBar
     {
         FrontEndRect box = Screen;
         float side = box.Width, bottom = box.Y + box.Height;
-        if (pointer.X < box.X || pointer.X >= box.X + box.Width) return ScrollBarPart.None;
-        if (pointer.Y >= box.Y && pointer.Y < box.Y + side) return ScrollBarPart.Up;
-        if (pointer.Y >= bottom - side && pointer.Y < bottom) return ScrollBarPart.Down;
-        if (pointer.Y < box.Y + side || pointer.Y >= bottom - side) return ScrollBarPart.None;
+        if (pointer.X < box.X || pointer.X >= box.X + box.Width)
+        {
+            return ScrollBarPart.None;
+        }
+
+        if (pointer.Y >= box.Y && pointer.Y < box.Y + side)
+        {
+            return ScrollBarPart.Up;
+        }
+
+        if (pointer.Y >= bottom - side && pointer.Y < bottom)
+        {
+            return ScrollBarPart.Down;
+        }
+
+        if (pointer.Y < box.Y + side || pointer.Y >= bottom - side)
+        {
+            return ScrollBarPart.None;
+        }
+
         return ThumbRect().Contains(pointer) ? ScrollBarPart.Thumb : ScrollBarPart.Track;
     }
 
@@ -90,12 +106,18 @@ public sealed class FrontEndScrollBar
     {
         if (!Bar.Enabled) { _held = ScrollBarPart.None; _wasDown = down; return; }
         ScrollBarPart part = HitTest(pointer);
-        if (!down) _held = ScrollBarPart.None;
+        if (!down)
+        {
+            _held = ScrollBarPart.None;
+        }
         else if (!_wasDown)
         {
             _held = part;
             _nextStep = now;
-            if (part == ScrollBarPart.Track) Bar.Step(pointer.Y < ThumbRect().Y ? -1 : 1);
+            if (part == ScrollBarPart.Track)
+            {
+                Bar.Step(pointer.Y < ThumbRect().Y ? -1 : 1);
+            }
         }
         bool arrow = (_held == ScrollBarPart.Up || _held == ScrollBarPart.Down) && part == _held;
         if (arrow && now >= _nextStep)
@@ -103,7 +125,11 @@ public sealed class FrontEndScrollBar
             Bar.Step(_held == ScrollBarPart.Up ? -1 : 1);
             _nextStep = now + HeldStepSeconds;
         }
-        else if (_held == ScrollBarPart.Thumb && InTrackColumn(pointer)) Bar.DragTo((int)(pointer.Y * 4 - Rect.Y), (int)Rect.Height, (int)Rect.Width);
+        else if (_held == ScrollBarPart.Thumb && InTrackColumn(pointer))
+        {
+            Bar.DragTo((int)(pointer.Y * 4 - Rect.Y), (int)Rect.Height, (int)Rect.Width);
+        }
+
         _wasDown = down;
     }
 
@@ -118,9 +144,18 @@ public sealed class FrontEndScrollBar
             ScrollBarPart.Thumb or ScrollBarPart.Track => 2,
             _ => -1,
         };
-        if (restart >= 0) _glow[restart] = GlowStart;
+        if (restart >= 0)
+        {
+            _glow[restart] = GlowStart;
+        }
+
         for (int i = 0; i < _glow.Length; i++)
-            if (--_glow[i] < 0) _glow[i] = -1;
+        {
+            if (--_glow[i] < 0)
+            {
+                _glow[i] = -1;
+            }
+        }
     }
 
     /// <summary>The glow frame drawn under part 0 (up), 1 (down) or 2 (track) this frame: none (−1), or

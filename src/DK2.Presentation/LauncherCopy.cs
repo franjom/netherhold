@@ -66,19 +66,39 @@ public static class LauncherCopy
 
     public static LauncherFontCheck CheckFont(string? path, Func<string, bool> fileExists)
     {
-        if (fileExists is null) throw new ArgumentNullException(nameof(fileExists));
-        if (string.IsNullOrWhiteSpace(path)) return LauncherFontCheck.Empty;
+        if (fileExists is null)
+        {
+            throw new ArgumentNullException(nameof(fileExists));
+        }
+
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return LauncherFontCheck.Empty;
+        }
+
         string extension = Path.GetExtension(path!.Trim()).ToLowerInvariant();
-        if (extension != ".ttf" && extension != ".otf") return LauncherFontCheck.NotAFont;
+        if (extension != ".ttf" && extension != ".otf")
+        {
+            return LauncherFontCheck.NotAFont;
+        }
+
         return fileExists(path.Trim()) ? LauncherFontCheck.Found : LauncherFontCheck.Missing;
     }
 
     /// <summary>A typed or pasted path without surrounding blanks and quotes ("Copy as path" quotes it); null when empty.</summary>
     public static string? CleanPath(string? text)
     {
-        if (text is null) return null;
+        if (text is null)
+        {
+            return null;
+        }
+
         string path = text.Trim();
-        if (path.Length >= 2 && path[0] == '"' && path[path.Length - 1] == '"') path = path.Substring(1, path.Length - 2).Trim();
+        if (path.Length >= 2 && path[0] == '"' && path[path.Length - 1] == '"')
+        {
+            path = path.Substring(1, path.Length - 2).Trim();
+        }
+
         return path.Length == 0 ? null : path;
     }
 }
@@ -94,9 +114,21 @@ public static class MenuFontSearch
     public static IReadOnlyList<(string Source, string Path)> Named(string? environment, string? commandLine, string? saved)
     {
         var named = new List<(string, string)>(3);
-        if (!string.IsNullOrWhiteSpace(environment)) named.Add((EnvironmentVariable, environment!));
-        if (!string.IsNullOrWhiteSpace(commandLine)) named.Add((Argument, commandLine!));
-        if (!string.IsNullOrWhiteSpace(saved)) named.Add(("the launcher's menu font", saved!));
+        if (!string.IsNullOrWhiteSpace(environment))
+        {
+            named.Add((EnvironmentVariable, environment!));
+        }
+
+        if (!string.IsNullOrWhiteSpace(commandLine))
+        {
+            named.Add((Argument, commandLine!));
+        }
+
+        if (!string.IsNullOrWhiteSpace(saved))
+        {
+            named.Add(("the launcher's menu font", saved!));
+        }
+
         return named;
     }
 }

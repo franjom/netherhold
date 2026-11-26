@@ -18,7 +18,11 @@ public sealed class MessageTextTables
     /// <param name="warn">Told, once per table, why a table that exists could not be read.</param>
     public MessageTextTables(InstallHudSources sources, int textTableId, Action<string>? warn = null)
     {
-        if (sources is null) throw new ArgumentNullException(nameof(sources));
+        if (sources is null)
+        {
+            throw new ArgumentNullException(nameof(sources));
+        }
+
         _text = sources.Strings;
         string directory = sources.TextDirectory;
         _speech = Open(Path.Combine(directory, "Speech.str"), warn);

@@ -30,7 +30,11 @@ public static class ClassicCreatureQueryRules
     /// rotation (<see cref="ClassicCamera.Rotate"/>).</summary>
     public static void TurnToFollowHeading(ClassicCamera camera)
     {
-        if (camera is null) throw new ArgumentNullException(nameof(camera));
+        if (camera is null)
+        {
+            throw new ArgumentNullException(nameof(camera));
+        }
+
         var yaw = new Dk2Angle((ushort)(camera.Yaw.Value & 2047));
         camera.Rotate(new Dk2Angle(unchecked((ushort)(FollowHeading(yaw).Value - yaw.Value))));
     }
@@ -56,8 +60,11 @@ public sealed class ClassicCreatureQuery
         var position=new FpPosition3(new(creature.PosX),new(creature.PosY),new(creature.PosZ));
         var facts=new Facts(target,creature.OwnerPlayerId,creature.CreatureTypeId,creature.Level,creature.GoldHeld,resolvedName,resolvedBlood);
         if (_previous==facts)
+        {
             return _snapshot=new(target,_snapshot.Text,position);
-        _previous=facts;
+        }
+
+        _previous =facts;
         CreatureDef definition=_database.CreatureById(creature.CreatureTypeId);
         _tokens.Clear(); _tokens[29]=resolvedName; _tokens[30]=_resolve(definition.NameStringId); _tokens[34]=resolvedBlood;
         _tokens[35]=PaydayRules.Wage(_database,definition,creature.Level).ToString(CultureInfo.InvariantCulture);

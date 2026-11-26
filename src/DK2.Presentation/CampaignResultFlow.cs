@@ -56,12 +56,23 @@ public sealed class CampaignResultFlow
     /// as written, and a fresh start brings the stored transfer creature in and clears it from the profile.</summary>
     public void Prepare(GameSimulation simulation, PlayerId viewer, bool resumed)
     {
-        if (simulation is null) throw new ArgumentNullException(nameof(simulation));
-        if (!_context.LaunchedFromFrontEnd) return;
+        if (simulation is null)
+        {
+            throw new ArgumentNullException(nameof(simulation));
+        }
+
+        if (!_context.LaunchedFromFrontEnd)
+        {
+            return;
+        }
+
         _loadProfile();
         _context.PlaySlotOf(_profiles.Profile!);
         if (resumed) { _context.CarryApplied = simulation.World.Carry; return; }
-        if (_profiles.Profile!.TransferCreatureId == 0) return;
+        if (_profiles.Profile!.TransferCreatureId == 0)
+        {
+            return;
+        }
         // 0x0050C67D: the stored creature arrives before the first turn; both values clear whatever happens.
         TransferCreatureRules.Arrive(simulation, viewer, _profiles.Profile.TransferCreatureId, _profiles.Profile.TransferCreatureLevel);
         _profiles.Profile = _profiles.Profile with { TransferCreatureId = 0, TransferCreatureLevel = 0 };
@@ -74,22 +85,46 @@ public sealed class CampaignResultFlow
     /// <returns>True when the adapter must switch to the front end now.</returns>
     public bool Update(WorldState world, GameDatabase database, in CampaignResultFrame frame, List<PlayerCommand> pending)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (!_context.LaunchedFromFrontEnd) return false;
-        if (_context.PlayedSlot != CampaignSlot.None) _context.ApplyCarry(_profiles, world.Carry);
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (!_context.LaunchedFromFrontEnd)
+        {
+            return false;
+        }
+
+        if (_context.PlayedSlot != CampaignSlot.None)
+        {
+            _context.ApplyCarry(_profiles, world.Carry);
+        }
+
         RecordLevelStatistics(world, database);
         byte status = world.Player(frame.Viewer).Status;
         bool ended = PlayerStatus.HasEnded(status);
         _hud.UpdateResult(new HudResultState(HasResult: ended), frame.PathPlaying ? CameraModeId.ScriptedPath : default);
-        if (!ended) return false;
+        if (!ended)
+        {
+            return false;
+        }
+
         if (!ResultRecorded && _context.PlayedSlot != CampaignSlot.None)
         {
             _profiles.Profile = CampaignProgression.RecordResult(_profiles.Profile!, _context.PlayedSlot, won: status == PlayerStatus.Won);
             _profiles.Save();
         }
         ResultRecorded = true;
-        if (frame.PathPlaying) return false;
-        if (status == PlayerStatus.Won && UpdateWinKeys(frame, pending)) return false;
+        if (frame.PathPlaying)
+        {
+            return false;
+        }
+
+        if (status == PlayerStatus.Won && UpdateWinKeys(frame, pending))
+        {
+            return false;
+        }
+
         return !ContinueRequested && frame.SpacePressed;
     }
 
@@ -97,9 +132,17 @@ public sealed class CampaignResultFlow
     /// plan F5), or null while none shows; the adapter draws the win screen with it.</summary>
     public string? Prompt(WorldState world, PlayerId viewer, bool pathPlaying)
     {
-        if (!_context.LaunchedFromFrontEnd || !ResultRecorded || pathPlaying) return null;
+        if (!_context.LaunchedFromFrontEnd || !ResultRecorded || pathPlaying)
+        {
+            return null;
+        }
+
         byte status = (world ?? throw new ArgumentNullException(nameof(world))).Player(viewer).Status;
-        if (!PlayerStatus.HasEnded(status)) return null;
+        if (!PlayerStatus.HasEnded(status))
+        {
+            return null;
+        }
+
         return status != PlayerStatus.Won || _profiles.Profile!.SecretLevelNumber != 0 ? "Press Space to leave"
             : ContinueRequested ? "Continuing..." : "Press Space to leave, Escape to keep playing";
     }
@@ -108,19 +151,34 @@ public sealed class CampaignResultFlow
     /// ended, then the player id).</summary>
     private void RecordLevelStatistics(WorldState world, GameDatabase database)
     {
-        if (_context.PlayedSlot == CampaignSlot.None) return;
+        if (_context.PlayedSlot == CampaignSlot.None)
+        {
+            return;
+        }
+
         _sampled.Clear();
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState candidate = ref world.PlayerAtIndex(i);
             if (!candidate.Statistics.Sampled || candidate.PlayerId.Value >= _statisticsRecorded.Length
-                || _statisticsRecorded[candidate.PlayerId.Value]) continue;
+                || _statisticsRecorded[candidate.PlayerId.Value])
+            {
+                continue;
+            }
             // A stable insertion by (StatusTick, PlayerId), as the old OrderBy/ThenBy sorted them.
             int at = _sampled.Count;
-            while (at > 0 && Before(ref candidate, ref world.PlayerAtIndex(_sampled[at - 1]))) at--;
+            while (at > 0 && Before(ref candidate, ref world.PlayerAtIndex(_sampled[at - 1])))
+            {
+                at--;
+            }
+
             _sampled.Insert(at, i);
         }
-        if (_sampled.Count == 0) return;
+        if (_sampled.Count == 0)
+        {
+            return;
+        }
+
         foreach (int index in _sampled)
         {
             ref PlayerState player = ref world.PlayerAtIndex(index);
@@ -151,7 +209,11 @@ public sealed class CampaignResultFlow
             Continue(player, pending);
             return true;
         }
-        if (secret || ContinueRequested || !frame.EscapePressed) return false;
+        if (secret || ContinueRequested || !frame.EscapePressed)
+        {
+            return false;
+        }
+
         if (WinScreen == null || WinScreen.Started && WinScreen.Done)
         {
             // The done arm (0x004055E3): action 134 at 0x00405664, +0x13DA at 0x00405668, then action 75 at 0x00405697.

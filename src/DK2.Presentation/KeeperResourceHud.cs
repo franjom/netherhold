@@ -35,7 +35,10 @@ public sealed class KeeperResourceHud
 
     public KeeperResourceHud()
     {
-        for (int i = 0; i < _backgrounds.Length; i++) _backgrounds[i] = Add("GUI\\Windows\\Mana-Bg-0" + (i % 2));
+        for (int i = 0; i < _backgrounds.Length; i++)
+        {
+            _backgrounds[i] = Add("GUI\\Windows\\Mana-Bg-0" + (i % 2));
+        }
         // Back to front: the gauge ring, its frame, the alarm. The owner's DK2 screenshot shows the
         // riveted frame over the ring; 0x00422F60 and 0x00415000 push layers 3, 2, 1, which fits if a
         // lower layer is in front (inferred; the partial fill's order is unread).
@@ -60,9 +63,18 @@ public sealed class KeeperResourceHud
         yield return new HudImage("GUI\\Windows\\heart-hp", HudImageVariant.Gauge);
         yield return new HudImage("GUI\\Windows\\payday-Hp", HudImageVariant.Gauge);
         foreach (string family in new[] { LargeDigits, SmallDigits, RateDigits })
-            for (int digit = 0; digit <= 9; digit++) yield return family + digit.ToString(CultureInfo.InvariantCulture);
+        {
+            for (int digit = 0; digit <= 9; digit++)
+            {
+                yield return family + digit.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
         yield return MinusSign;
-        foreach (string suffix in new[] { "in", "out", "+", "-" }) yield return RateDigits + suffix;
+        foreach (string suffix in new[] { "in", "out", "+", "-" })
+        {
+            yield return RateDigits + suffix;
+        }
     }
 
     public void SetVisibility(HudVisibility visibility)
@@ -87,13 +99,20 @@ public sealed class KeeperResourceHud
     /// when the animation does not advance either.</summary>
     public void Build(HudScreen screen, KeeperResourceSnapshot snapshot, uint milliseconds, KeeperResourceFlash flash, HudFrame frame)
     {
-        if (!_visible || screen.Height <= 0) return;
+        if (!_visible || screen.Height <= 0)
+        {
+            return;
+        }
+
         KeeperResourceFrame animated = _animation.Evaluate(snapshot, milliseconds, flash);
         Layout(screen, snapshot, animated);
         for (int i = 0; i < _count; i++)
         {
             ref Element e = ref _elements[i];
-            if (e.Show) frame.Add(new HudDraw(HudDrawKind.Quad, e.Image, e.Rect, e.Tint));
+            if (e.Show)
+            {
+                frame.Add(new HudDraw(HudDrawKind.Quad, e.Image, e.Rect, e.Tint));
+            }
         }
     }
 
@@ -160,12 +179,18 @@ public sealed class KeeperResourceHud
         public NumericRow(KeeperResourceHud hud)
         {
             _hud = hud;
-            for (int i = 0; i < _glyphs.Length; i++) _glyphs[i] = hud.Add(default);
+            for (int i = 0; i < _glyphs.Length; i++)
+            {
+                _glyphs[i] = hud.Add(default);
+            }
         }
 
         public void Hide()
         {
-            foreach (int glyph in _glyphs) _hud._elements[glyph].Show = false;
+            foreach (int glyph in _glyphs)
+            {
+                _hud._elements[glyph].Show = false;
+            }
         }
 
         public void Draw(HudScreen screen, int value, string family, float x, float y, float size, float advance, int slots,
@@ -182,7 +207,11 @@ public sealed class KeeperResourceHud
                 ref Element glyph = ref _hud._elements[_glyphs[i]];
                 bool used = i < prefix + digits.Length;
                 glyph.Show = used && visible;
-                if (!used) continue;
+                if (!used)
+                {
+                    continue;
+                }
+
                 if (changed)
                 {
                     string suffix = i == 0 && prefix != 0 ? icon! : i == 1 && prefix != 0 ? sign! : digits[i - prefix].ToString();

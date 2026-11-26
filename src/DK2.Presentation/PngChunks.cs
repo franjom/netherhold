@@ -16,25 +16,54 @@ public static class PngChunks
     /// end, or no IEND.</exception>
     public static byte[] WithoutColourSpace(byte[] png)
     {
-        if (png is null) throw new ArgumentNullException(nameof(png));
+        if (png is null)
+        {
+            throw new ArgumentNullException(nameof(png));
+        }
+
         if (png.Length < Signature.Length || !png.AsSpan(0, Signature.Length).SequenceEqual(Signature))
+        {
             throw new InvalidDataException("Not a PNG: the signature is missing.");
+        }
+
         var kept = new MemoryStream(png.Length);
         kept.Write(png, 0, Signature.Length);
         bool dropped = false;
         long at = Signature.Length;
         while (true)
         {
-            if (at + 12 > png.Length) throw new InvalidDataException("The PNG ends without an IEND chunk.");
+            if (at + 12 > png.Length)
+            {
+                throw new InvalidDataException("The PNG ends without an IEND chunk.");
+            }
+
             uint length = (uint)(png[at] << 24 | png[at + 1] << 16 | png[at + 2] << 8 | png[at + 3]);
-            if (length > int.MaxValue) throw new InvalidDataException("A PNG chunk's length is over 2^31 - 1.");
+            if (length > int.MaxValue)
+            {
+                throw new InvalidDataException("A PNG chunk's length is over 2^31 - 1.");
+            }
+
             long end = at + 12 + length;
-            if (end > png.Length) throw new InvalidDataException("A PNG chunk runs past the end of the file.");
+            if (end > png.Length)
+            {
+                throw new InvalidDataException("A PNG chunk runs past the end of the file.");
+            }
+
             ReadOnlySpan<byte> type = png.AsSpan((int)at + 4, 4);
-            if (Is(type, "gAMA") || Is(type, "cHRM") || Is(type, "sRGB") || Is(type, "iCCP")) dropped = true;
-            else kept.Write(png, (int)at, (int)(end - at));
+            if (Is(type, "gAMA") || Is(type, "cHRM") || Is(type, "sRGB") || Is(type, "iCCP"))
+            {
+                dropped = true;
+            }
+            else
+            {
+                kept.Write(png, (int)at, (int)(end - at));
+            }
+
             at = end;
-            if (Is(type, "IEND")) break;
+            if (Is(type, "IEND"))
+            {
+                break;
+            }
         }
         return dropped ? kept.ToArray() : png;
     }

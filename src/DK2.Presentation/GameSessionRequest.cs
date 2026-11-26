@@ -30,8 +30,16 @@ public sealed record GameSessionRequest
 
     public static GameSessionRequest Restart(GameSessionRequest current)
     {
-        if (current is null) throw new ArgumentNullException(nameof(current));
-        if (current.Mode is not (GameSessionMode.Campaign or GameSessionMode.ImportedTerrain)) throw new ArgumentException("Only a running level can restart.", nameof(current));
+        if (current is null)
+        {
+            throw new ArgumentNullException(nameof(current));
+        }
+
+        if (current.Mode is not (GameSessionMode.Campaign or GameSessionMode.ImportedTerrain))
+        {
+            throw new ArgumentException("Only a running level can restart.", nameof(current));
+        }
+
         return current with { Resume = null };
     }
 
@@ -39,15 +47,26 @@ public sealed record GameSessionRequest
     {
         if (string.IsNullOrEmpty(levelName) || !levelName.All(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z'
                 or >= '0' and <= '9' or '_' or '-'))
+        {
             throw new ArgumentException("A level needs a plain map name, without a path or extension.", nameof(levelName));
+        }
+
         return new(GameSessionMode.Campaign, levelName, returnPage);
     }
 
     /// <summary>Loads the terrain from a save path, with the install's save directory as a fallback for relative paths.</summary>
     public static GameSessionRequest LoadDk2Save(string install, string path)
     {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A DK2 save path is required.", nameof(path));
-        if (!Path.IsPathRooted(path) && !File.Exists(path)) path = Path.Combine(Dk2SaveReader.SaveDirectory(install), path);
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentException("A DK2 save path is required.", nameof(path));
+        }
+
+        if (!Path.IsPathRooted(path) && !File.Exists(path))
+        {
+            path = Path.Combine(Dk2SaveReader.SaveDirectory(install), path);
+        }
+
         SavedGame save = Dk2SaveReader.Load(install, path)
             ?? throw new InvalidDataException("The installation has no map for the level named by the DK2 save.");
         return FromDk2Save(save);
@@ -55,7 +74,11 @@ public sealed record GameSessionRequest
 
     public static GameSessionRequest FromDk2Save(SavedGame save)
     {
-        if (save is null) throw new ArgumentNullException(nameof(save));
+        if (save is null)
+        {
+            throw new ArgumentNullException(nameof(save));
+        }
+
         return ForTerrain(save.Header.LevelName, save.Map);
     }
 
@@ -68,7 +91,11 @@ public sealed record GameSessionRequest
     /// <see cref="ClassicSessionAction.None"/>, ask for no session: null.</summary>
     public static GameSessionRequest? ForSessionAction(ClassicSessionAction action, SessionContext context)
     {
-        if (context is null) throw new ArgumentNullException(nameof(context));
+        if (context is null)
+        {
+            throw new ArgumentNullException(nameof(context));
+        }
+
         return action switch
         {
             ClassicSessionAction.Restart => context.ImportedTerrain is LevelMap terrain ? ForTerrain(context.LevelName, terrain)
@@ -82,7 +109,11 @@ public sealed record GameSessionRequest
     /// <see cref="Restart"/> of it starts the level afresh.</summary>
     public static GameSessionRequest Resumed(SessionResume resume)
     {
-        if (resume is null) throw new ArgumentNullException(nameof(resume));
+        if (resume is null)
+        {
+            throw new ArgumentNullException(nameof(resume));
+        }
+
         SavedSessionHeader header = resume.Session.Header;
         GameSessionRequest request = header.GameMode == SavedSessionHeader.TerrainImportMode
             ? ForTerrain(header.LevelName, GameSessionStarter.TerrainOf(resume.Simulation.World))

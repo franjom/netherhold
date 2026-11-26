@@ -16,8 +16,16 @@ public sealed class SpeechQueue
     public int WaitingCount => _waiting.Count;
     public bool Enqueue(SoundRequest line)
     {
-        if (line.Id.Value == 0 || string.IsNullOrEmpty(line.Category.Name)) return false;
-        if (_waiting.Count == 16 || _waiting.Any(q => q.Id == line.Id && q.Category == line.Category)) return false;
+        if (line.Id.Value == 0 || string.IsNullOrEmpty(line.Category.Name))
+        {
+            return false;
+        }
+
+        if (_waiting.Count == 16 || _waiting.Any(q => q.Id == line.Id && q.Category == line.Category))
+        {
+            return false;
+        }
+
         _waiting.Enqueue(line);
         return true;
     }
@@ -30,10 +38,18 @@ public sealed class SpeechQueue
     {
         if (Current.HasValue)
         {
-            if (linePlaying) return null;
+            if (linePlaying)
+            {
+                return null;
+            }
+
             Current = null; _lastEndedMilliseconds = nowMilliseconds;
         }
-        if (_waiting.Count == 0 || _lastEndedMilliseconds is long ended && nowMilliseconds <= ended + 1000) return null;
+        if (_waiting.Count == 0 || _lastEndedMilliseconds is long ended && nowMilliseconds <= ended + 1000)
+        {
+            return null;
+        }
+
         Current = _waiting.Dequeue();
         return Current;
     }

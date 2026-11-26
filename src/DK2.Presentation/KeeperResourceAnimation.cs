@@ -28,7 +28,11 @@ public sealed class KeeperResourceAnimation
         long remaining = snapshot.NextPaydayTick.Value - snapshot.Tick.Value;
         bool beforePayday = remaining >= 0
             && remaining < snapshot.PaydayCutoffTicks;
-        if (showGold && beforePayday) _paydayWarningSeen = true;
+        if (showGold && beforePayday)
+        {
+            _paydayWarningSeen = true;
+        }
+
         long sincePayday = snapshot.Tick.Value - snapshot.LastPaydayTick.Value;
         bool afterPayday = _paydayWarningSeen && snapshot.LastPaydayTick.Value != 0
             && sincePayday >= 0 && sincePayday < 10 * SimulationTiming.TicksPerSecond;

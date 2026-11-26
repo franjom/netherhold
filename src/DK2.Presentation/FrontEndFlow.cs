@@ -52,7 +52,10 @@ public sealed class FrontEndFlow(FrontEndPage returnPage = FrontEndPage.None)
     public FrontEndStep BeginTransition(FrontEndTransition transition)
     {
         if ((ushort)transition.Path is < 250 or > 274 || !Enum.IsDefined(typeof(FrontEndState), transition.AfterPath))
+        {
             throw new ArgumentOutOfRangeException(nameof(transition));
+        }
+
         State = transition.AfterPath;
         return new FrontEndStep(StartPath: transition.Path);
     }
@@ -93,7 +96,11 @@ public sealed class FrontEndFlow(FrontEndPage returnPage = FrontEndPage.None)
                     : routed;
             }
         }
-        if (cameraPathPlaying) return default;
+        if (cameraPathPlaying)
+        {
+            return default;
+        }
+
         FrontEndStep step;
         switch (State)
         {

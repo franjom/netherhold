@@ -41,7 +41,11 @@ public sealed class HudActionRouter
     /// <param name="panel">The bottom panel's model, which shows a corner's tool; needed only for the corners.</param>
     public void Apply(ClassicHudAction action, IPointerGestureHolder? bottomPanel, BottomPanelView? panel)
     {
-        if (!_controls.Accepts(action)) return;
+        if (!_controls.Accepts(action))
+        {
+            return;
+        }
+
         _input.CancelPointerGesture(); bottomPanel?.CancelPointerGesture();
         switch (action)
         {
@@ -51,12 +55,20 @@ public sealed class HudActionRouter
             case ClassicHudAction.ZoomIn:
             case ClassicHudAction.ZoomOut:
                 // The magnifier's primary or secondary click, 0x00416511/0x00416611.
-                if (ClassicHudControlLayout.TryGuiButton(action, out GuiButtonTarget zoomButton)) _host.PostGuiButton(zoomButton);
+                if (ClassicHudControlLayout.TryGuiButton(action, out GuiButtonTarget zoomButton))
+                {
+                    _host.PostGuiButton(zoomButton);
+                }
+
                 _host.ZoomMinimap(action == ClassicHudAction.ZoomIn, action == ClassicHudAction.ZoomOut);
                 return;
             case ClassicHudAction.SelectQuery:
             case ClassicHudAction.SelectSell:
-                if (ClassicHudControlLayout.TryGuiButton(action, out GuiButtonTarget toolButton)) _host.PostGuiButton(toolButton);
+                if (ClassicHudControlLayout.TryGuiButton(action, out GuiButtonTarget toolButton))
+                {
+                    _host.PostGuiButton(toolButton);
+                }
+
                 _tools.SelectCorner(action, _input, panel!);
                 return;
         }

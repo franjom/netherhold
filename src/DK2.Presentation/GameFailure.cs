@@ -121,10 +121,24 @@ public static class GameFailureCopy
     /// <summary>The choice <paramref name="key"/> takes: Enter the first, Esc the Quit; null when the screen has none.</summary>
     public static GameFailureAction? ForKey(GameFailureScreen screen, GameFailureKey key)
     {
-        if (screen is null) throw new ArgumentNullException(nameof(screen));
-        if (key == GameFailureKey.Confirm) return screen.Choices.Count > 0 ? screen.Choices[0].Action : null;
+        if (screen is null)
+        {
+            throw new ArgumentNullException(nameof(screen));
+        }
+
+        if (key == GameFailureKey.Confirm)
+        {
+            return screen.Choices.Count > 0 ? screen.Choices[0].Action : null;
+        }
+
         foreach (GameFailureChoice choice in screen.Choices)
-            if (choice.Action == GameFailureAction.Quit) return choice.Action;
+        {
+            if (choice.Action == GameFailureAction.Quit)
+            {
+                return choice.Action;
+            }
+        }
+
         return null;
     }
 
@@ -133,11 +147,25 @@ public static class GameFailureCopy
     /// (<c>main.cpp</c>'s <c>--log-file</c> over <c>debug/file_logging/log_path</c>).</summary>
     public static string? LogFile(IReadOnlyList<string> engineArgs, bool fileLogging, string? defaultLogFile)
     {
-        if (engineArgs is null) throw new ArgumentNullException(nameof(engineArgs));
+        if (engineArgs is null)
+        {
+            throw new ArgumentNullException(nameof(engineArgs));
+        }
+
         string? named = null;
         for (int i = 0; i + 1 < engineArgs.Count; i++)
-            if (engineArgs[i] == "--log-file" && !string.IsNullOrWhiteSpace(engineArgs[i + 1])) named = engineArgs[i + 1];
-        if (named != null) return named;
+        {
+            if (engineArgs[i] == "--log-file" && !string.IsNullOrWhiteSpace(engineArgs[i + 1]))
+            {
+                named = engineArgs[i + 1];
+            }
+        }
+
+        if (named != null)
+        {
+            return named;
+        }
+
         return fileLogging && !string.IsNullOrWhiteSpace(defaultLogFile) ? defaultLogFile : null;
     }
 }

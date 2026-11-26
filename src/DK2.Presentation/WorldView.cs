@@ -499,7 +499,10 @@ public sealed partial class WorldView
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         if (viewingPlayerId > TileState.MaxTaggingPlayerId)
+        {
             throw new ArgumentOutOfRangeException(nameof(viewingPlayerId));
+        }
+
         _viewingPlayerId = viewingPlayerId.Value;
         _fogTerrain = database.Terrain.Values.FirstOrDefault(t =>
             string.Equals(t.Name, "Fog Of War", StringComparison.OrdinalIgnoreCase));
@@ -523,7 +526,11 @@ public sealed partial class WorldView
         foreach (KeyValuePair<byte, RoomDef> entry in database.RoomsByTerrain)
         {
             _roomFurniture[entry.Key] = AssetRef.ForRoom(entry.Value.Name, AssetKind.Mesh);
-            if (AssetCatalogue.RoomPieceCount(entry.Value) > 0) _roomKeys[entry.Key] = new RoomPieceKeys(entry.Value);
+            if (AssetCatalogue.RoomPieceCount(entry.Value) > 0)
+            {
+                _roomKeys[entry.Key] = new RoomPieceKeys(entry.Value);
+            }
+
             if (entry.Value.TypeId == RoomTypeId.DungeonHeart)
             {
                 _minimapHeartTerrain ??= entry.Key;
@@ -542,14 +549,22 @@ public sealed partial class WorldView
             _creatureCorpses[entry.Key] = AssetRef.ForCreature(entry.Value.Name, AssetKind.Mesh, "dead");
             var animations = new Dictionary<string, AssetRef>(StringComparer.Ordinal);
             foreach (string clip in AssetCatalogue.CreatureAnimations)
+            {
                 animations[clip] = AssetRef.ForCreature(entry.Value.Name, AssetKind.Animation, clip);
+            }
+
             foreach (string clip in AssetCatalogue.CreatureActionAnimations)
+            {
                 animations[clip] = AssetRef.ForCreature(entry.Value.Name, AssetKind.Animation, clip);
+            }
+
             _creatureAnimations[entry.Key] = animations;
         }
 
         foreach (KeyValuePair<byte, ObjectDef> entry in database.Objects)
+        {
             _objectMeshes[entry.Key] = AssetRef.ForObject(entry.Value.Name, AssetKind.Mesh);
+        }
     }
 
     private bool _previewing;
@@ -560,7 +575,11 @@ public sealed partial class WorldView
     public void AdvanceTerrainHighlights(EffectTime time)
     {
         uint now = unchecked((uint)time.Milliseconds);
-        if (unchecked(now - _lastHighlightMilliseconds) <= 200) return;
+        if (unchecked(now - _lastHighlightMilliseconds) <= 200)
+        {
+            return;
+        }
+
         _lastHighlightMilliseconds = now;
         _highlightPhase = !_highlightPhase;
     }
@@ -571,9 +590,16 @@ public sealed partial class WorldView
 
     public void QueueTagPreview(TagTilesCommand command, GameTick appliesAt)
     {
-        if (command.PlayerId != _viewingPlayerId) return;
+        if (command.PlayerId != _viewingPlayerId)
+        {
+            return;
+        }
+
         foreach (TilePos position in command.Tiles)
+        {
             _queuedTagPreviews[position] = (command.Tagged, appliesAt);
+        }
+
         PreviewVersion++;
     }
 
@@ -581,9 +607,22 @@ public sealed partial class WorldView
     {
         _completedTagPreviews.Clear();
         foreach (KeyValuePair<TilePos, (bool Tagged, GameTick AppliesAt)> entry in _queuedTagPreviews)
-            if (entry.Value.AppliesAt <= completedTick) _completedTagPreviews.Add(entry.Key);
-        foreach (TilePos position in _completedTagPreviews) _queuedTagPreviews.Remove(position);
-        if (_completedTagPreviews.Count > 0) PreviewVersion++;
+        {
+            if (entry.Value.AppliesAt <= completedTick)
+            {
+                _completedTagPreviews.Add(entry.Key);
+            }
+        }
+
+        foreach (TilePos position in _completedTagPreviews)
+        {
+            _queuedTagPreviews.Remove(position);
+        }
+
+        if (_completedTagPreviews.Count > 0)
+        {
+            PreviewVersion++;
+        }
     }
 
     /// <summary>
@@ -598,7 +637,11 @@ public sealed partial class WorldView
         bool previewing = from is not null && to is not null;
         if (!previewing)
         {
-            if (_previewing) PreviewVersion++;
+            if (_previewing)
+            {
+                PreviewVersion++;
+            }
+
             _previewing = false;
             return;
         }
@@ -606,7 +649,11 @@ public sealed partial class WorldView
         (int x1, int x2) = a.X <= b.X ? (a.X, b.X) : (b.X, a.X);
         (int y1, int y2) = a.Y <= b.Y ? (a.Y, b.Y) : (b.Y, a.Y);
         if (!_previewing || tagged != _previewTagged
-            || x1 != _previewX1 || x2 != _previewX2 || y1 != _previewY1 || y2 != _previewY2) PreviewVersion++;
+            || x1 != _previewX1 || x2 != _previewX2 || y1 != _previewY1 || y2 != _previewY2)
+        {
+            PreviewVersion++;
+        }
+
         _previewing = true;
         _previewTagged = tagged;
         (_previewX1, _previewX2, _previewY1, _previewY2) = (x1, x2, y1, y2);
@@ -621,14 +668,22 @@ public sealed partial class WorldView
 
     public void SetPossessionView(bool enabled)
     {
-        if (_possessionView == enabled) return;
+        if (_possessionView == enabled)
+        {
+            return;
+        }
+
         _possessionView = enabled;
         PreviewVersion++;
     }
 
     public void SetSightRegion(SightRegion? region)
     {
-        if (_sightRegion == region) return;
+        if (_sightRegion == region)
+        {
+            return;
+        }
+
         _sightRegion = region;
         PreviewVersion++;
     }
@@ -636,7 +691,10 @@ public sealed partial class WorldView
     public bool ApplySightRegion(in SimEvent simEvent, WorldState world)
     {
         if (simEvent.SightRegion is not SightRegionRequest request || request.Viewer != _viewingPlayerId)
+        {
             return false;
+        }
+
         SetSightRegion(new SightRegion(simEvent.Tick, request.Position,
             request.DurationTicks, request.RadiusTiles, world.Width, world.Height));
         return true;
@@ -648,9 +706,15 @@ public sealed partial class WorldView
     private bool ShowsTag(in TileState tile, TerrainDef terrain, int x, int y)
     {
         if (_previewing && x >= _previewX1 && x <= _previewX2 && y >= _previewY1 && y <= _previewY2)
+        {
             return _previewTagged && (terrain.IsTaggable || tile.IsTaggedBy(_viewingPlayerId));
+        }
+
         if (_queuedTagPreviews.TryGetValue(new TilePos(x, y), out (bool Tagged, GameTick AppliesAt) queued))
+        {
             return queued.Tagged && (terrain.IsTaggable || tile.IsTaggedBy(_viewingPlayerId));
+        }
+
         return tile.IsTaggedBy(_viewingPlayerId);
     }
 
@@ -661,10 +725,26 @@ public sealed partial class WorldView
         TileState tile = world.Tile(position);
         TerrainDef terrain = _database.TerrainById(tile.TerrainId);
         MinimapTileFlags flags = MinimapTileFlags.None;
-        if (ShowsTag(tile, terrain, position.X, position.Y)) flags |= MinimapTileFlags.DigHighlighted;
-        if (!world.FogOfWarEnabled || tile.IsExploredBy(_viewingPlayerId)) flags |= MinimapTileFlags.Explored;
-        if (tile.IsDiscoveredBy(_viewingPlayerId)) flags |= MinimapTileFlags.Scanned;
-        if (NavBytes.IsSolid(navigation.NavByte(position.X, position.Y))) flags |= MinimapTileFlags.NavigationSolid;
+        if (ShowsTag(tile, terrain, position.X, position.Y))
+        {
+            flags |= MinimapTileFlags.DigHighlighted;
+        }
+
+        if (!world.FogOfWarEnabled || tile.IsExploredBy(_viewingPlayerId))
+        {
+            flags |= MinimapTileFlags.Explored;
+        }
+
+        if (tile.IsDiscoveredBy(_viewingPlayerId))
+        {
+            flags |= MinimapTileFlags.Scanned;
+        }
+
+        if (NavBytes.IsSolid(navigation.NavByte(position.X, position.Y)))
+        {
+            flags |= MinimapTileFlags.NavigationSolid;
+        }
+
         return MinimapTileClassifier.Classify(new MinimapTileFacts(terrain,
             _database.RoomByTerrain(tile.TerrainId)?.TypeId, new PlayerId(tile.OwnerPlayerId), flags));
     }
@@ -672,11 +752,18 @@ public sealed partial class WorldView
     /// <summary>Every tile, in row order.</summary>
     public IEnumerable<TileView> Tiles(WorldState world)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
 
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
+            {
                 yield return TileAt(world, x, y);
+            }
+        }
     }
 
     /// <summary>Every terrain piece key <see cref="TileAt"/> can hand out for the world as it stands:
@@ -684,27 +771,62 @@ public sealed partial class WorldView
     /// their room and ruined-heart sets. A superset, for decoding ahead without a view per tile.</summary>
     public IEnumerable<AssetRef> TerrainArtKeys(WorldState world)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         var terrains = new HashSet<byte>();
-        if (_fogTerrain is not null) terrains.Add(_fogTerrain.TerrainId);
-        if (_scanTerrain is not null) terrains.Add(_scanTerrain.TerrainId);
+        if (_fogTerrain is not null)
+        {
+            terrains.Add(_fogTerrain.TerrainId);
+        }
+
+        if (_scanTerrain is not null)
+        {
+            terrains.Add(_scanTerrain.TerrainId);
+        }
+
         for (int i = 0; i < world.TileCount; i++)
         {
             ref readonly TileState tile = ref world.TileAtIndex(i);
             terrains.Add(tile.TerrainId);
-            if (BridgeRules.SpannedTerrain(_database, tile) is TerrainDef liquid) terrains.Add(liquid.TerrainId);
+            if (BridgeRules.SpannedTerrain(_database, tile) is TerrainDef liquid)
+            {
+                terrains.Add(liquid.TerrainId);
+            }
         }
         foreach (byte id in terrains)
         {
             if (_pieceKeys.TryGetValue(id, out TerrainPieceKeys? pieces))
-                foreach (AssetRef key in pieces.All()) yield return key;
+            {
+                foreach (AssetRef key in pieces.All())
+                {
+                    yield return key;
+                }
+            }
+
             if (_roomKeys.TryGetValue(id, out RoomPieceKeys? room))
-                foreach (AssetRef key in room.All()) yield return key;
+            {
+                foreach (AssetRef key in room.All())
+                {
+                    yield return key;
+                }
+            }
+
             if (_database.RoomsByTerrain.TryGetValue(id, out RoomDef? definition)
                 && definition.Construction == TileConstruction.HeroGateFrontEndTile)
+            {
                 yield return FrontEndAssets.EntranceCap(definition.Name);
+            }
+
             if (_destroyedHeartKeys.TryGetValue(id, out RoomPieceKeys? ruined))
-                foreach (AssetRef key in ruined.All()) yield return key;
+            {
+                foreach (AssetRef key in ruined.All())
+                {
+                    yield return key;
+                }
+            }
         }
     }
 
@@ -712,14 +834,24 @@ public sealed partial class WorldView
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/fog-of-war.md")]
     public TileView TileAt(WorldState world, int x, int y)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         if (!world.Contains(x, y))
+        {
             throw new ArgumentOutOfRangeException(nameof(x), $"({x},{y}) is outside the world.");
+        }
 
         // Copied by value on purpose: a renderer gets no route back into state.
         TileState tile = world.Tile(x, y);
         bool hiddenDoor = IsHiddenSecretDoor(world, x, y);
-        if (hiddenDoor) tile.TerrainId = ReinforcedWallTerrainId;
+        if (hiddenDoor)
+        {
+            tile.TerrainId = ReinforcedWallTerrainId;
+        }
+
         TerrainDef terrain = _database.TerrainById(tile.TerrainId);
 
         bool scanned = tile.IsDiscoveredBy(_viewingPlayerId);
@@ -801,7 +933,11 @@ public sealed partial class WorldView
     /// <c>+0x11</c> is unread.</summary>
     public static int DecayStage(int health, TerrainDef terrain)
     {
-        if ((terrain.Flags & TerrainFlags.Decay) == 0 || terrain.TextureVariants <= 1) return -1;
+        if ((terrain.Flags & TerrainFlags.Decay) == 0 || terrain.TextureVariants <= 1)
+        {
+            return -1;
+        }
+
         int step = terrain.MaxHealth / terrain.TextureVariants;
         return step <= 0 ? -1 : Math.Max(0, health - 2) / step;
     }
@@ -811,7 +947,11 @@ public sealed partial class WorldView
     {
         opacity = 0;
         if (explored || solid || _possessionView || _sightRegion is not SightRegion region
-            || !region.IsVisible(position, world.CurrentTick) || _fogTerrain is null) return default;
+            || !region.IsVisible(position, world.CurrentTick) || _fogTerrain is null)
+        {
+            return default;
+        }
+
         opacity = region.FogOpacity(position, world.CurrentTick);
         return _pieceKeys[_fogTerrain.TerrainId].Side;
     }
@@ -821,29 +961,48 @@ public sealed partial class WorldView
     {
         bool scanned = tile.IsDiscoveredBy(_viewingPlayerId);
         bool unexplored = world.FogOfWarEnabled && !tile.IsExploredBy(_viewingPlayerId);
-        if (unexplored && !scanned && !AdmitsUnexplored(world, new TilePos(x, y))) return null;
+        if (unexplored && !scanned && !AdmitsUnexplored(world, new TilePos(x, y)))
+        {
+            return null;
+        }
+
         TerrainDef selectedTerrain = _database.TerrainById(tile.TerrainId);
         if (_database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? room))
         {
             if (room.Construction is not (TileConstruction.QuadConstruction or TileConstruction.Normal
-                or TileConstruction.DoubleQuad) || SameRoomMask(world, x, y, tile) != 0xFF) return null;
+                or TileConstruction.DoubleQuad) || SameRoomMask(world, x, y, tile) != 0xFF)
+            {
+                return null;
+            }
         }
         else if (unexplored && scanned)
         {
             if (!selectedTerrain.IsRevealedThroughFog)
+            {
                 selectedTerrain = _scanTerrain ?? throw new InvalidOperationException("Claim Scan terrain is missing.");
+            }
         }
-        else if (world.DoorAt(x, y) is not null) return null;
+        else if (world.DoorAt(x, y) is not null)
+        {
+            return null;
+        }
 
         if ((selectedTerrain.Flags & TerrainFlags.TerrainLight) == 0
             || selectedTerrain.TerrainLightHeight is not Fp32 height
-            || selectedTerrain.Lighting is not TerrainLighting lighting) return null;
+            || selectedTerrain.Lighting is not TerrainLighting lighting)
+        {
+            return null;
+        }
+
         TerrainLightColour colour = lighting.TerrainColour(selectedTerrain.Flags);
         if (unexplored && scanned && selectedTerrain.GoldValue == 0)
+        {
             colour = new TerrainLightColour(
                 ClaimScanChannel(VariableTypeId.ClaimScanLightRed, 200),
                 ClaimScanChannel(VariableTypeId.ClaimScanLightGreen, 80),
                 ClaimScanChannel(VariableTypeId.ClaimScanLightBlue, 35));
+        }
+
         return ClassicPointLight.FromTerrain(new TilePos(x, y), height, colour);
     }
 
@@ -861,8 +1020,16 @@ public sealed partial class WorldView
 
     private LiquidSurface SurfaceOf(in TileState tile, TerrainDef terrain)
     {
-        if (terrain.IsLava) return LiquidSurface.Lava;
-        if (terrain.IsWater) return LiquidSurface.Water;
+        if (terrain.IsLava)
+        {
+            return LiquidSurface.Lava;
+        }
+
+        if (terrain.IsWater)
+        {
+            return LiquidSurface.Water;
+        }
+
         return BridgeRules.SpannedTerrain(_database, tile) is { IsWater: true } ? LiquidSurface.Water : LiquidSurface.None;
     }
 
@@ -925,7 +1092,11 @@ public sealed partial class WorldView
     /// </summary>
     private PieceSet RoomFloorOf(WorldState world, int x, int y, in TileState tile)
     {
-        if (!_database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? room)) return default;
+        if (!_database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? room))
+        {
+            return default;
+        }
+
         return room.Construction switch
         {
             TileConstruction.Normal => NormalFloor(world, room, x, y, tile),
@@ -950,15 +1121,24 @@ public sealed partial class WorldView
     private PieceSet NormalFloor(WorldState world, RoomDef room, int x, int y, in TileState tile)
     {
         int mask = SameRoomMask(world, x, y, tile);
-        if (mask != 0xFF) return QuarterFloor(mask, NormalQuarter);
+        if (mask != 0xFF)
+        {
+            return QuarterFloor(mask, NormalQuarter);
+        }
 
         PieceSet pieces = default;
         if (IsFloorSlot(world, room, x, y)
             && !(room.TypeId == RoomTypeId.Workshop && room.ObjectIds.Count >= 3
                 && room.ObjectIds[AutoFurnitureRules.Choice(x, y, 3)] == WorkshopEmptySlotObjectId))
+        {
             return pieces.WithWhole(NormalCentrePiece, 0);
+        }
 
-        for (int q = 0; q < 4; q++) pieces = pieces.WithQuarter(q, NormalInteriorPiece, q);
+        for (int q = 0; q < 4; q++)
+        {
+            pieces = pieces.WithQuarter(q, NormalInteriorPiece, q);
+        }
+
         return pieces;
     }
 
@@ -985,7 +1165,10 @@ public sealed partial class WorldView
     {
         if (!world.Contains(x - 1, y) || !world.Contains(x + 1, y)
             || !world.Contains(x, y - 1) || !world.Contains(x, y + 1))
+        {
             return null;
+        }
+
         int mask = SameRoomMask(world, x, y, tile);
         int cx = (mask & (1 << 6)) == 0 ? 0 : (mask & (1 << 2)) != 0 ? 1 : 2;
         int cy = (mask & (1 << 0)) == 0 ? 0 : (mask & (1 << 4)) != 0 ? 1 : 2;
@@ -996,18 +1179,33 @@ public sealed partial class WorldView
     /// from the room's first slab; the centre's piece 4 draws nothing, nor does a tile beyond 5×5.</summary>
     private PieceSet HeartFloor(WorldState world, int x, int y)
     {
-        if (FactsAt(world, x, y) is not { } room) return default;
+        if (FactsAt(world, x, y) is not { } room)
+        {
+            return default;
+        }
+
         int dx = x - room.FirstX, dy = y - room.FirstY;
-        if (dx is < 0 or > 4 || dy is < 0 or > 4) return default;
+        if (dx is < 0 or > 4 || dy is < 0 or > 4)
+        {
+            return default;
+        }
+
         byte code = HeartCode[dx + (5 * dy)];
         if (IsRuinedHeart(world, world.Tile(x, y)))
+        {
             return dx == 1 && dy == 1 ? default(PieceSet).WithWhole(5, 0) : Coded(code);
+        }
+
         return code >> 4 == 4 ? default : Coded(code);
     }
 
     private PieceSet FrontEndFloor(WorldState world, int x, int y)
     {
-        if (FactsAt(world, x, y) is not { } room) return default;
+        if (FactsAt(world, x, y) is not { } room)
+        {
+            return default;
+        }
+
         int dx = x - room.FirstX, dy = y - room.FirstY;
         int piece = dx is >= 0 and < 3 && dy is >= 0 and < 6 ? dy == 5 ? 15 : dx + 3 * dy : 1;
         return default(PieceSet).WithWhole(piece, 0);
@@ -1025,7 +1223,11 @@ public sealed partial class WorldView
     /// beyond the 2×2 takes code 0x10, piece 1.</summary>
     private PieceSet HeroGate2By2Floor(WorldState world, int x, int y)
     {
-        if (FactsAt(world, x, y) is not { } room) return default;
+        if (FactsAt(world, x, y) is not { } room)
+        {
+            return default;
+        }
+
         int dx = x - room.FirstX, dy = y - room.FirstY;
         return dx is >= 0 and <= 1 && dy is >= 0 and <= 1
             ? default(PieceSet).WithWhole(dx + (2 * dy), 0)
@@ -1043,7 +1245,11 @@ public sealed partial class WorldView
     /// drawn.</para></summary>
     private PieceSet HeroGate3By1Floor(WorldState world, int x, int y, in TileState tile)
     {
-        if (HeroGateOrientation(world, x, y, tile) is not int o) return default;
+        if (HeroGateOrientation(world, x, y, tile) is not int o)
+        {
+            return default;
+        }
+
         int sx = (o & 1) == 0 ? 1 : 0, sy = 1 - sx;
         bool twoBack = SameRoomTile(world, x - (2 * sx), y - (2 * sy), tile);
         bool oneBack = SameRoomTile(world, x - sx, y - sy, tile);
@@ -1061,15 +1267,29 @@ public sealed partial class WorldView
         int mx = x, my = y;
         bool w = SameRoomTile(world, x - 1, y, tile), e = SameRoomTile(world, x + 1, y, tile);
         bool n = SameRoomTile(world, x, y - 1, tile), s = SameRoomTile(world, x, y + 1, tile);
-        if (w != e) mx += e ? 1 : -1;
-        else if (n != s) my += s ? 1 : -1;
+        if (w != e)
+        {
+            mx += e ? 1 : -1;
+        }
+        else if (n != s)
+        {
+            my += s ? 1 : -1;
+        }
 
         int face = -1;
         for (int side = 0; side < 4; side++)
         {
             int nx = mx + Dx8[side * 2], ny = my + Dy8[side * 2];
-            if (!world.Contains(nx, ny) || !_solidById[world.Tile(nx, ny).TerrainId]) continue;
-            if (face >= 0) return null;
+            if (!world.Contains(nx, ny) || !_solidById[world.Tile(nx, ny).TerrainId])
+            {
+                continue;
+            }
+
+            if (face >= 0)
+            {
+                return null;
+            }
+
             face = side;
         }
         return face < 0 ? null : (face + 2) & 3;
@@ -1079,7 +1299,11 @@ public sealed partial class WorldView
     /// (<c>Room_TileIsOwnedType</c>'s test as the gate writer uses it).</summary>
     private static bool SameRoomTile(WorldState world, int x, int y, in TileState tile)
     {
-        if (!world.Contains(x, y)) return false;
+        if (!world.Contains(x, y))
+        {
+            return false;
+        }
+
         TileState other = world.Tile(x, y);
         return other.TerrainId == tile.TerrainId && other.OwnerPlayerId == tile.OwnerPlayerId;
     }
@@ -1093,12 +1317,18 @@ public sealed partial class WorldView
         PieceSet pieces = default;
         if (room.TypeId is RoomTypeId.Prison or RoomTypeId.CombatPit
             && FactsAt(world, x, y) is { } facts && facts.DoorTile == (y * world.Width) + x)
+        {
             return pieces.WithQuarter(0, DoubleQuadDoorPiece, 0);
+        }
 
         int mask = SameRoomMask(world, x, y, tile);
         if (mask == 0xFF)
         {
-            for (int q = 0; q < 4; q++) pieces = pieces.WithQuarter(q, DoubleQuadInteriorPiece, q);
+            for (int q = 0; q < 4; q++)
+            {
+                pieces = pieces.WithQuarter(q, DoubleQuadInteriorPiece, q);
+            }
+
             return pieces;
         }
 
@@ -1107,7 +1337,10 @@ public sealed partial class WorldView
         for (int k = 0; k < 8; k++)
         {
             int nx = x + Dx8[k], ny = y + Dy8[k];
-            if ((mask & (1 << k)) != 0 && SameRoomMask(world, nx, ny, world.Tile(nx, ny)) == 0xFF) inner |= 1 << k;
+            if ((mask & (1 << k)) != 0 && SameRoomMask(world, nx, ny, world.Tile(nx, ny)) == 0xFF)
+            {
+                inner |= 1 << k;
+            }
         }
 
         for (int q = 0; q < 4; q++)
@@ -1129,9 +1362,16 @@ public sealed partial class WorldView
         for (int k = 0; k < 8; k++)
         {
             int nx = x + Dx8[k], ny = y + Dy8[k];
-            if (!world.Contains(nx, ny)) continue;
+            if (!world.Contains(nx, ny))
+            {
+                continue;
+            }
+
             TileState other = world.Tile(nx, ny);
-            if (other.TerrainId == tile.TerrainId && other.OwnerPlayerId == tile.OwnerPlayerId) mask |= 1 << k;
+            if (other.TerrainId == tile.TerrainId && other.OwnerPlayerId == tile.OwnerPlayerId)
+            {
+                mask |= 1 << k;
+            }
         }
         return mask;
     }
@@ -1154,7 +1394,10 @@ public sealed partial class WorldView
         bool bridge = (terrain.Flags & TerrainFlags.ConstructionTypeWater) == 0;
         TerrainDef? liquid = bridge ? BridgeRules.SpannedTerrain(_database, tile) : terrain;
         keys = liquid is null ? null : _pieceKeys[liquid.TerrainId];
-        if (liquid is null) return default;
+        if (liquid is null)
+        {
+            return default;
+        }
 
         // 0x00450470 for a liquid tile: off the map, the same terrain or a bridge over it. The
         // bridge's own mask (0x00443910): the liquid's flag or a bridge over the same liquid.
@@ -1165,7 +1408,11 @@ public sealed partial class WorldView
             int nx = x + Dx8[k], ny = y + Dy8[k];
             if (!world.Contains(nx, ny))
             {
-                if (!bridge) mask |= 1 << k;
+                if (!bridge)
+                {
+                    mask |= 1 << k;
+                }
+
                 continue;
             }
             TileState other = world.Tile(nx, ny);
@@ -1173,13 +1420,24 @@ public sealed partial class WorldView
                 ? (_database.TerrainById(other.TerrainId).Flags & flag) != 0
                 : other.TerrainId == liquid.TerrainId;
             if (same || (BridgeRules.SpannedTerrain(_database, other) is { } under && under.TerrainId == liquid.TerrainId))
+            {
                 mask |= 1 << k;
+            }
         }
 
-        if (!liquid.IsLava && mask == 0xFF) return default;
+        if (!liquid.IsLava && mask == 0xFF)
+        {
+            return default;
+        }
+
         for (int i = 0; i < BedPattern.Length; i++)
+        {
             if ((mask & BedPattern[i].Care) == BedPattern[i].Want)
+            {
                 return default(PieceSet).WithWhole(BedWhole[i].Piece, BedWhole[i].Rotation);
+            }
+        }
+
         return QuarterFloor(mask, BedQuarter);
     }
 
@@ -1226,7 +1484,11 @@ public sealed partial class WorldView
         for (int i = 0; i < seen.Length; i++)
         {
             TileRoomFacts facts = FactsOfIndex(i);
-            if (facts.Same(seen[i])) continue;
+            if (facts.Same(seen[i]))
+            {
+                continue;
+            }
+
             seen[i] = facts;
             stale[i] = true;
             changed = true;
@@ -1261,14 +1523,24 @@ public sealed partial class WorldView
     /// tool, not the simulation) is seen only at the next one.</summary>
     private void EnsureRooms(WorldState world)
     {
-        if (ReferenceEquals(_roomsWorld, world) && _roomsTick == world.CurrentTick) return;
+        if (ReferenceEquals(_roomsWorld, world) && _roomsTick == world.CurrentTick)
+        {
+            return;
+        }
+
         _roomsWorld = world;
         _roomsTick = world.CurrentTick;
         _checkerSlots.Clear();
         _roomFacts.Clear();
         _rooms.Clear();
-        if (_roomOf.Length != world.TileCount) _roomOf = new int[world.TileCount];
-        else Array.Clear(_roomOf, 0, _roomOf.Length);
+        if (_roomOf.Length != world.TileCount)
+        {
+            _roomOf = new int[world.TileCount];
+        }
+        else
+        {
+            Array.Clear(_roomOf, 0, _roomOf.Length);
+        }
 
         foreach (RoomInstance room in RoomIndex.Build(world, _database))
         {
@@ -1278,9 +1550,15 @@ public sealed partial class WorldView
             int first = SlabChain.FirstSlab(world, room);
             _roomFacts.Add(new RoomFacts(first % world.Width, first / world.Width, door, northSouth, eastWest));
             _rooms.Add(room);
-            foreach (int tile in room.TileIndices) _roomOf[tile] = _roomFacts.Count;
+            foreach (int tile in room.TileIndices)
+            {
+                _roomOf[tile] = _roomFacts.Count;
+            }
+
             if (AutoFurnitureRules.UsesCheckerboard(type))
+            {
                 _checkerSlots.UnionWith(AutoFurnitureRules.FloorSlotSet(world, room));
+            }
         }
     }
 
@@ -1289,7 +1567,11 @@ public sealed partial class WorldView
     /// plus the east-west phase is odd (<c>0x004452F1..0x0044535F</c>).</summary>
     private bool Decorated(WorldState world, int x, int y, int side)
     {
-        if (FactsAt(world, x, y) is not { } room) return false;
+        if (FactsAt(world, x, y) is not { } room)
+        {
+            return false;
+        }
+
         return (side & 1) == 0
             ? room.PhaseNorthSouth >= 0 && ((x + room.PhaseNorthSouth) & 1) == 0
             : room.PhaseEastWest >= 0 && ((y + room.PhaseEastWest) & 1) == 1;
@@ -1300,7 +1582,11 @@ public sealed partial class WorldView
     /// cell holding object 75, which then draws interior quarters, not piece 9.</summary>
     private bool IsFloorSlot(WorldState world, RoomDef room, int x, int y)
     {
-        if (!AutoFurnitureRules.UsesCheckerboard(room.TypeId)) return true;
+        if (!AutoFurnitureRules.UsesCheckerboard(room.TypeId))
+        {
+            return true;
+        }
+
         EnsureRooms(world);
         return _checkerSlots.Contains((y * world.Width) + x);
     }
@@ -1356,13 +1642,17 @@ public sealed partial class WorldView
         TerrainFlags flags = terrain.Flags;
         if ((flags & (TerrainFlags.Room | TerrainFlags.ConstructionTypeWater)) != 0
             || tile.TerrainId == ManaVaultTerrainId)
+        {
             return default;
+        }
         // 0x004401C7..0x004401FA: with the terrain's Solid bit and [ESP+0x28] clear, a tile of
         // terrain 0x23 asks world vtable +0x2AC for the table's piece instead of the owner's +0x10AA
         // set. A fogged Hero Lair never reaches here: the fog arm above draws it as the fog terrain.
         if (tile.TerrainId == HeroLairTerrainId && !terrain.IsSolid)
+        {
             return default(TerrainPieces).WithQuarters(QuarterKind.HeroLair, 0,
                 QuarterPieces(FloorEdges(world, x, y, tile.TerrainId)));
+        }
 
         // The owner's set: player id − 1, so 0 the heroes and 1 neutral (AssetCatalogue.ClaimedSets).
         int set = Math.Clamp((tile.OwnerPlayerId == 0 ? PlayerIds.Neutral : tile.OwnerPlayerId) - 1,
@@ -1371,16 +1661,29 @@ public sealed partial class WorldView
         if (terrain.IsSolid)
         {
             if (!IsHeroWall(tile, flags))
+            {
                 for (int side = 0; side < 4; side++)
-                    if (DrawsFace(world, x, y, side, flags, drawnAsFog)) pieces = pieces.WithFace(side);
+                {
+                    if (DrawsFace(world, x, y, side, flags, drawnAsFog))
+                    {
+                        pieces = pieces.WithFace(side);
+                    }
+                }
+            }
 
             if ((flags & TerrainFlags.PlayerColouredWall) != 0)
+            {
                 return pieces.WithQuarters(QuarterKind.Top, set, QuarterPieces(TopEdges(world, x, y)));
+            }
+
             return pieces.WithTop();
         }
 
         if ((flags & TerrainFlags.PlayerColouredPath) != 0)
+        {
             return pieces.WithQuarters(QuarterKind.Floor, set, QuarterPieces(FloorEdges(world, x, y, tile.TerrainId)));
+        }
+
         return pieces.WithFloor();
     }
 
@@ -1391,14 +1694,26 @@ public sealed partial class WorldView
     private bool DrawsFace(WorldState world, int x, int y, int side, TerrainFlags flags, bool drawnAsFog)
     {
         int nx = x + Dx8[side * 2], ny = y + Dy8[side * 2];
-        if (!world.Contains(nx, ny)) return true;
+        if (!world.Contains(nx, ny))
+        {
+            return true;
+        }
+
         TileState neighbour = world.Tile(nx, ny);
         // 0x0043F252..0x0043F275: such a tile faces an explored open neighbour with no room-wall
         // suppression, since the room builds no wall against an unexplored tile (wall-pieces.md).
-        if (drawnAsFog && neighbour.IsExploredBy(_viewingPlayerId)) return !IsSolid(world, nx, ny);
+        if (drawnAsFog && neighbour.IsExploredBy(_viewingPlayerId))
+        {
+            return !IsSolid(world, nx, ny);
+        }
+
         bool scannedTerrain = neighbour.IsDiscoveredBy(_viewingPlayerId)
             && _database.TerrainById(neighbour.TerrainId).IsRevealedThroughFog;
-        if ((!IsVisible(world, new TilePos(nx, ny)) && !scannedTerrain) || IsSolid(world, nx, ny)) return false;
+        if ((!IsVisible(world, new TilePos(nx, ny)) && !scannedTerrain) || IsSolid(world, nx, ny))
+        {
+            return false;
+        }
+
         return (flags & TerrainFlags.AllowRoomWalls) == 0 || !_ownWallsById[world.Tile(nx, ny).TerrainId];
     }
 
@@ -1426,11 +1741,19 @@ public sealed partial class WorldView
     /// </summary>
     private RoomWalls HeroWallFacesOf(WorldState world, int x, int y, in TileState tile, TerrainFlags flags)
     {
-        if (!IsHeroWall(tile, flags)) return default;
+        if (!IsHeroWall(tile, flags))
+        {
+            return default;
+        }
+
         RoomWalls faces = default;
         for (int side = 0; side < 4; side++)
         {
-            if (!DrawsFace(world, x, y, side, flags, drawnAsFog: false)) continue;
+            if (!DrawsFace(world, x, y, side, flags, drawnAsFog: false))
+            {
+                continue;
+            }
+
             int d = side * 2;
             bool a = Blocks(world, x, y, d - 2) && !Blocks(world, x, y, d - 1);
             bool b = Blocks(world, x, y, d + 2) && !Blocks(world, x, y, d + 1);
@@ -1457,7 +1780,10 @@ public sealed partial class WorldView
         for (int k = 0; k < 8; k++)
         {
             int nx = x + Dx8[k], ny = y + Dy8[k];
-            if (world.Contains(nx, ny) && !IsSolid(world, nx, ny)) mask |= 1 << k;
+            if (world.Contains(nx, ny) && !IsSolid(world, nx, ny))
+            {
+                mask |= 1 << k;
+            }
         }
         return mask;
     }
@@ -1470,7 +1796,10 @@ public sealed partial class WorldView
         for (int k = 0; k < 8; k++)
         {
             int nx = x + Dx8[k], ny = y + Dy8[k];
-            if (!world.Contains(nx, ny) || world.Tile(nx, ny).TerrainId != terrainId) mask |= 1 << k;
+            if (!world.Contains(nx, ny) || world.Tile(nx, ny).TerrainId != terrainId)
+            {
+                mask |= 1 << k;
+            }
         }
         return mask;
     }
@@ -1480,7 +1809,11 @@ public sealed partial class WorldView
     private static int QuarterPieces(int edges)
     {
         int packed = 0;
-        for (int q = 0; q < 4; q++) packed |= ClaimedQuarterPiece[QuadrantIndex(edges, q)] << (3 * q);
+        for (int q = 0; q < 4; q++)
+        {
+            packed |= ClaimedQuarterPiece[QuadrantIndex(edges, q)] << (3 * q);
+        }
+
         return packed;
     }
 
@@ -1502,12 +1835,18 @@ public sealed partial class WorldView
     {
         if (!_database.RoomsByTerrain.TryGetValue(terrainId, out RoomDef? room)
             || room.Construction is not (TileConstruction.Normal or TileConstruction.DoubleQuad or TileConstruction.HeroGate3By1))
+        {
             return default;
+        }
 
         if (room.Construction == TileConstruction.HeroGate3By1)
         {
             ref TileState tile = ref world.Tile(x, y);
-            if (HeroGateOrientation(world, x, y, tile) is not int orientation) return default;
+            if (HeroGateOrientation(world, x, y, tile) is not int orientation)
+            {
+                return default;
+            }
+
             PieceSet floor = HeroGate3By1Floor(world, x, y, tile);
             RoomWalls gate = default;
             int face = (orientation + 2) & 3;
@@ -1515,9 +1854,19 @@ public sealed partial class WorldView
             {
                 int nx = x + Dx8[side * 2], ny = y + Dy8[side * 2];
                 if (!world.Contains(nx, ny) || SameRoomTile(world, nx, ny, tile)
-                    || (world.FogOfWarEnabled && !world.Tile(nx, ny).IsExploredBy(_viewingPlayerId))) continue;
-                if (side == face) gate = gate.WithWholePiece(side, floor.WholePiece - 3, side - 1);
-                else if (TakesRoomWalls(world, nx, ny)) gate = gate.WithWholePiece(side, 6, side - 1);
+                    || (world.FogOfWarEnabled && !world.Tile(nx, ny).IsExploredBy(_viewingPlayerId)))
+                {
+                    continue;
+                }
+
+                if (side == face)
+                {
+                    gate = gate.WithWholePiece(side, floor.WholePiece - 3, side - 1);
+                }
+                else if (TakesRoomWalls(world, nx, ny))
+                {
+                    gate = gate.WithWholePiece(side, 6, side - 1);
+                }
             }
             return gate;
         }
@@ -1529,7 +1878,10 @@ public sealed partial class WorldView
             int nx = x + Dx8[d], ny = y + Dy8[d];
             if (!world.Contains(nx, ny) || !IsVisible(world, new TilePos(nx, ny))
                 || !TakesRoomWalls(world, nx, ny))
+            {
                 continue;
+            }
+
             bool runsOnA = RunsOn(world, x, y, terrainId, (d + 6) & 7, (d + 7) & 7);
             bool runsOnB = RunsOn(world, x, y, terrainId, (d + 2) & 7, (d + 1) & 7);
             walls = runsOnA && runsOnB
@@ -1546,8 +1898,16 @@ public sealed partial class WorldView
     {
         int sx = x + Dx8[along], sy = y + Dy8[along];
         int dx = x + Dx8[diagonal], dy = y + Dy8[diagonal];
-        if (!world.Contains(sx, sy) || !world.Contains(dx, dy)) return false;
-        if (world.Tile(sx, sy).TerrainId != terrainId) return false;
+        if (!world.Contains(sx, sy) || !world.Contains(dx, dy))
+        {
+            return false;
+        }
+
+        if (world.Tile(sx, sy).TerrainId != terrainId)
+        {
+            return false;
+        }
+
         TerrainDef behind = _database.TerrainById(ShownTerrainId(world, dx, dy));
         return behind.IsSolid && ((behind.Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls);
     }
@@ -1558,18 +1918,40 @@ public sealed partial class WorldView
     /// <summary>Every creature, in the simulation's own order (which is spawn order).</summary>
     public IEnumerable<CreatureView> Creatures(WorldState world)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
         PrunePortalPoses(world);
 
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.InHand) continue;
-            if (LocalPickups.Contains(new CreatureId(creature.Id))) continue;
+            if (creature.InHand)
+            {
+                continue;
+            }
+
+            if (LocalPickups.Contains(new CreatureId(creature.Id)))
+            {
+                continue;
+            }
             // The finale Reaper's draw bit (+0xF3 bit 0) is off from state 228 until 230.
-            if (creature.ReaperHidden) continue;
-            if (IsMistressBedEntrance(world, creature) || IsMistressBedExit(world, creature)) continue;
+            if (creature.ReaperHidden)
+            {
+                continue;
+            }
+
+            if (IsMistressBedEntrance(world, creature) || IsMistressBedExit(world, creature))
+            {
+                continue;
+            }
+
             TilePos position = creature.Tile;
-            if (!IsVisible(world, position)) continue;
+            if (!IsVisible(world, position))
+            {
+                continue;
+            }
 
             _creatureMeshes.TryGetValue(creature.CreatureTypeId, out AssetRef mesh);
 
@@ -1580,7 +1962,11 @@ public sealed partial class WorldView
             int previousHeight = flying ? FloorZ : CreatureGroundHeight(world,
                 new FpPosition3(new(creature.LastPosX), new(creature.LastPosY), new(FloorZ))).Raw;
             // State 75 raises the creature before insertion into the hand (0x0046EA60).
-            if (creature.Dk2StateId == HandRules.PreparationState) height = previousHeight = 0x2000;
+            if (creature.Dk2StateId == HandRules.PreparationState)
+            {
+                height = previousHeight = 0x2000;
+            }
+
             bool creationJump = IsCreationJump(creature, world.CurrentTick);
             if (creature.Dk2StateId == ImpCreationRules.FallingState)
             {
@@ -1614,9 +2000,16 @@ public sealed partial class WorldView
                 && !stationaryMovement && IsTravelAnimation(creature);
             int footstepSlot = travelling ? (animation == _creatureAnimations[creature.CreatureTypeId]["running"] ? 2 : 1) : 0;
             CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
-            if (stationaryMovement || bedExitPose) mesh = animation;
+            if (stationaryMovement || bedExitPose)
+            {
+                mesh = animation;
+            }
+
             if (creature.Activity == CreatureActivity.Dead)
+            {
                 mesh = _creatureCorpses[creature.CreatureTypeId];
+            }
+
             if (AttachedWheel(world, creature) is { } wheel)
             {
                 mesh = animation;
@@ -1632,7 +2025,11 @@ public sealed partial class WorldView
                     posX += Dx8[side * 2] * 0x1C2;
                     posY += Dy8[side * 2] * 0x1C2;
                 }
-                else height += 0x200;
+                else
+                {
+                    height += 0x200;
+                }
+
                 previousX = posX;
                 previousY = posY;
                 previousHeight = height;
@@ -1681,16 +2078,30 @@ public sealed partial class WorldView
     /// </summary>
     public IEnumerable<ObjectView> Objects(WorldState world)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
 
         foreach (ObjectState instance in world.Objects)
         {
-            if (instance.InHand || LevelGemIdle.IsInCarrierArms(instance)) continue;
+            if (instance.InHand || LevelGemIdle.IsInCarrierArms(instance))
+            {
+                continue;
+            }
+
             if (instance.ObjectTypeId == HatcheryRules.EggObjectId && instance.ProcessState == 24
-                && instance.ProcessAgeTicks < 16) continue;
+                && instance.ProcessAgeTicks < 16)
+            {
+                continue;
+            }
+
             var position = new TilePos(
                 instance.TileIndex % world.Width, instance.TileIndex / world.Width);
-            if (!IsVisible(world, position) || BedHidden(world, instance)) continue;
+            if (!IsVisible(world, position) || BedHidden(world, instance))
+            {
+                continue;
+            }
 
             yield return Placed(world, instance, position);
         }
@@ -1710,39 +2121,85 @@ public sealed partial class WorldView
     /// </summary>
     public AssetRef AnimationFor(CreatureState creature, GameTick tick)
     {
-        if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (creature is null)
+        {
+            throw new ArgumentNullException(nameof(creature));
+        }
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
-        if (IsBedExitPose(creature, tick)) return _creatureAnimations[creature.CreatureTypeId]["moving_to_job"];
-        if (IsCreationJump(creature, tick)) return _creatureAnimations[creature.CreatureTypeId]["creation_jump"];
+        if (IsBedExitPose(creature, tick))
+        {
+            return _creatureAnimations[creature.CreatureTypeId]["moving_to_job"];
+        }
+
+        if (IsCreationJump(creature, tick))
+        {
+            return _creatureAnimations[creature.CreatureTypeId]["creation_jump"];
+        }
+
         string clip = ActivityKeySegment(creature.Activity);
-        if (creature.Dk2StateId == PortalRules.JoiningState) clip = "entrance";
-        else if (IsDropRecoveryAnimation(creature)) clip = creature.Dk2StateId == DropLandingRules.GettingUpState
+        if (creature.Dk2StateId == PortalRules.JoiningState)
+        {
+            clip = "entrance";
+        }
+        else if (IsDropRecoveryAnimation(creature))
+        {
+            clip = creature.Dk2StateId == DropLandingRules.GettingUpState
             ? "getting_up" : "stunned";
+        }
         else if (IsTrainingAnimation(creature))
+        {
             clip = creature.TrainingActionId == (byte)TrainingActionKind.Spell ? "casting" : "fighting";
+        }
         else if (creature.Dk2StateId == DropLandingRules.LandingState)
+        {
             clip = IsDeferredLanding(creature) ? "landing" : "idle";
-        else if (IsMeleeAnimation(creature, tick)) clip = "fighting";
-        else if (IsCastAnimation(creature, tick)) clip = "casting";
-        else if (IsWorkshopWorkAnimation(creature, tick)) clip = "working";
-        else if (IsEatingAnimation(creature)) clip = "eating";
+        }
+        else if (IsMeleeAnimation(creature, tick))
+        {
+            clip = "fighting";
+        }
+        else if (IsCastAnimation(creature, tick))
+        {
+            clip = "casting";
+        }
+        else if (IsWorkshopWorkAnimation(creature, tick))
+        {
+            clip = "working";
+        }
+        else if (IsEatingAnimation(creature))
+        {
+            clip = "eating";
+        }
         else if (!creature.Possessed && IsTravelAnimation(creature) && MovementAnimationSpeed(creature).Raw == 0)
+        {
             clip = "movement_idle";
+        }
         else if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle or CreatureActivity.Fighting
                      or CreatureActivity.Following
             && IsTravelAnimation(creature))
+        {
             clip = creature.Running ? "running" : "moving_to_job";
+        }
         else if (creature.Activity == CreatureActivity.Working
             && definition.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase))
+        {
             clip = creature.LastTaskKind switch
             {
                 ImpTaskKind.Claim => "claiming",
                 ImpTaskKind.Reinforce or ImpTaskKind.Fix => "reinforcing",
                 _ => clip,
             };
-        else if (creature.Activity is CreatureActivity.Fighting or CreatureActivity.Following) clip = "idle";
-        else if (creature.Running && IsTravelAnimation(creature)) clip = "running";
+        }
+        else if (creature.Activity is CreatureActivity.Fighting or CreatureActivity.Following)
+        {
+            clip = "idle";
+        }
+        else if (creature.Running && IsTravelAnimation(creature))
+        {
+            clip = "running";
+        }
+
         return _creatureAnimations[creature.CreatureTypeId][clip];
     }
 
@@ -1771,7 +2228,11 @@ public sealed partial class WorldView
             _stalePortalPoseIds.Clear();
             return;
         }
-        if (_portalPoseTick == world.CurrentTick) return;
+        if (_portalPoseTick == world.CurrentTick)
+        {
+            return;
+        }
+
         _portalPoseTick = world.CurrentTick;
         _stalePortalPoseIds.Clear();
         foreach (KeyValuePair<int, (CreatureState Creature, GameTick JoiningTick, GameTick? ExitTick)> entry in _portalPoses)
@@ -1781,9 +2242,15 @@ public sealed partial class WorldView
                 || (entry.Value.ExitTick.HasValue && entry.Value.ExitTick != world.CurrentTick)
                 || (creature.Dk2StateId != PortalRules.JoiningState
                     && world.CurrentTick.Value - entry.Value.JoiningTick.Value > 1))
+            {
                 _stalePortalPoseIds.Add(entry.Key);
+            }
         }
-        foreach (int id in _stalePortalPoseIds) _portalPoses.Remove(id);
+        foreach (int id in _stalePortalPoseIds)
+        {
+            _portalPoses.Remove(id);
+        }
+
         _stalePortalPoseIds.Clear();
     }
 
@@ -1795,10 +2262,18 @@ public sealed partial class WorldView
             return false;
         }
         if (!_portalPoses.TryGetValue(creature.Id, out (CreatureState Creature, GameTick JoiningTick, GameTick? ExitTick) previous)
-            || !ReferenceEquals(previous.Creature, creature)) return false;
+            || !ReferenceEquals(previous.Creature, creature))
+        {
+            return false;
+        }
+
         if (previous.ExitTick.HasValue)
         {
-            if (previous.ExitTick == world.CurrentTick) return true;
+            if (previous.ExitTick == world.CurrentTick)
+            {
+                return true;
+            }
+
             _portalPoses.Remove(creature.Id);
             return false;
         }
@@ -1857,8 +2332,11 @@ public sealed partial class WorldView
     private bool IsCastAnimation(CreatureState creature, GameTick tick)
     {
         if (creature.SwingInProgress)
+        {
             return creature.SwingKind is DK2.Simulation.Combat.SpellRules.SpellCast
                 or DK2.Simulation.Combat.SpellRules.FreeAimCast;
+        }
+
         if (creature.Possessed
             || creature.Activity is not (CreatureActivity.Fighting or CreatureActivity.PitFighting)
             || creature.SwingTargetKind == DK2.Simulation.Combat.FightTargetKind.None
@@ -1866,7 +2344,11 @@ public sealed partial class WorldView
             || creature.SpellStamps[creature.SwingSpellSlot] != creature.SwingStartTick
             || creature.AttackType is not (DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtCreature
                 or DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtThing
-                or DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtAlly)) return false;
+                or DK2.Simulation.Combat.CombatRules.AttackMode.SpellAtAlly))
+        {
+            return false;
+        }
+
         if (!_castHoldTicks.TryGetValue(creature.CreatureTypeId, out int hold))
         {
             CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
@@ -1879,16 +2361,31 @@ public sealed partial class WorldView
 
     private bool IsMeleeAnimation(CreatureState creature, GameTick tick)
     {
-        if (creature.SwingKind != DK2.Simulation.Combat.SpellRules.MeleeSwing) return false;
-        if (creature.SwingInProgress) return true;
+        if (creature.SwingKind != DK2.Simulation.Combat.SpellRules.MeleeSwing)
+        {
+            return false;
+        }
+
+        if (creature.SwingInProgress)
+        {
+            return true;
+        }
+
         if (creature.Activity is not (CreatureActivity.Fighting or CreatureActivity.PitFighting)
             || creature.SwingTargetKind == DK2.Simulation.Combat.FightTargetKind.None
             || creature.TimeLastUsedMelee - creature.MeleeStampDelay != creature.SwingStartTick
             || creature.AttackType is not (DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtCreature
-                or DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtThing)) return false;
+                or DK2.Simulation.Combat.CombatRules.AttackMode.MeleeAtThing))
+        {
+            return false;
+        }
+
         if (!_meleeHoldTicks.TryGetValue(creature.CreatureTypeId, out int hold))
+        {
             _meleeHoldTicks[creature.CreatureTypeId] = hold = AnimationTimingRules.ActionHoldTicks(
                 _database.CreatureById(creature.CreatureTypeId).ArtSlot(5));
+        }
+
         long elapsed = tick.Value - creature.SwingStartTick;
         return elapsed >= 0 && elapsed < hold;
     }
@@ -1978,16 +2475,32 @@ public sealed partial class WorldView
 
     private static int HealthPermille(int health, int maxHealth)
     {
-        if (maxHealth <= 0) return 1000;
+        if (maxHealth <= 0)
+        {
+            return 1000;
+        }
+
         long permille = (long)health * 1000 / maxHealth;
         return permille < 0 ? 0 : permille > 1000 ? 1000 : (int)permille;
     }
 
     public bool CanShowTile(WorldState world, TilePos position)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (!world.Contains(position)) return false;
-        if (!world.FogOfWarEnabled) return true;
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (!world.Contains(position))
+        {
+            return false;
+        }
+
+        if (!world.FogOfWarEnabled)
+        {
+            return true;
+        }
+
         return world.Tile(position).IsExploredBy(_viewingPlayerId) || AdmitsUnexplored(world, position);
     }
 

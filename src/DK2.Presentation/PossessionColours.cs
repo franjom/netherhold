@@ -20,7 +20,11 @@ public sealed class PossessionColours
     {
         get
         {
-            if (ApplyColourChanges) return Change.Current;
+            if (ApplyColourChanges)
+            {
+                return Change.Current;
+            }
+
             if (_normalGamma != Change.Gamma)
             {
                 _normalGamma = Change.Gamma;

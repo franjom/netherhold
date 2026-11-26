@@ -33,11 +33,31 @@ public static class ClassicCameraInput
     {
         ClassicCameraKeys edges = ClassicCameraKeys.None;
         Vector2 p = pointer.Position;
-        if (!pointer.Focused || !(p.X >= 0 && p.X < pointer.ScreenWidth && p.Y >= 0 && p.Y < pointer.ScreenHeight)) return edges;
-        if (p.X < EdgeScrollMargin) edges |= ClassicCameraKeys.Left;
-        if (p.X > pointer.ScreenWidth - EdgeScrollMargin) edges |= ClassicCameraKeys.Right;
-        if (p.Y > pointer.ScreenHeight - EdgeScrollMargin) edges |= ClassicCameraKeys.Up;
-        if (p.Y < EdgeScrollMargin) edges |= ClassicCameraKeys.Down;
+        if (!pointer.Focused || !(p.X >= 0 && p.X < pointer.ScreenWidth && p.Y >= 0 && p.Y < pointer.ScreenHeight))
+        {
+            return edges;
+        }
+
+        if (p.X < EdgeScrollMargin)
+        {
+            edges |= ClassicCameraKeys.Left;
+        }
+
+        if (p.X > pointer.ScreenWidth - EdgeScrollMargin)
+        {
+            edges |= ClassicCameraKeys.Right;
+        }
+
+        if (p.Y > pointer.ScreenHeight - EdgeScrollMargin)
+        {
+            edges |= ClassicCameraKeys.Up;
+        }
+
+        if (p.Y < EdgeScrollMargin)
+        {
+            edges |= ClassicCameraKeys.Down;
+        }
+
         return edges;
     }
 
@@ -57,14 +77,25 @@ public static class ClassicCameraInput
     public static Vector3 Apply(ClassicCameraControls controls, Vector3 focus, in GameBindingInput input,
         in CameraPointerSample pointer, Vector2 previousPointer, int mouseSensitivity, double frameSeconds)
     {
-        if (controls is null) throw new ArgumentNullException(nameof(controls));
+        if (controls is null)
+        {
+            throw new ArgumentNullException(nameof(controls));
+        }
+
         ClassicCameraKeys keys = input.CameraKeys;
         ClassicCameraKeys edges = EdgeScroll(pointer);
         Vector3 next = controls.Advance(focus, keys, FrameTime(frameSeconds), edges);
         ClassicCamera camera = controls.Camera;
         float wheel = pointer.OverHud ? 0 : pointer.Wheel;
-        if (wheel > 0 || input.ZoomIn) camera.ZoomIn();
-        else if (wheel < 0 || input.ZoomOut) camera.ZoomOut();
+        if (wheel > 0 || input.ZoomIn)
+        {
+            camera.ZoomIn();
+        }
+        else if (wheel < 0 || input.ZoomOut)
+        {
+            camera.ZoomOut();
+        }
+
         controls.AdvancePointer(PointerDelta(previousPointer, pointer.Position, mouseSensitivity),
             input.Held(GameAction.MouseRotate, exactModifiers: true), input.Held(GameAction.MouseZoom, exactModifiers: true));
         return next;

@@ -25,7 +25,10 @@ public sealed class BattleTabHud
     /// <summary>Every image the menu draws, for preloading.</summary>
     public static IEnumerable<HudImage> Images()
     {
-        foreach (string art in BattleTabView.AllArt) yield return art;
+        foreach (string art in BattleTabView.AllArt)
+        {
+            yield return art;
+        }
     }
 
     /// <summary>Writes the shown buttons into <paramref name="frame"/>; nothing while the normal HUD is hidden.</summary>
@@ -35,7 +38,11 @@ public sealed class BattleTabHud
     public void Build(HudScreen screen, HudVisibility visibility, bool collapsed, BattleTabSnapshot shown, long milliseconds,
         HudFrame frame)
     {
-        if (frame is null) throw new ArgumentNullException(nameof(frame));
+        if (frame is null)
+        {
+            throw new ArgumentNullException(nameof(frame));
+        }
+
         _screen = screen; _collapsed = collapsed; _allowInput = visibility.AllowOrdinaryInput;
         int phase = BattleTabView.Phase(milliseconds);
         for (int i = 0; i < Buttons.Length; i++)
@@ -43,7 +50,9 @@ public sealed class BattleTabHud
             BattleTabButton button = Buttons[i];
             _shown[i] = visibility.ShowNormalHud && shown.Shows(button);
             if (_shown[i])
+            {
                 frame.Add(new HudDraw(HudDrawKind.Quad, BattleTabView.Art(button, phase), BattleTabView.Rect(button, collapsed, screen), HudColor.White));
+            }
         }
     }
 
@@ -52,7 +61,13 @@ public sealed class BattleTabHud
     public BattleTabButton ButtonAt(float x, float y)
     {
         for (int i = 0; i < Buttons.Length; i++)
-            if (_shown[i] && BattleTabView.Rect(Buttons[i], _collapsed, _screen).Contains(x, y)) return Buttons[i];
+        {
+            if (_shown[i] && BattleTabView.Rect(Buttons[i], _collapsed, _screen).Contains(x, y))
+            {
+                return Buttons[i];
+            }
+        }
+
         return BattleTabButton.None;
     }
 
@@ -66,8 +81,16 @@ public sealed class BattleTabHud
     /// <param name="mouse">0 left, 1 right, 2 middle.</param>
     public bool PointerDown(float x, float y, int mouse)
     {
-        if (!ContainsPointer(x, y)) return false;
-        if (mouse == 0 || mouse == 1) Clicked?.Invoke(ButtonAt(x, y), mouse);
+        if (!ContainsPointer(x, y))
+        {
+            return false;
+        }
+
+        if (mouse == 0 || mouse == 1)
+        {
+            Clicked?.Invoke(ButtonAt(x, y), mouse);
+        }
+
         return true;
     }
 }

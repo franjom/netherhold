@@ -30,15 +30,32 @@ public sealed partial class RoomConstructionParticles
     private void SpawnDirectSprite(Emitter emitter)
     {
         EffectDef effect = emitter.Definition;
-        if (!HasDirectSprite(effect)) return;
+        if (!HasDirectSprite(effect))
+        {
+            return;
+        }
+
         FpPosition3 point = emitter.Request.Position;
         int health = emitter.Health;
         int initial = effect.MinScale, target = effect.MinScale, steps = 0;
         bool returns = false;
-        if ((effect.Flags & 2) != 0) (initial, steps) = (effect.MaxScale, health);
-        else if ((effect.Flags & 4) != 0) (target, steps) = (effect.MaxScale, health);
-        else if ((effect.Flags & 0x20) != 0) (target, steps, returns) = (effect.MaxScale, health / 2, true);
-        else initial = target = DrawExclusive(effect.MinScale, effect.MaxScale);
+        if ((effect.Flags & 2) != 0)
+        {
+            (initial, steps) = (effect.MaxScale, health);
+        }
+        else if ((effect.Flags & 4) != 0)
+        {
+            (target, steps) = (effect.MaxScale, health);
+        }
+        else if ((effect.Flags & 0x20) != 0)
+        {
+            (target, steps, returns) = (effect.MaxScale, health / 2, true);
+        }
+        else
+        {
+            initial = target = DrawExclusive(effect.MinScale, effect.MaxScale);
+        }
+
         int frames = effect.ArtResource.Unknown_0044.Length >= 10
             ? BitConverter.ToUInt16(effect.ArtResource.Unknown_0044.Span.Slice(8, 2)) : 0;
         (byte red, byte green, byte blue) = (effect.ArtResource.Flags & 2) != 0
@@ -64,8 +81,15 @@ public sealed partial class RoomConstructionParticles
             Red = red, Green = green, Blue = blue,
         };
         int step = steps > 0 ? (target - initial) / steps : 0;
-        if (step != 0) sprite.SetParentScaleRamp(step, steps, returns);
-        else sprite.ScaleTarget = initial;
+        if (step != 0)
+        {
+            sprite.SetParentScaleRamp(step, steps, returns);
+        }
+        else
+        {
+            sprite.ScaleTarget = initial;
+        }
+
         _particles.Add(sprite);
         _parents.Add(sprite, emitter);
         emitter.ChildCount++;

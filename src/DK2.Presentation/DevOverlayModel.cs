@@ -150,7 +150,11 @@ public sealed class DevOverlayModel
         _lastFrameMs = ms;
         _current.Frames++;
         _current.Seconds += frameSeconds;
-        if (ms > _current.WorstMs) _current.WorstMs = ms;
+        if (ms > _current.WorstMs)
+        {
+            _current.WorstMs = ms;
+        }
+
         if (gpuMilliseconds >= 0)
         {
             _lastGpuMs = gpuMilliseconds;
@@ -164,7 +168,11 @@ public sealed class DevOverlayModel
             _current = default;
         }
         _sinceRefresh += frameSeconds;
-        if (_sinceRefresh < RefreshSeconds) return false;
+        if (_sinceRefresh < RefreshSeconds)
+        {
+            return false;
+        }
+
         _sinceRefresh = 0;
         return true;
     }
@@ -193,11 +201,20 @@ public sealed class DevOverlayModel
         Row("Frame time").Fixed(_lastFrameMs, 1).Text(" ms now, ").Fixed(w.Seconds * 1000.0 * perFrame, 1)
             .Text(" average, ").Fixed(w.WorstMs, 1).Text(" worst");
         if (facts.GpuMeasured && w.GpuFrames > 0)
+        {
             Row("GPU time").Fixed(_lastGpuMs, 2).Text(" ms now, ").Fixed(w.GpuMs / w.GpuFrames, 2).Text(" average");
-        else Row("GPU time").Text("not measured");
+        }
+        else
+        {
+            Row("GPU time").Text("not measured");
+        }
+
         if (facts.Scene == DevOverlayScene.InGame)
+        {
             Row("CPU time").Text("turns ").Fixed(w.TurnMs * perFrame, 2).Text(", world ").Fixed(w.WorldMs * perFrame, 2)
                 .Text(", HUD ").Fixed(w.HudMs * perFrame, 2).Text(", other ").Fixed(w.OtherMs * perFrame, 2).Text(" ms");
+        }
+
         Row("Draw calls").Integer(facts.DrawCalls).Text(", ").Integer(facts.Objects).Text(" objects, ")
             .Fixed(facts.VideoMemoryMegabytes, 0).Text(" MB video memory");
 
@@ -213,7 +230,11 @@ public sealed class DevOverlayModel
         Row("Level").Text(facts.Level ?? "");
         Row("Turn").Integer(facts.Turn.Value);
         RowBuilder speed = Row("Game speed").Integer(facts.GameSpeed);
-        if (facts.Paused) speed.Text(", paused");
+        if (facts.Paused)
+        {
+            speed.Text(", paused");
+        }
+
         Row("Turns per second").Fixed(w.Seconds > 0 ? w.Turns / w.Seconds : 0, 1).Text(" of ")
             .Fixed(TargetTurnsPerSecond(facts.GameSpeed, facts.Paused), 1).Text(" wanted");
         Row("Camera path").Text(facts.CameraPath ? "playing" : "none");
@@ -227,16 +248,33 @@ public sealed class DevOverlayModel
             Row("Tile").Integer(tile.X).Text(", ").Integer(tile.Y);
             Row("Terrain").Text(terrain.Name);
             RowBuilder owner = Row("Owner");
-            if (state.OwnerPlayerId == PlayerIds.Unowned) owner.Text("nobody");
-            else owner.Text(PlayerName(state.OwnerPlayerId)).Text(" (player ").Integer(state.OwnerPlayerId).Text(")");
+            if (state.OwnerPlayerId == PlayerIds.Unowned)
+            {
+                owner.Text("nobody");
+            }
+            else
+            {
+                owner.Text(PlayerName(state.OwnerPlayerId)).Text(" (player ").Integer(state.OwnerPlayerId).Text(")");
+            }
+
             Row("Room").Text(terrain.IsRoom && database.RoomsByTerrain.TryGetValue(terrain.TerrainId, out RoomDef? room)
                 ? room.Name : "none");
         }
-        else Row("Tile").Text("none (the pointer is over the HUD or off the map)");
+        else
+        {
+            Row("Tile").Text("none (the pointer is over the HUD or off the map)");
+        }
 
         Heading("Determinism");
-        if (_hashKnown) Row("State hash").Hex(_hash).Text(" at turn ").Integer(_hashTurn.Value);
-        else Row("State hash").Text("press F4 to compute it");
+        if (_hashKnown)
+        {
+            Row("State hash").Hex(_hash).Text(" at turn ").Integer(_hashTurn.Value);
+        }
+        else
+        {
+            Row("State hash").Text("press F4 to compute it");
+        }
+
         Hint("F3 hides this panel. F4 computes the state hash.");
     }
 
@@ -250,7 +288,11 @@ public sealed class DevOverlayModel
 
     private string PageName(FrontEndPage page)
     {
-        if (_pageNames.TryGetValue(page, out string? name)) return name;
+        if (_pageNames.TryGetValue(page, out string? name))
+        {
+            return name;
+        }
+
         name = page == FrontEndPage.None ? "starting" : page.ToString();
         _pageNames[page] = name;
         return name;
@@ -264,7 +306,11 @@ public sealed class DevOverlayModel
 
     private RowBuilder Start(DevOverlayRowKind kind, string label)
     {
-        if (_count == MaxRows) return new RowBuilder(this, -1);
+        if (_count == MaxRows)
+        {
+            return new RowBuilder(this, -1);
+        }
+
         int row = _count++;
         _kinds[row] = kind;
         _labels[row] = label;
@@ -286,7 +332,11 @@ public sealed class DevOverlayModel
 
         public RowBuilder Text(string text)
         {
-            foreach (char c in text) Put(c);
+            foreach (char c in text)
+            {
+                Put(c);
+            }
+
             return this;
         }
 
@@ -309,7 +359,11 @@ public sealed class DevOverlayModel
             ulong scale = decimals switch { <= 0 => 1, 1 => 10, 2 => 100, _ => 1000 };
             ulong scaled = (ulong)Math.Min(Math.Round(value * scale, MidpointRounding.AwayFromZero), 1e15);
             Digits(scaled / scale);
-            if (scale == 1) return this;
+            if (scale == 1)
+            {
+                return this;
+            }
+
             Put('.');
             ulong fraction = scaled % scale;
             for (ulong digit = scale / 10; digit > 0; digit /= 10)
@@ -333,7 +387,11 @@ public sealed class DevOverlayModel
         private RowBuilder Digits(ulong value)
         {
             ulong divisor = 1;
-            while (value / divisor >= 10) divisor *= 10;
+            while (value / divisor >= 10)
+            {
+                divisor *= 10;
+            }
+
             for (; divisor > 0; divisor /= 10)
             {
                 Put((char)('0' + (int)(value / divisor)));
@@ -344,9 +402,17 @@ public sealed class DevOverlayModel
 
         private void Put(char c)
         {
-            if (_row < 0) return;
+            if (_row < 0)
+            {
+                return;
+            }
+
             ref int length = ref _model._lengths[_row];
-            if (length == ValueCapacity) return;
+            if (length == ValueCapacity)
+            {
+                return;
+            }
+
             _model._values[_row][length++] = c;
         }
     }

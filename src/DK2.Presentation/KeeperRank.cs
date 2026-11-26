@@ -33,12 +33,23 @@ public static class KeeperRank
         s -= Trunc(33.0 / (block.RoomsTakenOver + 3.3));
         s -= Trunc(67.0 / (block.ItemsManufactured + 6.7));
         s += Trunc(level * TenNinths - TenNinths) + hearts + 40;
-        if (block.LevelWon) s += 10;
+        if (block.LevelWon)
+        {
+            s += 10;
+        }
+
         s += Trunc(90.0 / ((int)block.OwnCreaturesKilled + 9.0)); // the one field loaded signed
         // DK2 multiplies the turn by TicksPerSecond here where TimeTaken divides by it (UNKNOWN whether a slip).
         uint time = (uint)(nativeTurn * ticksPerSecond), average = (uint)averageTimeMinutes * 60;
-        if (time <= average / 3) s += 10;
-        else if (time < 2 * average) s += 12 - (int)(6 * time / average);
+        if (time <= average / 3)
+        {
+            s += 10;
+        }
+        else if (time < 2 * average)
+        {
+            s += 12 - (int)(6 * time / average);
+        }
+
         s -= Trunc(33.0 / (block.CreaturesConverted + 3.3));
         s += 10;
         // s and the rating load as unsigned dwords; only the low dword of the product is compared.
@@ -50,7 +61,13 @@ public static class KeeperRank
     public static uint TitleTextId(uint rank)
     {
         for (int i = 0; i < TitleLimits.Length; i++)
-            if (rank <= TitleLimits[i]) return 2895u + (uint)i;
+        {
+            if (rank <= TitleLimits[i])
+            {
+                return 2895u + (uint)i;
+            }
+        }
+
         return 2900;
     }
 

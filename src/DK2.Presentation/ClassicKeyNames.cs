@@ -18,8 +18,12 @@ public static class ClassicKeyNames
     private static string[] Build()
     {
         string[] names = new string[256];
-        for (int i = 0; i < names.Length; i++) names[i] = "None";
-        void Row(int first, params string[] row) { for (int i = 0; i < row.Length; i++) names[first + i] = row[i]; }
+        for (int i = 0; i < names.Length; i++)
+        {
+            names[i] = "None";
+        }
+
+        void Row(int first, params string[] row) { for (int i = 0; i < row.Length; i++) { names[first + i] = row[i]; } }
         Row(0x01, "Escape", "Alpha1", "Alpha2", "Alpha3", "Alpha4", "Alpha5", "Alpha6", "Alpha7", "Alpha8", "Alpha9", "Alpha0",
             "Minus", "Equals", "Backspace", "Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "LeftBracket", "RightBracket",
             "Return", "LeftControl", "A", "S", "D", "F", "G", "H", "J", "K", "L", "Semicolon", "Quote", "BackQuote", "LeftShift",

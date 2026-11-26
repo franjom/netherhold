@@ -31,28 +31,75 @@ public readonly struct GameBindingInput(GameSettings settings, KeyModifiers modi
     public bool KeyPressed(KeyScanCode scan) => pressed(scan);
     private bool Matches(GameAction action, Func<KeyScanCode, bool> read, bool exact)
     {
-        if (!KeyboardSetup.IsBuilt(action)) return false;
+        if (!KeyboardSetup.IsBuilt(action))
+        {
+            return false;
+        }
+
         GameKeyBinding binding = settings.Binding(action);
         bool active = read(binding.ScanCode);
         if (action is GameAction.CameraModifier or GameAction.FastScroll)
         {
             KeyModifiers role = binding.ScanCode switch { 0x1d or 0x9d => KeyModifiers.Control, 0x2a or 0x36 => KeyModifiers.Shift, _ => KeyModifiers.None };
-            if (role != KeyModifiers.None) active = (modifiers & role) != 0;
+            if (role != KeyModifiers.None)
+            {
+                active = (modifiers & role) != 0;
+            }
         }
         return binding.ScanCode != 0 && (exact ? modifiers == binding.Modifiers : (modifiers & binding.Modifiers) == binding.Modifiers) && active;
     }
     public ClassicHudAction HudShortcut(GameShortcutContext context, bool escapePressed = false)
     {
-        if (!context.OrdinaryInput || context.CapturingKey || context.EditingText) return ClassicHudAction.None;
-        if (context.FullMapVisible && !context.Possession) return escapePressed || Pressed(GameAction.FullMap) ? ClassicHudAction.ToggleFullMap : ClassicHudAction.None;
-        if (context.AllowOptionsKey && Pressed(GameAction.Options)) return ClassicHudAction.ToggleOptions;
-        if (context.OptionsVisible) return ClassicHudAction.None;
-        if (context.Possession) return Pressed(GameAction.TogglePanel) ? ClassicHudAction.ToggleGui : ClassicHudAction.None;
-        if (Pressed(GameAction.FullMap)) return ClassicHudAction.ToggleFullMap;
-        if (Pressed(GameAction.TogglePanel)) return ClassicHudAction.ToggleGui;
-        if (Pressed(GameAction.Heart)) return ClassicHudAction.NavigateHeart;
-        if (Pressed(GameAction.Portal)) return ClassicHudAction.NavigatePortal;
-        if (Pressed(GameAction.NextFight)) return ClassicHudAction.NavigateFight;
+        if (!context.OrdinaryInput || context.CapturingKey || context.EditingText)
+        {
+            return ClassicHudAction.None;
+        }
+
+        if (context.FullMapVisible && !context.Possession)
+        {
+            return escapePressed || Pressed(GameAction.FullMap) ? ClassicHudAction.ToggleFullMap : ClassicHudAction.None;
+        }
+
+        if (context.AllowOptionsKey && Pressed(GameAction.Options))
+        {
+            return ClassicHudAction.ToggleOptions;
+        }
+
+        if (context.OptionsVisible)
+        {
+            return ClassicHudAction.None;
+        }
+
+        if (context.Possession)
+        {
+            return Pressed(GameAction.TogglePanel) ? ClassicHudAction.ToggleGui : ClassicHudAction.None;
+        }
+
+        if (Pressed(GameAction.FullMap))
+        {
+            return ClassicHudAction.ToggleFullMap;
+        }
+
+        if (Pressed(GameAction.TogglePanel))
+        {
+            return ClassicHudAction.ToggleGui;
+        }
+
+        if (Pressed(GameAction.Heart))
+        {
+            return ClassicHudAction.NavigateHeart;
+        }
+
+        if (Pressed(GameAction.Portal))
+        {
+            return ClassicHudAction.NavigatePortal;
+        }
+
+        if (Pressed(GameAction.NextFight))
+        {
+            return ClassicHudAction.NavigateFight;
+        }
+
         return ClassicHudAction.None;
     }
     public ClassicCameraKeys CameraKeys
@@ -61,16 +108,43 @@ public readonly struct GameBindingInput(GameSettings settings, KeyModifiers modi
         {
             ClassicCameraKeys keys = ClassicCameraKeys.None;
             bool modifier = Held(GameAction.CameraModifier);
-            if (Held(GameAction.RotateLeft, true) || modifier && Held(GameAction.ScrollLeft)) keys |= ClassicCameraKeys.TurnLeft;
-            if (Held(GameAction.RotateRight, true) || modifier && Held(GameAction.ScrollRight)) keys |= ClassicCameraKeys.TurnRight;
+            if (Held(GameAction.RotateLeft, true) || modifier && Held(GameAction.ScrollLeft))
+            {
+                keys |= ClassicCameraKeys.TurnLeft;
+            }
+
+            if (Held(GameAction.RotateRight, true) || modifier && Held(GameAction.ScrollRight))
+            {
+                keys |= ClassicCameraKeys.TurnRight;
+            }
+
             if (!modifier)
             {
-                if (Held(GameAction.ScrollLeft)) keys |= ClassicCameraKeys.Left;
-                if (Held(GameAction.ScrollRight)) keys |= ClassicCameraKeys.Right;
-                if (Held(GameAction.ScrollUp)) keys |= ClassicCameraKeys.Up;
-                if (Held(GameAction.ScrollDown)) keys |= ClassicCameraKeys.Down;
+                if (Held(GameAction.ScrollLeft))
+                {
+                    keys |= ClassicCameraKeys.Left;
+                }
+
+                if (Held(GameAction.ScrollRight))
+                {
+                    keys |= ClassicCameraKeys.Right;
+                }
+
+                if (Held(GameAction.ScrollUp))
+                {
+                    keys |= ClassicCameraKeys.Up;
+                }
+
+                if (Held(GameAction.ScrollDown))
+                {
+                    keys |= ClassicCameraKeys.Down;
+                }
             }
-            if (Held(GameAction.FastScroll)) keys |= ClassicCameraKeys.Fast;
+            if (Held(GameAction.FastScroll))
+            {
+                keys |= ClassicCameraKeys.Fast;
+            }
+
             return keys;
         }
     }

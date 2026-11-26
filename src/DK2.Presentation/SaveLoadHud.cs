@@ -57,31 +57,59 @@ public sealed class SaveLoadHud
     /// its own reused buffer (a string converts).</summary>
     public void Type(ReadOnlySpan<char> characters)
     {
-        if (!Visible || _frontEnd || !_save) return;
+        if (!Visible || _frontEnd || !_save)
+        {
+            return;
+        }
+
         for (int i = 0; i < characters.Length; i++)
         {
             char c = characters[i];
             string name = _view!.Name;
-            if (c == '\b') { if (name.Length > 0) _view.SetName(name[..^1]); }
-            else if (c == '\n' || c == '\r') Submit?.Invoke();
-            else if (!char.IsControl(c)) _view.SetName(name + c);
+            if (c == '\b') { if (name.Length > 0)
+                {
+                    _view.SetName(name[..^1]);
+                }
+            }
+            else if (c == '\n' || c == '\r')
+            {
+                Submit?.Invoke();
+            }
+            else if (!char.IsControl(c))
+            {
+                _view.SetName(name + c);
+            }
         }
     }
 
     /// <summary>The wheel scrolls the list a line a notch, positive up, no further than its last page.</summary>
     public void Wheel(int notches)
     {
-        if (!Visible || notches == 0) return;
+        if (!Visible || notches == 0)
+        {
+            return;
+        }
+
         int next = Math.Clamp(_first - notches, 0, Math.Max(0, _view!.Entries.Count - Lines));
         if (next != _first) { _first = next; _revision = -1; }
     }
 
     public void Build(HudScreen screen, HudFrame frame)
     {
-        if (!Visible || screen.Height <= 0) return;
-        if (_height != screen.Height || _revision != _view!.Revision) Set(screen);
+        if (!Visible || screen.Height <= 0)
+        {
+            return;
+        }
+
+        if (_height != screen.Height || _revision != _view!.Revision)
+        {
+            Set(screen);
+        }
+
         foreach ((HudText Text, HudRect Rect, HudColor Tint, Press Press, int Index, HudRect? Clip) line in _lines)
+        {
             frame.Add(new HudDraw(HudDrawKind.Quad, HudImage.Of(line.Text), line.Rect, line.Tint, Clip: line.Clip));
+        }
     }
 
     /// <summary>Whether a line that takes a press is at a point in virtual units.</summary>
@@ -90,14 +118,26 @@ public sealed class SaveLoadHud
     /// <summary>A primary press on a line; true when one took it.</summary>
     public bool PointerDown(float x, float y, int button)
     {
-        if (button != 0 || !Visible) return false;
+        if (button != 0 || !Visible)
+        {
+            return false;
+        }
+
         int at = LineAt(x, y);
-        if (at < 0) return false;
+        if (at < 0)
+        {
+            return false;
+        }
+
         (HudText Text, HudRect Rect, HudColor Tint, Press Press, int Index, HudRect? Clip) line = _lines[at];
         switch (line.Press)
         {
             case Press.Select:
-                if (!_view!.Select(line.Index)) break;
+                if (!_view!.Select(line.Index))
+                {
+                    break;
+                }
+
                 SavedSessionEntry entry = _view.Selected!;
                 _error = entry.Readable ? "" : entry.Refusal?.Message ?? "";
                 _revision = -1;
@@ -115,8 +155,14 @@ public sealed class SaveLoadHud
     private int LineAt(float x, float y)
     {
         for (int i = _lines.Count - 1; i >= 0; i--)
+        {
             if (_lines[i].Press != Press.None && _lines[i].Rect.Contains(x, y)
-                && (_lines[i].Clip is not HudRect clip || clip.Contains(x, y))) return i;
+                && (_lines[i].Clip is not HudRect clip || clip.Contains(x, y)))
+            {
+                return i;
+            }
+        }
+
         return -1;
     }
 
@@ -126,7 +172,11 @@ public sealed class SaveLoadHud
         _height = screen.Height; _revision = view.Revision; _lines.Clear();
         BitmapFont font = _font(screen.Height);
         float x = _frontEnd ? FrontEndName : 8, y = _frontEnd ? 188.8f : 112;
-        if (!_frontEnd) Line(screen, font, _text(_save ? 201u : 143u), 8, 72, HudColor.White, Press.None);
+        if (!_frontEnd)
+        {
+            Line(screen, font, _text(_save ? 201u : 143u), 8, 72, HudColor.White, Press.None);
+        }
+
         int shown = Math.Min(Lines, view.Entries.Count - _first);
         for (int i = 0; i < shown; i++)
         {
@@ -135,7 +185,11 @@ public sealed class SaveLoadHud
             string caption = entry.DisplayName;
             // An unreadable save stays listed so the player can see why it will not load (ADR-0588).
             // English until ADR-0587's catalog exists.
-            if (!entry.Readable) caption += "   (cannot be loaded)";
+            if (!entry.Readable)
+            {
+                caption += "   (cannot be loaded)";
+            }
+
             HudColor tint = index == view.SelectedIndex ? HudColor.White : entry.Readable ? Unselected : Unreadable;
             float row = y + i * 32;
             Line(screen, font, caption, x, row, tint, Press.Select, index, _frontEnd ? FrontEndDate - FrontEndName : null);
@@ -150,12 +204,22 @@ public sealed class SaveLoadHud
         }
         if (!_frontEnd)
         {
-            if (_save) Line(screen, font, view.Name + "_", 8, 440, HudColor.White, Press.Submit);
-            else if (view.Selected != null) Line(screen, font, _text(143), 8, 440, HudColor.White, Press.Submit);
+            if (_save)
+            {
+                Line(screen, font, view.Name + "_", 8, 440, HudColor.White, Press.Submit);
+            }
+            else if (view.Selected != null)
+            {
+                Line(screen, font, _text(143), 8, 440, HudColor.White, Press.Submit);
+            }
+
             Line(screen, font, _text(142), 8, 512, HudColor.White, Press.Continue);
             Line(screen, font, _text(20), 512, 512, HudColor.White, Press.Back);
         }
-        if (!string.IsNullOrEmpty(_error)) Line(screen, font, _error, x, _frontEnd ? 600 : 480, HudColor.White, Press.None);
+        if (!string.IsNullOrEmpty(_error))
+        {
+            Line(screen, font, _error, x, _frontEnd ? 600 : 480, HudColor.White, Press.None);
+        }
     }
 
     private void Line(HudScreen screen, BitmapFont font, string value, float x, float y, HudColor tint, Press press,
@@ -169,7 +233,10 @@ public sealed class SaveLoadHud
         {
             float available = cell * Unit;
             clip = new HudRect(left, top, available, textHeight);
-            if (center) left += (available - textWidth) / 2;
+            if (center)
+            {
+                left += (available - textWidth) / 2;
+            }
         }
         _lines.Add((text, new HudRect(left, top, textWidth, textHeight), tint, press, index, clip));
     }

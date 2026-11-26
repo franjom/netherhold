@@ -18,7 +18,10 @@ public sealed class Level6aTortureSpeech(GameDatabase database, MessageTabsView 
             && simEvent.TortureMessage is { } notice && notice.Trigger == OpeningGuardTree && notice.CreatureType == Guard
             && notice.Message.PlayerId == PlayerIds.FirstKeeper
             && notice.Message.Kind is PlayerMessageKind.InformationLearned or PlayerMessageKind.InformationReveal)
+        {
             messages.SuppressSpeech(notice.Message);
+        }
+
         downstream.Emit(simEvent);
     }
 }

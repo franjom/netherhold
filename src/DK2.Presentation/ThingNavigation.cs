@@ -36,8 +36,16 @@ public sealed class ThingNavigation
     /// <paramref name="into"/> (cleared first).</summary>
     public static void DoorEntries(IReadOnlyList<DoorState> doors, List<ThingNavigationEntry> into)
     {
-        if (doors is null) throw new ArgumentNullException(nameof(doors));
-        if (into is null) throw new ArgumentNullException(nameof(into));
+        if (doors is null)
+        {
+            throw new ArgumentNullException(nameof(doors));
+        }
+
+        if (into is null)
+        {
+            throw new ArgumentNullException(nameof(into));
+        }
+
         into.Clear();
         for (int i = doors.Count - 1; i >= 0; i--)
         {
@@ -50,8 +58,16 @@ public sealed class ThingNavigation
     /// the alarm's fields (<see cref="BattleTabView.TrapEntries"/> has them).</summary>
     public static void TrapEntries(IReadOnlyList<TrapState> traps, List<ThingNavigationEntry> into)
     {
-        if (traps is null) throw new ArgumentNullException(nameof(traps));
-        if (into is null) throw new ArgumentNullException(nameof(into));
+        if (traps is null)
+        {
+            throw new ArgumentNullException(nameof(traps));
+        }
+
+        if (into is null)
+        {
+            throw new ArgumentNullException(nameof(into));
+        }
+
         into.Clear();
         for (int i = traps.Count - 1; i >= 0; i--)
         {
@@ -64,14 +80,29 @@ public sealed class ThingNavigation
     {
         int chosen = -1, previous = -1;
         if (_last != 0)
+        {
             for (int i = 0; i < things.Count; i++)
+            {
                 if (things[i].Id == _last && things[i].Owner == _viewer) { previous = i; break; }
+            }
+        }
+
         if (previous >= 0)
+        {
             for (int i = previous + 1; i < things.Count; i++)
+            {
                 if (Matches(things[i], kind)) { chosen = i; break; }
+            }
+        }
+
         if (chosen < 0)
+        {
             for (int i = 0; i < things.Count; i++)
+            {
                 if (Matches(things[i], kind)) { chosen = i; break; }
+            }
+        }
+
         if (chosen < 0) { _last = 0; return null; }
         _last = things[chosen].Id;
         return things[chosen].Focus;
@@ -89,19 +120,41 @@ public sealed class ThingNavigation
     {
         int alarm = -1;
         for (int i = 0; i < things.Count; i++)
+        {
             if (things[i].Owner == _viewer && things[i].Alarm) { alarm = things[i].Kind; break; }
-        if (alarm <= 0) return null;   // 0x00426A63 tests the kind byte: none found, or kind 0
+        }
+
+        if (alarm <= 0)
+        {
+            return null;   // 0x00426A63 tests the kind byte: none found, or kind 0
+        }
+
         byte kind = (byte)alarm;
         int chosen = -1, previous = -1;
         if (_last != 0)
+        {
             for (int i = 0; i < things.Count; i++)
+            {
                 if (things[i].Id == _last && things[i].Owner == _viewer) { previous = i; break; }
+            }
+        }
+
         if (previous >= 0)
+        {
             for (int i = previous + 1; i < things.Count; i++)
+            {
                 if (Matches(things[i], kind) && things[i].Ringing) { chosen = i; break; }
+            }
+        }
+
         if (chosen < 0)
+        {
             for (int i = 0; i < things.Count; i++)
-                if (Matches(things[i], kind)) { if (things[i].Ringing) chosen = i; break; }
+            {
+                if (Matches(things[i], kind)) { if (things[i].Ringing) { chosen = i; } break; }
+            }
+        }
+
         if (chosen < 0) { _last = 0; return null; }
         _last = things[chosen].Id;
         return things[chosen].Focus;

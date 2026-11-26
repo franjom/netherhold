@@ -19,8 +19,16 @@ public static class FrontEndHost
     public static CampaignMapController OpenCampaign(FrontEndSession session, CampaignProfileStore profiles, HiScoreStore hiScoreStore,
         IReadOnlyList<HiScoreEntry> hiScores, Func<CampaignSlot, CampaignBriefing> briefing, Action<CampaignProfile> profileChanged)
     {
-        if (profiles is null) throw new ArgumentNullException(nameof(profiles));
-        if (hiScoreStore is null) throw new ArgumentNullException(nameof(hiScoreStore));
+        if (profiles is null)
+        {
+            throw new ArgumentNullException(nameof(profiles));
+        }
+
+        if (hiScoreStore is null)
+        {
+            throw new ArgumentNullException(nameof(hiScoreStore));
+        }
+
         var map = new CampaignMapController(session, profiles.Profile!, profiles.SecretFiveAvailable, briefing, hiScores);
         hiScoreStore.Track(map);
         profiles.Changed += profileChanged;
@@ -32,13 +40,23 @@ public static class FrontEndHost
     /// and drops the rest of the text, any other character is typed.</summary>
     public static void TypeName(CampaignMapController map, ReadOnlySpan<char> typed)
     {
-        if (map is null) throw new ArgumentNullException(nameof(map));
+        if (map is null)
+        {
+            throw new ArgumentNullException(nameof(map));
+        }
+
         for (int i = 0; i < typed.Length; i++)
         {
             char character = typed[i];
-            if (character == '\b') map.EraseEntry();
+            if (character == '\b')
+            {
+                map.EraseEntry();
+            }
             else if (character == '\n' || character == '\r') { map.CommitEntry(); return; }
-            else map.TypeEntry(character);
+            else
+            {
+                map.TypeEntry(character);
+            }
         }
     }
 
@@ -46,14 +64,28 @@ public static class FrontEndHost
     /// its piece number, a marker its own slot.</summary>
     public static void FillPickSlots(IReadOnlyList<FrontEndProp> scenery, Dictionary<int, CampaignSlot> slots)
     {
-        if (scenery is null) throw new ArgumentNullException(nameof(scenery));
-        if (slots is null) throw new ArgumentNullException(nameof(slots));
+        if (scenery is null)
+        {
+            throw new ArgumentNullException(nameof(scenery));
+        }
+
+        if (slots is null)
+        {
+            throw new ArgumentNullException(nameof(slots));
+        }
+
         slots.Clear();
         for (int i = 0; i < scenery.Count; i++)
         {
             FrontEndProp prop = scenery[i];
-            if (prop.MapPiece is DK2.Assets.FrontEndMapPiece piece) slots[prop.View.Id] = new CampaignSlot((byte)piece);
-            else if (prop.MarkerSlot is CampaignSlot slot) slots[prop.View.Id] = slot;
+            if (prop.MapPiece is DK2.Assets.FrontEndMapPiece piece)
+            {
+                slots[prop.View.Id] = new CampaignSlot((byte)piece);
+            }
+            else if (prop.MarkerSlot is CampaignSlot slot)
+            {
+                slots[prop.View.Id] = slot;
+            }
         }
     }
 

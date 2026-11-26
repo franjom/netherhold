@@ -15,7 +15,11 @@ public static class HudImagePixels
     /// <see cref="HudImageVariant.Glow"/> changes the size, so it is <see cref="HudLabelPixels"/>'s and passes through here.</summary>
     public static byte[] Apply(byte[] rgba, int width, int height, in HudImage image)
     {
-        if (image.Variant is HudImageVariant.None or HudImageVariant.Glow) return rgba;
+        if (image.Variant is HudImageVariant.None or HudImageVariant.Glow)
+        {
+            return rgba;
+        }
+
         byte[] into = new byte[rgba.Length];
         Fill(rgba, width, height, image, into);
         return into;
@@ -45,7 +49,12 @@ public static class HudImagePixels
     public static void KeyGreen(Span<byte> rgba)
     {
         for (int i = 0; i + 3 < rgba.Length; i += 4)
-            if (rgba[i] == 0 && rgba[i + 1] == 255 && rgba[i + 2] == 0) rgba[i + 3] = 0;
+        {
+            if (rgba[i] == 0 && rgba[i + 1] == 255 && rgba[i + 2] == 0)
+            {
+                rgba[i + 3] = 0;
+            }
+        }
     }
 
     /// <summary>Keeps the pixels within <paramref name="pieces"/> quarters swept clockwise on screen from
@@ -61,7 +70,9 @@ public static class HudImagePixels
                 float theta = (float)Math.Atan2(x + .5f - w / 2f, h / 2f - y - .5f) * 57.29578f;
                 float sweep = Repeat(270 - theta, 360);
                 if (sweep > pieces * 90 || lastQuarterOnly && sweep <= (pieces - 1) * 90)
+                {
                     into[(row * w + x) * 4 + 3] = 0;
+                }
             }
         }
     }
@@ -100,7 +111,11 @@ public static class HudImagePixels
         {
             int r = rgba[i], g = rgba[i + 1], b = rgba[i + 2], a = rgba[i + 3];
             int peak = Math.Max(r, Math.Max(g, b));
-            if (peak == 0) continue;
+            if (peak == 0)
+            {
+                continue;
+            }
+
             to[i] = (byte)(r * 255 / peak); to[i + 1] = (byte)(g * 255 / peak); to[i + 2] = (byte)(b * 255 / peak);
             to[i + 3] = (byte)(peak * a / 255);
         }

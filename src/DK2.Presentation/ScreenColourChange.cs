@@ -29,7 +29,11 @@ public sealed class ScreenColourChange
     public void SetGamma(double gamma)
     {
         double value = Math.Clamp(gamma, 0.5, 2);
-        if (Gamma == value) return;
+        if (Gamma == value)
+        {
+            return;
+        }
+
         Gamma = value;
         Start(ScreenColourKind.Normal, 0, 0);
     }
@@ -45,25 +49,40 @@ public sealed class ScreenColourChange
         _startMs = clockMilliseconds;
         _length = lengthMilliseconds;
         Running = true;
-        if (_length != 0 || queued) return;
+        if (_length != 0 || queued)
+        {
+            return;
+        }
+
         Array.Copy(_target, _current, _current.Length);
         Array.Copy(_target, _start, _start.Length);
         Running = false;
     }
     public bool Queue(ScreenColourKind kind, int lengthMilliseconds)
     {
-        if (_count == _queue.Length) return false;
+        if (_count == _queue.Length)
+        {
+            return false;
+        }
+
         _queue[_count++] = (kind, lengthMilliseconds);
         return true;
     }
     public void Step(long clockMilliseconds)
     {
-        if (!Running) return;
+        if (!Running)
+        {
+            return;
+        }
+
         int weight = unchecked((int)(clockMilliseconds - _startMs) << 16) / _length;
         if (weight < 65536)
         {
             for (int i = 0; i < _current.Length; i++)
+            {
                 _current[i] = unchecked((ushort)((weight * _target[i] + (65536 - weight) * _start[i]) >> 16));
+            }
+
             return;
         }
         Array.Copy(_target, _current, _current.Length);
@@ -72,6 +91,9 @@ public sealed class ScreenColourChange
             (ScreenColourKind Kind, int Length) next = _queue[_read++];
             Begin(next.Kind, clockMilliseconds, next.Length, queued: true);
         }
-        else Running = false;
+        else
+        {
+            Running = false;
+        }
     }
 }

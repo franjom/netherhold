@@ -30,8 +30,15 @@ public sealed class FlowerDollarClock
         if (!_running)
         {
             // A restarted clock is a new one: Replace installs the timing at phase 0, as the constructor does.
-            if (_clock == null) _clock = new RenderAnimationClock(Timing, loop: true);
-            else _clock.Replace(Timing, loop: true, AnimationReplacement.Immediate);
+            if (_clock == null)
+            {
+                _clock = new RenderAnimationClock(Timing, loop: true);
+            }
+            else
+            {
+                _clock.Replace(Timing, loop: true, AnimationReplacement.Immediate);
+            }
+
             _running = true;
         }
         return _clock!.Sample(fraction).Phase;
@@ -40,7 +47,10 @@ public sealed class FlowerDollarClock
     /// <summary>Called after each dollar drawn.</summary>
     public void Advance()
     {
-        if (_running) _clock!.Advance();
+        if (_running)
+        {
+            _clock!.Advance();
+        }
     }
 
     /// <summary>The fraction a dollar is drawn at: the wall clock's quarter seconds, <c>(seconds·4) mod 1</c>.</summary>

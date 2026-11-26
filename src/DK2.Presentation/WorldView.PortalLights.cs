@@ -18,8 +18,16 @@ public sealed partial class WorldView
     /// <summary>Append-only light requests, including repeated refreshes at the same tile.</summary>
     public IReadOnlyList<TilePos> PortalLightTiles(WorldState world)
     {
-        if (ReferenceEquals(_portalLightWorld, world)) return _portalLightTiles;
-        if (_portalLightWorld is not null) _portalLightWorld.RoomTilesChanged -= CapturePortalRefresh;
+        if (ReferenceEquals(_portalLightWorld, world))
+        {
+            return _portalLightTiles;
+        }
+
+        if (_portalLightWorld is not null)
+        {
+            _portalLightWorld.RoomTilesChanged -= CapturePortalRefresh;
+        }
+
         _portalLightWorld = world;
         _portalLightTiles.Clear();
         CaptureLoadedPortals(world);
@@ -29,7 +37,10 @@ public sealed partial class WorldView
 
     private void CapturePortalRefresh(IReadOnlyList<TilePos> chain)
     {
-        if (chain.Count == 9 && IsEntrance(_portalLightWorld!, chain[0])) _portalLightTiles.Add(chain[4]);
+        if (chain.Count == 9 && IsEntrance(_portalLightWorld!, chain[0]))
+        {
+            _portalLightTiles.Add(chain[4]);
+        }
     }
 
     private bool IsEntrance(WorldState world, TilePos tile) =>
@@ -40,17 +51,30 @@ public sealed partial class WorldView
         // Replay the authored row-major joins: a room can reach nine before its final size.
         var chains = new Dictionary<TilePos, List<TilePos>>();
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
             {
                 var tile = new TilePos(x, y);
-                if (!IsEntrance(world, tile)) continue;
+                if (!IsEntrance(world, tile))
+                {
+                    continue;
+                }
+
                 List<TilePos>? chain = null;
                 foreach (TilePos offset in PortalNeighbours)
                 {
                     TilePos neighbour = tile + offset;
-                    if (!chains.TryGetValue(neighbour, out List<TilePos>? other) || ReferenceEquals(chain, other)) continue;
+                    if (!chains.TryGetValue(neighbour, out List<TilePos>? other) || ReferenceEquals(chain, other))
+                    {
+                        continue;
+                    }
+
                     if (world.Tile(neighbour).TerrainId != world.Tile(tile).TerrainId
-                        || world.Tile(neighbour).OwnerPlayerId != world.Tile(tile).OwnerPlayerId) continue;
+                        || world.Tile(neighbour).OwnerPlayerId != world.Tile(tile).OwnerPlayerId)
+                    {
+                        continue;
+                    }
+
                     if (chain is null)
                     {
                         chain = other;
@@ -58,13 +82,21 @@ public sealed partial class WorldView
                     }
                     else
                     {
-                        foreach (TilePos moved in other) chains[moved] = chain;
+                        foreach (TilePos moved in other)
+                        {
+                            chains[moved] = chain;
+                        }
+
                         chain.AddRange(other);
                     }
                 }
                 chain ??= new List<TilePos> { tile };
                 chains[tile] = chain;
-                if (chain.Count == 9) _portalLightTiles.Add(chain[4]);
+                if (chain.Count == 9)
+                {
+                    _portalLightTiles.Add(chain[4]);
+                }
             }
+        }
     }
 }

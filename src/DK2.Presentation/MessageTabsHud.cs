@@ -87,17 +87,44 @@ public sealed class MessageTabsHud
     /// <summary>Every catalogue image the panel can draw except room icons, for decoding ahead of use.</summary>
     public static IEnumerable<HudImage> Images()
     {
-        foreach (string name in FrameNames) yield return name;
+        foreach (string name in FrameNames)
+        {
+            yield return name;
+        }
+
         yield return "GUI\\Tabs\\Messages\\mt-objective-00";
         yield return "GUI\\Tabs\\Messages\\mt-objective-01";
-        foreach (string piece in FramePieces) yield return "GUI\\Windows\\text_box-" + piece;
+        foreach (string piece in FramePieces)
+        {
+            yield return "GUI\\Windows\\text_box-" + piece;
+        }
+
         foreach (string bar in new[] { "v-scroll_bar_bg", "v-scroll_bar", "v-up_arrow", "v-down_arrow" })
+        {
             yield return "GUI\\Scroll Bars\\" + bar;
-        foreach (string button in new[] { "mt-exit-00", "mt-tick-00", "mt-goto-00" }) yield return "GUI\\Tabs\\Messages\\" + button;
-        foreach (string art in IndicatorArt) yield return art;
+        }
+
+        foreach (string button in new[] { "mt-exit-00", "mt-tick-00", "mt-goto-00" })
+        {
+            yield return "GUI\\Tabs\\Messages\\" + button;
+        }
+
+        foreach (string art in IndicatorArt)
+        {
+            yield return art;
+        }
+
         yield return "GUI\\Windows\\gold-bg-01";
-        foreach (string digit in HighDigits) yield return digit;
-        foreach (string digit in LowDigits) yield return digit;
+        foreach (string digit in HighDigits)
+        {
+            yield return digit;
+        }
+
+        foreach (string digit in LowDigits)
+        {
+            yield return digit;
+        }
+
         yield return "GUI\\Icons\\I--";
     }
 
@@ -107,9 +134,17 @@ public sealed class MessageTabsHud
     {
         get
         {
-            if (_objectiveHovered) return new HoverTextSnapshot(_art.Text(2164), _art.Text(2163), default);
+            if (_objectiveHovered)
+            {
+                return new HoverTextSnapshot(_art.Text(2164), _art.Text(2163), default);
+            }
+
             int slot = _view.Hovered;
-            if (slot < 0 || slot >= _view.Tabs.Count) return HoverTextSnapshot.Empty;
+            if (slot < 0 || slot >= _view.Tabs.Count)
+            {
+                return HoverTextSnapshot.Empty;
+            }
+
             return new HoverTextSnapshot(MessageText(_view.Tabs[slot].MessageId) ?? "", "", default);
         }
     }
@@ -117,10 +152,24 @@ public sealed class MessageTabsHud
     /// <summary>Whether a pointer at (x, y), virtual units, is the panel's.</summary>
     public bool ContainsPointer(float x, float y)
     {
-        if (!_visible || !_allowInput) return false;
-        if (_objectiveOpen) return true;
+        if (!_visible || !_allowInput)
+        {
+            return false;
+        }
+
+        if (_objectiveOpen)
+        {
+            return true;
+        }
+
         foreach ((int action, HudRect rect) in _hits)
-            if ((action == PanelAction || action == ObjectiveAction || action < Slots) && rect.Contains(x, y)) return true;
+        {
+            if ((action == PanelAction || action == ObjectiveAction || action < Slots) && rect.Contains(x, y))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -150,13 +199,23 @@ public sealed class MessageTabsHud
         LayoutIndicators(indicators, top, screenPixelWidth);
         ScrollHolder();
         BuildPanel(frame, top, indicators.Any, pointer);
-        foreach ((HudImage image, HudRect rect) in _indicatorArt) Quad(frame, image, rect);
+        foreach ((HudImage image, HudRect rect) in _indicatorArt)
+        {
+            Quad(frame, image, rect);
+        }
+
         if (_holderVisible && _holderText != null)
+        {
             HudQuads.Clipped(frame, HudImage.Of(_holderText),
                 new HudRect(_holderWindow.X - Px(_holderScroll), _holderWindow.Y, Px(_holderSize.Width), Px(_holderSize.Height)),
                 _holderWindow, HudColor.White);
+        }
+
         BuildObjective(frame, optionsObjective || (!optionsOpen && _objectiveOpen));
-        foreach ((HudImage image, HudRect rect) in _digits) Quad(frame, image, rect);
+        foreach ((HudImage image, HudRect rect) in _digits)
+        {
+            Quad(frame, image, rect);
+        }
     }
 
     // ---- Pointer input, in virtual units. A method returns true when the panel consumed the event.
@@ -168,21 +227,43 @@ public sealed class MessageTabsHud
         {
             case < 0: return false;
             case ObjectiveAction:
-                if (!_allowInput || button != 0) return false;
+                if (!_allowInput || button != 0)
+                {
+                    return false;
+                }
                 // 0x004288C0: toggles menu33, hiding menu40 while it shows.
                 _objectiveOpen = !_objectiveOpen; _objectiveText = null;
                 return true;
             case < Slots:
-                if (!_allowInput || _objectiveOpen) return false;
-                if (button == 0) _view.OpenTab(action);        // 0x00423F50
-                else if (button == 1) _view.DismissTab(action); // 0x00424220
+                if (!_allowInput || _objectiveOpen)
+                {
+                    return false;
+                }
+
+                if (button == 0)
+                {
+                    _view.OpenTab(action);        // 0x00423F50
+                }
+                else if (button == 1)
+                {
+                    _view.DismissTab(action); // 0x00424220
+                }
+
                 return true;
             case ObjectivePanelAction:
-                if (!_optionsOpen) _objectiveOpen = false;
+                if (!_optionsOpen)
+                {
+                    _objectiveOpen = false;
+                }
+
                 return true;
             case PanelAction: return false;
         }
-        if (button != 0) return false;
+        if (button != 0)
+        {
+            return false;
+        }
+
         switch (action)
         {
             case UpAction: _barHeld = 1; break;
@@ -194,7 +275,11 @@ public sealed class MessageTabsHud
             case TickAction: _view.CloseOpen(); break;
             // 0x00424720: the view to the message's location; menu40 stays open.
             case GotoAction:
-                if (_view.Open is PlayerMessage open && _locate?.Invoke(open) is (float gx, float gy)) _goTo?.Invoke(gx, gy);
+                if (_view.Open is PlayerMessage open && _locate?.Invoke(open) is (float gx, float gy))
+                {
+                    _goTo?.Invoke(gx, gy);
+                }
+
                 break;
         }
         return true;
@@ -205,11 +290,21 @@ public sealed class MessageTabsHud
     {
         _pointer = (x, y); _pointerKnown = true;
         int action = HitAction(x, y);
-        if (action == _hovered) return;
+        if (action == _hovered)
+        {
+            return;
+        }
+
         Leave();
         _hovered = action;
-        if (action == ObjectiveAction) _objectiveHovered = true;
-        else if (action >= 0 && action < Slots) _view.Hovered = action;
+        if (action == ObjectiveAction)
+        {
+            _objectiveHovered = true;
+        }
+        else if (action >= 0 && action < Slots)
+        {
+            _view.Hovered = action;
+        }
     }
 
     public void PointerLeave() { Leave(); _hovered = -1; _pointerKnown = false; }
@@ -218,7 +313,10 @@ public sealed class MessageTabsHud
     /// (a tab dismissed, slid or gone), as retained UI re-picks after a layout change.</summary>
     public void Repick()
     {
-        if (_pointerKnown && _visible) PointerMove(_pointer.X, _pointer.Y);
+        if (_pointerKnown && _visible)
+        {
+            PointerMove(_pointer.X, _pointer.Y);
+        }
     }
 
     /// <summary>Whether something of the panel's is under the point, so the adapter routes the pointer here.</summary>
@@ -226,15 +324,31 @@ public sealed class MessageTabsHud
 
     private void Leave()
     {
-        if (_hovered == ObjectiveAction) _objectiveHovered = false;
-        else if (_hovered >= 0 && _hovered < Slots && _view.Hovered == _hovered) _view.Hovered = -1;
+        if (_hovered == ObjectiveAction)
+        {
+            _objectiveHovered = false;
+        }
+        else if (_hovered >= 0 && _hovered < Slots && _view.Hovered == _hovered)
+        {
+            _view.Hovered = -1;
+        }
     }
 
     private int HitAction(float x, float y)
     {
-        if (!_visible) return -1;
+        if (!_visible)
+        {
+            return -1;
+        }
+
         for (int i = _hits.Count - 1; i >= 0; i--)
-            if (_hits[i].Rect.Contains(x, y)) return _hits[i].Action;
+        {
+            if (_hits[i].Rect.Contains(x, y))
+            {
+                return _hits[i].Action;
+            }
+        }
+
         return -1;
     }
 
@@ -251,7 +365,11 @@ public sealed class MessageTabsHud
         // Rebuilt only when what is shown, the panel top or the screen changes; the time limit
         // changes once a turn, nothing else per frame.
         if (shown == _shownIndicators && panelTop == _indicatorTop && _screen.Width == _indicatorWidth
-            && _screen.Height == _indicatorHeight) return;
+            && _screen.Height == _indicatorHeight)
+        {
+            return;
+        }
+
         _shownIndicators = shown; _indicatorTop = panelTop; _indicatorWidth = _screen.Width; _indicatorHeight = _screen.Height;
         _indicatorArt.Clear(); _digits.Clear(); _holderVisible = false;
         IReadOnlyList<(HudIndicator Indicator, int X, int Y)> placed = shown.Any
@@ -260,28 +378,62 @@ public sealed class MessageTabsHud
         for (int i = 0; i < Drawn.Length; i++)
         {
             int at = -1;
-            for (int p = 0; p < placed.Count; p++) if (placed[p].Indicator == Drawn[i]) at = p;
-            if (at < 0) continue;
+            for (int p = 0; p < placed.Count; p++)
+            {
+                if (placed[p].Indicator == Drawn[i])
+                {
+                    at = p;
+                }
+            }
+
+            if (at < 0)
+            {
+                continue;
+            }
+
             int x = placed[at].X, y = placed[at].Y;
             HudImage backing = Drawn[i] == HudIndicator.NextRoom ? RoomIcon(shown.NextRoomTypeId)
                 : Drawn[i] == HudIndicator.SlapsRemaining ? default : "GUI\\Windows\\gold-bg-01";
             if (Drawn[i] == HudIndicator.NextRoom)
             {
                 _indicatorArt.Add((IndicatorArt[i], new HudRect(x, y, 128, 128)));
-                if (!backing.IsNone) _indicatorArt.Add((backing, new HudRect(x + 128, y, 128, 128)));
+                if (!backing.IsNone)
+                {
+                    _indicatorArt.Add((backing, new HudRect(x + 128, y, 128, 128)));
+                }
+
                 continue;
             }
             _indicatorArt.Add((IndicatorArt[i], new HudRect(x, y, 256, 128)));
-            if (!backing.IsNone) _indicatorArt.Add((backing, new HudRect(x + 256, y, 188, 128)));
+            if (!backing.IsNone)
+            {
+                _indicatorArt.Add((backing, new HudRect(x + 256, y, 188, 128)));
+            }
             // DK2 divides by the LEVEL's turns a second, 0x006F2590 (0x0051E708).
             if (Drawn[i] == HudIndicator.TimeRemaining)
+            {
                 foreach ((string digits, int slots) in HudIndicatorLayout.TimeRemainingDigits(
                     shown.TimeLimitTurns, SimulationTiming.OriginalTicksPerGameSecond))
+                {
                     Digits(family, digits, slots, x, y + 40);
-            else if (Drawn[i] == HudIndicator.Score) Digits(family, Invariant(shown.ScoreValue), 10, x, y + 40);
-            else if (Drawn[i] == HudIndicator.HeroesKilled) Digits(family, Invariant(shown.HeroesDestroyed), 10, x, y + 40);
-            else if (Drawn[i] == HudIndicator.SlapsRemaining) Digits(family, Invariant(shown.SlapsLeft), 6, x, y + 40);
-            else if (Drawn[i] == HudIndicator.CurrentHolder) PlaceHolder(shown.HolderPlayerId, x, y);
+                }
+            }
+            else if (Drawn[i] == HudIndicator.Score)
+            {
+                Digits(family, Invariant(shown.ScoreValue), 10, x, y + 40);
+            }
+            else if (Drawn[i] == HudIndicator.HeroesKilled)
+            {
+                Digits(family, Invariant(shown.HeroesDestroyed), 10, x, y + 40);
+            }
+            else if (Drawn[i] == HudIndicator.SlapsRemaining)
+            {
+                Digits(family, Invariant(shown.SlapsLeft), 6, x, y + 40);
+            }
+            else if (Drawn[i] == HudIndicator.CurrentHolder)
+            {
+                PlaceHolder(shown.HolderPlayerId, x, y);
+            }
         }
     }
 
@@ -291,7 +443,9 @@ public sealed class MessageTabsHud
     {
         int start = HudIndicatorLayout.AlignedStart(text.Length, slots);
         for (int c = 0; c < text.Length; c++)
+        {
             _digits.Add((text[c] == '-' ? "GUI\\Icons\\I--" : family[text[c] - '0'], new HudRect(x + (start + c) * 40, y, 48, 48)));
+        }
     }
 
     /// <summary>0x00427980's second square: the room definition's art 0, the bottom panel's icon.</summary>
@@ -317,12 +471,22 @@ public sealed class MessageTabsHud
     /// pixel (interface <c>+0x4112</c>) toward its end, then back (direction <c>+0x43B1</c>).</summary>
     private void ScrollHolder()
     {
-        if (!_holderVisible || _holderText == null) return;
+        if (!_holderVisible || _holderText == null)
+        {
+            return;
+        }
+
         int overflow = _holderSize.Width - (int)V(260);
         if (overflow <= 0) { _holderScroll = 0; _holderForward = true; return; }
         _holderScroll += _holderForward ? 1 : -1;
-        if (_holderScroll > overflow) _holderForward = false;
-        else if (_holderScroll < 0) _holderForward = true;
+        if (_holderScroll > overflow)
+        {
+            _holderForward = false;
+        }
+        else if (_holderScroll < 0)
+        {
+            _holderForward = true;
+        }
     }
 
     // ---- Menu40, the message panel
@@ -368,11 +532,17 @@ public sealed class MessageTabsHud
                 window, HudColor.White);
         }
         BuildBar(frame, pointer);
-        if (!_panelShown) return;
+        if (!_panelShown)
+        {
+            return;
+        }
+
         Button(frame, "GUI\\Tabs\\Messages\\mt-exit-00", ExitAction, new HudRect(x + 88, y + height - 108, 88, 88));
         Button(frame, "GUI\\Tabs\\Messages\\mt-tick-00", TickAction, new HudRect(x + 264, y + height - 108, 88, 88));
         if (_locate?.Invoke(message) is not null)
+        {
             Button(frame, "GUI\\Tabs\\Messages\\mt-goto-00", GotoAction, new HudRect(x + 440, y + height - 108, 88, 88));
+        }
     }
 
     /// <summary>0x00414400 while enabled: arrows 64 square at the ends, the track stretched
@@ -381,10 +551,24 @@ public sealed class MessageTabsHud
     private void BuildBar(HudFrame frame, (float X, float Y, bool LeftHeld) pointer)
     {
         if (!_bar.Enabled) { _barHeld = 0; return; }
-        if (!pointer.LeftHeld) _barHeld = 0;
-        if (_barHeld == 1 && _barUp.Contains(pointer.X, pointer.Y)) _bar.Step(-1);
-        else if (_barHeld == 2 && _barDown.Contains(pointer.X, pointer.Y)) _bar.Step(1);
-        else if (_barHeld == 3) _bar.DragTo((int)(pointer.Y - _panel.Y) - TextScrollBar.MenuY, TextScrollBar.Height);
+        if (!pointer.LeftHeld)
+        {
+            _barHeld = 0;
+        }
+
+        if (_barHeld == 1 && _barUp.Contains(pointer.X, pointer.Y))
+        {
+            _bar.Step(-1);
+        }
+        else if (_barHeld == 2 && _barDown.Contains(pointer.X, pointer.Y))
+        {
+            _bar.Step(1);
+        }
+        else if (_barHeld == 3)
+        {
+            _bar.DragTo((int)(pointer.Y - _panel.Y) - TextScrollBar.MenuY, TextScrollBar.Height);
+        }
+
         const int bx = TextScrollBar.MenuX, by = TextScrollBar.MenuY, h = TextScrollBar.Height;
         float px = _panel.X, py = _panel.Y;
         _barUp = new HudRect(px + bx, py + by, TextScrollBar.Width, TextScrollBar.Arrow);
@@ -392,7 +576,11 @@ public sealed class MessageTabsHud
         var track = new HudRect(px + bx, py + by + TextScrollBar.Arrow, TextScrollBar.Width, TextScrollBar.Track(h));
         (int top, int length) = _bar.Thumb(h);
         _thumb = new HudRect(px + bx + 20, py + by + top + 4, 28, Math.Max(0, length - 8));
-        if (!_panelShown) return;
+        if (!_panelShown)
+        {
+            return;
+        }
+
         Button(frame, "GUI\\Scroll Bars\\v-scroll_bar_bg", TrackAction, track);
         Button(frame, "GUI\\Scroll Bars\\v-scroll_bar", ThumbAction, _thumb);
         Button(frame, "GUI\\Scroll Bars\\v-up_arrow", UpAction, _barUp);
@@ -407,7 +595,8 @@ public sealed class MessageTabsHud
         float pixel = _screen.Height / 1200f, border = HudIndicatorLayout.FrameBorder * pixel;
         (float ix, float iy, float iw, float ih) = HudIndicatorLayout.FrameInner(0, 0, V(width), V(height), pixel);
         for (int row = 0; row < 3; row++)
-        for (int column = 0; column < 3; column++)
+        {
+            for (int column = 0; column < 3; column++)
         {
             // In local pixels from the panel's corner, as the frame is pixel art.
             float left = column == 0 ? ix - border : column == 1 ? ix : ix + iw;
@@ -417,6 +606,7 @@ public sealed class MessageTabsHud
             HudQuads.Tiled(frame, FrameImages[row * 3 + column],
                 new HudRect(_panel.X + Px(left), _panel.Y + Px(top), Px(w), Px(h)), Px(tile), HudColor.White);
         }
+        }
     }
 
     // ---- Menu33, the objective panel
@@ -425,12 +615,22 @@ public sealed class MessageTabsHud
     /// Objective" (1409), briefing lines 3 to 5, over the play area (0,180) 2560x1280.</summary>
     private void BuildObjective(HudFrame frame, bool visible)
     {
-        if (!visible) return;
+        if (!visible)
+        {
+            return;
+        }
+
         if (_objectiveText == null)
         {
             string text = _art.Text(1408) + "\n" + (_briefing?.Invoke(2) ?? "") + "\n\n" + _art.Text(1409);
             for (int line = 3; line <= 5; line++)
-                if (!string.IsNullOrEmpty(_briefing?.Invoke(line))) text += "\n" + _briefing!(line);
+            {
+                if (!string.IsNullOrEmpty(_briefing?.Invoke(line)))
+                {
+                    text += "\n" + _briefing!(line);
+                }
+            }
+
             _objectiveText = new HudText(_font(_screen.Height), text, Math.Max(1, (int)V(1600)));
             _objectiveSize = HudTextPixels.Measure(_objectiveText);
         }
@@ -465,14 +665,24 @@ public sealed class MessageTabsHud
     {
         string[,] names = new string[Families.Length, 3];
         for (int family = 0; family < Families.Length; family++)
-            for (int frame = 0; frame < 3; frame++) names[family, frame] = $"GUI\\Tabs\\Messages\\{Families[family]}-0{frame}";
+        {
+            for (int frame = 0; frame < 3; frame++)
+            {
+                names[family, frame] = $"GUI\\Tabs\\Messages\\{Families[family]}-0{frame}";
+            }
+        }
+
         return names;
     }
 
     private static string[] DigitNames(string family)
     {
         string[] names = new string[10];
-        for (int d = 0; d < 10; d++) names[d] = family + (char)('0' + d);
+        for (int d = 0; d < 10; d++)
+        {
+            names[d] = family + (char)('0' + d);
+        }
+
         return names;
     }
 }

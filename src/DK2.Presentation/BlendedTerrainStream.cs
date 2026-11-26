@@ -140,7 +140,11 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
     /// <summary>One blended material's triangles, as indices into the chunk's vertices; an empty list adds nothing.</summary>
     public void AddChunkTriangles(TMaterial material, IReadOnlyList<int> indices)
     {
-        if (indices.Count == 0) return;
+        if (indices.Count == 0)
+        {
+            return;
+        }
+
         IReadOnlyList<BlendedVertex> vertices = _chunkVertices ?? throw new InvalidOperationException("No chunk begun.");
         int[] kept = new int[indices.Count];
         for (int i = 0; i < kept.Length; i++)
@@ -164,9 +168,16 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
         _chunkVertices = null;
         if (_chunkTriangles.Count == 0)
         {
-            if (!_sources.Remove(_chunk)) return;
+            if (!_sources.Remove(_chunk))
+            {
+                return;
+            }
         }
-        else _sources[_chunk] = new Source(_kept.ToArray(), _chunkMaterials.ToArray(), _chunkTriangles.ToArray());
+        else
+        {
+            _sources[_chunk] = new Source(_kept.ToArray(), _chunkMaterials.ToArray(), _chunkTriangles.ToArray());
+        }
+
         _dirty = true;
     }
 
@@ -186,14 +197,30 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
     /// the same order keeps the collected stream.</summary>
     public void AddEffect(TMaterial material, ReadOnlySpan<BlendedVertex> vertices, ReadOnlySpan<int> indices)
     {
-        if (_effectCount == _effects.Count) _effects.Add(new Effect());
+        if (_effectCount == _effects.Count)
+        {
+            _effects.Add(new Effect());
+        }
+
         Effect effect = _effects[_effectCount++];
         if (ReferenceEquals(effect.Material, material) && vertices.SequenceEqual(new ReadOnlySpan<BlendedVertex>(effect.Vertices))
-            && indices.SequenceEqual(new ReadOnlySpan<int>(effect.Indices))) return;
+            && indices.SequenceEqual(new ReadOnlySpan<int>(effect.Indices)))
+        {
+            return;
+        }
+
         effect.Material = material;
-        if (effect.Vertices.Length != vertices.Length) effect.Vertices = new BlendedVertex[vertices.Length];
+        if (effect.Vertices.Length != vertices.Length)
+        {
+            effect.Vertices = new BlendedVertex[vertices.Length];
+        }
+
         vertices.CopyTo(effect.Vertices);
-        if (effect.Indices.Length != indices.Length) effect.Indices = new int[indices.Length];
+        if (effect.Indices.Length != indices.Length)
+        {
+            effect.Indices = new int[indices.Length];
+        }
+
         indices.CopyTo(effect.Indices);
         _dirty = true;
     }
@@ -202,13 +229,21 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
     /// comparison of its inputs found nothing new. Needs that effect to exist.</summary>
     public void RepeatEffect()
     {
-        if (_effectCount == _effects.Count) throw new InvalidOperationException("No effect to repeat.");
+        if (_effectCount == _effects.Count)
+        {
+            throw new InvalidOperationException("No effect to repeat.");
+        }
+
         _effectCount++;
     }
 
     public void EndEffectFrame()
     {
-        if (_effectCount == _effects.Count) return;
+        if (_effectCount == _effects.Count)
+        {
+            return;
+        }
+
         _effects.RemoveRange(_effectCount, _effects.Count - _effectCount);
         _dirty = true;
     }
@@ -227,13 +262,20 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
         bool matrixMoved = !ViewFrustum.ApproximatelyEqual(localToWorld, _lastMatrix);
         bool moved = _dirty || !Close(forward, _lastForward) || matrixMoved
             || !ViewFrustum.ApproximatelyEqual(frustum.ViewProjection, _lastViewProjection);
-        if (!moved && !_breaksChanged) return false;
+        if (!moved && !_breaksChanged)
+        {
+            return false;
+        }
+
         _breaksChanged = false;
         if (!moved)
         {
             // Only the items moved: re-split the last order, no collect, cull or sort.
             using (Profiler.Scope(BlendedTerrainStream.Markers.DepthOrder))
+            {
                 _runs = _sort.Split(new ReadOnlySpan<float>(_breaks, 0, _breakCount));
+            }
+
             GeometryChanged = false;
             return true;
         }
@@ -260,10 +302,18 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
         {
             _visible.Clear();
             foreach (RenderTriangle triangle in _triangles)
-                if (!frustum.Excludes(_world[triangle.A], _world[triangle.B], _world[triangle.C])) _visible.Add(triangle);
+            {
+                if (!frustum.Excludes(_world[triangle.A], _world[triangle.B], _world[triangle.C]))
+                {
+                    _visible.Add(triangle);
+                }
+            }
         }
         using (Profiler.Scope(BlendedTerrainStream.Markers.DepthOrder))
+        {
             _runs = _sort.Sort(_world, _visible, forward, new ReadOnlySpan<float>(_breaks, 0, _breakCount));
+        }
+
         GeometryChanged = geometryChanged;
         _dirty = false;
         _lastForward = forward;
@@ -306,9 +356,21 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
         Array.Reverse(_scratchBreaks, 0, count);
         _itemCount = count;
         bool same = count == _breakCount;
-        for (int i = 0; same && i < count; i++) same = _scratchBreaks[i] == _breaks[i];
-        if (same) return;
-        if (_breaks.Length < count) _breaks = new float[_scratchBreaks.Length];
+        for (int i = 0; same && i < count; i++)
+        {
+            same = _scratchBreaks[i] == _breaks[i];
+        }
+
+        if (same)
+        {
+            return;
+        }
+
+        if (_breaks.Length < count)
+        {
+            _breaks = new float[_scratchBreaks.Length];
+        }
+
         Array.Copy(_scratchBreaks, _breaks, count);
         _breakCount = count;
         _breaksChanged = true;
@@ -319,7 +381,10 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
     public void ItemOrders(List<int> orders)
     {
         orders.Clear();
-        for (int i = 0; i < _itemCount; i++) orders.Add(_sort.RunsBehind(_itemDepths[i]));
+        for (int i = 0; i < _itemCount; i++)
+        {
+            orders.Add(_sort.RunsBehind(_itemDepths[i]));
+        }
     }
 
     private void Collect()
@@ -340,7 +405,9 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
                 int slot = SlotOf(source.Materials[material]);
                 int[] indices = source.Triangles[material];
                 for (int i = 0; i < indices.Length; i += 3)
+                {
                     _triangles.Add(new RenderTriangle(start + indices[i], start + indices[i + 1], start + indices[i + 2], slot));
+                }
             }
         }
         foreach (Effect effect in _effects)
@@ -349,14 +416,20 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
             _vertices.AddRange(effect.Vertices);
             int slot = SlotOf(effect.Material!);
             for (int i = 0; i < effect.Indices.Length; i += 3)
+            {
                 _triangles.Add(new RenderTriangle(start + effect.Indices[i], start + effect.Indices[i + 1],
                     start + effect.Indices[i + 2], slot));
+            }
         }
     }
 
     private int SlotOf(TMaterial material)
     {
-        if (_slots.TryGetValue(material, out int slot)) return slot;
+        if (_slots.TryGetValue(material, out int slot))
+        {
+            return slot;
+        }
+
         slot = _materials.Count;
         _slots.Add(material, slot);
         _materials.Add(material);
@@ -375,7 +448,11 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
     private static int NextPowerOfTwo(int value)
     {
         int power = 1;
-        while (power < value) power <<= 1;
+        while (power < value)
+        {
+            power <<= 1;
+        }
+
         return power;
     }
 }

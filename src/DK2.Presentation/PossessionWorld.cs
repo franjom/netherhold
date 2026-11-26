@@ -33,7 +33,11 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
 
     public void Bind(WorldState world, CreatureState creature)
     {
-        if (!ReferenceEquals(world, _world)) _steering = new WorldSteering(database, world);
+        if (!ReferenceEquals(world, _world))
+        {
+            _steering = new WorldSteering(database, world);
+        }
+
         _world = world;
         _creature = creature;
         _definition = database.CreatureById(creature.CreatureTypeId);
@@ -60,11 +64,21 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
         int Speed(Fp32 file)
         {
             uint v = (uint)SimulationTiming.LoaderRatePerTick(file.Raw);
-            if (weak) v = v * 20 / 100;
+            if (weak)
+            {
+                v = v * 20 / 100;
+            }
+
             if (!flying)
             {
-                if (terrain.IsWater) v = v * 50 / 100;
-                else if (terrain.IsLava) v = v * 150 / 100;
+                if (terrain.IsWater)
+                {
+                    v = v * 50 / 100;
+                }
+                else if (terrain.IsLava)
+                {
+                    v = v * 150 / 100;
+                }
             }
             return (int)((uint)stat * v / 100);
         }
@@ -80,17 +94,32 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
     public bool CanStepTo(int tileX, int tileY)
     {
         WorldState world = World;
-        if (!world.Contains(tileX, tileY)) return false;
+        if (!world.Contains(tileX, tileY))
+        {
+            return false;
+        }
+
         CreatureState me = Creature;
         CreatureDef def = _definition!;
         byte from = Nav(me.PosX >> 12, me.PosY >> 12), to = Nav(tileX, tileY);
-        if (NavBytes.IsSolid(to)) return false;
+        if (NavBytes.IsSolid(to))
+        {
+            return false;
+        }
+
         if (from != to && !NavBytes.IsDoor(from))
         {
             bool flies = WaterSpeedRules.IsFlying(def, me);
             MoverProfile mover = WorldSteering.ProfileOf(def, me.OwnerPlayerId, (MoveOptions)((int)me.RouteOptions & 0x80));
-            if (flies) mover = mover with { CanWalkOnWater = true, CanWalkOnLava = true };
-            if (MeshRouter.TransitionCost(to, from, mover) == 0) return false;
+            if (flies)
+            {
+                mover = mover with { CanWalkOnWater = true, CanWalkOnLava = true };
+            }
+
+            if (MeshRouter.TransitionCost(to, from, mover) == 0)
+            {
+                return false;
+            }
         }
 
         int index = (tileY * world.Width) + tileX;
@@ -127,19 +156,35 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
         foreach (SteeringObstacle obstacle in _obstacles)
         {
             int at = TouchDistance(start, direction, obstacle.Pos, obstacle.Size + radius);
-            if (at == int.MaxValue || at < -length || at > length) continue;
+            if (at == int.MaxValue || at < -length || at > length)
+            {
+                continue;
+            }
+
             (kept, centre, keptRadius) = (true, obstacle.Pos, obstacle.Size);
         }
         _neighbours.Clear();
         _steering.CollectNeighbours(start, reach, _neighbours);
         foreach (SteeringNeighbour neighbour in _neighbours)
         {
-            if (ReferenceEquals(neighbour.Body, me.Body)) continue;
+            if (ReferenceEquals(neighbour.Body, me.Body))
+            {
+                continue;
+            }
+
             int at = TouchDistance(start, direction, neighbour.Body.Pos, neighbour.Body.Radius + radius);
-            if (at == int.MaxValue || at < -length || at > length) continue;
+            if (at == int.MaxValue || at < -length || at > length)
+            {
+                continue;
+            }
+
             (kept, centre, keptRadius) = (true, neighbour.Body.Pos, neighbour.Body.Radius);
         }
-        if (!kept) return (wantedX, wantedY);
+        if (!kept)
+        {
+            return (wantedX, wantedY);
+        }
+
         Fixed16Vector edge = centre + Fixed16.Normalise(wanted - centre).Scale(keptRadius + radius);
         return (edge.X >> 4, edge.Y >> 4);
     }
@@ -157,7 +202,11 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
         double b = 2.0 * ((px * dx) + (py * dy));
         double c = (px * px) + (py * py) - (r * r);
         double discriminant = (b * b) - (4.0 * a * c);
-        if (!(discriminant > 0.0)) return int.MaxValue;
+        if (!(discriminant > 0.0))
+        {
+            return int.MaxValue;
+        }
+
         double q = 0.5 * (Math.Sqrt(discriminant) - b);
         int first = (int)(q / a * 65536.0), second = (int)(c / q * 65536.0);
         return Math.Min(first, second);
@@ -168,9 +217,19 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
     public bool Blocked(int x, int y)
     {
         int tileX = x >> 12, tileY = y >> 12;
-        if (NavBytes.IsSolid(Nav(tileX, tileY))) return true;
+        if (NavBytes.IsSolid(Nav(tileX, tileY)))
+        {
+            return true;
+        }
+
         foreach (DoorState door in World.Doors)
-            if (door.X == tileX && door.Y == tileY && !door.UnderConstruction && !door.Open) return true;
+        {
+            if (door.X == tileX && door.Y == tileY && !door.UnderConstruction && !door.Open)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 

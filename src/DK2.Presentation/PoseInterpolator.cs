@@ -27,7 +27,11 @@ public static class PoseInterpolator
 
     public static float Clamp01(float value)
     {
-        if (value < 0f) return 0f;
+        if (value < 0f)
+        {
+            return 0f;
+        }
+
         return value > 1f ? 1f : value;
     }
 

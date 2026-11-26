@@ -49,9 +49,17 @@ public sealed class HeartPulse
     /// (<see cref="HeartPulseGate.CanEmit"/>) and the heart has one.</summary>
     public HeartBeat TryBeat(in ObjectView pose, bool beatPending, bool isVisible, Func<EffectTime> clock, GameTick tick)
     {
-        if (!pose.HeartVisual.HasValue || !beatPending || !isVisible || !_gate.ConsumePendingBeat(clock())) return default;
+        if (!pose.HeartVisual.HasValue || !beatPending || !isVisible || !_gate.ConsumePendingBeat(clock()))
+        {
+            return default;
+        }
+
         EffectId mana = pose.HeartVisual.Value.ManaEffect;
-        if (!HeartPulseGate.CanEmit(tick) || mana == EffectId.None) return new HeartBeat(true, null);
+        if (!HeartPulseGate.CanEmit(tick) || mana == EffectId.None)
+        {
+            return new HeartBeat(true, null);
+        }
+
         return new HeartBeat(true, new ViewEffectRequest(mana, new PlayerId(pose.OwnerPlayerId),
             new FpPosition3(new Fp32(pose.PosX), new Fp32(pose.PosY), new Fp32(pose.Height))));
     }

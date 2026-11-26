@@ -44,11 +44,14 @@ public sealed class PlayerObservationCapture
     public bool TryFindCreatureAt(TilePos tile, out PlayerInputTarget creature)
     {
         foreach (PlayerInputTarget target in _targets)
+        {
             if (target.Kind == PlayerInputTargetKind.Creature && target.Tile == tile)
             {
                 creature = target;
                 return true;
             }
+        }
+
         creature = default;
         return false;
     }
@@ -111,11 +114,30 @@ public sealed class PlayerObservationBuilder
 
     public PlayerObservationCapture Capture(WorldState completedWorld, PlayerStamp stamp, IReadOnlyList<PlayerReceipt> receipts)
     {
-        if (completedWorld is null) throw new ArgumentNullException(nameof(completedWorld));
-        if (receipts is null) throw new ArgumentNullException(nameof(receipts));
-        if (!stamp.IsValid) throw new ArgumentException("A capture needs a valid stamp.", nameof(stamp));
-        if (stamp.Player != _player) throw new ArgumentException("The stamp names another player.", nameof(stamp));
-        if (!completedWorld.HasPlayer(_player)) throw new ArgumentException("The world has no such player.", nameof(completedWorld));
+        if (completedWorld is null)
+        {
+            throw new ArgumentNullException(nameof(completedWorld));
+        }
+
+        if (receipts is null)
+        {
+            throw new ArgumentNullException(nameof(receipts));
+        }
+
+        if (!stamp.IsValid)
+        {
+            throw new ArgumentException("A capture needs a valid stamp.", nameof(stamp));
+        }
+
+        if (stamp.Player != _player)
+        {
+            throw new ArgumentException("The stamp names another player.", nameof(stamp));
+        }
+
+        if (!completedWorld.HasPlayer(_player))
+        {
+            throw new ArgumentException("The world has no such player.", nameof(completedWorld));
+        }
 
         WorldState world = completedWorld;
         ref readonly PlayerState keeper = ref world.Player(_player);
@@ -157,40 +179,64 @@ public sealed class PlayerObservationBuilder
     private PlayerTileGrid CaptureTiles(WorldState world)
     {
         int count = world.Width * world.Height;
-        if (_tiles.Length != count) _tiles = new PlayerTile[count];
+        if (_tiles.Length != count)
+        {
+            _tiles = new PlayerTile[count];
+        }
+
         Array.Clear(_roomTiles, 0, _roomTiles.Length);
         for (int y = 0, i = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++, i++)
             {
                 PlayerTile tile = _view.PlayerTileAt(world, x, y);
                 _tiles[i] = tile;
-                if (tile.Room != default && tile.Owner == _player) _roomTiles[(byte)tile.Room]++;
+                if (tile.Room != default && tile.Owner == _player)
+                {
+                    _roomTiles[(byte)tile.Room]++;
+                }
             }
+        }
 
         // The Lair's and Treasury's hover texts give their fill (WorldHoverText.Room: strings 2435, 2581).
         // The Portal's creature cap (schema 8): 15 for the first portal and 5 for each more (owner, 2026-11-17). How many
         // count against it is not shown anywhere (owner, 2026-11-17; schema 9), so Used stays 0.
         int beds = 0, taken = 0, goldCapacity = 0, goldHeld = 0, portals = 0;
         if (_roomTiles[(byte)RoomTypeId.Lair] > 0 || _roomTiles[(byte)RoomTypeId.Treasury] > 0 || _roomTiles[(byte)RoomTypeId.Portal] > 0)
+        {
             foreach (RoomInstance room in RoomIndex.Build(world, _database))
             {
-                if (room.OwnerPlayerId != _player.Value) continue;
-                if (PortalRules.IsEntrance(room.Definition)) portals++;
+                if (room.OwnerPlayerId != _player.Value)
+                {
+                    continue;
+                }
+
+                if (PortalRules.IsEntrance(room.Definition))
+                {
+                    portals++;
+                }
+
                 if (room.Definition.TypeId == RoomTypeId.Lair)
                 {
                     beds += LairRules.Capacity(room);
                     taken += LairRules.Occupied(world, _database, room);
                 }
                 else if (room.Definition.TypeId == RoomTypeId.Treasury)
+                {
                     foreach (int tile in room.TileIndices)
                     {
                         goldHeld += world.TileAtIndex(tile).GoldHeld;
                         goldCapacity += GoldStore.Capacity(world, _database, tile, room);
                     }
+                }
             }
+        }
+
         _rooms.Clear();
         for (int room = 1; room < _roomTiles.Length; room++)
+        {
             if (_roomTiles[room] > 0)
+            {
                 _rooms.Add((RoomTypeId)room switch
                 {
                     RoomTypeId.Lair => new PlayerRoomSummary(RoomTypeId.Lair, _roomTiles[room], beds, taken),
@@ -199,6 +245,9 @@ public sealed class PlayerObservationBuilder
                         PortalRules.CreatureCapacity(_database, portals)),
                     _ => new PlayerRoomSummary((RoomTypeId)room, _roomTiles[room]),
                 });
+            }
+        }
+
         return new PlayerTileGrid(world.Width, world.Height, _tiles);
     }
 
@@ -214,7 +263,10 @@ public sealed class PlayerObservationBuilder
             targets[i] = target;
             var handle = new PlayerThingHandle(revision, i);
             _things.Add(Visible(world, target, handle));
-            if (target.Kind == PlayerInputTargetKind.Creature) _creatureHandles[target.Id] = handle;
+            if (target.Kind == PlayerInputTargetKind.Creature)
+            {
+                _creatureHandles[target.Id] = handle;
+            }
         }
         return targets;
     }
@@ -228,8 +280,16 @@ public sealed class PlayerObservationBuilder
             case PlayerInputTargetKind.Creature:
                 CreatureState creature = world.CreatureById(target.Id)!;
                 PlayerThingActions creatureActions = PlayerThingActions.None;
-                if (HandRules.CanPickUp(world, _database, creature, _player)) creatureActions |= PlayerThingActions.PickUp;
-                if (HandRules.CanSlap(_database, creature, _player)) creatureActions |= PlayerThingActions.Slap;
+                if (HandRules.CanPickUp(world, _database, creature, _player))
+                {
+                    creatureActions |= PlayerThingActions.PickUp;
+                }
+
+                if (HandRules.CanSlap(_database, creature, _player))
+                {
+                    creatureActions |= PlayerThingActions.Slap;
+                }
+
                 (int level, int petals) = Flower(creature, out _, out _);
                 return new PlayerVisibleThing(handle, PlayerThingKind.Creature, target.Tile, creature.OwnerPlayerId,
                     creatureActions, creatureType: creature.CreatureTypeId) { Level = level, Petals = petals };
@@ -258,7 +318,11 @@ public sealed class PlayerObservationBuilder
     private int PlayerIndex(WorldState world)
     {
         int index = 0;
-        while (world.PlayerAtIndex(index).PlayerId != _player) index++;
+        while (world.PlayerAtIndex(index).PlayerId != _player)
+        {
+            index++;
+        }
+
         return index;
     }
 
@@ -269,7 +333,10 @@ public sealed class PlayerObservationBuilder
         {
             // A captive in the keeper's own Prison is not in its creature panel until it converts (owner, 2026-11-17;
             // schema 10): the player sees it only in the world, another player's creature on a Prison tile.
-            if (creature.OwnerPlayerId != _player || creature.Activity == CreatureActivity.Dead) continue;
+            if (creature.OwnerPlayerId != _player || creature.Activity == CreatureActivity.Dead)
+            {
+                continue;
+            }
             // Every own creature's place is the viewer's to know: the creature panel's Focus
             // (0x00417F60) jumps the camera to any not held or joining, prisoners included.
             TilePos? tile = creature.InHand ? null : creature.Tile;
@@ -290,7 +357,11 @@ public sealed class PlayerObservationBuilder
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         mood = null;
         hungry = false;
-        if (StatusFlowerRules.NeverShows(definition, creature, _player)) return (0, 0);
+        if (StatusFlowerRules.NeverShows(definition, creature, _player))
+        {
+            return (0, 0);
+        }
+
         bool dying = creature.Dk2StateId is CreatureDeathRules.FallingState or CreatureDeathRules.DyingState
             || CreatureDeathRules.HasCollapsed(creature);
         int petals = 6 - StatusFlowerRules.Ring(dying, creature.Health, CreatureHealthRules.MaxHealth(_database, definition, creature));
@@ -315,29 +386,63 @@ public sealed class PlayerObservationBuilder
         IReadOnlyList<PlayerMessage> entries = world.Messages.Entries;
         foreach (PlayerMessage message in entries)
         {
-            if (message.PlayerId != _player) continue;
+            if (message.PlayerId != _player)
+            {
+                continue;
+            }
+
             if (!_noticesSeen.TryGetValue(message.Id, out (GameTick Seen, int Ordinal) seen))
+            {
                 _noticesSeen[message.Id] = seen = (tick, ++_lastNoticeOrdinal);
+            }
+
             _notices.Add(new PlayerNotice(seen.Seen, seen.Ordinal, message.Kind));
         }
         // Forget messages the queue dropped; queue ids are never reused, so none can return.
-        if (_noticesSeen.Count == _notices.Count) return;
+        if (_noticesSeen.Count == _notices.Count)
+        {
+            return;
+        }
+
         _noticesGone.Clear();
         foreach (uint id in _noticesSeen.Keys)
-            if (!Contains(entries, id)) _noticesGone.Add(id);
-        foreach (uint id in _noticesGone) _noticesSeen.Remove(id);
+        {
+            if (!Contains(entries, id))
+            {
+                _noticesGone.Add(id);
+            }
+        }
+
+        foreach (uint id in _noticesGone)
+        {
+            _noticesSeen.Remove(id);
+        }
 
         static bool Contains(IReadOnlyList<PlayerMessage> entries, uint id)
         {
-            for (int i = 0; i < entries.Count; i++) if (entries[i].Id == id) return true;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                if (entries[i].Id == id)
+                {
+                    return true;
+                }
+            }
+
             return false;
         }
     }
 
     private PlayerOffers CaptureOffers(WorldState world, PlayerPhase phase, int handCount)
     {
-        if (phase == PlayerPhase.Ended) return PlayerOffers.None;
-        if (phase == PlayerPhase.Intro) return new PlayerOffers { Actions = PlayerActionKinds.SkipIntro };
+        if (phase == PlayerPhase.Ended)
+        {
+            return PlayerOffers.None;
+        }
+
+        if (phase == PlayerPhase.Intro)
+        {
+            return new PlayerOffers { Actions = PlayerActionKinds.SkipIntro };
+        }
 
         _panel.Capture(world);
         _roomOffers.Clear();
@@ -347,7 +452,11 @@ public sealed class PlayerObservationBuilder
         ManaAmount? createImp = null;
         foreach (BottomPanelChoice choice in _panel.Choices)
         {
-            if (!choice.Visible || !choice.Selectable) continue;
+            if (!choice.Visible || !choice.Selectable)
+            {
+                continue;
+            }
+
             if (choice.Kind == BottomPanelChoiceKind.Room)
             {
                 var room = (RoomTypeId)choice.Key.Value;
@@ -363,38 +472,86 @@ public sealed class PlayerObservationBuilder
             else if (choice.Kind == BottomPanelChoiceKind.Spell)
             {
                 _panels.Add(GuiButtonTarget.Spell(choice.Key.Value));
-                if (choice.Key.Value == BottomPanelView.CreateImpSpellId) createImp = new ManaAmount(choice.Cost);
+                if (choice.Key.Value == BottomPanelView.CreateImpSpellId)
+                {
+                    createImp = new ManaAmount(choice.Cost);
+                }
                 // Possession needs an action to end it, which the player does not have (Task 4).
-                if (choice.Key.Value == PossessionRules.SpellId || _database.KeeperSpellById(choice.Key.Value) is not KeeperSpellDef spell) continue;
+                if (choice.Key.Value == PossessionRules.SpellId || _database.KeeperSpellById(choice.Key.Value) is not KeeperSpellDef spell)
+                {
+                    continue;
+                }
                 // The click casts a thing spell on the hovered creature, any other at the ground (PlacementCursor.Spell);
                 // the slot's recharge pie is BottomPanelView's own reading of the spell's row.
                 bool ready = true, upgraded = false;
                 foreach (AvailabilityState row in world.Player(_player).Availabilities)
+                {
                     if (row.Kind == AvailabilityKind.Spell && row.TypeId == choice.Key.Value)
                     {
                         ready = BottomPanelProgress.RechargePercent(row.LastCastTick, world.CurrentTick.Value, spell.CooldownRaw) == 100;
                         upgraded = row.Upgraded;   // the slot's upgraded icon (panel-indicators.md)
                         break;
                     }
+                }
+
                 _spellOffers.Add(new PlayerSpellOffer(choice.Key.Value, choice.Name, new ManaAmount(choice.Cost), choice.Affordable,
                     KeeperSpellRules.TargetsAThing(spell.TargetSelector), ready, upgraded));
             }
         }
 
         PlayerActionKinds actions = PlayerActionKinds.TagArea;
-        if (_roomOffers.Count > 0) actions |= PlayerActionKinds.BuildRoom;
-        if (_panels.Count > 0) actions |= PlayerActionKinds.SelectPanel;
-        if (handCount > 0) actions |= PlayerActionKinds.DropAt;
-        if (createImp is not null) actions |= PlayerActionKinds.CreateImpAt;
+        if (_roomOffers.Count > 0)
+        {
+            actions |= PlayerActionKinds.BuildRoom;
+        }
+
+        if (_panels.Count > 0)
+        {
+            actions |= PlayerActionKinds.SelectPanel;
+        }
+
+        if (handCount > 0)
+        {
+            actions |= PlayerActionKinds.DropAt;
+        }
+
+        if (createImp is not null)
+        {
+            actions |= PlayerActionKinds.CreateImpAt;
+        }
+
         foreach (PlayerSpellOffer offer in _spellOffers)
-            if (offer.Spell != BottomPanelView.CreateImpSpellId) actions |= PlayerActionKinds.CastSpell;
+        {
+            if (offer.Spell != BottomPanelView.CreateImpSpellId)
+            {
+                actions |= PlayerActionKinds.CastSpell;
+            }
+        }
+
         foreach (PlayerWorkshopOffer offer in _workshopOffers)
-            if (!offer.NeedsWorkshop) actions |= offer.Kind == PlayerWorkshopKind.Door ? PlayerActionKinds.PlaceDoor : PlayerActionKinds.PlaceTrap;
+        {
+            if (!offer.NeedsWorkshop)
+            {
+                actions |= offer.Kind == PlayerWorkshopKind.Door ? PlayerActionKinds.PlaceDoor : PlayerActionKinds.PlaceTrap;
+            }
+        }
+
         foreach (PlayerVisibleThing thing in _things)
         {
-            if ((thing.Actions & PlayerThingActions.PickUp) != 0) actions |= PlayerActionKinds.PickUp;
-            if ((thing.Actions & PlayerThingActions.Slap) != 0) actions |= PlayerActionKinds.Slap;
-            if ((thing.Actions & PlayerThingActions.Activate) != 0) actions |= PlayerActionKinds.ActivateSpecial;
+            if ((thing.Actions & PlayerThingActions.PickUp) != 0)
+            {
+                actions |= PlayerActionKinds.PickUp;
+            }
+
+            if ((thing.Actions & PlayerThingActions.Slap) != 0)
+            {
+                actions |= PlayerActionKinds.Slap;
+            }
+
+            if ((thing.Actions & PlayerThingActions.Activate) != 0)
+            {
+                actions |= PlayerActionKinds.ActivateSpecial;
+            }
         }
         return new PlayerOffers { Actions = actions, Rooms = _roomOffers, Panels = _panels, CreateImpCost = createImp, Spells = _spellOffers, Workshop = _workshopOffers };
     }

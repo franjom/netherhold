@@ -17,7 +17,11 @@ public sealed class ClassicTorchFlameAnimation
 
     public int Frame(int storedFrames, int phaseOffsetRaw = 0)
     {
-        if (storedFrames <= 0) throw new System.ArgumentOutOfRangeException(nameof(storedFrames));
+        if (storedFrames <= 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(storedFrames));
+        }
+
         int phase = (_phaseRaw + phaseOffsetRaw) & 4095;
         return (int)((long)phase * storedFrames / 4096);
     }

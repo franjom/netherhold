@@ -18,8 +18,16 @@ public sealed class MinimapClassGrid
 
     public MinimapClassGrid(int width, int height)
     {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (width <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
         Width = width;
         Height = height;
         int count = checked(width * height);
@@ -44,10 +52,18 @@ public sealed class MinimapClassGrid
     public bool Set(TilePos position, MinimapColourClass colourClass)
     {
         int index = IndexOf(position);
-        if (_cells[index] == colourClass) return false;
+        if (_cells[index] == colourClass)
+        {
+            return false;
+        }
+
         _cells[index] = colourClass;
         int slot = _changeSlots[index];
-        if (slot < 0) _changeSlots[index] = slot = _changeCount++;
+        if (slot < 0)
+        {
+            _changeSlots[index] = slot = _changeCount++;
+        }
+
         _changes[slot] = new MinimapTileChange(position, colourClass);
         return true;
     }
@@ -66,14 +82,20 @@ public sealed class MinimapClassGrid
     public void ClearChanges()
     {
         for (int i = 0; i < _changeCount; i++)
+        {
             _changeSlots[IndexOf(_changes[i].Position)] = -1;
+        }
+
         _changeCount = 0;
     }
 
     private int IndexOf(TilePos position)
     {
         if ((uint)position.X >= (uint)Width || (uint)position.Y >= (uint)Height)
+        {
             throw new ArgumentOutOfRangeException(nameof(position));
+        }
+
         return position.Y * Width + position.X;
     }
 }

@@ -104,7 +104,11 @@ public sealed class SceneFrame
     /// so a tied effect is not let go.</summary>
     public void Remove(CreatureId creature, bool keepHead)
     {
-        if (!keepHead) Heads.Remove(creature);
+        if (!keepHead)
+        {
+            Heads.Remove(creature);
+        }
+
         _gemSparkles.Forget(creature);
         _poses.Remove(creature);
     }
@@ -129,15 +133,30 @@ public sealed class SceneFrame
             CreatureId creature = entry.Key;
             CreatureView pose = entry.Value;
             // Position only: a creature keeps its last tick's turns (PoseInterpolator).
-            if (!_host.PlaceCreature(creature, pose, PoseInterpolator.Position(pose, fraction))) continue;
+            if (!_host.PlaceCreature(creature, pose, PoseInterpolator.Position(pose, fraction)))
+            {
+                continue;
+            }
+
             _host.DrawCreatureClip(creature, pose, DrawSeconds);
             // Every frame: a new look or a restored model brings its own renderers.
-            if (creature == HiddenCreature) _host.HideCreatureModel(creature);
+            if (creature == HiddenCreature)
+            {
+                _host.HideCreatureModel(creature);
+            }
             // 0x0043CC30's footstep arm tests the clip's marks through 0x0043CD84 and requests the footstep; asking at each
             // drawn frame over the frame's fractions is HYPOTHESIS (sound-effects-continuous.md, the request).
             int crossing = _host.FootstepCrossing(creature);
-            if (crossing != 0) _host.RequestFootstep(creature, pose, crossing);
-            if (pose.BurningRed) _host.DrawBurningRed(creature, pose);
+            if (crossing != 0)
+            {
+                _host.RequestFootstep(creature, pose, crossing);
+            }
+
+            if (pose.BurningRed)
+            {
+                _host.DrawBurningRed(creature, pose);
+            }
+
             _host.DrawCrackle(creature, tick);
             Heads.Set(creature, _host.TryGetControlPoint(creature, KmfControlPoint.Head, out Vector3 head)
                 ? RenderWorld.ToNative(head) : null);
@@ -145,7 +164,9 @@ public sealed class SceneFrame
             if (pose.GemCarrier && _host.TakesGemSparkles
                 && _host.TryGetControlPoint(creature, CreatureView.GemDustSparkle.ControlPoint, out Vector3 sparkle)
                 && _gemSparkles.TryPass(creature, _host.EffectClock()))
+            {
                 _host.RequestGemSparkle(RenderWorld.ToNative(sparkle));
+            }
         }
         _host.DrawObjects(tick, fraction);
         _host.RefreshTorches();

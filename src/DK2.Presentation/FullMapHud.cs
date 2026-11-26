@@ -33,7 +33,11 @@ public sealed class FullMapHud
     public FullMapHud(MinimapPalette palette, int mapWidth, int mapHeight)
     {
         _palette = palette ?? throw new ArgumentNullException(nameof(palette));
-        if (mapWidth <= 0 || mapHeight <= 0) throw new ArgumentOutOfRangeException(nameof(mapWidth));
+        if (mapWidth <= 0 || mapHeight <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(mapWidth));
+        }
+
         _mapWidth = mapWidth; _mapHeight = mapHeight;
     }
 
@@ -69,7 +73,11 @@ public sealed class FullMapHud
     /// <summary>The hovered room and every visible creature; call while the simulation is joined.</summary>
     public void Capture(WorldState world, GameDatabase database, PlayerId viewer, TilePos hovered)
     {
-        if (!_visible) return;
+        if (!_visible)
+        {
+            return;
+        }
+
         _markers.Clear();
         _room = null;
         if (hovered.X > 0 && hovered.Y > 0 && hovered.X < world.Width - 1 && hovered.Y < world.Height - 1
@@ -77,20 +85,29 @@ public sealed class FullMapHud
         {
             var centre = new TilePos(room.CentreFieldX, room.CentreFieldY);
             if (room.Definition.TypeId is RoomTypeId type
-                && ClassicFullMapMarkers.TryRoom(type, centre, Explored(world, centre, viewer), out MinimapMarker marker)) _room = marker;
+                && ClassicFullMapMarkers.TryRoom(type, centre, Explored(world, centre, viewer), out MinimapMarker marker))
+            {
+                _room = marker;
+            }
         }
         foreach (CreatureState creature in world.Creatures)
         {
             var tile = new TilePos(creature.PosX >> 12, creature.PosY >> 12);
             var position = new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
             if (ClassicFullMapMarkers.TryCreature(position, creature.OwnerPlayerId, creature.InHand, Explored(world, tile, viewer),
-                _palette, out MinimapMarker marker)) _markers.Add(marker);
+                _palette, out MinimapMarker marker))
+            {
+                _markers.Add(marker);
+            }
         }
         _players.Clear();
         for (int i = 0; i < world.PlayerCount; i++)
         {
             PlayerId player = world.PlayerAtIndex(i).PlayerId;
-            if (player.Value >= PlayerIds.FirstKeeper) _players.Add(player);
+            if (player.Value >= PlayerIds.FirstKeeper)
+            {
+                _players.Add(player);
+            }
         }
     }
 
@@ -102,7 +119,11 @@ public sealed class FullMapHud
     /// <param name="front">Over them: the room icon, the creature squares and the legend.</param>
     public void Build(HudScreen screen, HudFrame back, HudFrame front)
     {
-        if (!_visible || screen.Height <= 0 || screen.Width <= 0) return;
+        if (!_visible || screen.Height <= 0 || screen.Width <= 0)
+        {
+            return;
+        }
+
         float s = screen.Scale;
         back.Add(new HudDraw(HudDrawKind.Fill, default, new HudRect(0, 0, screen.VirtualWidth, 1920), new HudColor(0, 0, 0)));
         int width = screen.Width, height = screen.Height;
@@ -122,8 +143,16 @@ public sealed class FullMapHud
             float y = (int)(marker.Position.Y.Raw / (float)Fp32.One * layout.Size.Y / layout.MapHeight - 1) + layout.Origin.Y;
             front.Add(new HudDraw(HudDrawKind.Fill, default, new HudRect(x / s, y / s, size / s, size / s), Colour(marker.ColourArgb)));
         }
-        if (_font == null) return;
-        if (_legendHeight != height || !SamePlayers()) SetLegend(height);
+        if (_font == null)
+        {
+            return;
+        }
+
+        if (_legendHeight != height || !SamePlayers())
+        {
+            SetLegend(height);
+        }
+
         foreach ((PlayerId player, HudText text, int w, int h) in _legend)
         {
             int left = width * 474 / 640;
@@ -136,8 +165,19 @@ public sealed class FullMapHud
 
     private bool SamePlayers()
     {
-        if (_players.Count != _legend.Count) return false;
-        for (int i = 0; i < _players.Count; i++) if (_players[i] != _legend[i].Player) return false;
+        if (_players.Count != _legend.Count)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < _players.Count; i++)
+        {
+            if (_players[i] != _legend[i].Player)
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 

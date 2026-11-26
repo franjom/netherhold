@@ -25,9 +25,16 @@ public sealed class MinimapDiscImage
     /// <param name="backdrop">The rock backdrop (<c>Map-BG.PNG</c>, 128x128), decoded to RGBA, top row first.</param>
     public MinimapDiscImage(RgbaImage backdrop)
     {
-        if (backdrop is null) throw new ArgumentNullException(nameof(backdrop));
+        if (backdrop is null)
+        {
+            throw new ArgumentNullException(nameof(backdrop));
+        }
+
         if (backdrop.Width <= 0 || backdrop.Height <= 0 || backdrop.Pixels.Length < backdrop.Width * backdrop.Height * 4)
+        {
             throw new ArgumentException("The backdrop has no pixels.", nameof(backdrop));
+        }
+
         _backdrop = backdrop.Pixels; _backdropWidth = backdrop.Width; _backdropHeight = backdrop.Height;
     }
 
@@ -45,11 +52,31 @@ public sealed class MinimapDiscImage
     public void Render(int diameter, MinimapClassGrid grid, MinimapPalette palette, IReadOnlyList<MinimapMarker> markers,
         MinimapZoom zoom, FpPosition3 focus, Dk2Angle heading, TilePos? heart, GameTick tick)
     {
-        if (diameter <= 0 || diameter > 4096) throw new ArgumentOutOfRangeException(nameof(diameter));
-        if (grid is null) throw new ArgumentNullException(nameof(grid));
-        if (palette is null) throw new ArgumentNullException(nameof(palette));
-        if (markers is null) throw new ArgumentNullException(nameof(markers));
-        if (_pixels.Length < diameter * diameter * 4) _pixels = new byte[diameter * diameter * 4];
+        if (diameter <= 0 || diameter > 4096)
+        {
+            throw new ArgumentOutOfRangeException(nameof(diameter));
+        }
+
+        if (grid is null)
+        {
+            throw new ArgumentNullException(nameof(grid));
+        }
+
+        if (palette is null)
+        {
+            throw new ArgumentNullException(nameof(palette));
+        }
+
+        if (markers is null)
+        {
+            throw new ArgumentNullException(nameof(markers));
+        }
+
+        if (_pixels.Length < diameter * diameter * 4)
+        {
+            _pixels = new byte[diameter * diameter * 4];
+        }
+
         Diameter = diameter;
         float angle = heading.Value * (MathF.PI * 2 / 2048);
         var turn = new Turn(MathF.Sin(angle), MathF.Cos(angle), diameter);
@@ -58,12 +85,17 @@ public sealed class MinimapDiscImage
         for (int i = 0; i < markers.Count; i++)
         {
             MinimapMarker marker = markers[i];
-            if (Place(marker, map, out Shape shape)) DrawMarker(turn, shape, marker.ColourArgb);
+            if (Place(marker, map, out Shape shape))
+            {
+                DrawMarker(turn, shape, marker.ColourArgb);
+            }
         }
         // After the ordinary markers: one opaque white raster pixel per dot (the shader's kind 6).
         int dots = heart.HasValue ? MinimapHeartTrail.Build(heart.Value, focus, zoom, tick, _trail) : 0;
         for (int i = 0; i < dots; i++)
+        {
             DrawMarker(turn, new Shape(ShapeKind.Solid, _trail[i].X + .5f, _trail[i].Y + .5f, 1, 1, 0), 0xFFFFFFFF);
+        }
     }
 
     /// <summary>A display pixel's raster point: the pixel centre in [-1, 1] across the disc (y down), turned by the
@@ -90,7 +122,11 @@ public sealed class MinimapDiscImage
         public float Coverage(float x, float y)
         {
             float radius = MathF.Sqrt(x * x + y * y);
-            if (radius <= 0) return 1;
+            if (radius <= 0)
+            {
+                return 1;
+            }
+
             float width = (MathF.Abs(x) + MathF.Abs(y)) / radius * (2f / Diameter);
             return 1 - SmoothStep(1 - width, 1, radius);
         }
@@ -145,8 +181,14 @@ public sealed class MinimapDiscImage
                 }
                 ushort colourClass = unknown;
                 if (tx >= 0 && ty >= 0 && tx < map.Width && ty < map.Height)
+                {
                     colourClass = cells[(int)ty * map.Width + (int)tx].Index;
-                if (colourClass == unknown) Backdrop(rx, ry, pixels, p);
+                }
+
+                if (colourClass == unknown)
+                {
+                    Backdrop(rx, ry, pixels, p);
+                }
                 else
                 {
                     uint argb = colours[colourClass];
@@ -203,7 +245,11 @@ public sealed class MinimapDiscImage
             originY = 64 + (marker.Position.Y.Raw >> (12 - map.Level)) - map.FocusY;
         }
         int radius = marker.RadiusRasterPixels;
-        if (!map.WholeMap && marker.ReportingDistanceTiles >= 0) radius = marker.ReportingDistanceTiles * (1 << map.Level);
+        if (!map.WholeMap && marker.ReportingDistanceTiles >= 0)
+        {
+            radius = marker.ReportingDistanceTiles * (1 << map.Level);
+        }
+
         switch (marker.Kind)
         {
             case MinimapMarkerKind.VerticalDoor:
@@ -219,8 +265,12 @@ public sealed class MinimapDiscImage
                 int spanX, spanY;
                 if (map.WholeMap) { spanX = map.FitX(tileX + axisX) - originX; spanY = map.FitY(tileY + axisY) - originY; }
                 else { spanX = axisX << map.Level; spanY = axisY << map.Level; }
-                if (spanX * axisX + spanY * axisY <= 0) return false;
-                float width = Math.Max(1 - axisX, spanX), height = Math.Max(1 - axisY, spanY);
+                if (spanX * axisX + spanY * axisY <= 0)
+                    {
+                        return false;
+                    }
+
+                    float width = Math.Max(1 - axisX, spanX), height = Math.Max(1 - axisY, spanY);
                 shape = new Shape(ShapeKind.Solid, originX + width * .5f, originY + height * .5f, width, height, 0);
                 return true;
             }
@@ -241,8 +291,12 @@ public sealed class MinimapDiscImage
                     endY = 64 + (marker.EndPosition.Y.Raw >> (12 - map.Level)) - map.FocusY;
                 }
                 int width = Math.Max(endX - originX, 0), height = Math.Max(endY - originY, 0);
-                if (width == 0 || height == 0) return false;
-                shape = new Shape(ShapeKind.Border, originX + width * .5f, originY + height * .5f, width, height, 0);
+                if (width == 0 || height == 0)
+                    {
+                        return false;
+                    }
+
+                    shape = new Shape(ShapeKind.Border, originX + width * .5f, originY + height * .5f, width, height, 0);
                 return true;
             }
             case MinimapMarkerKind.Creature:
@@ -281,9 +335,17 @@ public sealed class MinimapDiscImage
                 float x = turn.Disc(px);
                 float rx = turn.RasterX(x, y), ry = turn.RasterY(x, y);
                 float lx = (rx - shape.CentreX) / halfW, ly = (ry - shape.CentreY) / halfH;
-                if (lx < -1 || lx > 1 || ly < -1 || ly > 1) continue;
+                if (lx < -1 || lx > 1 || ly < -1 || ly > 1)
+                {
+                    continue;
+                }
+
                 float alpha = turn.Coverage(x, y) * Fill(turn, shape, lx, ly, rx, ry);
-                if (alpha <= 0) continue;
+                if (alpha <= 0)
+                {
+                    continue;
+                }
+
                 int p = (py * d + px) * 4;
                 pixels[p] = (byte)(pixels[p] + (r - pixels[p]) * alpha + .5f);
                 pixels[p + 1] = (byte)(pixels[p + 1] + (g - pixels[p + 1]) * alpha + .5f);
@@ -328,7 +390,11 @@ public sealed class MinimapDiscImage
     /// <summary>HLSL's smoothstep; a step at <paramref name="from"/> when the edges meet.</summary>
     private static float SmoothStep(float from, float to, float x)
     {
-        if (to <= from) return x < from ? 0 : 1;
+        if (to <= from)
+        {
+            return x < from ? 0 : 1;
+        }
+
         float t = Math.Clamp((x - from) / (to - from), 0, 1);
         return t * t * (3 - 2 * t);
     }

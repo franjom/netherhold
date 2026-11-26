@@ -28,12 +28,18 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, 
     {
         // DK2's global counter for the chicken's step (0x006E4FD4): bit 0 is tested, then it counts, on every request.
         if (simEvent.ThingSound is { Stop: true, Voiced: true } stop)
+        {
             _pending.Enqueue(new(default, default, null, VoiceOf(stop.Source), Stop: true));
+        }
+
         bool turn = simEvent.ThingSound is { Alternating: true } && (_alternator++ & 1) != 0;
         if (simEvent.ThingSound is { Stop: false } sound && !string.IsNullOrEmpty(sound.Category)
             && (!sound.Alternating || turn)
             && (sound.ViewerOnlyFor is not { } owner || owner == viewer))
+        {
             _pending.Enqueue(Listener(sound));
+        }
+
         downstream?.Emit(simEvent);
     }
 

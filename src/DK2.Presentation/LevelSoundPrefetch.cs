@@ -22,23 +22,58 @@ public static class LevelSoundPrefetch
         var categories = new List<SoundCategory>();
         void Add(string? name)
         {
-            if (!string.IsNullOrWhiteSpace(name) && names.Add(name!)) categories.Add(new SoundCategory(name!.ToLowerInvariant()));
+            if (!string.IsNullOrWhiteSpace(name) && names.Add(name!))
+            {
+                categories.Add(new SoundCategory(name!.ToLowerInvariant()));
+            }
         }
         // The runner falls back to the mentor's category when there is no level record; it is 1,500 lines and not prefetched.
-        if (levelSpeech != SoundCategory.Mentor) Add(levelSpeech.Name);
+        if (levelSpeech != SoundCategory.Mentor)
+        {
+            Add(levelSpeech.Name);
+        }
         // Only the terrain on the map: every terrain and room in the database decodes 140 MB and takes seconds.
         var terrains = new HashSet<byte>();
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
+            {
                 if (terrains.Add(world.Tile(x, y).TerrainId) && database.Terrain.TryGetValue(world.Tile(x, y).TerrainId, out TerrainDef? terrain))
+                {
                     Add(terrain.SoundCategory);
+                }
+            }
+        }
+
         foreach (CreatureState creature in world.Creatures)
-            if (database.Creatures.TryGetValue(creature.CreatureTypeId, out CreatureDef? definition)) Add(definition.SoundCategory);
-        foreach (ObjectState thing in world.Objects) Add(database.ObjectById(thing.ObjectTypeId)?.SoundCategory);
+        {
+            if (database.Creatures.TryGetValue(creature.CreatureTypeId, out CreatureDef? definition))
+            {
+                Add(definition.SoundCategory);
+            }
+        }
+
+        foreach (ObjectState thing in world.Objects)
+        {
+            Add(database.ObjectById(thing.ObjectTypeId)?.SoundCategory);
+        }
+
         foreach (DoorState door in world.Doors)
-            if (database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)) Add(definition.SoundCategory);
+        {
+            if (database.Doors.TryGetValue(door.DoorId, out DoorDef? definition))
+            {
+                Add(definition.SoundCategory);
+            }
+        }
+
         foreach (TrapState trap in world.Traps)
-            if (database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition)) Add(definition.SoundCategory);
+        {
+            if (database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition))
+            {
+                Add(definition.SoundCategory);
+            }
+        }
+
         return categories;
     }
 }

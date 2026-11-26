@@ -46,13 +46,24 @@ public static class ClassicVertexLight
     /// else the tile under the object's origin (in the renderers' frame); -1 off the grid or for an empty grid.</summary>
     public static int TableTile(Vector2 tileAnchor, Vector3 origin, int gridWidth, int gridCount)
     {
-        if (gridCount <= 0 || gridWidth <= 0) return -1;
+        if (gridCount <= 0 || gridWidth <= 0)
+        {
+            return -1;
+        }
+
         int tile;
-        if (tileAnchor.Y >= 1) tile = (int)tileAnchor.X;
+        if (tileAnchor.Y >= 1)
+        {
+            tile = (int)tileAnchor.X;
+        }
         else
         {
             int x = (int)Math.Floor(origin.X), y = (int)Math.Floor(-origin.Z);
-            if (x < 0 || x >= gridWidth || y < 0) return -1;
+            if (x < 0 || x >= gridWidth || y < 0)
+            {
+                return -1;
+            }
+
             tile = y * gridWidth + x;
         }
         return tile < 0 || tile >= gridCount ? -1 : tile;
@@ -67,7 +78,11 @@ public static class ClassicVertexLight
         Matrix4x4 m = vertex.ObjectToWorld;
         Vector3 origin = m.Translation;
         int tile = TableTile(vertex.TileAnchor, origin, grid.Width, grid.Counts.Length);
-        if (tile < 0) return Vector3.Zero;
+        if (tile < 0)
+        {
+            return Vector3.Zero;
+        }
+
         uint count = Math.Min(grid.Counts[tile], (uint)ClassicLightTable.MaximumSources);
         Vector3 centre = Basis(m, new Vector3(vertex.LightBounds.X, vertex.LightBounds.Y, vertex.LightBounds.Z));
         Vector3 sample = origin + centre;
@@ -84,20 +99,36 @@ public static class ClassicVertexLight
                 float drawScale = (float)Math.Sqrt(Dot(Basis(m, Vector3.UnitX), Basis(m, Vector3.UnitX)));
                 float radius = (float)Math.Sqrt(light.W) + vertex.LightBounds.W * drawScale;
                 Vector3 delta = new Vector3(light.X, light.Y, light.Z) - sample;
-                if (Dot(delta, delta) >= radius * radius) continue;
+                if (Dot(delta, delta) >= radius * radius)
+                {
+                    continue;
+                }
             }
             if (vertex.LightKind.X == 1)
             {
-                if ((flags & 4u) == 4u) sum += Radial(origin, light, source.Colour, intensity);
+                if ((flags & 4u) == 4u)
+                {
+                    sum += Radial(origin, light, source.Colour, intensity);
+                }
+
                 if ((flags & 256u) == 256u
                     && InstancePoint(sample, centre, vertex.Position, vertex.Normal, m, light, source.Colour, intensity,
                         out Vector3 contribution))
+                {
                     sum += contribution;
+                }
             }
             else if (Point(vertex.WorldPosition, vertex.WorldNormal, light, source.Colour, intensity, out Vector3 contribution))
             {
-                if ((flags & 0x60u) == 0x60u) sum += contribution;
-                if ((flags & 0xA0u) == 0xA0u || (flags & 1u) == 1u) sum += contribution;
+                if ((flags & 0x60u) == 0x60u)
+                {
+                    sum += contribution;
+                }
+
+                if ((flags & 0xA0u) == 0xA0u || (flags & 1u) == 1u)
+                {
+                    sum += contribution;
+                }
             }
         }
         return sum;
@@ -128,14 +159,30 @@ public static class ClassicVertexLight
         contribution = Vector3.Zero;
         Vector3 toLight = new Vector3(light.X, light.Y, light.Z) - vertex;
         float distanceSquared = Dot(toLight, toLight), radiusSquared = light.W;
-        if (radiusSquared <= 0 || distanceSquared >= radiusSquared) return true;
+        if (radiusSquared <= 0 || distanceSquared >= radiusSquared)
+        {
+            return true;
+        }
+
         float incidence = Dot(normal, toLight) * intensity;
-        if (BitConverter.SingleToInt32Bits(incidence) < 0) return true;
+        if (BitConverter.SingleToInt32Bits(incidence) < 0)
+        {
+            return true;
+        }
+
         int index = Bin(distanceSquared);
-        if (index < 0 || index >= 256) return false;
+        if (index < 0 || index >= 256)
+        {
+            return false;
+        }
+
         if (index == 0)
         {
-            if (incidence == 0) return false;
+            if (incidence == 0)
+            {
+                return false;
+            }
+
             contribution = colour;
             return true;
         }
@@ -150,9 +197,16 @@ public static class ClassicVertexLight
         contribution = Vector3.Zero;
         Vector3 delta = new Vector3(light.X, light.Y, light.Z) - sample;
         float distanceSquared = (delta.X * delta.X + delta.Y * delta.Y) + delta.Z * delta.Z, radiusSquared = light.W;
-        if (radiusSquared <= 0 || distanceSquared >= radiusSquared) return true;
+        if (radiusSquared <= 0 || distanceSquared >= radiusSquared)
+        {
+            return true;
+        }
+
         int index = Bin(distanceSquared);
-        if (index < 0 || index >= 256) return false;
+        if (index < 0 || index >= 256)
+        {
+            return false;
+        }
         // The basis transposed: each basis column dotted with the delta.
         Vector3 direction = new(
             m.M11 * delta.X + m.M12 * delta.Y + m.M13 * delta.Z,
@@ -160,15 +214,27 @@ public static class ClassicVertexLight
             m.M31 * delta.X + m.M32 * delta.Y + m.M33 * delta.Z);
         Vector3 d = direction - (vertex - centre);
         float incidence = ((d.X * normal.X + d.Z * normal.Z) + d.Y * normal.Y) * intensity;
-        if (BitConverter.SingleToInt32Bits(incidence) < 0) return true;
+        if (BitConverter.SingleToInt32Bits(incidence) < 0)
+        {
+            return true;
+        }
+
         if (index == 0)
         {
-            if (incidence == 0) return false;
+            if (incidence == 0)
+            {
+                return false;
+            }
+
             contribution = colour;
             return true;
         }
         float attenuation = (radiusSquared - distanceSquared) * (0.25f + 16f / index) * (1f / radiusSquared);
-        if (!(attenuation > 0)) return true;
+        if (!(attenuation > 0))
+        {
+            return true;
+        }
+
         float factor = incidence * attenuation;
         contribution = colour * (factor <= 1f ? factor : 1f);
         return true;
@@ -178,10 +244,22 @@ public static class ClassicVertexLight
     {
         Vector3 delta = new Vector3(light.X, light.Y, light.Z) - sample;
         float distanceSquared = Dot(delta, delta), radiusSquared = light.W;
-        if (radiusSquared <= 0 || distanceSquared >= radiusSquared) return Vector3.Zero;
+        if (radiusSquared <= 0 || distanceSquared >= radiusSquared)
+        {
+            return Vector3.Zero;
+        }
+
         int index = Bin(distanceSquared);
-        if (index < 0 || index >= 256) return Vector3.Zero;
-        if (index == 0) return colour;
+        if (index < 0 || index >= 256)
+        {
+            return Vector3.Zero;
+        }
+
+        if (index == 0)
+        {
+            return colour;
+        }
+
         float factor = (0.25f + 16f / index) * (radiusSquared - distanceSquared) * intensity * (1f / radiusSquared);
         return colour * (factor <= 1f ? factor : 1f);
     }

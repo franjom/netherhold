@@ -30,7 +30,11 @@ public static class BottomPanelLayout
     /// Null when <paramref name="category"/> is not open.</summary>
     public static BottomPanelRect? PanelOf(BottomPanelCategory category, BottomPanelOpenSet open, BottomPanelCategory? pinned)
     {
-        if (!open.Contains(category)) return null;
+        if (!open.Contains(category))
+        {
+            return null;
+        }
+
         int width = Span / open.Count;
         bool unpinnedOpen = (pinned is BottomPanelCategory p ? open.Without(p) : open).Count > 0;
         int x = pinned == category && unpinnedOpen ? Left + width : Left;
@@ -120,14 +124,22 @@ public sealed class BottomPanelView
     public bool PressChoice(BottomPanelChoiceKey key, GuiSoundSlot slot)
     {
         BottomPanelChoice? choice = Choice(key) ?? _specials.FirstOrDefault(c => c.Key == key);
-        if (_choicePressed || choice is null || !choice.Visible || !choice.Selectable && !choice.ClearsToolOnClick) return false;
+        if (_choicePressed || choice is null || !choice.Visible || !choice.Selectable && !choice.ClearsToolOnClick)
+        {
+            return false;
+        }
+
         _choicePressed = true; _pressedSlot = slot;
         Sounds.Add(new SoundRequest(GuiSoundSlots.CategoryOf(slot), new SoundId(0x104)));
         return true;
     }
     public void ReleaseChoice()
     {
-        if (!_choicePressed) return;
+        if (!_choicePressed)
+        {
+            return;
+        }
+
         _choicePressed = false;
         Sounds.Add(new SoundRequest(GuiSoundSlots.CategoryOf(_pressedSlot), new SoundId(0x136)));
     }
@@ -148,7 +160,14 @@ public sealed class BottomPanelView
     /// <summary>The choice for a key, or null when the panel has none.</summary>
     public BottomPanelChoice? Choice(BottomPanelChoiceKey key)
     {
-        foreach (BottomPanelChoice choice in _choices) if (choice.Key == key) return choice;
+        foreach (BottomPanelChoice choice in _choices)
+        {
+            if (choice.Key == key)
+            {
+                return choice;
+            }
+        }
+
         return null;
     }
     public BottomPanelChoice? Reaper { get; }
@@ -174,19 +193,39 @@ public sealed class BottomPanelView
             choices.Add(new BottomPanelChoice(key, name(key, fallback), cost));
         }
         foreach (RoomDef room in database.Rooms.Values.OrderBy(r => r.OrderInEditor).ThenBy(r => r.RoomId))
-            if (room.IsBuildable) Add(BottomPanelChoiceKind.Room, room.RoomId, room.Name, room.Cost);
+        {
+            if (room.IsBuildable)
+            {
+                Add(BottomPanelChoiceKind.Room, room.RoomId, room.Name, room.Cost);
+            }
+        }
+
         foreach (KeeperSpellDef spell in database.KeeperSpells.Values.OrderBy(s => order?.Invoke(new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, s.KeeperSpellId)) ?? s.KeeperSpellId))
+        {
             if (spell.KeeperSpellId == (_oneShotReaper ? 14 : 5))
             {
                 var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, spell.KeeperSpellId);
                 Reaper = new BottomPanelChoice(key, name(key, spell.Name), spell.ManaCost);
             }
             else if (spell.KeeperSpellId != 14 && spell.KeeperSpellId != 5)
+            {
                 Add(BottomPanelChoiceKind.Spell, spell.KeeperSpellId, spell.Name, spell.ManaCost);
+            }
+        }
+
         foreach (DoorDef door in database.Doors.Values.OrderBy(d => order?.Invoke(new BottomPanelChoiceKey(BottomPanelChoiceKind.Door, d.DoorId)) ?? d.DoorId))
+        {
             Add(BottomPanelChoiceKind.Door, door.DoorId, door.Name, door.GoldCost);
+        }
+
         foreach (TrapDef trap in database.Traps.Values.OrderBy(t => order?.Invoke(new BottomPanelChoiceKey(BottomPanelChoiceKind.Trap, t.TrapId)) ?? t.TrapId))
-            if (IsOnPanel(trap)) Add(BottomPanelChoiceKind.Trap, trap.TrapId, trap.Name, trap.GoldCost);
+        {
+            if (IsOnPanel(trap))
+            {
+                Add(BottomPanelChoiceKind.Trap, trap.TrapId, trap.Name, trap.GoldCost);
+            }
+        }
+
         _choices = choices.ToArray();
     }
 
@@ -232,8 +271,13 @@ public sealed class BottomPanelView
         _workshopDim = !player || !OwnsRoomTile(world, RoomTypeId.Workshop);
         _creaturesDim = true;
         for (int i = 0; i < world.Creatures.Count && _creaturesDim; i++)
+        {
             if (world.Creatures[i].OwnerPlayerId == _player && CreatureStateMachine.HasState(world.Creatures[i]))
+            {
                 _creaturesDim = false;
+            }
+        }
+
         List<AvailabilityState>? rows = null;
         ManufactureOrder? head = null;
         byte manufacture = 0, research = 0;
@@ -268,19 +312,31 @@ public sealed class BottomPanelView
             int available = player ? world.Availability(_player, kind, choice.Key.Value) : 1;
             choice.Visible = available != 1;
             if (choice.Kind == BottomPanelChoiceKind.Room && available == 4)
+            {
                 choice.Visible = OwnsRoomTile(world, (RoomTypeId)choice.Key.Value);
+            }
+
             choice.Unknown = available == 2;
             choice.Upgraded = player && choice.Kind == BottomPanelChoiceKind.Spell && SpellUpgraded(world, choice.Key.Value);
             choice.ClearsToolOnClick = choice.Kind == BottomPanelChoiceKind.Room && available == 4;
             choice.Selectable = IsSelectable(available);
             if (choice.Kind == BottomPanelChoiceKind.Spell && choice.Key.Value == CreateImpSpellId && player)
+            {
                 choice.Cost = ImpSupplyRules.CreateImpCost(world, _database, _player);
+            }
+
             choice.Affordable = choice.Cost <= (choice.Kind == BottomPanelChoiceKind.Spell ? mana : gold);
             choice.NeedsWorkshop = _workshopDim && choice.Kind is BottomPanelChoiceKind.Door or BottomPanelChoiceKind.Trap;
             choice.Selected = Selection.Choice == choice.Key;
             choice.Indicators = Indicators(world, choice, available, rows, head, manufacture, target, research);
-            if (choice.Visible && choice.Kind == BottomPanelChoiceKind.Spell) _spellsTab = true;
-            else if (choice.Visible && choice.Kind != BottomPanelChoiceKind.Room) _workshopTab = true;
+            if (choice.Visible && choice.Kind == BottomPanelChoiceKind.Spell)
+            {
+                _spellsTab = true;
+            }
+            else if (choice.Visible && choice.Kind != BottomPanelChoiceKind.Room)
+            {
+                _workshopTab = true;
+            }
         }
         if (Reaper is BottomPanelChoice reaper)
         {
@@ -294,7 +350,10 @@ public sealed class BottomPanelView
                 {
                     ownedReaper = true;
                     if (creature.IsOneShotReaper)
+                    {
                         ReaperSecondsRemaining = creature.ReaperTicks / SimulationTiming.OriginalTicksPerGameSecond;
+                    }
+
                     break;
                 }
             }
@@ -315,23 +374,41 @@ public sealed class BottomPanelView
     private BottomPanelSlotIndicators Indicators(WorldState world, BottomPanelChoice choice, int available,
         List<AvailabilityState>? rows, ManufactureOrder? head, byte manufacture, ResearchEntry? target, byte research)
     {
-        if (!choice.Visible || rows is null) return BottomPanelSlotIndicators.None;
+        if (!choice.Visible || rows is null)
+        {
+            return BottomPanelSlotIndicators.None;
+        }
+
         bool normal = choice.Selectable, unknown = available is 2 or 4;
         byte? recharge = null, made = null, studied = null;
         if (normal && choice.Kind == BottomPanelChoiceKind.Spell &&
             _database.KeeperSpellById(choice.Key.Value) is KeeperSpellDef spell)
+        {
             foreach (AvailabilityState row in rows)
             {
-                if (row.Kind != AvailabilityKind.Spell || row.TypeId != choice.Key.Value) continue;
+                if (row.Kind != AvailabilityKind.Spell || row.TypeId != choice.Key.Value)
+                {
+                    continue;
+                }
+
                 byte p = BottomPanelProgress.RechargePercent(row.LastCastTick, world.CurrentTick.Value, spell.CooldownRaw);
-                if (p != 100) recharge = p;
+                if (p != 100)
+                {
+                    recharge = p;
+                }
+
                 break;
             }
+        }
+
         if (normal && manufacture != 0 && head is ManufactureOrder order &&
             (order.Kind == ManufactureRules.DoorKind && choice.Kind == BottomPanelChoiceKind.Door ||
              order.Kind == ManufactureRules.TrapKind && choice.Kind == BottomPanelChoiceKind.Trap) &&
             order.TypeId == choice.Key.Value)
+        {
             made = manufacture;
+        }
+
         if ((normal || unknown) && research != 0 && target is not null && target.TypeId == choice.Key.Value &&
             target.Kind == choice.Kind switch
             {
@@ -340,7 +417,10 @@ public sealed class BottomPanelView
                 BottomPanelChoiceKind.Trap => ResearchTreeRules.KindTrap,
                 _ => ResearchTreeRules.KindSpell,
             })
+        {
             studied = research;
+        }
+
         return recharge is null && made is null && studied is null ? BottomPanelSlotIndicators.None
             : new BottomPanelSlotIndicators(recharge, made, studied, studied.HasValue && !normal);
     }
@@ -356,29 +436,53 @@ public sealed class BottomPanelView
         int count = 0;
         bool any = false;
         for (int i = 0; i < world.Objects.Count && player && !any; i++)
+        {
             any = world.Objects[i].OwnerPlayerId == _player.Value
                 && _database.ObjectById(world.Objects[i].ObjectTypeId) is { IsSpecial: true };
+        }
+
         if (any)
+        {
             foreach (RoomInstance room in RoomLists.Of(world, _database, _player))
             {
-                if (room.Definition.TypeId != RoomTypeId.Library) continue;
+                if (room.Definition.TypeId != RoomTypeId.Library)
+                {
+                    continue;
+                }
+
                 for (int i = world.Objects.Count - 1; i >= 0; i--)
                 {
                     ObjectState thing = world.Objects[i];
                     if (thing.OwnerPlayerId != _player.Value || thing.InHand || thing.CarriedByCreatureId >= 0
                         || !room.Contains(thing.TileIndex)
-                        || _database.ObjectById(thing.ObjectTypeId) is not { IsSpecial: true } definition) continue;
+                        || _database.ObjectById(thing.ObjectTypeId) is not { IsSpecial: true } definition)
+                    {
+                        continue;
+                    }
+
                     var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Special, thing.ObjectTypeId);
                     if (count == _specials.Count || _specials[count].Key != key)
                     {
                         var stored = new BottomPanelChoice(key, _name(key, definition.Name), 0)
                         { Visible = true, Selectable = true, Affordable = true };
-                        if (count == _specials.Count) _specials.Add(stored); else _specials[count] = stored;
+                        if (count == _specials.Count)
+                        {
+                            _specials.Add(stored);
+                        }
+                        else
+                        {
+                            _specials[count] = stored;
+                        }
                     }
                     _specials[count++].ObjectId = thing.Id;
                 }
             }
-        if (count < _specials.Count) _specials.RemoveRange(count, _specials.Count - count);
+        }
+
+        if (count < _specials.Count)
+        {
+            _specials.RemoveRange(count, _specials.Count - count);
+        }
     }
 
     private bool OwnsRoomTile(WorldState world, RoomTypeId room)
@@ -387,12 +491,17 @@ public sealed class BottomPanelView
         {
             Array.Clear(_ownedRoomTypes, 0, _ownedRoomTypes.Length);
             for (int y = 0; y < world.Height; y++)
-            for (int x = 0; x < world.Width; x++)
+            {
+                for (int x = 0; x < world.Width; x++)
             {
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.OwnerPlayerId == _player && _database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? definition))
-                    _ownedRoomTypes[definition.RoomId] = true;
+                    {
+                        _ownedRoomTypes[definition.RoomId] = true;
+                    }
+                }
             }
+
             _ownedRoomsCaptured = true;
         }
         return _ownedRoomTypes[(byte)room];
@@ -405,7 +514,13 @@ public sealed class BottomPanelView
     {
         List<AvailabilityState> rows = world.Player(_player).Availabilities;
         for (int i = 0; i < rows.Count; i++)
-            if (rows[i].Kind == AvailabilityKind.Spell && rows[i].TypeId == spellId) return rows[i].Upgraded;
+        {
+            if (rows[i].Kind == AvailabilityKind.Spell && rows[i].TypeId == spellId)
+            {
+                return rows[i].Upgraded;
+            }
+        }
+
         return false;
     }
 
@@ -414,7 +529,11 @@ public sealed class BottomPanelView
         if (Reaper is BottomPanelChoice reaper && reaper.Key == key && reaper.Selectable)
         {
             Selection = new(key, PlayerToolMode.Hand, default);
-            foreach (BottomPanelChoice other in _choices) other.Selected = false;
+            foreach (BottomPanelChoice other in _choices)
+            {
+                other.Selected = false;
+            }
+
             reaper.Selected = true;
             return true;
         }
@@ -422,19 +541,33 @@ public sealed class BottomPanelView
         {
             if (choice.Key == key && choice.Visible && choice.ClearsToolOnClick)
             { SelectTool(PlayerToolMode.Hand); return true; }
-            if (choice.Key != key || !choice.Selectable) continue;
+            if (choice.Key != key || !choice.Selectable)
+            {
+                continue;
+            }
+
             Selection = new(key, key.Kind == BottomPanelChoiceKind.Room ? PlayerToolMode.BuildRoom :
                 key.Kind == BottomPanelChoiceKind.Spell && key.Value == CreateImpSpellId ? PlayerToolMode.CreateImp : PlayerToolMode.Hand,
                 key.Kind == BottomPanelChoiceKind.Room ? (RoomTypeId)key.Value : default);
-            foreach (BottomPanelChoice other in _choices) other.Selected = other.Key == key;
-            if (Reaper is BottomPanelChoice special) special.Selected = false;
+            foreach (BottomPanelChoice other in _choices)
+            {
+                other.Selected = other.Key == key;
+            }
+
+            if (Reaper is BottomPanelChoice special)
+            {
+                special.Selected = false;
+            }
             // SpellPanel_ClickSlot (0x00411140) announces the spell: 0x104 in its GUI_BUTTON_* category, nonpositional,
             // on one handle it never stops, so a click inside a playing announcement is dropped (sound-effects-interface.md §13).
             // The Reaper's own button (0x00424F50, spells 5 and 14) asks none.
             if (key.Kind == BottomPanelChoiceKind.Spell && key.Value is not (5 or 14) && _database.KeeperSpellById(key.Value) is KeeperSpellDef spell
                 && !string.IsNullOrEmpty(spell.GuiButtonSoundCategory))
+            {
                 Sounds.Add(new SoundRequest(new SoundCategory(spell.GuiButtonSoundCategory.ToLowerInvariant()), new SoundId(0x104),
                     Voice: SpellAnnouncementVoice));
+            }
+
             return true;
         }
         return false;
@@ -444,7 +577,14 @@ public sealed class BottomPanelView
     {
         Selection = new(tool == PlayerToolMode.BuildRoom ? new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, (byte)room) :
             tool == PlayerToolMode.CreateImp ? new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, CreateImpSpellId) : null, tool, room);
-        foreach (BottomPanelChoice choice in _choices) choice.Selected = Selection.Choice == choice.Key;
-        if (Reaper is BottomPanelChoice reaper) reaper.Selected = Selection.Choice == reaper.Key;
+        foreach (BottomPanelChoice choice in _choices)
+        {
+            choice.Selected = Selection.Choice == choice.Key;
+        }
+
+        if (Reaper is BottomPanelChoice reaper)
+        {
+            reaper.Selected = Selection.Choice == reaper.Key;
+        }
     }
 }

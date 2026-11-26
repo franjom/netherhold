@@ -40,8 +40,16 @@ public sealed class ClassicCameraControls
         CameraFocusBounds? bounds = null)
     {
         _camera = camera ?? throw new ArgumentNullException(nameof(camera));
-        if (ticksPerSecond <= 0) throw new ArgumentOutOfRangeException(nameof(ticksPerSecond));
-        if (scrollSpeed < 0) throw new ArgumentOutOfRangeException(nameof(scrollSpeed));
+        if (ticksPerSecond <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(ticksPerSecond));
+        }
+
+        if (scrollSpeed < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(scrollSpeed));
+        }
+
         _ticksPerSecond = ticksPerSecond;
         _scrollSpeed = scrollSpeed;
         _bounds = bounds;
@@ -50,7 +58,11 @@ public sealed class ClassicCameraControls
     public Vector3 Advance(Vector3 focus, ClassicCameraKeys keys, TimeSpan elapsed,
         ClassicCameraKeys edgeScroll = ClassicCameraKeys.None)
     {
-        if (elapsed < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(elapsed));
+        if (elapsed < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(elapsed));
+        }
+
         long milliseconds = elapsed.Ticks / TimeSpan.TicksPerMillisecond;
         _fractionalMillisecondTicks += elapsed.Ticks % TimeSpan.TicksPerMillisecond;
         milliseconds += _fractionalMillisecondTicks / TimeSpan.TicksPerMillisecond;
@@ -61,28 +73,60 @@ public sealed class ClassicCameraControls
         PanKeys(edgeScroll, fast: false);
         PanKeys(keys, (keys & ClassicCameraKeys.Fast) != 0);
         if (_horizontalCoast != 0 || _verticalCoast != 0)
+        {
             ApplyPan(new ScreenPan(
                 unchecked(_scrollSpeed * _horizontalCoast * 64) / 10,
                 unchecked(_scrollSpeed * _verticalCoast * 64) / 10));
+        }
 
         int turn = (int)(milliseconds & 2047);
-        if ((keys & ClassicCameraKeys.TurnLeft) != 0) _camera.Rotate(new Dk2Angle(unchecked((ushort)-turn)));
-        if ((keys & ClassicCameraKeys.TurnRight) != 0) _camera.Rotate(new Dk2Angle((ushort)turn));
+        if ((keys & ClassicCameraKeys.TurnLeft) != 0)
+        {
+            _camera.Rotate(new Dk2Angle(unchecked((ushort)-turn)));
+        }
+
+        if ((keys & ClassicCameraKeys.TurnRight) != 0)
+        {
+            _camera.Rotate(new Dk2Angle((ushort)turn));
+        }
+
         return focus;
 
         void ApplyPan(ScreenPan pan)
         {
-            if (_camera.PanLocked) return;
+            if (_camera.PanLocked)
+            {
+                return;
+            }
+
             focus += TransformPan(pan);
-            if (_bounds is { } bounds) focus = bounds.Clamp(focus);
+            if (_bounds is { } bounds)
+            {
+                focus = bounds.Clamp(focus);
+            }
         }
 
         void PanKeys(ClassicCameraKeys directions, bool fast)
         {
-            if ((directions & ClassicCameraKeys.Left) != 0) Pan(-1, 0);
-            if ((directions & ClassicCameraKeys.Right) != 0) Pan(1, 0);
-            if ((directions & ClassicCameraKeys.Up) != 0) Pan(0, -1);
-            if ((directions & ClassicCameraKeys.Down) != 0) Pan(0, 1);
+            if ((directions & ClassicCameraKeys.Left) != 0)
+            {
+                Pan(-1, 0);
+            }
+
+            if ((directions & ClassicCameraKeys.Right) != 0)
+            {
+                Pan(1, 0);
+            }
+
+            if ((directions & ClassicCameraKeys.Up) != 0)
+            {
+                Pan(0, -1);
+            }
+
+            if ((directions & ClassicCameraKeys.Down) != 0)
+            {
+                Pan(0, 1);
+            }
 
             void Pan(int horizontal, int vertical)
             {
@@ -102,14 +146,27 @@ public sealed class ClassicCameraControls
     {
         if (!rotateHeld && !zoomHeld) { _mouseMotionArmed = false; return; }
         if (!_mouseMotionArmed) { _mouseMotionArmed = true; return; }
-        if (rotateHeld) _camera.Rotate(new Dk2Angle(unchecked((ushort)(-8 * (int)delta.X))));
-        else if (delta.Y > 0) _camera.ZoomIn();
-        else if (delta.Y < 0) _camera.ZoomOut();
+        if (rotateHeld)
+        {
+            _camera.Rotate(new Dk2Angle(unchecked((ushort)(-8 * (int)delta.X))));
+        }
+        else if (delta.Y > 0)
+        {
+            _camera.ZoomIn();
+        }
+        else if (delta.Y < 0)
+        {
+            _camera.ZoomOut();
+        }
     }
 
     private Vector3 TransformPan(ScreenPan pan)
     {
-        if (_camera.PanLocked) return Vector3.Zero;
+        if (_camera.PanLocked)
+        {
+            return Vector3.Zero;
+        }
+
         int sine = TrapRules.Sine(_camera.Yaw.Value), cosine = TrapRules.Cosine(_camera.Yaw.Value);
         int x = unchecked(((pan.XRaw * cosine) >> 16) - ((pan.YRaw * sine) >> 16));
         int y = unchecked(((pan.YRaw * cosine) >> 16) + ((pan.XRaw * sine) >> 16));

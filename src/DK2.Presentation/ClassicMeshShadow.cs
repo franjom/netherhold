@@ -29,10 +29,18 @@ public static class ClassicMeshShadow
         projection = default;
         Vector3 delta = caster.Centre - source.Position;
         if (caster.Radius <= 0 || source.FadeDistance <= 0
-            || delta.LengthSquared() >= MaximumDistance * MaximumDistance) return false;
+            || delta.LengthSquared() >= MaximumDistance * MaximumDistance)
+        {
+            return false;
+        }
+
         float distance = MathF.Sqrt(delta.X * delta.X + delta.Z * delta.Z);
         float strength = Strength(distance, source.FadeDistance);
-        if (strength <= 0) return false;
+        if (strength <= 0)
+        {
+            return false;
+        }
+
         Vector3 along = distance > 0 ? new Vector3(delta.X / distance, 0, delta.Z / distance) : Vector3.UnitZ;
         Vector3 cross = new(along.Z, 0, -along.X);
         float angle = distance * MathF.PI * .25f * 1.5f / MaximumDistance;

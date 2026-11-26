@@ -26,7 +26,10 @@ public sealed class LevelSubtitles
         Dk2StringTable? table = null;
         try
         {
-            if (path != null && File.Exists(path)) table = Dk2StringTable.Open(path);
+            if (path != null && File.Exists(path))
+            {
+                table = Dk2StringTable.Open(path);
+            }
         }
         catch (Exception ex)   // any failure leaves the level without subtitles
         {

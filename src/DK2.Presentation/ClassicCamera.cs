@@ -58,16 +58,31 @@ public sealed class ClassicCamera
     public static Vector3 LevelStartFocus(IReadOnlyList<PlayerDef>? players, PlayerId viewer, int mapWidth, int mapHeight)
     {
         if (players != null)
+        {
             for (int i = 0; i < players.Count; i++)
-                if (players[i].PlayerId == viewer.Value) return LevelStartFocus(new TilePos(players[i].CameraX, players[i].CameraY));
+            {
+                if (players[i].PlayerId == viewer.Value)
+                {
+                    return LevelStartFocus(new TilePos(players[i].CameraX, players[i].CameraY));
+                }
+            }
+        }
+
         return new Vector3(mapWidth / 2f, 1, -mapHeight / 2f);
     }
 
     public ClassicCamera(CameraThing profile, Dk2Angle? initialYaw = null)
     {
-        if (profile is null) throw new ArgumentNullException(nameof(profile));
+        if (profile is null)
+        {
+            throw new ArgumentNullException(nameof(profile));
+        }
+
         if (profile.Lens <= 0 || profile.MinZoom <= 0 || profile.MaxZoom <= profile.MinZoom)
+        {
             throw new ArgumentException("A dungeon camera needs a positive lens and zoom interval.", nameof(profile));
+        }
+
         _profile = profile;
         _yaw = initialYaw ?? new Dk2Angle(profile.AngleYaw);
         SetZoom(new Fp32(profile.Zoom));
@@ -82,18 +97,26 @@ public sealed class ClassicCamera
     private void StepZoom(int numerator)
     {
         if ((_profile.Flags & 0x08) == 0)
+        {
             SetZoom(new Fp32((int)(((long)Zoom.Raw * numerator) >> 8)));
+        }
     }
 
     public void Rotate(Dk2Angle delta)
     {
         if ((_profile.Flags & 1) == 0)
+        {
             _yaw = new Dk2Angle((ushort)((_yaw.Value + delta.Value) & 2047));
+        }
     }
 
     public Vector3 PanDirection(Vector2 screenDirection)
     {
-        if (screenDirection.LengthSquared() > 1) screenDirection = Vector2.Normalize(screenDirection);
+        if (screenDirection.LengthSquared() > 1)
+        {
+            screenDirection = Vector2.Normalize(screenDirection);
+        }
+
         float angle = -Radians(_yaw);
         float sine = (float)Math.Sin(angle), cosine = (float)Math.Cos(angle);
         return new Vector3(cosine * screenDirection.X - sine * screenDirection.Y, 0,
@@ -129,7 +152,9 @@ public sealed class ClassicCamera
     {
         if (viewport.ScreenWidth <= 0 || viewport.Width <= 0 || viewport.Height <= 0
             || viewport.Width > viewport.ScreenWidth)
+        {
             throw new ArgumentOutOfRangeException(nameof(viewport));
+        }
 
         var yaw = new Dk2Angle((ushort)(state.Yaw & 2047));
         var pitch = new Dk2Angle((ushort)(state.Pitch & 2047));
@@ -159,7 +184,10 @@ public sealed class ClassicCamera
         float focalPixels = (float)(new Fp32(lens) * new Fp32(320 * Fp32.One)).ToDouble();
         // Match the reference horizontal coverage before applying viewport cropping.
         if (referenceScreenWidth is int reference)
+        {
             focalPixels *= viewport.ScreenWidth / (float)reference;
+        }
+
         return (float)(2 * Math.Atan(viewport.Height / (2.0 * focalPixels)) * 180 / Math.PI);
     }
 

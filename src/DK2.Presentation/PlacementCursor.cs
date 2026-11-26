@@ -63,8 +63,16 @@ public static class PlacementCursor
     {
         int x0 = Math.Min(anchor.X, end.X), y0 = Math.Min(anchor.Y, end.Y);
         int x1 = Math.Max(anchor.X, end.X), y1 = Math.Max(anchor.Y, end.Y);
-        if (x1 - x0 > limit) x1 = x0 + limit;
-        if (y1 - y0 > limit) y1 = y0 + limit;
+        if (x1 - x0 > limit)
+        {
+            x1 = x0 + limit;
+        }
+
+        if (y1 - y0 > limit)
+        {
+            y1 = y0 + limit;
+        }
+
         return new TileRectangle(x0, y0, x1 + 1, y1 + 1);
     }
 
@@ -101,10 +109,22 @@ public static class PlacementCursor
     /// rule the drop runs, so the colour is what a click does. None with an empty hand.</summary>
     public static PlacementFeedback HandDrop(WorldState world, GameDatabase database, PlayerId player, TilePos hovered)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
         List<HandItem> hand = world.Player(player).Hand;
-        if (hand.Count == 0) return PlacementFeedback.None;
+        if (hand.Count == 0)
+        {
+            return PlacementFeedback.None;
+        }
+
         HandItem top = hand[hand.Count - 1];
         bool valid = HandRules.DropLands(world, database, player, top, hovered);
         bool dispose = valid && HeldItemStack.Disposes(world, database, player, top, hovered);
@@ -127,21 +147,46 @@ public static class PlacementCursor
     public static PlacementFeedback Room(WorldState world, GameDatabase database, PlayerId player, RoomDef room,
         TilePos hovered, TilePos? anchor, int gold)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
-        if (room is null) throw new ArgumentNullException(nameof(room));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
+        if (room is null)
+        {
+            throw new ArgumentNullException(nameof(room));
+        }
+
         TileRectangle area = anchor is TilePos from
             ? DragRectangle(from, hovered, RubberBandLimit(database))
             : new TileRectangle(hovered.X, hovered.Y, hovered.X + 1, hovered.Y + 1);
         var order = new List<TilePos>();
         for (int y = area.Y0; y < area.Y1; y++)
+        {
             for (int x = area.X0; x < area.X1; x++)
-                if (world.Contains(new TilePos(x, y))) order.Add(new TilePos(x, y));
+            {
+                if (world.Contains(new TilePos(x, y)))
+                {
+                    order.Add(new TilePos(x, y));
+                }
+            }
+        }
+
         int count = 0;
         HashSet<TilePos> spans = RoomRules.SpannableTiles(database, world, order, room, player);
         foreach (TilePos tile in order)
+        {
             if (spans.Contains(tile) || RoomRules.CanBuild(database, world, tile, room, player) == RoomPlacement.Allowed)
+            {
                 count++;
+            }
+        }
+
         bool explored = anchor is not null || !world.FogOfWarEnabled || world.Tile(hovered).IsExploredBy(player);
         int cost = count * RoomRules.CostPerTile(room);
         bool affordable = gold >= cost;
@@ -155,20 +200,37 @@ public static class PlacementCursor
     public static PlacementFeedback Sell(WorldState world, GameDatabase database, PlayerId player,
         TilePos hovered, TilePos? anchor)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
         TileRectangle area = anchor is TilePos from
             ? DragRectangle(from, hovered, RubberBandLimit(database))
             : new TileRectangle(hovered.X, hovered.Y, hovered.X + 1, hovered.Y + 1);
         int refund = 0;
         for (int y = area.Y0; y < area.Y1; y++)
+        {
             for (int x = area.X0; x < area.X1; x++)
             {
                 var tile = new TilePos(x, y);
-                if (!world.Contains(tile)) continue;
+                if (!world.Contains(tile))
+                {
+                    continue;
+                }
+
                 if (RoomRules.CanSell(database, world.Tile(tile), player, out RoomDef? room) == RoomSale.Allowed && room is not null)
+                {
                     refund += RoomRules.RefundPerTile(database, room);
+                }
             }
+        }
+
         bool valid = refund > 0;
         return new PlacementFeedback(anchor is null ? null : area, valid, refund, PlacementIcon.Sell, !valid, true);
     }
@@ -179,9 +241,21 @@ public static class PlacementCursor
     public static PlacementFeedback Door(WorldState world, GameDatabase database, PlayerId player, DoorDef door,
         TilePos? hovered, bool hasWorkshop, int gold)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (door is null) throw new ArgumentNullException(nameof(door));
-        if (!hasWorkshop || hovered is not TilePos at) return new PlacementFeedback(null, false, 0, PlacementIcon.PlaceDoor, true, true);
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (door is null)
+        {
+            throw new ArgumentNullException(nameof(door));
+        }
+
+        if (!hasWorkshop || hovered is not TilePos at)
+        {
+            return new PlacementFeedback(null, false, 0, PlacementIcon.PlaceDoor, true, true);
+        }
+
         bool affordable = gold >= door.GoldCost;
         bool valid = affordable && BlueprintPlacementRules.CanDoor(world, database, at, player, door) == BlueprintPlacementRules.Verdict.Allowed;
         return new PlacementFeedback(null, valid, -door.GoldCost, PlacementIcon.PlaceDoor, !valid, affordable);
@@ -201,19 +275,35 @@ public static class PlacementCursor
     public static PlacementFeedback Spell(WorldState world, GameDatabase database, INavByteGrid navigation,
         PlayerId player, byte spellId, TilePos? hovered, WorldHoverHit hit)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
-        if (navigation is null) throw new ArgumentNullException(nameof(navigation));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
+        if (navigation is null)
+        {
+            throw new ArgumentNullException(nameof(navigation));
+        }
+
         bool valid = false;
         if (hovered is TilePos at && database.KeeperSpellById(spellId) is KeeperSpellDef spell)
         {
             if (!KeeperSpellRules.TargetsAThing(spell.TargetSelector))
+            {
                 valid = KeeperSpellRules.CanCastAtPlace(world, database, navigation, world.CurrentTick,
                     new CastSpellAtPlaceCommand(player, spellId, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y)))
                     == KeeperSpellRefusal.None;
+            }
             else if (hit.Kind == WorldHoverKind.Creature)
+            {
                 valid = KeeperSpellRules.CanCast(world, database, navigation, world.CurrentTick,
                     new CastSpellOnCreatureCommand(player, spellId, hit.EntityId)) == KeeperSpellRefusal.None;
+            }
         }
         return SpellIcon(spellId, valid);
     }
@@ -227,9 +317,21 @@ public static class PlacementCursor
     public static PlacementFeedback CreateImp(WorldState world, GameDatabase database, INavByteGrid navigation,
         PlayerId player, byte spellId, TilePos? hovered)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (database is null) throw new ArgumentNullException(nameof(database));
-        if (navigation is null) throw new ArgumentNullException(nameof(navigation));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
+        if (navigation is null)
+        {
+            throw new ArgumentNullException(nameof(navigation));
+        }
+
         PlayerState keeper = world.Player(player);
         int row = keeper.Availabilities.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == spellId);
         bool valid = keeper.Mana >= ImpSupplyRules.CreateImpCost(world, database, player)
@@ -256,9 +358,21 @@ public static class PlacementCursor
     public static PlacementFeedback Trap(WorldState world, GameDatabase database, PlayerId player, TrapDef trap,
         TilePos? hovered, bool hasWorkshop, int gold)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (trap is null) throw new ArgumentNullException(nameof(trap));
-        if (!hasWorkshop || hovered is not TilePos at) return new PlacementFeedback(null, false, 0, PlacementIcon.PlaceTrap, true, true);
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (trap is null)
+        {
+            throw new ArgumentNullException(nameof(trap));
+        }
+
+        if (!hasWorkshop || hovered is not TilePos at)
+        {
+            return new PlacementFeedback(null, false, 0, PlacementIcon.PlaceTrap, true, true);
+        }
+
         bool affordable = gold >= trap.GoldCost;
         bool valid = affordable && BlueprintPlacementRules.CanTrap(world, database, at, player) == BlueprintPlacementRules.Verdict.Allowed;
         return new PlacementFeedback(null, valid, -trap.GoldCost, PlacementIcon.PlaceTrap, !valid, affordable);

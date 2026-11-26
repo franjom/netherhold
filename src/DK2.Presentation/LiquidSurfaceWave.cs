@@ -32,8 +32,16 @@ public sealed class LiquidSurfaceWave
 
     public LiquidSurfaceWave(LiquidSurface kind, int width)
     {
-        if (kind == LiquidSurface.None) throw new ArgumentOutOfRangeException(nameof(kind));
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (kind == LiquidSurface.None)
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind));
+        }
+
+        if (width <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
         Kind = kind;
         _width = width;
     }
@@ -100,9 +108,12 @@ public sealed class LiquidSurfaceWave
     {
         float[] sines = new float[PhaseMask(kind) + 1];
         for (int n = 0; n < sines.Length; n++)
+        {
             sines[n] = kind == LiquidSurface.Water
                 ? (float)Math.Sin((n * 4096) * (float)Math.PI / 65536f)
                 : (float)Math.Sin(n * (float)Math.PI / 64f);
+        }
+
         return sines;
     }
 
@@ -138,17 +149,29 @@ public sealed class LiquidSurfaceWave
         {
             float row = Phase(kind, y, j, frame);
             for (int i = 0; i < 3; i++)
+            {
                 grid[(j * 3) + i] = RenderWorld.Ground(x + (i * 0.5f), y + (j * 0.5f), Height(kind, row, Phase(kind, x, i, frame)));
+            }
         }
         int v = (point.Row * 3) + point.Column;
         Vector3 sum = Vector3.Zero;
         for (int qj = 0; qj < 2; qj++)
+        {
             for (int qi = 0; qi < 2; qi++)
             {
                 int a = (qj * 3) + qi, b = a + 1, c = a + 3, d = a + 4;
-                if (v == a || v == b || v == d) sum += Vector3.Normalize(Vector3.Cross(grid[b] - grid[a], grid[d] - grid[a]));
-                if (v == a || v == d || v == c) sum += Vector3.Normalize(Vector3.Cross(grid[d] - grid[a], grid[c] - grid[a]));
+                if (v == a || v == b || v == d)
+                {
+                    sum += Vector3.Normalize(Vector3.Cross(grid[b] - grid[a], grid[d] - grid[a]));
+                }
+
+                if (v == a || v == d || v == c)
+                {
+                    sum += Vector3.Normalize(Vector3.Cross(grid[d] - grid[a], grid[c] - grid[a]));
+                }
             }
+        }
+
         return (grid[v], Vector3.Normalize(sum));
     }
 
@@ -162,7 +185,13 @@ public sealed class LiquidSurfaceWave
     {
         int count = 0;
         for (int i = 0; i < kinds.Length; i++)
-            if (kinds[i] == Kind) count++;
+        {
+            if (kinds[i] == Kind)
+            {
+                count++;
+            }
+        }
+
         if (_tiles.Length < count)
         {
             int size = Math.Max(count, _tiles.Length * 2);
@@ -176,12 +205,18 @@ public sealed class LiquidSurfaceWave
         }
         TileCount = 0;
         for (int i = 0; i < kinds.Length; i++)
-            if (kinds[i] == Kind) _tiles[TileCount++] = i;
+        {
+            if (kinds[i] == Kind)
+            {
+                _tiles[TileCount++] = i;
+            }
+        }
 
         for (int k = 0; k < TileCount; k++)
         {
             var tile = new TilePos(_tiles[k] % _width, _tiles[k] / _width);
             for (int j = 0; j < 3; j++)
+            {
                 for (int i = 0; i < 3; i++)
                 {
                     int vertex = (k * VerticesPerTile) + (j * 3) + i;
@@ -189,14 +224,18 @@ public sealed class LiquidSurfaceWave
                     _lightAnchors[vertex] = new Vector2(_tiles[k], 1);
                     _points[vertex] = new LiquidGridPoint(tile, i, j);
                 }
+            }
+
             int n = k * IndicesPerTile;
             for (int j = 0; j < 2; j++)
+            {
                 for (int i = 0; i < 2; i++)
                 {
                     int a = (k * VerticesPerTile) + (j * 3) + i, b = a + 1, c = a + 3, d = a + 4;
                     _triangles[n++] = a; _triangles[n++] = b; _triangles[n++] = d;
                     _triangles[n++] = a; _triangles[n++] = d; _triangles[n++] = c;
                 }
+            }
         }
         Version++;
         Wave(0);
@@ -213,10 +252,16 @@ public sealed class LiquidSurfaceWave
             {
                 float row = Phase(Kind, y, j, frame);
                 for (int i = 0; i < 3; i++)
+                {
                     _positions[first + (j * 3) + i] = RenderWorld.Ground(x + (i * 0.5f), y + (j * 0.5f),
                         Height(Kind, row, Phase(Kind, x, i, frame)));
+                }
             }
-            for (int v = 0; v < VerticesPerTile; v++) _normals[first + v] = Vector3.Zero;
+            for (int v = 0; v < VerticesPerTile; v++)
+            {
+                _normals[first + v] = Vector3.Zero;
+            }
+
             for (int t = k * IndicesPerTile; t < (k + 1) * IndicesPerTile; t += 3)
             {
                 int a = _triangles[t], b = _triangles[t + 1], c = _triangles[t + 2];
@@ -225,7 +270,10 @@ public sealed class LiquidSurfaceWave
                 _normals[b] += face;
                 _normals[c] += face;
             }
-            for (int v = 0; v < VerticesPerTile; v++) _normals[first + v] = Vector3.Normalize(_normals[first + v]);
+            for (int v = 0; v < VerticesPerTile; v++)
+            {
+                _normals[first + v] = Vector3.Normalize(_normals[first + v]);
+            }
         }
     }
 }
@@ -239,7 +287,11 @@ public sealed class LiquidSurfaceField
 
     public LiquidSurfaceField(int width, int height)
     {
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
         Water = new LiquidSurfaceWave(LiquidSurface.Water, width);
         Lava = new LiquidSurfaceWave(LiquidSurface.Lava, width);
         _kinds = new LiquidSurface[width * height];
@@ -250,7 +302,11 @@ public sealed class LiquidSurfaceField
 
     public void Set(int tileIndex, in TileView tile)
     {
-        if (_kinds[tileIndex] == tile.Surface) return;
+        if (_kinds[tileIndex] == tile.Surface)
+        {
+            return;
+        }
+
         _kinds[tileIndex] = tile.Surface;
         _dirty = true;
     }
@@ -269,7 +325,11 @@ public sealed class LiquidSurfaceField
     /// surface in a shader from <see cref="LiquidSurfaceWave.Points"/>.</summary>
     public void Refresh()
     {
-        if (!_dirty) return;
+        if (!_dirty)
+        {
+            return;
+        }
+
         Water.SetTiles(_kinds);
         Lava.SetTiles(_kinds);
         _dirty = false;

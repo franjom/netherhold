@@ -80,8 +80,12 @@ public sealed class PossessionHud
     private static void AppendResourceCorner(HudFrame resourceFrame, HudFrame frame, float xScale)
     {
         foreach (HudDraw draw in resourceFrame.Draws)
+        {
             if (draw.Rect.X + draw.Rect.Width <= 520)
+            {
                 frame.Add(draw with { Rect = draw.Rect with { X = draw.Rect.X * xScale, Width = draw.Rect.Width * xScale } });
+            }
+        }
     }
 
     public static IEnumerable<HudImage> Images()
@@ -89,8 +93,15 @@ public sealed class PossessionHud
         foreach (string path in new[] { HealthFill, GoldIcon, "GUI\\Map\\m-hp_bg", "GUI\\Map\\m-h-tone-bg", "GUI\\Map\\m-h-bg",
             "GUI\\icons\\selected-creature", "GUI\\icons\\selected-spell", "GUI\\icons\\selected_group",
             "GUI\\Windows\\Bar-00", "GUI\\Filters\\F-Sniper", "GUI\\Filters\\F-Frozen",
-            "GUI\\Filters\\F-Knight", "GUI\\Filters\\F-Black_Knight", "GUI\\Filters\\F-Guard", "GUI\\Filters\\F-FireFly" }) yield return path;
-        for (int i = 0; i < 10; i++) yield return KeeperResourceHud.LargeDigits + i.ToString(CultureInfo.InvariantCulture);
+            "GUI\\Filters\\F-Knight", "GUI\\Filters\\F-Black_Knight", "GUI\\Filters\\F-Guard", "GUI\\Filters\\F-FireFly" })
+        {
+            yield return path;
+        }
+
+        for (int i = 0; i < 10; i++)
+        {
+            yield return KeeperResourceHud.LargeDigits + i.ToString(CultureInfo.InvariantCulture);
+        }
     }
 
     public void Build(HudScreen screen, PossessionHudSnapshot? snapshot, HudFrame frame) =>
@@ -119,15 +130,31 @@ public sealed class PossessionHud
 
     private static void Filters(Metrics m, PossessionHudSnapshot? snapshot, HudFrame frame)
     {
-        if (snapshot == null || !m.Valid) return;
-        foreach (string overlay in snapshot.Overlays) Quad(frame, overlay, new(0, 0, m.Screen.VirtualWidth, m.VisibleHeight));
-        if (!string.IsNullOrWhiteSpace(snapshot.Overlay)) Quad(frame, snapshot.Overlay!, new(0, 0, m.Screen.VirtualWidth, m.VisibleHeight));
+        if (snapshot == null || !m.Valid)
+        {
+            return;
+        }
+
+        foreach (string overlay in snapshot.Overlays)
+        {
+            Quad(frame, overlay, new(0, 0, m.Screen.VirtualWidth, m.VisibleHeight));
+        }
+
+        if (!string.IsNullOrWhiteSpace(snapshot.Overlay))
+        {
+            Quad(frame, snapshot.Overlay!, new(0, 0, m.Screen.VirtualWidth, m.VisibleHeight));
+        }
+
         Quad(frame, "GUI\\Windows\\Bar-00", new(0, m.VisibleHeight - 128, m.Screen.VirtualWidth, 88));
     }
 
     private static void CreaturePanel(Metrics m, PossessionHudSnapshot? snapshot, HudFrame frame)
     {
-        if (snapshot == null || !m.Valid) return;
+        if (snapshot == null || !m.Valid)
+        {
+            return;
+        }
+
         HudQuads.Tiled(frame, "GUI\\Windows\\Bar-00", new(0, 20, m.Screen.VirtualWidth, 88), m.X(512), 88, HudColor.White);
         float square = m.X(128), delta = 140 - square;
         Quad(frame, snapshot.Portrait, new(m.X(520), 8, square, square));
@@ -147,18 +174,30 @@ public sealed class PossessionHud
         int column = 0;
         foreach (PossessionHudIcon icon in snapshot.Actions)
         {
-            if (Role(icon) != PossessionHudIconRole.TopAction) continue;
+            if (Role(icon) != PossessionHudIconRole.TopAction)
+            {
+                continue;
+            }
+
             Icon(frame, icon, new(m.X(956) + 496 - 40 + m.X(column++ * 136), 8, square, square));
         }
     }
 
     private static void Chrome(Metrics m, PossessionHudSnapshot? snapshot, HudFrame frame)
     {
-        if (snapshot == null || !m.Valid) return;
+        if (snapshot == null || !m.Valid)
+        {
+            return;
+        }
+
         foreach (PossessionHudIcon icon in snapshot.Actions)
         {
             PossessionHudIconRole role = Role(icon);
-            if (role == PossessionHudIconRole.TopAction) continue;
+            if (role == PossessionHudIconRole.TopAction)
+            {
+                continue;
+            }
+
             int row = role == PossessionHudIconRole.PrimaryAbility ? 0 : role == PossessionHudIconRole.SecondaryAbility ? 1 : 2;
             var rect = new HudRect(m.X(620) - 140, 1460 + row * m.X(128) + m.BottomShift,
                 m.X(128), m.X(role == PossessionHudIconRole.Group ? 184 : 128));
@@ -166,7 +205,9 @@ public sealed class PossessionHud
         }
         int column = 0;
         foreach (string follower in snapshot.Followers)
+        {
             Quad(frame, follower, new(m.X(628 + column++ * 136), m.X(1624) + 12 + m.BottomShift, m.X(128), 264));
+        }
     }
 
     private static PossessionHudIconRole Role(PossessionHudIcon icon) =>
@@ -179,16 +220,24 @@ public sealed class PossessionHud
         {
             int ready = Math.Clamp(icon.RechargePercent, 0, 100);
             Quad(frame, icon.Image, rect, ready == 100 ? HudColor.White : HudColor.Grey(102));
-            if (ready is > 0 and < 100) frame.Add(new(HudDrawKind.Sector, icon.Image, rect, HudColor.White, Percent: ready));
+            if (ready is > 0 and < 100)
+            {
+                frame.Add(new(HudDrawKind.Sector, icon.Image, rect, HudColor.White, Percent: ready));
+            }
         }
         if (icon.Selected)
+        {
             Quad(frame, Role(icon) == PossessionHudIconRole.Group ? "GUI\\icons\\selected_group"
                 : icon.Spell ? "GUI\\icons\\selected-spell" : "GUI\\icons\\selected-creature", rect);
+        }
     }
 
     private static void Quad(HudFrame frame, HudImage image, HudRect rect, HudColor? tint = null)
     {
-        if (!image.IsNone) frame.Add(new(HudDrawKind.Quad, image, rect, tint ?? HudColor.White));
+        if (!image.IsNone)
+        {
+            frame.Add(new(HudDrawKind.Quad, image, rect, tint ?? HudColor.White));
+        }
     }
 
     private static void Digits(HudFrame frame, int value, Metrics m, int nativeX, float y)
@@ -196,6 +245,8 @@ public sealed class PossessionHud
         string text = Math.Max(0, value).ToString(CultureInfo.InvariantCulture);
         int start = Math.Max(0, 10 - text.Length);
         for (int i = 0; i < text.Length; i++)
+        {
             Quad(frame, KeeperResourceHud.LargeDigits + text[i], new(m.X(nativeX + (start + i) * 40), y, m.X(48), m.X(48)));
+        }
     }
 }

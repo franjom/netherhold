@@ -119,20 +119,31 @@ public sealed class PossessionView
                 _leftFootDue = 0x600; _rightFootDue = 0x200;
             }
             else
+            {
                 _cycle = (uint)((_clock - _cycleStamp) / 50);
+            }
+
             if (_lastCycle != _cycle && !body.Flying && body.Waddle != 0)
+            {
                 strafe += Over4096(Over(TrapRules.Sine((int)((uint)body.WalkCycleScale * _cycle & 0x3F) * 32) * body.Waddle, 9));
+            }
         }
         strafe = Math.Clamp(strafe, -Tile, Tile);
         forward = Math.Clamp(forward, -Tile, Tile);
 
         PossessionFootstep? left = null, right = null;
         if (strafe != 0 || forward != 0 || body.Flying)
+        {
             Move(strafe, forward, backing, run, body, world, ref left, ref right);
+        }
 
         // The look: yaw by twice the mouse, a lean for the definitions that roll, then pitch.
         Yaw = (Yaw + mouseX * 2) & AngleMask;
-        if (body.LeansWhenTurning) Lean(mouseX);
+        if (body.LeansWhenTurning)
+        {
+            Lean(mouseX);
+        }
+
         Pitch = (Pitch + (invertMouse ? mouseY : -mouseY) * 2) & AngleMask;
         Pitch = Math.Clamp(Pitch, MinPitch, MaxPitch);
         Roll &= AngleMask;      // Camera_Update masks the roll; the lean above saw the waddle's word unmasked
@@ -162,12 +173,22 @@ public sealed class PossessionView
             // refused, the axis with the larger travel does, X on a tie (0x0040EFB3).
             bool snapX = blockX || (!blockY && Math.Abs(Y - targetY) <= Math.Abs(X - targetX));
             bool snapY = blockY || !snapX;
-            if (snapX) targetX = (X & TileMask) + (dx > 0 ? Tile : 0);
-            if (snapY) targetY = (Y & TileMask) + (dy > 0 ? Tile : 0);
+            if (snapX)
+            {
+                targetX = (X & TileMask) + (dx > 0 ? Tile : 0);
+            }
+
+            if (snapY)
+            {
+                targetY = (Y & TileMask) + (dy > 0 ? Tile : 0);
+            }
         }
 
         (int x, int y) = world.ResolveAgainstThings(X, Y, targetX - widthX, targetY - widthY);
-        if (world.Blocked(x, y)) return;
+        if (world.Blocked(x, y))
+        {
+            return;
+        }
 
         int floor = world.FloorHeight(x, y) + body.EyeHeight;
         int z;
@@ -180,9 +201,16 @@ public sealed class PossessionView
         else
         {
             z = Z;
-            if (z < floor) dz += floor - z;
+            if (z < floor)
+            {
+                dz += floor - z;
+            }
+
             z += dz;
-            if (body.Bob != 0) z += Bob(body, backing);
+            if (body.Bob != 0)
+            {
+                z += Bob(body, backing);
+            }
         }
         X = x; Y = y; Z = z;
     }
@@ -230,11 +258,20 @@ public sealed class PossessionView
         if (mouseX != 0)
         {
             Roll = (Roll + mouseX) & AngleMask;
-            if (Roll is > LeanLimit and < 0x400) Roll = LeanLimit;
+            if (Roll is > LeanLimit and < 0x400)
+            {
+                Roll = LeanLimit;
+            }
         }
-        if (Roll == 0) return;
+        if (Roll == 0)
+        {
+            return;
+        }
+
         if (Roll < 0x400)
+        {
             Roll -= Roll * 0x20 >> 6;
+        }
         else
         {
             int step = Over((0x800 - Roll) * 0x20, 6);

@@ -15,7 +15,11 @@ public static class TorchGeometry
         var turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, torch.Yaw * (MathF.PI / 1024f));
         Vector3 placed = Vector3.Transform(vertex, turn) + new Vector3(
             torch.MeshPosX / (float)Fp32.One, torch.Height / (float)Fp32.One, -torch.MeshPosY / (float)Fp32.One);
-        if (lattice is null) return placed;
+        if (lattice is null)
+        {
+            return placed;
+        }
+
         Vector3 bent = lattice.Deform(new Vector3(placed.X, -placed.Z, -placed.Y), torch.Wall.X, torch.Wall.Y);
         return new Vector3(bent.X, -bent.Z, -bent.Y);
     }

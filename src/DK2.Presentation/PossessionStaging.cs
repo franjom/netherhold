@@ -25,13 +25,29 @@ public static class PossessionStaging
     public static CreatureState? PossessFirst(WorldState world, PlayerId viewer, Vector3 ordinaryFocus,
         Action<CreatureState, Vector3> prepareView)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (prepareView is null) throw new ArgumentNullException(nameof(prepareView));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (prepareView is null)
+        {
+            throw new ArgumentNullException(nameof(prepareView));
+        }
+
         ref PlayerState player = ref world.Player(viewer);
-        if (player.PossessedCreatureId != 0) return null;
+        if (player.PossessedCreatureId != 0)
+        {
+            return null;
+        }
+
         foreach (CreatureState creature in world.OwnedCreatures(viewer))
         {
-            if (creature.Possessed || JackInTheBoxRules.IsJack(creature)) continue;
+            if (creature.Possessed || JackInTheBoxRules.IsJack(creature))
+            {
+                continue;
+            }
+
             prepareView(creature, CameraFocus.Over(new Fp32(creature.PosX), new Fp32(creature.PosY), ordinaryFocus.Y));
             creature.Possessed = true;
             creature.FollowerCount = 0;

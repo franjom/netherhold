@@ -23,14 +23,22 @@ public sealed class WorkerDrawLag
     /// <summary>One frame's advance of the tick clock, in ticks, as the runner adds it to the debt.</summary>
     public void Observe(double frameAdvanceTicks)
     {
-        if (frameAdvanceTicks <= 0) return;
+        if (frameAdvanceTicks <= 0)
+        {
+            return;
+        }
+
         _frameTicks = _frameTicks <= 0 ? frameAdvanceTicks : _frameTicks + Smoothing * (frameAdvanceTicks - _frameTicks);
     }
 
     /// <summary>A tick batch's wall time, in ticks, as the worker measured it.</summary>
     public void ObserveTick(double batchTicks)
     {
-        if (batchTicks <= 0) return;
+        if (batchTicks <= 0)
+        {
+            return;
+        }
+
         _tickTicks = batchTicks > _tickTicks ? batchTicks : _tickTicks + TickDecay * (batchTicks - _tickTicks);
     }
 

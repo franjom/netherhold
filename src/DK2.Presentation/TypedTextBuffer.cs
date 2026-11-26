@@ -21,7 +21,11 @@ public sealed class TypedTextBuffer
     /// <param name="capacity">Characters held per frame.</param>
     public TypedTextBuffer(int capacity = 64)
     {
-        if (capacity < 2) throw new ArgumentOutOfRangeException(nameof(capacity), "A frame must hold at least a surrogate pair.");
+        if (capacity < 2)
+        {
+            throw new ArgumentOutOfRangeException(nameof(capacity), "A frame must hold at least a surrogate pair.");
+        }
+
         _chars = new char[capacity];
     }
 
@@ -37,11 +41,31 @@ public sealed class TypedTextBuffer
     /// <param name="codePoint">The key's Unicode code point, 0 for none.</param>
     public bool Add(TypedKey key, uint codePoint)
     {
-        if (_full) return false;
-        if (key == TypedKey.Backspace) return Put('\b');
-        if (key == TypedKey.Enter) return Put('\n');
-        if (codePoint == 0 || codePoint > 0x10FFFF || codePoint is >= 0xD800 and <= 0xDFFF) return true;
-        if (codePoint < 0x10000) return Put((char)codePoint);
+        if (_full)
+        {
+            return false;
+        }
+
+        if (key == TypedKey.Backspace)
+        {
+            return Put('\b');
+        }
+
+        if (key == TypedKey.Enter)
+        {
+            return Put('\n');
+        }
+
+        if (codePoint == 0 || codePoint > 0x10FFFF || codePoint is >= 0xD800 and <= 0xDFFF)
+        {
+            return true;
+        }
+
+        if (codePoint < 0x10000)
+        {
+            return Put((char)codePoint);
+        }
+
         if (_count + 2 > _chars.Length) { _full = true; return false; }
         uint value = codePoint - 0x10000;
         _chars[_count++] = (char)(0xD800 + (value >> 10));

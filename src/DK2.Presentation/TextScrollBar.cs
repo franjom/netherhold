@@ -47,7 +47,11 @@ public sealed class TextScrollBar
     /// <summary>An arrow held one GUI update, or one press on the track (0x00528FB0): ±1 pixel, clamped.</summary>
     public void Step(int direction)
     {
-        if (!Enabled) return;
+        if (!Enabled)
+        {
+            return;
+        }
+
         Position = Math.Clamp(Position + Math.Sign(direction), 0, Range);
     }
 
@@ -69,7 +73,11 @@ public sealed class TextScrollBar
     /// sets <c>pos = (pointer − w)·(R + 1) / T</c>, clamped.</summary>
     public void DragTo(int pointer, int height, int width = Arrow)
     {
-        if (!Enabled) return;
+        if (!Enabled)
+        {
+            return;
+        }
+
         int track = Track(height, width);
         Position = Math.Clamp((int)((long)(pointer - width) * (Range + 1) / track), 0, Range);
     }

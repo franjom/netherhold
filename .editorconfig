@@ -85,3 +85,7 @@ dotnet_diagnostic.IDE0011.severity = warning
 [src/DK2.Convert/**.cs]
 csharp_prefer_braces = true
 dotnet_diagnostic.IDE0011.severity = warning
+
+[src/DK2.Presentation/**.cs]
+csharp_prefer_braces = true
+dotnet_diagnostic.IDE0011.severity = warning

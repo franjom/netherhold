@@ -36,8 +36,16 @@ public sealed class CampaignLevelData
     /// <summary>Reads level <paramref name="levelName"/> (e.g. <c>Level1</c>) from <paramref name="install"/>.</summary>
     public static CampaignLevelData Load(string install, string levelName)
     {
-        if (install is null) throw new ArgumentNullException(nameof(install));
-        if (levelName is null) throw new ArgumentNullException(nameof(levelName));
+        if (install is null)
+        {
+            throw new ArgumentNullException(nameof(install));
+        }
+
+        if (levelName is null)
+        {
+            throw new ArgumentNullException(nameof(levelName));
+        }
+
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, levelName);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, levelName) ?? throw Missing(levelName, "map");
         LevelDef level = GameDatabaseLoader.LoadCampaignLevel(install, levelName) ?? throw Missing(levelName, "level definition");

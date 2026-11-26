@@ -42,10 +42,26 @@ public readonly record struct TerrainMaterialKey(
     public static TerrainMaterialKey For(in ClassicMaterialRecipe recipe, bool red, bool tagged, TerrainLightColour tint,
         byte? fogOpacity)
     {
-        if (fogOpacity is byte opacity) return new TerrainMaterialKey(recipe, TerrainMaterialVariant.Fog, default, opacity);
-        if (!recipe.TakesAddedLight) return new TerrainMaterialKey(recipe, TerrainMaterialVariant.Plain);
-        if (red) return new TerrainMaterialKey(recipe, TerrainMaterialVariant.Red);
-        if (tagged) return new TerrainMaterialKey(recipe, TerrainMaterialVariant.Tagged);
+        if (fogOpacity is byte opacity)
+        {
+            return new TerrainMaterialKey(recipe, TerrainMaterialVariant.Fog, default, opacity);
+        }
+
+        if (!recipe.TakesAddedLight)
+        {
+            return new TerrainMaterialKey(recipe, TerrainMaterialVariant.Plain);
+        }
+
+        if (red)
+        {
+            return new TerrainMaterialKey(recipe, TerrainMaterialVariant.Red);
+        }
+
+        if (tagged)
+        {
+            return new TerrainMaterialKey(recipe, TerrainMaterialVariant.Tagged);
+        }
+
         TerrainLightColour piece = ClassicTerrainTint.PieceColour(tint);
         return piece == default ? new TerrainMaterialKey(recipe, TerrainMaterialVariant.Plain)
             : new TerrainMaterialKey(recipe, TerrainMaterialVariant.Tinted, piece);

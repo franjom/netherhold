@@ -34,8 +34,16 @@ public static class CameraFocus
     /// <summary>Clamps as Unity's <c>Mathf.Clamp</c> does: the minimum first, so an empty range gives the minimum, not a throw.</summary>
     internal static float Clamp(float value, float minimum, float maximum)
     {
-        if (value < minimum) return minimum;
-        if (value > maximum) return maximum;
+        if (value < minimum)
+        {
+            return minimum;
+        }
+
+        if (value > maximum)
+        {
+            return maximum;
+        }
+
         return value;
     }
 }
@@ -72,10 +80,18 @@ public sealed class CameraGlide
     /// the straight line from the start to the target; the glide ends on reaching it.</summary>
     public Vector3 Advance(Vector3 focus, double nowMilliseconds)
     {
-        if (_milliseconds <= 0) return focus;
+        if (_milliseconds <= 0)
+        {
+            return focus;
+        }
+
         double t = (nowMilliseconds - _start) / _milliseconds;
         Vector3 next = Lerp(_from, _to, (float)Math.Min(t, 1d));
-        if (t >= 1d) _milliseconds = 0;
+        if (t >= 1d)
+        {
+            _milliseconds = 0;
+        }
+
         return next;
     }
 

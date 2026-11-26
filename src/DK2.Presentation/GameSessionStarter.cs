@@ -20,14 +20,22 @@ public static class GameSessionStarter
     public static GameSimulation Campaign(CampaignLevelData campaign, GameSimulation? resumed, bool frontEnd, ulong seed,
         bool fogOfWarEnabled)
     {
-        if (campaign is null) throw new ArgumentNullException(nameof(campaign));
+        if (campaign is null)
+        {
+            throw new ArgumentNullException(nameof(campaign));
+        }
+
         return resumed ?? (frontEnd ? FrontEnd(campaign, seed) : campaign.CreateSimulation(seed, fogOfWarEnabled));
     }
 
     /// <summary>The front end's world: the level's map and players, no things, scripts or fog.</summary>
     public static GameSimulation FrontEnd(CampaignLevelData campaign, ulong seed)
     {
-        if (campaign is null) throw new ArgumentNullException(nameof(campaign));
+        if (campaign is null)
+        {
+            throw new ArgumentNullException(nameof(campaign));
+        }
+
         return new GameSimulation(campaign.Database, WorldState.FromMap(campaign.Database, campaign.Map,
             campaign.Players.Select(player => player.PlayerId), fogOfWarEnabled: false), seed);
     }
@@ -41,10 +49,20 @@ public static class GameSessionStarter
     /// <summary>The usual local keeper, or an owner present in the imported grid when that keeper has no tiles.</summary>
     public static PlayerId ImportedSaveViewer(WorldState world, PlayerId preferred)
     {
-        if (world.HasPlayer(preferred)) return preferred;
+        if (world.HasPlayer(preferred))
+        {
+            return preferred;
+        }
+
         IReadOnlyList<PlayerId> players = world.PlayerIds;
         foreach (PlayerId player in players)
-            if (PlayerIds.IsKeeper(player.Value)) return player;
+        {
+            if (PlayerIds.IsKeeper(player.Value))
+            {
+                return player;
+            }
+        }
+
         return players[0];
     }
 
@@ -53,20 +71,31 @@ public static class GameSessionStarter
     {
         var tiles = new MapTile[world.Width * world.Height];
         for (int y = 0; y < world.Height; y++)
-        for (int x = 0; x < world.Width; x++)
+        {
+            for (int x = 0; x < world.Width; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tiles[y * world.Width + x] = new MapTile(tile.TerrainId, tile.OwnerPlayerId, 0, 0);
         }
+        }
+
         return new LevelMap(world.Width, world.Height, tiles);
     }
 
     /// <summary>Whoever the map says owns a tile, ascending: the rule the harness uses when a scenario names no players.</summary>
     public static byte[] PlayersOf(LevelMap map)
     {
-        if (map is null) throw new ArgumentNullException(nameof(map));
+        if (map is null)
+        {
+            throw new ArgumentNullException(nameof(map));
+        }
+
         var seen = new SortedSet<byte>();
-        foreach (MapTile tile in map.Tiles) seen.Add(tile.PlayerId);
+        foreach (MapTile tile in map.Tiles)
+        {
+            seen.Add(tile.PlayerId);
+        }
+
         byte[] players = new byte[seen.Count];
         seen.CopyTo(players);
         return players;

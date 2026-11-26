@@ -17,7 +17,11 @@ public static class MinimapNavigation
     public static bool TryResolve(Vector2 referencePoint, MinimapNavigationView view, out TilePos target)
     {
         target = default;
-        if (view.Width <= 0 || view.Height <= 0 || !MinimapControlLayout.IsMap(referencePoint)) return false;
+        if (view.Width <= 0 || view.Height <= 0 || !MinimapControlLayout.IsMap(referencePoint))
+        {
+            return false;
+        }
+
         int u = unchecked((short)((int)(referencePoint.X * 2.5f) - 244));
         int v = unchecked((short)((int)(referencePoint.Y * 2.5f) - 1680));
         if (!view.Zoom.IsWholeMap)
@@ -32,7 +36,11 @@ public static class MinimapNavigation
         if (view.Zoom.IsWholeMap)
         {
             var fit = MinimapMapBounds.Fit(view.Width, view.Height);
-            if (fit.Width == 0 || fit.Height == 0) return false;
+            if (fit.Width == 0 || fit.Height == 0)
+            {
+                return false;
+            }
+
             x = view.Width / 2 + unchecked(view.Width * rx) / fit.Width;
             y = view.Height / 2 + unchecked(view.Height * ry) / fit.Height;
         }
@@ -41,7 +49,11 @@ public static class MinimapNavigation
             x = unchecked(view.Focus.X.Raw + (rx << 12) / view.Zoom.PixelsPerTile) >> 12;
             y = unchecked(view.Focus.Y.Raw + (ry << 12) / view.Zoom.PixelsPerTile) >> 12;
         }
-        if ((uint)x >= (uint)view.Width || (uint)y >= (uint)view.Height) return false;
+        if ((uint)x >= (uint)view.Width || (uint)y >= (uint)view.Height)
+        {
+            return false;
+        }
+
         target = new(x, y);
         return true;
     }

@@ -34,20 +34,37 @@ public static class TileHoverOutline
 
     public static void Grid(TilePos tile, Span<Vector3> points)
     {
-        if (points.Length < 27) throw new ArgumentException("27 outline points required.", nameof(points));
+        if (points.Length < 27)
+        {
+            throw new ArgumentException("27 outline points required.", nameof(points));
+        }
+
         for (int layer = 0; layer < 3; layer++)
+        {
             for (int row = 0; row < 3; row++)
+            {
                 for (int column = 0; column < 3; column++)
+                {
                     points[layer * 9 + row * 3 + column] = new(tile.X + column * .5f, tile.Y + row * .5f, -2.05f + layer * .5f);
+                }
+            }
+        }
     }
 
     public static int Indices(TileHoverEdges mask, Span<int> indices)
     {
-        if (indices.Length < 48) throw new ArgumentException("48 endpoint indices required.", nameof(indices));
+        if (indices.Length < 48)
+        {
+            throw new ArgumentException("48 endpoint indices required.", nameof(indices));
+        }
+
         int count = 0;
         foreach (TileHoverSegment segment in Segments)
+        {
             if ((mask & segment.Required) == segment.Required)
             { indices[count++] = segment.From; indices[count++] = segment.To; }
+        }
+
         return count;
     }
 
@@ -61,21 +78,32 @@ public static class TileHoverOutline
     public static void Build(TileHoverRibbon ribbon, TileRectangle area, bool blue, Vector3 eye, TerrainLattice? lattice,
         long milliseconds)
     {
-        if (ribbon is null) throw new ArgumentNullException(nameof(ribbon));
+        if (ribbon is null)
+        {
+            throw new ArgumentNullException(nameof(ribbon));
+        }
+
         int delta = ribbon.LastMilliseconds == 0 ? 0 : (int)Math.Min(int.MaxValue, Math.Max(0, milliseconds - ribbon.LastMilliseconds));
         ribbon.LastMilliseconds = milliseconds;
         float level = ribbon.Pulse.Level;
         ribbon.Pulse.Advance(delta);
         ribbon.Clear();
         for (int y = area.Y0; y < area.Y1; y++)
+        {
             for (int x = area.X0; x < area.X1; x++)
             {
                 TileHoverEdges mask = TileHoverEdges.Lower
                     | (y == area.Y0 ? TileHoverEdges.North : 0) | (y == area.Y1 - 1 ? TileHoverEdges.South : 0)
                     | (x == area.X0 ? TileHoverEdges.West : 0) | (x == area.X1 - 1 ? TileHoverEdges.East : 0);
-                if (mask == TileHoverEdges.Lower) continue;
+                if (mask == TileHoverEdges.Lower)
+                {
+                    continue;
+                }
+
                 AddTile(ribbon, new TilePos(x, y), mask, eye, lattice);
             }
+        }
+
         ribbon.Colour = blue ? new Vector3(0, 0, level * BluePeak) : new Vector3(level, 0, 0);
     }
 

@@ -55,7 +55,10 @@ public sealed class ScriptedViewDirector(
         if (simEvent.ScriptedView is { } request && (request.Player == viewer
                 || request.Player == PlayerIds.Unowned
                     && request.Kind is ScriptedViewKind.FlashButton or ScriptedViewKind.MentorSpeech or ScriptedViewKind.CameraMove))
+        {
             _requests.Enqueue(request);
+        }
+
         downstream?.Emit(simEvent);
     }
 
@@ -82,7 +85,10 @@ public sealed class ScriptedViewDirector(
 
     public void ClearFlash(HudFlashTarget target)
     {
-        if (_flash?.Target == target) _flash = null;
+        if (_flash?.Target == target)
+        {
+            _flash = null;
+        }
     }
     public HudVisibility HudFor(ClassicCameraMode normalMode) => HudVisibilityRules.ForCamera(
         PathPlaying ? CameraModeId.ScriptedPath : new((ushort)normalMode), _letterbox.RequestCount);
@@ -96,10 +102,17 @@ public sealed class ScriptedViewDirector(
     /// item is in use (<see cref="BottomPanelFlash.ClearedByUse"/>), and the target left is the one to draw.</summary>
     public HudFlashTarget? PanelFlash(HudToolState tools, BottomPanelOpenSet open)
     {
-        if (tools is null) throw new ArgumentNullException(nameof(tools));
+        if (tools is null)
+        {
+            throw new ArgumentNullException(nameof(tools));
+        }
+
         if (ActiveFlashTarget is HudFlashTarget flash
             && BottomPanelFlash.ClearedByUse(flash, tools.ActiveTool, tools.SelectedRoomId, tools.PanelChoice, open))
+        {
             ClearFlash(flash);
+        }
+
         return ActiveFlashTarget;
     }
 
@@ -162,11 +175,17 @@ public sealed class ScriptedViewDirector(
         _renderTick = renderTick;
         if (_flash is { DurationSeconds: > 0 } flash
             && unchecked(_flashStartedAt + flash.DurationSeconds * 1000) < unchecked((uint)_now))
+        {
             _flash = null;
+        }
         // The path that has run out ends before the requests, so the next one the script
         // started on that tick follows it.
         SeekPath();
-        while (_requests.TryDequeue(out ScriptedViewRequest request)) Apply(request);
+        while (_requests.TryDequeue(out ScriptedViewRequest request))
+        {
+            Apply(request);
+        }
+
         CameraJitter = default;
         if (PendingCameraJitters > 0)
         {
@@ -180,9 +199,16 @@ public sealed class ScriptedViewDirector(
 
     private void SeekPath()
     {
-        if (_path is null) return;
+        if (_path is null)
+        {
+            return;
+        }
+
         _path.Seek(_renderTick);
-        if (_path.Finished) EndPath();
+        if (_path.Finished)
+        {
+            EndPath();
+        }
     }
 
     /// <summary>Places the camera on the clock used to draw the creatures, without consuming requests.</summary>
@@ -199,7 +225,11 @@ public sealed class ScriptedViewDirector(
     /// does to a playing line is unread (camera-paths.md).</summary>
     public bool Skip()
     {
-        if (_path is null) return false;
+        if (_path is null)
+        {
+            return false;
+        }
+
         _subtitles.Clear(endShown: true);
         _speechLine = null;
         SpeechSkipped?.Invoke();
@@ -222,25 +252,51 @@ public sealed class ScriptedViewDirector(
             case ScriptedViewKind.CameraPath:
                 // The simulation refuses a start while a path plays (CameraPathRules.TryStart), so
                 // a request it sent is the path the script now has; one still drawn gives way.
-                if (loadPath(request.Value) is not { Count: > 0 } frames) return;
-                if (_path is not null) EndPath();
+                if (loadPath(request.Value) is not { Count: > 0 } frames)
+                {
+                    return;
+                }
+
+                if (_path is not null)
+                {
+                    EndPath();
+                }
+
                 _path = new CameraPathPlayback(request.Value, frames, request.Tile, request.Tick);
                 _letterbox.ChangeMode(_mode, CameraModeId.ScriptedPath, _now);
                 // Every in-game start leaves camera flag 0x8 clear, so 0x0044A370 raises the letterbox.
                 _letterbox.Raise(_now);
                 break;
             case ScriptedViewKind.CameraPathSkipped:
-                if (_path is not null) EndPath();
+                if (_path is not null)
+                {
+                    EndPath();
+                }
+
                 break;
             case ScriptedViewKind.Letterbox:
                 GuiVisibilityRequested?.Invoke(!request.Flag);
                 bool animate = !_mode.IsPossession;
-                if (request.Flag) _letterbox.Raise(_now, animate);
-                else if (request.Value == 2) _letterbox.ForceOff(_now, animate);
-                else _letterbox.Lower(_now, animate);
+                if (request.Flag)
+                {
+                    _letterbox.Raise(_now, animate);
+                }
+                else if (request.Value == 2)
+                {
+                    _letterbox.ForceOff(_now, animate);
+                }
+                else
+                {
+                    _letterbox.Lower(_now, animate);
+                }
+
                 break;
             case ScriptedViewKind.CameraMove:
-                if (!_mode.BlocksScriptedMove) _move = request.Tile;
+                if (!_mode.BlocksScriptedMove)
+                {
+                    _move = request.Tile;
+                }
+
                 break;
             case ScriptedViewKind.CameraZoom:
                 ZoomRequested?.Invoke(request.Value, request.Value2);
@@ -267,9 +323,17 @@ public sealed class ScriptedViewDirector(
                 SpeechRequested?.Invoke(request.Value, request.Flag);
                 // The parallel timer queue supplies speech-off subtitles; its introduction/skip
                 // clear retains ADR-0535's presentation choice (camera-paths.md section9).
-                if (request.Flag) _subtitles.Clear(endShown: true);
+                if (request.Flag)
+                {
+                    _subtitles.Clear(endShown: true);
+                }
+
                 int line = request.Value - 1;
-                if (subtitle(line) is { } text) _subtitles.Enqueue(line, text.Length);
+                if (subtitle(line) is { } text)
+                {
+                    _subtitles.Enqueue(line, text.Length);
+                }
+
                 break;
         }
     }
@@ -289,7 +353,10 @@ public sealed class ScriptedViewDirector(
 
     private void RequestMode(CameraModeId mode)
     {
-        if (_path is not null) _deferredMode = mode;
+        if (_path is not null)
+        {
+            _deferredMode = mode;
+        }
         else
         {
             _letterbox.ChangeMode(_mode, mode, _now);

@@ -15,13 +15,16 @@ public sealed class PcmAudioQueue(int sampleRate)
     private float _gain;
     private int _frame;
     private long _remaining;
-    public long RemainingFrames { get { lock (_gate) return _remaining; } }
+    public long RemainingFrames { get { lock (_gate) { return _remaining; } } }
     /// <summary>The frames per second the queue holds and reads, every queued clip's rate.</summary>
     public int SampleRate => sampleRate;
     public void Enqueue(PcmClip clip, float gain = 1)
     {
         if (clip.SampleRate != sampleRate || clip.Channels is not (1 or 2) || clip.Samples.Length % clip.Channels != 0)
+        {
             throw new ArgumentException("Queued audio must match the stream rate and be mono or stereo.", nameof(clip));
+        }
+
         lock (_gate) { _queued.Enqueue((clip, gain)); _remaining += clip.Samples.Length / clip.Channels; }
     }
     public void Read(float[] samples) => Read(samples.AsSpan());
@@ -29,7 +32,11 @@ public sealed class PcmAudioQueue(int sampleRate)
     /// <summary>Fills <paramref name="samples"/>, interleaved left and right, from the queued clips, silence past them.</summary>
     public void Read(Span<float> samples)
     {
-        if ((samples.Length & 1) != 0) throw new ArgumentException("Stereo audio buffer must contain complete frames.", nameof(samples));
+        if ((samples.Length & 1) != 0)
+        {
+            throw new ArgumentException("Stereo audio buffer must contain complete frames.", nameof(samples));
+        }
+
         lock (_gate)
         {
             for (int i = 0; i < samples.Length; i += 2)

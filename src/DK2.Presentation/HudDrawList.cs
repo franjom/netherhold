@@ -101,8 +101,16 @@ public readonly record struct HudImage(string? Path, HudImageVariant Variant = H
     private bool PrintMembers(System.Text.StringBuilder builder)
     {
         builder.Append("Path = ").Append(Path).Append(", Variant = ").Append(Variant).Append(", Pieces = ").Append(Pieces);
-        if (Text is not null) builder.Append(", Text = ").Append(Text.Text);
-        if (Label is not null) builder.Append(", Label = ").Append(Label.Geometry.Glyphs.Count).Append(" glyphs");
+        if (Text is not null)
+        {
+            builder.Append(", Text = ").Append(Text.Text);
+        }
+
+        if (Label is not null)
+        {
+            builder.Append(", Label = ").Append(Label.Geometry.Glyphs.Count).Append(" glyphs");
+        }
+
         return true;
     }
     public static HudImage Of(HudText text) => new(null, Text: text);
@@ -144,7 +152,11 @@ public static class HudQuads
     /// <summary>Adds <paramref name="rect"/> seen through <paramref name="clip"/>; nothing when they do not overlap.</summary>
     public static void Clipped(HudFrame frame, HudImage image, HudRect rect, HudRect clip, HudColor tint)
     {
-        if (!Cut(rect, new HudRect(0, 0, 1, 1), clip, out _, out _)) return;
+        if (!Cut(rect, new HudRect(0, 0, 1, 1), clip, out _, out _))
+        {
+            return;
+        }
+
         frame.Add(new HudDraw(HudDrawKind.Quad, image, rect, tint, Clip: clip));
     }
 
@@ -156,7 +168,11 @@ public static class HudQuads
         float left = Math.Max(rect.X, clip.X), top = Math.Max(rect.Y, clip.Y);
         float right = Math.Min(rect.X + rect.Width, clip.X + clip.Width), bottom = Math.Min(rect.Y + rect.Height, clip.Y + clip.Height);
         drawn = drawnUv = default;
-        if (right <= left || bottom <= top || rect.Width <= 0 || rect.Height <= 0) return false;
+        if (right <= left || bottom <= top || rect.Width <= 0 || rect.Height <= 0)
+        {
+            return false;
+        }
+
         drawn = new HudRect(left, top, right - left, bottom - top);
         drawnUv = new HudRect(uv.X + (left - rect.X) / rect.Width * uv.Width, uv.Y + (top - rect.Y) / rect.Height * uv.Height,
             (right - left) / rect.Width * uv.Width, (bottom - top) / rect.Height * uv.Height);
@@ -172,13 +188,19 @@ public static class HudQuads
     /// <paramref name="tileWidth"/> x <paramref name="tileHeight"/> tile.</summary>
     public static void Tiled(HudFrame frame, HudImage image, HudRect area, float tileWidth, float tileHeight, HudColor tint)
     {
-        if (tileWidth <= 0 || tileHeight <= 0 || area.Width <= 0 || area.Height <= 0) return;
+        if (tileWidth <= 0 || tileHeight <= 0 || area.Width <= 0 || area.Height <= 0)
+        {
+            return;
+        }
+
         for (float y = 0; y < area.Height; y += tileHeight)
-        for (float x = 0; x < area.Width; x += tileWidth)
+        {
+            for (float x = 0; x < area.Width; x += tileWidth)
         {
             float w = Math.Min(tileWidth, area.Width - x), h = Math.Min(tileHeight, area.Height - y);
             frame.Add(new HudDraw(HudDrawKind.Quad, image, new HudRect(area.X + x, area.Y + y, w, h), tint,
                 Uv: new HudRect(0, 0, w / tileWidth, h / tileHeight)));
+        }
         }
     }
 }
@@ -202,10 +224,21 @@ public sealed class HudFrame
     /// <summary>Adds the image mapped over a triangle list, copied into the frame; nothing for an empty list.</summary>
     public void AddTriangles(HudImage image, ReadOnlySpan<HudVertex> triangles, HudColor tint, HudBlend blend = HudBlend.Alpha)
     {
-        if (triangles.Length % 3 != 0) throw new ArgumentException("Whole triangles required.", nameof(triangles));
-        if (triangles.Length == 0) return;
+        if (triangles.Length % 3 != 0)
+        {
+            throw new ArgumentException("Whole triangles required.", nameof(triangles));
+        }
+
+        if (triangles.Length == 0)
+        {
+            return;
+        }
+
         if (_vertices.Length < _vertexCount + triangles.Length)
+        {
             Array.Resize(ref _vertices, Math.Max(_vertexCount + triangles.Length, _vertices.Length * 2));
+        }
+
         triangles.CopyTo(new Span<HudVertex>(_vertices, _vertexCount, triangles.Length));
         float left = float.MaxValue, top = float.MaxValue, right = float.MinValue, bottom = float.MinValue;
         foreach (HudVertex v in triangles)
@@ -219,7 +252,11 @@ public sealed class HudFrame
 
     public void Add(in HudDraw draw)
     {
-        if (_count == _draws.Length) Array.Resize(ref _draws, _count * 2);
+        if (_count == _draws.Length)
+        {
+            Array.Resize(ref _draws, _count * 2);
+        }
+
         _draws[_count++] = draw;
     }
 
@@ -229,10 +266,18 @@ public sealed class HudFrame
 
     public void CopyFrom(HudFrame other)
     {
-        if (_draws.Length < other._count) _draws = new HudDraw[other._draws.Length];
+        if (_draws.Length < other._count)
+        {
+            _draws = new HudDraw[other._draws.Length];
+        }
+
         Array.Copy(other._draws, _draws, other._count);
         _count = other._count;
-        if (_vertices.Length < other._vertexCount) _vertices = new HudVertex[other._vertices.Length];
+        if (_vertices.Length < other._vertexCount)
+        {
+            _vertices = new HudVertex[other._vertices.Length];
+        }
+
         Array.Copy(other._vertices, _vertices, other._vertexCount);
         _vertexCount = other._vertexCount;
     }
@@ -253,16 +298,28 @@ public static class HudSector
     /// count; 0 when nothing is drawn. Triangles are (0, k, k + 1) for k in 1 .. count - 2.</summary>
     public static int Fan(HudRect rect, int percent, Span<HudVertex> into)
     {
-        if (percent <= 0 || percent >= 100 || rect.Width <= 0) return 0;
+        if (percent <= 0 || percent >= 100 || rect.Width <= 0)
+        {
+            return 0;
+        }
+
         const float Pi = 3.14159274f;
         float sweep = 2 * Pi * percent / 100f;
         int corners = 0;
-        while (corners < 4 && Pi / 4 + corners * Pi / 2 < sweep) corners++;
+        while (corners < 4 && Pi / 4 + corners * Pi / 2 < sweep)
+        {
+            corners++;
+        }
+
         int n = 0;
         into[n++] = At(rect, 0, 0);
         into[n++] = At(rect, 0, -1);
         // Corners in sweep order: top-right, bottom-right, bottom-left, top-left (screen y down).
-        for (int k = 0; k < corners; k++) into[n++] = At(rect, k < 2 ? 1 : -1, k == 0 || k == 3 ? -1 : 1);
+        for (int k = 0; k < corners; k++)
+        {
+            into[n++] = At(rect, k < 2 ? 1 : -1, k == 0 || k == 3 ? -1 : 1);
+        }
+
         float x = (float)Math.Sin(sweep), y = -(float)Math.Cos(sweep), reach = Math.Max(Math.Abs(x), Math.Abs(y));
         into[n++] = At(rect, x / reach, y / reach);
         return n;

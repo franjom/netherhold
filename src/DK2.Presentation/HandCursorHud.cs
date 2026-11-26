@@ -23,8 +23,16 @@ public static class HandCursorHud
     public static void Draw(HudFrame frame, HandCursorKind kind, int sheetFrame, Vector2 pointerPixels, HudScreen screen,
         float hudFactor)
     {
-        if (frame is null) throw new ArgumentNullException(nameof(frame));
-        if (kind == HandCursorKind.Default) return;
+        if (frame is null)
+        {
+            throw new ArgumentNullException(nameof(frame));
+        }
+
+        if (kind == HandCursorKind.Default)
+        {
+            return;
+        }
+
         HandCursorSprite sprite = HandCursor.Sprite(kind);
         HandCursorPlacement placed = HandCursor.Place(kind, sheetFrame, pointerPixels, screen.Height);
         Vector2 origin = pointerPixels + (placed.Origin - pointerPixels) * hudFactor;
@@ -45,7 +53,11 @@ public sealed class InstallHandCursorSheets : IDisposable
 
     public InstallHandCursorSheets(string install, Func<byte[], RgbaImage> decodePng)
     {
-        if (install is null) throw new ArgumentNullException(nameof(install));
+        if (install is null)
+        {
+            throw new ArgumentNullException(nameof(install));
+        }
+
         _decode = decodePng ?? throw new ArgumentNullException(nameof(decodePng));
         _archive = WadArchive.Open(Path.Combine(install, "Data", "Sprite.WAD"));
     }
@@ -56,11 +68,21 @@ public sealed class InstallHandCursorSheets : IDisposable
     {
         HandCursorSprite? sprite = null;
         foreach (HandCursorKind kind in Enum.GetValues(typeof(HandCursorKind)))
+        {
             if (kind != HandCursorKind.Default && HandCursor.Sprite(kind).FileName == fileName) { sprite = HandCursor.Sprite(kind); break; }
-        if (sprite is not HandCursorSprite table) throw new InvalidDataException("Not a hand cursor sheet: " + fileName);
+        }
+
+        if (sprite is not HandCursorSprite table)
+        {
+            throw new InvalidDataException("Not a hand cursor sheet: " + fileName);
+        }
+
         RgbaImage image = _decode(_archive.Extract(fileName));
         if (image.Width != (int)table.FrameSize.X || image.Height != (int)table.FrameSize.Y * table.FrameCount)
+        {
             throw new InvalidDataException("Cursor sheet does not match its native frame table: " + fileName);
+        }
+
         return image;
     }
 

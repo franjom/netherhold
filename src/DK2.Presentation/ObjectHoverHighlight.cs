@@ -32,9 +32,19 @@ public static class ObjectHoverHighlight
     /// mesh slot gives the same answer on the shipped data.</summary>
     public static bool UsesHoverTexture(ObjectDef? definition)
     {
-        if (definition is null) return false;
+        if (definition is null)
+        {
+            return false;
+        }
+
         foreach (CreatureAnimationTiming art in definition.ArtSlots)
-            if (art.ResourceType is 5 or 6 && ((uint)art.Flags & HoverTextureArtFlag) != 0) return true;
+        {
+            if (art.ResourceType is 5 or 6 && ((uint)art.Flags & HoverTextureArtFlag) != 0)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -73,11 +83,27 @@ public static class HoverTint
     public static bool CoversBlended(WorldState world, WorldHoverHit hit)
     {
         if (hit.Kind == WorldHoverKind.Door)
+        {
             foreach (DoorState door in world.Doors)
-                if (door.Id == hit.EntityId) return door.DoorId == FlashMode1Type;
+            {
+                if (door.Id == hit.EntityId)
+                {
+                    return door.DoorId == FlashMode1Type;
+                }
+            }
+        }
+
         if (hit.Kind == WorldHoverKind.Trap)
+        {
             foreach (TrapState trap in world.Traps)
-                if (trap.Id == hit.EntityId) return trap.TrapId == FlashMode1Type;
+            {
+                if (trap.Id == hit.EntityId)
+                {
+                    return trap.TrapId == FlashMode1Type;
+                }
+            }
+        }
+
         return false;
     }
 
@@ -107,21 +133,44 @@ public static class HoverTint
                     && HandRules.HasPickupPermission(world, database, creature, viewer);
             case WorldHoverKind.Object:
                 if (world.ObjectById(hit.EntityId) is { } thing)
+                {
                     return ObjectPublished(database.ObjectById(thing.ObjectTypeId), thing.ObjectTypeId,
                         thing.OwnerPlayerId, world.TileAtIndex(thing.TileIndex).OwnerPlayerId, viewer);
-                if (!WorldView.IsStorePile(hit.EntityId)) return false;
+                }
+
+                if (!WorldView.IsStorePile(hit.EntityId))
+                {
+                    return false;
+                }
+
                 int tile = WorldView.DecorationTileIndex(hit.EntityId);
-                if ((uint)tile >= (uint)(world.Width * world.Height)) return false;
+                if ((uint)tile >= (uint)(world.Width * world.Height))
+                {
+                    return false;
+                }
+
                 byte keeper = world.TileAtIndex(tile).OwnerPlayerId;
                 return ObjectPublished(database.ObjectById(ObjectHoverHighlight.StorePileObjectId),
                     ObjectHoverHighlight.StorePileObjectId, keeper, keeper, viewer);
             case WorldHoverKind.Door:
                 foreach (DoorState door in world.Doors)
-                    if (door.Id == hit.EntityId) return door.PlayerId == viewer.Value;
+                {
+                    if (door.Id == hit.EntityId)
+                    {
+                        return door.PlayerId == viewer.Value;
+                    }
+                }
+
                 return false;
             case WorldHoverKind.Trap:
                 foreach (TrapState trap in world.Traps)
-                    if (trap.Id == hit.EntityId) return trap.PlayerId == viewer.Value;
+                {
+                    if (trap.Id == hit.EntityId)
+                    {
+                        return trap.PlayerId == viewer.Value;
+                    }
+                }
+
                 return false;
             default:
                 return false;

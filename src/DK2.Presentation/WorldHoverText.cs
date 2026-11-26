@@ -49,8 +49,16 @@ public sealed class WorldHoverText
     public HoverTextSnapshot Capture(WorldState world, WorldHoverHit hit, string personalName = "")
     {
         bool changedTick = !ReferenceEquals(world, _world) || world.CurrentTick != _tick;
-        if (!changedTick && hit == _hit && personalName == _personalName) return _snapshot;
-        if (changedTick) _rooms = RoomIndex.Build(world, _database);
+        if (!changedTick && hit == _hit && personalName == _personalName)
+        {
+            return _snapshot;
+        }
+
+        if (changedTick)
+        {
+            _rooms = RoomIndex.Build(world, _database);
+        }
+
         _world = world; _tick = world.CurrentTick; _hit = hit; _personalName = personalName;
         _tokens.Clear();
         _snapshot = CaptureCore(world, hit, personalName);
@@ -60,21 +68,38 @@ public sealed class WorldHoverText
     private HoverTextSnapshot CaptureCore(WorldState world, WorldHoverHit hit, string personalName)
     {
         if (hit.Kind == WorldHoverKind.None || !world.Contains(hit.Tile.X, hit.Tile.Y))
+        {
             return HoverTextSnapshot.Empty;
+        }
+
         ref TileState tile = ref world.Tile(hit.Tile);
         if (world.FogOfWarEnabled && !tile.IsExploredBy(_viewer))
+        {
             return new(_resolve(2473), _resolve(348), hit);
+        }
+
         if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is { } creature)
+        {
             return Creature(creature, hit, personalName, world.GameMode);
+        }
+
         if (hit.Kind == WorldHoverKind.Door && world.DoorById(hit.EntityId) is { } door
             && _database.Doors.TryGetValue(door.DoorId, out DoorDef? doorDef))
+        {
             return Door(door, doorDef, hit);
+        }
+
         if (hit.Kind == WorldHoverKind.Trap && world.TrapById(hit.EntityId) is { } trap
             && _database.Traps.TryGetValue(trap.TrapId, out TrapDef? trapDef))
+        {
             return Trap(trap, trapDef, hit);
+        }
+
         if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is { } obj
             && _database.ObjectById(obj.ObjectTypeId) is { NameStringId: > 0 } definition)
+        {
             return new(ObjectStatus(world, obj, definition), _resolve(definition.NameStringId), hit);
+        }
         // Ours keeps a store tile's gold in the tile and draws DK2's Gold Pile 1 as a decoration
         // (WorldView.StorePiles); hovered, it reads as that object would: "%73 Gold" (SHOT0228).
         if (hit.Kind == WorldHoverKind.Object && WorldView.IsStorePile(hit.EntityId)
@@ -87,8 +112,18 @@ public sealed class WorldHoverText
         }
         int tileIndex = world.TileIndex(hit.Tile);
         foreach (RoomInstance room in _rooms)
-            if (room.Contains(tileIndex)) return Room(world, room, hit);
-        if (tile.SecretDoor) return new(_resolve(2481), _resolve(2480), hit);
+        {
+            if (room.Contains(tileIndex))
+            {
+                return Room(world, room, hit);
+            }
+        }
+
+        if (tile.SecretDoor)
+        {
+            return new(_resolve(2481), _resolve(2480), hit);
+        }
+
         TerrainDef terrain = _database.TerrainById(tile.TerrainId);
         _tokens[37] = Number(terrain.MaxHealth / 100 == 0 ? 0 : tile.Health / (terrain.MaxHealth / 100));
         _tokens[66] = Number(terrain.ManaGain);
@@ -111,11 +146,22 @@ public sealed class WorldHoverText
     /// creature-overview.md).</summary>
     public HoverTextSnapshot CreatureType(CreatureDef definition)
     {
-        if (definition is null) throw new ArgumentNullException(nameof(definition));
-        if (definition.DescriptionStringId == 0) return HoverTextSnapshot.Empty;
+        if (definition is null)
+        {
+            throw new ArgumentNullException(nameof(definition));
+        }
+
+        if (definition.DescriptionStringId == 0)
+        {
+            return HoverTextSnapshot.Empty;
+        }
         // The text is a function of the definition alone, so the last one built is kept: the pointer rests on a portrait
         // for many frames, and a rebuild would allocate its dictionary and strings each time.
-        if (ReferenceEquals(definition, _typeDefinition)) return _typeSnapshot;
+        if (ReferenceEquals(definition, _typeDefinition))
+        {
+            return _typeSnapshot;
+        }
+
         _typeTokens[27] = _resolve(definition.JobClass switch
         {
             JobClass.Thinker => 2419u, JobClass.Fighter => 2417u, JobClass.Scout => 2420u, _ => 2418u,
@@ -157,7 +203,13 @@ public sealed class WorldHoverText
     private RoomInstance? RoomAt(int tileIndex)
     {
         foreach (RoomInstance room in _rooms)
-            if (room.Contains(tileIndex)) return room;
+        {
+            if (room.Contains(tileIndex))
+            {
+                return room;
+            }
+        }
+
         return null;
     }
 
@@ -170,9 +222,21 @@ public sealed class WorldHoverText
         string name = definition.NameStringId == 0 ? "" : _resolve(definition.NameStringId);
         _tokens[68] = name;
         _tokens[37] = Number(HealthPercent(door.Health, definition.Health));
-        if (door.UnderConstruction) return new(Substitute(_resolve(2512), _tokens), name, hit);
-        if (door.PlayerId != _viewer.Value) return new(name, name, hit);
-        if (((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)) return new(Substitute(_resolve(2536), _tokens), name, hit);
+        if (door.UnderConstruction)
+        {
+            return new(Substitute(_resolve(2512), _tokens), name, hit);
+        }
+
+        if (door.PlayerId != _viewer.Value)
+        {
+            return new(name, name, hit);
+        }
+
+        if (((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade))
+        {
+            return new(Substitute(_resolve(2536), _tokens), name, hit);
+        }
+
         _tokens[72] = _resolve(door.LockMode != 0 ? 2516u : 2515u);
         return new(Substitute(_resolve(2532), _tokens), name, hit);
     }
@@ -188,9 +252,21 @@ public sealed class WorldHoverText
         _tokens[37] = Number(HealthPercent(trap.Health, definition.Health));
         _tokens[25] = Number((short)definition.ManaUpkeepPerSecond);
         _tokens[26] = Number(definition.ManaCostToFire);
-        if (trap.UnderConstruction) return new(Substitute(_resolve(2512), _tokens), name, hit);
-        if (trap.PlayerId != _viewer.Value) return new(name, name, hit);
-        if ((definition.Flags & TrapRules.GuardPostBranch) != 0) return new(_resolve(2538), name, hit);
+        if (trap.UnderConstruction)
+        {
+            return new(Substitute(_resolve(2512), _tokens), name, hit);
+        }
+
+        if (trap.PlayerId != _viewer.Value)
+        {
+            return new(name, name, hit);
+        }
+
+        if ((definition.Flags & TrapRules.GuardPostBranch) != 0)
+        {
+            return new(_resolve(2538), name, hit);
+        }
+
         _tokens[71] = _resolve(2514);
         return new(Substitute(_resolve(2527), _tokens), name, hit);
     }
@@ -218,7 +294,11 @@ public sealed class WorldHoverText
             // creature id +0x128 (the id +0x129 came from, 0x004B0F20), not the special name. Otherwise
             // DK2 leaves that buffer unwritten; ours printing it empty is a HYPOTHESIS (Q634). The popup is
             // the type name (0x0042D4A0 kind 6). Unreachable: no Hand pick returns a corpse (0x005992B0).
-            if (special != 0) _tokens[29] = kind;
+            if (special != 0)
+            {
+                _tokens[29] = kind;
+            }
+
             _tokens[30] = kind;
             _tokens[88] = Number(creature.Level);
             return new(Substitute(_resolve(2791), _tokens), kind, hit);
@@ -228,12 +308,25 @@ public sealed class WorldHoverText
             : special != 0 ? popup : personalName;
         _tokens[30] = kind;
         if (creature.OwnerPlayerId == PlayerIds.Good)
+        {
             return new(Substitute(_resolve(2412), _tokens), popup, hit);
+        }
+
         if (creature.OwnerPlayerId == PlayerIds.Neutral)
+        {
             return new(Substitute(_resolve(2415), _tokens), popup, hit);
-        if (creature.OwnerPlayerId != _viewer) return new("", popup, hit);
+        }
+
+        if (creature.OwnerPlayerId != _viewer)
+        {
+            return new("", popup, hit);
+        }
+
         if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
+        {
             return new(Substitute(_resolve(2793), _tokens), popup, hit);
+        }
+
         _tokens[31] = _resolve((uint)ActionStringId(creature.Dk2StateId, creature.UtilityNewState));
         _tokens[74] = Number(EfficiencyRules.Percent(creature, definition));
         _tokens[33] = _resolve(creature.Mood switch
@@ -259,12 +352,21 @@ public sealed class WorldHoverText
         RoomDef definition = room.Definition;
         string name = _resolve(definition.NameStringId);
         if (room.OwnerPlayerId != _viewer)
+        {
             return new(_resolve(room.OwnerPlayerId == PlayerIds.Good && definition.RoomId >= 18 && definition.RoomId <= 23 ? 2468u : 2471u), name, hit);
+        }
+
         int cap = RoomHealthRules.Cap(_database, room);
         _tokens[37] = Number(cap > 0 ? (int)((long)RoomHealthRules.Health(world, _database, room) * 100 / cap) : 0);
         int roomCount = 0;
         foreach (RoomInstance owned in _rooms)
-            if (owned.OwnerPlayerId == _viewer && owned.Definition.RoomId == definition.RoomId) roomCount++;
+        {
+            if (owned.OwnerPlayerId == _viewer && owned.Definition.RoomId == definition.RoomId)
+            {
+                roomCount++;
+            }
+        }
+
         uint template;
         switch (definition.TypeId)
         {
@@ -289,7 +391,11 @@ public sealed class WorldHoverText
                 break;
             case RoomTypeId.DungeonHeart:
                 ref PlayerState player = ref world.Player(_viewer);
-                if (RoomRules.IsRuined(world, room)) return new("", name, hit);   // 0x004E9393 tests the room
+                if (RoomRules.IsRuined(world, room))
+                {
+                    return new("", name, hit);   // 0x004E9393 tests the room
+                }
+
                 int maxHealth = _database[VariableTypeId.DungeonHeartObjectHealth];
                 _tokens[37] = Number(maxHealth > 0 ? (int)((long)player.HeartHealth * 100 / maxHealth) : 0);
                 _tokens[40] = Number(player.Mana);
@@ -307,9 +413,20 @@ public sealed class WorldHoverText
                 int books = 0, shelves = 0;
                 foreach (ObjectState obj in world.Objects)
                 {
-                    if (!RoomContainsObject(room, obj)) continue;
-                    if (_database.ObjectById(obj.ObjectTypeId) is { } objDef && (objDef.IsSpellBook || objDef.IsSpecial)) books++;
-                    if (obj.AutoPlaced && obj.ObjectTypeId == 64) shelves++;
+                    if (!RoomContainsObject(room, obj))
+                    {
+                        continue;
+                    }
+
+                    if (_database.ObjectById(obj.ObjectTypeId) is { } objDef && (objDef.IsSpellBook || objDef.IsSpecial))
+                    {
+                        books++;
+                    }
+
+                    if (obj.AutoPlaced && obj.ObjectTypeId == 64)
+                    {
+                        shelves++;
+                    }
                 }
                 _tokens[38] = Number(books); _tokens[39] = Number(shelves * 2); _tokens[48] = Number(roomCount);
                 template = 2582;
@@ -322,7 +439,13 @@ public sealed class WorldHoverText
                 CapacityTokens(world, room); _tokens[50] = Number(roomCount);
                 int crates = 0;
                 foreach (ObjectState obj in world.Objects)
-                    if (CrateRules.IsListedIn(world, _database, room, obj)) crates++;
+                {
+                    if (CrateRules.IsListedIn(world, _database, room, obj))
+                    {
+                        crates++;
+                    }
+                }
+
                 _tokens[79] = Number(crates);
                 var furnitureSlots = new HashSet<int>();
                 AutoFurnitureRules.FurnitureSlots(world, _database, room, furnitureSlots);
@@ -335,8 +458,14 @@ public sealed class WorldHoverText
                 _tokens[82] = Number(guardCapacity); _tokens[51] = Number(roomCount);
                 int routes = 0;
                 foreach (TrapState trap in world.Traps)
+                {
                     if (trap.PlayerId == _viewer && !trap.UnderConstruction && trap.GuardRoomTile >= 0 && room.Contains(trap.GuardRoomTile)
-                        && _database.Traps.TryGetValue(trap.TrapId, out TrapDef? trapDef) && (trapDef.Flags & 0x800) != 0) routes++;
+                        && _database.Traps.TryGetValue(trap.TrapId, out TrapDef? trapDef) && (trapDef.Flags & 0x800) != 0)
+                    {
+                        routes++;
+                    }
+                }
+
                 _tokens[52] = Number(routes);
                 template = 2585;
                 break;
@@ -369,7 +498,13 @@ public sealed class WorldHoverText
                 HashSet<int> floor = AutoFurnitureRules.FloorSlotSet(world, room);
                 int fighters = 0;
                 foreach (CreatureState creature in world.Creatures)
-                    if (creature.CombatPitFighter && !creature.InHand && world.Contains(creature.Tile) && floor.Contains(world.TileIndex(creature.Tile))) fighters++;
+                {
+                    if (creature.CombatPitFighter && !creature.InHand && world.Contains(creature.Tile) && floor.Contains(world.TileIndex(creature.Tile)))
+                    {
+                        fighters++;
+                    }
+                }
+
                 _tokens[38] = Number(fighters); _tokens[39] = Number(floor.Count); _tokens[53] = Number(roomCount);
                 template = 2449;
                 break;
@@ -396,11 +531,19 @@ public sealed class WorldHoverText
 
     public static int ActionStringId(int stateId, int utilityNewState)
     {
-        if (stateId < 0 || stateId >= CreatureStateTable.Count) return 2599;
+        if (stateId < 0 || stateId >= CreatureStateTable.Count)
+        {
+            return 2599;
+        }
+
         ref readonly CreatureStateDef state = ref CreatureStateTable.Get(stateId);
         if (state.IsUtility)
         {
-            if (utilityNewState < 0 || utilityNewState >= CreatureStateTable.Count) return 2599;
+            if (utilityNewState < 0 || utilityNewState >= CreatureStateTable.Count)
+            {
+                return 2599;
+            }
+
             state = ref CreatureStateTable.Get(utilityNewState);
         }
         return state.LabelStringId == 0 ? 2599 : state.LabelStringId;
@@ -419,8 +562,14 @@ public sealed class WorldHoverText
             { result.Append(template[i]); continue; }
             int found = 0;
             while (i + 1 < template.Length && template[i + 1] >= '0' && template[i + 1] <= '9')
+            {
                 found = found * 10 + template[++i] - '0';
-            if (found == token) result.Append(value);
+            }
+
+            if (found == token)
+            {
+                result.Append(value);
+            }
         }
         return result.ToString();
     }
@@ -434,8 +583,14 @@ public sealed class WorldHoverText
             { result.Append(template[i]); continue; }
             int token = 0;
             while (i + 1 < template.Length && template[i + 1] >= '0' && template[i + 1] <= '9')
+            {
                 token = token * 10 + template[++i] - '0';
-            if (values.TryGetValue(token, out string? replacement)) result.Append(replacement);
+            }
+
+            if (values.TryGetValue(token, out string? replacement))
+            {
+                result.Append(replacement);
+            }
         }
         return result.ToString();
     }

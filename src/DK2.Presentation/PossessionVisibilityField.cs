@@ -19,7 +19,11 @@ public sealed class PossessionVisibilityField
     private TilePos[] _polygonTiles = [];
     public PossessionVisibilityField(int width, int height)
     {
-        if (width <= 0 || height <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (width <= 0 || height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
         (_width, _height) = (width, height);
         _mask = new byte[checked(width * height)];
         _solid = new bool[_mask.Length];
@@ -31,22 +35,43 @@ public sealed class PossessionVisibilityField
     /// <summary>Builds from the world's solid terrain. Doors, pillars, liquids and other things are not blockers.</summary>
     public void Build(WorldState world, GameDatabase database, in ClassicCameraPose pose, CameraViewport viewport, float viewDistance)
     {
-        if (world.Width != _width || world.Height != _height) throw new ArgumentException("The world must match the draw mask.", nameof(world));
+        if (world.Width != _width || world.Height != _height)
+        {
+            throw new ArgumentException("The world must match the draw mask.", nameof(world));
+        }
+
         ReadOnlySpan<TileState> tiles = world.Tiles;
-        for (int i = 0; i < _solid.Length; i++) _solid[i] = database.TerrainById(tiles[i].TerrainId).IsSolid;
+        for (int i = 0; i < _solid.Length; i++)
+        {
+            _solid[i] = database.TerrainById(tiles[i].TerrainId).IsSolid;
+        }
+
         Build(pose, viewport, viewDistance, _solid);
     }
     /// <summary>Rebuilds the set from this frame's pose. Only solid terrain blocks; a zero-distance death view draws nothing.</summary>
     public void Build(in ClassicCameraPose pose, CameraViewport viewport, float viewDistance, bool[] solid)
     {
-        if (solid.Length != _mask.Length) throw new ArgumentException("The solid map must match the draw mask.", nameof(solid));
+        if (solid.Length != _mask.Length)
+        {
+            throw new ArgumentException("The solid map must match the draw mask.", nameof(solid));
+        }
+
         Array.Clear(_mask, 0, _mask.Length);
-        if (viewDistance <= 0) return;
+        if (viewDistance <= 0)
+        {
+            return;
+        }
+
         int boundaryCount = ClassicLightVisibility.BuildPolygon(pose, viewport, Math.Min(viewDistance, PossessionFade.PossessionCap),
             _polygon, scaleViewVolume: true);
         int count = ClassicLightVisibility.EnumerateTiles(_polygon.Tiles.AsSpan(0, boundaryCount), ref _polygonTiles);
         _walk.Walk(pose.Position.X, -pose.Position.Z, _width, _height, solid, _polygonTiles.AsSpan(0, count), _tiles);
         foreach (TilePos tile in _tiles)
-            if ((uint)tile.X < (uint)_width && (uint)tile.Y < (uint)_height) _mask[(tile.Y * _width) + tile.X] = 255;
+        {
+            if ((uint)tile.X < (uint)_width && (uint)tile.Y < (uint)_height)
+            {
+                _mask[(tile.Y * _width) + tile.X] = 255;
+            }
+        }
     }
 }

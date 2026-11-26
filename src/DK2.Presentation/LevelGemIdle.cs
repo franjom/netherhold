@@ -75,21 +75,41 @@ public sealed class LevelGemIdleEffects
     /// it go, where DK2 ties it to the object (<c>+0x133</c>); the gem stays put while loose.</summary>
     public void Collect(WorldState world, List<ViewEffectRequest> into)
     {
-        if (world is null) throw new ArgumentNullException(nameof(world));
-        if (into is null) throw new ArgumentNullException(nameof(into));
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
+
+        if (into is null)
+        {
+            throw new ArgumentNullException(nameof(into));
+        }
+
         long now = LevelGemIdle.Turn(world);
         long from = _lastTurn < 0 || _lastTurn > now ? now : _lastTurn + 1;
         _lastTurn = now;
         for (long turn = from; turn <= now; turn++)
         {
-            if (!LevelGemIdle.EmitsOn(turn)) continue;
+            if (!LevelGemIdle.EmitsOn(turn))
+            {
+                continue;
+            }
+
             EntityList<ObjectState> objects = world.Objects;
             for (int i = 0; i < objects.Count; i++)
             {
                 ObjectState thing = objects[i];
-                if (thing.InHand || thing.CarriedByCreatureId >= 0) continue;
+                if (thing.InHand || thing.CarriedByCreatureId >= 0)
+                {
+                    continue;
+                }
+
                 ObjectDef? definition = _database.ObjectById(thing.ObjectTypeId);
-                if (!LevelGemIdle.Applies(definition) || definition!.IdleEffectId == 0) continue;
+                if (!LevelGemIdle.Applies(definition) || definition!.IdleEffectId == 0)
+                {
+                    continue;
+                }
+
                 var tile = new TilePos(thing.TileIndex % world.Width, thing.TileIndex / world.Width);
                 into.Add(ViewEffectRequest.AtTileCentre(new EffectId(definition.IdleEffectId),
                     new PlayerId(thing.OwnerPlayerId), tile, new Fp32(LevelGemIdle.Height(turn))));

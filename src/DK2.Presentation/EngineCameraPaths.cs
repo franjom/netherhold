@@ -15,12 +15,20 @@ public static class EngineCameraPaths
     /// <summary>A loader over the install; a path the install lacks (or no Paths.WAD) loads as null, remembered too.</summary>
     public static Func<int, IReadOnlyList<KcsFrame>?> Loader(string install)
     {
-        if (install == null) throw new ArgumentNullException(nameof(install));
+        if (install == null)
+        {
+            throw new ArgumentNullException(nameof(install));
+        }
+
         string wad = Path.Combine(install, "Data", "Paths.WAD");
         var cache = new Dictionary<int, IReadOnlyList<KcsFrame>?>();
         return pathId =>
         {
-            if (cache.TryGetValue(pathId, out IReadOnlyList<KcsFrame>? frames)) return frames;
+            if (cache.TryGetValue(pathId, out IReadOnlyList<KcsFrame>? frames))
+            {
+                return frames;
+            }
+
             frames = null;
             if (File.Exists(wad))
             {
@@ -28,7 +36,11 @@ public static class EngineCameraPaths
                 string name = "EnginePath" + pathId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".kcs";
                 foreach (WadEntry entry in archive.Entries)
                 {
-                    if (!string.Equals(Path.GetFileName(entry.Name), name, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!string.Equals(Path.GetFileName(entry.Name), name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
                     frames = KcsCameraPath.Read(archive.Extract(entry), entry.Name).Frames;
                     break;
                 }

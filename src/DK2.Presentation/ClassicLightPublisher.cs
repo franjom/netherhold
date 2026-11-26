@@ -60,8 +60,16 @@ public sealed class ClassicLightPublisher
     {
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _portals = portals ?? throw new ArgumentNullException(nameof(portals));
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (width <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
         _width = width;
         _height = height;
         TorchFlags = torchFlags;
@@ -74,7 +82,10 @@ public sealed class ClassicLightPublisher
     public void PublishPortalLights(IReadOnlyList<TilePos> requests, EffectTime now)
     {
         while (_portalRequestsPublished < requests.Count)
+        {
             _portals.Create(requests[_portalRequestsPublished++]);
+        }
+
         _cache.UpdatePortalLights(_portals.Advance(now, TorchFlags.IsCheapTorch()));
     }
 
@@ -88,7 +99,11 @@ public sealed class ClassicLightPublisher
     public ClassicLightPublication Prepare(in ClassicCameraPose pose, CameraViewport viewport, float viewDistance,
         in ClassicCameraPose? second = null, CameraViewport secondViewport = default)
     {
-        if (viewport.Width <= 0 || viewport.Height <= 0) return ClassicLightPublication.Skipped;
+        if (viewport.Width <= 0 || viewport.Height <= 0)
+        {
+            return ClassicLightPublication.Skipped;
+        }
+
         if (!_pose.HasValue || !_pose.Value.Equals(pose) || !_viewport.Equals(viewport) || _viewDistance != viewDistance)
         {
             TilePos[] polygon = ClassicLightVisibility.BuildPolygon(pose, viewport, viewDistance);
@@ -109,9 +124,21 @@ public sealed class ClassicLightPublisher
             }
             // Joined once per frame into buffers kept across frames.
             _joined.Clear();
-            for (int i = 0; i < _visibleCount; i++) _joined.Add(_visibleTiles[i]);
-            foreach (TilePos tile in _secondTiles) _joined.Add(tile);
-            if (_joinedBuffer.Length < _joined.Count) _joinedBuffer = new TilePos[_joined.Count * 2];
+            for (int i = 0; i < _visibleCount; i++)
+            {
+                _joined.Add(_visibleTiles[i]);
+            }
+
+            foreach (TilePos tile in _secondTiles)
+            {
+                _joined.Add(tile);
+            }
+
+            if (_joinedBuffer.Length < _joined.Count)
+            {
+                _joinedBuffer = new TilePos[_joined.Count * 2];
+            }
+
             _joined.CopyTo(_joinedBuffer);
             visible = new ReadOnlySpan<TilePos>(_joinedBuffer, 0, _joined.Count);
         }
@@ -124,13 +151,27 @@ public sealed class ClassicLightPublisher
     /// no longer visible, sets every visible on-map tile's table, then flushes.</summary>
     public void Publish(ITileLightSink sink)
     {
-        if (sink is null) throw new ArgumentNullException(nameof(sink));
+        if (sink is null)
+        {
+            throw new ArgumentNullException(nameof(sink));
+        }
+
         foreach (TilePos previous in _published)
-            if (!_cache.IsVisible(previous)) sink.Remove(previous);
+        {
+            if (!_cache.IsVisible(previous))
+            {
+                sink.Remove(previous);
+            }
+        }
+
         _published.Clear();
         foreach (ClassicLightTable table in _cache.VisibleTables)
         {
-            if ((uint)table.Tile.X >= (uint)_width || (uint)table.Tile.Y >= (uint)_height) continue;
+            if ((uint)table.Tile.X >= (uint)_width || (uint)table.Tile.Y >= (uint)_height)
+            {
+                continue;
+            }
+
             sink.Set(table);
             _published.Add(table.Tile);
         }

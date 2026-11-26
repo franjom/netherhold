@@ -32,7 +32,11 @@ public readonly record struct ClassicMaterialRecipe(string Texture, KmfBlend Ble
     /// where the model has no material.</summary>
     public static ClassicMaterialRecipe FromKmf(KmfMaterial? kmf, int textureIndex = 0)
     {
-        if (kmf is null) return new ClassicMaterialRecipe("", KmfBlend.Opaque, 0f);
+        if (kmf is null)
+        {
+            return new ClassicMaterialRecipe("", KmfBlend.Opaque, 0f);
+        }
+
         string texture = kmf.TextureNames.Count > 0
             ? kmf.TextureNames[Math.Clamp(textureIndex, 0, kmf.TextureNames.Count - 1)]
             : kmf.EnvironmentTextureName ?? "";

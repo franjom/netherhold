@@ -17,7 +17,10 @@ public sealed class HandCursorEventSink(HandCursorFeedback feedback, PlayerId vi
     public void Emit(in SimEvent simEvent)
     {
         if (simEvent.HandDrop is HandDropFeedback drop && drop.Player == viewer)
+        {
             _pending.Enqueue(drop);
+        }
+
         downstream?.Emit(simEvent);
     }
 
@@ -25,6 +28,8 @@ public sealed class HandCursorEventSink(HandCursorFeedback feedback, PlayerId vi
     public void Drain(long milliseconds)
     {
         while (_pending.TryDequeue(out HandDropFeedback drop))
+        {
             feedback.Play(drop.Gold ? HandCursorKind.DropGold : HandCursorKind.DropThing, milliseconds);
+        }
     }
 }

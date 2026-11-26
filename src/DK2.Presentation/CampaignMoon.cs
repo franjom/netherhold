@@ -14,7 +14,11 @@ public static class CampaignMoon
         int day = 2415021 + (localClock.Date - new DateTime(1900, 1, 1)).Days;
         int seconds = localClock.Second + 60 * (localClock.Minute + 60 * localClock.Hour);
         if (localClock.Hour < 12) { day--; seconds += 43200; }
-        else seconds -= 43200;
+        else
+        {
+            seconds -= 43200;
+        }
+
         float fraction = seconds * 1.1574074e-5f;
         (int Day, float Fraction) earlier = NewMoon(1);
         for (int cycle = 2; cycle <= 10001; cycle++)

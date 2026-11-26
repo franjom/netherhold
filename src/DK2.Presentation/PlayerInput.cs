@@ -109,7 +109,10 @@ public sealed class PlayerInputSnapshot
     {
         // Doors are not captured targets: the pick names the door, and the press acts on it.
         if (hit.Kind == WorldHoverKind.Door)
+        {
             return new PlayerInputSnapshot(IsHolding, [new PlayerInputTarget(PlayerInputTargetKind.Door, hit.EntityId, hit.Tile)], Excavation);
+        }
+
         PlayerInputTargetKind? kind = hit.Kind switch
         {
             WorldHoverKind.Creature => PlayerInputTargetKind.Creature,
@@ -117,10 +120,15 @@ public sealed class PlayerInputSnapshot
             _ => null,
         };
         foreach (PlayerInputTarget target in Targets)
+        {
             if ((target.Kind == kind || kind == PlayerInputTargetKind.Object
                     && target.Kind is PlayerInputTargetKind.Special or PlayerInputTargetKind.StoreGold)
                 && target.Id == hit.EntityId)
+            {
                 return new PlayerInputSnapshot(IsHolding, [target with { Tile = hit.Tile }], Excavation);
+            }
+        }
+
         return new PlayerInputSnapshot(IsHolding, NoTargets, Excavation);
     }
 
@@ -134,14 +142,26 @@ public sealed class PlayerInputSnapshot
         WorldView view, WorldState world, PlayerId playerId, GameDatabase? database = null,
         TilePos? pointerTile = null, IReadOnlyList<PlayerCommand>? pendingCommands = null)
     {
-        if (view is null) throw new ArgumentNullException(nameof(view));
-        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (view is null)
+        {
+            throw new ArgumentNullException(nameof(view));
+        }
+
+        if (world is null)
+        {
+            throw new ArgumentNullException(nameof(world));
+        }
 
         bool isHolding = view.LocalPickups.HasVisibleItems(world, playerId);
         if (!isHolding && pendingCommands is not null)
+        {
             foreach (PlayerCommand pending in pendingCommands)
             {
-                if (pending is PickUpCreatureCommand pickup && view.LocalPickups.Contains(new CreatureId(pickup.CreatureId))) continue;
+                if (pending is PickUpCreatureCommand pickup && view.LocalPickups.Contains(new CreatureId(pickup.CreatureId)))
+                {
+                    continue;
+                }
+
                 if (pending.PlayerId == playerId && pending is PickUpCreatureCommand or PickUpObjectCommand
                     or PickUpStoreGoldCommand or WithdrawCounterGoldCommand)
                 {
@@ -149,11 +169,17 @@ public sealed class PlayerInputSnapshot
                     break;
                 }
             }
+        }
+
         var targets = new List<PlayerInputTarget>();
 
         foreach (CreatureView creature in view.Creatures(world))
         {
-            if (world.CreatureById(creature.Id)?.InHand != false) continue;
+            if (world.CreatureById(creature.Id)?.InHand != false)
+            {
+                continue;
+            }
+
             targets.Add(new PlayerInputTarget(PlayerInputTargetKind.Creature, creature.Id, creature.Tile,
                 Own: world.CreatureById(creature.Id)!.OwnerPlayerId == playerId));
         }
@@ -161,14 +187,25 @@ public sealed class PlayerInputSnapshot
         foreach (ObjectView instance in view.Objects(world))
         {
             ObjectState? thing = world.ObjectById(instance.Id);
-            if (thing is null || thing.InHand || thing.CarriedByCreatureId >= 0) continue;
-            if (database is not null && !HandRules.MayReachObject(world, database, thing, playerId)) continue;
+            if (thing is null || thing.InHand || thing.CarriedByCreatureId >= 0)
+            {
+                continue;
+            }
+
+            if (database is not null && !HandRules.MayReachObject(world, database, thing, playerId))
+            {
+                continue;
+            }
+
             if (database?.ObjectById(thing.ObjectTypeId)?.IsSpecial == true)
             {
                 // Hand_Click's object arm (0x00407AD5): a special is activated, only from a tile its
                 // keeper owns; its +0x74 predicate (object +0x146 bit 1) is not mirrored.
                 if (world.TileAtIndex(thing.TileIndex).OwnerPlayerId == playerId)
+                {
                     targets.Add(new PlayerInputTarget(PlayerInputTargetKind.Special, instance.Id, instance.Tile, TypeId: thing.ObjectTypeId));
+                }
+
                 continue;
             }
             targets.Add(new PlayerInputTarget(
@@ -177,10 +214,16 @@ public sealed class PlayerInputSnapshot
 
         // The store piles, drawn from the tiles' gold: liftable from the keeper's own stores only.
         if (database is not null && world.HasPlayer(playerId))
+        {
             foreach (ObjectView pile in view.Decorations(world))
+            {
                 if (WorldView.IsStorePile(pile.Id) && HandRules.MayReachStoreGold(world, pile.Tile, playerId)
                     && HandRules.CanPickUpStoreGold(world, database, pile.Tile, playerId))
+                {
                     targets.Add(new PlayerInputTarget(PlayerInputTargetKind.StoreGold, pile.Id, pile.Tile, pile.Tile));
+                }
+            }
+        }
 
         ExcavationTarget? excavation = null;
         if (pointerTile is TilePos at && world.Contains(at) && database is not null)
@@ -189,7 +232,9 @@ public sealed class PlayerInputSnapshot
             bool tagged = tile.IsTaggedBy(playerId);
             if (tagged || (world.FogOfWarEnabled && !tile.IsDiscoveredBy(playerId))
                 || database.TerrainById(tile.TerrainId).IsTaggable)
+            {
                 excavation = new ExcavationTarget(at, tagged);
+            }
         }
         return new PlayerInputSnapshot(isHolding, targets, excavation);
     }
@@ -217,7 +262,11 @@ public sealed class PlayerInputTranslator
     /// returns the panel to the hand, since targeting lasts only while the hand is the tool.</summary>
     public PlayerCommand? ActivateStoredSpecial(PlayerId playerId, int objectId, byte typeId)
     {
-        if (!SpecialTargeting.Needs(typeId)) return new ActivateSpecialCommand(playerId, objectId);
+        if (!SpecialTargeting.Needs(typeId))
+        {
+            return new ActivateSpecialCommand(playerId, objectId);
+        }
+
         _drag = null;
         Targeting = new SpecialTargeting(objectId, typeId);
         return null;
@@ -230,9 +279,17 @@ public sealed class PlayerInputTranslator
     /// lasts only under the hand, so on null <paramref name="panel"/> returns to the hand and the host resets its tool too.</summary>
     public PlayerCommand? ChooseStoredSpecial(PlayerId playerId, int objectId, byte typeId, BottomPanelView panel)
     {
-        if (panel is null) throw new ArgumentNullException(nameof(panel));
+        if (panel is null)
+        {
+            throw new ArgumentNullException(nameof(panel));
+        }
+
         CancelPointerGesture();
-        if (ActivateStoredSpecial(playerId, objectId, typeId) is PlayerCommand command) return command;
+        if (ActivateStoredSpecial(playerId, objectId, typeId) is PlayerCommand command)
+        {
+            return command;
+        }
+
         panel.SelectTool(PlayerToolMode.Hand);
         return null;
     }
@@ -249,13 +306,24 @@ public sealed class PlayerInputTranslator
     public void SelectTool(PlayerId playerId, PlayerToolMode tool)
     {
         // Choosing a tool cancels the pending one first (Hud_CancelSelectedTool 0x004094C0).
-        if (tool != PlayerToolMode.Hand) Targeting = null;
-        if (_drag is DragStart drag && (drag.PlayerId != playerId || drag.Tool != tool)) _drag = null;
+        if (tool != PlayerToolMode.Hand)
+        {
+            Targeting = null;
+        }
+
+        if (_drag is DragStart drag && (drag.PlayerId != playerId || drag.Tool != tool))
+        {
+            _drag = null;
+        }
     }
 
     public InputFrame Translate(in PlayerIntent intent, PlayerInputSnapshot snapshot)
     {
-        if (snapshot is null) throw new ArgumentNullException(nameof(snapshot));
+        if (snapshot is null)
+        {
+            throw new ArgumentNullException(nameof(snapshot));
+        }
+
         SelectTool(intent.PlayerId, intent.Tool);
         if (intent.PointerOverHud)
         {
@@ -279,7 +347,10 @@ public sealed class PlayerInputTranslator
             if (intent.PointerTile is not TilePos at
                 || TargetAt(snapshot.Targets, at, PlayerInputTargetKind.Creature) is not PlayerInputTarget creature
                 || !pending.Accepts(creature))
+            {
                 return InputFrame.Empty;
+            }
+
             Targeting = null;
             return InputFrame.Of(new ActivateSpecialCommand(intent.PlayerId, pending.ObjectId, creature.Id));
         }
@@ -314,8 +385,10 @@ public sealed class PlayerInputTranslator
                 if (command is null && intent.Tool == PlayerToolMode.Hand
                     && snapshot.Excavation is ExcavationTarget excavation
                     && intent.PointerTile == excavation.Tile)
+                {
                     _drag = new DragStart(intent.PlayerId, intent.Tool, excavation.Tile,
                         intent.RoomId, !excavation.IsTagged);
+                }
             }
         }
 
@@ -371,32 +444,47 @@ public sealed class PlayerInputTranslator
 
     private static PlayerCommand? Click(in PlayerIntent intent, PlayerInputSnapshot snapshot)
     {
-        if (intent.PointerTile is not TilePos tile) return null;
+        if (intent.PointerTile is not TilePos tile)
+        {
+            return null;
+        }
 
         // Action 54 carries the cast's 12.12 X/Y (imp-create-position.md); a pointer with no
         // ground point falls back to the tile centre.
         if (intent.Tool == PlayerToolMode.CreateImp)
+        {
             return new CreateImpCommand(intent.PlayerId, intent.PointerPosition
                 ?? new FpPosition2(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y))));
+        }
 
         if (intent.Tool == PlayerToolMode.Hand)
         {
             PlayerInputTarget? creature = TargetAt(
                 snapshot.Targets, tile, PlayerInputTargetKind.Creature);
             if (creature is PlayerInputTarget c)
+            {
                 return new PickUpCreatureCommand(intent.PlayerId, c.Id);
+            }
 
             if (TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.Special) is PlayerInputTarget special)
+            {
                 return new ActivateSpecialCommand(intent.PlayerId, special.Id);
+            }
 
             // Hand_Click (0x004075E0), mode 0, hover kind 5: the press posts action 93 for the hovered door,
             // which the handler (0x00513800) toggles for its owner only.
             if (TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.Door) is PlayerInputTarget door)
+            {
                 return new LockDoorCommand(intent.PlayerId, door.Tile);
+            }
 
             PlayerInputTarget? instance = TargetAt(
                 snapshot.Targets, tile, PlayerInputTargetKind.Object);
-            if (instance is PlayerInputTarget o) return new PickUpObjectCommand(intent.PlayerId, o.Id);
+            if (instance is PlayerInputTarget o)
+            {
+                return new PickUpObjectCommand(intent.PlayerId, o.Id);
+            }
+
             return TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.StoreGold) is PlayerInputTarget g
                 ? new PickUpStoreGoldCommand(intent.PlayerId, g.Origin)
                 : null;
@@ -416,10 +504,17 @@ public sealed class PlayerInputTranslator
 
     private static PlayerCommand? SecondaryClick(in PlayerIntent intent, PlayerInputSnapshot snapshot)
     {
-        if (intent.Tool != PlayerToolMode.Hand || intent.PointerTile is not TilePos tile) return null;
+        if (intent.Tool != PlayerToolMode.Hand || intent.PointerTile is not TilePos tile)
+        {
+            return null;
+        }
+
         PlayerInputTarget? creature = TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.Creature);
         if (snapshot.IsHolding)
+        {
             return new DropCommand(intent.PlayerId, tile, creature?.Id ?? 0, intent.PointerPosition);
+        }
+
         return creature is PlayerInputTarget c ? new SlapCreatureCommand(intent.PlayerId, c.Id) : null;
     }
 
@@ -431,7 +526,10 @@ public sealed class PlayerInputTranslator
         for (int i = 0; i < targets.Count; i++)
         {
             PlayerInputTarget target = targets[i];
-            if (target.Kind == kind && target.Tile == tile) return target;
+            if (target.Kind == kind && target.Tile == tile)
+            {
+                return target;
+            }
         }
 
         return null;

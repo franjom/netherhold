@@ -51,7 +51,11 @@ public sealed class BattleFlyIn
     /// tablet at <paramref name="startX"/>, <paramref name="startY"/> bound for the blades' centre.</summary>
     public bool Start(double now, float startX, float startY, float targetX, float targetY)
     {
-        if (Running) return false;
+        if (Running)
+        {
+            return false;
+        }
+
         Sounds.Add(new SoundRequest(Category, new SoundId(StartSound)));
         Running = true;
         _tablet.Start(startX, startY, StartScale, targetX, targetY, now + WaitMilliseconds);
@@ -61,7 +65,11 @@ public sealed class BattleFlyIn
     /// <summary>Starts from the viewport-relative position and takes the blades' centre in screen pixels.</summary>
     public bool Start(double now, HudScreen screen, Vector2 targetPixels)
     {
-        if (screen.Width <= 0 || screen.Height <= 0) return false;
+        if (screen.Width <= 0 || screen.Height <= 0)
+        {
+            return false;
+        }
+
         float unit = screen.Height / TabletDrawList.ReferenceHeight;
         return Start(now, StartReferenceX / HudScreen.ReferenceWidth * screen.Width / unit,
             StartReferenceY * screen.Scale / unit, targetPixels.X / unit, targetPixels.Y / unit);
@@ -72,7 +80,11 @@ public sealed class BattleFlyIn
     /// the tablet is to be drawn now and <see cref="EndFrame"/> called after.</summary>
     public bool BeginFrame(double now, bool guiShown, bool letterboxed, bool paused, ReadOnlySpan<Vector3> points, Random random)
     {
-        if (!Running || !guiShown || letterboxed || paused) return false;
+        if (!Running || !guiShown || letterboxed || paused)
+        {
+            return false;
+        }
+
         _tablet.Spawn(now, points, random);
         return true;
     }
@@ -82,7 +94,11 @@ public sealed class BattleFlyIn
     public void EndFrame(double now)
     {
         _tablet.Step(now);
-        if (!_tablet.Done) return;
+        if (!_tablet.Done)
+        {
+            return;
+        }
+
         Sounds.Add(new SoundRequest(Category, new SoundId(EndSound)));
         Running = false;
     }
