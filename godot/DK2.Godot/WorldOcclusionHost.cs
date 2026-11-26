@@ -20,7 +20,11 @@ public partial class WorldOcclusionHost : Node
     }
     public override void _ExitTree()
     {
-        if (_camera != null && _camera.Compositor == _compositor) _camera.Compositor = null;
+        if (_camera != null && _camera.Compositor == _compositor)
+        {
+            _camera.Compositor = null;
+        }
+
         _effect?.Release();
         _compositor?.Dispose();
         _effect?.Dispose();

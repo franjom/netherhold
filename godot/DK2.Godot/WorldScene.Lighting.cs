@@ -98,8 +98,14 @@ public partial class WorldScene
     /// globals is for the editor only.</summary>
     private static void Global(StringName name, RenderingServer.GlobalShaderParameterType type, Variant value)
     {
-        if (s_globals.Add(name.ToString())) RenderingServer.GlobalShaderParameterAdd(name, type, value);
-        else RenderingServer.GlobalShaderParameterSet(name, value);
+        if (s_globals.Add(name.ToString()))
+        {
+            RenderingServer.GlobalShaderParameterAdd(name, type, value);
+        }
+        else
+        {
+            RenderingServer.GlobalShaderParameterSet(name, value);
+        }
     }
 
     private static readonly HashSet<string> s_globals = new();
@@ -120,7 +126,11 @@ public partial class WorldScene
 
     private void SetTorchLight(int floorTileIndex, in TorchView? torch)
     {
-        if (_worldLights == null || _lightWorld == null) return;
+        if (_worldLights == null || _lightWorld == null)
+        {
+            return;
+        }
+
         var tile = new TilePos(floorTileIndex % _lightWorld.Width, floorTileIndex / _lightWorld.Width);
         ClassicPointLight? light = torch is TorchView lit && !ProbeWithoutTorches ? ClassicPointLight.FromTorch(lit, _torchFlags) : null;
         _worldLights.SetTorch(tile, light);
@@ -134,7 +144,11 @@ public partial class WorldScene
     private void PrepareLighting()
     {
         if (_lightPublisher == null || _worldLights == null || _lightTables == null || _lightView == null || _lightWorld == null
-            || View == null) return;
+            || View == null)
+        {
+            return;
+        }
+
         long started = System.Diagnostics.Stopwatch.GetTimestamp(), before = GC.GetAllocatedBytesForCurrentThread();
         var now = new EffectTime(_frameMilliseconds);
         _lightPublisher.PublishPortalLights(_lightView.PortalLightTiles(_lightWorld), now);
@@ -211,7 +225,11 @@ public partial class WorldScene
             var layers = new Godot.Collections.Array<Image>();
             for (int y = 0; y < height; y++)
             {
-                for (int x = 0; x < width; x++) _texels[Base(x, y) + 1] = 1f;
+                for (int x = 0; x < width; x++)
+                {
+                    _texels[Base(x, y) + 1] = 1f;
+                }
+
                 layers.Add(Image.CreateFromData(_layerWidth, _layerHeight, false, Image.Format.Rgbaf,
                     MemoryMarshal.AsBytes(_texels.AsSpan(y * _rowFloats, _rowFloats)).ToArray()));
             }
@@ -242,15 +260,28 @@ public partial class WorldScene
                         | Write(texel + 4, source.Colour.X) | Write(texel + 5, source.Colour.Y) | Write(texel + 6, source.Colour.Z)
                         | Write(texel + 7, source.IntensityFlags);
                 }
-                else for (int i = 0; i < 8; i++) changed |= Write(texel + i, 0f);
+                else
+                {
+                    for (int i = 0; i < 8; i++)
+                    {
+                        changed |= Write(texel + i, 0f);
+                    }
+                }
             }
-            if (changed) MarkDirty(y);
+            if (changed)
+            {
+                MarkDirty(y);
+            }
         }
 
         public void Remove(TilePos tile)
         {
             int at = Base(tile.X, tile.Y);
-            if (_texels[at] == 0f) return;
+            if (_texels[at] == 0f)
+            {
+                return;
+            }
+
             _texels[at] = 0f;
             Array.Clear(_texels, at + 4, ClassicLightTable.MaximumSources * 8);
             MarkDirty(tile.Y);
@@ -259,17 +290,28 @@ public partial class WorldScene
         public void SetFill(int tileIndex, bool lit)
         {
             int y = tileIndex / _width;
-            if (Write(Base(tileIndex % _width, y) + 1, lit ? 1f : 0f)) MarkDirty(y);
+            if (Write(Base(tileIndex % _width, y) + 1, lit ? 1f : 0f))
+            {
+                MarkDirty(y);
+            }
         }
 
         public void Flush()
         {
-            if (!_anyDirty) return;
+            if (!_anyDirty)
+            {
+                return;
+            }
+
             _anyDirty = false;
             long started = System.Diagnostics.Stopwatch.GetTimestamp();
             for (int y = 0; y < _height; y++)
             {
-                if (!_dirty[y]) continue;
+                if (!_dirty[y])
+                {
+                    continue;
+                }
+
                 _dirty[y] = false;
                 _row.SetData(_layerWidth, _layerHeight, false, Image.Format.Rgbaf,
                     MemoryMarshal.AsBytes(new ReadOnlySpan<float>(_texels, y * _rowFloats, _rowFloats)));
@@ -283,7 +325,11 @@ public partial class WorldScene
 
         private bool Write(int index, float value)
         {
-            if (_texels[index] == value) return false;
+            if (_texels[index] == value)
+            {
+                return false;
+            }
+
             _texels[index] = value;
             return true;
         }
@@ -301,7 +347,11 @@ public partial class WorldScene
     public void SetBrightness(float? exponent)
     {
         float value = exponent ?? 1f;
-        if (_camera == null || value == _brightness) return;
+        if (_camera == null || value == _brightness)
+        {
+            return;
+        }
+
         _brightness = value;
         _camera.Environment.AdjustmentColorCorrection = GammaTable(value);
     }

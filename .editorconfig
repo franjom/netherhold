@@ -97,3 +97,7 @@ dotnet_diagnostic.IDE0011.severity = warning
 [src/DK2.Harness/**.cs]
 csharp_prefer_braces = true
 dotnet_diagnostic.IDE0011.severity = warning
+
+[godot/DK2.Godot/**.cs]
+csharp_prefer_braces = true
+dotnet_diagnostic.IDE0011.severity = warning

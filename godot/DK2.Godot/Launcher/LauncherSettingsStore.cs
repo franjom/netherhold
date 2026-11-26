@@ -20,7 +20,11 @@ public static class LauncherSettingsStore
 
     public static LauncherSettings Current(IReadOnlyList<string> args)
     {
-        if (s_settings != null) return s_settings;
+        if (s_settings != null)
+        {
+            return s_settings;
+        }
+
         string path = PathFor(args);
         try { s_settings = LauncherSettingsFile.Load(path); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -53,7 +57,11 @@ public static class LauncherSettingsStore
     public static string? NamedInstall(IReadOnlyList<string> args)
     {
         string? environment = System.Environment.GetEnvironmentVariable("DK2_DIR");
-        if (!string.IsNullOrWhiteSpace(environment)) return environment;
+        if (!string.IsNullOrWhiteSpace(environment))
+        {
+            return environment;
+        }
+
         string? named = LaunchArguments.Value(args, "--dk2Install");
         return string.IsNullOrWhiteSpace(named) ? null : named;
     }

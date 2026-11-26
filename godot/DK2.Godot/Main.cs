@@ -70,8 +70,16 @@ public partial class Main : Node, IDevOverlayHost
         }
         int skipAt = Array.IndexOf(args, "--movie-skip-frame");
         if (skipAt >= 0 && skipAt + 1 < args.Length)
+        {
             foreach (string frame in args[skipAt + 1].Split(','))
-                if (int.TryParse(frame, out int at)) _skipFrames.Add(at);
+            {
+                if (int.TryParse(frame, out int at))
+                {
+                    _skipFrames.Add(at);
+                }
+            }
+        }
+
         int movieAt = Array.IndexOf(args, "--play-movie");
         if (movieAt >= 0 && movieAt + 1 < args.Length)
         {
@@ -139,8 +147,15 @@ public partial class Main : Node, IDevOverlayHost
 
     public override void _Process(double delta)
     {
-        if (_frame == _quitFrame) GetTree().Quit();
-        if (!_skipFrames.Contains(_frame++)) return;
+        if (_frame == _quitFrame)
+        {
+            GetTree().Quit();
+        }
+
+        if (!_skipFrames.Contains(_frame++))
+        {
+            return;
+        }
         // Through Godot's input like a real press; the OS cursor and keyboard are not touched.
         Input.ParseInputEvent(new InputEventKey { Keycode = Key.Escape, Pressed = true });
         Input.ParseInputEvent(new InputEventKey { Keycode = Key.Escape, Pressed = false });

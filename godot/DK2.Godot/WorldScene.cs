@@ -167,7 +167,9 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _presenter = new ScenePresenter(view, AssetProviderChain.Standard(install: _art), this, new TorchLayout(level.Database));
         _presenter.Present(world);
         for (int generation = 0; generation < _collectionsAtOpen.Length; generation++)
+        {
             _collectionsAtOpen[generation] = GC.CollectionCount(generation);
+        }
     }
 
     /// <summary>Place the scene's camera with the default near plane, gamma output and post effects.</summary>
@@ -192,7 +194,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// Drawn at the next <see cref="PlaceCamera"/>.</summary>
     public void SetPanelCollapsed(bool collapsed)
     {
-        if (ClassicCamera == null) return;
+        if (ClassicCamera == null)
+        {
+            return;
+        }
+
         ClassicCamera.ProjectionCentre = ClassicCamera.ProjectionCentreFromTop(
             collapsed ? ClassicCamera.CollapsedPanelTop : ClassicCamera.ExpandedPanelTop);
     }
@@ -214,7 +220,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     {
         if (_blended == null || PreviewPose is not ClassicCameraPose pose)
         {
-            foreach (RunSlot slot in _previewRunSlots) slot.Hide();
+            foreach (RunSlot slot in _previewRunSlots)
+            {
+                slot.Hide();
+            }
+
             return;
         }
         var frustum = ViewFrustum.FromPose(pose, PreviewViewport.Width / (float)PreviewViewport.Height, .05f);
@@ -223,22 +233,42 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _previewItems.Order.ClearRuns();
         foreach (BlendedRunSlot<ShaderMaterial> run in _previewRunKeys.Drawn)
         {
-            if (!run.TagOverlay) _previewItems.Order.AddRun(run.Distance);
+            if (!run.TagOverlay)
+            {
+                _previewItems.Order.AddRun(run.Distance);
+            }
+
             while (_previewRunSlots.Count <= run.Id)
+            {
                 _previewRunSlots.Add(new RunSlot(GetWorld3D().Scenario, _worldBox, PreviewBlendedLayer));
+            }
+
             _previewRunSlots[run.Id].Show(run, _previewRunKeys.Vertices, pose.Position.Length(), _runScratch);
         }
         for (int i = 0; i < _previewRunSlots.Count; i++)
-            if (!_previewRunKeys.Slots[i].Drawn) _previewRunSlots[i].Hide();
+        {
+            if (!_previewRunKeys.Slots[i].Drawn)
+            {
+                _previewRunSlots[i].Hide();
+            }
+        }
     }
 
     public void PlaceCamera()
     {
-        if (_camera == null || (ClassicCamera == null && FrontEndPose == null)) return;
+        if (_camera == null || (ClassicCamera == null && FrontEndPose == null))
+        {
+            return;
+        }
+
         _camera.CullMask = uint.MaxValue & ~PreviewBlendedLayer;
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         var viewport = new CameraViewport(width, width, height);
         if (ClassicCamera == null)
         {
@@ -250,10 +280,17 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         ClassicCameraPose? held = PossessionPose(drawnViewport);
         ClassicCameraPose pose = held ?? ClassicCamera.Pose(Focus, drawnViewport);
         if (ScriptedView?.Pose is CameraPathPose path)
+        {
             pose = new ClassicCameraPose(path.Position, path.Forward, path.Up,
                 path.VerticalFieldOfView(width, Math.Max(1, (int)(height * (1 - 2 * LetterboxBar)))),
                 path.ViewDistance, 0, 0);
-        if (ScriptedView != null) pose = pose with { Position = pose.Position + ScriptedView.RenderCameraJitter };
+        }
+
+        if (ScriptedView != null)
+        {
+            pose = pose with { Position = pose.Position + ScriptedView.RenderCameraJitter };
+        }
+
         if (LetterboxBar > 0)
         {
             float scale = 1 - 2 * LetterboxBar;
@@ -270,7 +307,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// centre shift as its offset, the far plane, and the view the picks and the minimap read.</summary>
     private void PlacePose(in ClassicCameraPose pose, CameraViewport viewport, float near)
     {
-        if (_camera == null || (View != null && pose == _placed && viewport == _placedViewport)) return;
+        if (_camera == null || (View != null && pose == _placed && viewport == _placedViewport))
+        {
+            return;
+        }
+
         _near = near;
         _camera.Near = _near;
         _placed = pose; _placedViewport = viewport;
@@ -301,8 +342,16 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     public bool TryPickRay(Vector2 screen, out NVector3 origin, out NVector3 direction)
     {
         origin = direction = default;
-        if (View is not MinimapCameraView view || _placedViewport.Height <= 0) return false;
-        if (screen.Y < _placedViewport.Height * LetterboxBar || screen.Y >= _placedViewport.Height * (1 - LetterboxBar)) return false;
+        if (View is not MinimapCameraView view || _placedViewport.Height <= 0)
+        {
+            return false;
+        }
+
+        if (screen.Y < _placedViewport.Height * LetterboxBar || screen.Y >= _placedViewport.Height * (1 - LetterboxBar))
+        {
+            return false;
+        }
+
         origin = view.Position;
         direction = view.RayDirection(screen.X / _placedViewport.Width, 1f - screen.Y / _placedViewport.Height);
         return true;
@@ -312,7 +361,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// camera; null hides it. Allocation-free once its buffers have grown.</summary>
     public void DrawCage(TileRectangle? area, bool blue, long milliseconds)
     {
-        if (_cage == null) return;
+        if (_cage == null)
+        {
+            return;
+        }
+
         if (area is not TileRectangle shown || View is not MinimapCameraView view) { _cage.Hide(); return; }
         _cage.Show(shown, blue, view.Position, _lattice, milliseconds);
     }
@@ -339,7 +392,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// later present within the flush budget. Counts what it allocates, reported when the node leaves the tree.</summary>
     public void Present(WorldState world, double seconds)
     {
-        if (_presenter == null || _terrain == null) return;
+        if (_presenter == null || _terrain == null)
+        {
+            return;
+        }
+
         _seconds = (float)seconds;
         ChunkFlushMilliseconds = 0;
         _changed = _terrain.PendingChunks > 0;
@@ -381,7 +438,10 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _changed = true;
         _terrainOverlaySurface.Reset(default);
         _blendedVertices.Clear();
-        foreach (List<int> list in _blendedByMaterial.Values) list.Clear();
+        foreach (List<int> list in _blendedByMaterial.Values)
+        {
+            list.Clear();
+        }
     }
 
     void ITerrainChunkSink.AddTile(int tileIndex, TerrainTileGeometry geometry) => GatherTile(geometry);
@@ -393,7 +453,13 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         UploadTerrainOverlayChunk(chunk);
         _blended!.BeginChunk(chunk, _blendedVertices);
         foreach (KeyValuePair<ShaderMaterial, List<int>> entry in _blendedByMaterial)
-            if (entry.Value.Count != 0) _blended.AddChunkTriangles(entry.Key, entry.Value);
+        {
+            if (entry.Value.Count != 0)
+            {
+                _blended.AddChunkTriangles(entry.Key, entry.Value);
+            }
+        }
+
         _blended.EndChunk();
         UploadChunkSurfaces(chunk);
     }
@@ -424,12 +490,21 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 {
                     blendedStart = _blendedVertices.Count;
                     for (int i = 0; i < geometry.VertexCount; i++)
+                    {
                         _blendedVertices.Add(new BlendedVertex(geometry.Positions[i], geometry.Normals[i], geometry.Uvs[i],
                             geometry.LightAnchor, VertexColour.White) { StateSources = geometry.StateSources[i] });
+                    }
                 }
-                if (!_blendedByMaterial.TryGetValue(material, out List<int>? list)) _blendedByMaterial.Add(material, list = new List<int>());
+                if (!_blendedByMaterial.TryGetValue(material, out List<int>? list))
+                {
+                    _blendedByMaterial.Add(material, list = new List<int>());
+                }
+
                 TerrainIndexList triangles = geometry.Triangles[s];
-                for (int i = 0; i < triangles.Count; i++) list.Add(blendedStart + triangles.Items[i]);
+                for (int i = 0; i < triangles.Count; i++)
+                {
+                    list.Add(blendedStart + triangles.Items[i]);
+                }
             }
         }
     }
@@ -437,7 +512,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// <summary>The material a key draws with, shared by keys with the same look and sight-fog semantics.</summary>
     private ShaderMaterial MaterialFor(in TerrainMaterialKey key)
     {
-        if (_keyMaterials.TryGetValue(key, out ShaderMaterial? material)) return material;
+        if (_keyMaterials.TryGetValue(key, out ShaderMaterial? material))
+        {
+            return material;
+        }
+
         var look = TerrainMaterialLook.For(key);
         (TerrainMaterialLook look, bool) shaderKey = (look, key.Variant == TerrainMaterialVariant.Fog);
         if (!_lookMaterials.TryGetValue(shaderKey, out material))
@@ -446,11 +525,18 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             ConfigureTerrainMaterial(material, key, look);
             _lookMaterials.Add(shaderKey, material);
             // Every non-opaque look goes to the transparent queue.
-            if (look.Blend != KmfBlend.Opaque) _blendedMaterials.Add(material);
+            if (look.Blend != KmfBlend.Opaque)
+            {
+                _blendedMaterials.Add(material);
+            }
         }
         // The dig tag and tutorial additive pass draw with the opaque base
         // before every depth-sorted triangle (tag-highlight.md section 3), so before every other blended thing here.
-        if (key.IsOverlay) _overlayMaterials.Add(material);
+        if (key.IsOverlay)
+        {
+            _overlayMaterials.Add(material);
+        }
+
         _keyMaterials.Add(key, material);
         return material;
     }
@@ -498,15 +584,25 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private Shader ShaderFor(int state)
     {
         int mode = WorldLightMode;
-        if (s_worldShaders[mode, state] is Shader shader) return shader;
-        if (mode == 0) shader = GD.Load<Shader>(WorldShaderPaths[state]);
+        if (s_worldShaders[mode, state] is Shader shader)
+        {
+            return shader;
+        }
+
+        if (mode == 0)
+        {
+            shader = GD.Load<Shader>(WorldShaderPaths[state]);
+        }
         else
         {
             // The file's text, not its resource, so the per-vertex shader is not compiled as well.
             string code = Godot.FileAccess.GetFileAsString(WorldShaderPaths[state]);
             string defines = mode == 2 ? "#define DK2_PER_PIXEL\n#define DK2_TORCH_SHADOWS\n" : "#define DK2_PER_PIXEL\n";
             if (!code.Contains(LightModeMarker, StringComparison.Ordinal))
+            {
                 GD.PushError("DK2.Godot: ", WorldShaderPaths[state], " has no light-mode line; it draws with the per-vertex light.");
+            }
+
             shader = new Shader { Code = code.Replace(LightModeMarker, defines + LightModeMarker, StringComparison.Ordinal) };
         }
         s_worldShaders[mode, state] = shader;
@@ -531,7 +627,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         material.SetShaderParameter(AlbedoParameter, TextureFor(texture));
         material.SetShaderParameter(ColourParameter, new Color(colour.X, colour.Y, colour.Z, colour.W));
         material.SetShaderParameter(AddedLightParameter, ToGodot(addedLight));
-        if (fullLight) material.SetShaderParameter(FullLightParameter, true);
+        if (fullLight)
+        {
+            material.SetShaderParameter(FullLightParameter, true);
+        }
+
         return material;
     }
 
@@ -593,10 +693,18 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// and uploads what changed (<see cref="RunSlot"/>); times the frames that re-sort.</summary>
     private void DrawBlended()
     {
-        if (_blended == null || _camera == null || View is not MinimapCameraView view) return;
+        if (_blended == null || _camera == null || View is not MinimapCameraView view)
+        {
+            return;
+        }
+
         ViewFrustum frustum = PlacedFrustum;
         var forward = NVector3.Normalize(_placed.Forward);
-        if (!_blended.NeedsRefresh(forward, NMatrix4x4.Identity, frustum.ViewProjection)) return;
+        if (!_blended.NeedsRefresh(forward, NMatrix4x4.Identity, frustum.ViewProjection))
+        {
+            return;
+        }
+
         long start = Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
         _blended.Refresh(forward, NMatrix4x4.Identity, frustum);
         // The stream is in the renderers' frame, the camera's distances the same in Godot's (a reflection keeps them).
@@ -608,31 +716,58 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         for (int i = 0; i < drawn.Count; i++)
         {
             BlendedRunSlot<ShaderMaterial> run = drawn[i];
-            while (_runSlots.Count <= run.Id) _runSlots.Add(new RunSlot(GetWorld3D().Scenario, _worldBox));
+            while (_runSlots.Count <= run.Id)
+            {
+                _runSlots.Add(new RunSlot(GetWorld3D().Scenario, _worldBox));
+            }
+
             _blendedUploadBytes += _runSlots[run.Id].Show(run, _runKeys.Vertices, eyeDistance, _runScratch);
             triangles += run.IndexCount / 3;
         }
         IReadOnlyList<BlendedRunSlot<ShaderMaterial>> slots = _runKeys.Slots;
         for (int i = 0; i < _runSlots.Count; i++)
-            if (!slots[i].Drawn) _runSlots[i].Hide();
+        {
+            if (!slots[i].Drawn)
+            {
+                _runSlots[i].Hide();
+            }
+        }
+
         _blendedUploadTriangles += triangles;
         long ticks = Stopwatch.GetTimestamp() - start, bytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
         _blendedMaxRuns = Math.Max(_blendedMaxRuns, drawn.Count);
         _blendedMaxTriangles = Math.Max(_blendedMaxTriangles, triangles);
-        if (_blendedFirstTicks < 0) _blendedFirstTicks = ticks;
+        if (_blendedFirstTicks < 0)
+        {
+            _blendedFirstTicks = ticks;
+        }
         else
         {
             _blendedTicks += ticks;
             _blendedMaxTicks = Math.Max(_blendedMaxTicks, ticks);
         }
-        if (_blendedRefreshes++ < BlendedWarmUp) _blendedWarmUpBytes += bytes;
-        else _blendedLateBytes += bytes;
+        if (_blendedRefreshes++ < BlendedWarmUp)
+        {
+            _blendedWarmUpBytes += bytes;
+        }
+        else
+        {
+            _blendedLateBytes += bytes;
+        }
     }
 
     private Texture2D TextureFor(string name)
     {
-        if (name.Length == 0) return _white!;
-        if (_textures.TryGetValue(name, out Texture2D? texture)) return texture;
+        if (name.Length == 0)
+        {
+            return _white!;
+        }
+
+        if (_textures.TryGetValue(name, out Texture2D? texture))
+        {
+            return texture;
+        }
+
         try
         {
             RgbaImage source = _art!.LoadTexture(name);
@@ -657,9 +792,14 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     public override void _ExitTree()
     {
-        if (_camera != null) GetViewport().SizeChanged -= PlaceCamera;
+        if (_camera != null)
+        {
+            GetViewport().SizeChanged -= PlaceCamera;
+        }
+
         _terrain?.JoinBuild();
         if (_presenter != null)
+        {
             GD.Print("DK2.Godot world: ", _steadyFrames, " frames without a terrain change allocated ", _steadyBytes,
                 " B in Present, ", _changeFrames, " with one ", _changeBytes, " B; collections when the level opened ",
                 _collectionsAtOpen[0], "/", _collectionsAtOpen[1], "/", _collectionsAtOpen[2], " (gen0/1/2), since then: ",
@@ -670,12 +810,22 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 Milliseconds(_blendedMaxTicks), " ms max; allocated ", _blendedWarmUpBytes, " B in the first ", BlendedWarmUp,
                 " and ", _blendedLateBytes, " B after; up to ", _blendedMaxRuns, " runs and ", _blendedMaxTriangles, " triangles, ", _runSlots.Count,
                 " run instances; uploaded ", _blendedUploadBytes, " B for ", _blendedUploadTriangles, " triangles drawn");
+        }
+
         FreeChunkUpload();
         FreeEffects();
         FreeCreatureShadows();
         FreeObjects();
-        foreach (RunSlot slot in _previewRunSlots) slot.Free();
-        foreach (RunSlot slot in _runSlots) slot.Free();
+        foreach (RunSlot slot in _previewRunSlots)
+        {
+            slot.Free();
+        }
+
+        foreach (RunSlot slot in _runSlots)
+        {
+            slot.Free();
+        }
+
         _runSlots.Clear();
         _cage?.Free();
         _cage = null;
@@ -721,8 +871,16 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
         public void Show(WorldScene scene, int frame)
         {
-            if (_version != wave.Version) Rebuild(scene);
-            if (_material == null || frame == _frame) return;
+            if (_version != wave.Version)
+            {
+                Rebuild(scene);
+            }
+
+            if (_material == null || frame == _frame)
+            {
+                return;
+            }
+
             _frame = frame;
             _material.SetShaderParameter(LiquidFrameParameter, frame);
         }
@@ -732,7 +890,10 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             _version = wave.Version;
             _mesh?.ClearSurfaces();
             int count = wave.VertexCount;
-            if (count == 0) return;
+            if (count == 0)
+            {
+                return;
+            }
             // The positions only bound the mesh (the shader places every vertex): the wave at frame 0, from SetTiles.
             var positions = new Vector3[count];
             var uvs = new Vector2[count];
@@ -807,7 +968,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         {
             TileHoverOutline.Build(_ribbon, area, blue, eye, lattice, milliseconds);
             int count = _ribbon.IndexCount;
-            if (count > _capacity) Grow(count);
+            if (count > _capacity)
+            {
+                Grow(count);
+            }
+
             if (count == 0) { Hide(); return; }
             int vertexCount = Math.Max(count, _written);
             Span<float> positions = MemoryMarshal.Cast<byte, float>(_positions.AsSpan(0, vertexCount * PositionStride));
@@ -846,7 +1011,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
         public void Hide()
         {
-            if (!_visible) return;
+            if (!_visible)
+            {
+                return;
+            }
+
             RenderingServer.InstanceSetVisible(_instance, false);
             _visible = false;
         }
@@ -866,11 +1035,18 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         private void Grow(int count)
         {
             int capacity = 384;
-            while (capacity < count) capacity <<= 1;
+            while (capacity < count)
+            {
+                capacity <<= 1;
+            }
+
             _capacity = capacity;
             if (RenderingServer.MeshSurfaceGetFormatVertexStride(Format, capacity) != PositionStride
                 || RenderingServer.MeshSurfaceGetFormatAttributeStride(Format, capacity) != UvStride)
+            {
                 GD.PushError("DK2.Godot: the cage's vertex layout is not positions then UVs; it draws wrong.");
+            }
+
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
             arrays[(int)Mesh.ArrayType.Vertex] = new Vector3[capacity];
@@ -949,7 +1125,10 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             }
             // The tag overlay's category, which the shared slot decides, as its material's priority.
             int priority = run.TagOverlay ? OverlayPriority : 0;
-            if (run.Material.RenderPriority != priority) run.Material.RenderPriority = priority;
+            if (run.Material.RenderPriority != priority)
+            {
+                run.Material.RenderPriority = priority;
+            }
             // Godot's depth is the origin's distance minus the offset: the run's distance. (A box centred on the run's
             // nearest centroid, which leaves Godot to measure it, measured no better on Level7 and was not kept.)
             float offset = eyeDistance - run.Distance;
@@ -966,14 +1145,26 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             }
             long bytes = 0;
             int from = all ? 0 : run.FirstNewVertex;
-            if (run.VertexCount > from) bytes += UploadVertices(run, vertices, from, scratch);
-            if (all || run.IndicesChanged) bytes += UploadIndices(run, scratch);
+            if (run.VertexCount > from)
+            {
+                bytes += UploadVertices(run, vertices, from, scratch);
+            }
+
+            if (all || run.IndicesChanged)
+            {
+                bytes += UploadIndices(run, scratch);
+            }
+
             return bytes;
         }
 
         public void Hide()
         {
-            if (!_visible) return;
+            if (!_visible)
+            {
+                return;
+            }
+
             RenderingServer.InstanceSetVisible(_instance, false);
             _visible = false;
         }
@@ -1009,7 +1200,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 // Godot's own normal encoding (_surface_set_data), then the tangent Godot built, when it holds one.
                 Vector2 o = ToGodot(RightHandedFrame.Normal(vertex.Normal)).OctahedronEncode();
                 Span<byte> slot = normals.Slice(i * _normalStride, _normalStride);
-                if (_normalStride > NormalSize) MemoryMarshal.Write(slot[(NormalSize - _normalAt)..], in s_tangent);
+                if (_normalStride > NormalSize)
+                {
+                    MemoryMarshal.Write(slot[(NormalSize - _normalAt)..], in s_tangent);
+                }
+
                 Span<ushort> normal = MemoryMarshal.Cast<byte, ushort>(slot.Slice(_normalAt, NormalSize));
                 normal[0] = (ushort)Math.Clamp(o.X * 65535f, 0f, 65535f);
                 normal[1] = (ushort)Math.Clamp(o.Y * 65535f, 0f, 65535f);
@@ -1031,12 +1226,19 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         {
             int count = Math.Max(run.IndexCount, _written);
             if (scratch.Indices.Length < count * _indexStride)
+            {
                 scratch.Indices = new byte[Math.Max(count * _indexStride, scratch.Indices.Length * 2)];
+            }
+
             ReadOnlySpan<int> indices = run.Indices;
             if (_indexStride == 2)
             {
                 Span<ushort> into = MemoryMarshal.Cast<byte, ushort>(scratch.Indices.AsSpan(0, count * 2));
-                for (int i = 0; i < indices.Length; i++) into[i] = (ushort)indices[i];
+                for (int i = 0; i < indices.Length; i++)
+                {
+                    into[i] = (ushort)indices[i];
+                }
+
                 into[indices.Length..].Clear();
             }
             else
@@ -1056,8 +1258,16 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             Grows++;
             // Room for a slot's spare vertices (BlendedRunSlot.SpareVertices) from the start, so few slots grow again.
             int vertices = Math.Max(256, _vertexCapacity), triangles = Math.Max(128, _indexCapacity / 3);
-            while (vertices < vertexCount) vertices <<= 1;
-            while (triangles * 3 < indexCount) triangles <<= 1;
+            while (vertices < vertexCount)
+            {
+                vertices <<= 1;
+            }
+
+            while (triangles * 3 < indexCount)
+            {
+                triangles <<= 1;
+            }
+
             _vertexCapacity = vertices;
             _indexCapacity = triangles * 3;
             var arrays = new Godot.Collections.Array();
@@ -1098,7 +1308,10 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 || RenderingServer.MeshSurfaceGetFormatAttributeStride(format, vertices) != UvStride
                 || RenderingServer.MeshSurfaceGetFormatOffset(format, vertices, (int)Mesh.ArrayType.Custom0) != 8
                 || (_indexStride != 2 && _indexStride != 4))
+            {
                 GD.PushError("DK2.Godot: the blended run's buffer layout is not positions, normals (and tangents), then UV and anchor, with 16 or 32-bit indices; runs draw wrong.");
+            }
+
             _written = 0;
         }
     }
@@ -1133,7 +1346,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         public void Append(TerrainTileGeometry tile, TerrainIndexList triangles, int[] remap, int[] stamp, int generation)
         {
             int[] items = triangles.Items;
-            if (_indices.Length < IndexCount + triangles.Count) Array.Resize(ref _indices, Math.Max(IndexCount + triangles.Count, _indices.Length * 2));
+            if (_indices.Length < IndexCount + triangles.Count)
+            {
+                Array.Resize(ref _indices, Math.Max(IndexCount + triangles.Count, _indices.Length * 2));
+            }
+
             for (int i = 0; i < triangles.Count; i++)
             {
                 int vertex = items[i];

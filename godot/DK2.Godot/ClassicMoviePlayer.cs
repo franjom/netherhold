@@ -52,7 +52,11 @@ public partial class ClassicMoviePlayer : Node
     {
         var player = new ClassicMoviePlayer { Name = "Movie" };
         player._movie = MoviePlayback.TryOpen(install, relativePath, out string? error);
-        if (error != null) GD.PushError("DK2.Godot movie: " + error);
+        if (error != null)
+        {
+            GD.PushError("DK2.Godot movie: " + error);
+        }
+
         parent.AddChild(player);
         return player;
     }
@@ -65,13 +69,20 @@ public partial class ClassicMoviePlayer : Node
         RenderingServer.CanvasItemSetParent(_item, _layer.GetCanvas());
         // DK2 doubles each pixel; it does not filter.
         RenderingServer.CanvasItemSetDefaultTextureFilter(_item, RenderingServer.CanvasItemTextureFilter.Nearest);
-        if (_movie == null) return;
+        if (_movie == null)
+        {
+            return;
+        }
+
         if (_movie.Width > 0)
         {
             _image = Image.CreateEmpty(_movie.Width, _movie.Height, false, Image.Format.Rgba8);
             _texture = ImageTexture.CreateFromImage(_image);
         }
-        if (_movie.HasAudio) StartAudio(_movie);
+        if (_movie.HasAudio)
+        {
+            StartAudio(_movie);
+        }
     }
 
     private void StartAudio(MoviePlayback movie)
@@ -94,7 +105,11 @@ public partial class ClassicMoviePlayer : Node
 
     private void PumpAudio(MoviePlayback movie)
     {
-        if (_playback == null) return;
+        if (_playback == null)
+        {
+            return;
+        }
+
         int room = _playback.GetFramesAvailable();
         while (room >= AudioChunk)
         {
@@ -110,15 +125,27 @@ public partial class ClassicMoviePlayer : Node
     /// sync guide does; Movie Maker mixes once a frame, so a capture leaves the wall clock out and repeats.</summary>
     private long AudioPlayed(MoviePlayback movie)
     {
-        if (_playback == null) return 0;
+        if (_playback == null)
+        {
+            return 0;
+        }
+
         long taken = _pushed - (_capacity - _playback.GetFramesAvailable());
-        if (_movieMaker) return taken;
+        if (_movieMaker)
+        {
+            return taken;
+        }
+
         return Math.Min(_pushed, taken + (long)(AudioServer.GetTimeSinceLastMix() * movie.SampleRate));
     }
 
     public override void _Input(InputEvent @event)
     {
-        if (_done || _movie == null) return;
+        if (_done || _movie == null)
+        {
+            return;
+        }
+
         MovieInput input = @event switch
         {
             InputEventKey { Pressed: true, Echo: false } key => key.Keycode switch
@@ -140,12 +167,19 @@ public partial class ClassicMoviePlayer : Node
         };
         _movie.Press(input);
         // The menu under the movie is not running; none of its input reaches it.
-        if (@event is InputEventKey or InputEventMouseButton) GetViewport().SetInputAsHandled();
+        if (@event is InputEventKey or InputEventMouseButton)
+        {
+            GetViewport().SetInputAsHandled();
+        }
     }
 
     public override void _Process(double delta)
     {
-        if (_done) return;
+        if (_done)
+        {
+            return;
+        }
+
         MoviePlayback? movie = _movie;
         if (movie == null || movie.Finished) { Finish(); return; }
         long start = Stopwatch.GetTimestamp();
@@ -169,7 +203,10 @@ public partial class ClassicMoviePlayer : Node
             _processes++;
             _allocated += GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
         }
-        if (movie.Finished) Finish();
+        if (movie.Finished)
+        {
+            Finish();
+        }
     }
 
     /// <summary>Black over the whole screen, and the picture once there is one: its shape is <see cref="MoviePlayback.DisplayAspect"/>,
@@ -177,26 +214,50 @@ public partial class ClassicMoviePlayer : Node
     private void Redraw(MoviePlayback movie)
     {
         Vector2 size = GetViewport().GetVisibleRect().Size;
-        if (size == _drawnSize && _drawnFrame == movie.HasFrame) return;
+        if (size == _drawnSize && _drawnFrame == movie.HasFrame)
+        {
+            return;
+        }
+
         _drawnSize = size;
         _drawnFrame = movie.HasFrame;
         RenderingServer.CanvasItemClear(_item);
         RenderingServer.CanvasItemAddRect(_item, new Rect2(Vector2.Zero, size), Colors.Black);
-        if (!_drawnFrame || _texture == null) return;
+        if (!_drawnFrame || _texture == null)
+        {
+            return;
+        }
+
         float aspect = movie.DisplayAspect;
         float w = size.X, h = size.Y;
-        if (w / h > aspect) w = h * aspect; else h = w / aspect;
+        if (w / h > aspect)
+        {
+            w = h * aspect;
+        }
+        else
+        {
+            h = w / aspect;
+        }
+
         RenderingServer.CanvasItemAddTextureRect(_item, new Rect2((size.X - w) * .5f, (size.Y - h) * .5f, w, h), _texture.GetRid());
     }
 
     private void Finish()
     {
-        if (_done) return;
+        if (_done)
+        {
+            return;
+        }
+
         _done = true;
         _player?.Stop();
         if (_movie != null)
         {
-            if (_movie.Failure != null) GD.PushError("DK2.Godot movie: " + _movie.Failure);
+            if (_movie.Failure != null)
+            {
+                GD.PushError("DK2.Godot movie: " + _movie.Failure);
+            }
+
             double toMs = 1000.0 / Stopwatch.Frequency;
             double upload = _uploads == 0 ? 0 : _uploadTicks * toMs / _uploads;
             string adapter = _processes == 0 ? "" : FormattableString.Invariant(
@@ -212,7 +273,11 @@ public partial class ClassicMoviePlayer : Node
         _done = true;
         _player?.Stop();
         _movie?.Dispose();
-        if (_item.IsValid) RenderingServer.FreeRid(_item);
+        if (_item.IsValid)
+        {
+            RenderingServer.FreeRid(_item);
+        }
+
         _item = default;
         // Released now, not when the collector gets to the wrappers: a quit right after the movie reports them leaked.
         _playback?.Dispose(); _playback = null;

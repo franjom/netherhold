@@ -14,7 +14,11 @@ public partial class InGameHud
 
     private void DrawPossessionForeground(long milliseconds)
     {
-        if (_sources == null || _world == null || _possession == null) return;
+        if (_sources == null || _world == null || _possession == null)
+        {
+            return;
+        }
+
         if (_foregroundCanvas == null)
         {
             _foregroundCanvas = new HudCanvas { Name = "PossessionForeground", Load = _sources.Texture, ZIndex = -1 };

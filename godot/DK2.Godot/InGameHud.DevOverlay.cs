@@ -25,7 +25,10 @@ public partial class InGameHud : IDevOverlayHost
     private void OpenDevOverlay(string[] args, CampaignLevelData level)
     {
         if (long.TryParse(LaunchArguments.Value(args, "--fail-tick"), NumberStyles.None, CultureInfo.InvariantCulture, out long fail))
+        {
             _failTick = fail;
+        }
+
         _devOverlay = DevOverlay.Attach(this, this, args, PlayerNames.From(level.Players));
     }
 
@@ -33,7 +36,11 @@ public partial class InGameHud : IDevOverlayHost
 
     private void PartSpent(FrameTelemetryPart part, long started)
     {
-        if (_recorder == null && _devTiming == null) return;
+        if (_recorder == null && _devTiming == null)
+        {
+            return;
+        }
+
         _recorder?.Spent(part, started);
         _devTiming?.AddPart(part, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
     }
@@ -45,7 +52,11 @@ public partial class InGameHud : IDevOverlayHost
         facts.GameSpeed = _settings.GameSpeed;
         facts.Paused = _hudControls.TicksPaused;
         facts.CameraPath = _scriptedView?.PathPlaying == true;
-        if (_simulation == null) return;
+        if (_simulation == null)
+        {
+            return;
+        }
+
         facts.Turn = _simulation.World.CurrentTick;
         facts.World = _simulation.World;
         facts.Database = _simulation.Database;
@@ -56,7 +67,11 @@ public partial class InGameHud : IDevOverlayHost
     {
         hash = 0;
         turn = default;
-        if (_simulation == null || _failed) return false;
+        if (_simulation == null || _failed)
+        {
+            return false;
+        }
+
         hash = _simulation.StateHash();
         turn = _simulation.World.CurrentTick;
         return true;

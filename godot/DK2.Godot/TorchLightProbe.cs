@@ -38,15 +38,27 @@ public partial class TorchLightProbe : Node
             viewport.AddChild(new ColorRect { Size = new Vector2(256, 4),
                 Material = new ShaderMaterial { Shader = new Shader { Code = shader } } });
             AddChild(viewport);
-            for (int i = 0; i < 3; i++) await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            for (int i = 0; i < 3; i++)
+            {
+                await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            }
+
             using Image image = viewport.GetTexture().GetImage();
             image.SavePng(Path.Combine(output, pixel ? "pixel.png" : "vertex.png"));
             float jump = 0;
-            for (int x = 1; x < 256; x++) jump = Math.Max(jump, Math.Abs(image.GetPixel(x, 0).R - image.GetPixel(x - 1, 0).R));
+            for (int x = 1; x < 256; x++)
+            {
+                jump = Math.Max(jump, Math.Abs(image.GetPixel(x, 0).R - image.GetPixel(x - 1, 0).R));
+            }
+
             float middle = image.GetPixel(112, 0).R;
             float first = image.GetPixel(0, 0).R, last = image.GetPixel(255, 0).R;
             bool dark = true;
-            for (int x = 0; x < 256; x++) dark &= image.GetPixel(x, 1).R == 0 && image.GetPixel(x, 2).R == 0;
+            for (int x = 0; x < 256; x++)
+            {
+                dark &= image.GetPixel(x, 1).R == 0 && image.GetPixel(x, 2).R == 0;
+            }
+
             Color tint = image.GetPixel(112, 3);
             bool good = dark && Math.Abs(tint.R - 0.04f) < 0.008f && Math.Abs(tint.G - 0.08f) < 0.008f
                 && Math.Abs(tint.B - 0.16f) < 0.008f
@@ -63,7 +75,7 @@ public partial class TorchLightProbe : Node
     private static string Function(string source, string signature)
     {
         int start = source.IndexOf(signature, StringComparison.Ordinal), open = source.IndexOf('{', start), end = open + 1, depth = 1;
-        while (depth > 0) { if (source[end] == '{') depth++; else if (source[end] == '}') depth--; end++; }
+        while (depth > 0) { if (source[end] == '{') { depth++; } else if (source[end] == '}') { depth--; } end++; }
         return source[start..end] + "\n";
     }
 }

@@ -30,7 +30,11 @@ public partial class WorldScene : ISceneFrameHost
     public bool TryGetCreaturePosition(CreatureQueryTarget target, out NVector3 position)
     {
         position = default;
-        if (!_creatures.TryGetValue(target.Value, out CreatureSlot? creature)) return false;
+        if (!_creatures.TryGetValue(target.Value, out CreatureSlot? creature))
+        {
+            return false;
+        }
+
         position = creature.Slot.RenderPosition;
         return true;
     }
@@ -46,8 +50,14 @@ public partial class WorldScene : ISceneFrameHost
     {
         long before = GC.GetAllocatedBytesForCurrentThread();
         bool created = !_creatures.TryGetValue(creatureId, out CreatureSlot? slot);
-        if (created) AddCreature(creatureId, creature, mesh, animation);
-        else if (slot!.Art != mesh.Reference) ChangeLook(creatureId, slot, creature, mesh, animation);
+        if (created)
+        {
+            AddCreature(creatureId, creature, mesh, animation);
+        }
+        else if (slot!.Art != mesh.Reference)
+        {
+            ChangeLook(creatureId, slot, creature, mesh, animation);
+        }
         else
         {
             PlaceCreature(slot.Slot, creature);
@@ -80,7 +90,11 @@ public partial class WorldScene : ISceneFrameHost
 
     private void RemoveCreature(int creatureId, bool keepHead)
     {
-        if (_creatures.Remove(creatureId, out CreatureSlot? slot)) slot.Slot.Free();
+        if (_creatures.Remove(creatureId, out CreatureSlot? slot))
+        {
+            slot.Slot.Free();
+        }
+
         _frame.Remove(new CreatureId(creatureId), keepHead);
     }
 
@@ -88,7 +102,11 @@ public partial class WorldScene : ISceneFrameHost
     /// does (Godot has no placeholder boxes, audit open point 6).</summary>
     private void AddCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
     {
-        if (Model(mesh, lastFrame: false) is not ModelMesh model) return;
+        if (Model(mesh, lastFrame: false) is not ModelMesh model)
+        {
+            return;
+        }
+
         var slot = new CreatureSlot(new ModelSlot(this, model, "Creature" + creatureId, SlotKind.Creature), mesh.Reference);
         _creatures[creatureId] = slot;
         _frame.Add(new CreatureId(creatureId), creature);
@@ -109,7 +127,11 @@ public partial class WorldScene : ISceneFrameHost
         in ResolvedAsset animation)
     {
         CreatureClipIdentity identity = AnimationClipRequest.Identity(creature, animation.Reference);
-        if (creatureSlot.HasClip && creatureSlot.Clip == identity) return;
+        if (creatureSlot.HasClip && creatureSlot.Clip == identity)
+        {
+            return;
+        }
+
         creatureSlot.HasClip = true;
         creatureSlot.Clip = identity;
         ModelSlot slot = creatureSlot.Slot;
@@ -125,7 +147,10 @@ public partial class WorldScene : ISceneFrameHost
             return;
         }
         slot.StopAnimation();
-        if (Model(mesh, lastFrame: false) is ModelMesh model) slot.ShowStatic(model);
+        if (Model(mesh, lastFrame: false) is ModelMesh model)
+        {
+            slot.ShowStatic(model);
+        }
     }
 
     private void CountPush(long before, bool created = false)
@@ -145,14 +170,24 @@ public partial class WorldScene : ISceneFrameHost
             return;
         }
         _countedClipStarts = _creatureClipStarts;
-        if (_clipPushes++ < DrawWarmUp) _clipPushWarmUpBytes += bytes;
-        else _clipPushBytes += bytes;
+        if (_clipPushes++ < DrawWarmUp)
+        {
+            _clipPushWarmUpBytes += bytes;
+        }
+        else
+        {
+            _clipPushBytes += bytes;
+        }
     }
 
 
     bool ISceneFrameHost.PlaceCreature(CreatureId creature, in CreatureView pose, DrawPoint drawn)
     {
-        if (!_creatures.TryGetValue(creature.Value, out _drawn)) return false;
+        if (!_creatures.TryGetValue(creature.Value, out _drawn))
+        {
+            return false;
+        }
+
         _drawn.Slot.MoveTo(new NVector3(drawn.X, drawn.Height, -drawn.Y));
         return true;
     }
@@ -163,7 +198,10 @@ public partial class WorldScene : ISceneFrameHost
     // Every drawn frame, as a new look shows its node again (ModelSlot.ApplyLooks); WorldScene.Possession.cs shows it again.
     void ISceneFrameHost.HideCreatureModel(CreatureId creature)
     {
-        if (_drawn!.Slot.Node.Visible) _drawn.Slot.Node.Visible = false;
+        if (_drawn!.Slot.Node.Visible)
+        {
+            _drawn.Slot.Node.Visible = false;
+        }
     }
 
     int ISceneFrameHost.FootstepCrossing(CreatureId creature) => _drawn!.Slot.Animation?.Player.FootstepCrossing ?? 0;
@@ -172,9 +210,16 @@ public partial class WorldScene : ISceneFrameHost
     // DK2's pass draws only those (CreatureFootsteps).
     void ISceneFrameHost.RequestFootstep(CreatureId creature, in CreatureView pose, int crossing)
     {
-        if (_sound == null) return;
+        if (_sound == null)
+        {
+            return;
+        }
+
         NVector3 at = _drawn!.Slot.RenderPosition;
-        if (PointInPlacedCamera(at)) _sound.Footstep(creature.Value, pose.SoundCategory, pose.Wading, crossing, at);
+        if (PointInPlacedCamera(at))
+        {
+            _sound.Footstep(creature.Value, pose.SoundCategory, pose.Wading, crossing, at);
+        }
     }
 
     void ISceneFrameHost.DrawCrackle(CreatureId creature, GameTick tick) => DrawCreatureLightning(creature, tick);
@@ -183,7 +228,11 @@ public partial class WorldScene : ISceneFrameHost
     {
         render = default;
         ModelSlot slot = _drawn!.Slot;
-        if (slot.Animation?.Player is not { } player || !player.TryGetControlPoint(point, out NVector3 local)) return false;
+        if (slot.Animation?.Player is not { } player || !player.TryGetControlPoint(point, out NVector3 local))
+        {
+            return false;
+        }
+
         render = slot.ToRender(local);
         return true;
     }
@@ -193,12 +242,23 @@ public partial class WorldScene : ISceneFrameHost
     private void FreeCreatures()
     {
         int playing = 0;
-        foreach (CreatureSlot slot in _creatures.Values) if (slot.Slot.Animation?.Player.Clock != null) playing++;
+        foreach (CreatureSlot slot in _creatures.Values)
+        {
+            if (slot.Slot.Animation?.Player.Clock != null)
+            {
+                playing++;
+            }
+        }
+
         GD.Print("DK2.Godot creatures: ", _creatures.Count, " drawn (", playing, " playing a clip); ", _createPushes,
             " pushes that made one allocated ", _createPushBytes, " B, those that started a clip ", _clipPushWarmUpBytes, " B in the first ", Math.Min(_clipPushes, DrawWarmUp), " and ", _clipPushBytes,
             " B in ", Math.Max(0, _clipPushes - DrawWarmUp), " after; ", _plainPushes, " that moved or turned one allocated ",
             _plainPushBytes, " B");
-        foreach (CreatureSlot slot in _creatures.Values) slot.Slot.Free();
+        foreach (CreatureSlot slot in _creatures.Values)
+        {
+            slot.Slot.Free();
+        }
+
         _creatures.Clear();
         _frame.Clear();
     }

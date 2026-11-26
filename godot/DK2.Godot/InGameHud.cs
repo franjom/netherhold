@@ -232,7 +232,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     public override void _Ready()
     {
-        if (_simulation != null || _failed) return;   // re-entering the tree keeps the running level
+        if (_simulation != null || _failed)
+        {
+            return;   // re-entering the tree keeps the running level
+        }
+
         RenderingServer.SetDefaultClearColor(Colors.Black);
         string[] args = OS.GetCmdlineUserArgs();
         string? install = LauncherSettingsStore.FindInstall(args);
@@ -258,13 +262,21 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Level load, not the opening path: the code a first frame runs compiles on another thread while the level loads
         // (JitWarmUp), and the level's first ticks run on a throwaway simulation below (LevelWarmUp). --no-warm-up skips both.
         bool warmUp = Array.IndexOf(args, "--no-warm-up") < 0;
-        if (warmUp) StartJitWarmUp();
+        if (warmUp)
+        {
+            StartJitWarmUp();
+        }
+
         var launch = LaunchArguments.Parse(args, "--");
         // A save the previous instance loaded: its level, return page and restored simulation replace the arguments'.
         GameSessionRequest? resume = s_resume ?? (s_launch?.Resume != null ? s_launch : null);
         s_resume = null;
         _context = StartingSession(resume, launch.Level, args, install);
-        if (_context == null) return;
+        if (_context == null)
+        {
+            return;
+        }
+
         string levelName = _context.LevelName;
         ulong seed = launch.Seed ?? 1;
         GameFolders folders = UserFolders.FromArguments(args);
@@ -280,7 +292,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 ? GameSessionStarter.FromDk2Save(level.Database, imported, seed, fogOfWarEnabled: true)
                 : level.CreateSimulation(seed, fogOfWarEnabled: true));
             if (resume?.Resume != null && _context.Mode == GameSessionMode.ImportedTerrain)
+            {
                 _viewer = GameSessionStarter.ImportedSaveViewer(_simulation.World, _simulation.World.LocalPlayerId);
+            }
             else if (_context.ImportedTerrain != null)
             {
                 _viewer = GameSessionStarter.ImportedSaveViewer(_simulation.World, _viewer);
@@ -491,7 +505,12 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _frameDriver = new FrameDriver(_pending, _worldView, _pacer, _journal);
         // A restored checkpoint already includes its starting turn.
         if (!resumed)
-            for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
+        {
+            for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++)
+            {
+                _simulation.Tick(InputFrame.Empty);
+            }
+        }
         // The effect model runs one update before the first frame.
         _world.StartEffects();
         // The --light-probe-* checks render without torch lights or with a camera offset of (1, 0, 1).
@@ -511,7 +530,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         TabletMesh? tabletMesh = _world.LoadTabletMesh();
         OpenWinScreen(install, level.Database.Level, tabletMesh);
         OpenBattleFlyIn(tabletMesh);
-        if (probeShift) _world.Focus += new System.Numerics.Vector3(1, 0, 1);
+        if (probeShift)
+        {
+            _world.Focus += new System.Numerics.Vector3(1, 0, 1);
+        }
+
         _world.SetBrightness(DisplaySettings.BrightnessExponent(_settings.Gamma));
         OpenPossession(install, level, args);
         OpenPossessionHud(install, level);
@@ -524,7 +547,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // 60 Hz physics clock (main_timer_sync.cpp), so the draw clock stepped evenly across uneven frames. No physics runs
         // here. Movie Maker keeps the engine's setting, whose fixed steps its captures were made with.
         _movie = Engine.GetWriteMoviePath().Length > 0;
-        if (!_movie) Engine.PhysicsJitterFix = 0;
+        if (!_movie)
+        {
+            Engine.PhysicsJitterFix = 0;
+        }
         // Queue the heart's health changes for the next frame's beat.
         int maximumHeartHealth = level.Database[VariableTypeId.DungeonHeartObjectHealth];
         WorldScene world = _world;
@@ -536,7 +562,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         OpenKeyScript(args);
         TakeCarriedScriptFrames();
         if (_pointerScript == null && LaunchArguments.Value(args, "--pointer-path") != null)
+        {
             GD.PushWarning("DK2.Godot: --pointer-path is malformed (LaunchArguments.ParsePointerPath); the OS pointer is used.");
+        }
         // A scripted pointer leaves the owner's pointer as it is, and the OS mouse stops at one gate added last.
         if (_pointerScript != null)
         {
@@ -544,12 +572,19 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             AddChild(new ScriptedPointerGate { Name = "ScriptedPointerGate" });
         }
         if (Array.IndexOf(args, "--query-first-creature") >= 0)
+        {
             foreach (CreatureState creature in _simulation.World.OwnedCreatures(_viewer))
             {
                 _queryView.Query(new CreatureQueryTarget(creature.Id));
                 break;
             }
-        if (Array.IndexOf(args, "--stage-battle") >= 0) StageBattle(_simulation);
+        }
+
+        if (Array.IndexOf(args, "--stage-battle") >= 0)
+        {
+            StageBattle(_simulation);
+        }
+
         if (LaunchArguments.StageLightning(args, "--"))
         {
             _lightningStage = LightningStaging.Prepare(_simulation, _viewer, _pending);
@@ -561,24 +596,40 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 GD.Print("DK2.Godot: staged lightning caster=" + stage.Caster.Value + " target=" + stage.Target.Value
                     + " tile=" + stage.Focus + "; specials unlock lightning and fund a paid Thunderbolt after thirty turns.");
             }
-            else GD.PushWarning("DK2.Godot: --stage-lightning needs Mistress, Monk, heroes and three owned dry floor tiles.");
+            else
+            {
+                GD.PushWarning("DK2.Godot: --stage-lightning needs Mistress, Monk, heroes and three owned dry floor tiles.");
+            }
         }
         // The check arguments --stage-win and --stage-loss: the viewer's verdict, set after the first turn.
         byte stageVerdict = Array.IndexOf(args, "--stage-win") >= 0 ? PlayerStatus.Won
             : Array.IndexOf(args, "--stage-loss") >= 0 ? PlayerStatus.Lost : (byte)0;
         if (stageVerdict != 0 && !VerdictRules.End(_simulation.World, _simulation.Database, _viewer, stageVerdict))
+        {
             GD.PushWarning("DK2.Godot: --stage-win or --stage-loss found the viewer's game already ended.");
+        }
+
         _leaveResult = Array.IndexOf(args, "--leave-result") >= 0;
         _escapeResult = Array.IndexOf(args, "--escape-result") >= 0;
-        if (Array.IndexOf(args, "--open-full-map") >= 0) ApplyHudAction(ClassicHudAction.ToggleFullMap);
+        if (Array.IndexOf(args, "--open-full-map") >= 0)
+        {
+            ApplyHudAction(ClassicHudAction.ToggleFullMap);
+        }
+
         if (Array.IndexOf(args, "--open-options") >= 0)
         {
             ApplyHudAction(ClassicHudAction.ToggleOptions);
             // Only an entry the menu takes a press on: an unsupported one is ignored, as a click.
             if (Enum.TryParse(LaunchArguments.Value(args, "--open-options"), out ClassicOptionsAction entry))
             {
-                if (_options.Supported(entry)) _presses.PressOptions(entry);
-                else GD.PushWarning("DK2.Godot: --open-options ignores " + entry + ", which the menu does not support.");
+                if (_options.Supported(entry))
+                {
+                    _presses.PressOptions(entry);
+                }
+                else
+                {
+                    GD.PushWarning("DK2.Godot: --open-options ignores " + entry + ", which the menu does not support.");
+                }
             }
         }
         if (resume == null)
@@ -586,14 +637,25 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _saveAs = LaunchArguments.Value(args, "--save-as");
             _loadName = LaunchArguments.Value(args, "--load");
             if (long.TryParse(LaunchArguments.Value(args, "--save-tick"), NumberStyles.None, CultureInfo.InvariantCulture, out long saveTick))
+            {
                 _saveTick = new GameTick(saveTick);
+            }
         }
         if (long.TryParse(LaunchArguments.Value(args, "--hash-at"), NumberStyles.None, CultureInfo.InvariantCulture, out long hashTick))
+        {
             _hashTick = new GameTick(hashTick);
+        }
+
         GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture), ", saves in ", savesDirectory,
             ", settings in ", _settingsPath);
-        if (resumed) PrintHash("resumed " + resume!.Resume!.Session.Header.DisplayName + " at");
-        else if (resume != null) PrintHash("restarted at");
+        if (resumed)
+        {
+            PrintHash("resumed " + resume!.Resume!.Session.Header.DisplayName + " at");
+        }
+        else if (resume != null)
+        {
+            PrintHash("restarted at");
+        }
         // Wait for the sound prefetch before the first frame.
         try { soundPrefetch.Wait(); }
         catch (AggregateException e) { GD.PushWarning("DK2.Godot: sound prefetch failed: ", e.InnerException?.Message); }
@@ -629,14 +691,22 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     public override void _Process(double delta)
     {
-        if (_failed) return;
+        if (_failed)
+        {
+            return;
+        }
+
         if (_simulation == null || _view == null || _panel == null || _model == null || _resourceView == null
             || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null
             || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null
             || _battles == null || _battleTab == null || _options == null || _saveLoad == null || _optionsPages == null
             || _gameOptionsPanel == null || _fullMap == null || _minimap == null || _worldView == null || _scriptedView == null
             || _resultFlow == null || _frameDriver == null || _world == null || _hoverCursor == null || _handCursor == null
-            || _placement == null || _leaving) return;
+            || _placement == null || _leaving)
+        {
+            return;
+        }
+
         _recorder?.BeginFrame();
         _devTiming = _devOverlay?.Active;
         _devHoverTile = null;
@@ -645,7 +715,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         JournalBeginFrame(delta);
         // The ticks for the time since the last frame, at that frame's engine time.
         int tickCount = RunFrameTicks(delta, (long)(_elapsed * 1000), out double tickMs);
-        if (_failed) return;
+        if (_failed)
+        {
+            return;
+        }
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         long milliseconds = (long)(_elapsed * 1000);
@@ -654,14 +727,23 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _mixer?.PlayDecoded(milliseconds);
         _mixer?.UpdateSpeech(milliseconds);
         PartSpent(FrameTelemetryPart.Sound, started);
-        if (_loadName != null || (_saveAs != null && _simulation.World.CurrentTick >= _saveTick)) RunSaveLoadCheck();
+        if (_loadName != null || (_saveAs != null && _simulation.World.CurrentTick >= _saveTick))
+        {
+            RunSaveLoadCheck();
+        }
         // Update thing sounds, voices and ambience around the tile under the screen's centre,
         // using the last frame's HUD. Update the speech subtitle and tick music once per settled turn.
         // The battle tab reads the music observer's battle records.
         started = PartStamp();
         if (_sound != null)
+        {
             _sound.Update(_simulation.World, PointerTile(GetViewport().GetVisibleRect().Size * .5f, _pressVisibility), milliseconds);
-        else _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
+        }
+        else
+        {
+            _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
+        }
+
         PartSpent(FrameTelemetryPart.Sound, started);
         // Capture the minimap grid once per settled turn before drawing the HUD. The full map shares it.
         bool minimapCaptured = _minimap.Capture(_simulation.World, _worldView, _simulation.Navigation);
@@ -682,13 +764,20 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             LeaveForFrontEnd(_context?.ReturnPage ?? FrontEndPage.None, "the level ended");
             return;
         }
-        if (escapeCheck) ReportEscape();
+        if (escapeCheck)
+        {
+            ReportEscape();
+        }
+
         started = PartStamp();
         // Handle local pickups, then Escape or Space ends a playing camera path
         // and posts SkipCameraPathCommand (0x00405362); the script's glide starts.
         _frameDriver.AdvancePickups(_simulation.World, _viewer, milliseconds);
         FrameScriptInput script = _frameDriver.TakeScriptedInput(_scriptedView, _viewer, _keyboard.EscapePressed || _keyboard.SpacePressed);
-        if (script.Glide is TilePos glide) StartGlide(glide);
+        if (script.Glide is TilePos glide)
+        {
+            StartGlide(glide);
+        }
         // Handle options, full map, GUI visibility, and Heart, portal and fight glides. A camera path
         // holds the options key back that frame. While the
         // keyboard page captures a key, no shortcut fires.
@@ -725,7 +814,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         DrawSubtitles();
         DrawResultPrompt();
         _fullMap.PreparePreview(_world, _pointer);
-        if (visibility.AllowOrdinaryInput && !_hudControls.Modal) ReadAmbientKeys();
+        if (visibility.AllowOrdinaryInput && !_hudControls.Modal)
+        {
+            ReadAmbientKeys();
+        }
+
         QueueInput(visibility, milliseconds);
         // Preview the Hand's excavation tags before presenting the world. Off the map the far end keeps
         // the last tile the pointer was on.
@@ -753,7 +846,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // then the blended draws are sorted for it.
         System.Numerics.Vector3 focus = _world.Focus;
         FollowQueriedCreature();
-        if (_world.Focus != focus) _world.PlaceCamera();
+        if (_world.Focus != focus)
+        {
+            _world.PlaceCamera();
+        }
         // The pick is last frame's. Resolve the new hover after drawing the HUD.
         started = PartStamp();
         _world.SetHandLight(_handLight);
@@ -772,7 +868,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // draw their flash.
         _model.FlashTarget = _scriptedView.PanelFlash(_tools, _model.OpenPanel);
         _resources.SetVisibility(visibility);
-        if (visibility.ShowNormalHud) _resources.Draw(_resourceFacts, unchecked((uint)milliseconds), _scriptedView.ResourceFlash);
+        if (visibility.ShowNormalHud)
+        {
+            _resources.Draw(_resourceFacts, unchecked((uint)milliseconds), _scriptedView.ResourceFlash);
+        }
+
         _view.Capture(_simulation.World);
         _model.GamePaused = _hudControls.TicksPaused;
         _panel.Draw(milliseconds);
@@ -810,7 +910,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _hover.SetVisibility(visibility, milliseconds);
         // A failed pick with nothing hovered sends DK2's light to an edge tile, which blacks it out (0x0043BCB8); with
         // ordinary input off (a cutscene) it keeps its place.
-        if (visibility.AllowOrdinaryInput) _handLight = null;
+        if (visibility.AllowOrdinaryInput)
+        {
+            _handLight = null;
+        }
+
         bool inside = _pointerInWindow && GetViewport().GetVisibleRect().HasPoint(_pointer);
         bool allowed = visibility.AllowOrdinaryInput && Focused && inside && !PossessionPointerHeld;
         bool entryFeedback = PossessionHighlight.TransitionPointerFeedback(_possession, menuVisibility) && Focused && inside;
@@ -820,12 +924,19 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         HoverTextSnapshot hover = HoverTextSnapshot.Empty;
         if (feedbackAllowed && !overHud && PointerTile(_pointer, visibility) is TilePos tile)
         {
-            if (_devTiming != null) _devHoverTile = tile;
+            if (_devTiming != null)
+            {
+                _devHoverTile = tile;
+            }
+
             _pointerWorld = PointerPosition(_pointer, tile)
                 ?? new FpPosition2(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)));
             long before = GC.GetAllocatedBytesForCurrentThread();
             WorldHoverHit hit = ResolveWorldHover(_pointer, tile, visibility);
-            if (_pickWarmUp > 0) _pickWarmUp--;
+            if (_pickWarmUp > 0)
+            {
+                _pickWarmUp--;
+            }
             else { _pickBytes += GC.GetAllocatedBytesForCurrentThread() - before; _pickFrames++; }
             AimHandLight(_simulation.World, tile, hit);
             string personalName = hit.Kind == WorldHoverKind.Creature && _identityNames != null
@@ -834,22 +945,50 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             hover = _typeText?.Capture(_simulation.World, hit, personalName) ?? HoverTextSnapshot.Empty;
             pick = hit;
         }
-        if (allowed && overHud) hover = _hudHover.Capture(this, _resourceFacts);
+        if (allowed && overHud)
+        {
+            hover = _hudHover.Capture(this, _resourceFacts);
+        }
+
         HoverFeedback feedback = _hoverCursor.Resolve(_simulation.World, _simulation.Database, _simulation.Navigation,
             new HoverCursorInput(pick, feedbackAllowed, overHud, PrimaryHeld, _resourceFacts.Gold.Value, milliseconds, _pointerWorld));
         long tintBefore = GC.GetAllocatedBytesForCurrentThread();
-        if (feedback.Tinted && pick is WorldHoverHit tinted) _world.DrawHoverOverlay(tinted, feedback.TintBlended);
+        if (feedback.Tinted && pick is WorldHoverHit tinted)
+        {
+            _world.DrawHoverOverlay(tinted, feedback.TintBlended);
+        }
+
         DrawPossessionHighlight(pick, feedback, entryFeedback);
         DrawPossessionEntryBadge(milliseconds, pick, feedback, visibility.ShowNormalHud);
         _world.CommitHoverOverlay();
-        if (_pickFrames > 0 && pick != null) _pickBytes += GC.GetAllocatedBytesForCurrentThread() - tintBefore;
-        if (_mixer != null && feedback.HoverSound is SoundRequest hoverSound) _mixer.Play(hoverSound);
-        if (_mixer != null) _mixer.Play(_cursorFeedback.Sounds); else _cursorFeedback.Sounds.Clear();
+        if (_pickFrames > 0 && pick != null)
+        {
+            _pickBytes += GC.GetAllocatedBytesForCurrentThread() - tintBefore;
+        }
+
+        if (_mixer != null && feedback.HoverSound is SoundRequest hoverSound)
+        {
+            _mixer.Play(hoverSound);
+        }
+
+        if (_mixer != null)
+        {
+            _mixer.Play(_cursorFeedback.Sounds);
+        }
+        else
+        {
+            _cursorFeedback.Sounds.Clear();
+        }
+
         _handCursor.Update(feedback.Cursor, allowed, milliseconds);
         _handCursor.Draw(_pointer);
         _hover.Draw(hover, _pointer, feedback.TooltipReach, milliseconds);
         PlacementFeedback placement = feedback.Placement;
-        if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(_simulation.World, _viewer, _worldView.LocalPickups);
+        if (allowed && placement.Icon == PlacementIcon.Held)
+        {
+            _heldStack.Refresh(_simulation.World, _viewer, _worldView.LocalPickups);
+        }
+
         _placement.Draw(allowed ? placement : PlacementFeedback.None, _pointer, overHud, _heldStack, feedback.Cursor);
         _world.DrawCage(placement.Cage, placement.Valid, milliseconds);
         // Every blended item is in (the effects and flames since FinishFrame, the flowers above), and every blended thing
@@ -877,7 +1016,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         double elapsed = _movie ? _lastDelta : delta;
         _lastDelta = delta;
         if (_lightningStage?.QueueThunderboltWhenReady(simulation, _pending) == true)
+        {
             GD.Print("DK2.Godot: staged paid Thunderbolt at turn " + simulation.World.CurrentTick.Value + ".");
+        }
         // The possession posts its pose once a turn.
         FrameTicks ticks = _frameDriver!.TakeTicks(simulation.World, _viewer, Math.Min(elapsed, TickPacer.MaximumFrameSeconds), 1f,
             _settings.GameSpeed, _hudControls.TicksPaused, TickPacer.DefaultMaxTicksPerFrame, poses: _possession);
@@ -890,7 +1031,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _journal.BeforeTick(tick, input, simulation);
             try
             {
-                if (tick + 1 == _failTick) throw new InvalidOperationException("--fail-tick " + _failTick + " failed this turn on purpose.");
+                if (tick + 1 == _failTick)
+                {
+                    throw new InvalidOperationException("--fail-tick " + _failTick + " failed this turn on purpose.");
+                }
+
                 simulation.Tick(input);
             }
             catch (Exception ex)
@@ -903,7 +1048,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 return i;
             }
             _journal.AfterTick(tick + 1, simulation);
-            if (simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
+            if (simulation.World.CurrentTick == _hashTick)
+            {
+                PrintHash("hash-at");
+            }
         }
         tickMs = _recorder?.Elapsed(started) ?? 0;
         _devTiming?.AddTurns(ticks.Count, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
@@ -919,8 +1067,15 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private void JournalBeginFrame(double delta)
     {
         if (!_journal.Resolved)
+        {
             _journal.Open(_journalRoot, FrameJournalSession.FolderName(DateTime.UtcNow, GameSessionMode.Campaign, _levelName), JournalHeader);
-        if (!_journal.Recording || _scriptedView == null) return;
+        }
+
+        if (!_journal.Recording || _scriptedView == null)
+        {
+            return;
+        }
+
         Vector2 pointer = _pointer;
         HudVisibility hud = _scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon);
         _journal.BeginFrame(new FrameInputRecord
@@ -964,9 +1119,17 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private void ReportEscape()
     {
         _escapeResult = false;
-        if (_simulation == null) return;
+        if (_simulation == null)
+        {
+            return;
+        }
+
         var posted = new System.Text.StringBuilder();
-        foreach (PlayerCommand command in _pending) posted.Append(' ').Append(command.GetType().Name);
+        foreach (PlayerCommand command in _pending)
+        {
+            posted.Append(' ').Append(command.GetType().Name);
+        }
+
         GD.Print("DK2.Godot: Escape on the result at tick ", _simulation.World.CurrentTick.Value.ToString(CultureInfo.InvariantCulture),
             " posted", posted.ToString(), "; status ", _simulation.World.Player(_viewer).Status.ToString(CultureInfo.InvariantCulture));
     }
@@ -975,7 +1138,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// back.</summary>
     private void ReportPath()
     {
-        if (_scriptedView == null || _simulation == null) return;
+        if (_scriptedView == null || _simulation == null)
+        {
+            return;
+        }
+
         byte status = _simulation.World.Player(_viewer).Status;
         if (status != _status)
         {
@@ -984,7 +1151,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 _simulation.World.CurrentTick.Value.ToString(CultureInfo.InvariantCulture), "; the HUD's input is ",
                 _hudControls.InputSuppressed ? "suppressed" : "open");
         }
-        if (_scriptedView.PathPlaying == _pathPlaying) return;
+        if (_scriptedView.PathPlaying == _pathPlaying)
+        {
+            return;
+        }
+
         _pathPlaying = _scriptedView.PathPlaying;
         GD.Print("DK2.Godot: camera path ", _pathPlaying ? "started" : "ended", " at tick ",
             _simulation.World.CurrentTick.Value.ToString(CultureInfo.InvariantCulture), "; the HUD ", _pathPlaying ? "hides" : "shows");
@@ -1005,7 +1176,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private void ChangeToFrontEnd()
     {
         Error error = GetTree().ChangeSceneToFile("res://Main.tscn");
-        if (error == Error.Ok) return;
+        if (error == Error.Ok)
+        {
+            return;
+        }
+
         Main.s_returnPage = FrontEndPage.None;
         _leaving = false;
         GD.PushWarning("DK2.Godot: the front end could not be opened (", error.ToString(), ").");
@@ -1013,7 +1188,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     private void PrintHash(string what)
     {
-        if (_simulation == null) return;
+        if (_simulation == null)
+        {
+            return;
+        }
+
         GD.Print("DK2.Godot: ", what, " tick ", _simulation.World.CurrentTick.Value.ToString(CultureInfo.InvariantCulture),
             ", state hash ", _simulation.StateHash().ToString("X16", CultureInfo.InvariantCulture));
     }
@@ -1023,11 +1202,27 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// level runs on. Each acts once; a resumed instance ignores both.</summary>
     private void RunSaveLoadCheck()
     {
-        if (_presses == null || _saves == null) return;
+        if (_presses == null || _saves == null)
+        {
+            return;
+        }
+
         bool saving = _loadName == null;
         string name = (saving ? _saveAs : _loadName)!;
-        if (saving) _saveAs = null; else _loadName = null;
-        if (!_hudControls.OptionsVisible) ApplyHudAction(ClassicHudAction.ToggleOptions);
+        if (saving)
+        {
+            _saveAs = null;
+        }
+        else
+        {
+            _loadName = null;
+        }
+
+        if (!_hudControls.OptionsVisible)
+        {
+            ApplyHudAction(ClassicHudAction.ToggleOptions);
+        }
+
         _presses.PressOptions(saving ? ClassicOptionsAction.Save : ClassicOptionsAction.Load);
         if (saving)
         {
@@ -1037,7 +1232,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         else
         {
             int index = -1;
-            for (int i = 0; i < _saves.Entries.Count; i++) if (_saves.Entries[i].DisplayName == name) index = i;
+            for (int i = 0; i < _saves.Entries.Count; i++)
+            {
+                if (_saves.Entries[i].DisplayName == name)
+                {
+                    index = i;
+                }
+            }
+
             if (!_saves.Select(index)) { GD.PushError("DK2.Godot: --load found no save named ", name, " in ", _saves.Directory); return; }
         }
         SaveLoadSubmitted();
@@ -1054,12 +1256,22 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (!world.HasPlayer(heroes)) { GD.PushWarning("DK2.Godot: --stage-battle needs the heroes' player."); return; }
         CreatureDef? knight = null;
         foreach (CreatureDef creature in simulation.Database.Creatures.Values)
+        {
             if (creature.Name == "Knight") { knight = creature; break; }
-        if (knight is null) return;
+        }
+
+        if (knight is null)
+        {
+            return;
+        }
+
         foreach (CreatureState creature in world.OwnedCreatures(_viewer))
         {
             if (world.TrySpawnCreature(simulation.Database, new CreatureTypeId(knight.CreatureId), heroes, creature.Tile) is null)
+            {
                 GD.PushWarning("DK2.Godot: --stage-battle found the creature pool full.");
+            }
+
             return;
         }
     }
@@ -1069,43 +1281,83 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// glide), and the cancel's and the alarm's glides start here.</summary>
     private void BattleTabClicked(BattleTabButton button, int mouse)
     {
-        if (_simulation == null || _trapNavigation == null) return;
+        if (_simulation == null || _trapNavigation == null)
+        {
+            return;
+        }
+
         BattleTabClick click = BattleTabView.Click(button, mouse, _hudControls, _simulation.World, _simulation.Database, _viewer,
             _trapNavigation, _thingEntries);
-        if (click.HudAction != ClassicHudAction.None) ApplyHudAction(click.HudAction);
-        if (click.Command != null) _pending.Add(click.Command);
-        if (click.Glide is TilePos tile) StartGlide(tile);
+        if (click.HudAction != ClassicHudAction.None)
+        {
+            ApplyHudAction(click.HudAction);
+        }
+
+        if (click.Command != null)
+        {
+            _pending.Add(click.Command);
+        }
+
+        if (click.Glide is TilePos tile)
+        {
+            StartGlide(tile);
+        }
     }
 
     /// <summary>Navigate to the next of the viewer's rooms of a type (<see cref="RoomNavigation.Entries"/>).</summary>
     private void NavigateRoom(RoomTypeId type)
     {
-        if (_simulation == null || _roomNavigation == null) return;
+        if (_simulation == null || _roomNavigation == null)
+        {
+            return;
+        }
+
         RoomNavigation.Entries(_simulation.World, _simulation.Database, _roomEntries);
-        if (_roomNavigation.Next(_roomEntries, type) is TilePos tile) StartGlide(tile);
+        if (_roomNavigation.Next(_roomEntries, type) is TilePos tile)
+        {
+            StartGlide(tile);
+        }
     }
 
     /// <summary>Navigate to the next of the viewer's doors of a kind, newest first.</summary>
     private void NavigateDoor(byte kind)
     {
-        if (_simulation == null || _doorNavigation == null) return;
+        if (_simulation == null || _doorNavigation == null)
+        {
+            return;
+        }
+
         ThingNavigation.DoorEntries(_simulation.World.Doors, _thingEntries);
-        if (_doorNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
+        if (_doorNavigation.Next(_thingEntries, kind) is TilePos tile)
+        {
+            StartGlide(tile);
+        }
     }
 
     /// <summary>Navigate to the next of the viewer's traps of a kind, newest first.</summary>
     private void NavigateTrap(byte kind)
     {
-        if (_simulation == null || _trapNavigation == null) return;
+        if (_simulation == null || _trapNavigation == null)
+        {
+            return;
+        }
+
         ThingNavigation.TrapEntries(_simulation.World.Traps, _thingEntries);
-        if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
+        if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile)
+        {
+            StartGlide(tile);
+        }
     }
 
     /// <summary>Action 26 (game action 4, 0x00442650): the focus glides to the tile's
     /// centre, kept inside the map, angles unchanged (<see cref="CameraGlide"/>).</summary>
     private void StartGlide(TilePos tile)
     {
-        if (_world == null || _simulation == null) return;
+        if (_world == null || _simulation == null)
+        {
+            return;
+        }
+
         _glide.Start(_world.Focus, tile, _simulation.World.Width, _simulation.World.Height, _elapsed * 1000d);
     }
 
@@ -1136,19 +1388,33 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             return;
         }
         bool gliding = _glide.Active;
-        if (gliding) _world.Focus = _glide.Advance(_world.Focus, _elapsed * 1000d);
+        if (gliding)
+        {
+            _world.Focus = _glide.Advance(_world.Focus, _elapsed * 1000d);
+        }
+
         if (gliding && !_glide.Active)
+        {
             GD.Print("DK2.Godot: the glide ended at focus (", _world.Focus.X, ", ", _world.Focus.Z, ")");
+        }
+
         if (_scriptedView.FollowedCreatureId != 0 && !_glide.Active
             && _simulation.World.CreatureById(_scriptedView.FollowedCreatureId) is CreatureState followed)
+        {
             _world.Focus = CameraFocus.Over(new Fp32(followed.PosX), new Fp32(followed.PosY), _world.Focus.Y);
+        }
+
         if (visibility.AllowOrdinaryInput && !_hudControls.Modal && !PossessionCameraHeld && width > 0 && height > 0)
         {
             var sample = new CameraPointerSample(pointer, width, height, Focused, PointerOverHud(top, visibility), wheel);
             _world.Focus = ClassicCameraInput.Apply(controls, _world.Focus, _keyboard.Read(_settings), sample, _cameraPointer,
                 _settings.MouseSensitivity, delta);
         }
-        else controls.AdvancePointer(default, false, false);
+        else
+        {
+            controls.AdvancePointer(default, false, false);
+        }
+
         _cameraPointer = pointer;
     }
 
@@ -1157,21 +1423,38 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// the focus does not step against the model.</summary>
     private void FollowQueriedCreature()
     {
-        if (_world == null || _queryView == null || _scriptedView == null) return;
-        if (!ClassicCreatureQueryRules.Follows(_tools.QueryTool, _queryView.Target, _scriptedView.PathPlaying, _hudControls.Modal)) return;
+        if (_world == null || _queryView == null || _scriptedView == null)
+        {
+            return;
+        }
+
+        if (!ClassicCreatureQueryRules.Follows(_tools.QueryTool, _queryView.Target, _scriptedView.PathPlaying, _hudControls.Modal))
+        {
+            return;
+        }
+
         if (_world.TryGetCreaturePosition(_queryView.Target, out System.Numerics.Vector3 drawn))
+        {
             _world.Focus = new System.Numerics.Vector3(drawn.X, _world.Focus.Y, drawn.Z);
+        }
     }
 
     /// <summary>The Hand's light follows the pick (<see cref="HoverCursorResolver.TryHandLightPoint"/>).
     /// on a tile, the pointer's hit on the tile's top plane, or the tile's centre when that misses.</summary>
     private void AimHandLight(WorldState world, TilePos tile, in WorldHoverHit hit)
     {
-        if (_world == null || _worldView == null) return;
+        if (_world == null || _worldView == null)
+        {
+            return;
+        }
+
         if (!HoverCursorResolver.TryHandLightPoint(world, hit, out System.Numerics.Vector2 point))
+        {
             point = _world.TryPickRay(_pointer, out System.Numerics.Vector3 origin, out System.Numerics.Vector3 direction)
                 ? TileTopPlane.HandLightPoint(origin, direction, tile, _worldView.TileAt(world, tile.X, tile.Y).Solid)
                 : new System.Numerics.Vector2(tile.X + .5f, tile.Y + .5f);
+        }
+
         _handLight = HoverCursorResolver.HandLight(world, _viewer, hit, point, cheapLighting: false);
     }
 
@@ -1182,7 +1465,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         bool changed = false;
         if (keys.Pressed(GameAction.AmbientUp)) { _ambientLight.Increase(); changed = true; }
         if (keys.Pressed(GameAction.AmbientDown)) { _ambientLight.Decrease(); changed = true; }
-        if (changed) _world?.SetAmbient(_ambientLight.Normalized);
+        if (changed)
+        {
+            _world?.SetAmbient(_ambientLight.Normalized);
+        }
     }
 
     /// <summary>The bottom panel's collapse moves the view axis.</summary>
@@ -1197,13 +1483,44 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     {
         if (@event is InputEventMouseMotion motion) { ReadPossessionMotion(motion); return; }
         // A scripted pointer's presses are its own (SamplePointer); the OS pointer's are left out.
-        if (@event is not InputEventMouseButton button || _pointerScript != null) return;
-        if (button.ButtonIndex == MouseButton.Left) { if (button.Pressed) _primaryDown = true; else _primaryUp = true; }
-        else if (button.ButtonIndex == MouseButton.Right) { if (button.Pressed) _secondaryDown = true; else _secondaryUp = true; }
+        if (@event is not InputEventMouseButton button || _pointerScript != null)
+        {
+            return;
+        }
+
+        if (button.ButtonIndex == MouseButton.Left) { if (button.Pressed)
+            {
+                _primaryDown = true;
+            }
+            else
+            {
+                _primaryUp = true;
+            }
+        }
+        else if (button.ButtonIndex == MouseButton.Right) { if (button.Pressed)
+            {
+                _secondaryDown = true;
+            }
+            else
+            {
+                _secondaryUp = true;
+            }
+        }
         // Wheel notches summed over the frame, positive away from the user.
-        else if (button.Pressed && button.ButtonIndex == MouseButton.WheelUp) _cameraWheel += button.Factor;
-        else if (button.Pressed && button.ButtonIndex == MouseButton.WheelDown) _cameraWheel -= button.Factor;
-        if (!_journal.Recording) return;
+        else if (button.Pressed && button.ButtonIndex == MouseButton.WheelUp)
+        {
+            _cameraWheel += button.Factor;
+        }
+        else if (button.Pressed && button.ButtonIndex == MouseButton.WheelDown)
+        {
+            _cameraWheel -= button.Factor;
+        }
+
+        if (!_journal.Recording)
+        {
+            return;
+        }
+
         FrameMouseButtons journalled = button.ButtonIndex switch
         {
             MouseButton.Left => FrameMouseButtons.Primary,
@@ -1211,12 +1528,36 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             MouseButton.Middle => FrameMouseButtons.Middle,
             _ => FrameMouseButtons.None,
         };
-        if (button.Pressed) _journalButtonsDown |= journalled; else _journalButtonsUp |= journalled;
-        if (!button.Pressed) return;
-        if (button.ButtonIndex == MouseButton.WheelUp) _journalWheelY += button.Factor;
-        else if (button.ButtonIndex == MouseButton.WheelDown) _journalWheelY -= button.Factor;
-        else if (button.ButtonIndex == MouseButton.WheelRight) _journalWheelX += button.Factor;
-        else if (button.ButtonIndex == MouseButton.WheelLeft) _journalWheelX -= button.Factor;
+        if (button.Pressed)
+        {
+            _journalButtonsDown |= journalled;
+        }
+        else
+        {
+            _journalButtonsUp |= journalled;
+        }
+
+        if (!button.Pressed)
+        {
+            return;
+        }
+
+        if (button.ButtonIndex == MouseButton.WheelUp)
+        {
+            _journalWheelY += button.Factor;
+        }
+        else if (button.ButtonIndex == MouseButton.WheelDown)
+        {
+            _journalWheelY -= button.Factor;
+        }
+        else if (button.ButtonIndex == MouseButton.WheelRight)
+        {
+            _journalWheelX += button.Factor;
+        }
+        else if (button.ButtonIndex == MouseButton.WheelLeft)
+        {
+            _journalWheelX -= button.Factor;
+        }
     }
 
     /// <summary>Route the pointer through <see cref="WorldPointerInput"/>. While ordinary
@@ -1231,7 +1572,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             (modifiers & KeyModifiers.Control) != 0, (modifiers & KeyModifiers.Alt) != 0);
         bool primaryUp = _primaryUp, secondaryUp = _secondaryUp;
         _primaryDown = false; _secondaryDown = false; _primaryUp = false; _secondaryUp = false;
-        if (_simulation == null || _worldPointer == null) return;
+        if (_simulation == null || _worldPointer == null)
+        {
+            return;
+        }
+
         _pressPointer = _pointer;
         _pressVisibility = visibility;
         _worldPointer.Queue(new WorldPointerFrame(_viewer, visibility.AllowOrdinaryInput, Possessing, _hudControls.Modal, press,
@@ -1243,7 +1588,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     {
         if (_scriptedView != null && !_scriptedView.PathPlaying && _minimap != null && press.Primary
             && _minimap.TryNavigate(_pressPointer, out TilePos tile))
+        {
             StartGlide(tile);
+        }
     }
 
     FpPosition2? IWorldPointerHost.PointerPosition(TilePos tile) => PointerPosition(_pressPointer, tile);
@@ -1252,8 +1599,15 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// meets the columns at the heights the scene draws; null over the HUD, off the map or before the camera is placed.</summary>
     private TilePos? PointerTile(Vector2 at, HudVisibility visibility)
     {
-        if (PointerOverHud(at, visibility) || _world == null || _worldView == null || _simulation == null) return null;
-        if (!_world.TryPickRay(at, out System.Numerics.Vector3 origin, out System.Numerics.Vector3 direction)) return null;
+        if (PointerOverHud(at, visibility) || _world == null || _worldView == null || _simulation == null)
+        {
+            return null;
+        }
+
+        if (!_world.TryPickRay(at, out System.Numerics.Vector3 origin, out System.Numerics.Vector3 direction))
+        {
+            return null;
+        }
         // TilePicker works in DK2's plane, Y south; the renderers' Z runs north.
         return TilePicker.Pick(new PickRay(origin.X, origin.Y, -origin.Z, direction.X, direction.Y, -direction.Z),
             _worldView, _simulation.World);
@@ -1263,8 +1617,16 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// (<see cref="TileTopPlane.PositionOn"/>).</summary>
     private FpPosition2? PointerPosition(Vector2 at, TilePos tile)
     {
-        if (_world == null || _worldView == null || _simulation == null) return null;
-        if (!_world.TryPickRay(at, out System.Numerics.Vector3 origin, out System.Numerics.Vector3 direction)) return null;
+        if (_world == null || _worldView == null || _simulation == null)
+        {
+            return null;
+        }
+
+        if (!_world.TryPickRay(at, out System.Numerics.Vector3 origin, out System.Numerics.Vector3 direction))
+        {
+            return null;
+        }
+
         return TileTopPlane.PositionOn(origin, direction, tile, _worldView.TileAt(_simulation.World, tile.X, tile.Y).Solid);
     }
 
@@ -1274,14 +1636,29 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private WorldHoverHit ResolveWorldHover(Vector2 at, TilePos tile, HudVisibility visibility)
     {
         var bare = new WorldHoverHit(WorldHoverKind.Tile, tile);
-        if (_simulation == null || _world == null || _worldView == null) return bare;
+        if (_simulation == null || _world == null || _worldView == null)
+        {
+            return bare;
+        }
+
         WorldState world = _simulation.World;
-        if (HoverCursorResolver.FogHit(world, _viewer, tile) is WorldHoverHit fogged) return fogged;
+        if (HoverCursorResolver.FogHit(world, _viewer, tile) is WorldHoverHit fogged)
+        {
+            return fogged;
+        }
+
         if (!_world.TryPickRay(at, out System.Numerics.Vector3 origin, out System.Numerics.Vector3 direction)
-            || _world.View is not MinimapCameraView view) return bare;
+            || _world.View is not MinimapCameraView view)
+        {
+            return bare;
+        }
+
         if (!WorldHoverPicker.TryCastTerrain(origin, direction, _worldView.TileAt(world, tile.X, tile.Y).Solid,
                 out float terrainDistance, out System.Numerics.Vector3 ground))
+        {
             return bare;
+        }
+
         _objectsOnlyPick = HoverCursorResolver.ObjectsOnlyKeyCounts(visibility, _hudControls.Modal)
             && _keyboard.Read(_settings).Held(GameAction.ObjectsOnly, exactModifiers: true);
         _renderedPick ??= (kind, id) => HoverPickRules.Rendered(_simulation.World, _simulation.Database, kind, id, _objectsOnlyPick);
@@ -1325,13 +1702,33 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             });
             _scriptPushed = _pointer;
         }
-        if (_scripted.PrimaryDown) PushScriptedButton(viewport, MouseButton.Left, true, held);
-        if (_scripted.SecondaryDown) PushScriptedButton(viewport, MouseButton.Right, true, held);
-        if (_scripted.PrimaryUp) PushScriptedButton(viewport, MouseButton.Left, false, held);
-        if (_scripted.SecondaryUp) PushScriptedButton(viewport, MouseButton.Right, false, held);
+        if (_scripted.PrimaryDown)
+        {
+            PushScriptedButton(viewport, MouseButton.Left, true, held);
+        }
+
+        if (_scripted.SecondaryDown)
+        {
+            PushScriptedButton(viewport, MouseButton.Right, true, held);
+        }
+
+        if (_scripted.PrimaryUp)
+        {
+            PushScriptedButton(viewport, MouseButton.Left, false, held);
+        }
+
+        if (_scripted.SecondaryUp)
+        {
+            PushScriptedButton(viewport, MouseButton.Right, false, held);
+        }
+
         _primaryDown |= _scripted.PrimaryDown; _primaryUp |= _scripted.PrimaryUp;
         _secondaryDown |= _scripted.SecondaryDown; _secondaryUp |= _scripted.SecondaryUp;
-        if (!_journal.Recording) return;
+        if (!_journal.Recording)
+        {
+            return;
+        }
+
         _journalButtonsDown |= (_scripted.PrimaryDown ? FrameMouseButtons.Primary : 0) | (_scripted.SecondaryDown ? FrameMouseButtons.Secondary : 0);
         _journalButtonsUp |= (_scripted.PrimaryUp ? FrameMouseButtons.Primary : 0) | (_scripted.SecondaryUp ? FrameMouseButtons.Secondary : 0);
     }
@@ -1344,8 +1741,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             ButtonMask = held,
         });
         if (pressed)
+        {
             GD.Print("DK2.Godot: scripted ", button.ToString(), " press at (", _pointer.X, ", ", _pointer.Y, ") on frame ", _scriptFrame,
                 ", tick ", _simulation?.World.CurrentTick.Value ?? 0);
+        }
     }
 
     /// <summary>Apply the options key and panel actions through <see cref="HudActionRouter"/>: the options
@@ -1364,12 +1763,18 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     void IHudActionHost.NavigateHeart()
     {
-        if (_worldView?.MinimapHeartTile is TilePos heart) StartGlide(heart);
+        if (_worldView?.MinimapHeartTile is TilePos heart)
+        {
+            StartGlide(heart);
+        }
     }
 
     void IHudActionHost.NavigateFight()
     {
-        if (_battles != null && _battleNavigation?.Next(_battles.Battles) is TilePos battle) StartGlide(battle);
+        if (_battles != null && _battleNavigation?.Next(_battles.Battles) is TilePos battle)
+        {
+            StartGlide(battle);
+        }
     }
 
     void IHudActionHost.ZoomMinimap(bool zoomIn, bool zoomOut) => _minimap?.HandleZoomPress(_actionPointer, zoomIn, zoomOut);
@@ -1381,8 +1786,16 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     void IHudPressHost.GoToFullMapTile()
     {
-        if (_fullMap == null) return;
-        if (_world == null || _simulation == null) return;
+        if (_fullMap == null)
+        {
+            return;
+        }
+
+        if (_world == null || _simulation == null)
+        {
+            return;
+        }
+
         TilePos tile = _fullMap.ResolvePointer(_pressPointer);
         _world.Focus = CameraFocus.TileCentre(tile, _world.Focus.Y, _simulation.World.Width, _simulation.World.Height);
         _glide.Stop();
@@ -1402,7 +1815,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     void IHudPressHost.FocusCreature(FpPosition3 position)
     {
-        if (_world == null) return;
+        if (_world == null)
+        {
+            return;
+        }
+
         _world.Focus = CameraFocus.Over(position.X, position.Y, _world.Focus.Y);
         _glide.Stop();
     }
@@ -1419,7 +1836,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     void IWorldClickHost.FollowQueriedCreature()
     {
         _glide.Stop();
-        if (_world?.ClassicCamera is ClassicCamera camera) ClassicCreatureQueryRules.TurnToFollowHeading(camera);
+        if (_world?.ClassicCamera is ClassicCamera camera)
+        {
+            ClassicCreatureQueryRules.TurnToFollowHeading(camera);
+        }
     }
 
     /// <summary>Apply the settings this scene reads, including game speed and key bindings,
@@ -1436,18 +1856,56 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 effects: settings.SoundEffectVolume, speechOn: settings.SpeechSwitch, musicOn: settings.MusicSwitch,
                 effectsOn: settings.SfxSwitch);
         }
-        if (_world?.Controls is ClassicCameraControls controls) controls.ScrollSpeed = settings.ScrollSpeed;
+        if (_world?.Controls is ClassicCameraControls controls)
+        {
+            controls.ScrollSpeed = settings.ScrollSpeed;
+        }
         // Apply the HUD scale to each panel that uses it.
         int scale = settings.UiScale;
-        if (_minimap != null) _minimap.UiScale = scale;
-        if (_panel != null) _panel.UiScale = scale;
-        if (_resources != null) _resources.UiScale = scale;
-        if (_hover != null) _hover.UiScale = scale;
-        if (_messages != null) _messages.UiScale = scale;
-        if (_battleTab != null) _battleTab.UiScale = scale;
-        if (_overview != null) _overview.UiScale = scale;
-        if (_queryPanel != null) _queryPanel.UiScale = scale;
-        if (_handCursor != null) _handCursor.UiScale = scale;
+        if (_minimap != null)
+        {
+            _minimap.UiScale = scale;
+        }
+
+        if (_panel != null)
+        {
+            _panel.UiScale = scale;
+        }
+
+        if (_resources != null)
+        {
+            _resources.UiScale = scale;
+        }
+
+        if (_hover != null)
+        {
+            _hover.UiScale = scale;
+        }
+
+        if (_messages != null)
+        {
+            _messages.UiScale = scale;
+        }
+
+        if (_battleTab != null)
+        {
+            _battleTab.UiScale = scale;
+        }
+
+        if (_overview != null)
+        {
+            _overview.UiScale = scale;
+        }
+
+        if (_queryPanel != null)
+        {
+            _queryPanel.UiScale = scale;
+        }
+
+        if (_handCursor != null)
+        {
+            _handCursor.UiScale = scale;
+        }
         // Apply the brightness curve to the 3D view.
         _world?.SetBrightness(DisplaySettings.BrightnessExponent(settings.Gamma));
         // Ours, not DK2's: the 3D view's anti-aliasing and render scale (audit item 17), off by default.
@@ -1489,7 +1947,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// this scene. A refused file shows on the page.</summary>
     private void SaveLoadSubmitted()
     {
-        if (_simulation == null || _saves == null || _saveLoad == null || _context == null || _saver == null || _loader == null) return;
+        if (_simulation == null || _saves == null || _saveLoad == null || _context == null || _saver == null || _loader == null)
+        {
+            return;
+        }
+
         try
         {
             if (_hudControls.OptionsPage == ClassicOptionsPage.Save)
@@ -1521,7 +1983,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     {
         CarryScriptFrames();
         Error error = GetTree().ReloadCurrentScene();
-        if (error == Error.Ok) return;
+        if (error == Error.Ok)
+        {
+            return;
+        }
+
         s_resume = null;
         s_carriedScriptFrames = null;
         GD.PushWarning("DK2.Godot: the scene could not be reloaded to continue the save (", error.ToString(), ").");
@@ -1531,7 +1997,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>Load the campaign profile for this session through <see cref="UserFolders.LoadProfile"/>.</summary>
     private void LoadProfile()
     {
-        if (_profiles != null && _context != null) UserFolders.LoadProfile(_profiles, _profilePath, _context.Mode, _context.ReturnPage);
+        if (_profiles != null && _context != null)
+        {
+            UserFolders.LoadProfile(_profiles, _profilePath, _context.Mode, _context.ReturnPage);
+        }
     }
 
     /// <summary>Forward the panel selection to <see cref="HudToolState.SelectPanelChoice"/>.</summary>
@@ -1542,8 +2011,15 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private void ActivateStoredSpecial(BottomPanelChoice special)
     {
         // 0x00411140 ignores a special's slot while the Options menu is open (+0x2722).
-        if (_hudControls.OptionsVisible) return;
-        if (_view != null && _tools.ActivateStoredSpecial(_viewer, special, _input, _view) is PlayerCommand command) _pending.Add(command);
+        if (_hudControls.OptionsVisible)
+        {
+            return;
+        }
+
+        if (_view != null && _tools.ActivateStoredSpecial(_viewer, special, _input, _view) is PlayerCommand command)
+        {
+            _pending.Add(command);
+        }
     }
 
     /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
@@ -1553,7 +2029,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// requests, then the messages' speech; without a mixer they are dropped so they do not pile up.</summary>
     private void PlayHudSounds()
     {
-        if (_model == null || _view == null || _messageView == null || _optionsPages == null) return;
+        if (_model == null || _view == null || _messageView == null || _optionsPages == null)
+        {
+            return;
+        }
+
         if (_mixer == null)
         {
             _hudControls.Sounds.Clear(); _model.Sounds.Clear(); _view.Sounds.Clear(); _messageView.Sounds.Clear();
@@ -1609,7 +2089,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>Release the heart observer and sound player when the level closes.</summary>
     public override void _ExitTree()
     {
-        if (_heartHealthObserver != null && _simulation != null) _simulation.World.HeartHealthChanged -= _heartHealthObserver;
+        if (_heartHealthObserver != null && _simulation != null)
+        {
+            _simulation.World.HeartHealthChanged -= _heartHealthObserver;
+        }
+
         _heartHealthObserver = null;
         _mixer?.Dispose();
         CloseBattleFlyIn();
@@ -1620,14 +2104,25 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     public override void _Input(InputEvent @event)
     {
-        if (@event is not InputEventKey key) return;
+        if (@event is not InputEventKey key)
+        {
+            return;
+        }
+
         _keyboard.Feed(key);
-        if (!_journal.Recording || key.Echo) return;
+        if (!_journal.Recording || key.Echo)
+        {
+            return;
+        }
+
         var journalled = new HostKey((int)key.PhysicalKeycode);
         if (key.Pressed)
         {
             _journalDown.Add(journalled);
-            if (!_journalHeld.Contains(journalled)) _journalHeld.Add(journalled);
+            if (!_journalHeld.Contains(journalled))
+            {
+                _journalHeld.Add(journalled);
+            }
         }
         else
         {
@@ -1644,7 +2139,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _keyboard.ReleaseAll();
             _journalHeld.Clear();
             // A scripted pointer keeps its gestures: the owner's other windows must not change a capture.
-            if (_pointerScript != null) return;
+            if (_pointerScript != null)
+            {
+                return;
+            }
             // Reset the hand, release the panel's press, then drop the world drag.
             _handCursor?.Update(HandCursorKind.Default, false, (long)(_elapsed * 1000));
             PointerGestures.CancelAll(_panel, _input, _cursorFeedback);
@@ -1654,7 +2152,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (what == NotificationWMMouseExit && _pointerScript == null) { _pointerInWindow = false; return; }
         if (what == NotificationWMMouseEnter) { _pointerInWindow = true; return; }
         // Freed, not merely removed from the tree: a reparented scene keeps its level.
-        if (what != NotificationPredelete) return;
+        if (what != NotificationPredelete)
+        {
+            return;
+        }
         // Closing the journal writes the final frame if a session switch left it open.
         _journal.Close("destroyed", _pending, _pacer.Debt, _simulation);
         GD.Print("DK2.Godot world hover: the pick and tint allocated ", _pickBytes, " B in ", _pickFrames,
@@ -1665,8 +2166,16 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _model.NavigateRoom -= NavigateRoom; _model.NavigateDoor -= NavigateDoor; _model.NavigateTrap -= NavigateTrap;
             _model.CollapsedChanged -= PanelCollapsed;
         }
-        if (_battleTab != null) _battleTab.Clicked -= BattleTabClicked;
-        if (_window != null && IsInstanceValid(_window)) _window.WindowInput -= ReadPress;
+        if (_battleTab != null)
+        {
+            _battleTab.Clicked -= BattleTabClicked;
+        }
+
+        if (_window != null && IsInstanceValid(_window))
+        {
+            _window.WindowInput -= ReadPress;
+        }
+
         _window = null; _presses = null; _worldClicks = null; _pickups = null; _worldPointer = null; _frameDriver = null;
         _hoverCursor = null; _handCursor = null; _placement = null; _cursorFeedback.Reset();
         _cursorSheets?.Dispose(); _cursorSheets = null;

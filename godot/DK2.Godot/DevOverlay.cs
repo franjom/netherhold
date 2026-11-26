@@ -71,7 +71,11 @@ public partial class DevOverlay : CanvasLayer
 
     public override void _Input(InputEvent @event)
     {
-        if (@event is not InputEventKey { Pressed: true, Echo: false } key) return;
+        if (@event is not InputEventKey { Pressed: true, Echo: false } key)
+        {
+            return;
+        }
+
         if (key.Keycode == Key.F3)
         {
             s_on = !s_on;
@@ -92,13 +96,20 @@ public partial class DevOverlay : CanvasLayer
         if (s_on && _model == null)
         {
             _model = new DevOverlayModel();
-            if (_playerNames != null) _model.UsePlayerNames(_playerNames);
+            if (_playerNames != null)
+            {
+                _model.UsePlayerNames(_playerNames);
+            }
+
             _regular = GD.Load<FontFile>("res://Launcher/AlegreyaSans-Regular.ttf");
             _medium = GD.Load<FontFile>("res://Launcher/AlegreyaSans-Medium.ttf");
             _item = RenderingServer.CanvasItemCreate();
             RenderingServer.CanvasItemSetParent(_item, GetCanvas());
         }
-        if (_item.IsValid) RenderingServer.CanvasItemSetVisible(_item, s_on);
+        if (_item.IsValid)
+        {
+            RenderingServer.CanvasItemSetVisible(_item, s_on);
+        }
         // The engine times the GPU only when asked; the performance harness asks for itself and keeps it on.
         bool measure = s_on || GetParent()?.GetNodeOrNull("PerformanceReport") != null;
         if (measure != _measuring)
@@ -106,25 +117,42 @@ public partial class DevOverlay : CanvasLayer
             _measuring = measure;
             RenderingServer.ViewportSetMeasureRenderTime(_viewport, measure);
         }
-        if (s_on) Refresh();
+        if (s_on)
+        {
+            Refresh();
+        }
     }
 
     public override void _Process(double delta)
     {
-        if (_model == null) return;
+        if (_model == null)
+        {
+            return;
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
         double gpu = _measuring ? RenderingServer.ViewportGetMeasuredRenderTimeGpu(_viewport) : -1;
         bool due = _model.EndFrame(delta, gpu);
         if (_hashRequested)
         {
             _hashRequested = false;
-            if (_host != null && _host.TryStateHash(out ulong hash, out GameTick turn)) _model.SetHash(hash, turn);
+            if (_host != null && _host.TryStateHash(out ulong hash, out GameTick turn))
+            {
+                _model.SetHash(hash, turn);
+            }
+
             _hashCounted = true;
             due = true;
         }
-        if (due) Refresh();
+        if (due)
+        {
+            Refresh();
+        }
         // The exit line's check of the zero-allocation claim; the hash a key asks for is the simulation's, not counted.
-        if (_warmUp > 0) _warmUp--;
+        if (_warmUp > 0)
+        {
+            _warmUp--;
+        }
         else if (!_hashCounted)
         {
             _allocated += GC.GetAllocatedBytesForCurrentThread() - before;
@@ -135,7 +163,11 @@ public partial class DevOverlay : CanvasLayer
 
     private void Refresh()
     {
-        if (_model == null || _host == null || _regular == null || _medium == null) return;
+        if (_model == null || _host == null || _regular == null || _medium == null)
+        {
+            return;
+        }
+
         _facts = default;
         _host.FillDevOverlayFacts(ref _facts);
         _facts.GpuMeasured = _measuring;
@@ -169,7 +201,11 @@ public partial class DevOverlay : CanvasLayer
                 labelColumn = Mathf.Max(labelColumn, Measure(font, model.Label(i), size));
                 valueColumn = Mathf.Max(valueColumn, Measure(font, model.Value(i), size));
             }
-            else valueColumn = Mathf.Max(valueColumn, Measure(font, model.Label(i), size) - labelColumn - Gap * _scale);
+            else
+            {
+                valueColumn = Mathf.Max(valueColumn, Measure(font, model.Label(i), size) - labelColumn - Gap * _scale);
+            }
+
             height += LineHeight(font, size, kind);
         }
         float pad = Pad * _scale, width = pad * 2 + labelColumn + Gap * _scale + valueColumn;
@@ -209,29 +245,49 @@ public partial class DevOverlay : CanvasLayer
     private static float Measure(FontFile font, ReadOnlySpan<char> text, int size)
     {
         float width = 0;
-        foreach (char c in text) width += font.GetCharSize(c, size).X;
+        foreach (char c in text)
+        {
+            width += font.GetCharSize(c, size).X;
+        }
+
         return width;
     }
 
     private void Write(FontFile font, ReadOnlySpan<char> text, Vector2 at, int size, Color colour)
     {
-        foreach (char c in text) at.X += font.DrawChar(_item, at, c, size, colour);
+        foreach (char c in text)
+        {
+            at.X += font.DrawChar(_item, at, c, size, colour);
+        }
     }
 
     public override void _Notification(int what)
     {
-        if (what != NotificationPredelete) return;
-        if (_item.IsValid) RenderingServer.FreeRid(_item);
+        if (what != NotificationPredelete)
+        {
+            return;
+        }
+
+        if (_item.IsValid)
+        {
+            RenderingServer.FreeRid(_item);
+        }
+
         _item = default;
     }
 
     public override void _ExitTree()
     {
         if (_countedFrames > 0)
+        {
             GD.Print("DK2.Godot developer overlay: ", _countedFrames, " frames shown after the first ", WarmUpFrames, " allocated ", _allocated, " B");
+        }
         // The next scene's overlay asks again; the harness keeps its own request.
         if (_measuring && GetParent()?.GetNodeOrNull("PerformanceReport") == null)
+        {
             RenderingServer.ViewportSetMeasureRenderTime(_viewport, false);
+        }
+
         _measuring = false;
     }
 }

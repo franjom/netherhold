@@ -29,14 +29,26 @@ public partial class InGameHud
     /// <c>--possess-first-creature</c> (<see cref="PossessionStaging"/>), once the level's first turn has run.</summary>
     private void OpenPossession(string install, CampaignLevelData level, string[] args)
     {
-        if (_world == null || _simulation == null) return;
+        if (_world == null || _simulation == null)
+        {
+            return;
+        }
+
         _possession = new PossessionSession(level.Database,
             ClassicCameraSetup.PossessionPreset(GameDatabaseLoader.LoadCameraPresets(install, level.Name)));
         _world.Possession = _possession;
         _possession.Colours.ApplyColourChanges = LaunchArguments.PossessionColourChanges(args, "--");
-        if (_possession.Colours.ApplyColourChanges) GD.Print("DK2.Godot: developer possession colours enabled.");
+        if (_possession.Colours.ApplyColourChanges)
+        {
+            GD.Print("DK2.Godot: developer possession colours enabled.");
+        }
+
         OpenScreenColours();
-        if (!LaunchArguments.PossessFirstCreature(args, "--")) return;
+        if (!LaunchArguments.PossessFirstCreature(args, "--"))
+        {
+            return;
+        }
+
         WorldScene world = _world;
         GameSimulation simulation = _simulation;
         if (PossessionStaging.PossessFirst(simulation.World, _viewer, world.Focus, (creature, focus) =>
@@ -44,18 +56,28 @@ public partial class InGameHud
                 world.Focus = focus;
                 world.PlaceCamera();
                 if (PossessionEntryEffect.ForCreature(level.Database, creature, _viewer) is { } effect)
+                {
                     world.Emit(new SimEvent(simulation.CurrentTick, "possession-staging", "effect_requested", "")
                         { EffectRequest = effect });
+                }
             }) is CreatureState possessed)
+        {
             GD.Print("DK2.Godot: --possess-first-creature possessed creature ", possessed.Id, " at tile (", possessed.Tile.X, ", ",
                 possessed.Tile.Y, ")");
-        else GD.PushWarning("DK2.Godot: --possess-first-creature found no creature of the viewer's to possess.");
+        }
+        else
+        {
+            GD.PushWarning("DK2.Godot: --possess-first-creature found no creature of the viewer's to possess.");
+        }
     }
 
     /// <summary>The OS pointer's travel, summed over the frame's events; a scripted pointer's is its own.</summary>
     private void ReadPossessionMotion(InputEventMouseMotion motion)
     {
-        if (_pointerScript == null) _possessionMotion += motion.ScreenRelative;
+        if (_pointerScript == null)
+        {
+            _possessionMotion += motion.ScreenRelative;
+        }
     }
 
     /// <summary>Update possession before the camera step while ordinary input is allowed and no menu is modal,
@@ -70,7 +92,11 @@ public partial class InGameHud
             moved = float.IsNaN(_possessionScripted.X) ? Vector2.Zero : _pointer - _possessionScripted;
             _possessionScripted = _pointer;
         }
-        if (_possession == null || _simulation == null || _world == null || _scriptedView == null) return;
+        if (_possession == null || _simulation == null || _world == null || _scriptedView == null)
+        {
+            return;
+        }
+
         bool allowed = visibility.AllowOrdinaryInput && !_hudControls.Modal && !_scriptedView.PathPlaying;
         var input = new PossessionInput(allowed && Focused, milliseconds, delta * 1000d,
             new System.Numerics.Vector2(moved.X, moved.Y), _primaryDown, _secondaryUp,
@@ -80,10 +106,22 @@ public partial class InGameHud
         UpdateScreenColours();
         DrawPossessionForeground(milliseconds);
         // Play the view's sounds as the session produces them.
-        for (int i = 0; i < _possessionSounds.Count; i++) _mixer?.Play(_possessionSounds[i]);
+        for (int i = 0; i < _possessionSounds.Count; i++)
+        {
+            _mixer?.Play(_possessionSounds[i]);
+        }
+
         _possessionSounds.Clear();
-        if (update.Entered) _input.CancelPointerGesture();
-        if (update.OrdinaryFocus is System.Numerics.Vector3 focus) _world.Focus = focus;
+        if (update.Entered)
+        {
+            _input.CancelPointerGesture();
+        }
+
+        if (update.OrdinaryFocus is System.Numerics.Vector3 focus)
+        {
+            _world.Focus = focus;
+        }
+
         CapturePointer(_possession.PointerLockWanted);
     }
 
@@ -92,7 +130,11 @@ public partial class InGameHud
     private void CapturePointer(bool wanted)
     {
         bool capture = wanted && _pointerScript == null;
-        if (_pointerCaptured == capture) return;
+        if (_pointerCaptured == capture)
+        {
+            return;
+        }
+
         _pointerCaptured = capture;
         Input.MouseMode = capture ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.Visible;
     }

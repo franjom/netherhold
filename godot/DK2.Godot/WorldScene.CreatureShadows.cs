@@ -26,25 +26,50 @@ public partial class WorldScene
 
     internal void SetCreatureShadows(bool enabled)
     {
-        if (_creatureShadows == enabled) return;
+        if (_creatureShadows == enabled)
+        {
+            return;
+        }
+
         _creatureShadows = enabled;
-        if (!enabled) HideUnusedCreatureShadows(0);
+        if (!enabled)
+        {
+            HideUnusedCreatureShadows(0);
+        }
     }
 
     private void DrawCreatureShadows()
     {
-        if (!_creatureShadows || _lightWorld == null || _lightView == null || View == null) return;
+        if (!_creatureShadows || _lightWorld == null || _lightView == null || View == null)
+        {
+            return;
+        }
 
         int count = 0;
         foreach ((int id, CreatureSlot creature) in _creatures)
         {
             ModelSlot slot = creature.Slot;
-            if (!slot.Node.Visible) continue;
+            if (!slot.Node.Visible)
+            {
+                continue;
+            }
+
             IReadOnlyList<NVector3> vertices = slot.ShadowPositions(out PickBox bounds);
-            if (PlacedFrustum.Excludes(bounds)) continue;
+            if (PlacedFrustum.Excludes(bounds))
+            {
+                continue;
+            }
+
             _creatureShadowSources.Begin(bounds.Centre);
-            foreach ((int key, NVector3 position) in _shadowTorches) _creatureShadowSources.Offer(key, position);
-            if (_creatureShadowSources.Count == 0 || _lightWorld.CreatureById(id) is not CreatureState state) continue;
+            foreach ((int key, NVector3 position) in _shadowTorches)
+            {
+                _creatureShadowSources.Offer(key, position);
+            }
+
+            if (_creatureShadowSources.Count == 0 || _lightWorld.CreatureById(id) is not CreatureState state)
+            {
+                continue;
+            }
 
             var point = new FpPosition3(new Fp32(state.PosX), new Fp32(state.PosY), default);
             float ground = _lightView.GroundHeightAt(_lightWorld, point).Raw / (float)Fp32.One;
@@ -52,7 +77,11 @@ public partial class WorldScene
             for (int i = 0; i < _creatureShadowSources.Count; i++)
             {
                 var source = new ClassicShadowSource(_creatureShadowSources.Source(i), _creatureShadowSources.FadeDistance);
-                if (!ClassicMeshShadow.TryProject(caster, source, out ClassicShadowProjection projection)) continue;
+                if (!ClassicMeshShadow.TryProject(caster, source, out ClassicShadowProjection projection))
+                {
+                    continue;
+                }
+
                 CreatureShadowReceiver receiver = CreatureShadowAt(count++);
                 RasterizeCreatureShadow(receiver.Samples, slot, vertices, caster, projection);
                 receiver.Show(projection);
@@ -66,7 +95,11 @@ public partial class WorldScene
         in ClassicShadowCaster caster, in ClassicShadowProjection projection)
     {
         coverage.Clear();
-        if (vertices.Count > _shadowVertices.Length) Array.Resize(ref _shadowVertices, vertices.Count);
+        if (vertices.Count > _shadowVertices.Length)
+        {
+            Array.Resize(ref _shadowVertices, vertices.Count);
+        }
+
         const float half = ClassicMeshShadow.TextureSize / 2f;
         float scale = half / caster.Radius;
         NVector3 cross = projection.CrossAxis * scale;
@@ -81,18 +114,28 @@ public partial class WorldScene
         RenderMesh mesh = slot.ShadowMesh;
         for (int surface = 0; surface < mesh.Triangles.Count; surface++)
         {
-            if (mesh.Blends[surface] != KmfBlend.Opaque) continue;
+            if (mesh.Blends[surface] != KmfBlend.Opaque)
+            {
+                continue;
+            }
+
             int[] triangles = mesh.Triangles[surface];
             for (int i = 0; i < triangles.Length; i += 3)
+            {
                 ClassicShadowCoverage.AddTriangle(coverage, _shadowVertices[triangles[i]], _shadowVertices[triangles[i + 1]],
                     _shadowVertices[triangles[i + 2]]);
+            }
         }
         ClassicShadowCoverage.Resolve(coverage);
     }
 
     private CreatureShadowReceiver CreatureShadowAt(int index)
     {
-        if (index < _creatureShadowReceivers.Count) return _creatureShadowReceivers[index];
+        if (index < _creatureShadowReceivers.Count)
+        {
+            return _creatureShadowReceivers[index];
+        }
+
         _creatureShadowShader ??= GD.Load<Shader>("res://Shaders/CreatureShadow.gdshader");
         _creatureShadowQuad ??= new QuadMesh { Size = Vector2.One };
         var receiver = new CreatureShadowReceiver(_creatureShadowShader, _creatureShadowQuad);
@@ -103,13 +146,21 @@ public partial class WorldScene
 
     private void HideUnusedCreatureShadows(int count)
     {
-        for (int i = count; i < _shownCreatureShadows; i++) _creatureShadowReceivers[i].Node.Hide();
+        for (int i = count; i < _shownCreatureShadows; i++)
+        {
+            _creatureShadowReceivers[i].Node.Hide();
+        }
+
         _shownCreatureShadows = count;
     }
 
     private void FreeCreatureShadows()
     {
-        foreach (CreatureShadowReceiver receiver in _creatureShadowReceivers) receiver.Dispose();
+        foreach (CreatureShadowReceiver receiver in _creatureShadowReceivers)
+        {
+            receiver.Dispose();
+        }
+
         _creatureShadowReceivers.Clear();
         _creatureShadowQuad?.Dispose();
         _creatureShadowShader?.Dispose();

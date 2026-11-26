@@ -51,7 +51,11 @@ public partial class PerformanceReport : Node
         int mapWidth, int mapHeight)
     {
         string? path = LaunchArguments.Value(args, "--perf-report");
-        if (path == null) return null;
+        if (path == null)
+        {
+            return null;
+        }
+
         string? cameraText = LaunchArguments.Value(args, "--perf-camera");
         var camera = CameraScript.Parse(cameraText);
         if (!TryCount(args, "--perf-warmup", DefaultWarmUp, out int warmUp) || !TryCount(args, "--perf-frames", 0, out int frames)
@@ -74,7 +78,11 @@ public partial class PerformanceReport : Node
             _tail = new PerformanceReportTail { Name = "PerformanceReportTail", ProcessPriority = int.MaxValue },
         };
         report.KeepRenderSize(parent.GetWindow());
-        if (Array.IndexOf(args, "--perf-vsync") < 0) DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
+        if (Array.IndexOf(args, "--perf-vsync") < 0)
+        {
+            DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
+        }
+
         parent.AddChild(report);
         parent.AddChild(report._tail);
         GD.Print("DK2.Godot performance report: ", warmUp, " warm-up frames, then ",
@@ -101,27 +109,47 @@ public partial class PerformanceReport : Node
             _mainAtStart = allocated;
         }
         // The pose this frame starts with is the one the last frame drew.
-        if (_drawn == null || !IsInstanceValid(_drawn)) _drawn = GetViewport().GetCamera3D();
+        if (_drawn == null || !IsInstanceValid(_drawn))
+        {
+            _drawn = GetViewport().GetCamera3D();
+        }
+
         Transform3D pose = _drawn?.GlobalTransform ?? Transform3D.Identity;
         bool moved = _havePose && pose != _lastPose;
         // The warm-up samples into a discarded row, so the bindings' first-use allocations happen before measuring.
         if (_frame > 0 && !_written)
+        {
             Sample(_frame > _warmUp ? _recording.Add(moved) : _warmUpRow, now, allocated, compilations);
+        }
+
         _lastStamp = now;
         _lastAllocated = allocated;
         _lastCompilations = compilations;
         for (int generation = 0; generation < _lastCollections.Length; generation++)
+        {
             _lastCollections[generation] = GC.CollectionCount(generation);
+        }
+
         _lastPose = pose;
         _havePose = _drawn != null;
-        if (_frame == 0) _origin = _world.Focus;
-        if (_camera != null) _world.Focus = _camera.FocusAt(_frame, _origin, _mapWidth, _mapHeight);
+        if (_frame == 0)
+        {
+            _origin = _world.Focus;
+        }
+
+        if (_camera != null)
+        {
+            _world.Focus = _camera.FocusAt(_frame, _origin, _mapWidth, _mapHeight);
+        }
         // What the harness allocated itself (expected 0); it lands in the next sample, which leaves it out.
         _pendingSelfBytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
         if (_frame > _warmUp && !_written)
         {
             _selfBytes += _pendingSelfBytes;
-            if (_pendingSelfBytes > _selfMaxBytes) (_selfMaxBytes, _selfMaxFrame) = (_pendingSelfBytes, _frame);
+            if (_pendingSelfBytes > _selfMaxBytes)
+            {
+                (_selfMaxBytes, _selfMaxFrame) = (_pendingSelfBytes, _frame);
+            }
         }
         _frame++;
         if (_frames > 0 && !_written && _recording.Count >= _frames)
@@ -133,12 +161,19 @@ public partial class PerformanceReport : Node
 
     public override void _ExitTree()
     {
-        if (!_written && _recording.Count > 0) Write();
+        if (!_written && _recording.Count > 0)
+        {
+            Write();
+        }
     }
 
     private void Sample(Span<double> row, long now, long allocated, ulong compilations)
     {
-        if (row.IsEmpty) return;
+        if (row.IsEmpty)
+        {
+            return;
+        }
+
         row[(int)FrameMetric.FrameMs] = (now - _lastStamp) * 1000.0 / Stopwatch.Frequency;
         row[(int)FrameMetric.ProcessMs] = Math.Max(0, _tail.Stamp - _lastStamp) * 1000.0 / Stopwatch.Frequency;
         row[(int)FrameMetric.RenderCpuMs] = RenderingServer.ViewportGetMeasuredRenderTimeCpu(_viewport);
@@ -169,7 +204,11 @@ public partial class PerformanceReport : Node
     /// <c>--resolution</c>, an <c>override.cfg</c> may size the window, and Windows can trim a window by a few pixels.</summary>
     private void KeepRenderSize(Window window)
     {
-        if (_size is not Vector2I size) return;
+        if (_size is not Vector2I size)
+        {
+            return;
+        }
+
         DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
         DisplayServer.WindowSetSize(size);
         window.ContentScaleMode = Window.ContentScaleModeEnum.Viewport;
@@ -199,13 +238,24 @@ public partial class PerformanceReport : Node
         counters.Add(new("harness.selfMaxBytes", _selfMaxBytes));
         counters.Add(new("harness.selfMaxFrame", _selfMaxFrame));
         if (_selfBytes != 0)
+        {
             GD.PushWarning("DK2.Godot: the performance harness allocated ", _selfBytes, " B while measuring, at most ",
                 _selfMaxBytes, " B on frame ", _selfMaxFrame, ".");
-        if (IsInstanceValid(_world)) _world.AddPerformanceCounters(counters);
+        }
+
+        if (IsInstanceValid(_world))
+        {
+            _world.AddPerformanceCounters(counters);
+        }
+
         try
         {
             string? directory = Path.GetDirectoryName(_path);
-            if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
             File.WriteAllText(_path, _recording.Json(Info(), Abbreviated(_arguments), counters, _warmUp));
             GD.Print("DK2.Godot performance report written to ", _path);
         }
@@ -253,7 +303,11 @@ public partial class PerformanceReport : Node
     private static bool TryCount(string[] args, string key, int fallback, out int value)
     {
         value = fallback;
-        if (Array.IndexOf(args, key) < 0) return true;
+        if (Array.IndexOf(args, key) < 0)
+        {
+            return true;
+        }
+
         return int.TryParse(LaunchArguments.Value(args, key), NumberStyles.None, CultureInfo.InvariantCulture, out value);
     }
 
@@ -261,11 +315,19 @@ public partial class PerformanceReport : Node
     private static bool TrySize(string? text, out Vector2I? size)
     {
         size = null;
-        if (text == null) return true;
+        if (text == null)
+        {
+            return true;
+        }
+
         int x = text.IndexOf('x');
         if (x <= 0 || !int.TryParse(text.Substring(0, x), NumberStyles.None, CultureInfo.InvariantCulture, out int width)
             || !int.TryParse(text.Substring(x + 1), NumberStyles.None, CultureInfo.InvariantCulture, out int height)
-            || width <= 0 || height <= 0) return false;
+            || width <= 0 || height <= 0)
+        {
+            return false;
+        }
+
         size = new Vector2I(width, height);
         return true;
     }

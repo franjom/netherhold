@@ -47,16 +47,27 @@ public partial class ClassicFrontEndMenu
         _savePanel!.ShowFrontEnd(_hud.Model.Saves, shown, _wheel);
         Button button = _importButton!;
         button.Visible = shown;
-        if (!shown) return;
+        if (!shown)
+        {
+            return;
+        }
 
         float scale = FrontEndBox.Scale(width, height);
         (float left, float top) = FrontEndBox.Origin(width, height);
         button.Position = new Vector2(left + 70 * scale, top + 408 * scale);
         button.Size = new Vector2(174 * scale, 22 * scale);
-        if (!primaryDown) return;
+        if (!primaryDown)
+        {
+            return;
+        }
+
         if (button.GetRect().HasPoint(_pointer))
         {
-            if (_pointerScript != null) BrowseDk2Save();
+            if (_pointerScript != null)
+            {
+                BrowseDk2Save();
+            }
+
             return;
         }
         _savePanel.FrontEndPointerDown(_pointer);
@@ -99,24 +110,48 @@ public partial class ClassicFrontEndMenu
 
     private bool ImportPickerOwnsPointer(bool primaryHeld)
     {
-        if (_importDialogOpen) return true;
-        if (!_waitForPickerRelease) return false;
-        if (!primaryHeld) _waitForPickerRelease = false;
+        if (_importDialogOpen)
+        {
+            return true;
+        }
+
+        if (!_waitForPickerRelease)
+        {
+            return false;
+        }
+
+        if (!primaryHeld)
+        {
+            _waitForPickerRelease = false;
+        }
+
         return true;
     }
 
     private void ImportDk2Save(string path)
     {
         ImportPickerClosed();
-        if (_install == null) return;
+        if (_install == null)
+        {
+            return;
+        }
+
         try { _pendingLaunch = GameSessionRequest.LoadDk2Save(_install, path); }
         catch (Exception ex) when (InGameHud.IsLegacyImportError(ex)) { _savePanel?.Error(ex.Message); }
     }
 
     private void CloseSaveBrowser()
     {
-        if (_hud != null) _hud.Model.LoadRequested -= LoadMenuSave;
-        if (_importButton != null) _importButton.Pressed -= BrowseDk2Save;
+        if (_hud != null)
+        {
+            _hud.Model.LoadRequested -= LoadMenuSave;
+        }
+
+        if (_importButton != null)
+        {
+            _importButton.Pressed -= BrowseDk2Save;
+        }
+
         if (_importDialog != null)
         {
             _importDialog.FileSelected -= ImportDk2Save;
@@ -140,6 +175,8 @@ public partial class ClassicFrontEndMenu
     private void PollKeyCapture()
     {
         if (_options is { CapturingAction: not null } options && _hud!.Model.Page == options.Page)
+        {
             options.CapturePressedKey(_keyboard.Read(options.Current));
+        }
     }
 }

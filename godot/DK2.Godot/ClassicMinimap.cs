@@ -56,10 +56,22 @@ public partial class ClassicMinimap : Node
     /// <summary>Opens the minimap over the install's art; call before it enters the tree.</summary>
     public void Open(IMinimapAssets assets, int mapWidth, int mapHeight, Func<string, RgbaImage>? catalogue = null)
     {
-        if (_hud != null) throw new InvalidOperationException("The minimap is already open.");
-        if (assets is null) throw new ArgumentNullException(nameof(assets));
+        if (_hud != null)
+        {
+            throw new InvalidOperationException("The minimap is already open.");
+        }
+
+        if (assets is null)
+        {
+            throw new ArgumentNullException(nameof(assets));
+        }
+
         RgbaImage backdrop;
-        using (Image rock = Decode(assets.BackdropPng)) backdrop = new RgbaImage(rock.GetWidth(), rock.GetHeight(), rock.GetData());
+        using (Image rock = Decode(assets.BackdropPng))
+        {
+            backdrop = new RgbaImage(rock.GetWidth(), rock.GetHeight(), rock.GetData());
+        }
+
         var hud = new MinimapHud(DecodePalette(assets.PalettePng), mapWidth, mapHeight);
         var art = new Dictionary<string, RgbaImage>(StringComparer.Ordinal)
         {
@@ -68,8 +80,13 @@ public partial class ClassicMinimap : Node
             [MinimapHud.FootprintArt] = assets.CameraFootprint,
         };
         for (int i = 0; i < 4; i++)
+        {
             for (int active = 0; active < 2; active++)
+            {
                 art[MinimapHud.CornerArt((MinimapCorner)i, active != 0)] = assets.Corner((MinimapCorner)i, active != 0);
+            }
+        }
+
         var canvas = new HudCanvas
         {
             Name = "HudCanvas", Visible = false,
@@ -78,7 +95,11 @@ public partial class ClassicMinimap : Node
         };
         // Decode the art before keeping the canvas, so a failed decode leaves the
         // minimap unopened and retryable.
-        try { foreach (HudImage image in MinimapHud.Images()) canvas.Preload(image); }
+        try { foreach (HudImage image in MinimapHud.Images())
+            {
+                canvas.Preload(image);
+            }
+        }
         catch { canvas.Free(); throw; }
         _hud = hud; _disc = new MinimapGpuDisc(); _disc.Open(backdrop); _canvas = canvas;
         // Draw the disc under its frame.
@@ -93,7 +114,11 @@ public partial class ClassicMinimap : Node
     /// <returns>Whether anything was read, which the full map's image follows.</returns>
     public bool Capture(WorldState world, WorldView view, INavByteGrid navigation)
     {
-        if (_hud == null || !_hud.Capture(world, view, navigation, out _)) return false;
+        if (_hud == null || !_hud.Capture(world, view, navigation, out _))
+        {
+            return false;
+        }
+
         _heart = view.MinimapHeartTile; _tick = world.CurrentTick;
         _captured = true;
         return true;
@@ -104,7 +129,11 @@ public partial class ClassicMinimap : Node
     /// <summary>A press on the magnifier at a screen pixel zooms (<see cref="MinimapHud.ZoomPress"/>).</summary>
     public void HandleZoomPress(Vector2 screenPosition, bool primary, bool secondary)
     {
-        if (_hud == null || _layout.Height <= 0) return;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return;
+        }
+
         (float x, float y) = ToVirtual(screenPosition);
         _hud.ZoomPress(x, y, primary, secondary);
     }
@@ -112,7 +141,11 @@ public partial class ClassicMinimap : Node
     /// <summary>The corner control under a screen pixel, for its tooltip; None off the corners.</summary>
     public ClassicHudAction HoveredControl(Vector2 screenPosition)
     {
-        if (_hud == null || _layout.Height <= 0) return ClassicHudAction.None;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return ClassicHudAction.None;
+        }
+
         (float x, float y) = ToVirtual(screenPosition);
         return _hud.HoveredControl(x, y);
     }
@@ -120,7 +153,11 @@ public partial class ClassicMinimap : Node
     /// <summary>Whether a screen pixel (top-left origin) is the minimap's, so a host keeps it from the world.</summary>
     public bool ContainsPointer(Vector2 screenPosition)
     {
-        if (_hud == null || _layout.Height <= 0) return false;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return false;
+        }
+
         (float x, float y) = ToVirtual(screenPosition);
         return _hud.ContainsPointer(x, y);
     }
@@ -134,10 +171,18 @@ public partial class ClassicMinimap : Node
     public void Draw(ClassicHudAction selected, bool optionsVisible, FpPosition3 focus, Dk2Angle heading,
         MinimapCameraView? camera, bool possession = false)
     {
-        if (_hud == null || _disc == null || _canvas == null || _discNode == null) return;
+        if (_hud == null || _disc == null || _canvas == null || _discNode == null)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         _layout = new HudScaleLayout(width, height, UiScale);
         HudScreen screen = _layout.Screen;
         _scale = screen.Scale;
@@ -147,9 +192,16 @@ public partial class ClassicMinimap : Node
         _hud.SetCamera(camera);
         bool shown = _hud.Visibility.ShowNormalHud;
         _canvas.Visible = shown; _discNode.Visible = shown;
-        if (!shown) return;
+        if (!shown)
+        {
+            return;
+        }
+
         _frame.Clear();
-        if (possession) _hud.BuildPossession(_layout, heading, _frame);
+        if (possession)
+        {
+            _hud.BuildPossession(_layout, heading, _frame);
+        }
         else
         {
             (float px, float py) = ToVirtual(_pointerInWindow ? GetViewport().GetMousePosition() : Away);
@@ -158,7 +210,10 @@ public partial class ClassicMinimap : Node
         _canvas.Present(_frame, _origin, _scale, _layout.Factor);
         bool resized = DrawDisc(MinimapHud.DiscPixels(height, _layout.Factor), focus, heading);
         Rect2 rect = _canvas.ScreenRect(possession ? MinimapHud.PossessionDisc(_layout) : MinimapHud.Disc);
-        if (resized || rect != _discRect) RecordDisc(rect);
+        if (resized || rect != _discRect)
+        {
+            RecordDisc(rect);
+        }
     }
 
     /// <summary>Schedules the GPU disc redraw when a capture, the zoom, the zoomed focus, the heading or the size changed.</summary>
@@ -196,7 +251,11 @@ public partial class ClassicMinimap : Node
     /// press on the map; None when it does not act.</summary>
     public ClassicHudAction HandlePress(Vector2 screenPosition, bool primary, bool secondary)
     {
-        if (_hud == null || _layout.Height <= 0) return ClassicHudAction.None;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return ClassicHudAction.None;
+        }
+
         (float x, float y) = ToVirtual(screenPosition);
         return _hud.Press(x, y, primary, secondary, _focus, _heading);
     }
@@ -206,7 +265,11 @@ public partial class ClassicMinimap : Node
     public bool TryNavigate(Vector2 screenPosition, out TilePos tile)
     {
         tile = default;
-        if (_hud == null || _layout.Height <= 0) return false;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return false;
+        }
+
         (float x, float y) = ToVirtual(screenPosition);
         return _hud.TryNavigate(x, y, _focus, _heading, out tile);
     }
@@ -223,7 +286,11 @@ public partial class ClassicMinimap : Node
         if (what == NotificationWMMouseExit) { _pointerInWindow = false; return; }
         if (what == NotificationWMMouseEnter) { _pointerInWindow = true; return; }
         // Freed, not merely removed from the tree: a reparented minimap keeps working.
-        if (what != NotificationPredelete) return;
+        if (what != NotificationPredelete)
+        {
+            return;
+        }
+
         _hud = null; _disc = null;
         // The canvas item draws the texture, so it goes first.
         if (_discItem.IsValid) { RenderingServer.FreeRid(_discItem); _discItem = default; }

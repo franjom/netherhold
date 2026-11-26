@@ -23,7 +23,11 @@ public partial class WorldScene
         if (_vertexStaging == null || _vertexStaging.Length < byteCount)
         {
             byte[] next = ArrayPool<byte>.Shared.Rent(Math.Max(InitialVertexStagingBytes, byteCount));
-            if (_vertexStaging != null) ArrayPool<byte>.Shared.Return(_vertexStaging);
+            if (_vertexStaging != null)
+            {
+                ArrayPool<byte>.Shared.Return(_vertexStaging);
+            }
+
             _vertexStaging = next;
         }
         return _vertexStaging;
@@ -31,14 +35,22 @@ public partial class WorldScene
 
     private void FreeVertexStaging()
     {
-        if (_vertexStaging == null) return;
+        if (_vertexStaging == null)
+        {
+            return;
+        }
+
         ArrayPool<byte>.Shared.Return(_vertexStaging);
         _vertexStaging = null;
     }
 
     private VertexClip VertexAnimation(RenderAnimation clip, ModelMesh template)
     {
-        if (_vertexClips.TryGetValue(clip, out VertexClip? cached)) return cached;
+        if (_vertexClips.TryGetValue(clip, out VertexClip? cached))
+        {
+            return cached;
+        }
+
         var built = new VertexClip(clip, template.Box, this);
         _vertexClips.Add(clip, built);
         _vertexTextureBytes += built.TextureBytes;

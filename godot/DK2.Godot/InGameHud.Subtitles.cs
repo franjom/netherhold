@@ -28,7 +28,11 @@ public partial class InGameHud
 
     private void DrawSubtitles()
     {
-        if (_subtitle == null || _scriptedView == null) return;
+        if (_subtitle == null || _scriptedView == null)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
         string? text = _scriptedView.Subtitle;
@@ -38,7 +42,11 @@ public partial class InGameHud
     /// <summary>The bitmap font for the screen height, read once a height; null, with one warning, when the install lacks it.</summary>
     private BitmapFont? SubtitleFont(int height)
     {
-        if (height == _subtitleFontHeight || _sources == null) return _subtitleFont;
+        if (height == _subtitleFontHeight || _sources == null)
+        {
+            return _subtitleFont;
+        }
+
         _subtitleFontHeight = height;
         try
         {

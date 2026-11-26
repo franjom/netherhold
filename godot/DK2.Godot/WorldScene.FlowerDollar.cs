@@ -27,7 +27,11 @@ public partial class WorldScene
         _lookedForDollar = true;
         if (_art == null || !_art.TryResolve(StatusFlowerArt.Dollar, out ResolvedAsset asset)
             || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation?.IsComplete != true
-            || Model(asset, lastFrame: false) is not ModelMesh template) return;
+            || Model(asset, lastFrame: false) is not ModelMesh template)
+        {
+            return;
+        }
+
         _dollarTemplate = template;
         _dollarAnimation = VertexAnimation(new RenderAnimation(model), template);
     }
@@ -40,7 +44,10 @@ public partial class WorldScene
             LoadDollarFlower();
             _itemGrowthBytes += GC.GetAllocatedBytesForCurrentThread() - loading;
         }
-        if (_dollarTemplate == null || _dollarAnimation == null) return false;
+        if (_dollarTemplate == null || _dollarAnimation == null)
+        {
+            return false;
+        }
 
         if (index == _dollarFlowers.Count)
         {
@@ -62,13 +69,21 @@ public partial class WorldScene
 
     internal void HideUnusedDollarFlowers(int count)
     {
-        for (int i = count; i < _shownDollarFlowers; i++) _dollarFlowers[i].Node.Hide();
+        for (int i = count; i < _shownDollarFlowers; i++)
+        {
+            _dollarFlowers[i].Node.Hide();
+        }
+
         _shownDollarFlowers = count;
     }
 
     private void FreeDollarFlowers()
     {
-        foreach (ModelSlot slot in _dollarFlowers) slot.Free();
+        foreach (ModelSlot slot in _dollarFlowers)
+        {
+            slot.Free();
+        }
+
         _dollarFlowers.Clear();
         _shownDollarFlowers = 0;
         _flowerDollarClock.Reset();

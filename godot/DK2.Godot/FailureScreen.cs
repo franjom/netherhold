@@ -50,9 +50,16 @@ public partial class FailureScreen : CanvasLayer
 
     public override void _Ready()
     {
-        if (_screen == null) return;
+        if (_screen == null)
+        {
+            return;
+        }
         // The OS pointer, as the hand cursor and the possession lock may hold it.
-        if (Input.MouseMode != Input.MouseModeEnum.Visible) Input.MouseMode = Input.MouseModeEnum.Visible;
+        if (Input.MouseMode != Input.MouseModeEnum.Visible)
+        {
+            Input.MouseMode = Input.MouseModeEnum.Visible;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         // Sized for the window's height, as the launcher is for its DPI: 1 at 900 pixels and below.
         float scale = Mathf.Max(1f, size.Y / 900f);
@@ -76,8 +83,16 @@ public partial class FailureScreen : CanvasLayer
         };
         centre.AddChild(panel);
         var margin = new MarginContainer();
-        foreach (string side in new[] { "margin_left", "margin_right" }) margin.AddThemeConstantOverride(side, 40);
-        foreach (string side in new[] { "margin_top", "margin_bottom" }) margin.AddThemeConstantOverride(side, 30);
+        foreach (string side in new[] { "margin_left", "margin_right" })
+        {
+            margin.AddThemeConstantOverride(side, 40);
+        }
+
+        foreach (string side in new[] { "margin_top", "margin_bottom" })
+        {
+            margin.AddThemeConstantOverride(side, 30);
+        }
+
         panel.AddChild(margin);
         var column = new VBoxContainer { CustomMinimumSize = new Vector2(Mathf.Min(640f, size.X / scale - 64f), 0) };
         column.AddThemeConstantOverride("separation", 14);
@@ -130,7 +145,11 @@ public partial class FailureScreen : CanvasLayer
 
     public override void _Input(InputEvent @event)
     {
-        if (_screen == null || @event is not InputEventKey { Pressed: true, Echo: false } key) return;
+        if (_screen == null || @event is not InputEventKey { Pressed: true, Echo: false } key)
+        {
+            return;
+        }
+
         GameFailureKey? pressed = key.Keycode switch
         {
             Key.Enter or Key.KpEnter => GameFailureKey.Confirm,
@@ -138,12 +157,19 @@ public partial class FailureScreen : CanvasLayer
             _ => null,
         };
         GetViewport().SetInputAsHandled();
-        if (pressed is GameFailureKey which && GameFailureCopy.ForKey(_screen, which) is GameFailureAction action) Choose(action);
+        if (pressed is GameFailureKey which && GameFailureCopy.ForKey(_screen, which) is GameFailureAction action)
+        {
+            Choose(action);
+        }
     }
 
     private void Choose(GameFailureAction action)
     {
-        if (_chosen) return;
+        if (_chosen)
+        {
+            return;
+        }
+
         _chosen = true;
         Chosen?.Invoke(action);
     }

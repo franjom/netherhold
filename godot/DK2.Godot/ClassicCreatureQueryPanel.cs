@@ -28,14 +28,30 @@ public partial class ClassicCreatureQueryPanel : Node
     /// <param name="image">A HUD catalogue image by name (the scroll bar's parts).</param>
     public void Open(Func<int, BitmapFont> font, Func<string, RgbaImage> image)
     {
-        if (_hud != null) throw new InvalidOperationException("The creature query details are already open.");
-        if (font is null) throw new ArgumentNullException(nameof(font));
-        if (image is null) throw new ArgumentNullException(nameof(image));
+        if (_hud != null)
+        {
+            throw new InvalidOperationException("The creature query details are already open.");
+        }
+
+        if (font is null)
+        {
+            throw new ArgumentNullException(nameof(font));
+        }
+
+        if (image is null)
+        {
+            throw new ArgumentNullException(nameof(image));
+        }
+
         var hud = new CreatureQueryHud(font);
         var canvas = new HudCanvas { Name = "HudCanvas", Load = image, Visible = false };
         // Decoded before keeping the canvas, so a failed decode leaves the details
         // unopened and retryable.
-        try { foreach (HudImage part in CreatureQueryHud.Images()) canvas.Preload(part); }
+        try { foreach (HudImage part in CreatureQueryHud.Images())
+            {
+                canvas.Preload(part);
+            }
+        }
         catch { canvas.Free(); throw; }
         _hud = hud; _canvas = canvas;
         AddChild(_canvas);
@@ -45,10 +61,18 @@ public partial class ClassicCreatureQueryPanel : Node
     /// <param name="otherPanelOpen">A modal panel is open, which hides the details.</param>
     public void Draw(CreatureQuerySnapshot snapshot, HudVisibility visibility, bool otherPanelOpen = false)
     {
-        if (_hud == null || _canvas == null) return;
+        if (_hud == null || _canvas == null)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         _layout = new HudScaleLayout(width, height, UiScale);
         HudScreen screen = _layout.Screen;
         _scale = screen.Scale;
@@ -63,7 +87,10 @@ public partial class ClassicCreatureQueryPanel : Node
     /// <summary>Whether the last drawn details showed and a screen pixel (top-left origin) is over them.</summary>
     public bool ContainsPointer(Vector2 screenPosition, HudVisibility visibility)
     {
-        if (_hud == null || _layout.Height <= 0) return false;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return false;
+        }
         // Use the same rounded origin for pointer coordinates and drawing.
         float x = (screenPosition.X - _origin.X) / _layout.Factor / _scale, y = (screenPosition.Y - _origin.Y) / _layout.Factor / _scale;
         return _hud.ContainsPointer(x, y, visibility);

@@ -25,30 +25,66 @@ public partial class WorldScene
     public WorldHoverHit PickHoverEntity(WorldHoverPicker picker, NVector3 origin, NVector3 direction)
     {
         foreach (KeyValuePair<int, CreatureSlot> entry in _creatures)
+        {
             if (_frame.Creatures.TryGetValue(new CreatureId(entry.Key), out CreatureView pose))
+            {
                 Offer(picker, entry.Value.Slot, new WorldHoverHit(WorldHoverKind.Creature, pose.Tile, entry.Key), origin, direction);
+            }
+        }
+
         foreach (KeyValuePair<int, ModelSlot> entry in _objects)
+        {
             if (WorldHoverPicker.OffersObject(entry.Key, entry.Value.Pose.ObjectTypeId))
+            {
                 Offer(picker, entry.Value, new WorldHoverHit(WorldHoverKind.Object, entry.Value.Pose.Tile, entry.Key), origin, direction);
+            }
+        }
+
         foreach (KeyValuePair<StructureId, ModelSlot> entry in _structures)
+        {
             if (_structureViews.TryGetValue(entry.Key, out StructureView structure))
+            {
                 Offer(picker, entry.Value, WorldHoverPicker.StructureHit(entry.Key, structure.Tile), origin, direction);
-        if (picker.TryRenderedResult(out WorldHoverHit rendered)) return rendered;
+            }
+        }
+
+        if (picker.TryRenderedResult(out WorldHoverHit rendered))
+        {
+            return rendered;
+        }
 
         foreach (KeyValuePair<CreatureId, CreatureView> entry in _frame.Creatures)
+        {
             if (picker.SweepsCreature(entry.Value.Tile) && _creatures.TryGetValue(entry.Key.Value, out CreatureSlot? creature))
+            {
                 picker.AddSweepCreature(entry.Key.Value, entry.Value.Tile, creature.Slot.RenderPosition);
+            }
+        }
+
         foreach (KeyValuePair<int, ModelSlot> entry in _objects)
+        {
             if (picker.SweepsObject(entry.Key, entry.Value.Pose.ObjectTypeId, entry.Value.Pose.Tile))
+            {
                 picker.AddSweepObject(entry.Key, entry.Value.Pose.Tile, entry.Value.RenderPosition);
+            }
+        }
+
         return picker.SweepResult();
     }
 
     private static void Offer(WorldHoverPicker picker, ModelSlot slot, WorldHoverHit candidate, NVector3 origin, NVector3 direction)
     {
-        if (slot.Sphere is PickSphere broad && !picker.Holds(broad.Centre, broad.Radius, out _)) return;
+        if (slot.Sphere is PickSphere broad && !picker.Holds(broad.Centre, broad.Radius, out _))
+        {
+            return;
+        }
+
         slot.Measure(out PickBox bounds, out PickSphere? sphere);
-        if (!picker.TryAdmit(candidate, bounds, sphere, out HoverPickProbe probe)) return;
+        if (!picker.TryAdmit(candidate, bounds, sphere, out HoverPickProbe probe))
+        {
+            return;
+        }
+
         picker.Offer(candidate, probe, slot.NearestTriangle(origin, direction, picker.TerrainDistance));
     }
 
@@ -57,7 +93,11 @@ public partial class WorldScene
     /// <see cref="CommitHoverOverlay"/> until the next frame asks again.</summary>
     public void DrawHoverOverlay(WorldHoverHit hit, bool coversBlended = false)
     {
-        if (!HoverOverlayPlan.Overlays(hit.Kind) || !_hoverOverlay.TryBegin(hit, coversBlended, out HoverOverlayDraw plan)) return;
+        if (!HoverOverlayPlan.Overlays(hit.Kind) || !_hoverOverlay.TryBegin(hit, coversBlended, out HoverOverlayDraw plan))
+        {
+            return;
+        }
+
         ModelSlot? slot = hit.Kind switch
         {
             WorldHoverKind.Creature => _creatures.TryGetValue(hit.EntityId, out CreatureSlot? creature) ? creature.Slot : null,
@@ -65,11 +105,19 @@ public partial class WorldScene
             _ => _structures.TryGetValue(new StructureId(hit.Kind == WorldHoverKind.Door ? StructureKind.Door : StructureKind.Trap,
                 hit.EntityId), out ModelSlot? structure) ? structure : null,
         };
-        if (slot == null) return;
+        if (slot == null)
+        {
+            return;
+        }
+
         bool swap = hit.Kind == WorldHoverKind.Object && HoverOverlayPlan.Swaps(plan, slot.Pose.HoverTexture);
         slot.Hover = slot.Hover.With(new HoverLooks(swap, HoverOverlayPlan.Submesh(plan, false, blended: false).Red,
             HoverOverlayPlan.Submesh(plan, false, blended: true).Red));
-        if (!_hoverSlots.Contains(slot)) _hoverSlots.Add(slot);
+        if (!_hoverSlots.Contains(slot))
+        {
+            _hoverSlots.Add(slot);
+        }
+
         _hoverOverlay.Drawn(plan);
     }
 
@@ -81,7 +129,10 @@ public partial class WorldScene
         {
             ModelSlot slot = _hoverSlots[i];
             slot.CommitHover();
-            if (slot.Freed || !slot.Hover.Any) _hoverSlots.RemoveAt(i);
+            if (slot.Freed || !slot.Hover.Any)
+            {
+                _hoverSlots.RemoveAt(i);
+            }
         }
     }
 
@@ -89,7 +140,10 @@ public partial class WorldScene
     void ISceneFrameHost.BeginFrame()
     {
         _hoverOverlay.BeginFrame();
-        foreach (ModelSlot slot in _hoverSlots) slot.Hover = default;
+        foreach (ModelSlot slot in _hoverSlots)
+        {
+            slot.Hover = default;
+        }
     }
 
     // Apply the hover overlay's red pass to burning creatures.

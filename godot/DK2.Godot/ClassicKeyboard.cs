@@ -43,11 +43,23 @@ public sealed class ClassicKeyboard
     /// <summary>Takes a key event; returns whether it was a key the table knows.</summary>
     public bool Feed(InputEventKey key)
     {
-        if (key.Pressed) Type(key);
+        if (key.Pressed)
+        {
+            Type(key);
+        }
+
         int scan = ScanCode(key.PhysicalKeycode, key.Location);
-        if (scan == 0) return false;
-        if (key.Pressed) { if (!key.Echo && !_held[scan]) _pressed[scan] = true; _held[scan] = true; }
-        else _held[scan] = false;
+        if (scan == 0)
+        {
+            return false;
+        }
+
+        if (key.Pressed) { if (!key.Echo && !_held[scan]) { _pressed[scan] = true; } _held[scan] = true; }
+        else
+        {
+            _held[scan] = false;
+        }
+
         return true;
     }
 

@@ -24,7 +24,11 @@ public partial class ClassicResourceHud : Node
     {
         get
         {
-            if (_layout.Height > 0 || !IsInsideTree()) return KeeperResourceHud.Bottom(_layout.Screen);
+            if (_layout.Height > 0 || !IsInsideTree())
+            {
+                return KeeperResourceHud.Bottom(_layout.Screen);
+            }
+
             Vector2 size = GetViewport().GetVisibleRect().Size;
             return KeeperResourceHud.Bottom(new HudScaleLayout((int)size.X, (int)size.Y, UiScale).Screen);
         }
@@ -33,12 +37,24 @@ public partial class ClassicResourceHud : Node
     /// <summary>Opens the strip over <paramref name="sources"/>, which the caller disposes; call before it enters the tree.</summary>
     public void Open(InstallHudSources sources)
     {
-        if (_canvas != null) throw new InvalidOperationException("The strip is already open.");
-        if (sources is null) throw new ArgumentNullException(nameof(sources));
+        if (_canvas != null)
+        {
+            throw new InvalidOperationException("The strip is already open.");
+        }
+
+        if (sources is null)
+        {
+            throw new ArgumentNullException(nameof(sources));
+        }
+
         var canvas = new HudCanvas { Name = "HudCanvas", Load = sources.Texture };
         // Decoded now rather than by the first draw with the HUD visible, which comes after the opening camera path
         // (ADR-0688); before the canvas is kept, so a failed decode leaves the strip unopened and retryable.
-        try { foreach (HudImage image in KeeperResourceHud.Images()) canvas.Preload(image); }
+        try { foreach (HudImage image in KeeperResourceHud.Images())
+            {
+                canvas.Preload(image);
+            }
+        }
         catch { canvas.Free(); throw; }
         _canvas = canvas;
         AddChild(_canvas);
@@ -47,17 +63,28 @@ public partial class ClassicResourceHud : Node
     public void SetVisibility(HudVisibility visibility)
     {
         _hud.SetVisibility(visibility);
-        if (_canvas != null) _canvas.Visible = visibility.ShowNormalHud;
+        if (_canvas != null)
+        {
+            _canvas.Visible = visibility.ShowNormalHud;
+        }
     }
 
     /// <summary>Lays the strip out for the viewport and presents it; <paramref name="milliseconds"/> drives its count-up
     /// and flashes on the unscaled clock.</summary>
     public void Draw(KeeperResourceSnapshot snapshot, uint milliseconds, KeeperResourceFlash flash = KeeperResourceFlash.None)
     {
-        if (_canvas == null) return;
+        if (_canvas == null)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         _layout = new HudScaleLayout(width, height, UiScale);
         HudScreen screen = _layout.Screen;
         _frame.Clear();
@@ -69,7 +96,11 @@ public partial class ClassicResourceHud : Node
     /// <summary>Whether a screen pixel (top-left origin) is over the strip and the strip takes ordinary input.</summary>
     public bool ContainsPointer(Vector2 screenPosition)
     {
-        if (_layout.Height <= 0) return false;
+        if (_layout.Height <= 0)
+        {
+            return false;
+        }
+
         HudScreen screen = _layout.Screen;
         return _hud.ContainsPointer(screen, screen.Virtual(screenPosition.X / _layout.Factor),
             screen.Virtual(screenPosition.Y / _layout.Factor));
@@ -78,7 +109,11 @@ public partial class ClassicResourceHud : Node
     /// <summary>The resource widget under a screen pixel (top-left origin), for the hover text.</summary>
     public KeeperResourceKind ResourceAt(Vector2 screenPosition)
     {
-        if (_layout.Height <= 0) return KeeperResourceKind.None;
+        if (_layout.Height <= 0)
+        {
+            return KeeperResourceKind.None;
+        }
+
         HudScreen screen = _layout.Screen;
         return _hud.ResourceAt(screen, screen.Virtual(screenPosition.X / _layout.Factor),
             screen.Virtual(screenPosition.Y / _layout.Factor));
@@ -87,6 +122,9 @@ public partial class ClassicResourceHud : Node
     public override void _Notification(int what)
     {
         // Freed, not merely removed from the tree: a reparented strip keeps working.
-        if (what == NotificationPredelete) _canvas = null;
+        if (what == NotificationPredelete)
+        {
+            _canvas = null;
+        }
     }
 }

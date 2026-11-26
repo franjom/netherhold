@@ -36,7 +36,10 @@ public partial class InGameHud
             {
                 string? path = LaunchArguments.Value(args, "--dk2-save");
                 if (path == null || path.StartsWith("--", StringComparison.Ordinal))
+                {
                     throw new ArgumentException("--dk2-save requires a path.");
+                }
+
                 launched = GameSessionRequest.LoadDk2Save(install, path);
             }
             catch (Exception ex) when (IsLegacyImportError(ex))
@@ -63,14 +66,26 @@ public partial class InGameHud
     /// nobody can choose, so the run quits with <see cref="GameFailureCopy.ExitCode"/> once the failure is logged.</summary>
     private void Fail(in GameFailure failure, bool overFrame, Exception? error = null)
     {
-        if (_failed) return;
+        if (_failed)
+        {
+            return;
+        }
+
         _failed = true;
         // Main must not send a command-line level back here.
         LevelStarted = true;
-        if (error != null) GD.PushError("DK2.Godot: ", error.ToString());
+        if (error != null)
+        {
+            GD.PushError("DK2.Godot: ", error.ToString());
+        }
+
         _handCursor?.Update(HandCursorKind.Default, false, (long)(_elapsed * 1000));
         CapturePointer(false);
-        if (_soundOutput != null) _soundOutput.ProcessMode = ProcessModeEnum.Disabled;
+        if (_soundOutput != null)
+        {
+            _soundOutput.ProcessMode = ProcessModeEnum.Disabled;
+        }
+
         _mixer?.Dispose();
         var screen = FailureScreen.Show(this, failure, overFrame);
         if (!GameFailureCopy.WaitsForChoice(hasDisplay: DisplayServer.GetName() != "headless"))

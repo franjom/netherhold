@@ -25,12 +25,24 @@ public partial class ClassicPlacementOverlay : Node
     /// <summary>Opens the cursor over the HUD's catalogue images (<paramref name="load"/>); call before it enters the tree.</summary>
     public void Open(Func<string, RgbaImage> load)
     {
-        if (_canvas != null) throw new InvalidOperationException("The placement cursor is already open.");
-        if (load is null) throw new ArgumentNullException(nameof(load));
+        if (_canvas != null)
+        {
+            throw new InvalidOperationException("The placement cursor is already open.");
+        }
+
+        if (load is null)
+        {
+            throw new ArgumentNullException(nameof(load));
+        }
+
         var layer = new CanvasLayer { Name = "Layer", Layer = CanvasLayerIndex };
         var canvas = new HudCanvas { Name = "HudCanvas", Load = load };
         layer.AddChild(canvas);
-        try { foreach (HudImage image in PlacementCursorHud.Images()) canvas.Preload(image); }
+        try { foreach (HudImage image in PlacementCursorHud.Images())
+            {
+                canvas.Preload(image);
+            }
+        }
         catch { layer.Free(); throw; }
         _canvas = canvas;
         AddChild(layer);
@@ -41,10 +53,18 @@ public partial class ClassicPlacementOverlay : Node
     /// <param name="held">The hand's icons, read when <paramref name="feedback"/> shows <see cref="PlacementIcon.Held"/>.</param>
     public void Draw(in PlacementFeedback feedback, Vector2 pointer, bool overHud, HeldItemStack? held, HandCursorKind handKind)
     {
-        if (_canvas == null) return;
+        if (_canvas == null)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         _frame.Clear();
         _hud.Build(_frame, feedback, new System.Numerics.Vector2(pointer.X, pointer.Y), width, height, overHud, held, handKind);
         _canvas.Present(_frame, Vector2.Zero, new HudScreen(width, height).Scale, 1);
@@ -52,6 +72,9 @@ public partial class ClassicPlacementOverlay : Node
 
     public override void _Notification(int what)
     {
-        if (what == NotificationPredelete) _canvas = null;
+        if (what == NotificationPredelete)
+        {
+            _canvas = null;
+        }
     }
 }

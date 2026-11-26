@@ -26,7 +26,11 @@ public partial class FrameRecorder : Node
     /// directory is missing or already holds a capture, which is never written over.</summary>
     public static FrameRecorder? Attach(Node parent, string[] args, string level, ulong seed)
     {
-        if (Array.IndexOf(args, "--record-frames") < 0) return null;
+        if (Array.IndexOf(args, "--record-frames") < 0)
+        {
+            return null;
+        }
+
         string? directory = LaunchArguments.Value(args, "--record-frames");
         if (string.IsNullOrEmpty(directory) || directory.StartsWith("--", StringComparison.Ordinal))
         {
@@ -95,12 +99,22 @@ public partial class FrameRecorder : Node
 
     public override void _ExitTree()
     {
-        if (_written) return;
+        if (_written)
+        {
+            return;
+        }
+
         _written = true;
         using (var frames = new StreamWriter(Path.Combine(_directory, FrameTelemetry.FramesFile)))
+        {
             _telemetry.WriteCsv(frames);
+        }
+
         using (var metadata = new StreamWriter(Path.Combine(_directory, FrameTelemetry.MetadataFile)))
+        {
             _telemetry.WriteMetadata(metadata, _engine, _level, _seed);
+        }
+
         GD.Print("DK2.Godot: recorded ", _telemetry.Count, " frames (", _telemetry.Dropped, " dropped) to ", _directory);
     }
 }

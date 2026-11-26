@@ -48,7 +48,10 @@ public partial class MinimapGpuDisc : Node
 
     public override void _EnterTree()
     {
-        if (Diameter > 0) _disc.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
+        if (Diameter > 0)
+        {
+            _disc.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
+        }
     }
 
     public void Open(RgbaImage rock)
@@ -61,7 +64,11 @@ public partial class MinimapGpuDisc : Node
     public void Render(int diameter, MinimapClassGrid grid, MinimapPalette palette, IReadOnlyList<MinimapMarker> markers,
         MinimapZoom zoom, FpPosition3 focus, Dk2Angle heading, TilePos? heart, GameTick tick, bool capture)
     {
-        if (diameter <= 0 || diameter > 4096) throw new ArgumentOutOfRangeException(nameof(diameter));
+        if (diameter <= 0 || diameter > 4096)
+        {
+            throw new ArgumentOutOfRangeException(nameof(diameter));
+        }
+
         if (Diameter != diameter)
         {
             Diameter = diameter;
@@ -73,7 +80,11 @@ public partial class MinimapGpuDisc : Node
             SetMapParameter(TargetName, target);
             SetMapParameter(DiameterName, diameter);
         }
-        if (capture || _classesImage == null) Capture(grid, palette);
+        if (capture || _classesImage == null)
+        {
+            Capture(grid, palette);
+        }
+
         float angle = heading.Value * (MathF.PI * 2 / 2048);
         var turn = new Vector2(MathF.Sin(angle), MathF.Cos(angle));
         SetMapParameter(TurnName, turn);
@@ -97,7 +108,11 @@ public partial class MinimapGpuDisc : Node
         int length = checked(grid.Width * grid.Height * 4);
         bool changed = _classes.Length != length || _classesImage == null
             || _classesImage.GetWidth() != grid.Width || _classesImage.GetHeight() != grid.Height;
-        if (_classes.Length != length) _classes = new byte[length];
+        if (_classes.Length != length)
+        {
+            _classes = new byte[length];
+        }
+
         ReadOnlySpan<MinimapColourClass> cells = grid.Cells;
         for (int i = 0; i < cells.Length; i++)
         {
@@ -114,7 +129,11 @@ public partial class MinimapGpuDisc : Node
         }
         length = MinimapColourClass.Count * 4;
         changed = _palette.Length != length;
-        if (changed) _palette = new byte[length];
+        if (changed)
+        {
+            _palette = new byte[length];
+        }
+
         ReadOnlySpan<uint> colours = palette.Colours;
         for (int i = 0; i < colours.Length; i++)
         {
@@ -159,7 +178,14 @@ public partial class MinimapGpuDisc : Node
         if (image == null || image.GetWidth() != width || image.GetHeight() != height)
         {
             image?.Dispose(); image = Image.CreateFromData(width, height, false, format, bytes);
-            if (texture == null) texture = ImageTexture.CreateFromImage(image); else texture.SetImage(image);
+            if (texture == null)
+            {
+                texture = ImageTexture.CreateFromImage(image);
+            }
+            else
+            {
+                texture.SetImage(image);
+            }
         }
         else { image.SetData(width, height, false, format, bytes); texture!.Update(image); }
     }
@@ -180,7 +206,11 @@ public partial class MinimapGpuDisc : Node
 
     public override void _Notification(int what)
     {
-        if (what != NotificationPredelete) return;
+        if (what != NotificationPredelete)
+        {
+            return;
+        }
+
         GD.Print("DK2.Godot minimap GPU: ", _renders, " renders, diameter ", Diameter, "; 0 CPU disc rasters, 0 disc uploads; ",
             _classUploads, " class uploads (", _classBytes, " B), ", _paletteUploads, " palette uploads, ", _markerUploads, " marker uploads");
         _classesTexture?.Dispose(); _paletteTexture?.Dispose(); _rockTexture?.Dispose();

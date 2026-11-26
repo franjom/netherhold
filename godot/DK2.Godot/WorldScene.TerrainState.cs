@@ -48,7 +48,11 @@ public partial class WorldScene
 
     private void FlushTerrainState()
     {
-        if (!_terrainStateDirty) return;
+        if (!_terrainStateDirty)
+        {
+            return;
+        }
+
         _terrainStateTexture!.Update(_terrainStateImage!);
         _terrainStateDirty = false;
     }
@@ -58,7 +62,11 @@ public partial class WorldScene
 
     private ShaderMaterial FixedTerrainMaterial(in TerrainMaterialKey key)
     {
-        if (_fixedTerrainMaterials.TryGetValue(key, out ShaderMaterial? material)) return material;
+        if (_fixedTerrainMaterials.TryGetValue(key, out ShaderMaterial? material))
+        {
+            return material;
+        }
+
         var look = TerrainMaterialLook.For(key);
         material = WorldMaterial(look.Texture, look.Blend, look.WritesDepth, look.FullLight, look.Colour, look.AddedLight);
         _fixedTerrainMaterials.Add(key, material);
@@ -80,7 +88,11 @@ public partial class WorldScene
 
     private ShaderMaterial TerrainOverlayMaterial()
     {
-        if (_terrainOverlayMaterial != null) return _terrainOverlayMaterial;
+        if (_terrainOverlayMaterial != null)
+        {
+            return _terrainOverlayMaterial;
+        }
+
         _terrainOverlayMaterial = WorldMaterial("", KmfBlend.Additive, false, true,
             System.Numerics.Vector4.One, System.Numerics.Vector3.Zero);
         _terrainOverlayMaterial.SetShaderParameter(TerrainStateParameter, true);
@@ -92,7 +104,11 @@ public partial class WorldScene
     private void UploadTerrainOverlayChunk(int chunk)
     {
         MeshInstance3D? instance = _terrainOverlayChunks[chunk];
-        if (instance == null && _terrainOverlaySurface.IndexCount == 0) return;
+        if (instance == null && _terrainOverlaySurface.IndexCount == 0)
+        {
+            return;
+        }
+
         ArrayMesh mesh = instance?.Mesh as ArrayMesh ?? new ArrayMesh();
         mesh.ClearSurfaces();
         if (_terrainOverlaySurface.IndexCount != 0)
@@ -101,7 +117,11 @@ public partial class WorldScene
                 TerrainStateCustomFormat);
             mesh.SurfaceSetMaterial(0, TerrainOverlayMaterial());
         }
-        if (instance != null) return;
+        if (instance != null)
+        {
+            return;
+        }
+
         instance = new MeshInstance3D
         {
             Name = "TerrainOverlay" + chunk,

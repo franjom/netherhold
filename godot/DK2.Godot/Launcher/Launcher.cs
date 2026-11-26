@@ -45,7 +45,10 @@ public partial class Launcher : Control
         _saved = LauncherSettingsStore.Current(args);
         _reduceMotion = LauncherSystem.ReduceMotion(args);
         string? keys = LaunchArguments.Value(args, "--launcher-keys");
-        if (keys == null) return;
+        if (keys == null)
+        {
+            return;
+        }
         // "frame:Key;..." with Godot's key names, Shift+ for a shifted press (Shift+Tab).
         foreach (string entry in keys.Split(';'))
         {
@@ -53,8 +56,13 @@ public partial class Launcher : Control
             bool shift = parts.Length == 2 && parts[1].StartsWith("Shift+", StringComparison.Ordinal);
             string name = shift ? parts[1].Substring(6) : parts.Length == 2 ? parts[1] : "";
             if (parts.Length == 2 && int.TryParse(parts[0], out int frame) && Enum.TryParse(name, out Key key))
+            {
                 _keys.Add((frame, key, shift));
-            else GD.PushWarning("DK2.Godot: --launcher-keys entry not understood: " + entry);
+            }
+            else
+            {
+                GD.PushWarning("DK2.Godot: --launcher-keys entry not understood: " + entry);
+            }
         }
     }
 
@@ -86,7 +94,14 @@ public partial class Launcher : Control
         _font.Text = _saved.MenuFont ?? "";
         CheckInstall(fromUser: false);
         CheckFont();
-        if (_valid) _play.GrabFocus(); else _install.GrabFocus();
+        if (_valid)
+        {
+            _play.GrabFocus();
+        }
+        else
+        {
+            _install.GrabFocus();
+        }
     }
 
     private void FitViewport() => Size = GetViewport().GetVisibleRect().Size;
@@ -149,7 +164,11 @@ public partial class Launcher : Control
         _window = Radio(windowRow, LauncherCopy.Window, modes);
         _sizes = new OptionButton { FitToLongestItem = true, SizeFlagsVertical = SizeFlags.ShrinkCenter };
         (_sizeList, int selected) = LauncherWindowSizes.Options(_saved.WindowSize, screen.X, screen.Y);
-        for (int i = 0; i < _sizeList.Count; i++) _sizes.AddItem(_sizeList[i].ToString(), i);
+        for (int i = 0; i < _sizeList.Count; i++)
+        {
+            _sizes.AddItem(_sizeList[i].ToString(), i);
+        }
+
         _sizes.Select(selected);
         windowRow.AddChild(_sizes);
         _fullScreen = Radio(screenBody, LauncherCopy.FullScreen, modes);
@@ -240,12 +259,22 @@ public partial class Launcher : Control
         Dk2InstallCheck check = Dk2Install.Check(LauncherCopy.CleanPath(_install.Text));
         ShowMessage(_installStatus, LauncherCopy.Install(check));
         bool valid = check == Dk2InstallCheck.Found;
-        if (valid == _valid && fromUser) return;
+        if (valid == _valid && fromUser)
+        {
+            return;
+        }
+
         _valid = valid;
         _play.Disabled = !valid;
         _play.FocusMode = valid ? FocusModeEnum.All : FocusModeEnum.None;
-        if (valid) Run(_reduceMotion ? 1f : 0f);
-        else Run(0f, running: false);
+        if (valid)
+        {
+            Run(_reduceMotion ? 1f : 0f);
+        }
+        else
+        {
+            Run(0f, running: false);
+        }
     }
 
     private void CheckFont() =>
@@ -269,21 +298,39 @@ public partial class Launcher : Control
         _seamMaterial.SetShaderParameter(ProgressName, _progress);
         bool lit = _valid && _progress >= 1f;
         if (lit != _lit)
+        {
             _play.ThemeTypeVariation = (_lit = lit) ? PlayLitName : PlayWaitingName;
+        }
+
         _running = running && _valid && _progress < 1f;
         SetProcess(_running || !_seamPlaced || _nextKey < _keys.Count);
     }
 
     public override void _Process(double delta)
     {
-        if (!_seamPlaced) PlaceSeam();
+        if (!_seamPlaced)
+        {
+            PlaceSeam();
+        }
+
         for (; _nextKey < _keys.Count && _keys[_nextKey].Frame <= _frame; _nextKey++)
+        {
             foreach (bool pressed in new[] { true, false })
+            {
                 Input.ParseInputEvent(new InputEventKey
                     { Keycode = _keys[_nextKey].Key, ShiftPressed = _keys[_nextKey].Shift, Pressed = pressed });
+            }
+        }
+
         _frame++;
-        if (_running) Run(Mathf.Min(1f, _progress + (float)delta / RunSeconds));
-        else SetProcess(!_seamPlaced || _nextKey < _keys.Count);
+        if (_running)
+        {
+            Run(Mathf.Min(1f, _progress + (float)delta / RunSeconds));
+        }
+        else
+        {
+            SetProcess(!_seamPlaced || _nextKey < _keys.Count);
+        }
     }
 
     /// <summary>The crack's points, in the seam's pixels: down the column from the top in jagged steps, then left into
@@ -292,7 +339,11 @@ public partial class Launcher : Control
     {
         Vector2 size = _seam.Size;
         Rect2 play = _play.GetGlobalRect();
-        if (size.Y <= 0 || play.Size.Y <= 0) return;
+        if (size.Y <= 0 || play.Size.Y <= 0)
+        {
+            return;
+        }
+
         _seamPlaced = true;
         float endY = play.GetCenter().Y - _seam.GlobalPosition.Y;
         const int down = 13;
@@ -320,7 +371,10 @@ public partial class Launcher : Control
     public override void _Input(InputEvent @event)
     {
         if (@event is not InputEventKey { Pressed: true, Echo: false } key || _dialog?.Visible == true || _sizes.GetPopup().Visible)
+        {
             return;
+        }
+
         if (key.Keycode == Key.Escape)
         {
             GetViewport().SetInputAsHandled();
@@ -335,7 +389,11 @@ public partial class Launcher : Control
 
     private void TryPlay()
     {
-        if (!_valid) return;
+        if (!_valid)
+        {
+            return;
+        }
+
         LauncherWindowSize size = _sizeList[Math.Max(0, _sizes.Selected)];
         var settings = new LauncherSettings
         {
@@ -369,10 +427,20 @@ public partial class Launcher : Control
         if (start != null)
         {
             string folder = mode == FileDialog.FileModeEnum.OpenDir ? start : System.IO.Path.GetDirectoryName(start) ?? "";
-            if (Directory.Exists(folder)) _dialog.CurrentDir = folder;
+            if (Directory.Exists(folder))
+            {
+                _dialog.CurrentDir = folder;
+            }
         }
-        if (mode == FileDialog.FileModeEnum.OpenDir) _dialog.DirSelected += dir => chosen(dir);
-        else _dialog.FileSelected += file => chosen(file);
+        if (mode == FileDialog.FileModeEnum.OpenDir)
+        {
+            _dialog.DirSelected += dir => chosen(dir);
+        }
+        else
+        {
+            _dialog.FileSelected += file => chosen(file);
+        }
+
         AddChild(_dialog);
         _dialog.PopupCentered();
     }

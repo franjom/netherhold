@@ -19,7 +19,10 @@ public partial class WorldScene
 {
     public void BuildPossessionForeground(PossessionForeground foreground, int width, int height, long milliseconds, HudFrame frame)
     {
-        if (_art != null) foreground.Build(_art, width, height, milliseconds, frame);
+        if (_art != null)
+        {
+            foreground.Build(_art, width, height, milliseconds, frame);
+        }
     }
     private TerrainCeilingScheduler? _roof;
     // The near plane the camera was last placed with: the ordinary one, or the possession cameras' own.
@@ -42,7 +45,11 @@ public partial class WorldScene
     /// whose model the frame leaves out (<see cref="PossessionSession.HiddenCreatureId"/>).</summary>
     public void LatchPossession(WorldState world, PlayerId viewer)
     {
-        if (_lightView == null) return;
+        if (_lightView == null)
+        {
+            return;
+        }
+
         PossessionScene.Latch(world, viewer, _lightView, _lattice, _terrain);
         HideCreature(Possession?.HiddenCreatureId ?? 0);
     }
@@ -51,8 +58,16 @@ public partial class WorldScene
     /// each time it is drawn (<see cref="ISceneFrameHost.HideCreatureModel"/>).</summary>
     private void HideCreature(int creatureId)
     {
-        if (_frame.HiddenCreature.Value == creatureId) return;
-        if (_creatures.TryGetValue(_frame.HiddenCreature.Value, out CreatureSlot? shown)) shown.Slot.Node.Visible = true;
+        if (_frame.HiddenCreature.Value == creatureId)
+        {
+            return;
+        }
+
+        if (_creatures.TryGetValue(_frame.HiddenCreature.Value, out CreatureSlot? shown))
+        {
+            shown.Slot.Node.Visible = true;
+        }
+
         _frame.HiddenCreature = new CreatureId(creatureId);
     }
 
@@ -62,7 +77,11 @@ public partial class WorldScene
     {
         if (!PossessionScene.RoofShown(Possession))
         {
-            if (_roofRoot is { Visible: true }) _roofRoot.Visible = false;
+            if (_roofRoot is { Visible: true })
+            {
+                _roofRoot.Visible = false;
+            }
+
             return;
         }
         if (_roof == null || _roofRoot == null)
@@ -73,9 +92,20 @@ public partial class WorldScene
             AddChild(_roofRoot);
         }
         if (_roof.Refresh(world, database))
+        {
             for (int chunk = 0; chunk < _roofChunks.Length; chunk++)
-                if (_roof.TryBuild(chunk, _roofGeometry)) UploadRoof(chunk, _roofRoot);
-        if (!_roofRoot.Visible) _roofRoot.Visible = true;
+            {
+                if (_roof.TryBuild(chunk, _roofGeometry))
+                {
+                    UploadRoof(chunk, _roofRoot);
+                }
+            }
+        }
+
+        if (!_roofRoot.Visible)
+        {
+            _roofRoot.Visible = true;
+        }
     }
 
     /// <summary>The chunk the scheduler just built, as a terrain chunk is uploaded: through the frame change with the
@@ -88,7 +118,11 @@ public partial class WorldScene
         int count = geometry.Positions.Count;
         if (count == 0)
         {
-            if (instance != null) instance.Visible = false;
+            if (instance != null)
+            {
+                instance.Visible = false;
+            }
+
             return;
         }
         var positions = new Vector3[count];
@@ -124,6 +158,9 @@ public partial class WorldScene
             root.AddChild(instance);
             _roofChunks[chunk] = instance;
         }
-        else if (!instance.Visible) instance.Visible = true;
+        else if (!instance.Visible)
+        {
+            instance.Visible = true;
+        }
     }
 }

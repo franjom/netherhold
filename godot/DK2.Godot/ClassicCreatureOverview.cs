@@ -29,13 +29,25 @@ public partial class ClassicCreatureOverview : Node
     /// <summary>Opens the overview over <paramref name="art"/> and <paramref name="view"/>; call before it enters the tree.</summary>
     public void Open(InstallCreatureOverviewArt art, CreatureOverview view)
     {
-        if (_hud != null) throw new InvalidOperationException("The creature overview is already open.");
-        if (art is null) throw new ArgumentNullException(nameof(art));
+        if (_hud != null)
+        {
+            throw new InvalidOperationException("The creature overview is already open.");
+        }
+
+        if (art is null)
+        {
+            throw new ArgumentNullException(nameof(art));
+        }
+
         var hud = new CreatureOverviewHud(art.Portrait, view);
         var canvas = new HudCanvas { Name = "HudCanvas", Load = art.Image, Visible = false };
         // Decoded before keeping the canvas, so a failed decode leaves the overview
         // unopened and retryable. Portraits load as their types appear.
-        try { foreach (HudImage image in CreatureOverviewHud.Images()) canvas.Preload(image); }
+        try { foreach (HudImage image in CreatureOverviewHud.Images())
+            {
+                canvas.Preload(image);
+            }
+        }
         catch { canvas.Free(); throw; }
         _hud = hud; _canvas = canvas;
         AddChild(_canvas);
@@ -45,10 +57,18 @@ public partial class ClassicCreatureOverview : Node
     /// <param name="area">The Creatures panel's place (<see cref="BottomPanelHud.PanelArea"/>), null while it is closed.</param>
     public void Draw(HudVisibility visibility, BottomPanelRect? area)
     {
-        if (_hud == null || _canvas == null) return;
+        if (_hud == null || _canvas == null)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         _layout = new HudScaleLayout(width, height, UiScale);
         HudScreen screen = _layout.Screen;
         _scale = screen.Scale;
@@ -64,7 +84,11 @@ public partial class ClassicCreatureOverview : Node
     /// <summary>The hovered widget's text id (the worker row icons and the mode selectors), 0 for none.</summary>
     public int HoveredTextId(Vector2 screenPosition)
     {
-        if (_hud == null || _layout.Height <= 0) return 0;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return 0;
+        }
+
         (float x, float y) = ToVirtual(screenPosition);
         return _hud.HoveredTextId(x, y);
     }
@@ -72,7 +96,11 @@ public partial class ClassicCreatureOverview : Node
     /// <summary>The creature type whose column is hovered, for the status line.</summary>
     public CreatureOverviewType? HoveredColumnType(Vector2 screenPosition)
     {
-        if (_hud == null || _layout.Height <= 0) return null;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return null;
+        }
+
         (float x, float y) = ToVirtual(screenPosition);
         return _hud.HoveredColumnType(x, y);
     }
@@ -80,7 +108,11 @@ public partial class ClassicCreatureOverview : Node
     /// <summary>Whether a screen pixel (top-left origin) is the overview's, so a host keeps it from the world.</summary>
     public bool ContainsPointer(Vector2 screenPosition)
     {
-        if (_hud == null || _layout.Height <= 0) return false;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return false;
+        }
+
         (float x, float y) = ToVirtual(screenPosition);
         return _hud.ContainsPointer(x, y);
     }
@@ -90,7 +122,11 @@ public partial class ClassicCreatureOverview : Node
     public bool TryPress(Vector2 screenPosition, in HudPress press, out CreatureOverviewRequest request)
     {
         request = default;
-        if (_hud == null || _layout.Height <= 0) return false;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return false;
+        }
+
         (float x, float y) = ToVirtual(screenPosition);
         return _hud.TryPress(x, y, press.Primary, press.Secondary, press.Shift, press.Control, press.Alt, out request);
     }
@@ -98,8 +134,14 @@ public partial class ClassicCreatureOverview : Node
     public override void _Notification(int what)
     {
         // Godot stops reporting the pointer when it leaves the window.
-        if (what == NotificationWMMouseExit) _pointerInWindow = false;
-        else if (what == NotificationWMMouseEnter) _pointerInWindow = true;
+        if (what == NotificationWMMouseExit)
+        {
+            _pointerInWindow = false;
+        }
+        else if (what == NotificationWMMouseEnter)
+        {
+            _pointerInWindow = true;
+        }
         // Freed, not merely removed from the tree: a reparented overview keeps working.
         else if (what == NotificationPredelete) { _hud = null; _canvas = null; }
     }

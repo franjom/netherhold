@@ -80,7 +80,11 @@ public partial class WorldScene
     private void BeginPreviewItems()
     {
         _previewItems.Open = PreviewPose.HasValue;
-        if (PreviewPose is not ClassicCameraPose pose) return;
+        if (PreviewPose is not ClassicCameraPose pose)
+        {
+            return;
+        }
+
         _previewItems.Order.ClearItems();
         _previewItems.Eye = ToGodot(RightHandedFrame.Point(pose.Position));
         _previewItems.EyeDistance = pose.Position.Length();
@@ -130,8 +134,14 @@ public partial class WorldScene
     /// <summary>Adds or removes a model whose surfaces draw in the transparent pass (<see cref="ModelSlot.ApplyLooks"/>).</summary>
     private void ListTransparent(ModelSlot slot, bool transparent)
     {
-        if (transparent) _transparentSlots.Add(slot);
-        else _transparentSlots.Remove(slot);
+        if (transparent)
+        {
+            _transparentSlots.Add(slot);
+        }
+        else
+        {
+            _transparentSlots.Remove(slot);
+        }
     }
 
     /// <summary>The runs' keys for the items, after each re-sort of the stream (<see cref="DrawBlended"/>): the tag overlays
@@ -140,7 +150,12 @@ public partial class WorldScene
     {
         _itemOrder.ClearRuns();
         for (int i = 0; i < drawn.Count; i++)
-            if (!drawn[i].TagOverlay) _itemOrder.AddRun(drawn[i].Distance);
+        {
+            if (!drawn[i].TagOverlay)
+            {
+                _itemOrder.AddRun(drawn[i].Distance);
+            }
+        }
     }
 
     /// <summary>Starts the frame's items, measured from the placed camera's eye, the one the runs are keyed for.</summary>
@@ -151,7 +166,11 @@ public partial class WorldScene
         _itemFrameGrowth = _itemGrowthBytes;
         _itemOrder.ClearItems();
         _itemsOpen = View is MinimapCameraView;
-        if (View is not MinimapCameraView view) return;
+        if (View is not MinimapCameraView view)
+        {
+            return;
+        }
+
         NVector3 eye = view.Position;
         _itemEye = ToGodot(RightHandedFrame.Point(eye));
         _itemEyeDistance = eye.Length();
@@ -166,7 +185,11 @@ public partial class WorldScene
     /// wholly outside the frustum is not drawn.</summary>
     private void AddItem(ItemBatch batch, Vector3 centre, float radius, in Transform3D transform, Color colour, Color custom)
     {
-        if (!_itemsOpen) return;
+        if (!_itemsOpen)
+        {
+            return;
+        }
+
         if (_previewPass)
         {
             while (_itemBatches.Count <= batch.Id)
@@ -178,7 +201,13 @@ public partial class WorldScene
         }
         NVector3 at = RightHandedFrame.Point(new NVector3(centre.X, centre.Y, centre.Z));
         for (int i = 0; i < 6; i++)
-            if (System.Numerics.Plane.DotCoordinate(_itemFrustum[i], at) < -radius) return;
+        {
+            if (System.Numerics.Plane.DotCoordinate(_itemFrustum[i], at) < -radius)
+            {
+                return;
+            }
+        }
+
         int index = _itemOrder.Add(batch.Id, centre.DistanceTo(_itemEye), batch.Blend,
             BlendedItemRect.OfSphere(_itemViewProjection, at, radius));
         if (_itemData.Length < (index + 1) * ItemStride)
@@ -222,7 +251,11 @@ public partial class WorldScene
         }
         long allocated = GC.GetAllocatedBytesForCurrentThread();
         long started = Stopwatch.GetTimestamp();
-        foreach (ItemBatch batch in _itemBatches) batch.Used = 0;
+        foreach (ItemBatch batch in _itemBatches)
+        {
+            batch.Used = 0;
+        }
+
         if (_itemsOpen)
         {
             AddItemBarriers();
@@ -235,7 +268,11 @@ public partial class WorldScene
             {
                 BlendedItemSegment segment = segments[s];
                 ItemBatch batch = _itemBatches[segment.Batch];
-                if (batch.Used == batch.Made) MakeItemDraw(batch);
+                if (batch.Used == batch.Made)
+                {
+                    MakeItemDraw(batch);
+                }
+
                 ref ItemDraw draw = ref batch.Draws[batch.Used++];
                 Vector3 low = new(float.MaxValue, float.MaxValue, float.MaxValue), high = -low;
                 // The upload buffer holds the segment before ShowItemDraw sizes the draw: a segment past every draw's
@@ -244,7 +281,11 @@ public partial class WorldScene
                 {
                     long before = GC.GetAllocatedBytesForCurrentThread();
                     int length = _itemUpload.Length;
-                    while (length < segment.Count * ItemStride) length *= 2;
+                    while (length < segment.Count * ItemStride)
+                    {
+                        length *= 2;
+                    }
+
                     Array.Resize(ref _itemUpload, length);
                     _itemGrowthBytes += GC.GetAllocatedBytesForCurrentThread() - before;
                 }
@@ -271,18 +312,28 @@ public partial class WorldScene
             _itemMaxItems = Math.Max(_itemMaxItems, items.Length);
         }
         foreach (ItemBatch batch in _itemBatches)
+        {
             for (int d = batch.Used; d < batch.Made; d++)
             {
                 ref ItemDraw draw = ref batch.Draws[d];
-                if (!draw.Shown) continue;
+                if (!draw.Shown)
+                {
+                    continue;
+                }
+
                 RenderingServer.InstanceSetVisible(draw.Instance, false);
                 draw.Shown = false;
             }
+        }
+
         ItemTime(ItemStep.Upload, started);
         _itemsOpen = false;
         ItemBytes(allocated);
         long growth = _itemGrowthBytes - _itemFrameGrowth;
-        if (_itemFrames++ < ItemWarmUp) _itemWarmUpBytes += _itemFrameBytes;
+        if (_itemFrames++ < ItemWarmUp)
+        {
+            _itemWarmUpBytes += _itemFrameBytes;
+        }
         else
         {
             _itemLateBytes += _itemFrameBytes - growth;
@@ -293,7 +344,11 @@ public partial class WorldScene
     private void MakeItemDraw(ItemBatch batch)
     {
         long before = GC.GetAllocatedBytesForCurrentThread();
-        if (batch.Made == batch.Draws.Length) Array.Resize(ref batch.Draws, batch.Draws.Length * 2);
+        if (batch.Made == batch.Draws.Length)
+        {
+            Array.Resize(ref batch.Draws, batch.Draws.Length * 2);
+        }
+
         Rid multimesh = RenderingServer.MultimeshCreate();
         RenderingServer.MultimeshSetMesh(multimesh, batch.Mesh);
         // A custom box, so Godot never measures the buffer; set to the items' box each frame.
@@ -318,7 +373,10 @@ public partial class WorldScene
         if (count > capacity)
         {
             capacity = Math.Max(FirstItemCapacity, capacity);
-            while (capacity < count) capacity *= 2;
+            while (capacity < count)
+            {
+                capacity *= 2;
+            }
         }
         draw.LowFrames = count <= draw.Capacity / 4 && draw.Capacity > FirstItemCapacity ? draw.LowFrames + 1 : 0;
         if (draw.LowFrames >= ShrinkFrames)
@@ -333,8 +391,16 @@ public partial class WorldScene
             draw.Capacity = capacity;
             RenderingServer.MultimeshAllocateData(draw.Multimesh, capacity, RenderingServer.MultimeshTransformFormat.Transform3D,
                 colorFormat: true, customDataFormat: true);
-            if (draw.Last.Length < capacity * ItemStride) draw.Last = new float[capacity * ItemStride];
-            if (_itemUpload.Length < capacity * ItemStride) Array.Resize(ref _itemUpload, capacity * ItemStride);
+            if (draw.Last.Length < capacity * ItemStride)
+            {
+                draw.Last = new float[capacity * ItemStride];
+            }
+
+            if (_itemUpload.Length < capacity * ItemStride)
+            {
+                Array.Resize(ref _itemUpload, capacity * ItemStride);
+            }
+
             _itemGrowthBytes += GC.GetAllocatedBytesForCurrentThread() - before;
         }
         int floats = count * ItemStride;
@@ -344,11 +410,19 @@ public partial class WorldScene
             fresh.CopyTo(draw.Last);
             // The tail past the count is drawn by nobody (the visible count) but goes up with the buffer.
             RenderingServer.MultimeshSetBuffer(draw.Multimesh, new ReadOnlySpan<float>(draw.Last, 0, capacity * ItemStride));
-            if (count != draw.Count || reallocated) RenderingServer.MultimeshSetVisibleInstances(draw.Multimesh, count);
+            if (count != draw.Count || reallocated)
+            {
+                RenderingServer.MultimeshSetVisibleInstances(draw.Multimesh, count);
+            }
+
             draw.Count = count;
             _itemUploads++;
         }
-        else _itemUploadsSkipped++;
+        else
+        {
+            _itemUploadsSkipped++;
+        }
+
         float offset = _itemEyeDistance - key;
         if (offset != draw.Offset)
         {
@@ -367,25 +441,42 @@ public partial class WorldScene
     /// holders with one and the cage.</summary>
     private void AddItemBarriers()
     {
-        if (_itemOrder.ItemCount == 0) return;
+        if (_itemOrder.ItemCount == 0)
+        {
+            return;
+        }
+
         for (int i = 0; i < _transparentSlots.Count; i++)
         {
             ModelSlot slot = _transparentSlots[i];
-            if (slot.Node.Visible && slot.Node.IsVisibleInTree()) AddItemBarrier(slot.Node, slot.TransparentOrdered);
+            if (slot.Node.Visible && slot.Node.IsVisibleInTree())
+            {
+                AddItemBarrier(slot.Node, slot.TransparentOrdered);
+            }
         }
         for (int i = 0; i < _transparentTorches.Count; i++)
         {
             TorchSlot torch = _transparentTorches[i];
-            if (torch.Node is { Visible: true } node) AddItemBarrier(node, torch.TransparentOrdered);
+            if (torch.Node is { Visible: true } node)
+            {
+                AddItemBarrier(node, torch.TransparentOrdered);
+            }
         }
         // The ribbon is ONE, ONE without a depth write (Shaders/Cage.gdshader).
-        if (_cage is { Visible: true } cage) AddItemBarrier(cage.Box, BlendedItemBlend.Additive);
+        if (_cage is { Visible: true } cage)
+        {
+            AddItemBarrier(cage.Box, BlendedItemBlend.Additive);
+        }
     }
 
     private void AddItemBarrier(GeometryInstance3D node, bool ordered)
     {
         Aabb local = node.CustomAabb;
-        if (local.Size == Vector3.Zero) local = node.GetAabb();
+        if (local.Size == Vector3.Zero)
+        {
+            local = node.GetAabb();
+        }
+
         AddItemBarrier(node.GlobalTransform * local, ordered ? BlendedItemBlend.Ordered : BlendedItemBlend.Additive);
     }
 
@@ -396,7 +487,11 @@ public partial class WorldScene
         Vector3 low = box.Position, high = box.End;
         // Godot's frame to the renderers': z flips, so the box's z bounds swap.
         var pick = new PickBox(new NVector3(low.X, low.Y, -high.Z), new NVector3(high.X, high.Y, -low.Z));
-        if (_itemFrustum.Excludes(pick)) return;
+        if (_itemFrustum.Excludes(pick))
+        {
+            return;
+        }
+
         Vector3 centre = box.GetCenter();
         _itemOrder.AddBarrier(centre.DistanceTo(_itemEye), BlendedItemRect.OfSphere(_itemViewProjection,
             RightHandedFrame.Point(new NVector3(centre.X, centre.Y, centre.Z)), box.Size.Length() * 0.5f), blend);
@@ -407,7 +502,11 @@ public partial class WorldScene
     {
         int frames = Math.Max(1, _itemFrames);
         string[] names = ["effects", "flames", "flowers", "barriers", "order", "upload"];
-        for (int i = 0; i < names.Length; i++) Add(into, "items." + names[i] + "Ms", Ms(_itemTicks[i]) / frames);
+        for (int i = 0; i < names.Length; i++)
+        {
+            Add(into, "items." + names[i] + "Ms", Ms(_itemTicks[i]) / frames);
+        }
+
         Add(into, "items.batches", _itemBatches.Count);
         Add(into, "items.drawsMade", _itemDrawsMade);
         Add(into, "items.maxDraws", _itemMaxDraws);

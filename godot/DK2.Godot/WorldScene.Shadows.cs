@@ -64,7 +64,11 @@ public partial class WorldScene
     /// <summary>The shadow views and the globals the shaders read; nothing when the shadows are off.</summary>
     private void OpenShadows()
     {
-        if (!TorchShadowsActive) return;
+        if (!TorchShadowsActive)
+        {
+            return;
+        }
+
         _shadowViewports = new SubViewport[ShadowViews];
         _shadowCameras = new Camera3D[ShadowViews];
         var environment = new Godot.Environment
@@ -111,8 +115,15 @@ public partial class WorldScene
     /// <summary>A torch's light for the shadow slots (<see cref="SetTorchLight"/>), null when unlit or gone.</summary>
     private void SetShadowTorch(int floorTileIndex, ClassicPointLight? light)
     {
-        if (light is ClassicPointLight lit) _shadowTorches[floorTileIndex] = lit.Position;
-        else if (!_shadowTorches.Remove(floorTileIndex)) return;
+        if (light is ClassicPointLight lit)
+        {
+            _shadowTorches[floorTileIndex] = lit.Position;
+        }
+        else if (!_shadowTorches.Remove(floorTileIndex))
+        {
+            return;
+        }
+
         _shadowTorchesChanged = true;
     }
 
@@ -122,7 +133,11 @@ public partial class WorldScene
     /// the torches are listed.</summary>
     private void PrepareShadows()
     {
-        if (_shadowViewports == null || _shadowCameras == null) return;
+        if (_shadowViewports == null || _shadowCameras == null)
+        {
+            return;
+        }
+
         if (_shadowTorchesChanged)
         {
             _shadowTorchesChanged = false;
@@ -145,19 +160,33 @@ public partial class WorldScene
         {
             _shadowNext[slot] = -1;
             for (int i = 0; i < count && _shadowSlotKeys[slot] >= 0; i++)
+            {
                 if (_shadowChosen[i] >= 0 && _shadowKeys[_shadowChosen[i]] == _shadowSlotKeys[slot]) { _shadowNext[slot] = _shadowChosen[i]; _shadowChosen[i] = -1; }
+            }
         }
         for (int i = 0, slot = 0; i < count; i++)
         {
-            if (_shadowChosen[i] < 0) continue;
-            while (_shadowNext[slot] >= 0) slot++;
+            if (_shadowChosen[i] < 0)
+            {
+                continue;
+            }
+
+            while (_shadowNext[slot] >= 0)
+            {
+                slot++;
+            }
+
             _shadowNext[slot] = _shadowChosen[i];
         }
         for (int slot = 0; slot < ClassicTorchShadowSlots.MaximumTorches; slot++)
         {
             int index = _shadowNext[slot];
             int key = index >= 0 ? _shadowKeys[index] : -1;
-            if (key == _shadowSlotKeys[slot]) continue;
+            if (key == _shadowSlotKeys[slot])
+            {
+                continue;
+            }
+
             _shadowSlotKeys[slot] = key;
             if (key < 0)
             {
@@ -175,9 +204,20 @@ public partial class WorldScene
                 new Basis(new Vector3(1, 0, 0), new Vector3(0, 0, -1), new Vector3(0, 1, 0)), point);
             _shadowViewports[slot].RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
         }
-        foreach (KeyValuePair<int, CreatureSlot> entry in _creatures) ShadowFades(entry.Value.Slot);
-        foreach (KeyValuePair<int, ModelSlot> entry in _objects) ShadowFades(entry.Value);
-        foreach (KeyValuePair<StructureId, ModelSlot> entry in _structures) ShadowFades(entry.Value);
+        foreach (KeyValuePair<int, CreatureSlot> entry in _creatures)
+        {
+            ShadowFades(entry.Value.Slot);
+        }
+
+        foreach (KeyValuePair<int, ModelSlot> entry in _objects)
+        {
+            ShadowFades(entry.Value);
+        }
+
+        foreach (KeyValuePair<StructureId, ModelSlot> entry in _structures)
+        {
+            ShadowFades(entry.Value);
+        }
     }
 
     /// <summary>A caster's fade per slot: zero unless that slot's torch is one of its DK2 sources; written to its
@@ -188,15 +228,26 @@ public partial class WorldScene
         const float range = ClassicMeshShadow.MaximumDistance * ClassicMeshShadow.MaximumDistance;
         bool near = false;
         for (int i = 0; i < ClassicTorchShadowSlots.MaximumTorches && !near; i++)
+        {
             near = _shadowSlotKeys[i] >= 0 && NVector3.DistanceSquared(centre, _shadowSlotPositions[i]) < range;
+        }
+
         Vector4 fades = default;
         if (near)
         {
             _shadowSelector.Begin(centre);
-            for (int i = 0; i < _shadowKeys.Length; i++) _shadowSelector.Offer(_shadowKeys[i], _shadowPositions[i]);
+            for (int i = 0; i < _shadowKeys.Length; i++)
+            {
+                _shadowSelector.Offer(_shadowKeys[i], _shadowPositions[i]);
+            }
+
             fades = new Vector4(Fade(0), Fade(1), 0f, 0f);
         }
-        if (fades == slot.ShadowFades) return;
+        if (fades == slot.ShadowFades)
+        {
+            return;
+        }
+
         slot.ShadowFades = fades;
         slot.Node.SetInstanceShaderParameter(ShadowFadeParameter, fades);
 

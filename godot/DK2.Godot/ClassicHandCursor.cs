@@ -30,15 +30,28 @@ public partial class ClassicHandCursor : Node
     /// now so no frame decodes one on first use (ADR-0688); call before it enters the tree.</summary>
     public void Open(InstallHandCursorSheets sheets)
     {
-        if (_canvas != null) throw new InvalidOperationException("The hand cursor is already open.");
-        if (sheets is null) throw new ArgumentNullException(nameof(sheets));
+        if (_canvas != null)
+        {
+            throw new InvalidOperationException("The hand cursor is already open.");
+        }
+
+        if (sheets is null)
+        {
+            throw new ArgumentNullException(nameof(sheets));
+        }
+
         var layer = new CanvasLayer { Name = "Layer", Layer = CanvasLayerIndex };
         var canvas = new HudCanvas { Name = "HudCanvas", Load = sheets.Load, Visible = false };
         layer.AddChild(canvas);
         try
         {
             foreach (HandCursorKind kind in Enum.GetValues<HandCursorKind>())
-                if (kind != HandCursorKind.Default) canvas.Preload(HandCursorHud.Sheet(kind));
+            {
+                if (kind != HandCursorKind.Default)
+                {
+                    canvas.Preload(HandCursorHud.Sheet(kind));
+                }
+            }
         }
         catch { layer.Free(); throw; }
         _canvas = canvas;
@@ -49,7 +62,11 @@ public partial class ClassicHandCursor : Node
     /// pointer back) when not <paramref name="visible"/> or the kind is the default.</summary>
     public void Update(HandCursorKind kind, bool visible, long milliseconds)
     {
-        if (_canvas == null) return;
+        if (_canvas == null)
+        {
+            return;
+        }
+
         if (!visible || kind == HandCursorKind.Default)
         {
             _kind = HandCursorKind.Default;
@@ -71,10 +88,18 @@ public partial class ClassicHandCursor : Node
     /// <summary>Places the shown frame with its anchor on <paramref name="pointer"/> (screen pixels from the top left).</summary>
     public void Draw(Vector2 pointer)
     {
-        if (_canvas == null || _kind == HandCursorKind.Default) return;
+        if (_canvas == null || _kind == HandCursorKind.Default)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         var screen = new HudScreen(width, height);
         _frame.Clear();
         HandCursorHud.Draw(_frame, _kind, _sheetFrame, new System.Numerics.Vector2(pointer.X, pointer.Y), screen,
@@ -84,15 +109,27 @@ public partial class ClassicHandCursor : Node
 
     private void RestorePointer()
     {
-        if (!_ownsPointer) return;
-        if (Input.MouseMode == Input.MouseModeEnum.Hidden) Input.MouseMode = Input.MouseModeEnum.Visible;
+        if (!_ownsPointer)
+        {
+            return;
+        }
+
+        if (Input.MouseMode == Input.MouseModeEnum.Hidden)
+        {
+            Input.MouseMode = Input.MouseModeEnum.Visible;
+        }
+
         _ownsPointer = false;
     }
 
     public override void _Notification(int what)
     {
         // Freed, not merely removed from the tree: the pointer is given back.
-        if (what != NotificationPredelete) return;
+        if (what != NotificationPredelete)
+        {
+            return;
+        }
+
         RestorePointer();
         _canvas = null;
     }

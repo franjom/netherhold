@@ -17,6 +17,9 @@ public partial class ScriptedPointerGate : Node
 
     public override void _Input(InputEvent @event)
     {
-        if (@event is InputEventMouse && @event.Device != Device) GetViewport().SetInputAsHandled();
+        if (@event is InputEventMouse && @event.Device != Device)
+        {
+            GetViewport().SetInputAsHandled();
+        }
     }
 }

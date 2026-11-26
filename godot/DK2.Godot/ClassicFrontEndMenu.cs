@@ -37,9 +37,17 @@ public partial class ClassicFrontEndMenu : Node
         set
         {
             _useReplacement = value;
-            if (_canvas == null || _assets == null) return;
+            if (_canvas == null || _assets == null)
+            {
+                return;
+            }
+
             FontFile? face = value ? _assets.ReplacementFont : null;
-            if (value && face == null) GD.Print("DK2.Godot: no replacement font found; the menu uses the BF4 bitmap font.");
+            if (value && face == null)
+            {
+                GD.Print("DK2.Godot: no replacement font found; the menu uses the BF4 bitmap font.");
+            }
+
             _canvas.ReplacementFont = face;
         }
     }
@@ -59,7 +67,11 @@ public partial class ClassicFrontEndMenu : Node
     /// <param name="skipStartup">Skip the title screen and intro movies.</param>
     public void Open(string install, GameFolders folders, FrontEndPage returnPage = FrontEndPage.None, bool skipStartup = false)
     {
-        if (_hud != null) throw new InvalidOperationException("The menu is already open.");
+        if (_hud != null)
+        {
+            throw new InvalidOperationException("The menu is already open.");
+        }
+
         _assets = new ClassicFrontEndMenuAssets(install);
         Func<int, IReadOnlyList<KcsFrame>?> paths = EngineCameraPaths.Loader(install);
         _session = new FrontEndSession(path => paths((int)path), returnPage);
@@ -90,10 +102,17 @@ public partial class ClassicFrontEndMenu : Node
         _mixer = new ClassicSoundMixer(output, new InstallClassicSoundAssets(install), 0);
         ApplyMenuSettings(settings);
         // --sound-log, as the in-game scene's: each request as it starts, on the front end's clock.
-        if (Array.IndexOf(args, "--sound-log") >= 0) LogSounds(_mixer);
+        if (Array.IndexOf(args, "--sound-log") >= 0)
+        {
+            LogSounds(_mixer);
+        }
+
         UseReplacementFont = true;
         OpenMovies(install, skipStartup, returnPage);
-        if (_startup == null) _session.Update(TimeSpan.Zero);
+        if (_startup == null)
+        {
+            _session.Update(TimeSpan.Zero);
+        }
     }
 
     private bool _soundLog;
@@ -120,19 +139,36 @@ public partial class ClassicFrontEndMenu : Node
     public override void _Input(InputEvent @event)
     {
         NoteKeyPress(@event);
-        if (@event is InputEventKey key) _keyboard.Feed(key);
+        if (@event is InputEventKey key)
+        {
+            _keyboard.Feed(key);
+        }
         // Poll the pointer position each frame and accumulate wheel notches from events.
         if (@event is InputEventMouseButton button)
         {
-            if (!button.Pressed) return;
-            if (button.ButtonIndex == MouseButton.WheelUp) _wheel++;
-            else if (button.ButtonIndex == MouseButton.WheelDown) _wheel--;
+            if (!button.Pressed)
+            {
+                return;
+            }
+
+            if (button.ButtonIndex == MouseButton.WheelUp)
+            {
+                _wheel++;
+            }
+            else if (button.ButtonIndex == MouseButton.WheelDown)
+            {
+                _wheel--;
+            }
         }
     }
 
     public override void _Process(double delta)
     {
-        if (_hud == null || _session == null || _canvas == null) return;
+        if (_hud == null || _session == null || _canvas == null)
+        {
+            return;
+        }
+
         InjectKeys();
         // Engine time rather than the wall clock, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
@@ -163,19 +199,49 @@ public partial class ClassicFrontEndMenu : Node
         UpdateSaveBrowser(width, height, primaryHeld);
         _wheel = 0;
         // Play menu sounds, update the station and any queued launch, then play map sounds.
-        if (_mixer != null) _mixer.Play(_hud.Model.Sounds); else _hud.Model.Sounds.Clear();
+        if (_mixer != null)
+        {
+            _mixer.Play(_hud.Model.Sounds);
+        }
+        else
+        {
+            _hud.Model.Sounds.Clear();
+        }
+
         if (_options != null)
         {
-            if (_mixer != null) _mixer.Play(_options.Sounds); else _options.Sounds.Clear();
+            if (_mixer != null)
+            {
+                _mixer.Play(_options.Sounds);
+            }
+            else
+            {
+                _options.Sounds.Clear();
+            }
         }
         bool inside = sized && _pointer.X >= 0 && _pointer.Y >= 0 && _pointer.X < width && _pointer.Y < height;
-        if (UpdateStation(_pointer, primaryHeld, inside, milliseconds)) return;
+        if (UpdateStation(_pointer, primaryHeld, inside, milliseconds))
+        {
+            return;
+        }
+
         if (_campaign != null)
         {
-            if (_mixer != null) _mixer.Play(_campaign.Sounds); else _campaign.Sounds.Clear();
+            if (_mixer != null)
+            {
+                _mixer.Play(_campaign.Sounds);
+            }
+            else
+            {
+                _campaign.Sounds.Clear();
+            }
         }
         _hud.Sync();
-        if (!sized) return;
+        if (!sized)
+        {
+            return;
+        }
+
         _frame.Clear();
         _hud.Build(_frame);
         float pixelsPerUnit = FrontEndBox.Scale(width, height);
@@ -207,8 +273,16 @@ public partial class ClassicFrontEndMenu : Node
 
     public override void _ExitTree()
     {
-        if (_session != null) _session.PageChanged -= PageChanged;
-        if (_profiles != null) _profiles.Changed -= RefreshMovies;
+        if (_session != null)
+        {
+            _session.PageChanged -= PageChanged;
+        }
+
+        if (_profiles != null)
+        {
+            _profiles.Changed -= RefreshMovies;
+        }
+
         CloseSaveBrowser();
         CloseStation();
         CloseMovies();

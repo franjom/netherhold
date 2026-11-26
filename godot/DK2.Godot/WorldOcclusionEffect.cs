@@ -40,40 +40,92 @@ public partial class WorldOcclusionEffect : CompositorEffect
     }
     private void Render(RenderData renderData)
     {
-        if (_released) return;
+        if (_released)
+        {
+            return;
+        }
+
         long getterBefore = GC.GetAllocatedBytesForCurrentThread();
         var buffers = renderData.GetRenderSceneBuffers() as RenderSceneBuffersRD;
-        if (_frames >= 20) _bufferBytes += GC.GetAllocatedBytesForCurrentThread() - getterBefore;
-        if (buffers == null) return;
+        if (_frames >= 20)
+        {
+            _bufferBytes += GC.GetAllocatedBytesForCurrentThread() - getterBefore;
+        }
+
+        if (buffers == null)
+        {
+            return;
+        }
+
         Vector2I size = buffers.GetInternalSize();
-        if (size.X == 0 || size.Y == 0) return;
+        if (size.X == 0 || size.Y == 0)
+        {
+            return;
+        }
+
         _rd ??= RenderingServer.GetRenderingDevice();
-        if (!_rawPipeline.IsValid) Initialize();
-        if (!_rawPipeline.IsValid || !_filterPipeline.IsValid) return;
+        if (!_rawPipeline.IsValid)
+        {
+            Initialize();
+        }
+
+        if (!_rawPipeline.IsValid || !_filterPipeline.IsValid)
+        {
+            return;
+        }
+
         bool msaa = buffers.GetMsaa3D() != RenderingServer.ViewportMsaa.Disabled;
         // Each camera has its own effect. Rebind only if the renderer reallocates its buffers.
         Rid depth = buffers.GetDepthLayer(0), color = buffers.GetColorLayer(0);
         Rid msaaColor = msaa ? buffers.GetColorLayer(0, true) : default;
         if (_size != size || _depth != depth || _color != color || _msaaColor != msaaColor)
+        {
             Bind(size, depth, color, msaaColor, buffers.GetTextureSamples());
-        if (msaa && !_applyPipeline.IsValid) return;
+        }
+
+        if (msaa && !_applyPipeline.IsValid)
+        {
+            return;
+        }
+
         getterBefore = GC.GetAllocatedBytesForCurrentThread();
         // This includes depth/Y correction and jitter, matching the spatial shader inverse projection.
         Projection projection = renderData.GetRenderSceneData().GetViewProjection(0);
-        if (_frames >= 20) _sceneBytes += GC.GetAllocatedBytesForCurrentThread() - getterBefore;
+        if (_frames >= 20)
+        {
+            _sceneBytes += GC.GetAllocatedBytesForCurrentThread() - getterBefore;
+        }
+
         Projection inverse = projection.Inverse();
         Span<float> values = MemoryMarshal.Cast<byte, float>(_push.AsSpan());
         for (int column = 0; column < 4; column++)
-            for (int row = 0; row < 4; row++) values[column * 4 + row] = inverse[column][row];
+        {
+            for (int row = 0; row < 4; row++)
+            {
+                values[column * 4 + row] = inverse[column][row];
+            }
+        }
+
         values[16] = size.X; values[17] = size.Y;
         values[18] = projection.X.X; values[19] = projection.Y.Y;
         long list = _rd!.ComputeListBegin();
         Dispatch(list, _rawPipeline, _rawSet, size);
         _rd.ComputeListAddBarrier(list);
-        if (msaa) Dispatch(list, _factorPipeline, _factorSet, size);
-        else Dispatch(list, _filterPipeline, _filterSet, size);
+        if (msaa)
+        {
+            Dispatch(list, _factorPipeline, _factorSet, size);
+        }
+        else
+        {
+            Dispatch(list, _filterPipeline, _filterSet, size);
+        }
+
         _rd.ComputeListEnd();
-        if (!msaa) return;
+        if (!msaa)
+        {
+            return;
+        }
+
         long draw = _rd.DrawListBegin(_applyFramebuffer, RenderingDevice.DrawFlags.DefaultAll,
             ReadOnlySpan<Color>.Empty, 0f, 0u, null, 0u);
         _rd.DrawListBindRenderPipeline(draw, _applyPipeline);
@@ -120,15 +172,28 @@ public partial class WorldOcclusionEffect : CompositorEffect
         using var source = new RDShaderSource { SourceVertex = ApplyVertex, SourceFragment = ApplyFragment };
         using RDShaderSpirV spirv = _rd!.ShaderCompileSpirVFromSource(source);
         if (spirv.CompileErrorVertex.Length != 0 || spirv.CompileErrorFragment.Length != 0)
+        {
             GD.PushError(spirv.CompileErrorVertex, spirv.CompileErrorFragment);
-        else _applyShader = _rd.ShaderCreateFromSpirV(spirv);
-        if (_factorShader.IsValid) _factorPipeline = _rd.ComputePipelineCreate(_factorShader);
+        }
+        else
+        {
+            _applyShader = _rd.ShaderCreateFromSpirV(spirv);
+        }
+
+        if (_factorShader.IsValid)
+        {
+            _factorPipeline = _rd.ComputePipelineCreate(_factorShader);
+        }
     }
     private RDUniform Uniform(int binding, Rid texture, bool sampled)
     {
         var uniform = new RDUniform { Binding = binding, UniformType = sampled
             ? RenderingDevice.UniformType.SamplerWithTexture : RenderingDevice.UniformType.Image };
-        if (sampled) uniform.AddId(_sampler);
+        if (sampled)
+        {
+            uniform.AddId(_sampler);
+        }
+
         uniform.AddId(texture);
         return uniform;
     }
@@ -137,7 +202,11 @@ public partial class WorldOcclusionEffect : CompositorEffect
         var set = new Godot.Collections.Array<RDUniform>(uniforms);
         using var storage = (Godot.Collections.Array)set;
         Rid rid = _rd!.UniformSetCreate(set, shader, 0);
-        foreach (RDUniform uniform in uniforms) uniform.Dispose();
+        foreach (RDUniform uniform in uniforms)
+        {
+            uniform.Dispose();
+        }
+
         return rid;
     }
     private Rid HalfTexture(Vector2I size)
@@ -161,13 +230,24 @@ public partial class WorldOcclusionEffect : CompositorEffect
             return;
         }
         // Under MSAA the resolved colour is not a storage image: the factor goes to its own.
-        if (!_applyShader.IsValid) InitializeMsaa();
-        if (!_applyShader.IsValid || !_factorPipeline.IsValid) return;
+        if (!_applyShader.IsValid)
+        {
+            InitializeMsaa();
+        }
+
+        if (!_applyShader.IsValid || !_factorPipeline.IsValid)
+        {
+            return;
+        }
+
         _factorTexture = HalfTexture(size);
         _factorSet = UniformSet(_factorShader, Uniform(0, depth, true), Uniform(1, _texture, true), Uniform(2, _factorTexture, false));
         _applySet = UniformSet(_applyShader, Uniform(0, _factorTexture, true));
         var targets = new Godot.Collections.Array<Rid> { msaaColor };
-        using (var targetStorage = (Godot.Collections.Array)targets) _applyFramebuffer = _rd!.FramebufferCreate(targets);
+        using (var targetStorage = (Godot.Collections.Array)targets)
+        {
+            _applyFramebuffer = _rd!.FramebufferCreate(targets);
+        }
         // Colour = factor x destination; the destination's alpha is kept.
         using var attachment = new RDPipelineColorBlendStateAttachment { EnableBlend = true,
             SrcColorBlendFactor = RenderingDevice.BlendFactor.Zero, DstColorBlendFactor = RenderingDevice.BlendFactor.SrcColor,
@@ -190,7 +270,11 @@ public partial class WorldOcclusionEffect : CompositorEffect
     /// <summary>Called when the owning camera leaves the tree; all RD resources are freed on the render thread.</summary>
     public void Release()
     {
-        if (_released) return;
+        if (_released)
+        {
+            return;
+        }
+
         _released = true;
         GD.Print("World occlusion callback: ", _measured, " warmed frames allocated ", _bytes, " B; buffers ", _bufferBytes, "; scene ", _sceneBytes);
         RenderingServer.CallOnRenderThread(Callable.From(FreeResources));
@@ -198,13 +282,21 @@ public partial class WorldOcclusionEffect : CompositorEffect
     private void FreeMsaaTargets()
     {
         Free(ref _applyPipeline); FreeSet(ref _applySet); FreeSet(ref _factorSet);
-        if (_applyFramebuffer.IsValid && _rd!.FramebufferIsValid(_applyFramebuffer)) _rd.FreeRid(_applyFramebuffer);
+        if (_applyFramebuffer.IsValid && _rd!.FramebufferIsValid(_applyFramebuffer))
+        {
+            _rd.FreeRid(_applyFramebuffer);
+        }
+
         _applyFramebuffer = default;
         Free(ref _factorTexture);
     }
     private void FreeResources()
     {
-        if (_rd == null) return;
+        if (_rd == null)
+        {
+            return;
+        }
+
         FreeSet(ref _rawSet); FreeSet(ref _filterSet); Free(ref _texture);
         FreeMsaaTargets();
         Free(ref _factorPipeline); Free(ref _factorShader); Free(ref _applyShader);
@@ -212,12 +304,20 @@ public partial class WorldOcclusionEffect : CompositorEffect
     }
     private void FreeSet(ref Rid rid)
     {
-        if (rid.IsValid && _rd!.UniformSetIsValid(rid)) _rd.FreeRid(rid);
+        if (rid.IsValid && _rd!.UniformSetIsValid(rid))
+        {
+            _rd.FreeRid(rid);
+        }
+
         rid = default;
     }
     private void Free(ref Rid rid)
     {
-        if (rid.IsValid) _rd!.FreeRid(rid);
+        if (rid.IsValid)
+        {
+            _rd!.FreeRid(rid);
+        }
+
         rid = default;
     }
 }

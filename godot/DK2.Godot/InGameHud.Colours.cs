@@ -27,7 +27,11 @@ public partial class InGameHud
     }
     private void UpdateScreenColours()
     {
-        if (_possession == null || _screenColourImage == null || _screenColourTexture == null) return;
+        if (_possession == null || _screenColourImage == null || _screenColourTexture == null)
+        {
+            return;
+        }
+
         double gamma = DisplaySettings.RampGamma(_settings.Gamma);
         if (gamma != _screenGamma)
         {
@@ -40,12 +44,23 @@ public partial class InGameHud
         bool changed = false;
         for (int i = 0; i < _uploadedScreenColours.Length; i++)
         {
-            if (_uploadedScreenColours[i] != table[i]) changed = true;
+            if (_uploadedScreenColours[i] != table[i])
+            {
+                changed = true;
+            }
+
             _uploadedScreenColours[i] = table[i];
         }
-        if (!changed) return;
+        if (!changed)
+        {
+            return;
+        }
+
         for (int i = 0; i < 256; i++)
+        {
             _screenColourImage.SetPixel(i, 0, new Color(table[i] / 65535f, table[256 + i] / 65535f, table[512 + i] / 65535f));
+        }
+
         _screenColourTexture.Update(_screenColourImage);
     }
     private void CloseScreenColours()

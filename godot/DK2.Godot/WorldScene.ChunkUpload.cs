@@ -65,7 +65,10 @@ public partial class WorldScene
             || RenderingServer.MeshSurfaceGetFormatOffset(layout, Vertices, (int)Mesh.ArrayType.Tangent) != (Vertices * PackedSurface.PositionStride) + 4
             || RenderingServer.MeshSurfaceGetFormatOffset(layout, Vertices, (int)Mesh.ArrayType.TexUV) != 0
             || RenderingServer.MeshSurfaceGetFormatOffset(layout, Vertices, (int)Mesh.ArrayType.Custom0) != 8)
+        {
             GD.PushError("DK2.Godot: the terrain chunk layout is not positions, then normal and tangent, then UV and four-float CUSTOM0; chunks draw wrong.");
+        }
+
         return format;
     }
 
@@ -74,14 +77,25 @@ public partial class WorldScene
     private void UploadChunkSurfaces(int chunk)
     {
         Rid mesh = _chunkMeshes[chunk];
-        if (mesh.IsValid) RenderingServer.MeshClear(mesh);
+        if (mesh.IsValid)
+        {
+            RenderingServer.MeshClear(mesh);
+        }
+
         List<PackedSurface> surfaces = _chunkPacker!.Surfaces(chunk, out int count);
         int added = 0;
         for (int i = 0; i < count; i++)
         {
             PackedSurface surface = surfaces[i];
-            if (surface.IndexCount == 0) continue;
-            if (!mesh.IsValid) _chunkMeshes[chunk] = mesh = RenderingServer.MeshCreate();
+            if (surface.IndexCount == 0)
+            {
+                continue;
+            }
+
+            if (!mesh.IsValid)
+            {
+                _chunkMeshes[chunk] = mesh = RenderingServer.MeshCreate();
+            }
             // The packed arrays are copied into Godot's own and released here, not by a finalizer.
             using (Variant vertices = surface.VertexData, attributes = surface.AttributeData, indices = surface.IndexData)
             {
@@ -95,19 +109,39 @@ public partial class WorldScene
             RenderingServer.MeshAddSurface(mesh, _chunkSurface);
             RenderingServer.MeshSurfaceSetMaterial(mesh, added++, MaterialFor(surface.Key).GetRid());
         }
-        if (_chunkInstances[chunk].IsValid || added == 0) return;
+        if (_chunkInstances[chunk].IsValid || added == 0)
+        {
+            return;
+        }
+
         Rid instance = RenderingServer.InstanceCreate2(mesh, GetWorld3D().Scenario);
         RenderingServer.InstanceGeometrySetCastShadowsSetting(instance, RenderingServer.ShadowCastingSetting.Off);
-        if (TorchShadowsActive) RenderingServer.InstanceSetLayerMask(instance, ShadowCasterLayers);
+        if (TorchShadowsActive)
+        {
+            RenderingServer.InstanceSetLayerMask(instance, ShadowCasterLayers);
+        }
+
         _chunkInstances[chunk] = instance;
     }
 
     private void FreeChunkUpload()
     {
         for (int i = 0; i < _chunkInstances.Length; i++)
-            if (_chunkInstances[i].IsValid) RenderingServer.FreeRid(_chunkInstances[i]);
+        {
+            if (_chunkInstances[i].IsValid)
+            {
+                RenderingServer.FreeRid(_chunkInstances[i]);
+            }
+        }
+
         for (int i = 0; i < _chunkMeshes.Length; i++)
-            if (_chunkMeshes[i].IsValid) RenderingServer.FreeRid(_chunkMeshes[i]);
+        {
+            if (_chunkMeshes[i].IsValid)
+            {
+                RenderingServer.FreeRid(_chunkMeshes[i]);
+            }
+        }
+
         _chunkInstances = [];
         _chunkMeshes = [];
     }
@@ -135,7 +169,11 @@ public partial class WorldScene
 
         public void PackChunk(int chunk, ReadOnlySpan<TerrainTileGeometry> tiles)
         {
-            foreach (SurfaceBuffer surface in _surfaces) _spare.Add(surface);
+            foreach (SurfaceBuffer surface in _surfaces)
+            {
+                _spare.Add(surface);
+            }
+
             _surfaces.Clear();
             _surfaceOf.Clear();
             foreach (TerrainTileGeometry tile in tiles)
@@ -148,7 +186,11 @@ public partial class WorldScene
                 for (int s = 0; s < tile.KeyCount; s++)
                 {
                     TerrainMaterialKey key = tile.Keys[s];
-                    if (!IsOpaque(key)) continue;
+                    if (!IsOpaque(key))
+                    {
+                        continue;
+                    }
+
                     if (!_surfaceOf.TryGetValue(key, out SurfaceBuffer? surface))
                     {
                         surface = TakeSurface(key);
@@ -161,15 +203,26 @@ public partial class WorldScene
             }
 
             List<PackedSurface> packed = _chunks[chunk] ??= new List<PackedSurface>();
-            while (packed.Count < _surfaces.Count) packed.Add(new PackedSurface());
-            for (int i = 0; i < _surfaces.Count; i++) packed[i].Write(_surfaces[i]);
+            while (packed.Count < _surfaces.Count)
+            {
+                packed.Add(new PackedSurface());
+            }
+
+            for (int i = 0; i < _surfaces.Count; i++)
+            {
+                packed[i].Write(_surfaces[i]);
+            }
+
             _counts[chunk] = _surfaces.Count;
         }
 
         private bool IsOpaque(in TerrainMaterialKey key)
         {
             if (!_opaque.TryGetValue(key, out bool opaque))
+            {
                 _opaque.Add(key, opaque = TerrainMaterialLook.For(key).Blend == KmfBlend.Opaque);
+            }
+
             return opaque;
         }
 
@@ -181,7 +234,11 @@ public partial class WorldScene
                 surface = _spare[^1];
                 _spare.RemoveAt(_spare.Count - 1);
             }
-            else surface = new SurfaceBuffer();
+            else
+            {
+                surface = new SurfaceBuffer();
+            }
+
             surface.Reset(key);
             return surface;
         }
@@ -220,9 +277,20 @@ public partial class WorldScene
             _attributeBytes = count * AttributeStride;
             int indexSize = count <= 1 << 16 ? 2 : 4;
             _indexBytes = IndexCount * indexSize;
-            if (_vertices.Length < _vertexBytes) _vertices = new byte[_vertexBytes * 3 / 2];
-            if (_attributes.Length < _attributeBytes) _attributes = new byte[_attributeBytes * 3 / 2];
-            if (_indices.Length < _indexBytes) _indices = new byte[_indexBytes * 3 / 2];
+            if (_vertices.Length < _vertexBytes)
+            {
+                _vertices = new byte[_vertexBytes * 3 / 2];
+            }
+
+            if (_attributes.Length < _attributeBytes)
+            {
+                _attributes = new byte[_attributeBytes * 3 / 2];
+            }
+
+            if (_indices.Length < _indexBytes)
+            {
+                _indices = new byte[_indexBytes * 3 / 2];
+            }
 
             // Godot memcpy's each value in the machine's order; these views do the same.
             ReadOnlySpan<NVector3> positions = source.Positions, normals = source.Normals;
@@ -259,9 +327,15 @@ public partial class WorldScene
             if (indexSize == 2)
             {
                 Span<ushort> shorts = MemoryMarshal.Cast<byte, ushort>(_indices.AsSpan(0, _indexBytes));
-                for (int i = 0; i < indices.Length; i++) shorts[i] = (ushort)indices[i];
+                for (int i = 0; i < indices.Length; i++)
+                {
+                    shorts[i] = (ushort)indices[i];
+                }
             }
-            else indices.CopyTo(MemoryMarshal.Cast<byte, int>(_indices.AsSpan(0, _indexBytes)));
+            else
+            {
+                indices.CopyTo(MemoryMarshal.Cast<byte, int>(_indices.AsSpan(0, _indexBytes)));
+            }
         }
 
         /// <summary><c>Vector3::octahedron_encode</c> of the normal, each half as Godot's 16-bit unorm.</summary>
@@ -284,7 +358,11 @@ public partial class WorldScene
             v = v > Bias ? v : Bias;
             v = (v * 0.5f) + 0.5f;
             ushort first = Unorm16(u), second = Unorm16(v);
-            if (first == 0 && second == 65535) first = 65535;
+            if (first == 0 && second == 65535)
+            {
+                first = 65535;
+            }
+
             return first | ((uint)second << 16);
         }
 

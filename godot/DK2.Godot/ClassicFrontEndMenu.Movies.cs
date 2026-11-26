@@ -84,13 +84,21 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
         _keyPressed = false;
         DrawCover();
         DrawTitle();
-        if (_canvas != null) _canvas.Visible = !held;
+        if (_canvas != null)
+        {
+            _canvas.Visible = !held;
+        }
+
         return held;
     }
 
     private bool UpdateStartup()
     {
-        if (_startup == null) return false;
+        if (_startup == null)
+        {
+            return false;
+        }
+
         FrontEndStartupStage stage = _startup.Update(TimeSpan.FromSeconds(_elapsed - _startupStarted));
         if (stage == FrontEndStartupStage.Done)
         {
@@ -110,8 +118,15 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
 
     private bool UpdateCutscene()
     {
-        if (_cutscenes == null || !_cutscenes.Playing) return false;
-        if (_cutscenes.Update((float)_elapsed)) return true;
+        if (_cutscenes == null || !_cutscenes.Playing)
+        {
+            return false;
+        }
+
+        if (_cutscenes.Update((float)_elapsed))
+        {
+            return true;
+        }
         // The front end's clock starts when it first runs, as DK2's init returns only after the movie.
         _frontEndStarted = _elapsed;
         return false;
@@ -119,10 +134,18 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
 
     private bool UpdateAttract()
     {
-        if (_movie != null) return true;
+        if (_movie != null)
+        {
+            return true;
+        }
+
         FrontEndMovie? movie = _attract.Update(FrontEndTime, _session!.Page, _pointer != _lastPointer, _keyPressed);
         _lastPointer = _pointer;
-        if (!movie.HasValue) return false;
+        if (!movie.HasValue)
+        {
+            return false;
+        }
+
         PlayFrontEndMovie(FrontEndMoviePaths.Of(movie.Value));
         return true;
     }
@@ -131,7 +154,11 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
 
     private void PlayFrontEndMovie(string path)
     {
-        if (_movie != null || _install == null) return;
+        if (_movie != null || _install == null)
+        {
+            return;
+        }
+
         _movie = ClassicMoviePlayer.Play(this, _install, path);
         _movie.Finished += () =>
         {
@@ -143,24 +170,43 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
     /// <summary>Whether any key or mouse button went down this frame, for the attract timer.</summary>
     private void NoteKeyPress(InputEvent @event)
     {
-        if (@event is InputEventKey { Pressed: true, Echo: false } or InputEventMouseButton { Pressed: true }) _keyPressed = true;
+        if (@event is InputEventKey { Pressed: true, Echo: false } or InputEventMouseButton { Pressed: true })
+        {
+            _keyPressed = true;
+        }
     }
 
     /// <summary>Black under the startup's title screen (drawn at 640 x 480 fitted), and from the cutscene's card until a movie's
     /// first picture is up and between its movies, since nothing else hides the menu beneath.</summary>
     private void DrawCover()
     {
-        if (!_cover.IsValid) return;
+        if (!_cover.IsValid)
+        {
+            return;
+        }
+
         int state = _startup?.Stage == FrontEndStartupStage.Title ? 2
             : _cutscenes != null && _cutscenes.Blackout(_cutscenePlayer != null && _cutscenePlayer.HasFrame) ? 1 : 0;
         Vector2 size = GetViewport().GetVisibleRect().Size;
-        if (state == _coverState && size == _coverSize) return;
+        if (state == _coverState && size == _coverSize)
+        {
+            return;
+        }
+
         _coverState = state;
         _coverSize = size;
         RenderingServer.CanvasItemClear(_cover);
-        if (state == 0) return;
+        if (state == 0)
+        {
+            return;
+        }
+
         RenderingServer.CanvasItemAddRect(_cover, new Rect2(Vector2.Zero, size), Colors.Black);
-        if (state != 2 || _titleImage == null) return;
+        if (state != 2 || _titleImage == null)
+        {
+            return;
+        }
+
         float scale = MathF.Min(size.X / 640f, size.Y / 480f);
         RenderingServer.CanvasItemAddTextureRect(_cover,
             new Rect2((size.X - 640 * scale) / 2, (size.Y - 480 * scale) / 2, 640 * scale, 480 * scale), _titleImage.GetRid());
@@ -173,7 +219,11 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
     {
         string? title = _cutscenes != null && _cutscenes.Blackout(_cutscenePlayer != null && _cutscenePlayer.HasFrame)
             ? _cutscenes.VisibleTitle : null;
-        if (title == null && _title == null) return;
+        if (title == null && _title == null)
+        {
+            return;
+        }
+
         _title ??= new BitmapTextItem(_cover);
         _title.ReplacementFont = _canvas?.ReplacementFont;
         Vector2 size = GetViewport().GetVisibleRect().Size;
@@ -184,7 +234,11 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
     /// <summary>The bitmap font for the screen height, read once a height; null, with one warning, when the install lacks it.</summary>
     private BitmapFont? TitleFont(int height)
     {
-        if (height == _titleFontHeight || _install == null) return _titleFont;
+        if (height == _titleFontHeight || _install == null)
+        {
+            return _titleFont;
+        }
+
         _titleFontHeight = height;
         _titleSources ??= new InstallHudSources(_install);
         try
@@ -205,8 +259,16 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
         _title = null;
         _titleSources?.Dispose();
         _titleSources = null;
-        if (_hud != null) _hud.Model.MovieRequested -= PlayFrontEndMovie;
-        if (_cover.IsValid) RenderingServer.FreeRid(_cover);
+        if (_hud != null)
+        {
+            _hud.Model.MovieRequested -= PlayFrontEndMovie;
+        }
+
+        if (_cover.IsValid)
+        {
+            RenderingServer.FreeRid(_cover);
+        }
+
         _cover = default;
         _titleImage = null;
     }
@@ -215,8 +277,12 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
 
     void ICampaignCutsceneHost.QueueSpeech(SoundId speech)
     {
-        if (_soundLog) GD.Print("DK2.Godot front-end sound: frame ", Engine.GetProcessFrames(), " ms ", (long)(_elapsed * 1000),
+        if (_soundLog)
+        {
+            GD.Print("DK2.Godot front-end sound: frame ", Engine.GetProcessFrames(), " ms ", (long)(_elapsed * 1000),
             " queued the title card's line 0x", speech.Value.ToString("X", CultureInfo.InvariantCulture));
+        }
+
         _mixer?.QueueSpeech(SoundCategory.Mentor, speech, clearWaiting: true);
     }
 

@@ -36,9 +36,21 @@ public partial class ClassicSaveLoadPanel : Node
     /// <param name="font">The legible bitmap font for a screen height.</param>
     public void Open(Func<uint, string> text, Func<int, BitmapFont> font)
     {
-        if (_hud != null) throw new InvalidOperationException("The save browser is already open.");
-        if (text is null) throw new ArgumentNullException(nameof(text));
-        if (font is null) throw new ArgumentNullException(nameof(font));
+        if (_hud != null)
+        {
+            throw new InvalidOperationException("The save browser is already open.");
+        }
+
+        if (text is null)
+        {
+            throw new ArgumentNullException(nameof(text));
+        }
+
+        if (font is null)
+        {
+            throw new ArgumentNullException(nameof(font));
+        }
+
         _hud = new SaveLoadHud(text, font);
         _hud.Submit += RaiseSubmit; _hud.HudAction += RaiseHudAction;
         _canvas = new HudCanvas { Name = "HudCanvas", Load = Blank, Visible = false };
@@ -69,16 +81,28 @@ public partial class ClassicSaveLoadPanel : Node
 
     private void Present(SaveSlotsView? view, bool visible, bool save, ReadOnlySpan<char> typed, int wheel, bool frontEnd)
     {
-        if (_hud == null || _canvas == null) return;
+        if (_hud == null || _canvas == null)
+        {
+            return;
+        }
+
         _frontEnd = frontEnd;
         _hud.Show(view, visible, save, frontEnd);
         _canvas.Visible = _hud.Visible;
-        if (!_hud.Visible) return;
+        if (!_hud.Visible)
+        {
+            return;
+        }
+
         _hud.Type(typed);
         _hud.Wheel(wheel);
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         var screen = new HudScreen(width, height);
         _origin = Vector2.Zero;
         _scale = screen.Scale;
@@ -100,8 +124,16 @@ public partial class ClassicSaveLoadPanel : Node
 
     public override void _Input(InputEvent @event)
     {
-        if (_frontEnd || _hud == null || !_hud.Visible || _scale <= 0) return;
-        if (@event is not InputEventMouseButton { Pressed: true } button) return;
+        if (_frontEnd || _hud == null || !_hud.Visible || _scale <= 0)
+        {
+            return;
+        }
+
+        if (@event is not InputEventMouseButton { Pressed: true } button)
+        {
+            return;
+        }
+
         GetViewport().SetInputAsHandled();
         // Two presses in one frame both see the page as last drawn: a press that changes the page (Back, Continue) is
         // applied by the host, and this browser reads it at the next Show.
@@ -117,7 +149,11 @@ public partial class ClassicSaveLoadPanel : Node
     public override void _Notification(int what)
     {
         // Freed, not merely removed from the tree: a reparented browser keeps working.
-        if (what != NotificationPredelete) return;
+        if (what != NotificationPredelete)
+        {
+            return;
+        }
+
         if (_hud != null) { _hud.Submit -= RaiseSubmit; _hud.HudAction -= RaiseHudAction; }
         Submit = null; HudAction = null; _hud = null; _canvas = null;
     }

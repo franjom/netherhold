@@ -18,8 +18,11 @@ public static class LauncherSystem
     public static bool ShiftHeld()
     {
         if (OperatingSystem.IsWindows())
+        {
             try { return (GetAsyncKeyState(VkShift) & 0x8000) != 0; }
             catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException) { }
+        }
+
         return Input.IsKeyPressed(Key.Shift);
     }
 
@@ -27,8 +30,18 @@ public static class LauncherSystem
     public static bool ReduceMotion(IReadOnlyList<string> args)
     {
         foreach (string arg in args)
-            if (arg == "--reduce-motion") return true;
-        if (!OperatingSystem.IsWindows()) return false;
+        {
+            if (arg == "--reduce-motion")
+            {
+                return true;
+            }
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            return false;
+        }
+
         try { return SystemParametersInfoW(SpiGetClientAreaAnimation, 0, out int on, 0) && on == 0; }
         catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException) { return false; }
     }

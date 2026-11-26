@@ -20,22 +20,44 @@ public partial class ClassicFrontEndMenu
         string? path = LaunchArguments.Value(args, "--front-end-pointer-path");
         _pointerScript = LaunchArguments.ParsePointerPath(path);
         if (_pointerScript == null && path != null)
+        {
             GD.PushWarning("DK2.Godot: --front-end-pointer-path is malformed (LaunchArguments.ParsePointerPath); the OS pointer is used.");
+        }
+
         string? keys = LaunchArguments.Value(args, "--front-end-keys");
         _keyScript = KeyScript.Parse(keys);
-        if (_keyScript == null && keys != null) GD.PushWarning("DK2.Godot: --front-end-keys is malformed (KeyScript.Parse); no keys are injected.");
+        if (_keyScript == null && keys != null)
+        {
+            GD.PushWarning("DK2.Godot: --front-end-keys is malformed (KeyScript.Parse); no keys are injected.");
+        }
+
         if (_keyScript != null)
+        {
             foreach (KeyScriptKey tap in _keyScript.Keys)
-                if (!Enum.TryParse(tap.Key, out Key _)) GD.PushWarning("DK2.Godot: --front-end-keys names no Godot key: ", tap.Key);
+            {
+                if (!Enum.TryParse(tap.Key, out Key _))
+                {
+                    GD.PushWarning("DK2.Godot: --front-end-keys names no Godot key: ", tap.Key);
+                }
+            }
+        }
+
         _nextKey = _keyScript?.FirstAtOrAfter((int)Engine.GetProcessFrames()) ?? 0;
-        if (_pointerScript != null) AddChild(new ScriptedPointerGate { Name = "ScriptedPointerGate" });
+        if (_pointerScript != null)
+        {
+            AddChild(new ScriptedPointerGate { Name = "ScriptedPointerGate" });
+        }
     }
 
     /// <summary>The frame's pointer in window pixels and the primary button: the script's sample at this process frame, or
     /// the OS's.</summary>
     private (Vector2 Pointer, bool PrimaryHeld) SamplePointer()
     {
-        if (_pointerScript == null) return (GetViewport().GetMousePosition(), Input.IsMouseButtonPressed(MouseButton.Left));
+        if (_pointerScript == null)
+        {
+            return (GetViewport().GetMousePosition(), Input.IsMouseButtonPressed(MouseButton.Left));
+        }
+
         _scripted = _pointerScript.At((int)Engine.GetProcessFrames());
         return (new Vector2(_scripted.Position.X, _scripted.Position.Y), _scripted.PrimaryHeld);
     }
@@ -44,14 +66,22 @@ public partial class ClassicFrontEndMenu
     /// arrives; the press carries the key's character (its name's when it is one letter, the digit of <c>Key0</c> to <c>Key9</c>, a space for Space).</summary>
     private void InjectKeys()
     {
-        if (_keyScript == null) return;
+        if (_keyScript == null)
+        {
+            return;
+        }
+
         int frame = (int)Engine.GetProcessFrames();
         IReadOnlyList<KeyScriptKey> taps = _keyScript.Keys;
         _nextKey = _keyScript.FirstAtOrAfter(frame, _nextKey);
         while (_nextKey < taps.Count && taps[_nextKey].Frame == frame)
         {
             string name = taps[_nextKey++].Key;
-            if (!Enum.TryParse(name, out Key key)) continue;
+            if (!Enum.TryParse(name, out Key key))
+            {
+                continue;
+            }
+
             long unicode = name.Length == 1 ? name[0] : key == Key.Space ? ' '
                 : key is >= Key.Key0 and <= Key.Key9 ? '0' + (key - Key.Key0) : 0;
             Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Unicode = unicode, Pressed = true });

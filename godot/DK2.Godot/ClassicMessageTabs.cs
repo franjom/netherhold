@@ -34,13 +34,25 @@ public partial class ClassicMessageTabs : Node
         Func<int, string?>? briefing, Func<PlayerMessage, (float X, float Y)?>? locate = null, Action<float, float>? goTo = null,
         Func<byte, string>? playerName = null)
     {
-        if (_hud != null) throw new InvalidOperationException("The message tabs are already open.");
-        if (art is null) throw new ArgumentNullException(nameof(art));
+        if (_hud != null)
+        {
+            throw new InvalidOperationException("The message tabs are already open.");
+        }
+
+        if (art is null)
+        {
+            throw new ArgumentNullException(nameof(art));
+        }
+
         var hud = new MessageTabsHud(art, view, font, resolve, briefing, locate, goTo, playerName);
         var canvas = new HudCanvas { Name = "HudCanvas", Load = art.Image };
         // Decoded before keeping the canvas, so a failed decode leaves the tabs
         // unopened and retryable.
-        try { foreach (HudImage image in MessageTabsHud.Images()) canvas.Preload(image); }
+        try { foreach (HudImage image in MessageTabsHud.Images())
+            {
+                canvas.Preload(image);
+            }
+        }
         catch { canvas.Free(); throw; }
         _hud = hud; _canvas = canvas;
         AddChild(_canvas);
@@ -52,7 +64,11 @@ public partial class ClassicMessageTabs : Node
     /// <summary>Whether a screen pixel (top-left origin) is the panel's, so a host keeps it from the world.</summary>
     public bool ContainsPointer(Vector2 screenPosition)
     {
-        if (_hud == null || _layout.Height <= 0) return false;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return false;
+        }
+
         (float x, float y) = ToVirtual(screenPosition);
         return _hud.ContainsPointer(x, y);
     }
@@ -63,10 +79,18 @@ public partial class ClassicMessageTabs : Node
     public void Draw(HudVisibility visibility, bool collapsed, in HudIndicatorSnapshot indicators,
         bool optionsOpen = false, bool optionsObjective = false)
     {
-        if (_hud == null || _canvas == null) return;
+        if (_hud == null || _canvas == null)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         _layout = new HudScaleLayout(width, height, optionsOpen ? 100 : UiScale);
         HudScreen screen = _layout.Screen;
         _scale = screen.Scale;
@@ -83,23 +107,41 @@ public partial class ClassicMessageTabs : Node
 
     public override void _Input(InputEvent @event)
     {
-        if (_hud == null || _layout.Height <= 0) return;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return;
+        }
+
         if (@event is InputEventMouseMotion motion)
         {
             (float x, float y) = ToVirtual(motion.Position);
             _hud.PointerMove(x, y);
             return;
         }
-        if (@event is not InputEventMouseButton { Pressed: true } button) return;
+        if (@event is not InputEventMouseButton { Pressed: true } button)
+        {
+            return;
+        }
+
         int index = button.ButtonIndex switch { MouseButton.Left => 0, MouseButton.Right => 1, MouseButton.Middle => 2, _ => -1 };
-        if (index < 0) return;
+        if (index < 0)
+        {
+            return;
+        }
+
         (float bx, float by) = ToVirtual(button.Position);
-        if (_hud.PointerDown(bx, by, index)) GetViewport().SetInputAsHandled();
+        if (_hud.PointerDown(bx, by, index))
+        {
+            GetViewport().SetInputAsHandled();
+        }
     }
 
     public override void _Notification(int what)
     {
-        if (what == NotificationWMMouseExit) _hud?.PointerLeave();
+        if (what == NotificationWMMouseExit)
+        {
+            _hud?.PointerLeave();
+        }
         // Freed, not merely removed from the tree: reparented tabs keep working.
         else if (what == NotificationPredelete) { _hud = null; _canvas = null; }
     }

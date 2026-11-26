@@ -24,9 +24,21 @@ public partial class HudCanvas
 
     private Resolved Texture(HudImage image)
     {
-        if (image.IsNone) return default;
-        if (image.IsLive) return Gauge(image);
-        if (image.Variant == HudImageVariant.Glow) return Glow(image);
+        if (image.IsNone)
+        {
+            return default;
+        }
+
+        if (image.IsLive)
+        {
+            return Gauge(image);
+        }
+
+        if (image.Variant == HudImageVariant.Glow)
+        {
+            return Glow(image);
+        }
+
         ImageTexture texture = Cached(image);
         // Point-sample set text so its bitmap edges stay sharp when scaled.
         return new Resolved(texture.GetRid(), texture.GetSize(), image.Text != null);
@@ -34,9 +46,16 @@ public partial class HudCanvas
 
     private ImageTexture Cached(HudImage image)
     {
-        if (_textures.TryGetValue(image, out ImageTexture? texture)) return texture;
+        if (_textures.TryGetValue(image, out ImageTexture? texture))
+        {
+            return texture;
+        }
+
         RgbaImage source;
-        if (image.Label != null) source = HudLabelPixels.Render(image.Label);
+        if (image.Label != null)
+        {
+            source = HudLabelPixels.Render(image.Label);
+        }
         else if (image.Text != null)
         {
             byte[] set = HudTextPixels.Render(image.Text, out int width, out int height);
@@ -60,16 +79,30 @@ public partial class HudCanvas
     /// <summary>Free a text or label texture once no frame draws it.</summary>
     private void ReleaseUnusedText()
     {
-        if (_textures.Count == _textInUse.Count + _catalogueCount) return;
+        if (_textures.Count == _textInUse.Count + _catalogueCount)
+        {
+            return;
+        }
+
         _stale.Clear();
         foreach (HudImage image in _textures.Keys)
-            if (image.IsGenerated && !_textInUse.Contains(image)) _stale.Add(image);
+        {
+            if (image.IsGenerated && !_textInUse.Contains(image))
+            {
+                _stale.Add(image);
+            }
+        }
+
         foreach (HudImage image in _stale) { _textures[image].Dispose(); _textures.Remove(image); }
     }
 
     private void ReleaseTextures()
     {
-        foreach (ImageTexture texture in _textures.Values) texture.Dispose();
+        foreach (ImageTexture texture in _textures.Values)
+        {
+            texture.Dispose();
+        }
+
         _textures.Clear(); _catalogueCount = 0;
     }
 }

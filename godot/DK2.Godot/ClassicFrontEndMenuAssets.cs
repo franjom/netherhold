@@ -27,7 +27,11 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
     {
         get
         {
-            if (_replacementSearched) return _replacementFont;
+            if (_replacementSearched)
+            {
+                return _replacementFont;
+            }
+
             _replacementSearched = true;
             return _replacementFont = LoadReplacementFont();
         }
@@ -38,7 +42,11 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
     internal static FontFile? LoadReplacementFont()
     {
         string? path = FindReplacementFont();
-        if (path == null) return null;
+        if (path == null)
+        {
+            return null;
+        }
+
         var font = new FontFile();
         if (font.LoadDynamicFont(path) != Error.Ok) { font.Dispose(); GD.PushWarning("DK2.Godot: cannot read font " + path); return null; }
         GD.Print("DK2.Godot: replacement font ", path);
@@ -52,11 +60,19 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
                      System.Environment.GetEnvironmentVariable(MenuFontSearch.EnvironmentVariable),
                      LaunchArguments.Value(args, MenuFontSearch.Argument), LauncherSettingsStore.Current(args).MenuFont))
         {
-            if (File.Exists(path)) return path;
+            if (File.Exists(path))
+            {
+                return path;
+            }
+
             GD.PushWarning($"DK2.Godot: {source} names a missing file: {path}");
         }
         string project = ProjectSettings.GlobalizePath("res://");
-        if (string.IsNullOrEmpty(project)) return null;
+        if (string.IsNullOrEmpty(project))
+        {
+            return null;
+        }
+
         string local = System.IO.Path.Combine(project, "Fonts", "DungeonKeeperII.ttf");
         return File.Exists(local) ? local : null;
     }
@@ -78,8 +94,16 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
     {
         using var image = new Image();
         // Read stored PNG bytes. Most FrontEnd.WAD PNGs declare a gamma that Godot would correct.
-        if (image.LoadPngFromBuffer(PngChunks.WithoutColourSpace(bytes)) != Error.Ok) throw new InvalidDataException("Invalid front-end PNG.");
-        if (image.GetFormat() != Image.Format.Rgba8) image.Convert(Image.Format.Rgba8);
+        if (image.LoadPngFromBuffer(PngChunks.WithoutColourSpace(bytes)) != Error.Ok)
+        {
+            throw new InvalidDataException("Invalid front-end PNG.");
+        }
+
+        if (image.GetFormat() != Image.Format.Rgba8)
+        {
+            image.Convert(Image.Format.Rgba8);
+        }
+
         return new RgbaImage(image.GetWidth(), image.GetHeight(), image.GetData());
     }
 

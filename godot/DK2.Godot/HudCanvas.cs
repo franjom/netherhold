@@ -35,7 +35,11 @@ public partial class HudCanvas : Node2D
     /// <param name="pixelsPerUnit">Screen pixels per local unit; edges snap to them.</param>
     public void Present(HudFrame frame, Vector2 origin, float scale, float pixelsPerUnit)
     {
-        if (!_invalid && origin == _origin && scale == _scale && pixelsPerUnit == _pixelsPerUnit && frame.SameAs(_shown)) return;
+        if (!_invalid && origin == _origin && scale == _scale && pixelsPerUnit == _pixelsPerUnit && frame.SameAs(_shown))
+        {
+            return;
+        }
+
         if (_resolved.Length < frame.Count)
         {
             int size = Math.Max(frame.Count, _resolved.Length * 2);
@@ -44,7 +48,14 @@ public partial class HudCanvas : Node2D
         // Textures first: if loading throws, the frame is not taken and the next one tries again.
         ReadOnlySpan<HudDraw> draws = frame.Draws;
         _textInUse.Clear(); _labelsDrawn.Clear(); _layoutsInUse.Clear();
-        for (int i = 0; i < draws.Length; i++) if (draws[i].Image.Label != null) _labelsDrawn.Add(draws[i].Image.Label!);
+        for (int i = 0; i < draws.Length; i++)
+        {
+            if (draws[i].Image.Label != null)
+            {
+                _labelsDrawn.Add(draws[i].Image.Label!);
+            }
+        }
+
         PrepareFont(draws, scale * pixelsPerUnit);
         // Placed first: a text is drawn from its font's atlas only when its snapped rect is its own size. Invalid until
         // the frame is taken, so a throw below cannot leave the new placement looking drawn.
@@ -61,7 +72,10 @@ public partial class HudCanvas : Node2D
                 continue;
             }
             _resolved[i] = Texture(draws[i].Image);
-            if (draws[i].Image.IsGenerated && draws[i].Image.Variant != HudImageVariant.Glow) _textInUse.Add(draws[i].Image);
+            if (draws[i].Image.IsGenerated && draws[i].Image.Variant != HudImageVariant.Glow)
+            {
+                _textInUse.Add(draws[i].Image);
+            }
         }
         _shown.CopyFrom(frame); _invalid = false;
         ReleaseUnusedText(); ReleaseUnusedLayouts(); ReleaseUnusedGlows();
@@ -71,7 +85,11 @@ public partial class HudCanvas : Node2D
     /// <summary>Records the shown frame into the canvas items, back to front.</summary>
     private void Record()
     {
-        foreach (Rid item in _items) RenderingServer.CanvasItemClear(item);
+        foreach (Rid item in _items)
+        {
+            RenderingServer.CanvasItemClear(item);
+        }
+
         ReadOnlySpan<HudDraw> draws = _shown.Draws;
         Span<HudVertex> fan = stackalloc HudVertex[HudSector.MaxVertices];
         int run = -1;
@@ -83,7 +101,11 @@ public partial class HudCanvas : Node2D
             HudDraw draw = draws[i];
             Resolved texture = _resolved[i];
             FontGlyph[]? glyphs = _glyphs[i];
-            if (glyphs == null && draw.Kind != HudDrawKind.Fill && !texture.IsValid) continue;
+            if (glyphs == null && draw.Kind != HudDrawKind.Fill && !texture.IsValid)
+            {
+                continue;
+            }
+
             if (run < 0 || draw.Blend != blend || texture.Nearest != nearest || texture.Material != material)
             {
                 run++; blend = draw.Blend; nearest = texture.Nearest; material = texture.Material;
@@ -99,7 +121,11 @@ public partial class HudCanvas : Node2D
             {
                 // Lay the fan over the snapped rectangle.
                 int n = HudSector.Fan(new HudRect(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y), draw.Percent, fan);
-                if (n == 0) continue;
+                if (n == 0)
+                {
+                    continue;
+                }
+
                 SectorBuffers buffers = _fans[n] ??= new SectorBuffers(n);
                 for (int k = 0; k < n; k++)
                 {
@@ -113,14 +139,22 @@ public partial class HudCanvas : Node2D
                     Array.Empty<int>(), Array.Empty<float>(), texture.Texture, -1);
                 continue;
             }
-            if (r.Size.X <= 0 || r.Size.Y <= 0) continue;
+            if (r.Size.X <= 0 || r.Size.Y <= 0)
+            {
+                continue;
+            }
+
             HudRect uv = draw.Uv ?? new HudRect(0, 0, 1, 1);
             if (draw.Clip is HudRect clip)
             {
                 // Quad and window both on the pixel grid, then cut: the overflow-hidden box's own rule.
                 Rect2 c = Snapped(clip);
                 if (!HudQuads.Cut(new HudRect(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y), uv,
-                    new HudRect(c.Position.X, c.Position.Y, c.Size.X, c.Size.Y), out HudRect cut, out uv)) continue;
+                    new HudRect(c.Position.X, c.Position.Y, c.Size.X, c.Size.Y), out HudRect cut, out uv))
+                {
+                    continue;
+                }
+
                 r = new Rect2(cut.X, cut.Y, cut.Width, cut.Height);
             }
             if (draw.Kind == HudDrawKind.Fill) { RenderingServer.CanvasItemAddRect(item, r, tint); continue; }
@@ -133,8 +167,16 @@ public partial class HudCanvas : Node2D
     private void RecordTriangles(Rid item, ReadOnlySpan<HudVertex> vertices, Rid texture, Color tint)
     {
         int slot = vertices.Length / 3 - 1;
-        if (slot < 0) return;
-        if (slot >= _lists.Length) Array.Resize(ref _lists, Math.Max(slot + 1, _lists.Length * 2));
+        if (slot < 0)
+        {
+            return;
+        }
+
+        if (slot >= _lists.Length)
+        {
+            Array.Resize(ref _lists, Math.Max(slot + 1, _lists.Length * 2));
+        }
+
         TriangleBuffers buffers = _lists[slot] ??= new TriangleBuffers(vertices.Length);
         float unit = _scale * _pixelsPerUnit;
         for (int k = 0; k < vertices.Length; k++)
@@ -157,7 +199,10 @@ public partial class HudCanvas : Node2D
         public TriangleBuffers(int vertices)
         {
             Points = new Vector2[vertices]; Uvs = new Vector2[vertices]; Colors = new Color[vertices]; Indices = new int[vertices];
-            for (int k = 0; k < vertices; k++) Indices[k] = k;
+            for (int k = 0; k < vertices; k++)
+            {
+                Indices[k] = k;
+            }
         }
     }
 
@@ -190,7 +235,11 @@ public partial class HudCanvas : Node2D
         }
         Rid item = _items[run];
         _additive ??= new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
-        if (material.IsValid && blend == HudBlend.Additive) GD.PushError("HudCanvas: an additive glow is drawn alpha-blended.");
+        if (material.IsValid && blend == HudBlend.Additive)
+        {
+            GD.PushError("HudCanvas: an additive glow is drawn alpha-blended.");
+        }
+
         RenderingServer.CanvasItemSetMaterial(item, material.IsValid ? material : blend == HudBlend.Additive ? _additive.GetRid() : default);
         RenderingServer.CanvasItemSetDefaultTextureFilter(item, nearest
             ? RenderingServer.CanvasItemTextureFilter.Nearest : RenderingServer.CanvasItemTextureFilter.Linear);
@@ -218,7 +267,11 @@ public partial class HudCanvas : Node2D
 
     public override void _ExitTree()
     {
-        foreach (Rid item in _items) RenderingServer.FreeRid(item);
+        foreach (Rid item in _items)
+        {
+            RenderingServer.FreeRid(item);
+        }
+
         _items.Clear();
         _additive?.Dispose(); _additive = null;
         ReleaseTextures(); ReleaseAtlases(); ReleaseGauges(); ReleaseGlows();

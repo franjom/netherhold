@@ -61,7 +61,10 @@ public partial class ClassicFrontEndMenu
         _world.OpenFrontEnd(install, level, _station, viewer);
         _world.StartEffects();
         _world.SetBrightness(brightness);
-        if (_campaign != null) _campaign.LaunchRequested += QueueLaunch;
+        if (_campaign != null)
+        {
+            _campaign.LaunchRequested += QueueLaunch;
+        }
         // --perf-report: the performance harness over the station (PerformanceReport.cs); without it, no node.
         WorldState world = _station.Simulation.World;
         PerformanceReport.Attach(this, args, level.Name, seed, _world, world.Width, world.Height);
@@ -69,7 +72,10 @@ public partial class ClassicFrontEndMenu
 
     private void QueueLaunch(CampaignSlot slot)
     {
-        if (slot.LevelName is string level) _pendingLaunch = GameSessionRequest.Campaign(level);
+        if (slot.LevelName is string level)
+        {
+            _pendingLaunch = GameSessionRequest.Campaign(level);
+        }
     }
 
     /// <summary>After the menu refresh, a queued launch replaces the scene. Otherwise update the
@@ -78,7 +84,11 @@ public partial class ClassicFrontEndMenu
     /// scene is being replaced.</summary>
     private bool UpdateStation(Vector2 pointer, bool primaryHeld, bool pointerInside, long milliseconds)
     {
-        if (_launching) return true;
+        if (_launching)
+        {
+            return true;
+        }
+
         if (_pendingLaunch is GameSessionRequest request)
         {
             // A click replaces this scene; switch only after the menu has finished with it.
@@ -88,14 +98,22 @@ public partial class ClassicFrontEndMenu
             Callable.From(ChangeToLevel).CallDeferred();
             return true;
         }
-        if (_campaign == null || _session == null) return false;
+        if (_campaign == null || _session == null)
+        {
+            return false;
+        }
+
         if (_world == null || _station == null)
         {
             // Without the station there is nothing to pick, as before it existed.
             _campaign.UpdatePointer(CampaignSlot.None, primaryHeld);
             return false;
         }
-        if (_session.Pose is CameraPathPose pose) _world.FrontEndPose = pose;
+        if (_session.Pose is CameraPathPose pose)
+        {
+            _world.FrontEndPose = pose;
+        }
+
         _world.PlaceCamera();
         CampaignSlot picked = _campaign.IsAtMap && pointerInside
             && _world.TryPickRay(pointer, out System.Numerics.Vector3 origin, out System.Numerics.Vector3 direction)
@@ -105,7 +123,11 @@ public partial class ClassicFrontEndMenu
         _world.SetFrameTime(tick, fraction, milliseconds);
         // The world never ticks, so present it again only when the campaign map's projection
         // changed (the first frame included), which keeps a still frame from walking the scenery.
-        if (_station.Refresh(_campaign)) _world.Present(_station.Simulation.World, _elapsed);
+        if (_station.Refresh(_campaign))
+        {
+            _world.Present(_station.Simulation.World, _elapsed);
+        }
+
         _world.DrawFrame(tick, fraction);
         _world.FinishFrame();
         _world.CommitHoverOverlay();
@@ -116,7 +138,11 @@ public partial class ClassicFrontEndMenu
     private void ChangeToLevel()
     {
         Error error = GetTree().ChangeSceneToFile(InGameHudScene);
-        if (error == Error.Ok) return;
+        if (error == Error.Ok)
+        {
+            return;
+        }
+
         _launching = false;
         _pendingLaunch = null;
         InGameHud.QueueSession(null);
@@ -126,13 +152,21 @@ public partial class ClassicFrontEndMenu
     /// <summary>Forward the frame's typed text while a hi-score row takes a name.</summary>
     private void TypeHiScoreName()
     {
-        if (_campaign != null && _campaign.EntryRow >= 0) FrontEndHost.TypeName(_campaign, _keyboard.Typed);
+        if (_campaign != null && _campaign.EntryRow >= 0)
+        {
+            FrontEndHost.TypeName(_campaign, _keyboard.Typed);
+        }
+
         _keyboard.EndFrame();
     }
 
     private void CloseStation()
     {
-        if (_campaign != null) _campaign.LaunchRequested -= QueueLaunch;
+        if (_campaign != null)
+        {
+            _campaign.LaunchRequested -= QueueLaunch;
+        }
+
         _station = null;
         _world = null;
     }

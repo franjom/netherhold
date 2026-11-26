@@ -34,8 +34,15 @@ public partial class HudCanvas
     private TextLayout? TextFromAtlas(in HudDraw draw)
     {
         HudText text = draw.Image.Text!;
-        if (draw.Kind != HudDrawKind.Quad || draw.Uv is HudRect uv && uv != new HudRect(0, 0, 1, 1)) return null;
-        if (!_layouts.TryGetValue(text, out TextLayout? layout)) _layouts.Add(text, layout = Layout(text));
+        if (draw.Kind != HudDrawKind.Quad || draw.Uv is HudRect uv && uv != new HudRect(0, 0, 1, 1))
+        {
+            return null;
+        }
+
+        if (!_layouts.TryGetValue(text, out TextLayout? layout))
+        {
+            _layouts.Add(text, layout = Layout(text));
+        }
         // Kept while drawn either way, so a stretched text is not laid out again each frame.
         _layoutsInUse.Add(text);
         Rect2 r = Snapped(draw.Rect);
@@ -44,7 +51,11 @@ public partial class HudCanvas
 
     private TextLayout Layout(HudText text)
     {
-        if (_atlasesHeld.Add(text.Font)) BitmapGlyphAtlas.Acquire(text.Font);
+        if (_atlasesHeld.Add(text.Font))
+        {
+            BitmapGlyphAtlas.Acquire(text.Font);
+        }
+
         var atlas = BitmapGlyphAtlas.Of(text.Font);
         HudTextPixels.Pieces(text, _pieceScratch, out int width, out int height);
         var sources = new Rect2[_pieceScratch.Count];
@@ -75,7 +86,11 @@ public partial class HudCanvas
             {
                 float left = MathF.Max(target.Position.X, window.Position.X), top = MathF.Max(target.Position.Y, window.Position.Y);
                 float right = MathF.Min(target.End.X, window.End.X), bottom = MathF.Min(target.End.Y, window.End.Y);
-                if (right <= left || bottom <= top) continue;
+                if (right <= left || bottom <= top)
+                {
+                    continue;
+                }
+
                 source = new Rect2(source.Position.X + left - target.Position.X, source.Position.Y + top - target.Position.Y,
                     right - left, bottom - top);
                 target = new Rect2(left, top, right - left, bottom - top);
@@ -87,15 +102,33 @@ public partial class HudCanvas
     /// <summary>Forgets the layouts no frame draws any more; a font's atlas lives until the canvas leaves the tree.</summary>
     private void ReleaseUnusedLayouts()
     {
-        if (_layouts.Count == _layoutsInUse.Count) return;
+        if (_layouts.Count == _layoutsInUse.Count)
+        {
+            return;
+        }
+
         _staleLayouts.Clear();
-        foreach (HudText text in _layouts.Keys) if (!_layoutsInUse.Contains(text)) _staleLayouts.Add(text);
-        foreach (HudText text in _staleLayouts) _layouts.Remove(text);
+        foreach (HudText text in _layouts.Keys)
+        {
+            if (!_layoutsInUse.Contains(text))
+            {
+                _staleLayouts.Add(text);
+            }
+        }
+
+        foreach (HudText text in _staleLayouts)
+        {
+            _layouts.Remove(text);
+        }
     }
 
     private void ReleaseAtlases()
     {
-        foreach (BitmapFont font in _atlasesHeld) BitmapGlyphAtlas.Release(font);
+        foreach (BitmapFont font in _atlasesHeld)
+        {
+            BitmapGlyphAtlas.Release(font);
+        }
+
         _atlasesHeld.Clear(); _layouts.Clear();
     }
 }

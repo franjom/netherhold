@@ -30,7 +30,11 @@ public partial class HudCanvas
 
     private Resolved Gauge(HudImage image)
     {
-        if (!_gauges.TryGetValue(image.Slot, out GaugeSlot? slot)) _gauges.Add(image.Slot, slot = NewGauge(image));
+        if (!_gauges.TryGetValue(image.Slot, out GaugeSlot? slot))
+        {
+            _gauges.Add(image.Slot, slot = NewGauge(image));
+        }
+
         if (slot.Current != image)
         {
             slot.Current = image;
@@ -51,11 +55,17 @@ public partial class HudCanvas
         var mask = new HudGaugeMask(source.Width, source.Height);
         var slot = new GaugeSlot { Mask = mask, Current = image.Slot };
         using (var pixels = Image.CreateFromData(source.Width, source.Height, false, Image.Format.Rgba8, source.Pixels))
+        {
             slot.Source = ImageTexture.CreateFromImage(pixels);
+        }
+
         byte[] ranks = new byte[mask.Ranks.Length * 4];
         Buffer.BlockCopy(mask.Ranks, 0, ranks, 0, ranks.Length);
         using (var rankImage = Image.CreateFromData(source.Width, source.Height, false, Image.Format.Rf, ranks))
+        {
             slot.RankTexture = ImageTexture.CreateFromImage(rankImage);
+        }
+
         _gaugeShader ??= GD.Load<Shader>("res://Shaders/HudGauge.gdshader");
         slot.Material = new ShaderMaterial { Shader = _gaugeShader };
         slot.Material.SetShaderParameter(Ranks, slot.RankTexture);

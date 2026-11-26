@@ -37,16 +37,31 @@ public partial class WorldScene
     private void BeginLightning() => SetLightningCamera(beginFrame: true);
     private void SetLightningCamera(bool beginFrame)
     {
-        if (_lightning == null) return;
+        if (_lightning == null)
+        {
+            return;
+        }
+
         if (_camera == null)
         {
             _lightningCameraValid = false;
-            if (beginFrame) _lightning.BeginFrame(NMatrix4x4.Identity, NMatrix4x4.Identity, hasCamera: false);
-            else _lightning.UpdateCameraMatrices(NMatrix4x4.Identity, NMatrix4x4.Identity, hasCamera: false);
+            if (beginFrame)
+            {
+                _lightning.BeginFrame(NMatrix4x4.Identity, NMatrix4x4.Identity, hasCamera: false);
+            }
+            else
+            {
+                _lightning.UpdateCameraMatrices(NMatrix4x4.Identity, NMatrix4x4.Identity, hasCamera: false);
+            }
+
             return;
         }
         Transform3D camera = _camera.GlobalTransform;
-        if (!beginFrame && _lightningCameraValid && camera == _lightningCameraPose) return;
+        if (!beginFrame && _lightningCameraValid && camera == _lightningCameraPose)
+        {
+            return;
+        }
+
         _lightningCameraPose = camera;
         _lightningCameraValid = true;
         NVector3 right = RightHandedFrame.Direction(new(camera.Basis.X.X, camera.Basis.X.Y, camera.Basis.X.Z));
@@ -56,31 +71,55 @@ public partial class WorldScene
         var cameraToWorld = new NMatrix4x4(right.X, right.Y, right.Z, 0, up.X, up.Y, up.Z, 0,
             forward.X, forward.Y, forward.Z, 0, position.X, position.Y, position.Z, 1);
         bool hasCamera = NMatrix4x4.Invert(cameraToWorld, out NMatrix4x4 worldToCamera);
-        if (beginFrame) _lightning.BeginFrame(worldToCamera, cameraToWorld, hasCamera);
-        else _lightning.UpdateCameraMatrices(worldToCamera, cameraToWorld, hasCamera);
+        if (beginFrame)
+        {
+            _lightning.BeginFrame(worldToCamera, cameraToWorld, hasCamera);
+        }
+        else
+        {
+            _lightning.UpdateCameraMatrices(worldToCamera, cameraToWorld, hasCamera);
+        }
     }
 
     private void DrawCreatureLightning(CreatureId creature, GameTick tick)
     {
         if (_lightning == null || _drawn?.Slot.Animation?.Player is not { } player
-            || !_lightning.NeedsCreatureCrackle(creature, tick, player.InstallationRevision)) return;
+            || !_lightning.NeedsCreatureCrackle(creature, tick, player.InstallationRevision))
+        {
+            return;
+        }
+
         long started = Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
         int before = _lightning.Vertices.Count;
         player.CollectLightningPoints(_lightningLocalPoints);
         _lightningPoints.Clear();
         foreach (AnimationPoint point in _lightningLocalPoints)
+        {
             _lightningPoints.Add(LightningControlPoint.FromRenderWorld(point.Id, _drawn.Slot.ToRender(point.Local)));
+        }
+
         _lightning.DrawCrackle(_lightningPoints);
         _lightningCrackleQuads += (_lightning.Vertices.Count - before) / 4;
         long bytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
-        if (_lightningFrames < DrawWarmUp) _lightningWarmUpBytes += bytes;
-        else _lightningLateBytes += bytes;
+        if (_lightningFrames < DrawWarmUp)
+        {
+            _lightningWarmUpBytes += bytes;
+        }
+        else
+        {
+            _lightningLateBytes += bytes;
+        }
+
         _lightningTicks += Stopwatch.GetTimestamp() - started;
     }
 
     private void DrawLightning()
     {
-        if (_lightning == null || _effectSimulation == null || _lightningView == null) return;
+        if (_lightning == null || _effectSimulation == null || _lightningView == null)
+        {
+            return;
+        }
+
         long started = Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
         SetLightningCamera(beginFrame: false);
         _lightning.DrawShots(_effectSimulation.World, _effectSimulation.Database, _lightningView, _lightFraction);
@@ -112,8 +151,15 @@ public partial class WorldScene
             }
         }
         long bytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
-        if (_lightningFrames++ < DrawWarmUp) _lightningWarmUpBytes += bytes;
-        else _lightningLateBytes += bytes;
+        if (_lightningFrames++ < DrawWarmUp)
+        {
+            _lightningWarmUpBytes += bytes;
+        }
+        else
+        {
+            _lightningLateBytes += bytes;
+        }
+
         _lightningTicks += Stopwatch.GetTimestamp() - started;
         _lightningMaxQuads = Math.Max(_lightningMaxQuads, quads);
     }
@@ -147,7 +193,11 @@ public partial class WorldScene
             Milliseconds(_lightningTicks / Math.Max(1, _lightningFrames)), " ms/frame; ", _lightningWarmUpBytes,
             " B in warm-up and ", _lightningLateBytes, " B after; ", _lightningCrackleQuads, " crackle quads");
         _lightningMaterial?.Dispose();
-        if (_lightningMesh.IsValid) RenderingServer.FreeRid(_lightningMesh);
+        if (_lightningMesh.IsValid)
+        {
+            RenderingServer.FreeRid(_lightningMesh);
+        }
+
         _lightningMesh = default;
         _lightningItems = null;
         _lightning = null;

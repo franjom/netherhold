@@ -33,13 +33,24 @@ public partial class WorldScene
         Add(into, "blended.maxTriangles", _blendedMaxTriangles);
         Add(into, "blended.instances", _runSlots.Count);
         int grows = 0;
-        foreach (RunSlot slot in _runSlots) grows += slot.Grows;
+        foreach (RunSlot slot in _runSlots)
+        {
+            grows += slot.Grows;
+        }
+
         Add(into, "blended.surfaceBuilds", grows);
         Add(into, "blended.uploadBytes", _blendedUploadBytes);
         Add(into, "blended.uploadTriangles", _blendedUploadTriangles);
         Add(into, "world.materials", _worldMaterialsMade);
         int shaders = 0;
-        for (int state = 0; state < WorldShaderPaths.Length; state++) if (s_worldShaders[WorldLightMode, state] != null) shaders++;
+        for (int state = 0; state < WorldShaderPaths.Length; state++)
+        {
+            if (s_worldShaders[WorldLightMode, state] != null)
+            {
+                shaders++;
+            }
+        }
+
         Add(into, "world.shaders", shaders);
         // The blended items (step 3k, AddItemCounters) and the flames' frames (one array).
         AddItemCounters(into);
@@ -51,7 +62,9 @@ public partial class WorldScene
         Add(into, "present.changeFrames", _changeFrames);
         Add(into, "present.changeBytes", _changeBytes);
         for (int generation = 0; generation < _collectionsAtOpen.Length; generation++)
+        {
             Add(into, "gcSinceOpen.gen" + generation, GC.CollectionCount(generation) - _collectionsAtOpen[generation]);
+        }
     }
 
     private static void Add(List<KeyValuePair<string, double>> into, string key, double value) => into.Add(new(key, value));

@@ -35,7 +35,11 @@ public partial class HudCanvas
         get => _replacement;
         set
         {
-            if (_replacement == value) return;
+            if (_replacement == value)
+            {
+                return;
+            }
+
             _textServer ??= TextServerManager.Singleton.GetPrimaryInterface();
             // A face the text server cannot hold (no font RIDs, e.g. a dummy server) leaves the labels as the bitmap.
             Godot.Collections.Array<Rid>? rids = value?.GetRids();
@@ -54,28 +58,60 @@ public partial class HudCanvas
     /// <param name="pixelsPerVirtual">Screen pixels per virtual unit.</param>
     private void PrepareFont(ReadOnlySpan<HudDraw> draws, float pixelsPerVirtual)
     {
-        for (int i = 0; i < draws.Length; i++) _glyphs[i] = null;
+        for (int i = 0; i < draws.Length; i++)
+        {
+            _glyphs[i] = null;
+        }
+
         _usingFont = false;
-        if (_replacement == null) return;
+        if (_replacement == null)
+        {
+            return;
+        }
+
         if (_fontInfo.Count > 0)
         {
             _staleFont.Clear();
-            foreach (HudLabel label in _fontInfo.Keys) if (!_labelsDrawn.Contains(label)) _staleFont.Add(label);
-            foreach (HudLabel label in _staleFont) _fontInfo.Remove(label);
+            foreach (HudLabel label in _fontInfo.Keys)
+            {
+                if (!_labelsDrawn.Contains(label))
+                {
+                    _staleFont.Add(label);
+                }
+            }
+
+            foreach (HudLabel label in _staleFont)
+            {
+                _fontInfo.Remove(label);
+            }
         }
         for (int i = 0; i < draws.Length; i++)
         {
             HudLabel? label = draws[i].Image.Label;
-            if (label == null || draws[i].Image.Variant != HudImageVariant.None) continue;
+            if (label == null || draws[i].Image.Variant != HudImageVariant.None)
+            {
+                continue;
+            }
+
             FrontEndLabelGeometry geometry = label.Geometry;
-            if (geometry.InkBounds.Height <= 0) continue;
+            if (geometry.InkBounds.Height <= 0)
+            {
+                continue;
+            }
+
             float pixelsPerLabel = draws[i].Rect.Height * pixelsPerVirtual / geometry.InkBounds.Height;
             // Rasterized again only when the label's scale on screen changes (a window resize); a label the face cannot
             // set keeps its null cells.
             if (!_fontInfo.TryGetValue(label, out LabelFont font) || font.Cells != null && font.PixelsPerLabel != pixelsPerLabel)
+            {
                 _fontInfo[label] = font = Rasterize(label, pixelsPerLabel);
+            }
+
             _glyphs[i] = font.Cells;
-            if (font.Cells != null) _usingFont = true;
+            if (font.Cells != null)
+            {
+                _usingFont = true;
+            }
         }
     }
 
@@ -83,12 +119,27 @@ public partial class HudCanvas
     private int SizeFor(HudLabel label, float pixelsPerLabel)
     {
         IReadOnlyList<FrontEndGlyph> glyphs = label.Geometry.Glyphs;
-        if (glyphs.Count == 0) return MinSize;
+        if (glyphs.Count == 0)
+        {
+            return MinSize;
+        }
+
         int tallest = 0;
-        for (int g = 1; g < glyphs.Count; g++) if (glyphs[g].InkBounds.Height > glyphs[tallest].InkBounds.Height) tallest = g;
+        for (int g = 1; g < glyphs.Count; g++)
+        {
+            if (glyphs[g].InkBounds.Height > glyphs[tallest].InkBounds.Height)
+            {
+                tallest = g;
+            }
+        }
+
         float box = glyphs[tallest].InkBounds.Height * pixelsPerLabel;
         float ink = CellHeight(glyphs[tallest].Character, MeasureSize);
-        if (ink <= 0) return MinSize;
+        if (ink <= 0)
+        {
+            return MinSize;
+        }
+
         int size = Math.Clamp((int)MathF.Round(MeasureSize * box / ink), MinSize, MaxSize);
         // One correction at the chosen size: a fixed margin in the cache cell weighs more at small sizes than at 96.
         float actual = CellHeight(glyphs[tallest].Character, size);
@@ -109,7 +160,14 @@ public partial class HudCanvas
     {
         TextServer server = _textServer!;
         IReadOnlyList<FrontEndGlyph> glyphs = label.Geometry.Glyphs;
-        for (int g = 0; g < glyphs.Count; g++) if (!server.FontHasChar(_fontRid, glyphs[g].Character)) return new LabelFont(pixelsPerLabel, null);
+        for (int g = 0; g < glyphs.Count; g++)
+        {
+            if (!server.FontHasChar(_fontRid, glyphs[g].Character))
+            {
+                return new LabelFont(pixelsPerLabel, null);
+            }
+        }
+
         int size = SizeFor(label, pixelsPerLabel);
         var key = new Vector2I(size, 0);
         var info = new FontGlyph[glyphs.Count];
@@ -120,7 +178,10 @@ public partial class HudCanvas
             info[g] = new FontGlyph(default, server.FontGetGlyphUVRect(_fontRid, key, index[g]));
         }
         for (int g = 0; g < glyphs.Count; g++)
+        {
             info[g] = info[g] with { Texture = server.FontGetGlyphTextureRid(_fontRid, key, index[g]) };
+        }
+
         return new LabelFont(pixelsPerLabel, info);
     }
 
@@ -130,7 +191,11 @@ public partial class HudCanvas
     private void RecordGlyphs(Rid item, in HudDraw draw, FontGlyph[] info, Color tint)
     {
         FrontEndLabelGeometry geometry = draw.Image.Label!.Geometry;
-        if (geometry.InkBounds.Width <= 0 || geometry.InkBounds.Height <= 0) return;
+        if (geometry.InkBounds.Width <= 0 || geometry.InkBounds.Height <= 0)
+        {
+            return;
+        }
+
         float sx = draw.Rect.Width / geometry.InkBounds.Width, sy = draw.Rect.Height / geometry.InkBounds.Height;
         Rect2 window = draw.Clip is HudRect clip ? Snapped(clip) : default;
         for (int g = 0; g < info.Length; g++)
@@ -139,13 +204,21 @@ public partial class HudCanvas
             Rect2 box = Snapped(new HudRect(draw.Rect.X + (glyph.InkBounds.X - geometry.InkBounds.X) * sx,
                 draw.Rect.Y + (glyph.InkBounds.Y - geometry.InkBounds.Y) * sy, glyph.InkBounds.Width * sx, glyph.InkBounds.Height * sy));
             Rect2 uv = info[g].Uv;
-            if (box.Size.X <= 0 || box.Size.Y <= 0 || uv.Size.X <= 0 || uv.Size.Y <= 0) continue;
+            if (box.Size.X <= 0 || box.Size.Y <= 0 || uv.Size.X <= 0 || uv.Size.Y <= 0)
+            {
+                continue;
+            }
+
             Vector2 centre = box.Position + box.Size / 2;
             var r = new Rect2(MathF.Round(centre.X - uv.Size.X / 2), MathF.Round(centre.Y - uv.Size.Y / 2), uv.Size);
             if (draw.Clip != null)
             {
                 if (!HudQuads.Cut(new HudRect(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y), new HudRect(0, 0, 1, 1),
-                    new HudRect(window.Position.X, window.Position.Y, window.Size.X, window.Size.Y), out HudRect cut, out HudRect part)) continue;
+                    new HudRect(window.Position.X, window.Position.Y, window.Size.X, window.Size.Y), out HudRect cut, out HudRect part))
+                {
+                    continue;
+                }
+
                 uv = new Rect2(uv.Position.X + part.X * uv.Size.X, uv.Position.Y + part.Y * uv.Size.Y, part.Width * uv.Size.X, part.Height * uv.Size.Y);
                 r = new Rect2(cut.X, cut.Y, cut.Width, cut.Height);
             }

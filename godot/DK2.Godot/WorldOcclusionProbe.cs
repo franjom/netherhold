@@ -37,7 +37,11 @@ public partial class WorldOcclusionProbe : Node
         {
             var host = new WorldOcclusionHost { Denoise = mode == 1 && !negative };
             camera.AddChild(host);
-            for (int i = 0; i < 32; i++) await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            for (int i = 0; i < 32; i++)
+            {
+                await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            }
+
             using Image image = viewport.GetTexture().GetImage();
             string imagePath = Path.Combine(output, mode == 0 ? "raw.png" : "filtered.png");
             image.SavePng(imagePath);
@@ -46,7 +50,11 @@ public partial class WorldOcclusionProbe : Node
             for (int y = 20; y < 364; y++)
             {
                 double row = 0;
-                for (int x = 80; x < 432; x++) row += image.GetPixel(x, y).R;
+                for (int x = 80; x < 432; x++)
+                {
+                    row += image.GetPixel(x, y).R;
+                }
+
                 row /= 352;
                 for (int x = 80; x < 432; x++)
                 {
@@ -59,14 +67,22 @@ public partial class WorldOcclusionProbe : Node
             {
                 byte[] original = image.GetData();
                 viewport.Size = new Vector2I(256, 192);
-                for (int i = 0; i < 4; i++) await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                for (int i = 0; i < 4; i++)
+                {
+                    await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                }
+
                 using (Image small = viewport.GetTexture().GetImage())
                 {
                     resize256 = ValidContact(small, 256, 192);
                     small.SavePng(Path.Combine(output, "resize256.png"));
                 }
                 viewport.Size = new Vector2I(512, 384);
-                for (int i = 0; i < 4; i++) await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                for (int i = 0; i < 4; i++)
+                {
+                    await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                }
+
                 using (Image restored = viewport.GetTexture().GetImage())
                 {
                     restore512 = ValidContact(restored, 512, 384) && original.AsSpan().SequenceEqual(restored.GetData());
@@ -75,14 +91,22 @@ public partial class WorldOcclusionProbe : Node
                 var target = new Node3D();
                 viewport.AddChild(target);
                 camera.Reparent(target, false);
-                for (int i = 0; i < 4; i++) await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                for (int i = 0; i < 4; i++)
+                {
+                    await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                }
+
                 using (Image moved = viewport.GetTexture().GetImage())
                 {
                     reparent = ValidContact(moved, 512, 384) && original.AsSpan().SequenceEqual(moved.GetData());
                     moved.SavePng(Path.Combine(output, "reparent.png"));
                 }
                 camera.Reparent(viewport, false);
-                for (int i = 0; i < 4; i++) await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                for (int i = 0; i < 4; i++)
+                {
+                    await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                }
+
                 using Image returned = viewport.GetTexture().GetImage();
                 reparent &= original.AsSpan().SequenceEqual(returned.GetData());
                 target.QueueFree();
@@ -97,15 +121,29 @@ public partial class WorldOcclusionProbe : Node
     }
     private static bool ValidContact(Image image, int width, int height)
     {
-        if (image.GetWidth() != width || image.GetHeight() != height) return false;
+        if (image.GetWidth() != width || image.GetHeight() != height)
+        {
+            return false;
+        }
+
         int dark = 0;
         for (int y = 0; y < height; y++)
+        {
             for (int x = 0; x < width; x++)
             {
                 Color c = image.GetPixel(x, y);
-                if (!float.IsFinite(c.R) || !float.IsFinite(c.G) || !float.IsFinite(c.B)) return false;
-                if (c.R < .99f) dark++;
+                if (!float.IsFinite(c.R) || !float.IsFinite(c.G) || !float.IsFinite(c.B))
+                {
+                    return false;
+                }
+
+                if (c.R < .99f)
+                {
+                    dark++;
+                }
             }
+        }
+
         return dark > 10;
     }
 }

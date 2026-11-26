@@ -23,15 +23,26 @@ public partial class ClassicHoverHud : Node
     public bool ShowCreatureTooltip
     {
         get => _hud?.ShowCreatureTooltip ?? true;
-        set { if (_hud != null) _hud.ShowCreatureTooltip = value; }
+        set { if (_hud != null)
+            {
+                _hud.ShowCreatureTooltip = value;
+            }
+        }
     }
 
     /// <summary>Opens the hover HUD over <paramref name="sources"/>, which the caller disposes after this node;
     /// call before it enters the tree. Its fonts are read from the sources as the screen height picks them.</summary>
     public void Open(InstallHudSources sources)
     {
-        if (_hud != null) throw new InvalidOperationException("The hover HUD is already open.");
-        if (sources is null) throw new ArgumentNullException(nameof(sources));
+        if (_hud != null)
+        {
+            throw new InvalidOperationException("The hover HUD is already open.");
+        }
+
+        if (sources is null)
+        {
+            throw new ArgumentNullException(nameof(sources));
+        }
         // Read the status bar image once for its size and texture.
         RgbaImage bar = sources.Texture(HoverHud.Bar.Path!);
         string barPath = HoverHud.Bar.Path!;
@@ -44,8 +55,14 @@ public partial class ClassicHoverHud : Node
         {
             foreach (HudImage image in HoverHud.Images())
             {
-                if (image == HoverHud.Bar || image == HoverHud.Cap) barCanvas.Preload(image);
-                else canvas.Preload(image);
+                if (image == HoverHud.Bar || image == HoverHud.Cap)
+                {
+                    barCanvas.Preload(image);
+                }
+                else
+                {
+                    canvas.Preload(image);
+                }
             }
         }
         catch { canvas.Free(); barCanvas.Free(); throw; }
@@ -59,7 +76,11 @@ public partial class ClassicHoverHud : Node
     /// <param name="milliseconds">Unscaled time, as <see cref="Draw"/>'s.</param>
     public void SetVisibility(HudVisibility visibility, long milliseconds)
     {
-        if (_hud == null || _canvas == null || _barCanvas == null) return;
+        if (_hud == null || _canvas == null || _barCanvas == null)
+        {
+            return;
+        }
+
         _hud.SetVisibility(visibility, milliseconds);
         _canvas.Visible = _barCanvas.Visible = visibility.ShowNormalHud;
     }
@@ -67,7 +88,11 @@ public partial class ClassicHoverHud : Node
     /// <summary>Whether a screen pixel (top-left origin) is over the bar as last drawn, which keeps it from the world.</summary>
     public bool ContainsPointer(Vector2 screenPosition)
     {
-        if (_hud == null || _layout.Height <= 0) return false;
+        if (_hud == null || _layout.Height <= 0)
+        {
+            return false;
+        }
+
         HudScreen screen = _layout.Screen;
         return _hud.ContainsPointer(screen.Virtual(screenPosition.X / _layout.Factor), screen.Virtual(screenPosition.Y / _layout.Factor));
     }
@@ -80,10 +105,18 @@ public partial class ClassicHoverHud : Node
     /// <param name="milliseconds">Unscaled time: the status line's scroll and the tooltip's wait run on it.</param>
     public void Draw(in HoverTextSnapshot snapshot, Vector2 cursor, float cursorReach, long milliseconds)
     {
-        if (_hud == null || _canvas == null || _barCanvas == null) return;
+        if (_hud == null || _canvas == null || _barCanvas == null)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         _layout = new HudScaleLayout(width, height, UiScale);
         HudScreen screen = _layout.Screen;
         float toVirtual = _layout.Factor * screen.Scale;

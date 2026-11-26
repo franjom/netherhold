@@ -29,7 +29,11 @@ public partial class WorldScene
     /// (<see cref="CameraPathPose.FrontEndVerticalFieldOfView"/>), the path's view distance as the far plane, no centre shift.</summary>
     private void PlaceFrontEndCamera(CameraViewport viewport)
     {
-        if (FrontEndPose is not CameraPathPose path) return;
+        if (FrontEndPose is not CameraPathPose path)
+        {
+            return;
+        }
+
         var pose = new ClassicCameraPose(path.Position, path.Forward, path.Up,
             path.FrontEndVerticalFieldOfView(viewport.Width, viewport.Height), path.ViewDistance, 0, 0);
         PlacePose(pose, viewport, NearPlane);
@@ -46,10 +50,22 @@ public partial class WorldScene
         foreach (KeyValuePair<int, ModelSlot> entry in _objects)
         {
             ModelSlot slot = entry.Value;
-            if (!slot.Node.Visible) continue;
+            if (!slot.Node.Visible)
+            {
+                continue;
+            }
+
             slot.Measure(out PickBox bounds, out PickSphere? _);
-            if (bounds.RayEntry(origin, direction) == null) continue;
-            if (slot.NearestTriangle(origin, direction, nearest) is not float distance || distance >= nearest) continue;
+            if (bounds.RayEntry(origin, direction) == null)
+            {
+                continue;
+            }
+
+            if (slot.NearestTriangle(origin, direction, nearest) is not float distance || distance >= nearest)
+            {
+                continue;
+            }
+
             nearest = distance;
             result = slots.TryGetValue(entry.Key, out CampaignSlot picked) ? picked : CampaignSlot.None;
         }

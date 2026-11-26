@@ -32,7 +32,11 @@ public partial class WorldScene
     }
     private void PreparePossessionVisibility()
     {
-        if (_possessionVisibility == null || _possessionVisibilityDatabase == null || _lightWorld == null) return;
+        if (_possessionVisibility == null || _possessionVisibilityDatabase == null || _lightWorld == null)
+        {
+            return;
+        }
+
         bool enabled = Possession is { SettledPossessionCamera: true };
         if (enabled != _possessionVisibilityEnabled)
         {
@@ -49,12 +53,28 @@ public partial class WorldScene
         }
         PossessionDrawVisibility visibility = DrawVisibility;
         foreach (KeyValuePair<int, CreatureSlot> entry in _creatures)
+        {
             if (_frame.Creatures.TryGetValue(new CreatureId(entry.Key), out CreatureView creature))
+            {
                 entry.Value.Slot.Node.Visible = visibility.Creature(new CreatureId(entry.Key), creature.Tile);
+            }
+        }
+
         foreach (ModelSlot slot in _objects.Values)
+        {
             slot.Node.Visible = visibility.Object(slot.Pose.Tile, slot.Pose.Alpha);
-        foreach (ModelSlot slot in _structures.Values) slot.Node.Visible = PossessionTileVisible(slot.Structure.Tile);
-        foreach (TorchSlot slot in _torches.Values) slot.SetPossessionVisibility();
+        }
+
+        foreach (ModelSlot slot in _structures.Values)
+        {
+            slot.Node.Visible = PossessionTileVisible(slot.Structure.Tile);
+        }
+
+        foreach (TorchSlot slot in _torches.Values)
+        {
+            slot.SetPossessionVisibility();
+        }
+
         _flames?.SetPossessionVisibility();
     }
     private PossessionDrawVisibility DrawVisibility => new(_possessionVisibility == null ? default : _possessionVisibility.Mask,

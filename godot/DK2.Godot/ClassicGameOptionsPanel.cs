@@ -24,20 +24,39 @@ public partial class ClassicGameOptionsPanel : Node
     /// <param name="image">A catalogue image by name (the scroll bars).</param>
     public void Open(InGameOptionsController model, Func<uint, string> text, Func<int, BitmapFont> font, Func<string, RgbaImage> image)
     {
-        if (_hud != null) throw new InvalidOperationException("The game options pages are already open.");
-        if (model is null) throw new ArgumentNullException(nameof(model));
-        if (image is null) throw new ArgumentNullException(nameof(image));
+        if (_hud != null)
+        {
+            throw new InvalidOperationException("The game options pages are already open.");
+        }
+
+        if (model is null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        if (image is null)
+        {
+            throw new ArgumentNullException(nameof(image));
+        }
+
         _hud = new GameOptionsHud(model, text, font, ClassicKeyNames.Name);
         _canvas = new HudCanvas { Name = "HudCanvas", Load = image, Visible = false };
         AddChild(_canvas);
-        foreach (HudImage art in GameOptionsHud.Images()) _canvas.Preload(art);
+        foreach (HudImage art in GameOptionsHud.Images())
+        {
+            _canvas.Preload(art);
+        }
     }
 
     /// <summary>Shows or hides the pages; showing opens them on their root page, hiding accepts the page's edits
     /// (<see cref="GameOptionsHud.Show"/>).</summary>
     public void Show(bool visible)
     {
-        if (_hud == null || _canvas == null) return;
+        if (_hud == null || _canvas == null)
+        {
+            return;
+        }
+
         _hud.Show(visible); _canvas.Visible = visible;
     }
 
@@ -50,10 +69,18 @@ public partial class ClassicGameOptionsPanel : Node
     /// <summary>Lays the page out for the viewport and presents it, the label under the pointer lit.</summary>
     public void Draw(Vector2 pointer)
     {
-        if (_hud == null || _canvas == null || !_hud.Visible) return;
+        if (_hud == null || _canvas == null || !_hud.Visible)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         var screen = new HudScreen(width, height);
         _scale = screen.Scale;
         _frame.Clear();
@@ -63,7 +90,11 @@ public partial class ClassicGameOptionsPanel : Node
 
     public override void _Input(InputEvent @event)
     {
-        if (_hud == null || !_hud.Visible || _scale <= 0) return;
+        if (_hud == null || !_hud.Visible || _scale <= 0)
+        {
+            return;
+        }
+
         switch (@event)
         {
             case InputEventMouseButton { Pressed: true } press:

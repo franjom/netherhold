@@ -79,7 +79,10 @@ public partial class WorldScene : ISimulationEventSink
         set
         {
             _sound = value;
-            if (_effects != null) _effects.Model.EffectCreated = value == null ? null : value.EffectCreated;
+            if (_effects != null)
+            {
+                _effects.Model.EffectCreated = value == null ? null : value.EffectCreated;
+            }
         }
     }
     private LevelSoundDriver? _sound;
@@ -88,10 +91,20 @@ public partial class WorldScene : ISimulationEventSink
     /// placed camera's frustum; everything counts before the camera is placed.</summary>
     private bool PointInPlacedCamera(System.Numerics.Vector3 point)
     {
-        if (View == null) return true;
+        if (View == null)
+        {
+            return true;
+        }
+
         ViewFrustum frustum = PlacedFrustum;
         for (int i = 0; i < 6; i++)
-            if (System.Numerics.Plane.DotCoordinate(frustum[i], point) < -1f) return false;
+        {
+            if (System.Numerics.Plane.DotCoordinate(frustum[i], point) < -1f)
+            {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -108,7 +121,11 @@ public partial class WorldScene : ISimulationEventSink
     /// read once; null when the install has no such group.</summary>
     private IReadOnlyList<EffectGroupPart>? GroupParts(string groupName)
     {
-        if (_groupParts.TryGetValue(groupName, out IReadOnlyList<EffectGroupPart>? parts)) return parts;
+        if (_groupParts.TryGetValue(groupName, out IReadOnlyList<EffectGroupPart>? parts))
+        {
+            return parts;
+        }
+
         parts = _art != null && _art.TryLoadGroup(groupName, out KmfGroup group) ? EffectGroupParts.Of(group) : null;
         _groupParts.Add(groupName, parts);
         return parts;
@@ -116,20 +133,37 @@ public partial class WorldScene : ISimulationEventSink
 
     private bool EffectInPlacedCamera(ViewEffectRequest request)
     {
-        if (View == null) return true;
+        if (View == null)
+        {
+            return true;
+        }
+
         NVector3 point = RenderWorld.Ground(request.Position.X.Raw / 4096f,
             request.Position.Y.Raw / 4096f, request.Position.Z.Raw / 4096f);
         ViewFrustum frustum = PlacedFrustum;
         // Use the same one-tile sphere for the camera test.
         for (int i = 0; i < 6; i++)
+        {
             if (System.Numerics.Plane.DotCoordinate(frustum[i], point) < -1f)
             {
-                if (PreviewPose is not ClassicCameraPose preview) return false;
+                if (PreviewPose is not ClassicCameraPose preview)
+                {
+                    return false;
+                }
+
                 var second = ViewFrustum.FromPose(preview, PreviewViewport.Width / (float)PreviewViewport.Height, .05f);
                 for (int j = 0; j < 6; j++)
-                    if (System.Numerics.Plane.DotCoordinate(second[j], point) < -1f) return false;
+                {
+                    if (System.Numerics.Plane.DotCoordinate(second[j], point) < -1f)
+                    {
+                        return false;
+                    }
+                }
+
                 return true;
             }
+        }
+
         return true;
     }
 
@@ -140,14 +174,21 @@ public partial class WorldScene : ISimulationEventSink
     /// frame: the loose gems' idle effects for the turns crossed.</summary>
     private void PresentEffects()
     {
-        if (_effectSimulation != null) _effectFrame?.AfterPresent(_effectSimulation.World);
+        if (_effectSimulation != null)
+        {
+            _effectFrame?.AfterPresent(_effectSimulation.World);
+        }
     }
 
     /// <summary>Step 3 of the frame's effect requests (<see cref="EffectFrame"/>): the shots' bodies, then the updates due,
     /// whose lights the frame's lighting takes.</summary>
     private void AdvanceEffects()
     {
-        if (_effectFrame == null || _effectSimulation == null) return;
+        if (_effectFrame == null || _effectSimulation == null)
+        {
+            return;
+        }
+
         _worldLights?.UpdateEffects(_effectFrame.Advance(_effectSimulation.World.Shots, _lightFraction), _torchFlags.IsCheapTorch());
     }
 
@@ -155,7 +196,14 @@ public partial class WorldScene : ISimulationEventSink
     /// model; a particle on a tile the possession view hides is not drawn.</summary>
     private void DrawEffects()
     {
-        if (!_previewPass) foreach (EffectMesh mesh in _effectMeshList) mesh.Used = 0;
+        if (!_previewPass)
+        {
+            foreach (EffectMesh mesh in _effectMeshList)
+            {
+                mesh.Used = 0;
+            }
+        }
+
         if (_effects != null && _art != null && _camera != null)
         {
             _effectSprites ??= new InstallEffectSpriteProvider(_effectSimulation!.Database, _art.LoadTexture);
@@ -173,12 +221,20 @@ public partial class WorldScene : ISimulationEventSink
             for (int i = 0; i < particles.Count; i++)
             {
                 ConstructionParticle particle = particles[i];
-                if (!PossessionTileVisible(new TilePos(particle.XRaw >> 12, particle.YRaw >> 12))) continue;
+                if (!PossessionTileVisible(new TilePos(particle.XRaw >> 12, particle.YRaw >> 12)))
+                {
+                    continue;
+                }
+
                 AssetRef key = _effects.GroupKey(particle);
                 EffectGroupKind kind = EffectDrawList.Classify(particle.Definition, particle.MeshEntry);
                 if (kind != EffectGroupKind.Sprite)
                 {
-                    if (!_previewPass) DrawEffectMesh(particle, key, kind, fraction);
+                    if (!_previewPass)
+                    {
+                        DrawEffectMesh(particle, key, kind, fraction);
+                    }
+
                     continue;
                 }
                 if (!_effectBatches.TryGetValue(key, out EffectSpriteBatch? batch))
@@ -188,9 +244,16 @@ public partial class WorldScene : ISimulationEventSink
                     _effectBatches.Add(key, batch);
                     _itemGrowthBytes += GC.GetAllocatedBytesForCurrentThread() - loading;
                 }
-                if (batch == null) continue;
+                if (batch == null)
+                {
+                    continue;
+                }
+
                 _effectQuad.Clear();
-                if (batch.Shape.IsFlat) _effects.AddFlatQuad(_effectQuad, particle, fraction, batch.Frames);
+                if (batch.Shape.IsFlat)
+                {
+                    _effects.AddFlatQuad(_effectQuad, particle, fraction, batch.Frames);
+                }
                 else
                 {
                     NVector3 at = EffectDrawList.Position(particle, fraction);
@@ -201,10 +264,17 @@ public partial class WorldScene : ISimulationEventSink
             }
         }
         // Only the models shown last frame and not this one are hidden.
-        if (!_previewPass) foreach (EffectMesh mesh in _effectMeshList)
+        if (!_previewPass)
         {
-            for (int i = mesh.Used; i < mesh.Shown; i++) mesh.Slots[i].Node.Visible = false;
-            mesh.Shown = mesh.Used;
+            foreach (EffectMesh mesh in _effectMeshList)
+        {
+            for (int i = mesh.Used; i < mesh.Shown; i++)
+                {
+                    mesh.Slots[i].Node.Visible = false;
+                }
+
+                mesh.Shown = mesh.Used;
+        }
         }
     }
 
@@ -219,12 +289,22 @@ public partial class WorldScene : ISimulationEventSink
         {
             mesh = EffectMesh.Load(this, particle, key, kind);
             _effectMeshes.Add((key, entry), mesh);
-            if (mesh != null) _effectMeshList.Add(mesh);
+            if (mesh != null)
+            {
+                _effectMeshList.Add(mesh);
+            }
         }
-        if (mesh == null) return;
+        if (mesh == null)
+        {
+            return;
+        }
+
         ModelMesh? shown = mesh.Frame(this, mesh.Frames == null ? 0
             : EffectDrawList.MeshFrame(particle, mesh.Frames.Length, mesh.FramesPerSecond));
-        if (shown == null) return;
+        if (shown == null)
+        {
+            return;
+        }
         // A mesh keeps its own models, so a model changes its looks only with a type-6 model's frame.
         if (mesh.Used == mesh.Slots.Count)
         {
@@ -240,7 +320,10 @@ public partial class WorldScene : ISimulationEventSink
         slot.SetEffectTint(ObjectMaterialLook.InstanceTintLight(tint.Red, tint.Green, tint.Blue));
         float size = EffectDrawList.Size(particle);
         slot.Place(EffectDrawList.Position(particle, fraction), MeshOrientation.Particle(particle, fraction), new Vector3(size, size, size));
-        if (mesh.Used > mesh.Shown) slot.Node.Visible = true;
+        if (mesh.Used > mesh.Shown)
+        {
+            slot.Node.Visible = true;
+        }
     }
 
     // SceneFrame's step 8 draws the gem carrier's sparkle (0x0043A8E0) for the viewer.
@@ -257,22 +340,40 @@ public partial class WorldScene : ISimulationEventSink
         FreeItems();
         FreeLightning();
         FreeFlowers();
-        foreach (EffectSpriteBatch? batch in _effectBatches.Values) batch?.Free();
+        foreach (EffectSpriteBatch? batch in _effectBatches.Values)
+        {
+            batch?.Free();
+        }
+
         _effectBatches.Clear();
         foreach (EffectMesh mesh in _effectMeshList)
-            foreach (ModelSlot slot in mesh.Slots) slot.Free();
+        {
+            foreach (ModelSlot slot in mesh.Slots)
+            {
+                slot.Free();
+            }
+        }
+
         _effectMeshList.Clear();
         _effectMeshes.Clear();
         _effectFrames.Clear();
         _groupParts.Clear();
-        if (_effectQuadMesh.IsValid) RenderingServer.FreeRid(_effectQuadMesh);
+        if (_effectQuadMesh.IsValid)
+        {
+            RenderingServer.FreeRid(_effectQuadMesh);
+        }
+
         _effectQuadMesh = default;
     }
 
     private int PooledEffectModels()
     {
         int count = 0;
-        foreach (EffectMesh mesh in _effectMeshList) count += mesh.Slots.Count;
+        foreach (EffectMesh mesh in _effectMeshList)
+        {
+            count += mesh.Slots.Count;
+        }
+
         return count;
     }
 
@@ -301,12 +402,20 @@ public partial class WorldScene : ISimulationEventSink
         public static EffectMesh? Load(WorldScene scene, ConstructionParticle particle, AssetRef key, EffectGroupKind kind)
         {
             InstallArtProvider? art = scene._art;
-            if (art == null) return null;
+            if (art == null)
+            {
+                return null;
+            }
+
             int rate = EffectDrawList.AuthoredFramesPerSecond(particle.Definition);
             if (kind == EffectGroupKind.AnimatedMesh)
             {
                 if (!art.TryResolve(key, out ResolvedAsset asset) || !art.TryLoadModel(asset, out KmfModel model)
-                    || model.Animation is not { IsComplete: true } animation || animation.Frames.Count == 0) return null;
+                    || model.Animation is not { IsComplete: true } animation || animation.Frames.Count == 0)
+                {
+                    return null;
+                }
+
                 return new EffectMesh(model, asset.InstallEntry ?? "", animation.Frames.Count, rate);
             }
             ResolvedAsset still;
@@ -317,7 +426,11 @@ public partial class WorldScene : ISimulationEventSink
         /// <summary>The model at <paramref name="frame"/>, built the first time it is drawn.</summary>
         public ModelMesh? Frame(WorldScene scene, int frame)
         {
-            if (Frames == null) return _still;
+            if (Frames == null)
+            {
+                return _still;
+            }
+
             frame = Math.Clamp(frame, 0, Frames.Length - 1);
             return Frames[frame] ??= scene.EffectFrame(_animated!, _entry, frame);
         }
@@ -329,7 +442,10 @@ public partial class WorldScene : ISimulationEventSink
     private ModelMesh EffectFrame(KmfModel model, string entry, int frame)
     {
         if (!_effectFrames.TryGetValue((entry, frame), out ModelMesh? built))
+        {
             _effectFrames.Add((entry, frame), built = new ModelMesh(model, RenderMesh.FromModel(model, frame)));
+        }
+
         return built;
     }
 
@@ -361,15 +477,24 @@ public partial class WorldScene : ISimulationEventSink
         public static EffectSpriteBatch? Create(WorldScene scene, IEffectSpriteProvider provider, AssetRef key, EffectElementDef definition)
         {
             if (!provider.TryResolve(key, out ResolvedAsset asset) || !provider.TryGetSprite(asset, out EffectSpriteResource sprite)
-                || !provider.TryLoadFrame(asset, 0, out RgbaImage? first)) return null;
+                || !provider.TryLoadFrame(asset, 0, out RgbaImage? first))
+            {
+                return null;
+            }
+
             int frames = sprite.StoredFrameCount, width = first.Width, height = first.Height;
             byte[] atlas = new byte[width * frames * height * 4];
             for (int frame = 0; frame < frames; frame++)
             {
                 if (!provider.TryLoadFrame(asset, frame, out RgbaImage? image) || image.Width != width || image.Height != height)
+                {
                     throw new InvalidOperationException("Effect sprite frames must have equal dimensions.");
+                }
+
                 for (int row = 0; row < height; row++)
+                {
                     Buffer.BlockCopy(image.Pixels, row * width * 4, atlas, (row * width * frames + frame * width) * 4, width * 4);
+                }
             }
             using var pixels = Image.CreateFromData(width * frames, height, false, Image.Format.Rgba8, atlas);
             return new EffectSpriteBatch(scene, ImageTexture.CreateFromImage(pixels), sprite, definition, frames);
@@ -382,7 +507,11 @@ public partial class WorldScene : ISimulationEventSink
             Vector3 origin = ToGodot(RightHandedFrame.Point(vertices[0]));
             Vector3 x = ToGodot(RightHandedFrame.Point(vertices[1])) - origin;
             Vector3 y = ToGodot(RightHandedFrame.Point(vertices[3])) - origin;
-            if (x.LengthSquared() <= 0 || y.LengthSquared() <= 0) return;
+            if (x.LengthSquared() <= 0 || y.LengthSquared() <= 0)
+            {
+                return;
+            }
+
             EffectColour tint = quad.Colours[0];
             scene.AddItem(_items, origin + (x + y) * 0.5f, 0.5f * Mathf.Sqrt(x.LengthSquared() + y.LengthSquared()), new Transform3D(new Basis(x, y, x.Cross(y).Normalized()), origin),
                 new Color(tint.Red / 255f, tint.Green / 255f, tint.Blue / 255f),
@@ -399,7 +528,11 @@ public partial class WorldScene : ISimulationEventSink
     /// <summary>The unit quad every effect sprite instance stretches, its corner at the origin (UV v up).</summary>
     private Rid EffectQuadMesh()
     {
-        if (_effectQuadMesh.IsValid) return _effectQuadMesh;
+        if (_effectQuadMesh.IsValid)
+        {
+            return _effectQuadMesh;
+        }
+
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
         arrays[(int)Mesh.ArrayType.Vertex] = new[] { Vector3.Zero, Vector3.Right, Vector3.Right + Vector3.Up, Vector3.Up };

@@ -92,7 +92,11 @@ public partial class WorldScene
     {
         if (!_objects.TryGetValue(objectId, out ModelSlot? slot))
         {
-            if (!(_artless.TryGetValue(objectId, out AssetRef asked) && asked == mesh.Reference)) CreateObject(objectId, instance, mesh);
+            if (!(_artless.TryGetValue(objectId, out AssetRef asked) && asked == mesh.Reference))
+            {
+                CreateObject(objectId, instance, mesh);
+            }
+
             return;
         }
         slot.Pose = instance;
@@ -103,7 +107,11 @@ public partial class WorldScene
 
     public void RemoveObject(int objectId)
     {
-        if (_objects.Remove(objectId, out ModelSlot? slot)) slot.Free();
+        if (_objects.Remove(objectId, out ModelSlot? slot))
+        {
+            slot.Free();
+        }
+
         _artless.Remove(objectId);
     }
 
@@ -115,24 +123,43 @@ public partial class WorldScene
         {
             slot.HasClip = false;
             slot.StopAnimation();
-            if (Model(mesh, lastFrame: false) is ModelMesh model) slot.ShowStatic(model);
+            if (Model(mesh, lastFrame: false) is ModelMesh model)
+            {
+                slot.ShowStatic(model);
+            }
+
             return;
         }
         ObjectClipIdentity identity = AnimationClipRequest.Identity(pose, mesh.Reference);
-        if (slot.HasClip && slot.Clip == identity) return;
+        if (slot.HasClip && slot.Clip == identity)
+        {
+            return;
+        }
+
         slot.HasClip = true;
         slot.Clip = identity;
         double start = AnimationClipRequest.StartSeconds(pose.AnimationStartedAt, _frame.DrawSeconds);
-        if (TryStartClip(slot, mesh, pose, start)) return;
+        if (TryStartClip(slot, mesh, pose, start))
+        {
+            return;
+        }
+
         slot.StopAnimation();
-        if (Model(mesh, lastFrame: false) is ModelMesh fallback) slot.ShowStatic(fallback);
+        if (Model(mesh, lastFrame: false) is ModelMesh fallback)
+        {
+            slot.ShowStatic(fallback);
+        }
     }
 
     /// <summary>Configure the object clip's segments (<see cref="ClipSetFor"/>),
     /// played on the draw clock with a Heart's phase step.</summary>
     private bool TryStartClip(ModelSlot slot, in ResolvedAsset asset, in ObjectView pose, double start)
     {
-        if (ClipSetFor(asset) is not ClipSet set) return false;
+        if (ClipSetFor(asset) is not ClipSet set)
+        {
+            return false;
+        }
+
         slot.Animation ??= new AnimatedModel(slot);
         slot.Animation.Player.Configure(set.Clips, set.Templates, set.Timing, pose.AnimationLoops, start,
             phaseStepOverride: pose.HeartVisual?.PhaseStep, initialPhase: pose.AnimationInitialPhase);
@@ -144,9 +171,17 @@ public partial class WorldScene
     /// player, so a clip started again allocates no arrays; null when the asset has no complete clip.</summary>
     private ClipSet? ClipSetFor(in ResolvedAsset asset)
     {
-        if (_art == null || Model(asset, lastFrame: false) is null) return null;
+        if (_art == null || Model(asset, lastFrame: false) is null)
+        {
+            return null;
+        }
+
         string entry = asset.InstallEntry ?? "";
-        if (_clipSets.TryGetValue(entry, out ClipSet? set)) return set;
+        if (_clipSets.TryGetValue(entry, out ClipSet? set))
+        {
+            return set;
+        }
+
         set = null;
         if (_art.TryGetResource(asset, out Dk2ArtResource resource) && resource.Type == 6
             && _art.TryLoadModel(asset, out KmfModel model) && model.Animation is { IsComplete: true })
@@ -156,7 +191,11 @@ public partial class WorldScene
             bool complete = true;
             for (AnimationSegment segment = AnimationSegment.Start; segment <= AnimationSegment.End && complete; segment++)
             {
-                if (!CreatureAnimationArt.HasSegment(resource, segment)) continue;
+                if (!CreatureAnimationArt.HasSegment(resource, segment))
+                {
+                    continue;
+                }
+
                 if (!_art.TryResolveSegment(asset, segment, out ResolvedAsset part) || !_art.TryLoadModel(part, out KmfModel partModel)
                     || partModel.Animation is not { IsComplete: true } || Model(part, lastFrame: false) is not ModelMesh template)
                 {
@@ -164,11 +203,17 @@ public partial class WorldScene
                     continue;
                 }
                 if (!_clips.TryGetValue(part.InstallEntry ?? "", out RenderAnimation? clip))
+                {
                     _clips.Add(part.InstallEntry ?? "", clip = new RenderAnimation(partModel));
+                }
+
                 clips[(int)segment] = clip;
                 templates[(int)segment] = template;
             }
-            if (complete) set = new ClipSet(clips, templates, CreatureAnimationArt.Timing(resource), resource);
+            if (complete)
+            {
+                set = new ClipSet(clips, templates, CreatureAnimationArt.Timing(resource), resource);
+            }
         }
         _clipSets.Add(entry, set);
         return set;
@@ -189,7 +234,11 @@ public partial class WorldScene
 
     public void CreateStructure(StructureId id, in StructureView structure, in ResolvedAsset mesh)
     {
-        if (Model(mesh, structure.LastFrame) is not ModelMesh model) return;
+        if (Model(mesh, structure.LastFrame) is not ModelMesh model)
+        {
+            return;
+        }
+
         var slot = new ModelSlot(this, model, structure.Id.Kind.ToString() + structure.Id.Value, SlotKind.Structure) { Structure = structure };
         _structures[id] = slot;
         _structureViews[id] = structure;
@@ -222,14 +271,21 @@ public partial class WorldScene
 
     public void RemoveStructure(StructureId id)
     {
-        if (_structures.Remove(id, out ModelSlot? slot)) slot.Free();
+        if (_structures.Remove(id, out ModelSlot? slot))
+        {
+            slot.Free();
+        }
+
         _structureViews.Remove(id);
     }
 
     public void CreateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh)
     {
         if (!_torches.TryGetValue(floorTileIndex, out TorchSlot? slot))
+        {
             _torches.Add(floorTileIndex, slot = new TorchSlot(this, Model(mesh, lastFrame: false), floorTileIndex));
+        }
+
         slot.Set(torch);
         _flames?.Set(torch);
         SetTorchLight(floorTileIndex, torch);
@@ -239,7 +295,11 @@ public partial class WorldScene
 
     public void RemoveTorch(int floorTileIndex)
     {
-        if (_torches.Remove(floorTileIndex, out TorchSlot? slot)) slot.Free();
+        if (_torches.Remove(floorTileIndex, out TorchSlot? slot))
+        {
+            slot.Free();
+        }
+
         _flames?.Remove(floorTileIndex);
         SetTorchLight(floorTileIndex, null);
     }
@@ -294,16 +354,30 @@ public partial class WorldScene
         ItemBytes(allocated);
         Mark(DrawPhase.Effects);
         long bytes = 0;
-        for (int i = 0; i < _phaseBytes.Length; i++) bytes += _phaseBytes[i];
+        for (int i = 0; i < _phaseBytes.Length; i++)
+        {
+            bytes += _phaseBytes[i];
+        }
+
         bool steady = _drawFrames++ >= DrawWarmUp && !_frameBending;
         for (int i = 0; i < _phaseBytes.Length; i++)
         {
-            if (steady) _steadyPhaseBytes[i] += _phaseBytes[i];
+            if (steady)
+            {
+                _steadyPhaseBytes[i] += _phaseBytes[i];
+            }
+
             _phaseBytes[i] = 0;
         }
-        if (_drawFrames <= DrawWarmUp) _drawWarmUpBytes += bytes;
+        if (_drawFrames <= DrawWarmUp)
+        {
+            _drawWarmUpBytes += bytes;
+        }
         else if (_frameBending) { _drawBendingBytes += bytes; _drawBendingFrames++; }
-        else _drawLateBytes += bytes;
+        else
+        {
+            _drawLateBytes += bytes;
+        }
     }
 
     /// <summary>Charges what the frame allocated since the last mark to <paramref name="phase"/> (the exit report's split).</summary>
@@ -319,8 +393,16 @@ public partial class WorldScene
     void ISceneFrameHost.AdvanceHeartHealth()
     {
         while (_heartPulse.TryTakeHealthAdvance(out PlayerId owner, out Fp32 step))
+        {
             foreach (KeyValuePair<int, ModelSlot> heart in _objects)
-                if (HeartPulse.IsHeartOf(heart.Value.Pose, owner)) heart.Value.Animation?.Player.AdvanceHealthPhase(step);
+            {
+                if (HeartPulse.IsHeartOf(heart.Value.Pose, owner))
+                {
+                    heart.Value.Animation?.Player.AdvanceHealthPhase(step);
+                }
+            }
+        }
+
         Mark(DrawPhase.Hearts);
     }
 
@@ -331,19 +413,42 @@ public partial class WorldScene
         foreach (KeyValuePair<int, ModelSlot> entry in _objects)
         {
             ModelSlot slot = entry.Value;
-            if (!slot.Moving && slot.Animation == null) continue;
+            if (!slot.Moving && slot.Animation == null)
+            {
+                continue;
+            }
+
             ObjectView pose = slot.Pose;
-            if (slot.Moving) PlaceObject(slot, pose, fraction);
-            if (slot.Animation is not AnimatedModel animated) continue;
+            if (slot.Moving)
+            {
+                PlaceObject(slot, pose, fraction);
+            }
+
+            if (slot.Animation is not AnimatedModel animated)
+            {
+                continue;
+            }
+
             animated.Player.Draw(_frame.DrawSeconds, phaseStepOverride: pose.HeartVisual?.PhaseStep);
-            if (!pose.HeartVisual.HasValue || !animated.Player.BeatPending) continue;
+            if (!pose.HeartVisual.HasValue || !animated.Player.BeatPending)
+            {
+                continue;
+            }
+
             NVector3 at = slot.RenderPosition;
             bool visible = View != null && !PlacedFrustum.Excludes(at, at, at);
             HeartBeat beat = _heartPulse.TryBeat(pose, beatPending: true, visible, _effectClock!, tick);
-            if (!beat.Consumed) continue;
+            if (!beat.Consumed)
+            {
+                continue;
+            }
+
             animated.Player.ConsumeBeat();
             _sound?.HeartBeat(pose);
-            if (beat.Effect is ViewEffectRequest mana) RequestHeartEffect(mana);
+            if (beat.Effect is ViewEffectRequest mana)
+            {
+                RequestHeartEffect(mana);
+            }
         }
         Mark(DrawPhase.Objects);
     }
@@ -353,11 +458,14 @@ public partial class WorldScene
         if (_latticeDirty is { AnyTouched: true })
         {
             foreach (KeyValuePair<int, TorchSlot> torch in _torches)
+            {
                 if (_latticeDirty.TouchedNear(torch.Value.Torch.Wall))
                 {
                     torch.Value.Set(torch.Value.Torch);
                     _flames?.Set(torch.Value.Torch);
                 }
+            }
+
             _latticeDirty.Clear();
         }
         Mark(DrawPhase.Bend);
@@ -367,13 +475,24 @@ public partial class WorldScene
     /// its last for <paramref name="lastFrame"/> (a door); null for an asset the install did not answer or a group.</summary>
     private ModelMesh? Model(in ResolvedAsset asset, bool lastFrame)
     {
-        if (_art == null || asset.Source != AssetSource.InstallEntry || asset.ProviderName != _art.Name) return null;
+        if (_art == null || asset.Source != AssetSource.InstallEntry || asset.ProviderName != _art.Name)
+        {
+            return null;
+        }
+
         string entry = asset.InstallEntry ?? "";
-        if (_models.TryGetValue((entry, lastFrame), out ModelMesh? built)) return built;
+        if (_models.TryGetValue((entry, lastFrame), out ModelMesh? built))
+        {
+            return built;
+        }
+
         built = null;
         if (_art.TryLoadModel(asset, out KmfModel model) && (model.Mesh != null || model.Animation is { IsComplete: true }))
+        {
             built = new ModelMesh(model, RenderMesh.FromModel(model,
                 lastFrame && model.Animation is { IsComplete: true } animation ? animation.Frames.Count - 1 : 0));
+        }
+
         _models.Add((entry, lastFrame), built);
         return built;
     }
@@ -399,13 +518,25 @@ public partial class WorldScene
     /// (<see cref="ShaderFor"/>), lit through a model's light inputs.</summary>
     private ShaderMaterial MaterialFor(in ObjectSurfaceKey key)
     {
-        if (_objectMaterials.TryGetValue(key, out ShaderMaterial? material)) return material;
+        if (_objectMaterials.TryGetValue(key, out ShaderMaterial? material))
+        {
+            return material;
+        }
+
         ObjectMaterialLook look = key.Look;
         material = ModelMaterial(look.Texture, look.Blend, look.WritesDepth, look.FullLight, look.Colour, look.AddedLight,
             key.KmfBlended, key.Environment);
-        if (key.InstanceLook) material.SetShaderParameter(InstanceLookParameter, true);
+        if (key.InstanceLook)
+        {
+            material.SetShaderParameter(InstanceLookParameter, true);
+        }
+
         key.Animation?.Bind(material);
-        if (key.Extras) material.NextPass = Extras(key.Environment, key.KmfBlended, key.Animation);
+        if (key.Extras)
+        {
+            material.NextPass = Extras(key.Environment, key.KmfBlended, key.Animation);
+        }
+
         _objectMaterials.Add(key, material);
         return material;
     }
@@ -416,7 +547,11 @@ public partial class WorldScene
     {
         ShaderMaterial material = WorldMaterial(texture, blend, writesDepth, fullLight, colour, addedLight);
         material.SetShaderParameter(ModelVertexParameter, true);
-        if (kmfBlended) material.SetShaderParameter(KmfBlendedParameter, true);
+        if (kmfBlended)
+        {
+            material.SetShaderParameter(KmfBlendedParameter, true);
+        }
+
         if (environment is ObjectMaterialLook pass)
         {
             material.SetShaderParameter(EnvironmentPassParameter, true);
@@ -431,7 +566,11 @@ public partial class WorldScene
     /// triangle as DK2 draws it after the base material.</summary>
     private ShaderMaterial Extras(ObjectMaterialLook? environment, bool kmfBlended, VertexClip? animation)
     {
-        if (_extrasMaterials.TryGetValue((environment, kmfBlended, animation), out ShaderMaterial? material)) return material;
+        if (_extrasMaterials.TryGetValue((environment, kmfBlended, animation), out ShaderMaterial? material))
+        {
+            return material;
+        }
+
         material = ModelMaterial("", KmfBlend.Additive, false, true, System.Numerics.Vector4.One, default, kmfBlended, environment);
         material.SetShaderParameter(ExtrasOnlyParameter, true);
         animation?.Bind(material);
@@ -442,7 +581,11 @@ public partial class WorldScene
     /// <summary>The cleared per-submesh environment passes for a model of <paramref name="submeshes"/> submeshes.</summary>
     private ObjectMaterialLook?[] EnvironmentPasses(int submeshes)
     {
-        if (_environmentOf.Length < submeshes) _environmentOf = new ObjectMaterialLook?[submeshes * 2];
+        if (_environmentOf.Length < submeshes)
+        {
+            _environmentOf = new ObjectMaterialLook?[submeshes * 2];
+        }
+
         Array.Clear(_environmentOf, 0, submeshes);
         return _environmentOf;
     }
@@ -469,7 +612,11 @@ public partial class WorldScene
         {
             int[] used = model.SurfaceVertices[surface];
             int bytes = used.Length * 12;
-            if (_upload.Length < bytes) _upload = new byte[bytes * 2];
+            if (_upload.Length < bytes)
+            {
+                _upload = new byte[bytes * 2];
+            }
+
             Span<float> positions = MemoryMarshal.Cast<byte, float>(_upload.AsSpan(0, bytes));
             for (int i = 0; i < used.Length; i++)
             {
@@ -491,7 +638,14 @@ public partial class WorldScene
         GD.Print("DK2.Godot vertex animation: ", _vertexClips.Count, " shared clips, ", _vertexTextureBytes,
             " texture bytes, ", _animationPoseUpdates, " pose updates; 0 instance mesh copies, 0 animation vertex uploads");
         int playing = 0;
-        foreach (ModelSlot slot in _objects.Values) if (slot.Animation?.Player.Clock != null) playing++;
+        foreach (ModelSlot slot in _objects.Values)
+        {
+            if (slot.Animation?.Player.Clock != null)
+            {
+                playing++;
+            }
+        }
+
         GD.Print("DK2.Godot objects: ", _objects.Count, " drawn (", playing, " playing a clip), ", _artless.Count, " without art, ", _structures.Count,
             " structures, ", _torches.Count, " torches; the object draws allocated ", _drawWarmUpBytes, " B in the first ",
             DrawWarmUp, " frames, then ", _drawLateBytes, " B in ", Math.Max(0, _drawFrames - DrawWarmUp - _drawBendingFrames),
@@ -501,9 +655,21 @@ public partial class WorldScene
             " B, torch bend ", _steadyPhaseBytes[(int)DrawPhase.Bend], " B, flames ", _steadyPhaseBytes[(int)DrawPhase.Flames],
             " B, sort ", _steadyPhaseBytes[(int)DrawPhase.Sort], " B, effects ", _steadyPhaseBytes[(int)DrawPhase.Effects], " B");
         FreeCreatures();
-        foreach (ModelSlot slot in _objects.Values) slot.Free();
-        foreach (ModelSlot slot in _structures.Values) slot.Free();
-        foreach (TorchSlot slot in _torches.Values) slot.Free();
+        foreach (ModelSlot slot in _objects.Values)
+        {
+            slot.Free();
+        }
+
+        foreach (ModelSlot slot in _structures.Values)
+        {
+            slot.Free();
+        }
+
+        foreach (TorchSlot slot in _torches.Values)
+        {
+            slot.Free();
+        }
+
         _objects.Clear(); _structures.Clear(); _torches.Clear();
         _flames?.Free();
         _flames = null;
@@ -579,9 +745,17 @@ public partial class WorldScene
             int submesh = Array.IndexOf(SurfaceOf, surface);
             int[] triangles = Source.Triangles[submesh];
             var local = new Dictionary<int, int>(used.Length);
-            for (int i = 0; i < used.Length; i++) local[used[i]] = i;
+            for (int i = 0; i < used.Length; i++)
+            {
+                local[used[i]] = i;
+            }
+
             int[] indices = new int[triangles.Length];
-            for (int i = 0; i < triangles.Length; i++) indices[i] = local[triangles[i]];
+            for (int i = 0; i < triangles.Length; i++)
+            {
+                indices[i] = local[triangles[i]];
+            }
+
             return Arrays(positions, normals ?? Source.Normals, used, indices, instance);
         }
 
@@ -646,7 +820,11 @@ public partial class WorldScene
             Kind = kind;
             Node = new MeshInstance3D { Name = name, Mesh = model.Mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
             // An effect's model casts no shadow.
-            if (scene.TorchShadowsActive && kind != SlotKind.Effect) Node.Layers = ShadowCasterLayers;
+            if (scene.TorchShadowsActive && kind != SlotKind.Effect)
+            {
+                Node.Layers = ShadowCasterLayers;
+            }
+
             (parent ?? (Node3D)scene).AddChild(Node);
         }
 
@@ -730,15 +908,30 @@ public partial class WorldScene
             bool changed = !ReferenceEquals(_shown, model) || !ReferenceEquals(Node.Mesh, mesh) || !ReferenceEquals(_vertexClip, clip);
             _vertexClip = clip;
             Node.CustomAabb = clip?.Box ?? model.Box;
-            if (clip == null) Node.SetInstanceShaderParameter(AnimationPhaseParameter, -1f);
+            if (clip == null)
+            {
+                Node.SetInstanceShaderParameter(AnimationPhaseParameter, -1f);
+            }
+
             _shown = model;
-            if (!ReferenceEquals(Node.Mesh, mesh)) Node.Mesh = mesh;
-            if (changed) ApplyLooks();
+            if (!ReferenceEquals(Node.Mesh, mesh))
+            {
+                Node.Mesh = mesh;
+            }
+
+            if (changed)
+            {
+                ApplyLooks();
+            }
         }
 
         public void StopAnimation()
         {
-            if (Animation == null) return;
+            if (Animation == null)
+            {
+                return;
+            }
+
             Animation.Player.Stop();
             Show(_static, _static.Mesh);
         }
@@ -757,7 +950,13 @@ public partial class WorldScene
             // Fold the environment pass into the submesh's material, including on a plan (structure-drawing.md section 5).
             // Skip it while the object fades.
             foreach (ObjectPass pass in _scene._passes)
-                if (pass.Look.EnvironmentMapped) environment[pass.Submesh] = pass.Look;
+            {
+                if (pass.Look.EnvironmentMapped)
+                {
+                    environment[pass.Submesh] = pass.Look;
+                }
+            }
+
             ModelInstanceLook instance = Kind == SlotKind.Object ? ModelInstanceLook.Object(pose.AddedLight, alpha)
                 : Kind == SlotKind.Structure ? ModelInstanceLook.Structure(Structure.InstanceTint, plan)
                 : Kind == SlotKind.Effect ? new ModelInstanceLook(_effectTint, 1f)
@@ -767,9 +966,16 @@ public partial class WorldScene
             TransparentOrdered = false;
             foreach (ObjectPass pass in _scene._passes)
             {
-                if (pass.Look.EnvironmentMapped) continue;
+                if (pass.Look.EnvironmentMapped)
+                {
+                    continue;
+                }
+
                 int surface = _shown.SurfaceOf[pass.Submesh];
-                if (surface < 0) continue;
+                if (surface < 0)
+                {
+                    continue;
+                }
                 // The red pass skips blended KMF materials. A plan uses its own opaque materials here.
                 bool kmfBlended = !plan && pass.Look.Blend != KmfBlend.Opaque;
                 ObjectMaterialLook look = plan ? ObjectMaterialLook.Blueprint(Structure.Plan == BlueprintTint.Red) : instance.Shape(pass.Look);
@@ -806,10 +1012,21 @@ public partial class WorldScene
         /// written only when it changed.</summary>
         private void SetInstanceLook(in ModelInstanceLook instance)
         {
-            if (instance.Tint != _instance.Tint) Node.SetInstanceShaderParameter(TintParameter, ToGodot(instance.Tint));
-            if (instance.Alpha != _instance.Alpha) Node.SetInstanceShaderParameter(AlphaParameter, instance.Alpha);
+            if (instance.Tint != _instance.Tint)
+            {
+                Node.SetInstanceShaderParameter(TintParameter, ToGodot(instance.Tint));
+            }
+
+            if (instance.Alpha != _instance.Alpha)
+            {
+                Node.SetInstanceShaderParameter(AlphaParameter, instance.Alpha);
+            }
+
             if (instance.EnvironmentDrawn != _instance.EnvironmentDrawn)
+            {
                 Node.SetInstanceShaderParameter(EnvironmentDrawnParameter, instance.EnvironmentDrawn ? 1f : 0f);
+            }
+
             _instance = instance;
         }
 
@@ -824,7 +1041,11 @@ public partial class WorldScene
         /// added to each surface that takes added light, as an instance uniform; an additive surface is at full white.</summary>
         public void SetEffectTint(NVector3 tint)
         {
-            if (tint == _effectTint) return;
+            if (tint == _effectTint)
+            {
+                return;
+            }
+
             _effectTint = tint;
             SetInstanceLook(new ModelInstanceLook(tint, 1f));
         }
@@ -855,9 +1076,15 @@ public partial class WorldScene
         /// <summary>The asked-for hover overlay on the surfaces, when it changed; allocation-free once the materials exist.</summary>
         public void CommitHover()
         {
-            if (Freed || Hover == _appliedHover) return;
+            if (Freed || Hover == _appliedHover)
+            {
+                return;
+            }
             // Only the gold swap, or a red on an alpha-blended surface (its next pass), changes a material.
-            if (Hover.Swap != _appliedHover.Swap || _alphaBlended) ApplyLooks();
+            if (Hover.Swap != _appliedHover.Swap || _alphaBlended)
+            {
+                ApplyLooks();
+            }
             else
             {
                 SetRed(Hover);
@@ -870,7 +1097,11 @@ public partial class WorldScene
         {
             NVector3[] posed = [];
             box = default;
-            if (Animation != null && Animation.TryGetSample(out posed, out box)) return posed;
+            if (Animation != null && Animation.TryGetSample(out posed, out box))
+            {
+                return posed;
+            }
+
             box = _shown.PickBox;
             return _shown.Source.Positions;
         }
@@ -897,14 +1128,21 @@ public partial class WorldScene
             bool found = false;
             IReadOnlyList<int[]> triangles = _shown.Source.Triangles;
             for (int submesh = 0; submesh < triangles.Count; submesh++)
+            {
                 found |= PickTriangles.TryNearest(positions, triangles[submesh], origin, direction, ref best);
+            }
+
             return found ? best : null;
         }
 
         public void Free()
         {
             Freed = true;
-            if (Transparent) _scene.ListTransparent(this, false);
+            if (Transparent)
+            {
+                _scene.ListTransparent(this, false);
+            }
+
             Lock = null;
             Animation?.Free();
             Node.QueueFree();
@@ -933,12 +1171,17 @@ public partial class WorldScene
             bool sampled = Player.TryGetSample(out vertices);
             NVector3 low = new(float.PositiveInfinity), high = new(float.NegativeInfinity);
             if (sampled && _templates[(int)_shown] is ModelMesh template)
+            {
                 foreach (int[] surface in template.SurfaceVertices)
+                {
                     foreach (int vertex in surface)
                     {
                         low = NVector3.Min(low, vertices[vertex]);
                         high = NVector3.Max(high, vertices[vertex]);
                     }
+                }
+            }
+
             box = sampled && low.X <= high.X ? new PickBox(low, high) : default;
             return sampled;
         }
@@ -947,15 +1190,19 @@ public partial class WorldScene
         {
             _templates = templates;
             for (int i = 0; i < _segments.Length; i++)
+            {
                 _segments[i] = i < clips.Length && i < templates.Length && clips[i] is RenderAnimation clip
                     && templates[i] is ModelMesh template ? _slot.Scene.VertexAnimation(clip, template) : null;
+            }
         }
 
         void ICreatureAnimationSurface<ModelMesh?[]>.Show(AnimationSegment segment)
         {
             _shown = segment;
             if (_templates[(int)segment] is ModelMesh template && _segments[(int)segment] is VertexClip clip)
+            {
                 _slot.Show(template, template.Mesh, clip);
+            }
         }
 
         public void Pose(AnimationSegment segment, float phase)
@@ -993,7 +1240,11 @@ public partial class WorldScene
             _model = model;
             _bent = new NVector3[model?.Source.Positions.Count ?? 0];
             _turned = new NVector3[model?.Source.Normals.Count ?? 0];
-            if (model == null) return;
+            if (model == null)
+            {
+                return;
+            }
+
             _node = new MeshInstance3D { Name = "Torch" + floorTileIndex, Mesh = new ArrayMesh(), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
             scene.AddChild(_node);
         }
@@ -1009,7 +1260,11 @@ public partial class WorldScene
         public void Set(in TorchView torch)
         {
             Torch = torch;
-            if (_model == null || _node == null) return;
+            if (_model == null || _node == null)
+            {
+                return;
+            }
+
             var origin = new NVector3(torch.PosX / (float)Fp32.One, torch.Height / (float)Fp32.One, -torch.PosY / (float)Fp32.One);
             _node.Position = ToGodot(RightHandedFrame.Point(origin));
             NVector3 low = new(float.MaxValue), high = new(float.MinValue);
@@ -1021,7 +1276,11 @@ public partial class WorldScene
                 high = NVector3.Max(high, p);
             }
             // A vertex region update keeps the first build's box; the bent extent replaces it so Godot culls by it.
-            if (_bent.Length > 0) _node.CustomAabb = new Aabb(ToGodot(low), ToGodot(high - low));
+            if (_bent.Length > 0)
+            {
+                _node.CustomAabb = new Aabb(ToGodot(low), ToGodot(high - low));
+            }
+
             var mesh = (ArrayMesh)_node.Mesh;
             if (mesh.GetSurfaceCount() == 0 || torch.Yaw != _builtYaw)
             {
@@ -1029,30 +1288,58 @@ public partial class WorldScene
                 _builtYaw = torch.Yaw;
                 // Type-5 light meshes turn by yaw without the ordinary object's half-turn (wall-torches.md §4).
                 System.Numerics.Quaternion turn = RenderRotation.Heading(MeshOrientation.Heading(torch.Yaw));
-                for (int i = 0; i < _turned.Length; i++) _turned[i] = NVector3.Transform(_model.Source.Normals[i], turn);
+                for (int i = 0; i < _turned.Length; i++)
+                {
+                    _turned[i] = NVector3.Transform(_model.Source.Normals[i], turn);
+                }
+
                 for (int surface = 0; surface < _model.SurfaceVertices.Length; surface++)
+                {
                     mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, _model.Arrays(_bent, surface, _turned, instance: false),
                         null, null, Mesh.ArrayFormat.FlagUseDynamicUpdate | ModelCustomFormat);
+                }
+
                 ObjectModelPasses.Build(_model.Model.Materials, _model.SubmeshCount, null, _scene._passes);
                 ObjectMaterialLook?[] environment = _scene.EnvironmentPasses(_model.SubmeshCount);
                 foreach (ObjectPass pass in _scene._passes)
-                    if (pass.Look.EnvironmentMapped) environment[pass.Submesh] = pass.Look;
+                {
+                    if (pass.Look.EnvironmentMapped)
+                    {
+                        environment[pass.Submesh] = pass.Look;
+                    }
+                }
+
                 bool wasTransparent = Transparent;
                 Transparent = TransparentOrdered = false;
                 foreach (ObjectPass pass in _scene._passes)
+                {
                     if (!pass.Look.EnvironmentMapped && _model.SurfaceOf[pass.Submesh] >= 0)
                     {
                         Transparent |= pass.Look.Blend != KmfBlend.Opaque;
                         TransparentOrdered |= pass.Look.Blend == KmfBlend.AlphaBlend
                             || (pass.Look.Blend == KmfBlend.Additive && pass.Look.WritesDepth);
                     }
-                if (Transparent && !wasTransparent) _scene._transparentTorches.Add(this);
-                else if (!Transparent && wasTransparent) _scene._transparentTorches.Remove(this);
+                }
+
+                if (Transparent && !wasTransparent)
+                {
+                    _scene._transparentTorches.Add(this);
+                }
+                else if (!Transparent && wasTransparent)
+                {
+                    _scene._transparentTorches.Remove(this);
+                }
+
                 foreach (ObjectPass pass in _scene._passes)
+                {
                     if (!pass.Look.EnvironmentMapped && _model.SurfaceOf[pass.Submesh] >= 0)
+                    {
                         mesh.SurfaceSetMaterial(_model.SurfaceOf[pass.Submesh],
                             _scene.MaterialFor(new ObjectSurfaceKey(pass.Look, environment[pass.Submesh], InstanceLook: true, KmfBlended: false,
                                 Extras: pass.Look.Blend == KmfBlend.AlphaBlend && environment[pass.Submesh] != null)));
+                    }
+                }
+
                 return;
             }
             // Bend the existing vertices again when the lattice changes.
@@ -1061,11 +1348,18 @@ public partial class WorldScene
 
         public void SetPossessionVisibility()
         {
-            if (_node != null) _node.Visible = _scene.PossessionFloorVisible(Torch.FloorTileIndex);
+            if (_node != null)
+            {
+                _node.Visible = _scene.PossessionFloorVisible(Torch.FloorTileIndex);
+            }
         }
         public void Free()
         {
-            if (Transparent) _scene._transparentTorches.Remove(this);
+            if (Transparent)
+            {
+                _scene._transparentTorches.Remove(this);
+            }
+
             _node?.QueueFree();
         }
     }
@@ -1101,15 +1395,25 @@ public partial class WorldScene
         {
             _scene = scene;
             if (!provider.TryResolve(ClassicTorchFlame.Asset, out ResolvedAsset asset)
-                || !provider.TryGetSprite(asset, out EffectSpriteResource sprite)) return;
+                || !provider.TryGetSprite(asset, out EffectSpriteResource sprite))
+            {
+                return;
+            }
+
             var images = new Godot.Collections.Array<Image>();
             int width = 0, height = 0;
             for (int frame = 0; frame < sprite.StoredFrameCount; frame++)
             {
-                if (!provider.TryLoadFrame(asset, frame, out DK2.Art.Textures.RgbaImage image)) break;
+                if (!provider.TryLoadFrame(asset, frame, out DK2.Art.Textures.RgbaImage image))
+                {
+                    break;
+                }
                 // Rows top first, as the frame stands with its tip up.
                 var pixels = Image.CreateFromData(image.Width, image.Height, false, Image.Format.Rgba8, image.Pixels);
-                if (frame == 0) (width, height) = (image.Width, image.Height);
+                if (frame == 0)
+                {
+                    (width, height) = (image.Width, image.Height);
+                }
                 else if (image.Width != width || image.Height != height)
                 {
                     // A texture array's layers share one size; every frame is drawn at the first's shape anyway.
@@ -1118,11 +1422,19 @@ public partial class WorldScene
                 }
                 images.Add(pixels);
             }
-            if (images.Count == 0) return;
+            if (images.Count == 0)
+            {
+                return;
+            }
+
             _frameCount = images.Count;
             _frames = new Texture2DArray();
             _frames.CreateFromImages(images);
-            foreach (Image image in images) image.Dispose();
+            foreach (Image image in images)
+            {
+                image.Dispose();
+            }
+
             _material = new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/TorchFlame.gdshader") };
             _material.SetShaderParameter("frames", _frames);
             // A sprite as wide as the flame's size: SizeRaw / 4096 tiles, its height by the frame's shape.
@@ -1150,7 +1462,11 @@ public partial class WorldScene
                 Remove(torch.FloorTileIndex);
                 return;
             }
-            if (_items == null) return;
+            if (_items == null)
+            {
+                return;
+            }
+
             if (!_drawn.TryGetValue(torch.FloorTileIndex, out Flame? flame))
             {
                 flame = new Flame { PhaseOffsetRaw = _phases.OffsetOf(torch.FloorTileIndex) };
@@ -1168,21 +1484,39 @@ public partial class WorldScene
         /// <summary>The shared clock to now, each flame's frame.</summary>
         public void Draw(long milliseconds)
         {
-            if (_items == null) return;
-            if (_started < 0) _started = milliseconds;
+            if (_items == null)
+            {
+                return;
+            }
+
+            if (_started < 0)
+            {
+                _started = milliseconds;
+            }
+
             _animation.AdvanceTo(new EffectTime(milliseconds - _started));
             foreach (KeyValuePair<int, Flame> entry in _drawn)
+            {
                 entry.Value.Frame = _animation.Frame(_frameCount, entry.Value.PhaseOffsetRaw);
+            }
         }
 
         /// <summary>Each shown flame as a blended item at its point, its frame the layer.</summary>
         public void AddItems()
         {
-            if (_items == null) return;
+            if (_items == null)
+            {
+                return;
+            }
+
             foreach (KeyValuePair<int, Flame> entry in _drawn)
             {
                 Flame flame = entry.Value;
-                if (!flame.Visible) continue;
+                if (!flame.Visible)
+                {
+                    continue;
+                }
+
                 _scene.AddItem(_items, flame.Point, _radius, new Transform3D(Basis.Identity, flame.Point), Colors.White,
                     new Color(flame.Frame, 0f, 0f, 0f));
             }
@@ -1190,7 +1524,10 @@ public partial class WorldScene
 
         public void SetPossessionVisibility()
         {
-            foreach (KeyValuePair<int, Flame> entry in _drawn) entry.Value.Visible = _scene.PossessionFloorVisible(entry.Key);
+            foreach (KeyValuePair<int, Flame> entry in _drawn)
+            {
+                entry.Value.Visible = _scene.PossessionFloorVisible(entry.Key);
+            }
         }
 
         public void Free()
@@ -1198,7 +1535,10 @@ public partial class WorldScene
             _drawn.Clear();
             _material?.Dispose();
             _frames?.Dispose();
-            if (_quad.IsValid) RenderingServer.FreeRid(_quad);
+            if (_quad.IsValid)
+            {
+                RenderingServer.FreeRid(_quad);
+            }
         }
     }
 }

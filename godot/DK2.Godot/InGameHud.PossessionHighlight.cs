@@ -17,12 +17,18 @@ public partial class InGameHud
     private Func<string, DK2.Art.Textures.RgbaImage>? _entryFlowerArt;
     private void DrawPossessionHighlight(WorldHoverHit? pointerHit, HoverFeedback feedback, bool entering)
     {
-        if (_simulation == null || _world == null || _possession == null) return;
+        if (_simulation == null || _world == null || _possession == null)
+        {
+            return;
+        }
+
         WorldHoverHit? target = PossessionHighlight.EntryPointerTarget(pointerHit, entering,
             feedback.Tinted, _tools.SpellArmed(_input) && feedback.Placement.Valid)
             ?? _possessionHighlight.Capture(_simulation.World, _simulation.Database, _viewer, _possession);
         if (target is { } hit)
+        {
             _world.DrawHoverOverlay(hit);
+        }
     }
 
     /// <summary>The status flowers over the drawn creatures while the ordinary HUD shows, including possession entry and

@@ -136,7 +136,10 @@ public static class LauncherTheme
         theme.SetStylebox("focus", type, focus);
         foreach (string state in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color",
                      "font_hover_pressed_color" })
+        {
             theme.SetColor(state, type, text);
+        }
+
         theme.SetColor("font_disabled_color", type, disabledText);
     }
 
@@ -162,6 +165,7 @@ public static class LauncherTheme
         int pixels = Mathf.CeilToInt(size * scale);
         var image = Image.CreateEmpty(pixels, pixels, false, Image.Format.Rgba8);
         for (int y = 0; y < pixels; y++)
+        {
             for (int x = 0; x < pixels; x++)
             {
                 var p = new Vector2((x + .5f) / scale, (y + .5f) / scale);
@@ -169,6 +173,8 @@ public static class LauncherTheme
                 float cover = Mathf.Clamp(.5f - d * scale, 0f, 1f) * (1f - Mathf.Clamp(.5f - cut * scale, 0f, 1f));
                 image.SetPixel(x, y, new Color(colour.R, colour.G, colour.B, colour.A * cover));
             }
+        }
+
         var texture = ImageTexture.CreateFromImage(image);
         texture.SetSizeOverride(new Vector2I(size, size));
         return texture;

@@ -12,7 +12,11 @@ public partial class WorldScene
     /// <summary>Each world camera owns its AO buffers; shadow cameras do not call this.</summary>
     public void AttachOcclusion(Camera3D camera)
     {
-        if (!PostOcclusion) return;
+        if (!PostOcclusion)
+        {
+            return;
+        }
+
         camera.AddChild(new WorldOcclusionHost { Name = "WorldOcclusion" });
     }
 }

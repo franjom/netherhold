@@ -41,7 +41,11 @@ internal sealed class BitmapTextItem : IDisposable
         get => _face;
         set
         {
-            if (_face == value) return;
+            if (_face == value)
+            {
+                return;
+            }
+
             _server ??= TextServerManager.Singleton.GetPrimaryInterface();
             Godot.Collections.Array<Rid>? rids = value?.GetRids();
             _face = rids is { Count: > 0 } && _server != null ? value : null;
@@ -57,21 +61,36 @@ internal sealed class BitmapTextItem : IDisposable
     /// a null font or text shows nothing.</summary>
     public void Show(BitmapFont? font, string? text, HudRect box, float scale)
     {
-        if (_block.Update(font, text, box, scale)) Record();
+        if (_block.Update(font, text, box, scale))
+        {
+            Record();
+        }
     }
 
     private void Record()
     {
-        if (!_item.IsValid) return;
+        if (!_item.IsValid)
+        {
+            return;
+        }
+
         RenderingServer.CanvasItemClear(_item);
         UsingReplacementFont = false;
         BitmapFont? font = _block.Font;
-        if (font == null) return;
+        if (font == null)
+        {
+            return;
+        }
+
         if (_face != null && RecordFace()) { UsingReplacementFont = true; return; }
         if (font != _atlasFont)
         {
             BitmapGlyphAtlas.Acquire(font);
-            if (_atlasFont != null) BitmapGlyphAtlas.Release(_atlasFont);
+            if (_atlasFont != null)
+            {
+                BitmapGlyphAtlas.Release(_atlasFont);
+            }
+
             _atlasFont = font;
         }
         var atlas = BitmapGlyphAtlas.Of(font);
@@ -95,11 +114,19 @@ internal sealed class BitmapTextItem : IDisposable
         int tallestInk = 0;
         foreach (PlacedBitmapGlyph placed in _block.Glyphs)
         {
-            if (!server.FontHasChar(_faceRid, placed.Glyph.Character)) return false;
+            if (!server.FontHasChar(_faceRid, placed.Glyph.Character))
+            {
+                return false;
+            }
+
             int ink = Ink(placed.Glyph).Size.Y;
             if (ink > tallestInk) { tallest = placed.Glyph; tallestInk = ink; }
         }
-        if (tallest == null) return true;
+        if (tallest == null)
+        {
+            return true;
+        }
+
         int size = SizeFor(tallest.Character, tallestInk * _block.Scale);
         var key = new Vector2I(size, 0);
         _indices.Clear();
@@ -109,7 +136,11 @@ internal sealed class BitmapTextItem : IDisposable
             long index = server.FontGetGlyphIndex(_faceRid, size, placed.Glyph.Character, 0);
             Rect2 uv = server.FontGetGlyphUVRect(_faceRid, key, index);
             Rect2I ink = Ink(placed.Glyph);
-            if (ink.Size.X <= 0 || ink.Size.Y <= 0 || uv.Size.X <= 0 || uv.Size.Y <= 0) continue;
+            if (ink.Size.X <= 0 || ink.Size.Y <= 0 || uv.Size.X <= 0 || uv.Size.Y <= 0)
+            {
+                continue;
+            }
+
             float scale = _block.Scale;
             float centreX = placed.Rect.X + (ink.Position.X + ink.Size.X / 2f) * scale;
             float centreY = placed.Rect.Y + (ink.Position.Y + ink.Size.Y / 2f) * scale;
@@ -117,8 +148,11 @@ internal sealed class BitmapTextItem : IDisposable
             _targets.Add(new Rect2(MathF.Round(centreX - uv.Size.X / 2), MathF.Round(centreY - uv.Size.Y / 2), uv.Size));
         }
         for (int i = 0; i < _indices.Count; i++)
+        {
             RenderingServer.CanvasItemAddTextureRectRegion(_item, _targets[i], server.FontGetGlyphTextureRid(_faceRid, key, _indices[i]),
                 server.FontGetGlyphUVRect(_faceRid, key, _indices[i]), Colors.White, false, true);
+        }
+
         return true;
     }
 
@@ -127,7 +161,11 @@ internal sealed class BitmapTextItem : IDisposable
     private int SizeFor(char character, float pixels)
     {
         float ink = CellHeight(character, MeasureSize);
-        if (ink <= 0) return MinSize;
+        if (ink <= 0)
+        {
+            return MinSize;
+        }
+
         int size = Math.Clamp((int)MathF.Round(MeasureSize * pixels / ink), MinSize, MaxSize);
         float actual = CellHeight(character, size);
         return actual > 0 ? Math.Clamp((int)MathF.Round(size * pixels / actual), MinSize, MaxSize) : size;
@@ -142,15 +180,26 @@ internal sealed class BitmapTextItem : IDisposable
     /// <summary>The bitmap glyph's inked pixels' bounds in its own pixels, found once.</summary>
     private Rect2I Ink(BitmapGlyph glyph)
     {
-        if (_ink.TryGetValue(glyph, out Rect2I ink)) return ink;
+        if (_ink.TryGetValue(glyph, out Rect2I ink))
+        {
+            return ink;
+        }
+
         int left = glyph.Width, top = glyph.Height, right = -1, bottom = -1;
         for (int y = 0; y < glyph.Height; y++)
+        {
             for (int x = 0; x < glyph.Width; x++)
             {
-                if (glyph.Pixels[y * glyph.Width + x] == 0) continue;
+                if (glyph.Pixels[y * glyph.Width + x] == 0)
+                {
+                    continue;
+                }
+
                 left = Math.Min(left, x); right = Math.Max(right, x);
                 top = Math.Min(top, y); bottom = Math.Max(bottom, y);
             }
+        }
+
         ink = right < 0 ? default : new Rect2I(left, top, right - left + 1, bottom - top + 1);
         _ink.Add(glyph, ink);
         return ink;
@@ -158,9 +207,17 @@ internal sealed class BitmapTextItem : IDisposable
 
     public void Dispose()
     {
-        if (_item.IsValid) RenderingServer.FreeRid(_item);
+        if (_item.IsValid)
+        {
+            RenderingServer.FreeRid(_item);
+        }
+
         _item = default;
-        if (_atlasFont != null) BitmapGlyphAtlas.Release(_atlasFont);
+        if (_atlasFont != null)
+        {
+            BitmapGlyphAtlas.Release(_atlasFont);
+        }
+
         _atlasFont = null;
         _ink.Clear();
     }

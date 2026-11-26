@@ -27,7 +27,10 @@ public partial class WorldScene
         set
         {
             _previewRenderViewport = value;
-            if (value != null) ApplyAntiAliasing(value);
+            if (value != null)
+            {
+                ApplyAntiAliasing(value);
+            }
         }
     }
 
@@ -49,14 +52,32 @@ public partial class WorldScene
             ? Viewport.Scaling3DModeEnum.Fsr : Viewport.Scaling3DModeEnum.Bilinear;
         Viewport view = GetViewport();
         ApplyAntiAliasing(view);
-        if (view.Scaling3DMode != _scalingMode) view.Scaling3DMode = _scalingMode;
-        if (view.Scaling3DScale != _renderScale) view.Scaling3DScale = _renderScale;
-        if (_previewRenderViewport != null) ApplyAntiAliasing(_previewRenderViewport);
+        if (view.Scaling3DMode != _scalingMode)
+        {
+            view.Scaling3DMode = _scalingMode;
+        }
+
+        if (view.Scaling3DScale != _renderScale)
+        {
+            view.Scaling3DScale = _renderScale;
+        }
+
+        if (_previewRenderViewport != null)
+        {
+            ApplyAntiAliasing(_previewRenderViewport);
+        }
     }
 
     private void ApplyAntiAliasing(Viewport viewport)
     {
-        if (viewport.Msaa3D != _msaa) viewport.Msaa3D = _msaa;
-        if (viewport.ScreenSpaceAA != _screenSpaceAA) viewport.ScreenSpaceAA = _screenSpaceAA;
+        if (viewport.Msaa3D != _msaa)
+        {
+            viewport.Msaa3D = _msaa;
+        }
+
+        if (viewport.ScreenSpaceAA != _screenSpaceAA)
+        {
+            viewport.ScreenSpaceAA = _screenSpaceAA;
+        }
     }
 }

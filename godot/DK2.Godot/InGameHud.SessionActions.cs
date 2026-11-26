@@ -25,7 +25,11 @@ public partial class InGameHud
     /// Quit quits. A handover already under way takes no second one.</summary>
     void IHudPressHost.StartSession(ClassicSessionAction session)
     {
-        if (_context == null || _leaving || s_resume != null) return;
+        if (_context == null || _leaving || s_resume != null)
+        {
+            return;
+        }
+
         if (session == ClassicSessionAction.Quit)
         {
             _leaving = true;
@@ -33,7 +37,11 @@ public partial class InGameHud
             GetTree().Quit();
             return;
         }
-        if (GameSessionRequest.ForSessionAction(session, _context) is not GameSessionRequest request) return;
+        if (GameSessionRequest.ForSessionAction(session, _context) is not GameSessionRequest request)
+        {
+            return;
+        }
+
         if (request.Mode == GameSessionMode.FrontEnd)
         {
             LeaveForFrontEnd(request.ReturnPage, "the options menu's Return to Menu");
@@ -51,7 +59,11 @@ public partial class InGameHud
     /// <summary>The frames a handover carried, once; a fresh start begins at -1.</summary>
     private void TakeCarriedScriptFrames()
     {
-        if (s_carriedScriptFrames is (int pointer, int key)) (_scriptFrame, _keyFrame) = (pointer, key);
+        if (s_carriedScriptFrames is (int pointer, int key))
+        {
+            (_scriptFrame, _keyFrame) = (pointer, key);
+        }
+
         s_carriedScriptFrames = null;
     }
 
@@ -62,7 +74,11 @@ public partial class InGameHud
     /// (<see cref="CampaignResultFlow.Prompt"/>) in <see cref="SubtitleLayout.ResultPromptBox"/>, over the win screen.</summary>
     private void DrawResultPrompt()
     {
-        if (_resultPrompt == null || _resultFlow == null || _simulation == null || _scriptedView == null) return;
+        if (_resultPrompt == null || _resultFlow == null || _simulation == null || _scriptedView == null)
+        {
+            return;
+        }
+
         string? text = _resultFlow.ResultRecorded ? _resultFlow.Prompt(_simulation.World, _viewer, _scriptedView.PathPlaying) : null;
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
@@ -83,23 +99,43 @@ public partial class InGameHud
     {
         string? text = LaunchArguments.Value(args, "--key-path");
         _keyScript = KeyScript.Parse(text);
-        if (text != null && _keyScript == null) GD.PushWarning("DK2.Godot: --key-path is malformed (KeyScript.Parse); no key is tapped.");
-        if (_keyScript == null) return;
+        if (text != null && _keyScript == null)
+        {
+            GD.PushWarning("DK2.Godot: --key-path is malformed (KeyScript.Parse); no key is tapped.");
+        }
+
+        if (_keyScript == null)
+        {
+            return;
+        }
+
         foreach (KeyScriptKey tap in _keyScript.Keys)
+        {
             if (!Enum.TryParse(tap.Key, ignoreCase: false, out Key _))
+            {
                 GD.PushWarning("DK2.Godot: --key-path names ", tap.Key, ", which is no Godot key; it is skipped.");
+            }
+        }
     }
 
     private void PlayKeyScript()
     {
-        if (_keyScript == null) return;
+        if (_keyScript == null)
+        {
+            return;
+        }
+
         int frame = ++_keyFrame;
         IReadOnlyList<KeyScriptKey> keys = _keyScript.Keys;
         _nextKey = _keyScript.FirstAtOrAfter(frame, _nextKey);
         Viewport viewport = GetViewport();
         for (; _nextKey < keys.Count && keys[_nextKey].Frame == frame; _nextKey++)
         {
-            if (!Enum.TryParse(keys[_nextKey].Key, ignoreCase: false, out Key key)) continue;
+            if (!Enum.TryParse(keys[_nextKey].Key, ignoreCase: false, out Key key))
+            {
+                continue;
+            }
+
             viewport.PushInput(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = true });
             viewport.PushInput(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = false });
             GD.Print("DK2.Godot: scripted key ", key.ToString(), " on frame ", frame.ToString(CultureInfo.InvariantCulture), ", tick ",

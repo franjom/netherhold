@@ -23,7 +23,10 @@ public partial class InGameHud
     {
         _battlePoints = mesh?.Points ?? [];
         _battleFlyIn = new BattleFlyIn(_battlePoints.Length);
-        if (mesh == null || _world == null) return;
+        if (mesh == null || _world == null)
+        {
+            return;
+        }
 
         var layer = new CanvasLayer { Name = "BattleFlyInLayer", Layer = BattleFlyInLayer };
         AddChild(layer);
@@ -32,7 +35,11 @@ public partial class InGameHud
 
     private void DrawBattleFlyIn(HudVisibility visibility, bool collapsed, long now)
     {
-        if (_battleFlyIn == null || _battleTab == null || _battles == null || _scriptedView == null) return;
+        if (_battleFlyIn == null || _battleTab == null || _battles == null || _scriptedView == null)
+        {
+            return;
+        }
+
         int entries = _battles.ViewerBattleEntries;
         if (!_battleFlyIn.Running && entries == _flyInEntries)
         {
@@ -64,8 +71,14 @@ public partial class InGameHud
 
     private void PlayBattleFlyInSounds(BattleFlyIn flyIn)
     {
-        if (_mixer != null) _mixer.Play(flyIn.Sounds);
-        else flyIn.Sounds.Clear();
+        if (_mixer != null)
+        {
+            _mixer.Play(flyIn.Sounds);
+        }
+        else
+        {
+            flyIn.Sounds.Clear();
+        }
     }
 
     private void CloseBattleFlyIn()

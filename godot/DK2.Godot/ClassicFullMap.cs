@@ -36,8 +36,16 @@ public partial class ClassicFullMap : Node
         world.PreviewPose = null;
         if (!Visible)
         {
-            if (_previewViewport != null) _previewViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled;
-            if (_previewImage != null) _previewImage.Visible = false;
+            if (_previewViewport != null)
+            {
+                _previewViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled;
+            }
+
+            if (_previewImage != null)
+            {
+                _previewImage.Visible = false;
+            }
+
             return;
         }
         Vector2 size = GetViewport().GetVisibleRect().Size;
@@ -49,7 +57,10 @@ public partial class ClassicFullMap : Node
             AddChild(_previewViewport);
             world.PreviewRenderViewport = _previewViewport;
             if (world.MeasurePreviewRenderTime)
+            {
                 RenderingServer.ViewportSetMeasureRenderTime(_previewViewport.GetViewportRid(), true);
+            }
+
             _previewCamera = new Camera3D { Current = true, Environment = world.CameraEnvironment, CullMask = uint.MaxValue & ~(1u << 18), Near = .05f, KeepAspect = Camera3D.KeepAspectEnum.Height };
             world.AttachOcclusion(_previewCamera);
             _previewViewport.AddChild(_previewCamera);
@@ -80,9 +91,17 @@ public partial class ClassicFullMap : Node
     /// <param name="image">A catalogue image by name (the room icons).</param>
     public void Open(MinimapHud minimap, Func<int, BitmapFont> font, Func<byte, string> playerName, Func<string, RgbaImage> image)
     {
-        if (_hud != null) throw new InvalidOperationException("The full map is already open.");
+        if (_hud != null)
+        {
+            throw new InvalidOperationException("The full map is already open.");
+        }
+
         _minimap = minimap ?? throw new ArgumentNullException(nameof(minimap));
-        if (image is null) throw new ArgumentNullException(nameof(image));
+        if (image is null)
+        {
+            throw new ArgumentNullException(nameof(image));
+        }
+
         _hud = new FullMapHud(minimap.Palette, minimap.MapWidth, minimap.MapHeight);
         _hud.SetLegend(font, playerName, roomIcons: true);
         _pixels = new FullMapImage(minimap.MapWidth, minimap.MapHeight);
@@ -98,7 +117,11 @@ public partial class ClassicFullMap : Node
 
     public void SetVisible(bool visible)
     {
-        if (_hud == null || _back == null || _front == null || _mapNode == null) return;
+        if (_hud == null || _back == null || _front == null || _mapNode == null)
+        {
+            return;
+        }
+
         _hud.SetVisible(visible);
         _back.Visible = visible; _mapNode.Visible = visible; _front.Visible = visible;
     }
@@ -108,8 +131,16 @@ public partial class ClassicFullMap : Node
     /// <param name="gridCaptured">The minimap captured this frame (<see cref="ClassicMinimap.Capture"/>).</param>
     public void Capture(WorldState world, GameDatabase database, PlayerId viewer, bool gridCaptured, Vector2 pointer)
     {
-        if (gridCaptured) _stale = true;
-        if (_hud == null || _minimap == null || _pixels == null || _image == null || _texture == null || !_hud.Visible) return;
+        if (gridCaptured)
+        {
+            _stale = true;
+        }
+
+        if (_hud == null || _minimap == null || _pixels == null || _image == null || _texture == null || !_hud.Visible)
+        {
+            return;
+        }
+
         if (_stale)
         {
             _stale = false;
@@ -125,22 +156,42 @@ public partial class ClassicFullMap : Node
     /// <summary>The tile under a screen pixel (top-left origin).</summary>
     public TilePos ResolvePointer(Vector2 screenPosition)
     {
-        if (_hud == null) return default;
+        if (_hud == null)
+        {
+            return default;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
-        if (size.X <= 0 || size.Y <= 0) return default;
+        if (size.X <= 0 || size.Y <= 0)
+        {
+            return default;
+        }
+
         return _hud.ResolvePointer((int)size.X, (int)size.Y, new System.Numerics.Vector2(screenPosition.X, screenPosition.Y));
     }
 
     /// <summary>Lays the map out for the viewport and presents it.</summary>
     public void Draw()
     {
-        if (_hud == null || _back == null || _front == null || _mapNode == null || _texture == null || !_hud.Visible) return;
+        if (_hud == null || _back == null || _front == null || _mapNode == null || _texture == null || !_hud.Visible)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         ClassicFullMapLayout layout = _hud.Layout(width, height);
         var rect = new Rect2(layout.Origin.X, layout.Origin.Y, layout.Size.X, layout.Size.Y);
-        if (rect != _mapRect) RecordMap(rect);
+        if (rect != _mapRect)
+        {
+            RecordMap(rect);
+        }
+
         var screen = new HudScreen(width, height);
         _backFrame.Clear(); _frontFrame.Clear();
         _hud.Build(screen, _backFrame, _frontFrame);
@@ -170,7 +221,10 @@ public partial class ClassicFullMap : Node
     {
         // While the full map is open, panels beneath it get no presses. The router
         // reads the press from the window; this node and the router decide on the same state.
-        if (@event is InputEventMouseButton { Pressed: true } && HoldsPresses?.Invoke() == true) GetViewport().SetInputAsHandled();
+        if (@event is InputEventMouseButton { Pressed: true } && HoldsPresses?.Invoke() == true)
+        {
+            GetViewport().SetInputAsHandled();
+        }
     }
 
     public override void _ExitTree()
@@ -182,7 +236,11 @@ public partial class ClassicFullMap : Node
     public override void _Notification(int what)
     {
         // Freed, not merely removed from the tree: a reparented map keeps working.
-        if (what != NotificationPredelete) return;
+        if (what != NotificationPredelete)
+        {
+            return;
+        }
+
         HoldsPresses = null; _hud = null; _minimap = null; _pixels = null;
         // The canvas item draws the texture, so it goes first.
         if (_mapItem.IsValid) { RenderingServer.FreeRid(_mapItem); _mapItem = default; }

@@ -27,7 +27,12 @@ internal sealed class ClassicTabletCanvas : IDisposable
         {
             capacity = Math.Max(capacity, primitive.IndicesByDetailLevel[0].Count);
             foreach (string name in mesh.Model.Materials[(int)primitive.MaterialIndex].TextureNames)
-                if (!_textures.ContainsKey(name)) _textures.Add(name, texture(name)?.GetRid() ?? default);
+            {
+                if (!_textures.ContainsKey(name))
+                {
+                    _textures.Add(name, texture(name)?.GetRid() ?? default);
+                }
+            }
         }
         _triangles = new TriangleBuffer(capacity);
         _sparkle = texture("TabletSparkle")?.GetRid() ?? default;
@@ -43,7 +48,11 @@ internal sealed class ClassicTabletCanvas : IDisposable
         _visible = true;
         foreach (TabletBatch batch in _draw.Batches)
         {
-            if (batch.Count == 0 || !_textures.TryGetValue(batch.Texture, out Rid texture) || !texture.IsValid) continue;
+            if (batch.Count == 0 || !_textures.TryGetValue(batch.Texture, out Rid texture) || !texture.IsValid)
+            {
+                continue;
+            }
+
             ReadOnlySpan<TabletVertex> vertices = _draw.Vertices.Slice(batch.First, batch.Count);
             for (int i = 0; i < vertices.Length; i++)
             {
@@ -56,7 +65,11 @@ internal sealed class ClassicTabletCanvas : IDisposable
                 _triangles.Uvs.AsSpan(0, batch.Count), ReadOnlySpan<int>.Empty, ReadOnlySpan<float>.Empty, texture, -1);
         }
 
-        if (!_sparkle.IsValid) return;
+        if (!_sparkle.IsValid)
+        {
+            return;
+        }
+
         foreach (TabletSparkleQuad sparkle in _draw.Sparkles)
         {
             float side = sparkle.Half * 2;
@@ -67,7 +80,11 @@ internal sealed class ClassicTabletCanvas : IDisposable
 
     public void Hide()
     {
-        if (!_visible) return;
+        if (!_visible)
+        {
+            return;
+        }
+
         RenderingServer.CanvasItemClear(_item);
         _visible = false;
     }
@@ -82,7 +99,11 @@ internal sealed class ClassicTabletCanvas : IDisposable
         public TriangleBuffer(int count)
         {
             Indices = new int[count];
-            for (int i = 0; i < count; i++) Indices[i] = i;
+            for (int i = 0; i < count; i++)
+            {
+                Indices[i] = i;
+            }
+
             Points = new Vector2[count];
             Uvs = new Vector2[count];
         }

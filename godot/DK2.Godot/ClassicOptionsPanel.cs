@@ -26,9 +26,20 @@ public partial class ClassicOptionsPanel : Node
     /// <param name="font">The legible bitmap font for a screen height.</param>
     public void Open(Func<uint, string> text, Func<int, BitmapFont> font)
     {
-        if (_hud != null) throw new InvalidOperationException("The options menu is already open.");
-        if (text is null) throw new ArgumentNullException(nameof(text));
-        if (font is null) throw new ArgumentNullException(nameof(font));
+        if (_hud != null)
+        {
+            throw new InvalidOperationException("The options menu is already open.");
+        }
+
+        if (text is null)
+        {
+            throw new ArgumentNullException(nameof(text));
+        }
+
+        if (font is null)
+        {
+            throw new ArgumentNullException(nameof(font));
+        }
         // No catalogue art to preload: the labels are set from the font when first drawn at a screen height.
         _hud = new OptionsHud(text, font);
         _canvas = new HudCanvas { Name = "HudCanvas", Load = Blank, Visible = false };
@@ -43,7 +54,11 @@ public partial class ClassicOptionsPanel : Node
 
     public void SetVisible(bool visible)
     {
-        if (_hud == null || _canvas == null) return;
+        if (_hud == null || _canvas == null)
+        {
+            return;
+        }
+
         _hud.SetVisible(visible); _canvas.Visible = visible;
     }
 
@@ -55,10 +70,18 @@ public partial class ClassicOptionsPanel : Node
     /// <summary>Lays the page out for the viewport and presents it, the entry under the pointer lit.</summary>
     public void Draw()
     {
-        if (_hud == null || _canvas == null || !_hud.Visible) return;
+        if (_hud == null || _canvas == null || !_hud.Visible)
+        {
+            return;
+        }
+
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
         var screen = new HudScreen(width, height);
         _scale = screen.Scale;
         (float x, float y) = ToVirtual(GetViewport().GetMousePosition());
@@ -71,7 +94,11 @@ public partial class ClassicOptionsPanel : Node
     /// before the first draw.</summary>
     public ClassicOptionsAction ActionAt(Vector2 screenPosition)
     {
-        if (_hud == null || _scale <= 0) return ClassicOptionsAction.None;
+        if (_hud == null || _scale <= 0)
+        {
+            return ClassicOptionsAction.None;
+        }
+
         (float x, float y) = ToVirtual(screenPosition);
         return _hud.ActionAt(x, y);
     }
@@ -84,7 +111,10 @@ public partial class ClassicOptionsPanel : Node
     {
         // While the options menu is open, panels beneath it get no presses. The router
         // reads the press from the window; this node and the router decide on the same state.
-        if (@event is InputEventMouseButton { Pressed: true } && HoldsPresses?.Invoke() == true) GetViewport().SetInputAsHandled();
+        if (@event is InputEventMouseButton { Pressed: true } && HoldsPresses?.Invoke() == true)
+        {
+            GetViewport().SetInputAsHandled();
+        }
     }
 
     public override void _Notification(int what)

@@ -30,7 +30,11 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
 
     public override void _Ready()
     {
-        if (!Spatial) return;
+        if (!Spatial)
+        {
+            return;
+        }
+
         _anchor = new Node3D { Name = "Listener" };
         AddChild(_anchor);
     }
@@ -77,15 +81,26 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
     public override void _Process(double delta)
     {
         // After the scene's own process, which placed the camera: the listener's anchor follows it.
-        if (_anchor != null && GetViewport().GetCamera3D() is Camera3D camera) _anchor.GlobalPosition = camera.GlobalPosition;
-        for (int i = 0; i < _streams.Count; i++) _streams[i].Pump(_chunk);
+        if (_anchor != null && GetViewport().GetCamera3D() is Camera3D camera)
+        {
+            _anchor.GlobalPosition = camera.GlobalPosition;
+        }
+
+        for (int i = 0; i < _streams.Count; i++)
+        {
+            _streams[i].Pump(_chunk);
+        }
     }
 
     /// <summary>The clip as Godot plays it: 16-bit PCM at its own rate, looping over the whole clip when asked.</summary>
     private AudioStreamWav Clip(PcmClip clip, bool loop)
     {
         Dictionary<PcmClip, AudioStreamWav> cache = loop ? _looped : _plain;
-        if (cache.TryGetValue(clip, out AudioStreamWav? wav)) return wav;
+        if (cache.TryGetValue(clip, out AudioStreamWav? wav))
+        {
+            return wav;
+        }
+
         wav = new AudioStreamWav
         {
             Format = AudioStreamWav.FormatEnum.Format16Bits,
@@ -105,7 +120,10 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
 
     public override void _ExitTree()
     {
-        for (int i = _streams.Count - 1; i >= 0; i--) _streams[i].Dispose();
+        for (int i = _streams.Count - 1; i >= 0; i--)
+        {
+            _streams[i].Dispose();
+        }
     }
 
     private sealed class FlatSource(ClassicSoundOutput owner, AudioStreamPlayer player) : ISoundSource
@@ -155,7 +173,11 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
 
         public void Pump(Vector2[] chunk)
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
+
             int room = playback.GetFramesAvailable();
             while (room >= chunk.Length)
             {
@@ -167,7 +189,11 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
+
             _disposed = true;
             player.Stop();
             owner._streams.Remove(this);

@@ -35,12 +35,21 @@ public partial class HudCanvas
         if (image.Label != null)
         {
             if (!_labelGlows.TryGetValue(image.Label, out pack!))
+            {
                 _labelGlows.Add(image.Label, pack = Bake(HudLabelPixels.Render(image.Label, HudLabel.GlowPadding)));
+            }
         }
         else if (!_imageGlows.TryGetValue(image.Path!, out pack!))
+        {
             _imageGlows.Add(image.Path!, pack = Bake(HudLabelPixels.Pad(Catalogue(image.Path!), FrontEndScrollBar.GlowPadding)));
+        }
+
         var size = new Vector2(pack.Full.GetWidth(), pack.Full.GetHeight());
-        if (image.Pieces >= 4) return new Resolved(pack.Full.GetRid(), size, false);
+        if (image.Pieces >= 4)
+        {
+            return new Resolved(pack.Full.GetRid(), size, false);
+        }
+
         return new Resolved(pack.Partial.GetRid(), size, false, GlowMaterial(image.Pieces));
     }
 
@@ -51,14 +60,27 @@ public partial class HudCanvas
         for (int q = 1; q <= 3; q++)
         {
             byte[] alpha = HudLabelPixels.Quarter(full, q).Pixels;
-            for (int at = 3; at < alpha.Length; at += 4) quarters[at - 4 + q] = alpha[at];
+            for (int at = 3; at < alpha.Length; at += 4)
+            {
+                quarters[at - 4 + q] = alpha[at];
+            }
         }
-        for (int at = 3; at < quarters.Length; at += 4) quarters[at] = 255;
+        for (int at = 3; at < quarters.Length; at += 4)
+        {
+            quarters[at] = 255;
+        }
+
         var pack = new GlowPack();
         using (var image = Image.CreateFromData(full.Width, full.Height, false, Image.Format.Rgba8, full.Pixels))
+        {
             pack.Full = ImageTexture.CreateFromImage(image);
+        }
+
         using (var image = Image.CreateFromData(full.Width, full.Height, false, Image.Format.Rgba8, quarters))
+        {
             pack.Quarters = ImageTexture.CreateFromImage(image);
+        }
+
         pack.Partial = new CanvasTexture { DiffuseTexture = pack.Full, NormalTexture = pack.Quarters };
         return pack;
     }
@@ -77,16 +99,35 @@ public partial class HudCanvas
     /// <summary>A label's glow is kept while the label is on the page, so the hover fade makes nothing.</summary>
     private void ReleaseUnusedGlows()
     {
-        if (_labelGlows.Count == 0) return;
+        if (_labelGlows.Count == 0)
+        {
+            return;
+        }
+
         _staleGlows.Clear();
-        foreach (HudLabel label in _labelGlows.Keys) if (!_labelsDrawn.Contains(label)) _staleGlows.Add(label);
+        foreach (HudLabel label in _labelGlows.Keys)
+        {
+            if (!_labelsDrawn.Contains(label))
+            {
+                _staleGlows.Add(label);
+            }
+        }
+
         foreach (HudLabel label in _staleGlows) { _labelGlows[label].Dispose(); _labelGlows.Remove(label); }
     }
 
     private void ReleaseGlows()
     {
-        foreach (GlowPack pack in _labelGlows.Values) pack.Dispose();
-        foreach (GlowPack pack in _imageGlows.Values) pack.Dispose();
+        foreach (GlowPack pack in _labelGlows.Values)
+        {
+            pack.Dispose();
+        }
+
+        foreach (GlowPack pack in _imageGlows.Values)
+        {
+            pack.Dispose();
+        }
+
         _labelGlows.Clear(); _imageGlows.Clear();
         for (int q = 0; q < _glowMaterials.Length; q++) { _glowMaterials[q]?.Dispose(); _glowMaterials[q] = null; }
     }

@@ -34,7 +34,11 @@ public partial class WorldScene
             ? MinimapCameraView.Of(preview, PreviewViewport) : View;
         if (activeView is not MinimapCameraView view || flowers.Count == 0)
         {
-            if (!_previewPass) HideUnusedDollarFlowers(0);
+            if (!_previewPass)
+            {
+                HideUnusedDollarFlowers(0);
+            }
+
             return;
         }
         int dollars = 0;
@@ -47,16 +51,27 @@ public partial class WorldScene
         for (int f = 0; f < flowers.Count; f++)
         {
             StatusFlower flower = flowers[f];
-            if (!TryGetCreaturePosition(new(flower.CreatureId), out NVector3 feet)) continue;
+            if (!TryGetCreaturePosition(new(flower.CreatureId), out NVector3 feet))
+            {
+                continue;
+            }
+
             NVector3 anchor = feet + NVector3.UnitY * (flower.Height.Raw / (float)Fp32.One);
             if (flower.Dollar)
             {
                 // The same world mesh is visible to both cameras.
                 bool visible = _creatures.TryGetValue(flower.CreatureId, out CreatureSlot? creature) && creature.Slot.Node.Visible;
-                if (!_previewPass && visible && DrawDollarFlower(dollars, anchor, seconds)) dollars++;
+                if (!_previewPass && visible && DrawDollarFlower(dollars, anchor, seconds))
+                {
+                    dollars++;
+                }
+
                 continue;
             }
-            if (!_previewPass) _flowerDollarClock.Reset();
+            if (!_previewPass)
+            {
+                _flowerDollarClock.Reset();
+            }
             // The owner's colour as a source_color uniform took it: made linear, as the art is sampled.
             Color tint = new Color(flower.Colour.Red / 255f, flower.Colour.Green / 255f, flower.Colour.Blue / 255f).SrgbToLinear();
             int count = StatusFlowerLayers.Build(flower, _flowerLayers);
@@ -73,7 +88,11 @@ public partial class WorldScene
                     new Color(layer.Wedge, layer.Ring ? 1f : 0f, 0f, 0f));
             }
         }
-        if (!_previewPass) HideUnusedDollarFlowers(dollars);
+        if (!_previewPass)
+        {
+            HideUnusedDollarFlowers(dollars);
+        }
+
         ItemTime(ItemStep.Flowers, started);
         ItemBytes(allocated);
     }
@@ -88,10 +107,18 @@ public partial class WorldScene
 
     private FlowerBatch FlowerBatchFor(string name, Func<string, RgbaImage> art)
     {
-        if (_flowerByReference.TryGetValue(name, out FlowerBatch? batch)) return batch;
+        if (_flowerByReference.TryGetValue(name, out FlowerBatch? batch))
+        {
+            return batch;
+        }
+
         if (_flowerBatches.TryGetValue(name, out batch))
         {
-            if (_flowerByReference.Count < 256) _flowerByReference.Add(name, batch);
+            if (_flowerByReference.Count < 256)
+            {
+                _flowerByReference.Add(name, batch);
+            }
+
             return batch;
         }
         RgbaImage rgba = art(name);

@@ -26,7 +26,11 @@ internal sealed class BitmapGlyphAtlas
         var order = new List<BitmapGlyph>(font.Glyphs);
         order.Sort((a, b) => b.Height.CompareTo(a.Height));
         int width = Width;
-        foreach (BitmapGlyph glyph in order) width = Math.Max(width, glyph.Width);
+        foreach (BitmapGlyph glyph in order)
+        {
+            width = Math.Max(width, glyph.Width);
+        }
+
         int x = 0, y = 0, row = 0;
         foreach (BitmapGlyph glyph in order)
         {
@@ -40,13 +44,19 @@ internal sealed class BitmapGlyphAtlas
         {
             Vector2I at = _corners[glyph];
             for (int gy = 0; gy < glyph.Height; gy++)
+            {
                 for (int gx = 0; gx < glyph.Width; gx++)
                 {
                     byte coverage = glyph.Pixels[gy * glyph.Width + gx];
-                    if (coverage == 0) continue;
+                    if (coverage == 0)
+                    {
+                        continue;
+                    }
+
                     int i = ((at.Y + gy) * width + at.X + gx) * 2;
                     pixels[i] = 255; pixels[i + 1] = (byte)(coverage * 17);
                 }
+            }
         }
         using var image = Image.CreateFromData(width, height, false, Image.Format.La8, pixels);
         _texture = ImageTexture.CreateFromImage(image);
@@ -58,13 +68,21 @@ internal sealed class BitmapGlyphAtlas
 
     public static void Acquire(BitmapFont font)
     {
-        if (!Shared.TryGetValue(font, out BitmapGlyphAtlas? atlas)) Shared.Add(font, atlas = new BitmapGlyphAtlas(font));
+        if (!Shared.TryGetValue(font, out BitmapGlyphAtlas? atlas))
+        {
+            Shared.Add(font, atlas = new BitmapGlyphAtlas(font));
+        }
+
         atlas._users++;
     }
 
     public static void Release(BitmapFont font)
     {
-        if (!Shared.TryGetValue(font, out BitmapGlyphAtlas? atlas) || --atlas._users > 0) return;
+        if (!Shared.TryGetValue(font, out BitmapGlyphAtlas? atlas) || --atlas._users > 0)
+        {
+            return;
+        }
+
         atlas._texture.Dispose();
         Shared.Remove(font);
     }
