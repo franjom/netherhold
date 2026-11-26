@@ -274,6 +274,7 @@ public partial class WorldScene
         AdvanceEffects();
         PrepareLighting();
         PrepareShadows();
+        DrawCreatureShadows();
         DrawBlended();
         DrawPreviewTerrain();
         _phaseStart = GC.GetAllocatedBytesForCurrentThread();
@@ -654,6 +655,14 @@ public partial class WorldScene
         public WorldScene Scene => _scene;
         /// <summary>The fade distance per shadowed torch slot last given its instance (<see cref="PrepareShadows"/>).</summary>
         public Vector4 ShadowFades;
+        public RenderMesh ShadowMesh => _shown.Source;
+
+        public IReadOnlyList<NVector3> ShadowPositions(out PickBox bounds)
+        {
+            IReadOnlyList<NVector3> vertices = Positions(out PickBox local);
+            bounds = local.Placed(RenderPosition, RenderTurn, RenderScale);
+            return vertices;
+        }
         /// <summary>Where DK2's shadow selection measures from: the shown model's bound-sphere centre, else its origin.</summary>
         public NVector3 ShadowCentre => _shown.Sphere is PickSphere sphere ? ToRender(sphere.Centre) : RenderPosition;
         public SlotKind Kind { get; private set; }

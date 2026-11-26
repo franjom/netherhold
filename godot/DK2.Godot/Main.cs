@@ -16,17 +16,20 @@ namespace DK2.GodotAdapter;
 /// <c>DK2/Movies</c> menu does; <c>--movie-skip-frame &lt;n,...&gt;</c> sends an Esc press at each frame n (counted from this scene's start) to test
 /// skipping. <c>--level &lt;name&gt;</c> starts <c>InGameHud.tscn</c> instead, as naming that scene does, since an exported game
 /// cannot name a scene on its command line.</summary>
-public partial class Main : Node
+public partial class Main : Node, IDevOverlayHost
 {
     /// <summary>The page a level that ended hands this scene (Unity's <c>GameSessionRequest.FrontEnd(returnPage)</c>);
     /// taken and cleared by <see cref="_Ready"/>.</summary>
     internal static FrontEndPage s_returnPage;
     /// <summary>Whether this process has made its start decision; a later entry (a level that ended) goes straight on.</summary>
     private static bool s_started;
+    /// <summary>Set by a failure screen's "Choose the folder" in another scene: the next entry shows the launcher.</summary>
+    internal static bool s_openLauncher;
 
     private const string InGameHudScene = "res://InGameHud.tscn";
 
     private readonly HashSet<int> _skipFrames = new();
+    private ClassicFrontEndMenu? _menu;
     private int _frame, _quitFrame = -1;
 
     public override void _Ready()
@@ -35,28 +38,27 @@ public partial class Main : Node
         s_returnPage = FrontEndPage.None;
         RenderingServer.SetDefaultClearColor(Colors.Black);
         string[] args = OS.GetCmdlineUserArgs();
+        if (s_openLauncher)
+        {
+            s_openLauncher = false;
+            s_started = true;
+            ShowLauncher(args, returnPage);
+            return;
+        }
         if (!s_started)
         {
             s_started = true;
             switch (LauncherSettingsStore.Decide(args))
             {
                 case LauncherStart.ShowLauncher:
-                    var launcher = new Launcher { Name = "Launcher" };
-                    launcher.Open(args);
-                    launcher.PlayRequested += settings =>
-                    {
-                        launcher.QueueFree();
-                        LauncherDisplay.Apply(GetTree().Root, settings);
-                        Start(args, returnPage);
-                    };
-                    AddChild(launcher);
+                    ShowLauncher(args, returnPage);
                     return;
                 case LauncherStart.StartWithSavedScreen:
                     LauncherDisplay.Apply(GetTree().Root, LauncherSettingsStore.Current(args));
                     break;
             }
-            // A level that ended hands this scene the front end; only the process's first start goes to --level's level.
-            if (Array.IndexOf(args, "--level") >= 0 && !InGameHud.LevelStarted)
+            // A level that ended hands this scene the front end; only the first process start can use a command-line level request.
+            if (!InGameHud.LevelStarted && (Array.IndexOf(args, "--level") >= 0 || Array.IndexOf(args, "--dk2-save") >= 0))
             {
                 // InGameHud reads the same user arguments (--level, --seed, ...).
                 Callable.From(() => GetTree().ChangeSceneToFile(InGameHudScene)).CallDeferred();
@@ -71,7 +73,7 @@ public partial class Main : Node
         string? install = LauncherSettingsStore.FindInstall(args);
         if (install is null)
         {
-            GD.PushError("DK2.Godot: no Dungeon Keeper 2 install found; choose it in the launcher (--launcher) or set DK2_DIR.");
+            ShowNoInstall(args, returnPage);
             return;
         }
         int skipAt = Array.IndexOf(args, "--movie-skip-frame");
@@ -90,6 +92,57 @@ public partial class Main : Node
         bool skipStartup = Array.IndexOf(args, "--skip-startup") >= 0 || DisplayServer.GetName() == "headless";
         menu.Open(install, UserFolders.FromArguments(args), returnPage, skipStartup);
         AddChild(menu);
+        _menu = menu;
+        DevOverlay.Attach(this, this, args);
+    }
+
+    private void ShowLauncher(string[] args, FrontEndPage returnPage)
+    {
+        var launcher = new Launcher { Name = "Launcher" };
+        launcher.Open(args);
+        launcher.PlayRequested += settings =>
+        {
+            launcher.QueueFree();
+            LauncherDisplay.Apply(GetTree().Root, settings);
+            Start(args, returnPage);
+        };
+        AddChild(launcher);
+    }
+
+    /// <summary>No install: the failure screen (<see cref="GameFailureKind.NoInstall"/>), whose "Choose the folder" shows
+    /// the launcher here and whose Quit quits.</summary>
+    private void ShowNoInstall(string[] args, FrontEndPage returnPage)
+    {
+        FailureScreen screen = FailureScreen.Show(this,
+            new GameFailure(GameFailureKind.NoInstall, Path: LauncherSettingsStore.NamedInstall(args)), overFrame: false);
+        if (!GameFailureCopy.WaitsForChoice(hasDisplay: DisplayServer.GetName() != "headless"))
+        {
+            GetTree().Quit(GameFailureCopy.ExitCode);
+            return;
+        }
+        screen.Chosen += action =>
+        {
+            if (action == GameFailureAction.Quit)
+            {
+                GetTree().Quit(GameFailureCopy.ExitCode);
+                return;
+            }
+            screen.QueueFree();
+            ShowLauncher(args, returnPage);
+        };
+    }
+
+    void IDevOverlayHost.FillDevOverlayFacts(ref DevOverlayFacts facts)
+    {
+        facts.Scene = DevOverlayScene.FrontEnd;
+        facts.Page = _menu?.Page ?? FrontEndPage.None;
+    }
+
+    bool IDevOverlayHost.TryStateHash(out ulong hash, out DK2.Core.GameTick turn)
+    {
+        hash = 0;
+        turn = default;
+        return false;
     }
 
     public override void _Process(double delta)

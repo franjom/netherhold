@@ -83,7 +83,23 @@ public class OptionsPagesControllerTests
         Assert.False(options.Supports(widget));
         Assert.False(options.SetWidget(widget, 0));
         Assert.True(options.Pending.WaterTranslucency); Assert.True(options.Pending.EnvironmentMapping);
-        Assert.Equal(3, options.Pending.ShadowLevel); Assert.True(options.Supports(126));
+        Assert.Equal(0, options.Pending.ShadowLevel); Assert.True(options.Supports(126));
+    }
+
+    [Fact]
+    public void TheShadowSliderAppliesAndSavesWhenTheRendererSupportsIt()
+    {
+        var options = new OptionsPagesController(new GameSettings { ShadowLevel = 0 }) { CreatureShadowsSupported = true };
+        options.Enter(FrontEndPage.Graphics, OptionsApplicationMode.InGame);
+        var applied = new List<int>();
+        var saved = new List<int>();
+        options.Applied += settings => applied.Add(settings.ShadowLevel);
+        options.SaveRequested += settings => saved.Add(settings.ShadowLevel);
+
+        Assert.True(options.SetWidget(128, 3));
+        Assert.True(options.SetWidget(128, 0));
+        Assert.Equal(new[] { 3, 0 }, applied);
+        Assert.Equal(applied, saved);
     }
 
     [Fact]

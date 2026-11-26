@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Data.Model;
+using DK2.Data.Save;
+
 namespace DK2.Presentation.Tests;
 
 public sealed class GameSessionRequestTests
@@ -13,6 +16,20 @@ public sealed class GameSessionRequestTests
     {
         var current = GameSessionRequest.Campaign("Level11A", returnPage);
         Assert.Equal(current, GameSessionRequest.Restart(current));
+    }
+
+    [Fact]
+    public void ImportUsesTheSavedLevelAndRestartsItsTerrain()
+    {
+        var save = new SavedGame(new Dk2SaveHeader(220, 0, Dk2SaveReader.SupportedBuildStamp, "Level1", 15),
+            new LevelMap(1, 1, new[] { new MapTile(2, 3, 0, 0) }), [], 1, 0x134);
+        GameSessionRequest request = GameSessionRequest.FromDk2Save(save);
+        SessionContext session = SessionContext.Starting(null, request, "Level7", fromMap: true);
+
+        Assert.Equal("Level1", session.LevelName);
+        Assert.False(session.LaunchedFromFrontEnd);
+        Assert.Same(save.Map, session.ImportedTerrain);
+        Assert.Same(save.Map, GameSessionRequest.ForSessionAction(ClassicSessionAction.Restart, session)?.ImportedTerrain);
     }
 
     [Fact]

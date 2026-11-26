@@ -113,6 +113,20 @@ public sealed class BattleFlyInTests
         Assert.All(flyIn.Tablet.Sparkles.ToArray(), s => Assert.InRange(s.Life, 7, 10));
     }
 
+    [Fact]
+    public void AViewportStartUsesTabletUnitsForTheStartAndTarget()
+    {
+        var flyIn = new BattleFlyIn();
+        Assert.True(flyIn.Start(0, new HudScreen(1920, 1080), new Vector2(1800, 990)));
+        Assert.Equal(981.333f, flyIn.Tablet.X, 3);
+        Assert.Equal(96f, flyIn.Tablet.Y, 3);
+        var random = new Random(3);
+        for (int frame = 0; frame < RewardTablet.GrowFrames; frame++)
+            Frame(flyIn, BattleFlyIn.WaitMilliseconds + frame * 33, random);
+        Assert.Equal(1280f, flyIn.Tablet.X, 3);
+        Assert.Equal(704f, flyIn.Tablet.Y, 3);
+    }
+
     private static bool Frame(BattleFlyIn flyIn, double now, Random random)
     {
         if (!flyIn.BeginFrame(now, true, false, false, Ring, random)) return false;

@@ -67,6 +67,7 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
     public string Text(uint id) => _sources.Text(id);
 
     public BitmapFont Font(FrontEndFont font) => _sources.Font(font);
+    internal BitmapFont LegibleFont(int height) => _sources.Hud.Font(InterfaceFonts.LegibleFileName(height));
 
     public CampaignBriefing Briefing(CampaignSlot slot) => _sources.Briefing(slot);
 

@@ -21,6 +21,7 @@ public sealed class SessionLoader
     private readonly CampaignProfileStore _profiles;
     private readonly Action _loadProfile;
     private readonly Func<string, CampaignLevelData> _loadLevel;
+    public bool TerrainImportsSupported { get; init; }
 
     /// <param name="loadProfile">Loads the profile store, used when it has no file yet.</param>
     /// <param name="loadLevel">A level's records by name; an <see cref="InvalidOperationException"/> (a missing record) refuses the save.</param>
@@ -38,8 +39,9 @@ public sealed class SessionLoader
     public GameSessionRequest Load(string path)
     {
         SavedSession session = SavedSessionFile.Load(path);
-        if (session.Header.GameMode != (byte)GameSessionMode.Campaign
-            || !Enum.IsDefined(typeof(FrontEndPage), session.Header.ReturnPageId))
+        var mode = (GameSessionMode)session.Header.GameMode;
+        bool supportedMode = mode == GameSessionMode.Campaign || mode == GameSessionMode.ImportedTerrain && TerrainImportsSupported;
+        if (!supportedMode || !Enum.IsDefined(typeof(FrontEndPage), session.Header.ReturnPageId))
             throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "This saved session has an unsupported game mode or return page.");
         string name = session.Header.LevelName;
         CampaignLevelData level;
@@ -48,7 +50,8 @@ public sealed class SessionLoader
         {
             throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "The saved level is not available in this installation.");
         }
-        TriggerTree tree = CampaignSimulationFactory.Triggers(level.Level, level.Players, level.Things, level.Triggers);
+        TriggerTree? tree = mode == GameSessionMode.Campaign
+            ? CampaignSimulationFactory.Triggers(level.Level, level.Players, level.Things, level.Triggers) : null;
         GameSimulation simulation = WorldSnapshot.LoadGame(session.Snapshot, level.Database, SimulationSystems.Default(), tree);
         if (_profiles.Path == null) _loadProfile();
         // A store left with no file (an adapter's fallback for an unreadable profile) cannot take the saved profile.

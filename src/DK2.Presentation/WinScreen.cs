@@ -64,6 +64,7 @@ public sealed class WinScreen
         _rewards = rewards;
         _speech = speech;
         _tabletPoints = tabletPoints ?? [];
+        Tablet.ReserveSparkles(_tabletPoints.Length);
         _random = random ?? new Random();
     }
 

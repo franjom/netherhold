@@ -128,8 +128,8 @@ group 2 is a list to audit, not a finding.
       for repeatable frames. Godot opens the query panel on the viewer's first creature only with the
       test-scene argument `--query-first-creature`, as it has no world picking yet, and
       the battle tab with `--stage-battle`, which spawns a hero Knight on the tile of the viewer's
-      first creature, Level1 having no early fight. Not wired in Godot for the battle tab: the
-      blades' zoom, the glides and the fly-in (need the camera). Godot opens the options menu at
+      first creature, Level1 having no early fight. The battle tab's zoom and glides landed with the camera. See
+      step 4 for the fly-in. Godot opens the options menu at
       start with the test-scene argument `--open-options [Entry]`, which refuses an entry the menu does
       not support (`GameOptions`, `Save` and `Load` open their pages), lists saves from the directory
       `--saves <dir>` names, and reads the settings from the file `--settings <file>` names. Not wired on the save and load pages: the submit, that is writing or
@@ -390,7 +390,7 @@ group 2 is a list to audit, not a finding.
       had them the other way round. `FinaleTests.TheContinueAndTheRevealCommuteWithinTheirTurn` shows the state hash is
       equal in either order, so only that frame's command stream changes, and no journal fixture holds the commands
       ([Q865](../research/open-questions.md)). A null `WinScreen` now counts as done, so Escape continues at once;
-      Godot has no win screen and Space never left before. The minimap heading during the opening path needs no rule:
+      Godot reached this branch until step 4 added its win screen. The minimap heading during the opening path needs no rule:
       the HUD, so the minimap, is hidden for the whole path. Open, not decided: the old runner's comment said Space
       posts action 1, but the code switches the session directly and `CampaignResultFlow` keeps that
       ([0x00510F40](../research/functions/00510F40.md)). Godot: it runs `ScriptedViewDirector`, observing the simulation
@@ -401,8 +401,8 @@ group 2 is a list to audit, not a finding.
       `--profile` is given. `ClassicFrontEndMenu.Open` passes the return page to the profile load, so the won map's
       branch repair runs as in Unity (it writes the profile when the front end is entered with CampaignResults). New
       check arguments: `--from-map`, `--stage-win`, `--stage-loss`, `--leave-result`, `--escape-result`; Godot also
-      prints the viewer's status changes (`godot/README.md`). Not wired in Godot: subtitles and the win screen and tablet; the post-win title card and cutscene play
-      in the front end since step 4's movies (the card's text waits for the subtitles). Verification: `dotnet test DK2.slnx` green (Presentation 2276, Simulation 5583,
+      prints the viewer's status changes (`godot/README.md`). Step 4 draws the subtitles and win screen and plays the
+      post-win title card and cutscene in the front end. Verification: `dotnet test DK2.slnx` green (Presentation 2276, Simulation 5583,
       Behavior 674 with 5 skipped); Godot builds clean and the Unity compile has 0 errors; headless Level3 `--from-map`
       with temp folders: a win then Space leaves, a win then Escape posts Continue then Reveal and the game keeps
       playing, a loss then Escape posts nothing and Space leaves; 17 + 8 mutations across the review all fail a test.
@@ -970,8 +970,8 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         run; (2) a blended object straddling a run sits wholly on one side of it (DK2 interleaves per triangle; splitting
         runs at blended objects, as at flowers, would close it); (3) done in 3k: each effect sprite is placed on its own; (4) Level7's moving frame costs 0.2 to 0.5 ms more than HEAD's,
         partly the re-sort; (5) the liquids' normals had the same tangent-layout fault (gone with audit item 9, which waves them in a shader).
-  - [x] 3j. Creature shadows, folded into lighting: done as lighting step 2 (`--light-shadows`, ClassicShadowSourceSelector,
-        the 2 torches nearest the camera focus; real distance-map shadows, no silhouette projection).
+  - [x] 3j. Torch distance-map shadows landed in lighting step 2 (`--light-shadows`). Step 4 adds the independent
+        player setting for projected creature shadows.
   - [x] 3k. Effects and flowers on MultiMesh over the CPU particle simulation, with the torch flames (2026-11-19, ADR-0813;
         audit item 6). The shared `BlendedItemOrder` (`DK2.Presentation`, 35 tests) answers 3q's open item (3): each effect
         sprite, flame and flower layer is placed among the runs by its own distance, never crossing a run, and joins its
@@ -988,7 +988,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         in the custom data (was one instance and one material per frame per flame); sprites and flower icons are `.gdshader`
         files; mesh particles (the Heart's plug, group parts, type-6 frames, shot bodies) are pooled models per mesh with the
         element's tint as an instance uniform. Also wired: the group parts, the local pickup dust, the first model update.
-        Footsteps and the beat sound are sound only (wired in step 4); the dollar mesh is not drawn; lightning is drawn by 3l. Frames
+        Step 4 adds footsteps, the beat sound and the dollar flower mesh. Step 3l draws lightning. Frames
         against HEAD (Movie Maker, 1920x1080, scripted pointer, flags off and `--light-perpixel --light-shadows
         --light-post`): flames, flowers and all but the Heart byte-identical in those examples; this does not establish
         native flower overlap with opaque walls ([comparison limits](../research/hand-cursor-rendering.md#native-cage-observations)). New content judged right against
@@ -1160,6 +1160,21 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       2.82 ms (p99 4.52), GPU 1.21 ms; 0 B allocated a frame in both. Against a clean `git archive HEAD` with only this change
       added: turn-400 hash `F5C7BAE552173778`, Level1 and Level7 Movie Maker frames (200 each) byte-identical. Not checked:
       a real mouse and keyboard.
+
+- [x] Campaign win screen and reward tablet. The Godot adapter uses the shared `WinScreen` and `TabletDrawList`.
+      See the [adapter notes](../../godot/README.md#subtitles) for runtime art, reward text and layering.
+
+- [x] Battle fly-in. Godot renders the shared `BattleFlyIn` over the HUD overlays with the reward tablet canvas.
+      See the [scripted Level1 capture recipe](../../godot/README.md#verifying).
+
+- [x] Live creature-shadow setting. See the [projection and benchmark notes](../../godot/README.md#creature-shadows)
+      for the Godot coverage path and the default.
+
+- [x] Original DK2 save import from the command line. See [terrain import](../../godot/README.md#importing-an-original-dk2-save)
+      for the flag, export entry point and checkpoint scope.
+- [x] Dollar flower. Godot uses the existing [world mesh and clock](../../godot/README.md#shot-effects).
+- [x] [Front-end Load Game and settings](../../godot/README.md#front-end-load-game-and-settings). The scripted Main scene
+      resumed a Netherhold checkpoint, imported a synthetic DK2 save through Load Game and saved a key rebind.
 
 ## Step 5: remove Unity (one change, at parity)
 

@@ -19,7 +19,7 @@ namespace DK2.GodotAdapter;
 /// player's rows and the campaign entries open the map page. The 3D station behind the menu, the land picking, the launch
 /// and the hi-score name are in <c>ClassicFrontEndMenu.Station.cs</c>, the pointer and the check runs' scripted input in
 /// <c>ClassicFrontEndMenu.Input.cs</c>. The movies (the startup, the gallery, the attract and a won map's cutscene) are in
-/// <c>ClassicFrontEndMenu.Movies.cs</c>. The saves and settings pages are not wired, so the model leaves their buttons disabled.
+/// <c>ClassicFrontEndMenu.Movies.cs</c>. The save browser and settings are wired in <c>ClassicFrontEndMenu.Pages.cs</c>.
 /// The pages' sounds play through the shared <see cref="ClassicSoundMixer"/> at the saved settings' volumes.</summary>
 public partial class ClassicFrontEndMenu : Node
 {
@@ -78,26 +78,27 @@ public partial class ClassicFrontEndMenu : Node
         CampaignProfile profile = UserFolders.LoadProfile(_profiles, folders.Profile, GameSessionMode.FrontEnd, returnPage);
         var hiScores = new HiScoreStore(folders.HiScores, install);
         _campaign = FrontEndHost.OpenCampaign(_session, _profiles, hiScores, LoadHiScores(hiScores), _assets.Briefing, RefreshMovies);
-        _hud = new FrontEndMenuHud(_session, _assets, HudFit, ClassicKeyNames.Name, _campaign);
+        GameSettings settings = InGameHud.LoadSettings(folders.Settings);
+        _options = new OptionsPagesController(settings) { CreatureShadowsSupported = true };
+        _options.Applied += ApplyMenuSettings;
+        _options.SaveRequested += value => InGameHud.SaveSettings(folders.Settings, value);
+        _hud = new FrontEndMenuHud(_session, _assets, HudFit, ClassicKeyNames.Name, _campaign, options: _options);
         _hud.Model.SetMovieGallery(FrontEndHost.MovieGallery(profile, install, _assets.Text));
         _hud.Model.QuitRequested += Quit;
         _session.PageChanged += PageChanged;
         string[] args = OS.GetCmdlineUserArgs();
-        GameSettings settings = InGameHud.LoadSettings(folders.Settings);
         PrepareStation(install, profile, _profiles.SecretFiveAvailable, LaunchArguments.Parse(args, "--").Seed ?? 1,
             DisplaySettings.BrightnessExponent(settings.Gamma), args);
         OpenInput(args);
         _canvas = new HudCanvas { Name = "HudCanvas", Load = _assets.Load };
         AddChild(_canvas);
+        OpenSaveBrowser(install, folders, args);
         // DungeonRunner's sound player, which its front end has too, at the saved settings' volumes: the pages' sounds only
         // (no music, and the throttle never runs there).
         var output = new ClassicSoundOutput { Name = "Sound" };
         AddChild(output);
         _mixer = new ClassicSoundMixer(output, new InstallClassicSoundAssets(install), 0);
-        _mixer.SoundQuality = settings.SoundQuality;
-        _mixer.SetVolumes(master: settings.MasterVolume, speech: settings.SpeechVolume, music: settings.MusicVolume,
-            effects: settings.SoundEffectVolume, speechOn: settings.SpeechSwitch, musicOn: settings.MusicSwitch,
-            effectsOn: settings.SfxSwitch);
+        ApplyMenuSettings(settings);
         // --sound-log, as the in-game scene's: each request as it starts, on the front end's clock.
         if (Array.IndexOf(args, "--sound-log") >= 0) LogSounds(_mixer);
         UseReplacementFont = true;
@@ -148,27 +149,35 @@ public partial class ClassicFrontEndMenu : Node
         long milliseconds = (long)(_elapsed * 1000);
         bool primaryHeld;
         (_pointer, primaryHeld) = SamplePointer();
+        bool pickerOwnsPointer = ImportPickerOwnsPointer(primaryHeld);
+        if (pickerOwnsPointer) { primaryHeld = false; _wheel = 0; }
         // DungeonRunner.Update's first step, the front end's too.
         _mixer?.PlayDecoded(milliseconds);
         _mixer?.UpdateSpeech(milliseconds);
         // The startup, a won map's cutscene, or a movie holds the screen; the menu runs once they are over.
         if (UpdateMovies()) { _wheel = 0; _keyboard.EndFrame(); return; }
         _session.Update(FrontEndTime);
+        PollKeyCapture();
         TypeHiScoreName();
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
         bool sized = width > 0 && height > 0;
         _hud.Sync();
         FrontEndPointer? pointer = null;
-        if (sized)
+        if (sized && !pickerOwnsPointer)
         {
             FrontEndPoint at = FrontEndBox.ToUnits(_pointer.X, _pointer.Y, width, height);
             pointer = new FrontEndPointer(at.X, at.Y, primaryHeld);
         }
         _hud.Advance(pointer, sized ? _wheel : 0, _elapsed);
+        UpdateSaveBrowser(width, height, primaryHeld);
         _wheel = 0;
         // DungeonRunner.UpdateFrontEnd: the menu's sounds, the station (which may leave for a level), then the map's sounds.
         if (_mixer != null) _mixer.Play(_hud.Model.Sounds); else _hud.Model.Sounds.Clear();
+        if (_options != null)
+        {
+            if (_mixer != null) _mixer.Play(_options.Sounds); else _options.Sounds.Clear();
+        }
         bool inside = sized && _pointer.X >= 0 && _pointer.Y >= 0 && _pointer.X < width && _pointer.Y < height;
         if (UpdateStation(_pointer, primaryHeld, inside, milliseconds)) return;
         if (_campaign != null)
@@ -192,8 +201,14 @@ public partial class ClassicFrontEndMenu : Node
         return new HudScaleLayout((int)size.X, (int)size.Y, percent).EffectivePercent;
     }
 
-    private static void PageChanged(FrontEndPage page) =>
+    /// <summary>The page shown last, for the developer overlay; None until the first page change.</summary>
+    public FrontEndPage Page { get; private set; }
+
+    private void PageChanged(FrontEndPage page)
+    {
+        Page = page;
         GD.Print("DK2.Godot front end: page ", page.ToString(), " at process frame ", Engine.GetProcessFrames());
+    }
 
     private void Quit() => GetTree().Quit();
 
@@ -204,6 +219,7 @@ public partial class ClassicFrontEndMenu : Node
     {
         if (_session != null) _session.PageChanged -= PageChanged;
         if (_profiles != null) _profiles.Changed -= RefreshMovies;
+        CloseSaveBrowser();
         CloseStation();
         CloseMovies();
         _hud?.Dispose(); _hud = null;

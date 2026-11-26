@@ -297,9 +297,13 @@ public static class Dk2SaveReader
     /// names — the same "skip cleanly" shape the rest of the loader uses.</para>
     /// </summary>
     public static SavedGame? Load(string installDir, string savePath)
-    {
-        byte[] bytes = File.ReadAllBytes(savePath);
+        => Read(File.ReadAllBytes(savePath), name => GameDatabaseLoader.LoadCampaignMap(installDir, name));
 
+    /// <summary>Reads a complete save using the installed design map looked up by its saved level name.</summary>
+    public static SavedGame? Read(byte[] bytes, Func<string, LevelMap?> designMap)
+    {
+        if (bytes is null) throw new ArgumentNullException(nameof(bytes));
+        if (designMap is null) throw new ArgumentNullException(nameof(designMap));
         Dk2SaveHeader header = ReadHeader(bytes);
 
         if (!header.IsSupportedBuild)
@@ -307,7 +311,9 @@ public static class Dk2SaveReader
                 $"the save was written by a DK2 build stamped '{header.BuildStamp}'; " +
                 $"only '{SupportedBuildStamp}' has a known layout.");
 
-        LevelMap? design = GameDatabaseLoader.LoadCampaignMap(installDir, header.LevelName);
+        if (!IsMapName(header.LevelName))
+            throw new InvalidDataException("The save's level name must be a filename without a path.");
+        LevelMap? design = designMap(header.LevelName);
         if (design is null) return null;
 
         int gridOffset = FindGridOffset(bytes, design);
@@ -320,6 +326,9 @@ public static class Dk2SaveReader
             AgreementWithDesign(map, design),
             gridOffset);
     }
+
+    internal static bool IsMapName(string name) => !string.IsNullOrWhiteSpace(name)
+        && name.IndexOfAny(['/', '\\', ':', '*', '?', '"', '<', '>', '|']) < 0 && !name.Any(char.IsControl);
 
     /// <summary>
     /// The share of tiles whose terrain still matches the level's design map — the

@@ -14,7 +14,7 @@ namespace DK2.GodotAdapter;
 /// replacement face when there is one. Its layer is over the letterbox and the hand cursor and under the screen colours.</summary>
 public partial class InGameHud
 {
-    private const int SubtitleLayer = 102;
+    private const int SubtitleLayer = 103;
     private BitmapTextItem? _subtitle;
     private FontFile? _subtitleFace;
     private BitmapFont? _subtitleFont;

@@ -111,7 +111,6 @@ public partial class WorldScene
     /// <summary>A torch's light for the shadow slots (<see cref="SetTorchLight"/>), null when unlit or gone.</summary>
     private void SetShadowTorch(int floorTileIndex, ClassicPointLight? light)
     {
-        if (!TorchShadowsActive) return;
         if (light is ClassicPointLight lit) _shadowTorches[floorTileIndex] = lit.Position;
         else if (!_shadowTorches.Remove(floorTileIndex)) return;
         _shadowTorchesChanged = true;

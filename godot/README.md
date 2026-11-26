@@ -15,9 +15,8 @@ the nearest land or marker triangle (`WorldScene.PickFrontEndMap`, Unity's `Pick
 `GameSessionRequest.Campaign` for `InGameHud.tscn` (`InGameHud.QueueSession`) and changes to it. That level's
 `SessionContext` takes its level, mode and return page from the request (`SessionContext.Starting`), so its result writes
 the profile and Space returns to the results page, as `--from-map` does. While a hi-score row takes a name, the frame's
-typed text goes to `FrontEndHost.TypeName`. The model disables the save buttons, and the settings pages open but their
-controls are inert. The front end
-loads a real campaign profile and hi-score table, and reads and writes the files listed under *The player's files*. A
+typed text goes to `FrontEndHost.TypeName`. The [front-end Load Game and settings](#front-end-load-game-and-settings)
+pages use the files listed under *The player's files*. The front end also loads the campaign profile and hi-score table. A
 start without a scene shows the Netherhold launcher first (*The launcher* below), which sets the install, the menu font and
 the screen mode; a scripted run never sees it and opens full screen as before (see *Verifying* for a window of a fixed size).
 
@@ -96,9 +95,11 @@ line and the delayed tooltip over them), which shows what the shared `HudHoverTe
 pointer (the resource strip, the bottom panel, the creature overview, the message tabs, the battle tab) or, over the world, from what the pick found (a creature's own name included; step 3h); the battle tab right of the message tabs (`ClassicBattleTab` over `BattleTabHud` and
 `BattleTabView`, fed by the battle records of `MusicWorldObserver`: the crossed blades while one of the keeper's
 creatures fights, the Call to Arms cancel, the alarm; the cancel's left click posts its command, while the blades' zoom
-and the cancel's and the alarm's glides move the camera, and the fly-in notice needs the reward tablet and is not wired;
+and the cancel's and the alarm's glides move the camera). The shared `BattleFlyIn` targets the snapped centre of the
+crossed blades. Its tablet draws above the other overlays while the normal HUD is visible, the letterbox is down
+and the options menu is closed.
 Level1 has no early fight, so the scene's `--stage-battle` argument spawns a hero Knight on the tile of the keeper's
-first creature and lets the simulation start the fight); the
+first creature and lets the simulation start the fight. The panels also include the
 resource strip at the top left (`ClassicResourceHud` over `KeeperResourceHud`, fed by
 `KeeperResourceView`: mana with its income and upkeep, gold, the Heart and payday gauges), which takes no input; the
 bottom panel (`ClassicBottomPanel` over `BottomPanelHud`), whose clicks post the commands Unity's do; the creature
@@ -118,9 +119,14 @@ flashes and the options-key hold follow Unity's rules (`PlayedHud`, `PanelFlash`
 on a flag and Space on a player bit, which `FrameDriver` does not mirror (ADR-0496, [0x00405010](../docs/research/functions/00405010.md)). The Mentor's subtitle shows during a path (*Subtitles*). The level end is `CampaignResultFlow`, shared with Unity: a
 level launched from the campaign map, or started with `--from-map`, runs it, so a verdict writes the profile and Space
 then switches to `Main.tscn` at the session's return page, the campaign results page;
-Escape after a win posts `ContinueAfterResultCommand` and then `RevealMapCommand`, and the level goes on. The won map's
-title card and cutscene play as the front end opens (*Movies*); there is no win screen or tablet yet, so a won map
-goes straight to them and then the results page. A level started directly (no `--from-map`) has no result flow. Once the result is recorded the flow's prompt (`CampaignResultFlow.Prompt`, "Press Space to leave" and its win variants) shows in `SubtitleLayout.ResultPromptBox`, 60 pixels above the bottom, in the subtitle's font, as Unity's runner labels it; Unity's win screen beside it is not ported. After a level, `Main` opens the front end even when the run started with `--level`. The options menu (`ClassicOptionsPanel` over `OptionsHud`) opens on Escape (`ClassicKeyboard` maps Godot physical keys to DirectInput scan codes, the inverse of Unity's `ClassicKeyBindings.Key`; the two tables change together) and pauses the level; its root, objective, exit and confirmation pages work, and a confirmed entry starts its session as Unity's runner does (`GameSessionRequest.ForSessionAction`, `InGameHud.SessionActions.cs`): Restart reloads the scene for the same level and return page as a fresh start, Return to Menu opens `Main.tscn` at the campaign map for a level launched from it and at the main page otherwise, and Quit quits. `--open-options [Entry]` opens it at start and refuses an entry the menu does not support (`GameOptions`, `Save` and `Load` open their pages). Its Save and Load pages are `ClassicSaveLoadPanel` over `SaveLoadHud`: the saves are listed from `user://Saves` (`%APPDATA%/Godot/app_userdata/DK2.Godot/Saves`, not Unity's `persistentDataPath/Saves`, and not created at startup) or from the directory `--saves <dir>` names, a press on a slot selects it and fills in the name, the name is typed through `ClassicKeyboard`, and Back and Continue work. Submitting works (`SessionSaver` and `SessionLoader`, shared with Unity): Save writes `<saves>/<name>.dk2g`, and Load rebuilds the chosen save's simulation and reloads the scene to continue it, from the saved turn, level and return page; a file the loader refuses shows on the page. Snapshot format 523 saves, such as Unity's under `build/`, are refused (the current format is 524). *The player's files* says what a save and a load write. The Game Options pages (root, graphics, sound, controls, keyboard) are `ClassicGameOptionsPanel` over `GameOptionsHud`: hover and press work, a slider drag holds until the left button is released, Back and Continue work, and a key is bound through `ClassicKeyboard` and the shared `OptionsPagesController.CapturePressedKey`, the controls page showing the names of `ClassicKeyNames` (Unity's `KeyCode.ToString()` names, not DK2's). The settings are read from and saved to `user://game-settings.ini` (`%APPDATA%/Godot/app_userdata/DK2.Godot/`, never Unity's file) or the file `--settings <file>` names through `GameSettingsFile`; a failed load warns and uses the defaults, and a failed save warns. They apply to the game speed, the key bindings and the HUD scale; the sound volumes and switches apply to the sound; the shadow, water, environment-mapping and invert values change and nothing acts on them yet; the scroll speed and mouse sensitivity move the camera. The full map (`ClassicFullMap` over `FullMapHud`) opens on M and closes on M, Escape or a left or right press (any other press is taken and does nothing); it draws the map image, the creature squares, the keepers' legend and the hovered room's icon over a black screen, hides the panels below it and holds the pointer. The image is `FullMapImage`, the CPU twin of `DK2FullMap.shader`, uploaded only when a tick changes a pixel. A left press moves the camera focus to the tile and stops a glide. Not wired: the camera preview at the top right (needs the 3D world). Godot's PNG decoder applies a PNG's gAMA chunk and DKII.EXE does not, so the map's palette and the front end's art decode through `PngChunks.WithoutColourSpace` and draw the stored bytes. The minimap (`ClassicMinimap` over `MinimapHud`) draws the disc, frame, markers, north sprite, corners and zoom, with the live camera's focus and heading, and, in whole-map mode, the camera footprint (`MinimapHud.SetCamera`, a `HudDrawKind.Triangles` draw cut to the disc's circle) over the disc and under the frame. The disc uses the [GPU minimap pipeline](#gpu-minimap); its rock backdrop keeps the top row first ([Q861](../docs/research/open-questions.md)). The options corner opens the options menu, a right click on a tile opens the full map, and the HUD scale follows the Game Options setting. The minimap owns the one `WorldView` and `MinimapHud`, captured once per tick, and the full map reads that grid. A left click on a tile glides the camera there. The minimap has no heading rule for the opening camera
+A win's scripted view request starts `WinScreen` and replaces the current speech with the reward announcements.
+`ClassicTabletCanvas` draws the tablet and sparkles from the player's install. The shared tablet state and draw list
+size their reusable sparkle buffers from the mesh's control points at setup. With speech switched off, the reward text
+from the install's `Speech.str` uses the subtitle font, including the replacement TTF when present. The reward screen
+follows the visibility of the campaign result prompt, which draws above it. Escape keeps the level open after a win
+and waits for the rewards to finish when they are still showing. The won map's title card and cutscene play as the front
+end opens (*Movies*), followed by the results page. A level started directly (no `--from-map`) skips campaign results.
+After a level, `Main` opens the front end even when the run started with `--level`. The options menu (`ClassicOptionsPanel` over `OptionsHud`) opens on Escape (`ClassicKeyboard` maps Godot physical keys to DirectInput scan codes, the inverse of Unity's `ClassicKeyBindings.Key`; the two tables change together) and pauses the level; its root, objective, exit and confirmation pages work, and a confirmed entry starts its session as Unity's runner does (`GameSessionRequest.ForSessionAction`, `InGameHud.SessionActions.cs`): Restart reloads the scene for the same level and return page as a fresh start, Return to Menu opens `Main.tscn` at the campaign map for a level launched from it and at the main page otherwise, and Quit quits. `--open-options [Entry]` opens it at start and refuses an entry the menu does not support (`GameOptions`, `Save` and `Load` open their pages). Its Save and Load pages are `ClassicSaveLoadPanel` over `SaveLoadHud`: the saves are listed from `user://Saves` (`%APPDATA%/Godot/app_userdata/DK2.Godot/Saves`, not Unity's `persistentDataPath/Saves`, and not created at startup) or from the directory `--saves <dir>` names, a press on a slot selects it and fills in the name, the name is typed through `ClassicKeyboard`, and Back and Continue work. Submitting works (`SessionSaver` and `SessionLoader`, shared with Unity): Save writes `<saves>/<name>.dk2g`, and Load rebuilds the chosen save's simulation and reloads the scene to continue it, from the saved turn, level and return page; a file the loader refuses shows on the page. Snapshot format 523 saves, such as Unity's under `build/`, are refused (the current format is 524). *The player's files* says what a save and a load write. The Game Options pages (root, graphics, sound, controls, keyboard) are `ClassicGameOptionsPanel` over `GameOptionsHud`: hover and press work, a slider drag holds until the left button is released, Back and Continue work, and a key is bound through `ClassicKeyboard` and the shared `OptionsPagesController.CapturePressedKey`, the controls page showing the names of `ClassicKeyNames` (Unity's `KeyCode.ToString()` names, not DK2's). The settings are read from and saved to `user://game-settings.ini` (`%APPDATA%/Godot/app_userdata/DK2.Godot/`, never Unity's file) or the file `--settings <file>` names through `GameSettingsFile`; a failed load warns and uses the defaults, and a failed save warns. They apply to the game speed, the key bindings and the HUD scale; the sound volumes and switches apply to the sound; the Shadows slider applies [creature shadows](#creature-shadows) live. The water, environment-mapping and invert controls store their values for later adapter work; the scroll speed and mouse sensitivity move the camera. The full map (`ClassicFullMap` over `FullMapHud`) opens on M and closes on M, Escape or a left or right press (any other press is taken and does nothing); it draws the map image, the creature squares, the keepers' legend and the hovered room's icon over a black screen, hides the panels below it and holds the pointer. The image is `FullMapImage`, the CPU twin of `DK2FullMap.shader`, uploaded only when a tick changes a pixel. A left press moves the camera focus to the tile and stops a glide. Not wired: the camera preview at the top right (needs the 3D world). Godot's PNG decoder applies a PNG's gAMA chunk and DKII.EXE does not, so the map's palette and the front end's art decode through `PngChunks.WithoutColourSpace` and draw the stored bytes. The minimap (`ClassicMinimap` over `MinimapHud`) draws the disc, frame, markers, north sprite, corners and zoom, with the live camera's focus and heading, and, in whole-map mode, the camera footprint (`MinimapHud.SetCamera`, a `HudDrawKind.Triangles` draw cut to the disc's circle) over the disc and under the frame. The disc uses the [GPU minimap pipeline](#gpu-minimap); its rock backdrop keeps the top row first ([Q861](../docs/research/open-questions.md)). The options corner opens the options menu, a right click on a tile opens the full map, and the HUD scale follows the Game Options setting. The minimap owns the one `WorldView` and `MinimapHud`, captured once per tick, and the full map reads that grid. A left click on a tile glides the camera there. The minimap has no heading rule for the opening camera
 path: the HUD, so the minimap, is hidden for the whole path. The query and sell corners set the tool and post their GUI button command, as Unity does, and light up; a lit corner goes out on a panel choice, a stored special or a right-click cancel; the gold withdraw keeps it selected, as in Unity. While a menu is modal or input is suppressed a press on the minimap's map does nothing, as in Unity. The level start (`CampaignLevelData`), tick pacing (`TickPacer`), the panel's opening state, the stored-special
 click, the message string tables (`MessageTextTables`), player names (`PlayerNames`) and which panel's hover text wins
 (`HudHoverText`), the creature overview's install art (`InstallCreatureOverviewArt`), the query target and its details
@@ -162,7 +168,7 @@ native-parity limits are recorded in [Q749](../docs/research/possession-entry-ef
 Effects use the scene's frame clock; their lights publish before `PrepareLighting`. A sprite particle (billboard or flat)
 is an instance of its sheet's batch among the blended items (`WorldScene.BlendedItems.cs`, below); a mesh particle (an
 element's model, a group part, a type-6 model's frame, a shot body) is a pooled model per mesh with the element's tint
-added to its light (an instance uniform), which Godot sorts by its box as an object. The dollar flower's mesh is not drawn. Native evidence: [shot effects](../docs/research/shot-effects.md).
+added to its light (an instance uniform), which Godot sorts by its box as an object. Native evidence: [shot effects](../docs/research/shot-effects.md).
 
 Lightning (`WorldScene.Lightning.cs`, step 3l) uses `LightningDrawList` for shots, targets, procedural effects and clip-install crackle. It builds ribbons in camera space and writes reused render-world buffers; `Shaders/Lightning.gdshader` draws their original `Lightning` texture, unshaded, additive, without depth writes. Each ribbon section is a pooled additive item carrying its four exact corners; existing upload comparisons and geometry bounds handle changes and culling. Verification and limits: [migration plan, step 3l](../docs/plans/2026-11-15-godot-migration.md).
 
@@ -180,6 +186,10 @@ so a draw's capacity follows its count (doubled, halved after 120 frames at a qu
 uploaded. The exit line and the harness's `items.*` counters split the time (effects, flames, flowers, barriers, order,
 upload) and the allocation after the warm-up from what loading art and growing pools took.
 
+The dollar flower uses the install's `StatusFlowerArt.Dollar` mesh. `WorldScene.FlowerDollar.cs` uses the shared
+`FlowerDollarClock` and pooled GPU vertex-animated model slots. It skips hidden owners and draws one world mesh
+per visible dollar flower for both the ordinary and possession camera views.
+
 Possession (step 3m, `InGameHud.Possession.cs` and `WorldScene.Possession.cs`): `InGameHud` drives the shared `PossessionSession` every frame from the keys, the pointer's travel and the scene's engine clock, and the scene puts its pose on the same `Camera3D` while it holds the view (the fly-in, first person, the death view, the fly-out), with the possession cameras' near plane `PossessionCamera.NearClipDistance` (0.05; the ordinary camera keeps 0.3). The pointer lock is `Input.MouseMode = Captured` while `PointerLockWanted`, never under `--pointer-path` (the script's travel stands in; nothing warps the pointer). Virtual room-pillar roof joints are checked in a staged Treasury fixture with no pillar object states; [verification scope](../docs/research/possession-client-completion.md#virtual-room-pillar-roof). The roof includes virtual room-pillar occupancy from the same `RoomPillarLayout` used by room decoration and is one `MeshInstance3D` per 16x16 chunk (`TerrainCeilingScheduler`, `TerrainCeilingGeometry`), shown throughout the possession camera hold, including entry and return, in the terrain material on the `Ceiling` texture with anchor kind 2; the lattice latch (full-height walls, `PossessionScene.Latch`) and the hidden possessed model go through the `SceneFrame` sequence. Entry roof timing follows the [reviewed endpoint rule](../docs/research/kwd-terrain-rooms.md#ceiling-the-possession-view-roof); ordinary HUD display and possession-panel landing follow [the shared HUD rule](../docs/research/possession-hud.md#entry-and-landing). Entry/return hover and ordinary world-space badges use [the shared pointer feedback](../docs/research/possession-target-highlight.md#entry-pointer-feedback). Current capture comparisons are in [Q749](../docs/research/possession-entry-effect.md#capture-verification). Not exercised in Godot: real mouse capture, its re-capture after alt-tab, the walking keys and the death view. Remaining listener, lighting, mouse-calibration and object-death bridge boundaries: [client completion](../docs/research/possession-client-completion.md). Shot creation-effect sprites and lights are built ([adapter scope](#shot-effects)). The view's sounds play (step 4). Not done: the roof is black away from walls and torches (lighting).
 Scripted cameras (step 3n) use `ScriptedViewDirector.Pose` on the drawn world's tick, including path orientation,
 vertical FOV and view distance. Player camera input stays blocked during a path; `--perf-camera` keeps its explicit
@@ -194,8 +204,24 @@ and the terrain state texture stay shared. Closing the map disables preview rend
 Run it by naming the scene, with
 optional user arguments after `--`:
 `<console exe> --path godot/DK2.Godot res://InGameHud.tscn -- --level Level2 --seed 1` (defaults Level1, seed 1; add
-`--glide-to x,y` to glide the camera to a tile one second in (a check; it waits for the opening path to end), `--light-probe-no-torches` and `--light-probe-shift` for frames to compare with Unity's `ClassicWorldLightingProbe` (no torch lights; the camera moved by (1, 0, 1), its shifted frames), each printing the frame each turn is first drawn on, as `--light-probe` alone does, `--light-fill` to add Godot's fill (off by default, as native ambient is in the owner's Unity scene), `--light-perpixel` for continuous fragment point lighting over DK2's sources (classic per-vertex lighting stays the default; [scope](../docs/research/godot-torch-light-artifacts.md)), `--light-shadows` with `--light-perpixel` for real torch shadows (step 2, `WorldScene.Shadows.cs`; nothing without per-pixel light), `--light-post` for filtered compute ambient occlusion before transparency ([pipeline and probes](#torch-light-and-ao-probes)), `--pointer-path "frame:x,y[:LlRr];..."` to drive the pointer from a script in place of the OS one (a check, below: keys in strictly increasing frames of this scene counted from 0, x and y in screen pixels from the top left, a straight line between keys, `L`/`l` pressing and releasing the primary button and `R`/`r` the secondary; a malformed value warns and the OS pointer is used), `--query-first-creature` to show the query details, `--possess-first-creature` to focus the ordinary camera on the viewer's first eligible creature before staging possession and its authored creation request (an unpaid check, `PossessionStaging`; [scope](../docs/research/possession-entry-effect.md)), `--stage-battle` to show the battle tab, `--stage-lightning` for the lightning fixture described below, `--open-options [Entry]` to open the options menu at an entry, `Save` or `Load` for those pages, `--saves <dir>` for the saves directory the pages list, `--save-as <name>` with `--save-tick <n>` to save under that name once the turn reaches n (a check, through the Save page), `--load <name>` to load a save of that name on the first frame, `--hash-at <n>` to print the state hash at turn n (a resumed instance ignores `--save-as` and `--load`; a `--load` run overwrites the profile file, so pass `--profile <temp file>`), `--settings <file>` for the settings file, `--profile <file>` and `--hiscores <file>` for the front end's profile and hi-score table (every scene takes all four of `--profile`, `--settings`, `--saves` and `--hiscores`, through `UserFolders`), `--open-full-map` to open the full map, `--from-map` to start the level as the campaign map launches it (it plays the profile's slot and runs `CampaignResultFlow`; the level end then writes the profile, so pass `--profile <temp file>`), `--stage-win` or `--stage-loss` to end the viewer's game after the first turn, `--leave-result` to press Space once the result is recorded, `--escape-result` to press Escape once on the result, print the commands it posted, and then press Space (the three result checks need `--from-map`; Godot prints the viewer's status changes and a camera path's start and end). `--record-frames <dir>` writes per-frame telemetry ([Probes](#probes)). `--no-warm-up` skips the level-load warm-up ([Measuring performance](#measuring-performance)). `--input-journal <dir>` writes the session's input journals (`frames.journal` and `input.journal`) into a new folder there; it is Godot's only journal switch, because `DK2_INPUT_JOURNAL` is Unity's only (a globally set variable must not make every Godot run write); the header carries `source=godot`, `keys=Godot.Key` and `godot.version`. `--dk2Install <path>` names the install (*The launcher*)). An exported game cannot name a scene, so `Main.tscn` with `--level` starts `InGameHud.tscn` with the same arguments (*Exporting*).
+`--glide-to x,y` to glide the camera to a tile one second in (a check; it waits for the opening path to end), `--light-probe-no-torches` and `--light-probe-shift` for frames to compare with Unity's `ClassicWorldLightingProbe` (no torch lights; the camera moved by (1, 0, 1), its shifted frames), each printing the frame each turn is first drawn on, as `--light-probe` alone does, `--light-fill` to add Godot's fill (off by default, as native ambient is in the owner's Unity scene), `--light-perpixel` for continuous fragment point lighting over DK2's sources (classic per-vertex lighting stays the default; [scope](../docs/research/godot-torch-light-artifacts.md)), `--light-shadows` with `--light-perpixel` for real torch shadows (step 2, `WorldScene.Shadows.cs`; nothing without per-pixel light), `--light-post` for filtered compute ambient occlusion before transparency ([pipeline and probes](#torch-light-and-ao-probes)), `--pointer-path "frame:x,y[:LlRr];..."` to drive the pointer from a script in place of the OS one (a check, below: keys in strictly increasing frames of this scene counted from 0, x and y in screen pixels from the top left, a straight line between keys, `L`/`l` pressing and releasing the primary button and `R`/`r` the secondary; a malformed value warns and the OS pointer is used), `--query-first-creature` to show the query details, `--possess-first-creature` to focus the ordinary camera on the viewer's first eligible creature before staging possession and its authored creation request (an unpaid check, `PossessionStaging`; [scope](../docs/research/possession-entry-effect.md)), `--stage-battle` to show the battle tab, `--stage-lightning` for the lightning fixture described below, `--open-options [Entry]` to open the options menu at an entry, `Save` or `Load` for those pages, `--saves <dir>` for the saves directory the pages list, `--save-as <name>` with `--save-tick <n>` to save under that name once the turn reaches n (a check, through the Save page), `--load <name>` to load a save of that name on the first frame, `--hash-at <n>` to print the state hash at turn n (a resumed instance ignores `--save-as` and `--load`; a `--load` run overwrites the profile file, so pass `--profile <temp file>`), `--settings <file>` for the settings file, `--profile <file>` and `--hiscores <file>` for the front end's profile and hi-score table (every scene takes all four of `--profile`, `--settings`, `--saves` and `--hiscores`, through `UserFolders`), `--open-full-map` to open the full map, `--from-map` to start the level as the campaign map launches it (it plays the profile's slot and runs `CampaignResultFlow`; the level end then writes the profile, so pass `--profile <temp file>`), `--stage-win` or `--stage-loss` to end the viewer's game after the first turn, `--leave-result` to press Space once the result is recorded, `--escape-result` to press Escape once on the result, print the commands it posted, and then press Space (the three result checks need `--from-map`; Godot prints the viewer's status changes and a camera path's start and end). `--record-frames <dir>` writes per-frame telemetry ([Probes](#probes)). `--no-warm-up` skips the level-load warm-up ([Measuring performance](#measuring-performance)). `--input-journal <dir>` writes the session's input journals (`frames.journal` and `input.journal`) into a new folder there; it is Godot's only journal switch, because `DK2_INPUT_JOURNAL` is Unity's only (a globally set variable must not make every Godot run write); the header carries `source=godot`, `keys=Godot.Key` and `godot.version`. `--dk2Install <path>` names the install (*The launcher*)). An exported game cannot name a scene, so `Main.tscn` handles `--level` and [`--dk2-save <path>`](#importing-an-original-dk2-save) and starts `InGameHud.tscn` with the same arguments (*Exporting*).
 Why the toolchain looks like this: ADR-0810. Agents working here: `.claude/agents/godot-developer.md`.
+
+### Creature shadows
+
+The Graphics page's Shadows slider switches projected creature shadows live. Level 0 turns them off and levels 1 through 3
+enable the same renderer. Godot projects the creature's posed opaque mesh using the shared torch selector and projector.
+It computes 2x2 subpixel coverage on the CPU and reuses pooled 32x32 receivers. Unity supersamples on the GPU.
+The `--light-shadows` probe controls the separate per-pixel torch distance maps.
+
+Shadows default to off. At 1920x1080, `perf.ps1` sampled 300 frames per level and shadow setting after a 90-frame warm-up.
+The larger median costs on Level6a and Level7 determine the default. CPU load varies between runs.
+
+| Level | Shadows off p50 / p99 (ms) | Shadows on p50 / p99 (ms) |
+| --- | ---: | ---: |
+| Level1 | 5.59 / 14.36 | 5.65 / 10.87 |
+| Level6a | 8.28 / 24.47 | 10.20 / 27.91 |
+| Level7 | 7.97 / 19.58 | 8.92 / 20.88 |
 
 ### Torch-light and AO probes
 `--light-perpixel` uses a continuous fragment point-light representation; the classic vertex path remains the reference.
@@ -255,7 +281,7 @@ speech as the HUD draws, then the hover's and the cursor's); the settings' volum
 whether speech is busy. `--sound-log` prints each request as it starts (frame, turn, category, id, voice, place, sample); on `Main.tscn` it prints
 the front end's (frame, clock in ms, category, id, sample) and when the title card queues its line. A Movie Maker
 capture (*Verifying*) also writes the mixed audio: `<name>.wav` beside PNG frames (48 kHz, 32-bit stereo), or in an `.avi`.
-Not wired: the battle fly-in's sounds and the win screen's speech (no fly-in or win screen yet).
+The battle fly-in plays its start and end sounds through `ClassicSoundMixer`.
 
 ### Movies
 
@@ -300,8 +326,9 @@ canvas item, recorded again only when the block changes: each glyph blitted, nea
 bitmap glyph's ink, sized so the text's tallest glyph fills its ink height, white: the menu's own substitution
 (`HudCanvas.Font.cs`), so the lines and boxes stay the bitmap layout's. Unity draws its TrueType face at its own size
 (`SubtitleLayout.TrueTypePixelSize`), wrapped by the engine; Godot follows the menu instead (owner, 2026-11-24). The
-in-game text is canvas layer 102 (`InGameHud.Subtitles.cs`), over the letterbox and the hand cursor and under the screen
-colours; the card's is a child of the front end's cover. The win screen's text has no screen to show on yet.
+win screen uses canvas layer 102. The cinematic subtitle and result prompt use layer 103 (`InGameHud.Subtitles.cs`).
+Both layers sit above the letterbox and hand cursor and below the screen colours. The title card text draws over
+the front end's cover.
 
 ### HUD text atlas, gauges and glows
 Audit item 11. Set text (`HudText`) drawn one texel per screen pixel, which is every HUD text since the fonts are chosen
@@ -396,6 +423,65 @@ The in-game scene loads the profile on the first save or load, from the same pat
 - with a corrupt profile (current policy, an owner product decision) a save still works and keeps the profile in memory with no
   file write, and a load is refused with "The campaign profile could not be read, so a save cannot be loaded." and writes nothing.
 
+### Front-end Load Game and settings
+
+Single Player > Load Game lists Netherhold `.dk2g` checkpoints from the player's saves folder or the `--saves` override.
+Each row has separate Name, Date and Time columns. Select a checkpoint and continue to resume its session.
+Import DK2 Save opens a native file picker for
+`.sav` and `.qsav` files and starts a [terrain import](#importing-an-original-dk2-save).
+
+The Graphics, Sound, Controls and Keyboard pages share `OptionsPagesController` with the in-game menu. The front end
+applies its supported graphics and audio settings and saves applied changes, including captured key bindings, through
+`GameSettingsFile` to the `--settings` path or its default. Launched and resumed levels use that settings file.
+
+### Failure screens
+
+When the game cannot go on it says so on screen, as Unity's runner does ("DK2 could not start", "tick failed"), instead
+of logging and showing an empty scene. The kinds, the words and what each choice does are `DK2.Presentation`'s
+(`GameFailureCopy`); `FailureScreen` draws them on canvas layer 125 in the launcher's fonts and palette, never DK2's art,
+since the failure may be a missing install:
+
+- no install, in either scene: the folder the run named (DK2_DIR or `--dk2Install`) and why it is no install; the first
+  choice, *Choose the folder*, shows the launcher;
+- a level that throws while it loads (an unknown `--level`, a checkpoint that cannot be restored);
+- a turn that throws: the scene stops ticking, drawing, playing sound and reading input, and the screen dims the last
+  frame drawn; nothing is rethrown into Godot's loop. `--fail-tick <n>` on `InGameHud.tscn` makes turn n throw (a check);
+- an original save that cannot be imported (`--dk2-save`, or Import DK2 Save).
+
+Each names the log file (Godot's `--log-file`, else `user://logs/godot.log` while file logging is on). Enter takes the
+first choice (*Back to the menu* opens `Main.tscn` at its main page) and Esc quits with exit code 1. A run without a
+display (`--headless`) logs the failure and quits with 1, as the import failure did before.
+
+### Developer overlay
+
+Ours, not DK2's. F3 shows or hides it, in game and in the front end; `--dev-overlay` starts it shown, and it stays as it
+is across the process's scenes. It draws at the top right in the launcher's font and palette, rebuilt four times a second:
+
+- *Performance*: frames per second; the frame time now, its average and its worst over the last full second; the GPU
+  time; in game the CPU time a frame spends on the turns, the world's draw (present, animation, lights), the HUD and the
+  rest (the `--record-frames` parts); draw calls, objects and video memory from Godot's `Performance` monitors.
+- *Game*: the level, turn, game speed (and whether paused), the turns run a second against the rate the speed asks for,
+  and whether a camera path plays. In the front end, the page instead.
+- *Hovered tile*: its coordinates, terrain, owner (the level's player name and id) and room type, from the level's data
+  whatever the fog; none while the pointer is over the HUD.
+- *Determinism*: the state hash and its turn, computed when F4 is pressed, since it costs too much every frame.
+
+The rows and their words are `DevOverlayModel` (`DK2.Presentation`); `DevOverlay` (canvas layer 124) only draws. Off, it
+neither processes nor draws, times nothing and asks the engine for no GPU timing, so the frames are those without it. On,
+its steady state allocates nothing: the values are written into reused character buffers and drawn a character at a
+time with `Font.DrawChar` (no kerning); its exit line (`DK2.Godot developer overlay: ...`) prints what it allocated after
+its first 60 shown frames, 0 B in a 1,440-frame `--perf-report` run and a 340-frame Movie Maker run of Level1 (2026-11-26).
+Alegreya Sans draws old-style figures, so a 1 reads close to an i. DK2's default keys bind F3 and F4 to the Oblique and User Camera 1 views, which
+the remake does not wire yet; porting those must move the overlay's keys.
+
+### Importing an original DK2 save
+
+Pass `--dk2-save <path>` after `--` to `InGameHud.tscn`. A relative name is tried as given first, then in the
+install's save folder. The save names the level to load. The import starts a fresh session from the terrain and
+tile ownership only. Its log describes that scope. Saved entities, elapsed time, and campaign progress remain in
+the original file. You can save the fresh session as a Netherhold `.dk2g` checkpoint and resume it with the viewer
+it stored. Restart uses the imported grid or the resumed checkpoint's terrain and keeps the session in import mode.
+
 | File | Role |
 |---|---|
 | `godot-version.json` | the one pin: editor build and SHA-512, the .NET export templates and SHA-512, `Godot.NET.Sdk` version, Godot AI version and SHA-256 |
@@ -404,9 +490,13 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `DK2.Godot/` | the Godot project: `project.godot`, `DK2.Godot.csproj` (`ProjectReference`s into `src/`), scenes, C# |
 | `DK2.Godot/export_presets.cfg`, `DK2.Godot.sln` | the one export preset and the solution file the .NET export requires (*Exporting*) |
 | `DK2.Godot/Main.tscn`, `Main.cs` | the main scene: the front-end menu (`ClassicFrontEndMenu`) |
+| `DK2.Godot/ClassicFrontEndMenu.Pages.cs`, `ClassicSaveLoadPanel.cs` | front-end checkpoint browsing, DK2 terrain import picker and options key capture |
 | `DK2.Godot/Launcher/` | the launcher (*The launcher*): `Launcher.cs` (the page), `LauncherTheme.cs`, `LauncherDisplay.cs` (applies the screen mode), `LauncherSettingsStore.cs` (the saved file, the install, the start decision), `LauncherSystem.cs` (Shift and reduced motion from Windows), the two shaders and the OFL fonts |
 | `DK2.Godot/UserFolders.cs` | `GameFolders` over `user://` with the `--profile`, `--settings`, `--saves` and `--hiscores` overrides, for both scenes |
-| `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD over a running campaign level and its `WorldScene` (see above) |
+| `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD and its `WorldScene` (see above) |
+| `DK2.Godot/InGameHud.Launch.cs` | session requests for campaign launches, checkpoint resumes and original save import; the scene's failure stop and its screen's choices |
+| `DK2.Godot/FailureScreen.cs` | the [failure screens](#failure-screens): `GameFailureCopy`'s words and choices in the launcher's theme |
+| `DK2.Godot/DevOverlay.cs`, `InGameHud.DevOverlay.cs` | the [developer overlay](#developer-overlay) and its in-game host: the frame's part timings shared with `--record-frames`, the facts and the F4 hash, `--fail-tick` |
 | `DK2.Godot/WorldScene.cs` | the 3D world: `TerrainTileBuilder`'s chunks through `RightHandedFrame`, rebuilt by `TerrainChunkScheduler` (`ITerrainChunkSink`) with shared recipe materials on the world shader (`ShaderFor`, `WorldMaterial`), the liquids waved by `WorldLiquid.gdshader` (`LiquidLayer`, `LiquidSurfaceField`), the blended runs (`BlendedTerrainStream`, `ViewFrustum`, one `RenderingServer` instance per run), the gamma-space output `Environment`, the selection cage (`CageRibbon`, `TileHoverOutline.Build`'s ribbon with Godot's own additive shader), `TryPickRay` (the pointer's ray), and the classic `Camera3D`, placed once a frame at the focus the scene moves |
 | `DK2.Godot/WorldScene.ChunkUpload.cs` | the opaque terrain chunks' upload (audit item 12): `ChunkPacker`, the scheduler's `ITerrainChunkPacker`, gathers each rebuilt chunk's opaque surfaces on the build task and writes them as Godot's uncompressed vertex, attribute and index bytes (`PackedSurface`, the layout checked against a surface Godot built at open); the frame's thread hands them to `RenderingServer.MeshAddSurface`, one mesh and instance per chunk |
 | `DK2.Godot/WorldScene.TerrainState.cs` | the persistent tile-state image, dirty-frame texture upload, state shader parameters and static overlay chunk batches (3p-b); mapping and state comparison belong to `DK2.Presentation` |
@@ -416,8 +506,10 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `DK2.Godot/WorldScene.Effects.cs` | the effects (`WorldScene`, partial, step 3k): `EffectDrawList` and its request wiring, sprite sheets as blended-item batches, mesh particles as pooled models per mesh |
 | `DK2.Godot/WorldScene.BlendedItems.cs` | the blended items (`WorldScene`, partial, step 3k): batches of MultiMesh draws ordered among the blended runs by `BlendedItemOrder` |
 | `DK2.Godot/WorldScene.Flowers.cs` | the status flowers (`WorldScene`, partial, step 3k): each layer an instance of its icon's batch among the blended items |
+| `DK2.Godot/WorldScene.FlowerDollar.cs` | the dollar flower's pooled world mesh and shared animation clock |
 | `DK2.Godot/WorldScene.PostEffects.cs`, `WorldOcclusionHost.cs`, `WorldOcclusionEffect.cs` | `--light-post`: attaches camera-owned C# AO compute passes after opaque drawing and before transparency; main/full-map preview resources follow camera tree entry/exit ([pipeline](#torch-light-and-ao-probes)) |
 | `DK2.Godot/WorldScene.RenderQuality.cs` | the settings' MSAA, SMAA and render scale on the main view and the preview ([anti-aliasing](#anti-aliasing-and-render-scale)) |
+| `DK2.Godot/WorldScene.CreatureShadows.cs`, `Shaders/CreatureShadow.gdshader` | the live creature-shadow setting's posed silhouette projection, coverage and floor receivers |
 | `DK2.Godot/WorldScene.Shadows.cs` | `--light-shadows` (step 2 of the lighting direction): the two torches nearest the focus (`ClassicTorchShadowSlots`) each render a distance map from a downward 150-degree `SubViewport` camera that sees only the casters' layers (terrain chunks, creatures, objects, structures); a wall's shadow multiplies only that torch's DK2 term, a creature's or object's darkens the whole per-pixel light by DK2's strength (1 - coverage x strength), with the caster fade from `ClassicShadowSourceSelector` (DK2's three nearest torches within 2.5 tiles, fading from the fourth); a torch holding a map counts 1.5 tiles nearer, so the maps do not swap back and forth |
 | `DK2.Godot/WorldScene.Creatures.cs` | the creatures (`WorldScene`, partial, the `ISceneFrameHost` of `SceneFrame`): a `ModelSlot` per creature on the shared model meshes, clips through `CreatureAnimationPlayer` with in-place vertex upload, clip sets cached per entry, the drawn place and head point through `RightHandedFrame`, removal on death or exit; crackle goes through `WorldScene.Lightning.cs` (3l); footsteps go to the sound driver (step 4); the gem sparkle is `WorldScene.Effects.cs`'s |
 | `DK2.Godot/WorldScene.Possession.cs` | the possession's drawn world (`WorldScene`, partial, step 3m): the camera's possession pose and near plane, the lattice latch and the hidden possessed model before the present, and the roof (`TerrainCeilingScheduler` into one `MeshInstance3D` per chunk, shown during entry, first person and return by the shared possession-camera hold rule) |
@@ -425,6 +517,8 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `DK2.Godot/WorldScene.PossessionVisibility.cs` | possession tile visibility; scope and verification: [possession-warp section 8.3](../docs/research/possession-warp.md#83-the-enumeration-strongly-inferred-whole-disassembly-of-0x005737e0-and-0x00572f60) |
 | `DK2.Godot/WorldScene.PossessionRendering.cs` | the world-shader distance fade; scope and verification: [possession-warp section 4](../docs/research/possession-warp.md#4-the-possession-distance-fade-strongly-inferred-implementable) |
 | `DK2.Godot/InGameHud.SessionActions.cs` | the options menu's Restart, Return to Menu and Quit, the level end's prompt and the `--key-path` check |
+| `DK2.Godot/InGameHud.Finale.cs`, `ClassicTabletCanvas.cs`, `WorldScene.Tablet.cs` | reward speech and text, tablet and sparkle drawing, and runtime tablet asset access |
+| `DK2.Godot/InGameHud.BattleFlyIn.cs` | the battle fly-in's overlay and sound output |
 | `DK2.Godot/InGameHud.Possession.cs` | the possession's host (`InGameHud`, partial, step 3m): the shared `PossessionSession` driven every frame from the keys, pointer travel and engine clock, the pointer lock (`Input.MouseMode`, never under `--pointer-path`), `--possess-first-creature` |
 | `DK2.Godot/InGameHud.PossessionForeground.cs` | submits the engine-free authored swing triangle list; [scope](../docs/research/possession-foreground.md) |
 | `DK2.Godot/InGameHud.PossessionHighlight.cs` | submits the shared current-action target to the existing hover pass, and captures the status flowers (`StatusFlowers`) for `WorldScene.DrawFlowers` while the ordinary HUD shows; [scope](../docs/research/possession-target-highlight.md) |
@@ -482,7 +576,8 @@ fonts' OFL texts. The game reads every DK2 file from the install at run time, so
 `tools/tester-package/pck_contents.py` lists a pack and refuses one that could. The .NET export needs `DK2.Godot.sln`
 beside the project and, without it, still exits 0 (`docs/TRAPS.md`). `tools/tester-package/build.ps1` is the recipe
 (README there). Godot's release template refuses a scene on the command line, so an exported run starts a level with
-`-- --level <name>` and the same user arguments as `InGameHud.tscn`.
+`-- --level <name>` and the same user arguments as `InGameHud.tscn`. For a terrain import, run
+`DK2.exe -- --dk2-save "C:\path\keeper.sav"`. The exported `Main.tscn` opens the in-game HUD with that import request.
 
 ## Connecting Claude Code and Codex (Godot AI)
 
@@ -556,13 +651,42 @@ places the next key of a script. The campaign loop at 1920x1080 with `--skip-sta
 Campaign (952,376), Level1's land (960,780), the briefing's Launch (1606,1000), then `--stage-win --leave-result` for the
 level, which returns to the results page.
 
+To drive Import DK2 Save during a front-end capture, pair `--front-end-import-path <path>` with
+`--front-end-pointer-path` and click the import button on Load Game. The script supplies the chosen file to the import.
+Use a windowed 1920x1080 run for these front-end pointer checks.
+
 To capture the opening path, start Level1 without `--load`, with Movie Maker and a scripted pointer. To capture the
 preview, load a save after the path and add `--open-full-map`; place the pointer over explored territory on the map.
 Both pass `--log-file <temp>/godot.log` before `--` and the same temporary player-file overrides after it:
 `-- --level Level1 --seed 1 --settings <temp>/settings.ini --profile <temp>/profile.dk2p --saves <temp>/saves --hiscores <temp>/HiScores.dat --launcher-config <temp>/launcher.cfg --pointer-path "0:960,540"`.
 For the preview append `--load <name> --open-full-map` and use map-area pointer coordinates; repeat with
 `--light-perpixel --light-shadows --light-post` for the lighting check. Keep Movie Maker at 1920x1080 as above.
+To capture the battle fly-in on Level1, use `--stage-battle --key-path "3:Escape;30:Escape"` with the same
+Movie Maker settings and temporary player files. The taps skip the opening paths so the regular HUD can show the fly-in.
+
 The optional lightning fixture is `--stage-lightning` on `InGameHud.tscn`, normally with `--level Level1 --seed 1`. It places a Mistress and an opposing hero on dry owned floor, activates three Increase Level specials and a Mana Boost through ordinary commands, and lets combat produce the creature cast and electrification. After thirty turns it posts one ordinary paid Thunderbolt at a fresh target. It turns the ordinary camera through half a turn to face the hero. It is off by default; no simulation rule changes. Add `--possess-first-creature` for the possession-camera check. Use all four temporary player-file overrides and `--pointer-path` as above.
+
+## Debugging and profiling
+
+Godot's editor debugger works on a run the editor starts (it attaches over its remote debugger; an exported or
+command-line run has only the [developer overlay](#developer-overlay) and the flags below):
+
+1. Open the editor with `powershell -File godot/editor.ps1`.
+2. Choose what runs: F5 runs the main scene (the front end); with `InGameHud.tscn` open, F6 runs it at Level1, seed 1.
+   For other user arguments use **Debug > Customize Run Instances...** and put them in the instance's arguments after
+   `--` (for example `-- --level Level7 --dev-overlay`), with the temporary player-file overrides of *Verifying* if the
+   run should not touch your own files. Do not put them in Project Settings' *Main Run Args*: that writes `project.godot`.
+3. Open the **Debugger** bottom panel while it runs:
+   - **Monitors**: tick FPS, process time, static memory, objects, draw calls or video memory to graph them live.
+   - **Profiler**: press *Start*, play, then *Stop*, and click a frame: its frame, process and physics time. Its function
+     list is GDScript's, so the C# adapter's methods do not appear; for them use the overlay's CPU split,
+     `--record-frames`, `--perf-report` or a .NET profiler.
+   - **Visual Profiler**: press *Start*; each frame's CPU and GPU time by render stage (opaque, transparent, post).
+   - **Errors** lists the warnings and errors the scene pushes; the Scene dock's **Remote** tab shows the running tree.
+4. The editor builds the C# as Debug, so its times are slower than an export's (*Measuring performance* says the same of
+   the harness).
+
+Outside the editor, Godot's `--print-fps` (before `--`) prints the frame rate every second.
 
 ## Measuring performance
 

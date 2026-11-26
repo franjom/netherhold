@@ -26,6 +26,8 @@ public partial class ClassicSaveLoadPanel : Node
     private float _scale;
     /// <summary>Wheel notches since the last <see cref="Show"/>, positive up (Unity's <c>Input.mouseScrollDelta.y</c>).</summary>
     private int _wheel;
+    private bool _frontEnd;
+    private Vector2 _origin;
 
     /// <summary>Enter in the name, or a press on the name or the Load line.</summary>
     public event Action? Submit;
@@ -52,11 +54,29 @@ public partial class ClassicSaveLoadPanel : Node
     /// <param name="typed">This frame's typed characters (<see cref="ClassicKeyboard.Typed"/>).</param>
     public void Show(SaveSlotsView? view, bool visible, bool save, ReadOnlySpan<char> typed)
     {
-        if (_hud == null || _canvas == null) return;
-        _hud.Show(view, visible, save);
-        _canvas.Visible = _hud.Visible;
         int wheel = _wheel;
         _wheel = 0;
+        Present(view, visible, save, typed, wheel, frontEnd: false);
+    }
+
+    internal void ShowFrontEnd(SaveSlotsView? view, bool visible, int wheel) =>
+        Present(view, visible, save: false, default, wheel, frontEnd: true);
+
+    internal void FrontEndPointerDown(Vector2 point)
+    {
+        if (_frontEnd && _scale > 0 && _hud is { Visible: true })
+        {
+            Vector2 local = (point - _origin) / _scale;
+            _hud.PointerDown(local.X, local.Y, 0);
+        }
+    }
+
+    private void Present(SaveSlotsView? view, bool visible, bool save, ReadOnlySpan<char> typed, int wheel, bool frontEnd)
+    {
+        if (_hud == null || _canvas == null) return;
+        _frontEnd = frontEnd;
+        _hud.Show(view, visible, save, frontEnd);
+        _canvas.Visible = _hud.Visible;
         if (!_hud.Visible) return;
         _hud.Type(typed);
         _hud.Wheel(wheel);
@@ -64,10 +84,19 @@ public partial class ClassicSaveLoadPanel : Node
         int width = (int)size.X, height = (int)size.Y;
         if (width <= 0 || height <= 0) return;
         var screen = new HudScreen(width, height);
+        _origin = Vector2.Zero;
         _scale = screen.Scale;
+        if (frontEnd)
+        {
+            float scale = FrontEndBox.Scale(width, height);
+            (float left, float top) = FrontEndBox.Origin(width, height);
+            _origin = new Vector2(MathF.Floor(left + .5f), MathF.Floor(top + .5f));
+            _scale = scale / FrontEndBox.VirtualPerUnit;
+            screen = new HudScreen((int)(scale * FrontEndBox.Width), (int)(scale * FrontEndBox.Height));
+        }
         _frame.Clear();
         _hud.Build(screen, _frame);
-        _canvas.Present(_frame, Vector2.Zero, _scale, 1);
+        _canvas.Present(_frame, _origin, _scale, 1);
     }
 
     /// <summary>Shows why a save or load failed under the list.</summary>
@@ -75,7 +104,7 @@ public partial class ClassicSaveLoadPanel : Node
 
     public override void _Input(InputEvent @event)
     {
-        if (_hud == null || !_hud.Visible || _scale <= 0) return;
+        if (_frontEnd || _hud == null || !_hud.Visible || _scale <= 0) return;
         if (@event is not InputEventMouseButton { Pressed: true } button) return;
         GetViewport().SetInputAsHandled();
         // Two presses in one frame both see the page as last drawn: a press that changes the page (Back, Continue) is

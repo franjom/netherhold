@@ -443,6 +443,7 @@ public class CameraRulesTests
         GameSimulation simulation = GameSessionStarter.FromDk2Save(level.Database, Map(2, 1, 2, 1), 1, fogOfWarEnabled: true);
         Assert.True(simulation.World.FogOfWarEnabled);
         Assert.Equal(new[] { new PlayerId(1), new PlayerId(2) }, simulation.World.PlayerIds.OrderBy(id => id.Value));
+        Assert.Equal(simulation.World.PlayerIds[0], GameSessionStarter.ImportedSaveViewer(simulation.World, PlayerIds.FirstKeeper));
     }
 
     private static CampaignLevelData Level()

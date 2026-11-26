@@ -48,6 +48,16 @@ public static class LauncherSettingsStore
     public static string? FindInstall(IReadOnlyList<string> args) =>
         Dk2Install.Find(LaunchArguments.Value(args, "--dk2Install"), Current(args).InstallFolder);
 
+    /// <summary>The folder this run named when <see cref="FindInstall"/> found none: DK2_DIR, then <c>--dk2Install</c>,
+    /// either of which decides alone; null when the run named neither.</summary>
+    public static string? NamedInstall(IReadOnlyList<string> args)
+    {
+        string? environment = System.Environment.GetEnvironmentVariable("DK2_DIR");
+        if (!string.IsNullOrWhiteSpace(environment)) return environment;
+        string? named = LaunchArguments.Value(args, "--dk2Install");
+        return string.IsNullOrWhiteSpace(named) ? null : named;
+    }
+
     /// <summary>What the first scene does (<see cref="LauncherStartRule"/>): scripted runs (no display, Movie Maker, a
     /// scene named, <c>--play-movie</c>) start as they always have.</summary>
     public static LauncherStart Decide(IReadOnlyList<string> args)

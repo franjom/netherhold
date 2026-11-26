@@ -61,7 +61,8 @@ public sealed class SessionSaveLoadTests : IDisposable
 
     private SessionSaver Saver(CampaignProfileStore store) => new(store, LoadInto(store), () => SavedAt);
 
-    private SessionLoader Loader(CampaignProfileStore store, CampaignLevelData level) => new(store, LoadInto(store), _ => level);
+    private SessionLoader Loader(CampaignProfileStore store, CampaignLevelData level, bool terrainImportsSupported = false) =>
+        new(store, LoadInto(store), _ => level) { TerrainImportsSupported = terrainImportsSupported };
 
     private SaveSlotsView Saves(string name)
     {
@@ -200,6 +201,26 @@ public sealed class SessionSaveLoadTests : IDisposable
         Assert.Equal("checkpoint", request.Resume!.Session.Header.DisplayName);
         Assert.Equal(simulation.StateHash(), request.Resume.Simulation.StateHash());
         Assert.Equal(simulation.World.CurrentTick, request.Resume.Simulation.World.CurrentTick);
+    }
+
+    [Fact]
+    public void ACheckpointOfImportedTerrainKeepsItsOwnerAndItsRestartGrid()
+    {
+        CampaignLevelData level = Level();
+        var terrain = new LevelMap(level.Map.Width, level.Map.Height,
+            level.Map.Tiles.Select(tile => tile with { PlayerId = PlayerIds.Neutral }).ToArray());
+        GameSimulation simulation = GameSessionStarter.FromDk2Save(level.Database, terrain, 7, fogOfWarEnabled: false);
+        simulation.World.LocalPlayerId = PlayerIds.Neutral;
+        var context = new SessionContext(level.Name, GameSessionMode.ImportedTerrain, FrontEndPage.None);
+        string path = Saver(Store()).Save(simulation, default, context, Saves("terrain"));
+
+        Assert.Throws<SaveIncompatibleException>(() => Loader(Store(), level).Load(path));
+        GameSessionRequest request = Loader(Store(), level, terrainImportsSupported: true).Load(path);
+
+        Assert.Equal(GameSessionMode.ImportedTerrain, request.Mode);
+        Assert.Equal(PlayerIds.Neutral, request.Resume!.Simulation.World.LocalPlayerId);
+        Assert.Equal(simulation.StateHash(), request.Resume.Simulation.StateHash());
+        Assert.Equal(terrain.Tiles, GameSessionRequest.Restart(request).ImportedTerrain!.Tiles);
     }
 
     [Fact]

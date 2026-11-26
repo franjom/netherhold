@@ -13,13 +13,14 @@ namespace DK2.Presentation;
 public sealed class SaveLoadHud
 {
     private const float Unit = 2.5f;
+    private const float FrontEndName = 112, FrontEndDate = 560, FrontEndTime = 744, FrontEndRight = 936;
     private static readonly HudColor Unselected = HudColor.Grey(200), Unreadable = HudColor.Grey(120);
 
     private enum Press : byte { None, Select, Submit, Continue, Back }
 
     private readonly Func<uint, string> _text;
     private readonly Func<int, BitmapFont> _font;
-    private readonly List<(HudText Text, HudRect Rect, HudColor Tint, Press Press, int Index)> _lines = new();
+    private readonly List<(HudText Text, HudRect Rect, HudColor Tint, Press Press, int Index, HudRect? Clip)> _lines = new();
     private SaveSlotsView? _view;
     private int _height, _revision = -1, _first;
     private bool _save, _frontEnd, _visible;
@@ -79,7 +80,8 @@ public sealed class SaveLoadHud
     {
         if (!Visible || screen.Height <= 0) return;
         if (_height != screen.Height || _revision != _view!.Revision) Set(screen);
-        foreach (var line in _lines) frame.Add(new HudDraw(HudDrawKind.Quad, HudImage.Of(line.Text), line.Rect, line.Tint));
+        foreach (var line in _lines)
+            frame.Add(new HudDraw(HudDrawKind.Quad, HudImage.Of(line.Text), line.Rect, line.Tint, Clip: line.Clip));
     }
 
     /// <summary>Whether a line that takes a press is at a point in virtual units.</summary>
@@ -113,7 +115,8 @@ public sealed class SaveLoadHud
     private int LineAt(float x, float y)
     {
         for (int i = _lines.Count - 1; i >= 0; i--)
-            if (_lines[i].Press != Press.None && _lines[i].Rect.Contains(x, y)) return i;
+            if (_lines[i].Press != Press.None && _lines[i].Rect.Contains(x, y)
+                && (_lines[i].Clip is not HudRect clip || clip.Contains(x, y))) return i;
         return -1;
     }
 
@@ -122,7 +125,7 @@ public sealed class SaveLoadHud
         SaveSlotsView view = _view!;
         _height = screen.Height; _revision = view.Revision; _lines.Clear();
         BitmapFont font = _font(screen.Height);
-        float x = _frontEnd ? 112 : 8, y = _frontEnd ? 188.8f : 112;
+        float x = _frontEnd ? FrontEndName : 8, y = _frontEnd ? 188.8f : 112;
         if (!_frontEnd) Line(screen, font, _text(_save ? 201u : 143u), 8, 72, HudColor.White, Press.None);
         int shown = Math.Min(Lines, view.Entries.Count - _first);
         for (int i = 0; i < shown; i++)
@@ -133,9 +136,17 @@ public sealed class SaveLoadHud
             // An unreadable save stays listed so the player can see why it will not load (ADR-0588).
             // English until ADR-0587's catalog exists.
             if (!entry.Readable) caption += "   (cannot be loaded)";
-            else if (_frontEnd && entry.Header is { } header) caption += "   " + header.SavedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
             HudColor tint = index == view.SelectedIndex ? HudColor.White : entry.Readable ? Unselected : Unreadable;
-            Line(screen, font, caption, x, y + i * 32, tint, Press.Select, index);
+            float row = y + i * 32;
+            Line(screen, font, caption, x, row, tint, Press.Select, index, _frontEnd ? FrontEndDate - FrontEndName : null);
+            if (_frontEnd && entry.Readable && entry.Header is { } header)
+            {
+                DateTime local = header.SavedAtUtc.ToLocalTime();
+                Line(screen, font, local.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    FrontEndDate, row, tint, Press.Select, index, FrontEndTime - FrontEndDate, center: true);
+                Line(screen, font, local.ToString("HH:mm", CultureInfo.InvariantCulture),
+                    FrontEndTime, row, tint, Press.Select, index, FrontEndRight - FrontEndTime, center: true);
+            }
         }
         if (!_frontEnd)
         {
@@ -147,10 +158,19 @@ public sealed class SaveLoadHud
         if (!string.IsNullOrEmpty(_error)) Line(screen, font, _error, x, _frontEnd ? 600 : 480, HudColor.White, Press.None);
     }
 
-    private void Line(HudScreen screen, BitmapFont font, string value, float x, float y, HudColor tint, Press press, int index = -1)
+    private void Line(HudScreen screen, BitmapFont font, string value, float x, float y, HudColor tint, Press press,
+        int index = -1, float? cellWidth = null, bool center = false)
     {
         var text = new HudText(font, value, 0);
         (int width, int height) = HudTextPixels.Measure(text);
-        _lines.Add((text, new HudRect(x * Unit, y * Unit, screen.Virtual(width), screen.Virtual(height)), tint, press, index));
+        float left = x * Unit, top = y * Unit, textWidth = screen.Virtual(width), textHeight = screen.Virtual(height);
+        HudRect? clip = null;
+        if (cellWidth is float cell)
+        {
+            float available = cell * Unit;
+            clip = new HudRect(left, top, available, textHeight);
+            if (center) left += (available - textWidth) / 2;
+        }
+        _lines.Add((text, new HudRect(left, top, textWidth, textHeight), tint, press, index, clip));
     }
 }

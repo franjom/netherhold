@@ -16,6 +16,9 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Godot AI 4.4.1's dock shows Claude Code red ("verification still reads error") for a working `local`-scope entry; check with `claude mcp get godot-ai` from the repo root, and do not run its suggested `remove --scope user`.
 - Godot 4.8 beta 3 on this machine (project `window/size/mode=3`) ignores `--windowed` and `--resolution`; the window takes the desktop size and a Movie Maker PNG is a 1920x1080 cut of it. Use a temporary `godot/DK2.Godot/override.cfg` (`window/size/mode=0`) for captures.
+- Headless front-end hit coordinates differed from Movie Maker even with `--resolution`. Validate scripted pointer hits in a windowed 1920x1080 run.
+- Finish the Godot C# build before capture. An early launch can exit 0 with `Cannot instantiate C# script`. Pass the explicit `.csproj` to `dotnet build` for Release.
+- A shared gameplay art entry resolves only when the Godot adapter registers it with its install art provider. The dollar flower needs `StatusFlowerArt.Entries` in `WorldScene.Open`.
 - Godot 4.8 Movie Maker fixes its frame size at the window size it starts with and scales a later `Window.Size` change into it, so a launcher capture (it resizes its window) runs a copy of the project with an `override.cfg` of the launcher's size (`godot/README.md`, *The launcher*).
 - Godot 4.8 beta 3 on Windows gives a decorated window 4 px less client height than `Window.Size` asks (1100x680 became 1100x676, 1280x720 1280x716); a deferred second set did not help.
 - Godot 4.8's `Viewport.GetMousePosition` (which the adapter polls, as Unity polls `Input.mousePosition`) reads the OS cursor, so `Input.ParseInputEvent` motion does not move it; a hover probe that must `warp_mouse` moves the owner's real cursor while it runs. Drive a capture's pointer with `--pointer-path` instead (`godot/README.md`).
@@ -27,6 +30,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A Godot 4.8 opaque `cull_back` spatial shader that neither writes `VERTEX` nor discards is drawn in the depth prepass with Godot's default material (`uses_shared_shadow_material`, scene_shader_forward_clustered.h at c51ff06e8), and the opaque pass then tests `COMPARE_OP_EQUAL`; on this AMD Vulkan driver the two programs' depths differ for transformed models, so whole triangles show the clear colour. Keep a `VERTEX` write or a `discard` in such a shader (`World.gdshaderinc`, pinned by `EveryWorldShaderKeepsItsOwnDepthPrepass`); `skip_vertex_transform` is not needed (audit item 16).
 - Under MSAA, Godot 4.8 resolves the multisampled colour into the internal texture again after the transparent pass, so a post-opaque compositor effect's write to the resolved colour is lost, and that texture is not a storage image there; draw into `GetColorLayer(0, true)` instead (`WorldOcclusionEffect`).
 - `godot/perf.ps1` names reports `<label>-<level>-<size>-r<n>.json` by repeat index, so a second invocation with the same label and `-Out` overwrites the first; interleave with distinct `-Out` folders or rename between rounds.
+- After verifying a manually prepared `perf<level>.dk2g`, create its adjacent `perf<level>.dk2g.ok` marker so `godot/perf.ps1` reuses the save.
 - Godot 4.8 beta 3's `CanvasItemAddTriangleArray` errors (span overload) or crashes the process silently (index array longer than `count`); pass exact-size arrays and count -1 (`HudCanvas.SectorBuffers`).
 - Godot 4.8's canvas fragment stage reads a rect's region as half floats (`canvas.glsl` at c51ff06e8 packs `src_rect` with `packHalf2x16`), so `CanvasItemAddTextureRectRegion`'s `clip_uv` clamp can move a region far from an atlas's origin by a texel; draw one-texel-per-pixel atlas pieces with `clip_uv` false (`HudCanvas.RecordText`).
 - `ClassicOptionsPanel` hovers from `Viewport.GetMousePosition`, the OS cursor, not `--pointer-path`, so an in-game options-menu capture lights whichever entry the real cursor is over and two runs can differ; keep the real cursor off the window or compare such frames by hand.
@@ -143,7 +147,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `dotnet test -t` means list-tests, not an MSBuild target; rebuild with `dotnet build --no-incremental`, then use `dotnet test --no-build`.
 
 - Unity Package Manager rejects a UTF-8 BOM in Packages/manifest.json; write that JSON as UTF-8 without a BOM.
-- PowerShell can return early from a GUI executable invoked with `&`; use `Start-Process -PassThru` and wait on that process for Unity builds and player captures.
+- PowerShell can return early from a GUI executable invoked with `&`. Use `Start-Process -Wait -PassThru` for Unity builds, player captures and Godot release exports that ship only `DK2.exe`. Confirm the Godot run in its log.
 
 - PowerShell treats curly apostrophes as quote delimiters; avoid them inside single-quoted command arguments.
 - Windows PowerShell redirects native stdout as UTF-16; detect the BOM when aggregating logs in Python, or regex matches can silently return zero; write JSON artifacts as UTF-8 in the producer.
@@ -229,6 +233,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `verification-ledger --check` goes stale on any rule, ADR or test change, and the commit hook
   does not run it.
 - `docs --check` covers unstaged files too: everything changed since HEAD.
+- Linked worktrees share Git configuration. If `core.hooksPath` points into another worktree, invoke `git -c core.hooksPath=.githooks commit` to run this worktree's hooks.
 - Renaming a research-doc heading breaks every function record whose `evidence:` anchors to it;
   `kb check` fails the commit. Repoint the anchors and give each record a dated History line.
 - A dk2tools command can behave differently under `dotnet run` and under the hook's
@@ -370,6 +375,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - ShaderUtil reports an uninitialized SRP compatibility result before a shader has actually drawn; check after a GPU render.
 - Start PresentMon before creating the graphics context, retain its process Handle for ExitCode, reject lost ETW events, and stop only the probe's own named session on failure.
 - A background (concurrent) GC charges a running thread's unused allocation-context tail to `GC.GetAllocatedBytesForCurrentThread` (1-8 KB it never allocated), so under CPU load a random zero-allocation test failed; `tests/Directory.Build.props` turns concurrent GC off for test hosts (blocking GCs leave the counter exact). Keep it, and check the test host still runs `GCLatencyMode.Batch` before blaming product code or loosening an assertion.
+- Lightning zero-allocation tests reported 624 B in the worktree and 216 B on a clean HEAD archive. The full suite passed with `DOTNET_TC_QuickJitForLoops=0` set only for the test process. Use that control before attributing a failure to the change.
 - `ManualResetEventSlim.Wait` allocates its lock object the first time it has to block (24 bytes, only when the other side is late), so a zero-allocation test around a worker hand-off failed about 1 run in 15 under CPU load; `MoviePlayback` waits on a `ManualResetEvent` for that reason.
 - Runtime level switching must release the old scene before activating its replacement: deferred OnDestroy can clear or dispose shader globals already published by the new scene.
 - Legacy Unity Font atlases can have black RGB with valid glyph alpha; UI Toolkit textured meshes need an in-memory white-RGB copy of that coverage.

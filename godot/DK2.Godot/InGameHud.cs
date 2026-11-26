@@ -131,7 +131,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private readonly ClassicKeyboard _keyboard = new();
     /// <summary>The options menu's pages and the GUI state, as Unity's runner keeps them.</summary>
     private readonly ClassicHudControls _hudControls = new();
-    private readonly PlayerId _viewer = PlayerIds.FirstKeeper;
+    private PlayerId _viewer = PlayerIds.FirstKeeper;
     private GameSimulation? _simulation;
     private InstallHudSources? _sources;
     private InstallBottomPanelArt? _art;
@@ -243,24 +243,39 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     public override void _Ready()
     {
-        if (_simulation != null) return;   // re-entering the tree keeps the running level
+        if (_simulation != null || _failed) return;   // re-entering the tree keeps the running level
         RenderingServer.SetDefaultClearColor(Colors.Black);
         string[] args = OS.GetCmdlineUserArgs();
         string? install = LauncherSettingsStore.FindInstall(args);
         if (install is null)
         {
-            GD.PushError("DK2.Godot: no Dungeon Keeper 2 install found; choose it in the launcher or set DK2_DIR.");
+            Fail(new GameFailure(GameFailureKind.NoInstall, Path: LauncherSettingsStore.NamedInstall(args)), overFrame: false);
             return;
         }
+        // Unity's runner's Start: a level that throws while it loads shows why on screen rather than an empty scene.
+        try
+        {
+            StartLevel(args, install);
+        }
+        catch (Exception ex) when (!_failed)
+        {
+            Fail(new GameFailure(GameFailureKind.LevelDidNotStart, ex.Message,
+                _context?.LevelName ?? LaunchArguments.Parse(args, "--").Level), overFrame: false, ex);
+        }
+    }
+
+    private void StartLevel(string[] args, string install)
+    {
         // Level load, not the opening path: the code a first frame runs compiles on another thread while the level loads
         // (JitWarmUp), and the level's first ticks run on a throwaway simulation below (LevelWarmUp). --no-warm-up skips both.
         bool warmUp = Array.IndexOf(args, "--no-warm-up") < 0;
         if (warmUp) StartJitWarmUp();
         LaunchArguments launch = LaunchArguments.Parse(args, "--");
         // A save the previous instance loaded: its level, return page and restored simulation replace the arguments'.
-        GameSessionRequest? resume = s_resume;
+        GameSessionRequest? resume = s_resume ?? (s_launch?.Resume != null ? s_launch : null);
         s_resume = null;
-        _context = StartingSession(resume, launch.Level, args);
+        _context = StartingSession(resume, launch.Level, args, install);
+        if (_context == null) return;
         string levelName = _context.LevelName;
         ulong seed = launch.Seed ?? 1;
         GameFolders folders = UserFolders.FromArguments(args);
@@ -268,13 +283,32 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _seed = seed;
         // Only the argument: DK2_INPUT_JOURNAL is Unity's switch, and a global one must not make every Godot run write a session.
         _journalRoot = LaunchArguments.Value(args, "--input-journal");
-        CampaignLevelData level = CampaignLevelData.Load(install, levelName);
-        _simulation = resume?.Resume?.Simulation ?? level.CreateSimulation(seed, fogOfWarEnabled: true);
+        CampaignLevelData level;
+        try
+        {
+            level = CampaignLevelData.Load(install, levelName);
+            _simulation = resume?.Resume?.Simulation ?? (_context.ImportedTerrain is { } imported
+                ? GameSessionStarter.FromDk2Save(level.Database, imported, seed, fogOfWarEnabled: true)
+                : level.CreateSimulation(seed, fogOfWarEnabled: true));
+            if (resume?.Resume != null && _context.Mode == GameSessionMode.ImportedTerrain)
+                _viewer = GameSessionStarter.ImportedSaveViewer(_simulation.World, _simulation.World.LocalPlayerId);
+            else if (_context.ImportedTerrain != null)
+            {
+                _viewer = GameSessionStarter.ImportedSaveViewer(_simulation.World, _viewer);
+                GD.Print("DK2.Godot imported terrain and tile ownership from a DK2 save for ", levelName,
+                    ". The session starts fresh without saved entities, time or progress.");
+            }
+        }
+        catch (Exception ex) when (_context.ImportedTerrain != null && IsLegacyImportError(ex))
+        {
+            ReportLegacyImportError(ex, LaunchArguments.Value(args, "--dk2-save"));
+            return;
+        }
         _simulation.World.LocalPlayerId = _viewer;
         // Level load, not the opening path: the first ticks compile on a throwaway simulation (LevelWarmUp).
         // A restart (no Resume) is a fresh start of the level; only a loaded save is resumed.
         bool resumed = resume?.Resume != null;
-        if (!resumed && warmUp)
+        if (!resumed && warmUp && _context.ImportedTerrain == null)
         {
             long warmStarted = Stopwatch.GetTimestamp();
             LevelWarmUp.Run(level, seed, fogOfWarEnabled: true);
@@ -283,7 +317,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _profilePath = folders.Profile;
         _profiles = new CampaignProfileStore(InstalledCampaignRegistry.ReadCurrentUser, () => DateTime.Now);
         _saver = new SessionSaver(_profiles, LoadProfile, () => DateTime.UtcNow);
-        _loader = new SessionLoader(_profiles, LoadProfile, name => CampaignLevelData.Load(install, name));
+        _loader = new SessionLoader(_profiles, LoadProfile, name => CampaignLevelData.Load(install, name))
+        { TerrainImportsSupported = true };
         // DungeonRunner.PrepareCampaignResult, before the first turn: a level started from the campaign map plays its slot;
         // a restored save counts its carry as written, a fresh start brings the stored transfer creature in.
         _resultFlow = new CampaignResultFlow(_context, _profiles, LoadProfile, _hudControls)
@@ -294,7 +329,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // DungeonRunner.InitializeSettings: game-settings.ini beside the campaign profile.
         _settingsPath = folders.Settings;
         _settings = LoadSettings(_settingsPath);
-        _optionsPages = new OptionsPagesController(_settings);
+        _optionsPages = new OptionsPagesController(_settings) { CreatureShadowsSupported = true };
         _optionsPages.Applied += ApplySettings;
         _optionsPages.SaveRequested += SaveSettings;
 
@@ -486,6 +521,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _reportTicks = _world.ProbeWithoutTorches || probeShift || Array.IndexOf(args, "--light-probe") >= 0;
         // The first frame's terrain, built whole; each frame's Present pushes the changes since.
         _world.Open(install, level, _simulation.World, _worldView, _viewer, startFocus, _settings.ScrollSpeed);
+        TabletMesh? tabletMesh = _world.LoadTabletMesh();
+        OpenWinScreen(install, level.Database.Level, tabletMesh);
+        OpenBattleFlyIn(tabletMesh);
         if (probeShift) _world.Focus += new System.Numerics.Vector3(1, 0, 1);
         _world.SetBrightness(DisplaySettings.BrightnessExponent(_settings.Gamma));
         OpenPossession(install, level, args);
@@ -494,6 +532,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         PerformanceReport.Attach(this, args, levelName, seed, _world, _simulation.World.Width, _simulation.World.Height);
         // --record-frames <dir>: Unity's recorder's frames.csv (FrameRecorder.cs); without it, no node.
         _recorder = FrameRecorder.Attach(this, args, levelName, seed);
+        OpenDevOverlay(args, level);
         // The process delta is the frame's real interval, as Unity's runner samples it: Godot otherwise bends it toward its
         // 60 Hz physics clock (main_timer_sync.cpp), so the draw clock stepped evenly across uneven frames. No physics runs
         // here. Movie Maker keeps the engine's setting, whose fixed steps its captures were made with.
@@ -603,6 +642,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     public override void _Process(double delta)
     {
+        if (_failed) return;
         if (_simulation == null || _view == null || _panel == null || _model == null || _resourceView == null
             || _resources == null || _messageView == null || _messages == null || _hover == null || _hudHover == null
             || _overviewView == null || _overview == null || _queryView == null || _queryPanel == null
@@ -611,33 +651,36 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             || _resultFlow == null || _frameDriver == null || _world == null || _hoverCursor == null || _handCursor == null
             || _placement == null || _leaving) return;
         _recorder?.BeginFrame();
+        _devTiming = _devOverlay?.Active;
+        _devHoverTile = null;
         SamplePointer();
         PlayKeyScript();
         JournalBeginFrame(delta);
         // The ticks for the time since the last frame, at that frame's engine time.
         int tickCount = RunFrameTicks(delta, (long)(_elapsed * 1000), out double tickMs);
+        if (_failed) return;
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         long milliseconds = (long)(_elapsed * 1000);
         // DungeonRunner.Update's first step: the effects whose clips finished decoding, then the speech line.
-        long started = _recorder?.Stamp() ?? 0;
+        long started = PartStamp();
         _mixer?.PlayDecoded(milliseconds);
         _mixer?.UpdateSpeech(milliseconds);
-        _recorder?.Spent(FrameTelemetryPart.Sound, started);
+        PartSpent(FrameTelemetryPart.Sound, started);
         if (_loadName != null || (_saveAs != null && _simulation.World.CurrentTick >= _saveTick)) RunSaveLoadCheck();
         // DungeonRunner.UpdateWorldSound after its present, before the HUD draws: the thing sounds, the voices, the ambience
         // around the tile under the screen's centre (last frame's HUD, as Unity's ScreenToTile reads it), the speech line's
         // subtitle, and the music once a settled turn, whose battle records the battle tab reads.
-        started = _recorder?.Stamp() ?? 0;
+        started = PartStamp();
         if (_sound != null)
             _sound.Update(_simulation.World, PointerTile(GetViewport().GetVisibleRect().Size * .5f, _pressVisibility), milliseconds);
         else _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
-        _recorder?.Spent(FrameTelemetryPart.Sound, started);
+        PartSpent(FrameTelemetryPart.Sound, started);
         // Once per settled turn, as DungeonRunner captures it before the HUD draws; the full map reads the same grid.
         bool minimapCaptured = _minimap.Capture(_simulation.World, _worldView, _simulation.Navigation);
         // DungeonRunner.Update's script step (FrameDriver): the scripted view on the drawn turn plus the debt toward the next
         // (this scene ticks inline, so none is pending), then the level end, which may leave for the front end.
-        started = _recorder?.Stamp() ?? 0;
+        started = PartStamp();
         _frameDriver.UpdateScript(_scriptedView, milliseconds, _simulation.World, _viewer, ticksPending: 0);
         ReportPath();
         bool checkKeys = _resultFlow.ResultRecorded && !_scriptedView.PathPlaying;
@@ -646,14 +689,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         var result = new CampaignResultFrame(_viewer, _scriptedView.PathPlaying, milliseconds, speechPlaying,
             _keyboard.SpacePressed || (_leaveResult && checkKeys && !escapeCheck), _keyboard.EscapePressed || escapeCheck);
         bool leave = _resultFlow.Update(_simulation.World, _simulation.Database, result, _pending);
-        _recorder?.Spent(FrameTelemetryPart.Script, started);
+        PartSpent(FrameTelemetryPart.Script, started);
         if (leave)
         {
             LeaveForFrontEnd(_context?.ReturnPage ?? FrontEndPage.None, "the level ended");
             return;
         }
         if (escapeCheck) ReportEscape();
-        started = _recorder?.Stamp() ?? 0;
+        started = PartStamp();
         // DungeonRunner.Update's input step (FrameDriver): the local pickups, then Escape or Space ends a playing camera path
         // and posts SkipCameraPathCommand (0x00405362); the script's glide starts.
         _frameDriver.AdvancePickups(_simulation.World, _viewer, milliseconds);
@@ -702,7 +745,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         TilePos? dragFrom = _input.DragFrom(PlayerToolMode.Hand);
         _dragTo = dragFrom == null ? null : PointerTile(_pointer, visibility) ?? _dragTo ?? dragFrom;
         _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
-        _recorder?.Spent(FrameTelemetryPart.Input, started);
+        PartSpent(FrameTelemetryPart.Input, started);
         // DungeonRunner.Update's present: the settled world's changes, before the frame's ticks; the chunk build it
         // starts runs on the thread pool while they do (ADR-0696).
         // DungeonRunner's frame time before its present, then DrawCreatureFrame's objects after it: the drawn turn and how
@@ -711,13 +754,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         double renderTick = _simulation.World.CurrentTick.Value + (double)drawFraction;
         _world.SetFrameTime(_simulation.World.CurrentTick, drawFraction, milliseconds);
         _world.LatchPossession(_simulation.World, _viewer);
-        started = _recorder?.Stamp() ?? 0;
+        started = PartStamp();
         _world.Present(_simulation.World, _elapsed);
         _world.PresentRoof(_simulation.World, _simulation.Database);
-        _recorder?.Spent(FrameTelemetryPart.Present, started);
-        started = _recorder?.Stamp() ?? 0;
+        PartSpent(FrameTelemetryPart.Present, started);
+        started = PartStamp();
         _world.DrawFrame(_simulation.World.CurrentTick, drawFraction);
-        _recorder?.Spent(FrameTelemetryPart.Animation, started);
+        PartSpent(FrameTelemetryPart.Animation, started);
         // DungeonRunner.FollowQueriedCreature, after DrawCreatureFrame there: the focus keeps the queried creature where it
         // is drawn, so the view and the minimap below draw the same focus; the camera is placed again only if it moved,
         // then the blended draws are sorted for it.
@@ -725,10 +768,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         FollowQueriedCreature();
         if (_world.Focus != focus) _world.PlaceCamera();
         // The pick is last frame's: the hover is resolved after the HUD is drawn, below (DungeonRunner's order).
-        started = _recorder?.Stamp() ?? 0;
+        started = PartStamp();
         _world.SetHandLight(_handLight);
         _world.FinishFrame();
-        _recorder?.Spent(FrameTelemetryPart.Lights, started);
+        PartSpent(FrameTelemetryPart.Lights, started);
         if (_reportTicks && _simulation.World.CurrentTick.Value != _reportedTick)
         {
             _reportedTick = _simulation.World.CurrentTick.Value;
@@ -737,7 +780,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _keyboard.EndFrame();
         // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
         // As DungeonRunner.DrawHudControls captures it and CaptureWorldHover shows and draws it.
-        started = _recorder?.Stamp() ?? 0;
+        started = PartStamp();
         _resourceFacts = _resourceView.Capture(_simulation.World, displayHealth: visibility.ShowNormalHud);
         // FLASH_BUTTON, dropped once its item is in use, as DungeonRunner.DrawHudControls resolves it before the resources
         // draw their flash.
@@ -755,7 +798,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _messages.Draw(tabs, _model.Collapsed,
             HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, _viewer),
             _hudControls.OptionsVisible, _hudControls.ObjectiveVisible);
-        // After the tabs, as DungeonRunner draws it. The fly-in it starts (BattleFlyIn, the reward tablet) is not ported.
+        // After the tabs, as DungeonRunner draws it.
         _battleTab.Draw(tabs, _model.Collapsed,
             BattleTabView.Capture(_simulation.World, _simulation.Database, _viewer, _battles.Battles), milliseconds);
         // After the battle tab, as DungeonRunner draws it; the options menu closes it.
@@ -772,7 +815,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _fullMap.Capture(_simulation.World, _simulation.Database, _viewer, minimapCaptured, _pointer);
         _fullMap.Draw();
         // DungeonRunner.DrawHudControls draws it after the save browser; the two never show together.
-        _gameOptionsPanel.Draw();
+        _gameOptionsPanel.Draw(_pointer);
         // Last, as DungeonRunner.DrawHudControls captures and draws it; the options menu hides it.
         _queryPanel.Draw(_queryView.Capture(_simulation.World), visibility, modal);
         DrawPossessionHud(milliseconds);
@@ -791,6 +834,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         HoverTextSnapshot hover = HoverTextSnapshot.Empty;
         if (feedbackAllowed && !overHud && PointerTile(_pointer, visibility) is TilePos tile)
         {
+            if (_devTiming != null) _devHoverTile = tile;
             _pointerWorld = PointerPosition(_pointer, tile)
                 ?? new FpPosition2(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)));
             long before = GC.GetAllocatedBytesForCurrentThread();
@@ -825,7 +869,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Every blended item is in (the effects and flames since FinishFrame, the flowers above), and every blended thing
         // Godot sorts on its own is placed and looked (the hover's looks, the cage): ordered among them and drawn.
         _world.DrawBlendedItems();
-        _recorder?.Spent(FrameTelemetryPart.Hud, started);
+        DrawBattleFlyIn(visibility, _model.Collapsed, milliseconds);
+        PartSpent(FrameTelemetryPart.Hud, started);
 
         // Unity's runner's EndFrame: the draw clock is the drawn turn and fraction, the camera the drawn view's eye.
         _recorder?.EndFrame(tickCount, tickMs, renderTick, _world.View?.Position ?? default, _scriptedView.PathPlaying,
@@ -853,7 +898,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         FrameTicks ticks = _frameDriver!.TakeTicks(simulation.World, _viewer, Math.Min(elapsed, TickPacer.MaximumFrameSeconds), 1f,
             _settings.GameSpeed, _hudControls.TicksPaused, TickPacer.DefaultMaxTicksPerFrame, poses: _possession);
         _journal.Ticks(simulation.World.CurrentTick, ticks.Count);
-        long started = _recorder?.Stamp() ?? 0;
+        long started = PartStamp();
         for (int i = 0; i < ticks.Count; i++)
         {
             InputFrame input = ticks.InputFor(i);
@@ -861,17 +906,23 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _journal.BeforeTick(tick, input, simulation);
             try
             {
+                if (tick + 1 == _failTick) throw new InvalidOperationException("--fail-tick " + _failTick + " failed this turn on purpose.");
                 simulation.Tick(input);
             }
             catch (Exception ex)
             {
+                // Unity's runner's WaitForTick: the game stops and shows why over the last frame drawn; nothing is
+                // rethrown into Godot's loop, which would only log it and draw on.
                 _journal.TickFailed(ex, simulation);
-                throw;
+                Fail(new GameFailure(GameFailureKind.TurnFailed, ex.Message, _levelName, tick + 1), overFrame: true, ex);
+                tickMs = 0;
+                return i;
             }
             _journal.AfterTick(tick + 1, simulation);
             if (simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
         }
         tickMs = _recorder?.Elapsed(started) ?? 0;
+        _devTiming?.AddTurns(ticks.Count, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
         // DungeonRunner.Update after its ticks: a drop the simulation accepted plays the hand's drop animation, on the clock
         // this frame's cursor reads.
         _handCursorEvents?.Drain((long)((_elapsed + delta) * 1000));
@@ -1419,6 +1470,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _world?.SetBrightness(DisplaySettings.BrightnessExponent(settings.Gamma));
         // Ours, not DK2's: the 3D view's anti-aliasing and render scale (audit item 17), off by default.
         _world?.SetRenderQuality(settings);
+        _world?.SetCreatureShadows(settings.ShadowLevel > 0);
     }
 
     /// <summary>The settings file as <see cref="GameSettingsFile"/> reads it; the defaults, with a warning, when it cannot
@@ -1435,12 +1487,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     /// <summary>The settings pages' save request, written as Unity's runner writes it (<see cref="GameSettingsFile"/>); a
     /// failed write is a warning, and the settings stay applied.</summary>
-    private void SaveSettings(GameSettings settings)
+    private void SaveSettings(GameSettings settings) => SaveSettings(_settingsPath, settings);
+
+    internal static void SaveSettings(string path, GameSettings settings)
     {
-        try { GameSettingsFile.Save(_settingsPath, settings); }
+        try { GameSettingsFile.Save(path, settings); }
         catch (Exception e) when (IsFileError(e))
         {
-            GD.PushWarning("DK2.Godot: cannot write the settings file ", _settingsPath, " (", e.Message, ").");
+            GD.PushWarning("DK2.Godot: cannot write the settings file ", path, " (", e.Message, ").");
         }
     }
 
@@ -1580,6 +1634,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_heartHealthObserver != null && _simulation != null) _simulation.World.HeartHealthChanged -= _heartHealthObserver;
         _heartHealthObserver = null;
         _mixer?.Dispose();
+        CloseBattleFlyIn();
+        CloseWinScreen();
         CloseSubtitles();
         ClosePossession();
     }

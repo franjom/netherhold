@@ -61,14 +61,14 @@ public partial class InGameHud
         _resultPrompt = new BitmapTextItem(layer.GetCanvas()) { ReplacementFont = face };
 
     /// <summary>Unity's runner's <c>DrawCampaignResultPrompt</c>: once the result is recorded, the flow's line
-    /// (<see cref="CampaignResultFlow.Prompt"/>) in <see cref="SubtitleLayout.ResultPromptBox"/>, in the subtitle's font. The
-    /// win screen Unity draws with it is not ported.</summary>
+    /// (<see cref="CampaignResultFlow.Prompt"/>) in <see cref="SubtitleLayout.ResultPromptBox"/>, over the win screen.</summary>
     private void DrawResultPrompt()
     {
         if (_resultPrompt == null || _resultFlow == null || _simulation == null || _scriptedView == null) return;
         string? text = _resultFlow.ResultRecorded ? _resultFlow.Prompt(_simulation.World, _viewer, _scriptedView.PathPlaying) : null;
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
+        DrawWinScreen(text != null, width, height);
         _resultPrompt.Show(text == null ? null : SubtitleFont(height), text, SubtitleLayout.ResultPromptBox(width, height), 1f);
     }
 
