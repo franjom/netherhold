@@ -264,6 +264,21 @@ public static class Recipes
             + "to drop in the corridor (x 28 is three tiles from the door, x 27 four). C (rows 15..17): the same, for the owner "
             + "to walk up to the door possessing the Goblin. D (rows 21..23): keeper 3's own Secret Door at (25,22).",
             SecretDoorHalls),
+        new("Q888SecretDoors2", "Small",
+            "Q888SecretDoors as played (2026-11-26) showed the hidden door as wall (A) and the keeper's own as a door (D), but "
+            + "its Imps were not sealed: a door opens for its owner's creatures, so they walked out, claimed the corridors and "
+            + "fought the Goblins, and nothing was ever seen uncovering a door. Same halls, with a locked keeper-3 Wooden Door "
+            + "at (30,10) and (30,16), the tile west of each of keeper 4's open Secret Doors: the Imp cannot leave, ordinary "
+            + "sight stops at the locked door so the Goblin finds nothing to fight, and the uncovering's own sight line is "
+            + "read to pass doors. B: drop the Goblin at x 26 (five tiles from the Secret Door at x 31), then at x 28 (three). "
+            + "C: possess the Goblin, walk to the locked door, then leave possession there.",
+            b =>
+            {
+                SecretDoorHalls(b);
+                var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
+                foreach (int row in new[] { 10, 16 })
+                    b.InsertThing(door with { X = 30, Y = row, DoorId = WoodenDoor, PlayerId = Keeper, Flags = 1 }, doorImage);
+            }),
     ];
 
     private const byte CallToArms = 3;
