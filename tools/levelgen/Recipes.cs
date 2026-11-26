@@ -255,6 +255,15 @@ public static class Recipes
             + "10, 14, 19, 24, 30 and 38 (3, 6, 10, 15, 20, 26 and 34 tiles from the caster at x 4), so a Dwarf knocked down "
             + "far from the caster shows the wind travelled that far.",
             WindHalls2),
+        new("Q888SecretDoors", "Small",
+            "Q888 owner checks (2026-11-26): how DK2 draws a Secret Door nobody has uncovered, what uncovers it, and what a "
+            + "saved game does to it. Small with keeper 4's AI off and four sealed halls, each a keeper-3 chamber at x 20..22 with "
+            + "a corridor running east. A (rows 3..5): keeper 4's Secret Door at (25,4) with nobody near it, so it stays shut "
+            + "and hidden; the wall check, and the one to save and load beside. B (rows 9..11): keeper 4's Secret Door at (31,10) "
+            + "held open by its own Imp sealed behind it at (32,10), and a keeper Goblin ten tiles off at (21,10) for the owner "
+            + "to drop in the corridor (x 28 is three tiles from the door, x 27 four). C (rows 15..17): the same, for the owner "
+            + "to walk up to the door possessing the Goblin. D (rows 21..23): keeper 3's own Secret Door at (25,22).",
+            SecretDoorHalls),
     ];
 
     private const byte CallToArms = 3;
@@ -412,6 +421,53 @@ public static class Recipes
         var (sentry, sentryImage) = b.Template<TrapThing>(t => t.TrapId == HeroSentry);
         foreach (var (x, y) in new[] { (27, 4), (27, 8), (32, 23) })
             b.InsertThing(sentry with { X = x, Y = y, TrapId = SentryTrap, PlayerId = Keeper }, sentryImage);
+    }
+
+    /// <summary>The Q888SecretDoors layout: halls A to D (see the recipe).</summary>
+    private static void SecretDoorHalls(LevelBuilder b)
+    {
+        const int chamberWest = 20, chamberEast = 22;
+        static bool Chamber(int x, int y, int row) => x is >= chamberWest and <= chamberEast && y >= row - 1 && y <= row + 1;
+        static bool Corridor(int x, int y, int row, int east) => y == row && x > chamberEast && x <= east;
+
+        const int rowA = 4, rowB = 10, rowC = 16, rowD = 22;
+        const int nearDoor = 25, farDoor = 31;
+        SealedHalls(b, (x, y) =>
+            Chamber(x, y, rowA) || Corridor(x, y, rowA, nearDoor - 1)
+            || Chamber(x, y, rowB) || Corridor(x, y, rowB, farDoor - 1)
+            || Chamber(x, y, rowC) || Corridor(x, y, rowC, farDoor - 1)
+            || Chamber(x, y, rowD) || Corridor(x, y, rowD, nearDoor + 2) ? ClaimedPath : null);
+
+        // Keeper 4's ground: each of its doors stands on its own tile, with what lies behind it.
+        var rivalPath = new MapTile(ClaimedPath, Rival, 1, 0);
+        foreach (var (x, y) in new[]
+                 {
+                     (nearDoor, rowA), (nearDoor + 1, rowA), (nearDoor + 2, rowA),
+                     (farDoor, rowB), (farDoor + 1, rowB),
+                     (farDoor, rowC), (farDoor + 1, rowC),
+                 })
+            b.Paint(x, y, rivalPath);
+
+        byte secretDoor = DK2.Data.GameDatabaseLoader.Load(b.Install).Doors.Values
+            .Single(d => (d.Flags & DoorFlags.Secret) == DoorFlags.Secret).DoorId;
+        var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
+        void SecretDoor(int x, int y, byte owner) =>
+            b.InsertThing(door with { X = x, Y = y, DoorId = secretDoor, PlayerId = owner, Flags = 0 }, doorImage);
+        SecretDoor(nearDoor, rowA, Rival);
+        SecretDoor(farDoor, rowB, Rival);
+        SecretDoor(farDoor, rowC, Rival);
+        SecretDoor(nearDoor, rowD, Keeper);
+
+        var (keeper, keeperImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Rival && c.CreatureId == Imp);
+        void Creature(int x, int y, byte id, byte owner) => b.InsertThing(keeper with
+        {
+            X = x, Y = y, CreatureId = id, PlayerId = owner, Level = 1, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+        }, keeperImage);
+        Creature(chamberWest + 1, rowB, Goblin, Keeper);
+        Creature(chamberWest + 1, rowC, Goblin, Keeper);
+        // An Imp of the door's owner sealed on the tile behind it stands beside the door, which holds it open.
+        Creature(farDoor + 1, rowB, Imp, Rival);
+        Creature(farDoor + 1, rowC, Imp, Rival);
     }
 
     /// <summary>The Q886Wind2 layout: Q886Wind's halls with both casters at level 10 and level-1 Dwarves, not Knights.</summary>
