@@ -89,9 +89,9 @@ public sealed class TriggerRunResult
 
     public IEnumerable<TriggerCensusRow> UnhandledSummary => Census(Unhandled);
 
-    private static BlockedTrigger[] Order(IEnumerable<BlockedTrigger> records) => records
+    private static BlockedTrigger[] Order(IEnumerable<BlockedTrigger> records) => [.. records
         .OrderBy(b => b.Tag).ThenBy(b => b.Type).ThenBy(b => b.Context)
-        .ThenBy(b => b.TriggerId).ToArray();
+        .ThenBy(b => b.TriggerId)];
 
     private static IEnumerable<TriggerCensusRow> Census(
         IReadOnlyList<BlockedTrigger> records) => records
@@ -633,11 +633,10 @@ public sealed class TriggerExecutor
 
     /// <summary>Each action point that carries a root, with the repeat byte its frame
     /// would have cached — see <see cref="TriggerAreaRoot"/>.</summary>
-    private TriggerAreaRoot[] BuildAreaRoots(WorldState world) => world.ActionPoints
+    private TriggerAreaRoot[] BuildAreaRoots(WorldState world) => [.. world.ActionPoints
         .Where(point => point.TriggerId != 0)
         .Select(point => new TriggerAreaRoot(
-            point, _tree!.ResolveCondition(point.TriggerId)?.RepeatCount ?? 0))
-        .ToArray();
+            point, _tree!.ResolveCondition(point.TriggerId)?.RepeatCount ?? 0))];
 
     /// <summary>Models the creature root setter at <c>0x0049A950</c>: attach the id,
     /// resolve it in the condition array regardless of sign, and snapshot byte

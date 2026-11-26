@@ -476,8 +476,8 @@ public static class HatcheryRules
                 return null;
             }
 
-            ObjectState[] coops = world.Objects.Where(o => o.ObjectTypeId == CoopObjectId && o.AutoPlaced
-                && !o.InHand && o.CarriedByCreatureId < 0 && hatchery.Contains(o.TileIndex)).Reverse().ToArray();
+            ObjectState[] coops = [.. world.Objects.Where(o => o.ObjectTypeId == CoopObjectId && o.AutoPlaced
+                && !o.InHand && o.CarriedByCreatureId < 0 && hatchery.Contains(o.TileIndex)).Reverse()];
             if (coops.Length == 0)
             {
                 return null;

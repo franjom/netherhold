@@ -18,8 +18,8 @@ public static class CampaignProgression
 
     public static CampaignProfile NewCampaign(CampaignProfile profile)
     {
-        CampaignLevelStatus[] statuses = profile.PlayerLevelStatus.ToArray();
-        uint[] ratings = profile.TotalEvilRating.ToArray();
+        CampaignLevelStatus[] statuses = [.. profile.PlayerLevelStatus];
+        uint[] ratings = [.. profile.TotalEvilRating];
         Array.Clear(statuses, 0, 25); Array.Clear(ratings, 0, 25);
         statuses[0] = CampaignLevelStatus.Open;
         return profile with { PlayerLevelStatus = Array.AsReadOnly(statuses), TotalEvilRating = Array.AsReadOnly(ratings),
@@ -35,7 +35,7 @@ public static class CampaignProgression
             return profile;
         }
 
-        uint[] secrets = profile.SecretLevels.ToArray(); secrets[index] = 1;
+        uint[] secrets = [.. profile.SecretLevels]; secrets[index] = 1;
         return profile with { SecretLevels = Array.AsReadOnly(secrets) };
     }
 
@@ -53,7 +53,7 @@ public static class CampaignProgression
                 continue;
             }
 
-            CampaignLevelStatus[] statuses = profile.PlayerLevelStatus.ToArray(); statuses[i] = CampaignLevelStatus.Open;
+            CampaignLevelStatus[] statuses = [.. profile.PlayerLevelStatus]; statuses[i] = CampaignLevelStatus.Open;
             return profile with { PlayerLevelStatus = Array.AsReadOnly(statuses) };
         }
         return profile;
@@ -83,16 +83,16 @@ public static class CampaignProgression
                 return CompleteMap(profile, played);
             }
 
-            uint[] completed = profile.SecretLevelsCompleted.ToArray(); completed[played.Value - 26] = 1;
+            uint[] completed = [.. profile.SecretLevelsCompleted]; completed[played.Value - 26] = 1;
             return profile with { SecretLevelsCompleted = Array.AsReadOnly(completed) };
         }
-        uint[] attempts = profile.LevelAttempts.ToArray(); attempts[played.Value - 1]++;
+        uint[] attempts = [.. profile.LevelAttempts]; attempts[played.Value - 1]++;
         if (played.IsSecret)
         {
             return profile with { LevelAttempts = Array.AsReadOnly(attempts) };
         }
 
-        CampaignLevelStatus[] statuses = profile.PlayerLevelStatus.ToArray();
+        CampaignLevelStatus[] statuses = [.. profile.PlayerLevelStatus];
         if (statuses[played.Value - 1] is not (CampaignLevelStatus.Won or CampaignLevelStatus.ClosedBranch))
         {
             statuses[played.Value - 1] = CampaignLevelStatus.Open;
@@ -115,16 +115,16 @@ public static class CampaignProgression
             throw new ArgumentOutOfRangeException(nameof(player));
         }
 
-        uint[] statistics = profile.PlayerStatistics.ToArray();
+        uint[] statistics = [.. profile.PlayerStatistics];
         block.ToDwords().CopyTo(statistics, row * LevelStatisticsBlock.Dwords);
-        uint[] valid = profile.PlayerStatisticsValid.ToArray(); valid[row] = 1;
-        uint[] values = profile.PlayerValues.ToArray();
+        uint[] valid = [.. profile.PlayerStatisticsValid]; valid[row] = 1;
+        uint[] values = [.. profile.PlayerValues];
         if (keeperRank is uint rank)
         {
             values[row] = rank;
         }
 
-        uint[] ratings = profile.TotalEvilRating.ToArray();
+        uint[] ratings = [.. profile.TotalEvilRating];
         if (played.IsCampaign || played.IsSecret)
         {
             ratings[played.Value - 1] = block.TotalEvilRating;
@@ -165,7 +165,7 @@ public static class CampaignProgression
             throw new ArgumentOutOfRangeException(nameof(slot));
         }
 
-        CampaignLevelStatus[] statuses = profile.PlayerLevelStatus.ToArray();
+        CampaignLevelStatus[] statuses = [.. profile.PlayerLevelStatus];
         int won = slot.Value;
         Set(won, CampaignLevelStatus.Won);
         switch (won)

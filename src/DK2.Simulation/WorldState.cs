@@ -889,7 +889,7 @@ public sealed partial class WorldState
             _players[i].Blueprints ??= [];
         }
 
-        ActivePlayerOrderSlots = players.Select(p => p.PlayerId).Reverse().ToArray();
+        ActivePlayerOrderSlots = [.. players.Select(p => p.PlayerId).Reverse()];
         CurrentTick = GameTick.Zero;
     }
 
@@ -1913,7 +1913,7 @@ public sealed partial class WorldState
         bool fogOfWarEnabled = false,
         GameMode gameMode = GameMode.Campaign)
     {
-        byte[] activation = playerIds.Distinct().ToArray();
+        byte[] activation = [.. playerIds.Distinct()];
         var tiles = new TileState[map.Width * map.Height];
         for (int y = 0; y < map.Height; y++)
         {
@@ -1933,7 +1933,7 @@ public sealed partial class WorldState
             }
         }
 
-        PlayerState[] players = activation
+        PlayerState[] players = [.. activation
             .OrderBy(id => id)
             .Select(id => new PlayerState
             {
@@ -1942,16 +1942,13 @@ public sealed partial class WorldState
                 HeartHealth = Data.Model.PlayerIds.IsKeeper(id)
                     ? database[VariableTypeId.DungeonHeartObjectHealth]
                     : 0,
-                Availabilities = database.Variables.AvailabilitiesOf(id)
-                    .Select(a => new AvailabilityState((AvailabilityKind)a.Kind, a.TypeId, a.Value))
-                    .ToList(),
-            })
-            .ToArray();
+                Availabilities = [.. database.Variables.AvailabilitiesOf(id).Select(a => new AvailabilityState((AvailabilityKind)a.Kind, a.TypeId, a.Value))],
+            })];
 
         var world = new WorldState(map.Width, map.Height, tiles, players, fogOfWarEnabled)
         {
             GameMode = gameMode,
-            ActivePlayerOrderSlots = Enumerable.Reverse(activation).Select(id => new PlayerId(id)).ToArray(),
+            ActivePlayerOrderSlots = [.. Enumerable.Reverse(activation).Select(id => new PlayerId(id))],
         };
         ManaRules.InitializeTerrainRates(world, database);
         RoomLists.Initialize(world, database);

@@ -423,7 +423,7 @@ public static class WorldResync
     private static List<(ResyncCreature Native, CreatureState? Ours)> Match(
         WorldState world, ResyncState state, Func<int, int?> creatureOf, out int paired)
     {
-        ResyncCreature[] natives = state.Creatures.Where(c => c.Owner != 0).ToArray();   // owner 0: a pooled slot
+        ResyncCreature[] natives = [.. state.Creatures.Where(c => c.Owner != 0)];   // owner 0: a pooled slot
         var ours = new CreatureState?[natives.Length];
         var taken = new HashSet<int>();
         for (int n = 0; n < natives.Length; n++)
@@ -469,7 +469,7 @@ public static class WorldResync
             ours[n] = nearest;
             paired++;
         }
-        return natives.Select((native, n) => (native, ours[n])).ToList();
+        return [.. natives.Select((native, n) => (native, ours[n]))];
     }
 
     /// <summary>Same player and type, and alive as DK2's is: one of DK2's lying in the dying
@@ -488,9 +488,7 @@ public static class WorldResync
         SimulationContext context, List<(ResyncCreature Native, CreatureState? Ours)> pairs, List<string> notes)
     {
         var matched = pairs.Where(p => p.Ours is not null).Select(p => p.Ours!.Id).ToHashSet();
-        CreatureState[] extras = context.World.Creatures
-            .Where(c => c.OwnerPlayerId != 0 && c.Health > 0 && !CreatureDeathRules.IsDown(c) && !matched.Contains(c.Id))
-            .ToArray();
+        CreatureState[] extras = [.. context.World.Creatures.Where(c => c.OwnerPlayerId != 0 && c.Health > 0 && !CreatureDeathRules.IsDown(c) && !matched.Contains(c.Id))];
         int removed = 0;
         foreach (CreatureState extra in extras)
         {

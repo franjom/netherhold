@@ -39,7 +39,7 @@ public sealed class KeeperView : INavByteGrid
         ImpCount = ImpSupplyRules.ImpCount(world, database, playerId);
         Messages = Array.AsReadOnly(world.Messages.Entries.Where(m => m.PlayerId == playerId).ToArray());
         _tiles = new KeeperTileView[world.TileCount];
-        _availability = world.Player(playerId).Availabilities.ToArray();
+        _availability = [.. world.Player(playerId).Availabilities];
         foreach (byte id in world.PlayerIds)
         {
             if (id < _statuses.Length)

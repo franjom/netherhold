@@ -105,7 +105,7 @@ public static class TrainingStep
     {
         int spell = TrainingSpell(context, trainee);
         bool dummyFirst = spell < 0 || context.Rng.NextInt(2) != 0;
-        foreach (byte type in dummyFirst ? new[] { Dummy, SpellTarget } : new[] { SpellTarget, Dummy })
+        foreach (byte type in dummyFirst ? new[] { Dummy, SpellTarget } : [SpellTarget, Dummy])
         {
             ObjectState? best = null;
             uint distance = uint.MaxValue;

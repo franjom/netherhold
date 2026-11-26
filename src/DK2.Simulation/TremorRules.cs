@@ -113,8 +113,8 @@ public static partial class TremorRules
                 else
                 {
                     int tile = context.World.TileIndex(at);
-                    CreatureState[] chain = context.World.Creatures
-                        .Where(c => c.ChainTileIndex == tile).OrderByDescending(c => c.ChainOrder).ToArray();
+                    CreatureState[] chain = [.. context.World.Creatures
+                        .Where(c => c.ChainTileIndex == tile).OrderByDescending(c => c.ChainOrder)];
                     var centre = new TilePos(tremor.WorldX >> 12, tremor.WorldY >> 12);
                     foreach (CreatureState creature in chain)
                     {

@@ -28,10 +28,10 @@ public static class CreatureActivityRules
     /// <summary>The runtime table <c>0x006996C4</c> (stride <c>0x40</c>) by state category, as
     /// <c>0x004798F0</c> fills it at start-up.</summary>
     private static readonly int[] ByCategory =
-    {
+    [
         2, 5, 5, 0x1D, 0x14, 0x14, 6, 6, 6, 0xC, 5, 0x16, 0x12, 0x15, 0x10, 0x11,
         0x15, 0x13, 6, 5, 6, 6, 4, 5, 6, 6, 5, 5, 5, 5, 5, 0x15,
-    };
+    ];
 
     /// <summary>A non-worker reads its category's entry, the walk's resumed state's through a walk.
     /// A worker is <see cref="Slappable"/> with no task (<c>+0x3D1</c>) or when its last task kind

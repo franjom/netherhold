@@ -16,8 +16,7 @@ internal readonly record struct NativeCreatureTag(ushort Value)
 internal sealed partial class CreatureSlotPool
 {
     internal const int Capacity = 448;
-    private readonly List<NativeCreatureTag> _free = Enumerable.Range(8, Capacity)
-        .Select(value => new NativeCreatureTag((ushort)value)).ToList();
+    private readonly List<NativeCreatureTag> _free = [.. Enumerable.Range(8, Capacity).Select(value => new NativeCreatureTag((ushort)value))];
 
     internal IReadOnlyList<NativeCreatureTag> FreeTags => _free;
 
@@ -45,7 +44,7 @@ internal sealed partial class CreatureSlotPool
 
     internal void Restore(IEnumerable<NativeCreatureTag> tags)
     {
-        NativeCreatureTag[] saved = tags.ToArray();
+        NativeCreatureTag[] saved = [.. tags];
         if (saved.Length > Capacity || saved.Any(tag => tag.Value < 8 || tag.Value > 455)
             || saved.Distinct().Count() != saved.Length)
         {

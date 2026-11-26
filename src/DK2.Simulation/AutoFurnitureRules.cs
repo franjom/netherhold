@@ -258,7 +258,9 @@ public static class AutoFurnitureRules
     {
         var slots = new List<int>();
         var sides = new List<int>();
+#pragma warning disable IDE0306 // Preserve HashSet construction and capacity.
         WallSlots(world, database, room, new HashSet<int>(room.TileIndices), slots, sides);
+#pragma warning restore IDE0306
         var result = new (int Tile, int Side)[slots.Count];
         for (int i = 0; i < result.Length; i++)
         {
@@ -417,8 +419,12 @@ public static class AutoFurnitureRules
     public static HashSet<int> FloorSlotSet(WorldState world, RoomInstance room)
     {
         var slots = new List<int>();
+#pragma warning disable IDE0306 // Preserve HashSet construction and capacity.
         FloorSlots(world, room, new HashSet<int>(room.TileIndices), slots);
+#pragma warning restore IDE0306
+#pragma warning disable IDE0306 // Preserve HashSet construction and capacity.
         return new HashSet<int>(slots);
+#pragma warning restore IDE0306
     }
 
     /// <summary>How many floor slots a room has (<c>0x00454110</c> over its tiles): a Graveyard's
@@ -426,7 +432,9 @@ public static class AutoFurnitureRules
     public static int FloorSlotCount(WorldState world, RoomInstance room)
     {
         var slots = new List<int>();
+#pragma warning disable IDE0306 // Preserve HashSet construction and capacity.
         FloorSlots(world, room, new HashSet<int>(room.TileIndices), slots);
+#pragma warning restore IDE0306
         return slots.Count;
     }
 
@@ -440,7 +448,9 @@ public static class AutoFurnitureRules
         }
 
         var slots = new List<int>();
+#pragma warning disable IDE0306 // Preserve HashSet construction and capacity.
         FloorSlots(world, room, new HashSet<int>(room.TileIndices), slots);
+#pragma warning restore IDE0306
         return slots.Contains(tileIndex);
     }
 

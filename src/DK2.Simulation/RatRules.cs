@@ -47,7 +47,7 @@ public static class RatRules
             return;
         }
 
-        RoomInstance[] prisons = rooms.Where(r => r.OwnerPlayerId == owner.Value && r.Definition.TypeId == RoomTypeId.Prison).Reverse().ToArray();
+        RoomInstance[] prisons = [.. rooms.Where(r => r.OwnerPlayerId == owner.Value && r.Definition.TypeId == RoomTypeId.Prison).Reverse()];
         if (prisons.Length == 0)
         {
             return;

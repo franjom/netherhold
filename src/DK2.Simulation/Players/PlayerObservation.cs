@@ -223,6 +223,7 @@ public sealed class PlayerOffers
 
     public PlayerActionKinds Actions { get; init; }
 
+#pragma warning disable IDE0301 // Preserve the cached read-only wrapper used by the init setter.
     public IReadOnlyList<PlayerRoomOffer> Rooms { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerRoomOffer>();
 
     public IReadOnlyList<GuiButtonTarget> Panels { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<GuiButtonTarget>();
@@ -235,6 +236,7 @@ public sealed class PlayerOffers
 
     /// <summary>Every spell the Spell panel offers, by spell id (Task 4).</summary>
     public IReadOnlyList<PlayerSpellOffer> Spells { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerSpellOffer>();
+#pragma warning restore IDE0301
 }
 
 /// <summary>
@@ -272,6 +274,7 @@ public sealed class PlayerObservation
     /// it (<c>CasinoJackpotRules.WageBill</c>, hud-resources.md; schema 7).</summary>
     public GoldAmount WageBill { get; init; }
     public PlayerTileGrid Tiles { get; init => field = value ?? throw new ArgumentNullException(nameof(value)); } = PlayerTileGrid.Empty;
+#pragma warning disable IDE0301 // Preserve the cached read-only wrapper used by the init setter.
     public IReadOnlyList<PlayerRoomSummary> Rooms { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerRoomSummary>();
     public IReadOnlyList<PlayerCreatureSummary> Creatures { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerCreatureSummary>();
     public IReadOnlyList<PlayerVisibleThing> Things { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerVisibleThing>();
@@ -279,6 +282,7 @@ public sealed class PlayerObservation
     public IReadOnlyList<PlayerVisibleTrap> EnemyTraps { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerVisibleTrap>();
     public IReadOnlyList<PlayerNotice> Notices { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerNotice>();
     public IReadOnlyList<PlayerReceipt> Receipts { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerReceipt>();
+#pragma warning restore IDE0301
     public PlayerOffers Offers { get; init => field = value ?? throw new ArgumentNullException(nameof(value)); } = PlayerOffers.None;
 }
 

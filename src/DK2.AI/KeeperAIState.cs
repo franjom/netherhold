@@ -75,7 +75,7 @@ public sealed class KeeperAIState
 
     /// <summary><c>EnemyBreaches[16]</c> (<c>+0x9F</c>), by player id: the tunnels left to dig and
     /// the eight stored ones, empty when their start's X is zero.</summary>
-    public readonly KeeperBreachState[] Breaches = Enumerable.Range(0, 16).Select(_ => new KeeperBreachState()).ToArray();
+    public readonly KeeperBreachState[] Breaches = [.. Enumerable.Range(0, 16).Select(_ => new KeeperBreachState())];
 
     /// <summary>The loaders copy <c>BreachAtXPoints</c>, kept to four bits, into every enemy's count.</summary>
     public void InitialiseBreaches(byte breachAtXPoints)

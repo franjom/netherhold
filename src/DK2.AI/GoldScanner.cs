@@ -90,7 +90,7 @@ public static class GoldScanner
             retained.Insert(insertion, (new GoldDeposit(centre, amount), distance));
         }
 
-        return retained.Select(d => d.Deposit).ToList();
+        return [.. retained.Select(d => d.Deposit)];
     }
 
     private static TilePos CorrectCentroid(KeeperView view, TilePos centre, int sumY)

@@ -67,7 +67,7 @@ public sealed class CombatPitRoomStep : IRoomTickStep
         {
             var accepted = new HashSet<int>();
             AutoFurnitureRules.FurnitureSlots(context.World, context.Database, room, accepted);
-            slots = SlabChain.Order(context.World, room).Where(accepted.Contains).ToArray();
+            slots = [.. SlabChain.Order(context.World, room).Where(accepted.Contains)];
         }
         else
         {

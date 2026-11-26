@@ -1017,7 +1017,7 @@ public static class WorldSnapshot
         w.Write(world.Triggers.SpecialInfoPlayerId);
         w.Write(world.Triggers.MaximumSlaps);
         KeyValuePair<(int Tag, ushort Id), TriggerRecordState>[] triggerRecords =
-            world.Triggers.RawRecords.ToArray();
+            [.. world.Triggers.RawRecords];
         w.Write(triggerRecords.Length);
         foreach (((int tag, ushort id), TriggerRecordState record) in triggerRecords)
         {

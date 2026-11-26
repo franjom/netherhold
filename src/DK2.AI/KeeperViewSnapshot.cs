@@ -121,14 +121,14 @@ public static class KeeperViewSnapshot
             w.Write(ruined);
         }
 
-        int[] refused = view.CallRefusedTiles.ToArray();
+        int[] refused = [.. view.CallRefusedTiles];
         w.Write(refused.Length);
         foreach (int index in refused)
         {
             w.Write(index);
         }
 
-        int[] sightRefused = view.SightRefusedTiles.ToArray();
+        int[] sightRefused = [.. view.SightRefusedTiles];
         w.Write(sightRefused.Length);
         foreach (int index in sightRefused)
         {

@@ -51,7 +51,7 @@ public sealed class PlayerDecision
             throw new ArgumentException($"A reason has at most {MaxReasonLength} characters.", nameof(reason));
         }
 
-        PlayerAction[] copy = actions.ToArray();
+        PlayerAction[] copy = [.. actions];
         foreach (PlayerAction action in copy)
         {
             if (action is null)

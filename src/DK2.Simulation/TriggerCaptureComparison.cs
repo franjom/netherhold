@@ -44,10 +44,10 @@ public static class TriggerCaptureComparison
         string[] columns = TriggerTurnCsvEmitter.Header.Split(',');
         CaptureData oursData = Read(ours, oursName, columns);
         CaptureData captureData = Read(capture, captureName, columns);
-        string[] eventIds = columns.Skip(2).Take(TriggerState.TimerCount + TriggerState.FlagCount).ToArray();
+        string[] eventIds = [.. columns.Skip(2).Take(TriggerState.TimerCount + TriggerState.FlagCount)];
 
-        string[] inBoth = eventIds.Where(id => oursData.Events.ContainsKey(id)
-            && captureData.Events.ContainsKey(id)).ToArray();
+        string[] inBoth = [.. eventIds.Where(id => oursData.Events.ContainsKey(id)
+            && captureData.Events.ContainsKey(id))];
         var captureOnly = eventIds.Where(id => !oursData.Events.ContainsKey(id)
             && captureData.Events.ContainsKey(id)).ToList();
         var oursOnly = eventIds.Where(id => oursData.Events.ContainsKey(id)

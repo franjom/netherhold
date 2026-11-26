@@ -28,7 +28,9 @@ public sealed record CampaignPlayerOptions
 
         RunId = runId;
         Player = player;
+#pragma warning disable IDE0306 // Preserve HashSet construction for caller-supplied collections.
         _workers = new HashSet<CreatureTypeId>(workerTypes ?? throw new ArgumentNullException(nameof(workerTypes)));
+#pragma warning restore IDE0306
         WorkerTypes = new ReadOnlyCollection<CreatureTypeId>([.. _workers]);
     }
 
@@ -57,7 +59,9 @@ public sealed record CampaignPlayerOptions
     public IReadOnlyList<ObjectTypeId>? SpecialTypes
     {
         get => _specials is null ? null : new ReadOnlyCollection<ObjectTypeId>([.. _specials]);
+#pragma warning disable IDE0306 // Preserve HashSet construction for caller-supplied collections.
         init => _specials = value is null ? null : new HashSet<ObjectTypeId>(value);
+#pragma warning restore IDE0306
     }
 
     public bool AllowsSpecial(ObjectTypeId type) => _specials is null || _specials.Contains(type);
