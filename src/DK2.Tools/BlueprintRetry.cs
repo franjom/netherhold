@@ -19,7 +19,7 @@ namespace DK2.Tools;
 /// </summary>
 internal sealed class BlueprintRetry(Func<PlayerCommand, bool> ownsTile, TextWriter? events = null)
 {
-    private readonly List<(long Turn, PlayerCommand Command)> pending = [];
+    private readonly List<(long Turn, PlayerCommand Command)> _pending = [];
 
     /// <summary>Placements held for a tile ours did not own when they were recorded.</summary>
     public int Held { get; private set; }
@@ -28,7 +28,7 @@ internal sealed class BlueprintRetry(Func<PlayerCommand, bool> ownsTile, TextWri
     public int SentLater { get; private set; }
 
     /// <summary>Held placements still waiting.</summary>
-    public int Pending => pending.Count;
+    public int Pending => _pending.Count;
 
     /// <summary>The frame to send on <paramref name="turn"/>: <paramref name="frame"/> without the
     /// placements on a tile ours does not own, then the held ones whose tile ours now owns, in the
@@ -43,23 +43,23 @@ internal sealed class BlueprintRetry(Func<PlayerCommand, bool> ownsTile, TextWri
             if (command is PlaceDoorCommand or PlaceTrapCommand && !ownsTile(command))
             {
                 kept ??= [.. all.Take(i)];
-                pending.Add((turn, command));
+                _pending.Add((turn, command));
                 Held++;
                 events?.WriteLine($"{turn}\treplay\tblueprint_held\t{Describe(command)}");
                 continue;
             }
             kept?.Add(command);
         }
-        for (int i = 0; i < pending.Count; i++)
+        for (int i = 0; i < _pending.Count; i++)
         {
-            (long heldAt, PlayerCommand command) = pending[i];
+            (long heldAt, PlayerCommand command) = _pending[i];
             if (!ownsTile(command))
             {
                 continue;
             }
 
             (kept ??= [.. all]).Add(command);
-            pending.RemoveAt(i--);
+            _pending.RemoveAt(i--);
             SentLater++;
             events?.WriteLine($"{turn}\treplay\tblueprint_sent_later\t{Describe(command)} recorded={heldAt}");
         }

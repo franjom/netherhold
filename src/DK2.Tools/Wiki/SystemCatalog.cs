@@ -16,20 +16,20 @@ public sealed partial class SystemCatalog
 {
     public const string RelativePath = "docs/systems.yaml";
 
-    readonly Dictionary<string, int> order;
+    readonly Dictionary<string, int> _order;
 
     SystemCatalog(IReadOnlyList<SystemEntry> systems)
     {
         Systems = systems;
-        order = systems.Select((s, i) => (s.Id, i)).ToDictionary(p => p.Id, p => p.i, StringComparer.Ordinal);
+        _order = systems.Select((s, i) => (s.Id, i)).ToDictionary(p => p.Id, p => p.i, StringComparer.Ordinal);
     }
 
     public IReadOnlyList<SystemEntry> Systems { get; }
 
-    public bool Contains(string id) => order.ContainsKey(id);
+    public bool Contains(string id) => _order.ContainsKey(id);
 
     /// <summary>The catalogue position of <paramref name="id"/>, for sorting system lists; unknown ids sort last.</summary>
-    public int OrderOf(string id) => order.TryGetValue(id, out int i) ? i : int.MaxValue;
+    public int OrderOf(string id) => _order.TryGetValue(id, out int i) ? i : int.MaxValue;
 
     [GeneratedRegex("^[a-z][a-z0-9]*(-[a-z0-9]+)*$")] private static partial Regex IdRx();
 

@@ -118,36 +118,36 @@ static class FunctionKbCommand
     /// </summary>
     internal sealed class Source
     {
-        readonly string root;
-        readonly HashSet<string>? tracked;   // null in tree mode
-        readonly HashSet<string>? dirty;
-        readonly Dictionary<string, string[]> cache = new(StringComparer.Ordinal);
+        readonly string _root;
+        readonly HashSet<string>? _tracked;   // null in tree mode
+        readonly HashSet<string>? _dirty;
+        readonly Dictionary<string, string[]> _cache = new(StringComparer.Ordinal);
 
         public Source(string root, bool staged)
         {
-            this.root = root;
+            this._root = root;
             if (!staged)
             {
                 return;
             }
 
-            tracked = Paths(Repo.RunGit(root, "ls-files", "--cached"));
-            dirty = Paths(Repo.RunGit(root, "diff", "--name-only"));
+            _tracked = Paths(Repo.RunGit(root, "ls-files", "--cached"));
+            _dirty = Paths(Repo.RunGit(root, "diff", "--name-only"));
         }
 
         /// <summary>Paths git listed for the index; 0 in staged mode means git answered nothing.</summary>
-        public int TrackedCount => tracked?.Count ?? 0;
-        public string Full(string relative) => Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar));
-        public bool Exists(string relative) => tracked is null ? File.Exists(Full(relative)) : tracked.Contains(relative);
+        public int TrackedCount => _tracked?.Count ?? 0;
+        public string Full(string relative) => Path.Combine(_root, relative.Replace('/', Path.DirectorySeparatorChar));
+        public bool Exists(string relative) => _tracked is null ? File.Exists(Full(relative)) : _tracked.Contains(relative);
 
         public string[] Lines(string relative)
         {
-            if (cache.TryGetValue(relative, out string[]? lines))
+            if (_cache.TryGetValue(relative, out string[]? lines))
             {
                 return lines;
             }
 
-            return cache[relative] = dirty is not null && dirty.Contains(relative) ? Repo.GitLines(root, $":{relative}")
+            return _cache[relative] = _dirty is not null && _dirty.Contains(relative) ? Repo.GitLines(_root, $":{relative}")
                 : File.Exists(Full(relative)) ? File.ReadAllLines(Full(relative))
                 : [];
         }
@@ -156,9 +156,9 @@ static class FunctionKbCommand
         public IEnumerable<string> RecordPaths()
         {
             string dir = Full(FunctionKb.Folder);
-            IEnumerable<string> paths = tracked is null
+            IEnumerable<string> paths = _tracked is null
                 ? Directory.Exists(dir) ? Directory.GetFiles(dir, "*.md").Select(f => FunctionKb.Folder + "/" + Path.GetFileName(f)) : []
-                : tracked.Where(p => p.StartsWith(FunctionKb.Folder + "/", StringComparison.Ordinal)
+                : _tracked.Where(p => p.StartsWith(FunctionKb.Folder + "/", StringComparison.Ordinal)
                     && !p[(FunctionKb.Folder.Length + 1)..].Contains('/'));
             return paths.Where(p => p.EndsWith(".md", StringComparison.Ordinal) && !IsIndex(p)).Order(StringComparer.Ordinal);
         }
