@@ -279,6 +279,22 @@ public static class Recipes
                 foreach (int row in new[] { 10, 16 })
                     b.InsertThing(door with { X = 30, Y = row, DoorId = WoodenDoor, PlayerId = Keeper, Flags = 1 }, doorImage);
             }),
+        new("Q888SecretDoors3", "Small",
+            "Q888SecretDoors2 as played (2026-11-26, SHOT0025) hid its own subject: the locked Wooden Door stops the keeper's "
+            + "sight, so the Secret Door's tile behind it lay under fog. Same halls with a keeper-3 Barricade at (30,10) and "
+            + "(30,16) instead: it holds the Imp in and the Goblin out as the door did, and sight passes a barricade, so the "
+            + "tile behind it shows. Whether the Goblin, seeing an Imp it cannot reach, starts a fight (which would keep it "
+            + "from uncovering the door) is not known. B: drop the Goblin at x 26, then at x 28. C: possess the Goblin, walk "
+            + "to the barricade, then leave possession there.",
+            b =>
+            {
+                SecretDoorHalls(b);
+                byte barricade = DK2.Data.GameDatabaseLoader.Load(b.Install).Doors.Values
+                    .Single(d => (d.Flags & DoorFlags.Barricade) == DoorFlags.Barricade).DoorId;
+                var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
+                foreach (int row in new[] { 10, 16 })
+                    b.InsertThing(door with { X = 30, Y = row, DoorId = barricade, PlayerId = Keeper, Flags = 0 }, doorImage);
+            }),
     ];
 
     private const byte CallToArms = 3;
