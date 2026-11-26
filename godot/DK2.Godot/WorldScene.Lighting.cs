@@ -98,7 +98,7 @@ public partial class WorldScene
     /// globals is for the editor only.</summary>
     private static void Global(StringName name, RenderingServer.GlobalShaderParameterType type, Variant value)
     {
-        if (s_globals.Add(name.ToString()))
+        if (Globals.Add(name.ToString()))
         {
             RenderingServer.GlobalShaderParameterAdd(name, type, value);
         }
@@ -108,7 +108,7 @@ public partial class WorldScene
         }
     }
 
-    private static readonly HashSet<string> s_globals = new();
+    private static readonly HashSet<string> Globals = new();
 
     /// <summary>DK2's ambient level from the ambient keys (<see cref="ClassicAmbientLight.Normalized"/>), grey.</summary>
     public void SetAmbient(float level) =>

@@ -32,7 +32,7 @@ public partial class WorldScene : ISimulationEventSink
     // A mesh particle's models by asset and group part entry, each with its own pool of drawn models.
     private readonly Dictionary<(AssetRef Key, string Entry), EffectMesh?> _effectMeshes = new();
     private readonly List<EffectMesh> _effectMeshList = new();
-    private static readonly Shader?[] s_spriteShaders = new Shader?[3];
+    private static readonly Shader?[] SpriteShaders = new Shader?[3];
     private Rid _effectQuadMesh;
 
     /// <summary>Observe the real shot/effect requests before the first turn; camera entry itself emits nothing. Returns the
@@ -466,9 +466,9 @@ public partial class WorldScene : ISimulationEventSink
             Shape = EffectSpriteShape.Of(definition, sprite);
             Frames = frames;
             int blend = sprite.Blend == EffectSpriteBlend.Additive ? 0 : sprite.Blend == EffectSpriteBlend.Alpha ? 1 : 2;
-            s_spriteShaders[blend] ??= GD.Load<Shader>(blend == 0 ? "res://Shaders/EffectSpriteAdd.gdshader"
+            SpriteShaders[blend] ??= GD.Load<Shader>(blend == 0 ? "res://Shaders/EffectSpriteAdd.gdshader"
                 : blend == 1 ? "res://Shaders/EffectSpriteMix.gdshader" : "res://Shaders/EffectSpriteOpaque.gdshader");
-            _material = new ShaderMaterial { Shader = s_spriteShaders[blend] };
+            _material = new ShaderMaterial { Shader = SpriteShaders[blend] };
             _material.SetShaderParameter("frame_texture", texture);
             _items = scene.CreateItemBatch(scene.EffectQuadMesh(), _material.GetRid(),
                 blend == 0 ? BlendedItemBlend.Additive : BlendedItemBlend.Ordered);

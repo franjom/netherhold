@@ -45,7 +45,7 @@ public partial class WorldScene
         int shaders = 0;
         for (int state = 0; state < WorldShaderPaths.Length; state++)
         {
-            if (s_worldShaders[WorldLightMode, state] != null)
+            if (WorldShaders[WorldLightMode, state] != null)
             {
                 shaders++;
             }

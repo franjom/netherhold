@@ -77,7 +77,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private readonly Dictionary<(TerrainMaterialLook Look, bool Fog), ShaderMaterial> _lookMaterials = new();
     // The world shader per light mode (per vertex, per pixel, with shadows) and render state, made on first use and kept
     // for the run, so a level reload compiles none again.
-    private static readonly Shader?[,] s_worldShaders = new Shader?[3, 5];
+    private static readonly Shader?[,] WorldShaders = new Shader?[3, 5];
     private readonly Dictionary<string, Texture2D> _textures = new();
     private ImageTexture? _white;
     // The world ShaderMaterials made so far, for the performance report.
@@ -584,7 +584,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private Shader ShaderFor(int state)
     {
         int mode = WorldLightMode;
-        if (s_worldShaders[mode, state] is Shader shader)
+        if (WorldShaders[mode, state] is Shader shader)
         {
             return shader;
         }
@@ -605,7 +605,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
             shader = new Shader { Code = code.Replace(LightModeMarker, defines + LightModeMarker, StringComparison.Ordinal) };
         }
-        s_worldShaders[mode, state] = shader;
+        WorldShaders[mode, state] = shader;
         return shader;
     }
 
