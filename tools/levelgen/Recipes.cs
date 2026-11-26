@@ -289,8 +289,8 @@ public static class Recipes
             b =>
             {
                 SecretDoorHalls(b);
-                byte barricade = DK2.Data.GameDatabaseLoader.Load(b.Install).Doors.Values
-                    .Single(d => (d.Flags & DoorFlags.Barricade) == DoorFlags.Barricade).DoorId;
+                // By name: the Hero Barricade carries the barricade flag too.
+                byte barricade = DK2.Data.GameDatabaseLoader.Load(b.Install).Doors.Values.Single(d => d.Name == "Barricade").DoorId;
                 var (door, doorImage) = b.Template<DoorThing>(d => d.TriggerId == 0 && d.DoorId == WoodenDoor);
                 foreach (int row in new[] { 10, 16 })
                     b.InsertThing(door with { X = 30, Y = row, DoorId = barricade, PlayerId = Keeper, Flags = 0 }, doorImage);
