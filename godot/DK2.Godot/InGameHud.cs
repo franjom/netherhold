@@ -294,7 +294,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // DungeonRunner.InitializeSettings: game-settings.ini beside the campaign profile.
         _settingsPath = folders.Settings;
         _settings = LoadSettings(_settingsPath);
-        _optionsPages = new OptionsPagesController(_settings);
+        _optionsPages = new OptionsPagesController(_settings) { CreatureShadowsSupported = true };
         _optionsPages.Applied += ApplySettings;
         _optionsPages.SaveRequested += SaveSettings;
 
@@ -775,7 +775,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _fullMap.Capture(_simulation.World, _simulation.Database, _viewer, minimapCaptured, _pointer);
         _fullMap.Draw();
         // DungeonRunner.DrawHudControls draws it after the save browser; the two never show together.
-        _gameOptionsPanel.Draw();
+        _gameOptionsPanel.Draw(_pointer);
         // Last, as DungeonRunner.DrawHudControls captures and draws it; the options menu hides it.
         _queryPanel.Draw(_queryView.Capture(_simulation.World), visibility, modal);
         DrawPossessionHud(milliseconds);
@@ -1423,6 +1423,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _world?.SetBrightness(DisplaySettings.BrightnessExponent(settings.Gamma));
         // Ours, not DK2's: the 3D view's anti-aliasing and render scale (audit item 17), off by default.
         _world?.SetRenderQuality(settings);
+        _world?.SetCreatureShadows(settings.ShadowLevel > 0);
     }
 
     /// <summary>The settings file as <see cref="GameSettingsFile"/> reads it; the defaults, with a warning, when it cannot

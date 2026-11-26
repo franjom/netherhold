@@ -53,7 +53,7 @@ public partial class ClassicGameOptionsPanel : Node
     public bool ContainsPointer(Vector2 screenPosition) => _hud != null && _hud.Visible;
 
     /// <summary>Lays the page out for the viewport and presents it, the label under the pointer lit.</summary>
-    public void Draw()
+    public void Draw(Vector2 pointer)
     {
         if (_hud == null || _canvas == null || !_hud.Visible) return;
         Vector2 size = GetViewport().GetVisibleRect().Size;
@@ -61,9 +61,8 @@ public partial class ClassicGameOptionsPanel : Node
         if (width <= 0 || height <= 0) return;
         var screen = new HudScreen(width, height);
         _scale = screen.Scale;
-        Vector2 mouse = GetViewport().GetMousePosition();
         _frame.Clear();
-        _hud.Build(screen, (mouse.X / _scale, mouse.Y / _scale), _frame);
+        _hud.Build(screen, (pointer.X / _scale, pointer.Y / _scale), _frame);
         _canvas.Present(_frame, Vector2.Zero, _scale, 1);
     }
 

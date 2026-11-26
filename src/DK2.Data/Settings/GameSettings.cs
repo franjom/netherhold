@@ -9,7 +9,7 @@ namespace DK2.Data.Settings;
 public sealed record GameSettings
 {
     public int Gamma { get; init; } = 30;
-    public int ShadowLevel { get; init; } = 3;
+    public int ShadowLevel { get; init; }
     public int SoundQuality { get; init; } = 3;
     public int MasterVolume { get; init; } = 100;
     public int SpeechVolume { get; init; } = 100;

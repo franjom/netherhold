@@ -15,6 +15,7 @@ public sealed class OptionsPagesController
     private GameSettings _entry;
     private OptionsApplicationMode _applicationMode;
     public OptionsPagesController(GameSettings settings) { Current = Pending = _entry = settings.Clamped(); }
+    public bool CreatureShadowsSupported { get; init; }
     public GameSettings Current { get; private set; }
     public GameSettings Pending { get; private set; }
     public FrontEndPage Page { get; private set; }
@@ -150,7 +151,7 @@ public sealed class OptionsPagesController
         return SetWidget(id, id == 133 ? Value(id) % 3 + 1 : Value(id) == 0 ? 1 : 0);
     }
     public bool Supports(ushort id) => id is 900 or 126 or 133 or 139 or 141 or 143 or 144
-        or 676 or 677 or 678 or 154 or 156 or 158;
+        or 676 or 677 or 678 or 154 or 156 or 158 || id == 128 && CreatureShadowsSupported;
     public (int Minimum, int Maximum) Range(ushort id) => id switch
     {
         900 => (50, 200), 126 => (15, 60), 128 => (0, 3), 133 => (1, 3),

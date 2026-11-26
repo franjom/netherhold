@@ -672,6 +672,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 " run instances; uploaded ", _blendedUploadBytes, " B for ", _blendedUploadTriangles, " triangles drawn");
         FreeChunkUpload();
         FreeEffects();
+        FreeCreatureShadows();
         FreeObjects();
         foreach (RunSlot slot in _previewRunSlots) slot.Free();
         foreach (RunSlot slot in _runSlots) slot.Free();

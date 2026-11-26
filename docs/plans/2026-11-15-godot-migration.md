@@ -970,8 +970,8 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
         run; (2) a blended object straddling a run sits wholly on one side of it (DK2 interleaves per triangle; splitting
         runs at blended objects, as at flowers, would close it); (3) done in 3k: each effect sprite is placed on its own; (4) Level7's moving frame costs 0.2 to 0.5 ms more than HEAD's,
         partly the re-sort; (5) the liquids' normals had the same tangent-layout fault (gone with audit item 9, which waves them in a shader).
-  - [x] 3j. Creature shadows, folded into lighting: done as lighting step 2 (`--light-shadows`, ClassicShadowSourceSelector,
-        the 2 torches nearest the camera focus; real distance-map shadows, no silhouette projection).
+  - [x] 3j. Torch distance-map shadows landed in lighting step 2 (`--light-shadows`). Step 4 adds the independent
+        player setting for projected creature shadows.
   - [x] 3k. Effects and flowers on MultiMesh over the CPU particle simulation, with the torch flames (2026-11-19, ADR-0813;
         audit item 6). The shared `BlendedItemOrder` (`DK2.Presentation`, 35 tests) answers 3q's open item (3): each effect
         sprite, flame and flower layer is placed among the runs by its own distance, never crossing a run, and joins its
@@ -1166,6 +1166,9 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 
 - [x] Battle fly-in. Godot renders the shared `BattleFlyIn` over the HUD overlays with the reward tablet canvas.
       See the [scripted Level1 capture recipe](../../godot/README.md#verifying).
+
+- [x] Live creature-shadow setting. See the [projection and benchmark notes](../../godot/README.md#creature-shadows)
+      for the Godot coverage path and the default.
 
 ## Step 5: remove Unity (one change, at parity)
 
