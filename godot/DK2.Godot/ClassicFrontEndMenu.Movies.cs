@@ -125,9 +125,8 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
     private bool UpdateAttract()
     {
         if (_movie != null) return true;
-        Vector2 pointer = GetViewport().GetMousePosition();
-        FrontEndMovie? movie = _attract.Update(FrontEndTime, _session!.Page, pointer != _lastPointer, _keyPressed);
-        _lastPointer = pointer;
+        FrontEndMovie? movie = _attract.Update(FrontEndTime, _session!.Page, _pointer != _lastPointer, _keyPressed);
+        _lastPointer = _pointer;
         if (!movie.HasValue) return false;
         PlayFrontEndMovie(FrontEndMoviePaths.Of(movie.Value));
         return true;

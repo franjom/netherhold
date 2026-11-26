@@ -22,6 +22,20 @@ public sealed record SessionContext(string LevelName, GameSessionMode Mode, Fron
     /// <summary>A campaign level started from the front end's map, which records its result in the profile.</summary>
     public bool LaunchedFromFrontEnd => StartedFromFrontEnd(Mode, ReturnPage);
 
+    /// <summary>The session a level scene starts, as Unity's runner takes it from the request that replaced the last one: a
+    /// loaded save or a restart (<paramref name="resumed"/>) first, then the campaign map's launch (<paramref name="launched"/>),
+    /// else the scripted arguments' level (Level1 when none), started as the map starts one with
+    /// <paramref name="fromMap"/> and directly, returning to no page, without it.</summary>
+    public static SessionContext Starting(GameSessionRequest? resumed, GameSessionRequest? launched, string? levelArgument,
+        bool fromMap)
+    {
+        GameSessionRequest? request = resumed ?? launched;
+        if (request is not null) return new SessionContext(request.LevelName, request.Mode, request.ReturnPage);
+        string level = levelArgument ?? "Level1";
+        return new SessionContext(level, GameSessionMode.Campaign,
+            fromMap ? GameSessionRequest.Campaign(level).ReturnPage : FrontEndPage.None);
+    }
+
     /// <summary><see cref="LaunchedFromFrontEnd"/> for a session's mode and return page.</summary>
     public static bool StartedFromFrontEnd(GameSessionMode mode, FrontEndPage returnPage) =>
         mode == GameSessionMode.Campaign && returnPage == FrontEndPage.CampaignResults;

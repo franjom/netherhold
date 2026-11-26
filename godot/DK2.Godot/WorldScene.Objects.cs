@@ -603,7 +603,10 @@ public partial class WorldScene
             {
                 sourceIndices[i] = used[i];
                 points[i] = ToGodot(RightHandedFrame.Point(positions[used[i]]));
-                turned[i] = ToGodot(RightHandedFrame.Normal(normals[used[i]]));
+                // A zero KMF normal (the front end's campaign lands have some) turns into NaN; Godot would draw it as zero
+                // with a warning a mesh, so it is zero here.
+                Vector3 normal = ToGodot(RightHandedFrame.Normal(normals[used[i]]));
+                turned[i] = normal.IsFinite() ? normal : Vector3.Zero;
                 System.Numerics.Vector2 uv = Source.Uvs[used[i]];
                 uvs[i] = new Vector2(uv.X, uv.Y);
                 bounds[i * 4] = centre.X; bounds[(i * 4) + 1] = centre.Y; bounds[(i * 4) + 2] = centre.Z; bounds[(i * 4) + 3] = radius;

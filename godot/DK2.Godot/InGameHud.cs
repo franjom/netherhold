@@ -195,9 +195,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private ClassicMinimap? _minimap;
     /// <summary>The world as the viewer's HUD sees it (Unity's runner's <c>_worldView</c>): the minimap's colours and markers.</summary>
     private WorldView? _worldView;
-    /// <summary>The 3D world under the HUD (plan step 3a): the start frame's terrain from the level-start camera, which
-    /// does not move yet.</summary>
+    /// <summary>The 3D world under the HUD (plan step 3a), drawn from the camera <see cref="UpdateCamera"/> moves.</summary>
     private WorldScene? _world;
+    /// <summary>The accepted drops' hand animation (Unity's runner's <c>_handCursorEvents</c>), first in the event chain and
+    /// drained after the frame's ticks.</summary>
+    private HandCursorEventSink? _handCursorEvents;
     private Action<HeartHealthChange>? _heartHealthObserver;
     /// <summary>Action 26's focus glide (Unity's runner's <c>_glide</c>), on this scene's engine-time clock.</summary>
     private readonly CameraGlide _glide = new();
@@ -258,7 +260,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // A save the previous instance loaded: its level, return page and restored simulation replace the arguments'.
         GameSessionRequest? resume = s_resume;
         s_resume = null;
-        string levelName = resume?.LevelName ?? launch.Level ?? "Level1";
+        _context = StartingSession(resume, launch.Level, args);
+        string levelName = _context.LevelName;
         ulong seed = launch.Seed ?? 1;
         GameFolders folders = UserFolders.FromArguments(args);
         _levelName = levelName;
@@ -269,17 +272,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _simulation = resume?.Resume?.Simulation ?? level.CreateSimulation(seed, fogOfWarEnabled: true);
         _simulation.World.LocalPlayerId = _viewer;
         // Level load, not the opening path: the first ticks compile on a throwaway simulation (LevelWarmUp).
-        if (resume == null && warmUp)
+        // A restart (no Resume) is a fresh start of the level; only a loaded save is resumed.
+        bool resumed = resume?.Resume != null;
+        if (!resumed && warmUp)
         {
             long warmStarted = Stopwatch.GetTimestamp();
             LevelWarmUp.Run(level, seed, fogOfWarEnabled: true);
             GD.Print("DK2.Godot: level warm-up ", Stopwatch.GetElapsedTime(warmStarted).TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture), " ms.");
         }
-        // DungeonRunner's session: a direct start returns to no page, as Unity's runner started from its scene does;
-        // --from-map starts it as the campaign map launches a level (GameSessionRequest.Campaign).
-        FrontEndPage returnPage = Array.IndexOf(args, "--from-map") >= 0
-            ? GameSessionRequest.Campaign(levelName).ReturnPage : FrontEndPage.None;
-        _context = new SessionContext(levelName, GameSessionMode.Campaign, resume?.ReturnPage ?? returnPage);
         _profilePath = folders.Profile;
         _profiles = new CampaignProfileStore(InstalledCampaignRegistry.ReadCurrentUser, () => DateTime.Now);
         _saver = new SessionSaver(_profiles, LoadProfile, () => DateTime.UtcNow);
@@ -290,7 +290,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         {
             LevelTicksPerSecond = level.Level.TicksPerSecond,
         };
-        _resultFlow.Prepare(_simulation, _viewer, resumed: resume != null);
+        _resultFlow.Prepare(_simulation, _viewer, resumed);
         // DungeonRunner.InitializeSettings: game-settings.ini beside the campaign profile.
         _settingsPath = folders.Settings;
         _settings = LoadSettings(_settingsPath);
@@ -311,6 +311,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _view = new BottomPanelView(level.Database, _viewer, _art.Name, _art.Order, campaignMode: true);
         // DungeonRunner.StartGame's room check; the tool starts as the Inspector's default, the hand.
         _tools.SelectKnownRoom(level.Database.Rooms.Keys);
+        // DungeonRunner's placement setup: a room build or sell drag posts no wider than the drawn cage.
+        _input.RubberBandLimit = PlacementCursor.RubberBandLimit(level.Database);
         _router = new HudActionRouter(_hudControls, _tools, _input, this);
         _panel = new ClassicBottomPanel { Name = "BottomPanel" };
         _panel.Open(_art, _view);
@@ -460,11 +462,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _sound.WireSpeech(_scriptedView);
         OpenSubtitles();
         _simulation.ObserveWith(_sound.Observe(new Level6aTortureSpeech(level.Database, _messageView, _scriptedView)));
-        _world.OpenEffects(_simulation, _worldView, _viewer, seed);
+        // Unity's runner's chain: the accepted drops for the hand cursor (drained after the frame's ticks), then the view.
+        _handCursorEvents = new HandCursorEventSink(_cursorFeedback, _viewer, _world.OpenEffects(_simulation, _worldView, _viewer, seed));
+        _simulation.ObserveWith(_handCursorEvents);
         _world.Sound = _sound;
         _frameDriver = new FrameDriver(_pending, _worldView, _pacer, _journal);
         // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
-        if (resume == null)
+        if (!resumed)
             for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
         // DungeonRunner.StartGame: the effect model runs one update before the first frame.
         _world.StartEffects();
@@ -503,6 +507,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _simulation.World.HeartHealthChanged += _heartHealthObserver;
         _glideTo = LaunchArguments.GlideTarget(args, "--");
         _pointerScript = LaunchArguments.PointerPath(args, "--");
+        OpenKeyScript(args);
+        TakeCarriedScriptFrames();
         if (_pointerScript == null && LaunchArguments.Value(args, "--pointer-path") != null)
             GD.PushWarning("DK2.Godot: --pointer-path is malformed (LaunchArguments.ParsePointerPath); the OS pointer is used.");
         // A scripted pointer leaves the owner's pointer as it is, and the OS mouse stops at one gate added last.
@@ -560,7 +566,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _hashTick = new GameTick(hashTick);
         GD.Print("DK2.Godot in-game HUD: ", levelName, " seed ", seed.ToString(CultureInfo.InvariantCulture), ", saves in ", savesDirectory,
             ", settings in ", _settingsPath);
-        if (resume != null) PrintHash("resumed " + resume.Resume!.Session.Header.DisplayName + " at");
+        if (resumed) PrintHash("resumed " + resume!.Resume!.Session.Header.DisplayName + " at");
+        else if (resume != null) PrintHash("restarted at");
         // DungeonRunner.StartGame waits for the sound prefetch before the first frame.
         try { soundPrefetch.Wait(); }
         catch (AggregateException e) { GD.PushWarning("DK2.Godot: sound prefetch failed: ", e.InnerException?.Message); }
@@ -605,6 +612,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             || _placement == null || _leaving) return;
         _recorder?.BeginFrame();
         SamplePointer();
+        PlayKeyScript();
         JournalBeginFrame(delta);
         // The ticks for the time since the last frame, at that frame's engine time.
         int tickCount = RunFrameTicks(delta, (long)(_elapsed * 1000), out double tickMs);
@@ -641,7 +649,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _recorder?.Spent(FrameTelemetryPart.Script, started);
         if (leave)
         {
-            LeaveForFrontEnd();
+            LeaveForFrontEnd(_context?.ReturnPage ?? FrontEndPage.None, "the level ended");
             return;
         }
         if (escapeCheck) ReportEscape();
@@ -651,9 +659,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _frameDriver.AdvancePickups(_simulation.World, _viewer, milliseconds);
         FrameScriptInput script = _frameDriver.TakeScriptedInput(_scriptedView, _viewer, _keyboard.EscapePressed || _keyboard.SpacePressed);
         if (script.Glide is TilePos glide) StartGlide(glide);
-        // The HUD keys, as DungeonRunner.UpdateHudControls reads them. Only the options menu's and the full map's toggles
-        // are applied: the other keys' GUI toggle and camera moves are not ported. A camera path holds the options key
-        // back that frame. While the keyboard page captures a key, no shortcut fires.
+        // The HUD keys, as DungeonRunner.UpdateHudControls reads and applies them: the options menu, the full map, the GUI
+        // toggle and the Heart, portal and fight glides. A camera path holds the options key back that frame. While the
+        // keyboard page captures a key, no shortcut fires.
         UpdatePossession(_scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon), delta, milliseconds);
         HudVisibility camera = _scriptedView.HudFor(ClassicCameraMode.Dungeon);
         ClassicHudAction shortcut = _keyboard.Read(_settings).HudShortcut(
@@ -661,7 +669,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 capturingKey: _optionsPages.CapturingAction != null), _possession?.CameraHeld == true, _possession?.Possessing == true,
                 firstPersonCameraSettled: _possession?.SettledPossessionCamera == true),
             _keyboard.EscapePressed);
-        if (shortcut is ClassicHudAction.ToggleOptions or ClassicHudAction.ToggleFullMap or ClassicHudAction.ToggleGui) ApplyHudAction(shortcut);
+        ApplyHudAction(shortcut);
         // DungeonRunner.CurrentHud (PlayedHud; the warm frames are not ported): a camera path, the letterbox, the result
         // and the full map hide the normal HUD.
         HudVisibility menuVisibility = _scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon);
@@ -685,6 +693,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _world.PlaceCamera();
         DrawLetterbox();
         DrawSubtitles();
+        DrawResultPrompt();
         _fullMap.PreparePreview(_world, _pointer);
         if (visibility.AllowOrdinaryInput && !_hudControls.Modal) ReadAmbientKeys();
         QueueInput(visibility, milliseconds);
@@ -863,6 +872,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             if (simulation.World.CurrentTick == _hashTick) PrintHash("hash-at");
         }
         tickMs = _recorder?.Elapsed(started) ?? 0;
+        // DungeonRunner.Update after its ticks: a drop the simulation accepted plays the hand's drop animation, on the clock
+        // this frame's cursor reads.
+        _handCursorEvents?.Drain((long)((_elapsed + delta) * 1000));
         _frameDriver.AfterTicks(simulation.World, lastMilliseconds);
         return ticks.Count;
     }
@@ -943,16 +955,16 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _simulation.World.CurrentTick.Value.ToString(CultureInfo.InvariantCulture), "; the HUD ", _pathPlaying ? "hides" : "shows");
     }
 
-    /// <summary>DungeonRunner.UpdateCampaignResult's Space: the session ends and the front end opens at the session's return
-    /// page (<c>Main.tscn</c>, as Unity's runner loads <c>GameSessionRequest.FrontEnd(returnPage)</c>), deferred to the
-    /// frame's end as a load's reload is. The front end plays the won map's title card and cutscene first
-    /// (<c>ClassicFrontEndMenu.Movies.cs</c>).</summary>
-    private void LeaveForFrontEnd()
+    /// <summary>DungeonRunner.UpdateCampaignResult's Space (the session's return page) and the options menu's Return to Menu:
+    /// the session ends and the front end opens at <paramref name="page"/> (<c>Main.tscn</c>, as Unity's runner loads
+    /// <c>GameSessionRequest.FrontEnd(page)</c>), deferred to the frame's end as a load's reload is. After a level end the
+    /// front end plays the won map's title card and cutscene first (<c>ClassicFrontEndMenu.Movies.cs</c>).</summary>
+    private void LeaveForFrontEnd(FrontEndPage page, string why)
     {
         _leaving = true;
         _keyboard.EndFrame();
-        Main.s_returnPage = _context?.ReturnPage ?? FrontEndPage.None;
-        GD.Print("DK2.Godot: the level ended; leaving for the front end at page ", Main.s_returnPage.ToString(), ".");
+        Main.s_returnPage = page;
+        GD.Print("DK2.Godot: ", why, "; leaving for the front end at page ", page.ToString(), ".");
         Callable.From(ChangeToFrontEnd).CallDeferred();
     }
 
@@ -1331,7 +1343,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     void IHudActionHost.PostGuiButton(GuiButtonTarget target) => PostGuiButton(target);
 
     // What HudPressRouter asks of this scene, at this frame's pointer: the panels' hit tests and the camera; the session is
-    // not wired here.
+    // InGameHud.SessionActions.cs's.
     void IHudPressHost.ApplyHudAction(ClassicHudAction action) => ApplyHudAction(action, _pressPointer);
 
     void IHudPressHost.GoToFullMapTile()
@@ -1348,10 +1360,6 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     ClassicOptionsAction IHudPressHost.OptionsActionAtPointer() => _options?.ActionAt(_pressPointer) ?? ClassicOptionsAction.None;
 
     void IHudPressHost.RefreshSaves() => _saves?.Refresh();
-
-    /// <summary>Loading a level and leaving the game are the runner's (plan step 2): the session is dropped.</summary>
-    void IHudPressHost.StartSession(ClassicSessionAction session) =>
-        GD.Print("DK2.Godot: the options menu's ", session.ToString(), " is not wired yet.");
 
     bool IHudPressHost.TryPressOverview(in HudPress press, out CreatureOverviewRequest request)
     {
@@ -1472,13 +1480,15 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
     }
 
-    /// <summary>Reloads this scene to continue <see cref="s_resume"/>; a reload the tree refuses drops the handover, so the
-    /// running level goes on and the next load can try again.</summary>
+    /// <summary>Reloads this scene to continue <see cref="s_resume"/> (a loaded save or a restart); a reload the tree refuses
+    /// drops the handover, so the running level goes on and the next load can try again.</summary>
     private void ReloadForResume()
     {
+        CarryScriptFrames();
         Error error = GetTree().ReloadCurrentScene();
         if (error == Error.Ok) return;
         s_resume = null;
+        s_carriedScriptFrames = null;
         GD.PushWarning("DK2.Godot: the scene could not be reloaded to continue the save (", error.ToString(), ").");
         _saveLoad?.Error("The scene could not be reloaded.");
     }

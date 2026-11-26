@@ -16,8 +16,9 @@ namespace DK2.GodotAdapter;
 /// page, and a <see cref="HudCanvas"/> draws its frame. This node runs the session's clock, converts the pointer to
 /// 640 x 480 units and forwards it. The campaign profile and hi-score table load as in Unity
 /// (<see cref="CampaignProfileStore"/>, <see cref="HiScoreStore"/>), so the hi-score and movie gallery pages show the
-/// player's rows and the campaign entries open the map page; with no station scene there is no land to pick and no level
-/// launches. The movies (the startup, the gallery, the attract and a won map's cutscene) are in
+/// player's rows and the campaign entries open the map page. The 3D station behind the menu, the land picking, the launch
+/// and the hi-score name are in <c>ClassicFrontEndMenu.Station.cs</c>, the pointer and the check runs' scripted input in
+/// <c>ClassicFrontEndMenu.Input.cs</c>. The movies (the startup, the gallery, the attract and a won map's cutscene) are in
 /// <c>ClassicFrontEndMenu.Movies.cs</c>. The saves and settings pages are not wired, so the model leaves their buttons disabled.
 /// The pages' sounds play through the shared <see cref="ClassicSoundMixer"/> at the saved settings' volumes.</summary>
 public partial class ClassicFrontEndMenu : Node
@@ -81,6 +82,11 @@ public partial class ClassicFrontEndMenu : Node
         _hud.Model.SetMovieGallery(FrontEndHost.MovieGallery(profile, install, _assets.Text));
         _hud.Model.QuitRequested += Quit;
         _session.PageChanged += PageChanged;
+        string[] args = OS.GetCmdlineUserArgs();
+        GameSettings settings = InGameHud.LoadSettings(folders.Settings);
+        PrepareStation(install, profile, _profiles.SecretFiveAvailable, LaunchArguments.Parse(args, "--").Seed ?? 1,
+            DisplaySettings.BrightnessExponent(settings.Gamma), args);
+        OpenInput(args);
         _canvas = new HudCanvas { Name = "HudCanvas", Load = _assets.Load };
         AddChild(_canvas);
         // DungeonRunner's sound player, which its front end has too, at the saved settings' volumes: the pages' sounds only
@@ -88,13 +94,12 @@ public partial class ClassicFrontEndMenu : Node
         var output = new ClassicSoundOutput { Name = "Sound" };
         AddChild(output);
         _mixer = new ClassicSoundMixer(output, new InstallClassicSoundAssets(install), 0);
-        GameSettings settings = InGameHud.LoadSettings(folders.Settings);
         _mixer.SoundQuality = settings.SoundQuality;
         _mixer.SetVolumes(master: settings.MasterVolume, speech: settings.SpeechVolume, music: settings.MusicVolume,
             effects: settings.SoundEffectVolume, speechOn: settings.SpeechSwitch, musicOn: settings.MusicSwitch,
             effectsOn: settings.SfxSwitch);
         // --sound-log, as the in-game scene's: each request as it starts, on the front end's clock.
-        if (Array.IndexOf(OS.GetCmdlineUserArgs(), "--sound-log") >= 0) LogSounds(_mixer);
+        if (Array.IndexOf(args, "--sound-log") >= 0) LogSounds(_mixer);
         UseReplacementFont = true;
         OpenMovies(install, skipStartup, returnPage);
         if (_startup == null) _session.Update(TimeSpan.Zero);
@@ -124,6 +129,7 @@ public partial class ClassicFrontEndMenu : Node
     public override void _Input(InputEvent @event)
     {
         NoteKeyPress(@event);
+        if (@event is InputEventKey key) _keyboard.Feed(key);
         // Only the wheel comes from events; the position is polled each frame, as Unity reads Input.mousePosition.
         if (@event is InputEventMouseButton button)
         {
@@ -136,15 +142,19 @@ public partial class ClassicFrontEndMenu : Node
     public override void _Process(double delta)
     {
         if (_hud == null || _session == null || _canvas == null) return;
+        InjectKeys();
         // Engine time rather than the wall clock, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         long milliseconds = (long)(_elapsed * 1000);
+        bool primaryHeld;
+        (_pointer, primaryHeld) = SamplePointer();
         // DungeonRunner.Update's first step, the front end's too.
         _mixer?.PlayDecoded(milliseconds);
         _mixer?.UpdateSpeech(milliseconds);
         // The startup, a won map's cutscene, or a movie holds the screen; the menu runs once they are over.
-        if (UpdateMovies()) { _wheel = 0; return; }
+        if (UpdateMovies()) { _wheel = 0; _keyboard.EndFrame(); return; }
         _session.Update(FrontEndTime);
+        TypeHiScoreName();
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
         bool sized = width > 0 && height > 0;
@@ -152,22 +162,18 @@ public partial class ClassicFrontEndMenu : Node
         FrontEndPointer? pointer = null;
         if (sized)
         {
-            _pointer = GetViewport().GetMousePosition();
             FrontEndPoint at = FrontEndBox.ToUnits(_pointer.X, _pointer.Y, width, height);
-            pointer = new FrontEndPointer(at.X, at.Y, Input.IsMouseButtonPressed(MouseButton.Left));
+            pointer = new FrontEndPointer(at.X, at.Y, primaryHeld);
         }
         _hud.Advance(pointer, sized ? _wheel : 0, _elapsed);
         _wheel = 0;
-        // DungeonRunner.UpdateFrontEnd: the menu's and the campaign map's sounds.
-        if (_mixer != null)
+        // DungeonRunner.UpdateFrontEnd: the menu's sounds, the station (which may leave for a level), then the map's sounds.
+        if (_mixer != null) _mixer.Play(_hud.Model.Sounds); else _hud.Model.Sounds.Clear();
+        bool inside = sized && _pointer.X >= 0 && _pointer.Y >= 0 && _pointer.X < width && _pointer.Y < height;
+        if (UpdateStation(_pointer, primaryHeld, inside, milliseconds)) return;
+        if (_campaign != null)
         {
-            _mixer.Play(_hud.Model.Sounds);
-            if (_campaign != null) _mixer.Play(_campaign.Sounds);
-        }
-        else
-        {
-            _hud.Model.Sounds.Clear();
-            _campaign?.Sounds.Clear();
+            if (_mixer != null) _mixer.Play(_campaign.Sounds); else _campaign.Sounds.Clear();
         }
         _hud.Sync();
         if (!sized) return;
@@ -186,7 +192,8 @@ public partial class ClassicFrontEndMenu : Node
         return new HudScaleLayout((int)size.X, (int)size.Y, percent).EffectivePercent;
     }
 
-    private static void PageChanged(FrontEndPage page) => GD.Print("DK2.Godot front end: page ", page.ToString());
+    private static void PageChanged(FrontEndPage page) =>
+        GD.Print("DK2.Godot front end: page ", page.ToString(), " at process frame ", Engine.GetProcessFrames());
 
     private void Quit() => GetTree().Quit();
 
@@ -197,6 +204,7 @@ public partial class ClassicFrontEndMenu : Node
     {
         if (_session != null) _session.PageChanged -= PageChanged;
         if (_profiles != null) _profiles.Changed -= RefreshMovies;
+        CloseStation();
         CloseMovies();
         _hud?.Dispose(); _hud = null;
         _mixer?.Dispose(); _mixer = null;

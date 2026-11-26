@@ -140,10 +140,10 @@ group 2 is a list to audit, not a finding.
       lists `user://Saves`, `%APPDATA%/Godot/app_userdata/DK2.Godot/Saves`, not created at startup, which
       is not Unity's `persistentDataPath/Saves`, so Unity's saves are not listed); the open and close
       sounds; and `PointerOverHud` leaves the save page out, as in Unity, so tooltips from panels
-      beneath it may show (see [Q855](research/open-questions.md)). Not wired in the options menu: the session action after Yes on
-      Restart, Return to Menu and Quit, taken and dropped with a `GD.Print` because it needs the
-      runner (step 2); the other HUD keys (GUI toggle, heart, portal and fight
-      navigation); `AllowOptionsKey`, passed true, where Unity's scripted camera path holds the key
+      beneath it may show (see [Q855](research/open-questions.md)). The session action after Yes on
+      Restart, Return to Menu and Quit and the other HUD keys (GUI toggle, Heart, portal and fight navigation) were
+      wired later (2026-11-25, `InGameHud.SessionActions.cs`, with the level end's prompt, the rubber-band limit and the
+      hand's drop animation). Not wired in the options menu: `AllowOptionsKey`, passed true, where Unity's scripted camera path holds the key
       back (step 2); and the open and close sounds 0x139 and 0x13A. Godot also has the
       full map (`ClassicFullMap.cs` over `FullMapHud`: M, scan 0x32, opens it, and M, Escape or a
       left or right press closes it; it draws the map image, the creature squares, the keepers' legend and the
@@ -1146,6 +1146,20 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       the csproj on both runners (it stays outside `DK2.slnx`); `ArchitectureTests` hold the adapter to its one
       `DK2.Presentation` reference, no packages, no `using DK2.AI`/tools and no GDScript outside `addons/`, and every `src/`
       assembly to no Godot reference; the Flame identifier gate scans the adapter. CI had no step building the Unity compile stand-in to remove.
+- [x] The campaign playable from the menu (parity audit tier 1), 2026-11-25. In `DK2.Presentation`: `FrontEndStation`
+      (Unity's front-end start and `RefreshCampaignMap`: the `FrontEnd3DLevel` world, its scenery and markers, the pick table,
+      the view's projection per map revision) and `SessionContext.Starting` (a resume or restart, else the map's launch, else
+      `--level`/`--from-map`), tested (`FrontEndStationTests`). Godot: `WorldScene.OpenFrontEnd` shares `Open`'s world build
+      and places the camera from `FrontEndSession.Pose`; `PickFrontEndMap` is Unity's; `ClassicFrontEndMenu.Station.cs` runs
+      Unity's `UpdateFrontEnd` order, presenting only when the map's revision moves; Launch queues the request for
+      `InGameHud.tscn` (`InGameHud.Launch.cs`); `--front-end-pointer-path` and `--front-end-keys` script the menu by process
+      frame. Verified with one Movie Maker run at 1920x1080: main menu, Single Player, Continue Campaign, the flight to the
+      map, Level1's land, the briefing, Launch, Level1 with `--stage-win --leave-result`, the title card and cutscene, the
+      debriefing, a hi-score name typed (KEEPER, saved to the run's table), the flight back to the map. Station cost at
+      1920x1080 in real time (1,800 frames after 1,500): main menu frame p50 2.90 ms (p99 4.60), GPU 1.29 ms; campaign map
+      2.82 ms (p99 4.52), GPU 1.21 ms; 0 B allocated a frame in both. Against a clean `git archive HEAD` with only this change
+      added: turn-400 hash `F5C7BAE552173778`, Level1 and Level7 Movie Maker frames (200 each) byte-identical. Not checked:
+      a real mouse and keyboard.
 
 ## Step 5: remove Unity (one change, at parity)
 

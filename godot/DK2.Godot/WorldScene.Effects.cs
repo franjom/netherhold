@@ -39,8 +39,10 @@ public partial class WorldScene : ISimulationEventSink
     private static readonly Shader?[] s_spriteShaders = new Shader?[3];
     private Rid _effectQuadMesh;
 
-    /// <summary>Observe the real shot/effect requests before the first turn; camera entry itself emits nothing.</summary>
-    public void OpenEffects(GameSimulation simulation, WorldView view, PlayerId viewer, ulong seed)
+    /// <summary>Observe the real shot/effect requests before the first turn; camera entry itself emits nothing. Returns the
+    /// view's sink over this scene's effects and the chain observed so far, for the host to wrap and observe with (Unity's
+    /// runner puts its <see cref="HandCursorEventSink"/> in front of it).</summary>
+    public ISimulationEventSink OpenEffects(GameSimulation simulation, WorldView view, PlayerId viewer, ulong seed)
     {
         _effectSimulation = simulation;
         _effectDownstream = simulation.Events;
@@ -70,7 +72,7 @@ public partial class WorldScene : ISimulationEventSink
         view.LocalPickups.DustRequested += request => model.RequestPickupDust(request);
         _effectSink = new LocalPickupEffectSink(view.LocalPickups, model);
         _effectFrame = new EffectFrame(_effects, new LevelGemIdleEffects(database));
-        simulation.ObserveWith(new VisibilityEventSink(view, world, viewer, this));
+        return new VisibilityEventSink(view, world, viewer, this);
     }
 
     /// <summary>The level's sound (plan step 4): the Heart's beat and the creatures' steps the frame lets through, and the

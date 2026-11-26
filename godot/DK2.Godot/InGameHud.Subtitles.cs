@@ -26,6 +26,7 @@ public partial class InGameHud
         AddChild(layer);
         _subtitleFace = ClassicFrontEndMenuAssets.LoadReplacementFont();
         _subtitle = new BitmapTextItem(layer.GetCanvas()) { ReplacementFont = _subtitleFace };
+        OpenResultPrompt(layer, _subtitleFace);
     }
 
     private void DrawSubtitles()
@@ -58,6 +59,7 @@ public partial class InGameHud
     {
         _subtitle?.Dispose();
         _subtitle = null;
+        CloseResultPrompt();
         _subtitleFace?.Dispose();
         _subtitleFace = null;
     }

@@ -112,7 +112,28 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     public void Open(string install, CampaignLevelData level, WorldState world, WorldView view, PlayerId viewer,
         NVector3 focus, int scrollSpeed)
     {
-        _art = InstallArtProvider.Open(install, level.Database);
+        OpenWorld(install, level, world, view, viewer, additionalArt: null);
+        CameraThing? profile = ClassicCameraSetup.Preset(
+            GameDatabaseLoader.LoadCameraPresets(install, level.Name), ClassicCameraMode.Dungeon);
+        if (profile == null)
+        {
+            GD.PushError("DK2.Godot: the level has no dungeon camera preset; no 3D camera.");
+            return;
+        }
+        ClassicCameraSetup setup = ClassicCameraSetup.Create(profile, ClassicCameraSetup.DefaultZoomOutLimitScale,
+            GameSessionStarter.CameraTicksPerSecond(level), scrollSpeed, level.Players, viewer, world.Width, world.Height);
+        _controls = setup.Controls;
+        ClassicCamera = setup.Camera;
+        Focus = focus;
+        OpenCamera();
+    }
+
+    /// <summary>The world without its camera: terrain, liquids, objects, lights, shadows and the blended stream, with the
+    /// install's art and <paramref name="additionalArt"/> (the front end's lands and markers).</summary>
+    private void OpenWorld(string install, CampaignLevelData level, WorldState world, WorldView view, PlayerId viewer,
+        IEnumerable<ArtEntry>? additionalArt)
+    {
+        _art = InstallArtProvider.Open(install, level.Database, additionalArt);
         // DungeonRunner's defaults: the lattice bends the terrain, with DK2's high walls.
         var lattice = new TerrainLattice(level.Database, world, viewer) { HighWalls = true };
         _lattice = lattice;
@@ -147,19 +168,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _presenter.Present(world);
         for (int generation = 0; generation < _collectionsAtOpen.Length; generation++)
             _collectionsAtOpen[generation] = GC.CollectionCount(generation);
+    }
 
-        CameraThing? profile = ClassicCameraSetup.Preset(
-            GameDatabaseLoader.LoadCameraPresets(install, level.Name), ClassicCameraMode.Dungeon);
-        if (profile == null)
-        {
-            GD.PushError("DK2.Godot: the level has no dungeon camera preset; no 3D camera.");
-            return;
-        }
-        ClassicCameraSetup setup = ClassicCameraSetup.Create(profile, ClassicCameraSetup.DefaultZoomOutLimitScale,
-            GameSessionStarter.CameraTicksPerSecond(level), scrollSpeed, level.Players, viewer, world.Width, world.Height);
-        _controls = setup.Controls;
-        ClassicCamera = setup.Camera;
-        Focus = focus;
+    /// <summary>The scene's one camera, with Unity's near plane, the gamma output and the post effects, placed now.</summary>
+    private void OpenCamera()
+    {
         _camera = new Camera3D
         {
             Name = "Camera",
@@ -221,12 +234,17 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     public void PlaceCamera()
     {
-        if (_camera == null || ClassicCamera == null) return;
+        if (_camera == null || (ClassicCamera == null && FrontEndPose == null)) return;
         _camera.CullMask = uint.MaxValue & ~PreviewBlendedLayer;
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
         if (width <= 0 || height <= 0) return;
         var viewport = new CameraViewport(width, width, height);
+        if (ClassicCamera == null)
+        {
+            PlaceFrontEndCamera(viewport);
+            return;
+        }
         var drawnViewport = LetterboxBar > 0
             ? new CameraViewport(width, width, Math.Max(1, (int)(height * (1 - 2 * LetterboxBar)))) : viewport;
         ClassicCameraPose? held = PossessionPose(drawnViewport);
@@ -245,8 +263,15 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
                 ProjectionCentreShift = pose.ProjectionCentreShift * scale
             };
         }
-        if (View != null && pose == _placed && viewport == _placedViewport) return;
-        _near = held == null ? NearPlane : PossessionCamera.NearClipDistance;
+        PlacePose(pose, viewport, held == null ? NearPlane : PossessionCamera.NearClipDistance);
+    }
+
+    /// <summary>Writes <paramref name="pose"/> to the camera when it or the viewport changed: the frustum with the pose's
+    /// centre shift as its offset, the far plane, and the view the picks and the minimap read.</summary>
+    private void PlacePose(in ClassicCameraPose pose, CameraViewport viewport, float near)
+    {
+        if (_camera == null || (View != null && pose == _placed && viewport == _placedViewport)) return;
+        _near = near;
         _camera.Near = _near;
         _placed = pose; _placedViewport = viewport;
         _frustumStale = true;

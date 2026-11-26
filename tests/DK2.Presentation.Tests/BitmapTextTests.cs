@@ -156,6 +156,7 @@ public class BitmapTextTests
         Assert.Equal(new HudRect(0, 945, 1920, 135), SubtitleLayout.SpeechBox(1920, 1080));
         Assert.Equal(new HudRect(0, 1080 * 0.70f, 1920, 135), SubtitleLayout.WinScreenBox(1920, 1080));
         Assert.Equal(new HudRect(0, 0, 1920, 1080), SubtitleLayout.TitleBox(1920, 1080));
+        Assert.Equal(new HudRect(0, 1020, 1920, 30), SubtitleLayout.ResultPromptBox(1920, 1080));
         Assert.Equal(2f, SubtitleLayout.TitleScale);
         Assert.Equal(new HudRect(1920 * 0.05f, 945, 1920 * 0.9f, 135), SubtitleLayout.TrueTypeLabel(SubtitleLayout.SpeechBox(1920, 1080), 1920));
     }

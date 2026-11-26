@@ -304,7 +304,8 @@ public sealed class BitmapTextBlock
 }
 
 /// <summary>
-/// Where the remake shows speech subtitles, the win screen's text and the cutscene title card, in screen pixels.
+/// Where the remake shows speech subtitles, the win screen's text, the level end's prompt and the cutscene title card, in
+/// screen pixels.
 /// Our layout, not DK2's: that DK2 shows no win-screen text is carried over uncited from the runner, and its title
 /// card's size is unread. The bitmap face is
 /// <see cref="InterfaceFonts.LegibleFileName"/> at the screen height; the TrueType face (the owner's first choice,
@@ -325,6 +326,10 @@ public static class SubtitleLayout
     /// <summary>The win screen's text with speech off: an eighth of the screen high, from 70% down.</summary>
     public static HudRect WinScreenBox(int screenWidth, int screenHeight) =>
         new(0f, screenHeight * 0.70f, screenWidth, screenHeight / 8f);
+
+    /// <summary>The level end's prompt (<see cref="CampaignResultFlow.Prompt"/>): a 30-pixel band, its top 60 pixels above
+    /// the screen's bottom, the whole width, where Unity's runner labels it.</summary>
+    public static HudRect ResultPromptBox(int screenWidth, int screenHeight) => new(0f, screenHeight - 60f, screenWidth, 30f);
 
     /// <summary>The cutscene title card: the whole screen, at <see cref="TitleScale"/>.</summary>
     public static HudRect TitleBox(int screenWidth, int screenHeight) => new(0, 0, screenWidth, screenHeight);

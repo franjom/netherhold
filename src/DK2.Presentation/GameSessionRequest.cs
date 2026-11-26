@@ -39,6 +39,21 @@ public sealed record GameSessionRequest
         return new(GameSessionMode.Campaign, levelName, returnPage);
     }
 
+    /// <summary>The session the options menu's confirmed entry asks for, as Unity's runner maps it
+    /// (<c>IHudPressHost.StartSession</c>): Restart starts the running level afresh with its return page, Return to Menu
+    /// opens the front end at the campaign map when the level came from it and at the main page otherwise. Quit, and
+    /// <see cref="ClassicSessionAction.None"/>, ask for no session: null.</summary>
+    public static GameSessionRequest? ForSessionAction(ClassicSessionAction action, SessionContext context)
+    {
+        if (context is null) throw new ArgumentNullException(nameof(context));
+        return action switch
+        {
+            ClassicSessionAction.Restart => Restart(Campaign(context.LevelName, context.ReturnPage)),
+            ClassicSessionAction.ReturnToMenu => FrontEnd(context.LaunchedFromFrontEnd ? FrontEndPage.CampaignMap : FrontEndPage.None),
+            _ => null,
+        };
+    }
+
     /// <summary>The campaign request a loaded save continues: its level and return page, carrying the restored simulation.
     /// <see cref="Restart"/> of it starts the level afresh.</summary>
     public static GameSessionRequest Resumed(SessionResume resume)
