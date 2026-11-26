@@ -145,7 +145,7 @@ regression. Otherwise retain the joined path.
   Give a kernel that still needs workers immutable captured inputs and disjoint outputs, coarse bounded batches
   and a serial fallback; include scheduling, conversion and upload in the result.
   This can precede P1 with a small safe input capture. Jobs/Burst remain adapter-only.
-- **GPU:** not planned; revisit the existing [animation experiments](../../tools/classic-unity-probe/README.md)
+- **GPU:** not planned; revisit the existing animation experiments in `git show 909a6c5e2:tools/classic-unity-probe/README.md`
   only if CPU preparation remains the bottleneck and classic fidelity is retained.
 - **Simulation:** the tick itself stays serial. Shortening it, and the one
   overlap outside it, are in [simulation

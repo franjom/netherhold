@@ -137,7 +137,7 @@ public sealed class PlayerActionAdapter
             ? PlayerActionResolution.Of(new CastSpellOnCreatureCommand(_player, cast.Spell, target.Id)) : NotOffered;
     }
 
-    /// <summary>A door or trap click (DungeonRunner.Hud): an offered item whose slot is not greyed for want
+    /// <summary>A door or trap click: an offered item whose slot is available for
     /// of a Workshop (that click places nothing), on a tile of the map. The simulation decides the placement.</summary>
     private static PlayerActionResolution Place(PlayerObservation observation, PlayerWorkshopKind kind, byte id, TilePos tile, Func<PlayerCommand> command)
     {

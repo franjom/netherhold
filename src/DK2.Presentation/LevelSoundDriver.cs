@@ -13,8 +13,7 @@ namespace DK2.Presentation;
 /// <summary>A level's sound, driven once a frame over a <see cref="ClassicSoundMixer"/>: the simulation's thing sounds
 /// (<see cref="WorldSounds"/>), the voices following their things, the terrain ambience around the listener, the throttle's
 /// frame, the speech line the scripted view times its subtitles by, the music level once a settled turn and the streams. It
-/// also turns the scene's beats, steps and party effects into requests. Moved from Unity's <c>DungeonRunner.Sound</c> in
-/// migration step 4; Unity keeps its copy until it is removed (step 5). The adapter supplies only the listener's tile and
+/// also turns the scene's beats, steps and party effects into requests. The adapter supplies the listener's tile and
 /// the clock.</summary>
 public sealed class LevelSoundDriver
 {
@@ -63,7 +62,7 @@ public sealed class LevelSoundDriver
     public WorldSoundDirector Observe(ISimulationEventSink? downstream) =>
         WorldSounds = new WorldSoundDirector(downstream, _viewer);
 
-    /// <summary>Unity's runner's <c>WireSpeech</c>: the level's music, and the scripted view's speech, Mentor lines and skips.</summary>
+    /// <summary>Wire music and the scripted view's speech, Mentor lines and skips.</summary>
     public void WireSpeech(ScriptedViewDirector scriptedView)
     {
         if (_scriptedView != null) throw new InvalidOperationException("The speech is already wired.");
@@ -76,7 +75,7 @@ public sealed class LevelSoundDriver
         scriptedView.SpeechSkipped += () => _mixer.StopSpeech(_mixer.Now);
     }
 
-    /// <summary>Unity's runner's <c>UpdateWorldSound</c>, after the frame's present: <paramref name="listener"/> is the tile under
+    /// <summary>Update world sounds after presentation. <paramref name="listener"/> is the tile under
     /// the screen's centre, null over the HUD or off the map, where the ambience and the listener's point keep their last.</summary>
     public void Update(WorldState world, TilePos? listener, long nowMilliseconds)
     {

@@ -7,12 +7,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The front end's pointer and keys: the OS pointer polled once a frame (as Unity reads
-/// <c>Input.mousePosition</c>), or, for a check run, <c>--front-end-pointer-path</c> (<see cref="PointerScript"/>, the
-/// in-game <c>--pointer-path</c>'s form) and <c>--front-end-keys</c> (<see cref="KeyScript"/>, Godot <see cref="Key"/>
-/// names) injected through Godot's input, so a capture never moves the owner's cursor or types into another window. Both
-/// count <see cref="Engine.GetProcessFrames"/>, so one script spans every front end of the run (before a level and after
-/// it); with a scripted pointer the OS mouse stops at <see cref="ScriptedPointerGate"/>.</summary>
+/// <summary>Polls the front end's pointer once per frame and forwards keyboard and pointer events to the menu model.</summary>
 public partial class ClassicFrontEndMenu
 {
     private PointerScript? _pointerScript;

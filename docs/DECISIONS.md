@@ -10,7 +10,7 @@
 - Sub-step fractions are carried as integer remainders (`CreatureState.MoveRemainder`, `TileState.WorkRemainder`), never as floats.
 
 ## ADR-0002 — Simulation independent of Unity, enforced at compile time
-**Date:** 2026-08-29 · **Status:** accepted · amended 2026-09-04: the netstandard2.1 half was unenforced until then · **Systems:** simulation-core, presentation-unity
+**Date:** 2026-08-29 · **Status:** accepted · amended by ADR-0824: the engine boundary remains and the framework retarget is scheduled · amended 2026-09-04: the netstandard2.1 half was unenforced until then · **Systems:** simulation-core, presentation-unity
 
 **Context.** Assemblies Unity loads must target netstandard2.1 and must not reference Unity.
 **Decision.** Simulation-side assemblies target netstandard2.1 and may not reference any assembly named `Unity*`. `ArchitectureTests` fails the run on a Unity reference.
@@ -507,7 +507,7 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 - An object has no sub-tile position, because the simulation has none — `ObjectView` carries a tile. DK2 places a pile at one of eight fixed points around a tile centre and a dying creature's gold anywhere in its tile (`docs/research/gold-on-the-floor.md` §7); reproducing that needs the field, and the field arrives with the first mechanic that moves an object.
 
 ## ADR-0036 — Unity 6 LTS, and the adapter is nine methods
-**Date:** 2026-09-04 · **Status:** accepted · amended three times on 2026-09-04: the adapter exists and compiles, Unity runs it headless, and the owner pressed Play · **Systems:** presentation-unity
+**Date:** 2026-09-04 · **Status:** superseded by ADR-0824 on 2026-11-26 · amended three times on 2026-09-04: the adapter exists and compiles, Unity runs it headless, and the owner pressed Play · **Systems:** presentation-unity
 
 **Context.** `DK2_REIMPLEMENTATION_PLAN.md` §11 says *"Unity version: latest LTS; decide at M3, not now"*. It is M3 and the presentation boundary is built.
 **Decision.** **Unity 6 LTS**, `6000.6.0f1`, which is what `winget install --source winget --id Unity.Unity.6000` installs. The previous LTS (2022.3.62f3) is the fallback if Unity 6 misbehaves; nothing in this project depends on a Unity 6 feature, because nothing depends on Unity at all.
@@ -608,10 +608,14 @@ Owner: *"once a tile is dug out, and maybe claimed, there is no possible way to 
 Under the GPL the per-file notice is what makes `LICENSE` apply to a file rather than merely sit beside it, so this is not cosmetic. **The short form does not narrow the grant** — the original prose said "either version 3 of the License, or (at your option) any later version" and `GPL-3.0-or-later` says exactly that, in a token tooling can read (the SPDX/REUSE convention) — but the whole grant now rests on one token with no prose to fall back on, so two tests hold it in place: `LicenseHeaderTests.TheNotice_DeclaresGpl3OrLater` pins the identifier, because `GPL-3.0-only` or a bare `GPL-3.0` is a one-word edit and a narrower licence, and `LicenseHeaderTests.TheLicenceFile_IsTheVersionTheNoticeClaims` parses the version out of the identifier and asserts `LICENSE` really is that version. Under a long notice each file quoted the licence; under a short one each file only names it, and naming can go stale silently.
 **Consequences.**
 - **The defect this uncovered.** Roslyn's IDE0073 with `file_header_template` in `.editorconfig` is the natural way to enforce a file header in .NET, and with `EnforceCodeStyleInBuild` + `TreatWarningsAsErrors` already set it becomes a build error for free. It works — for MIT. **It could not express the GPL's prose notice: an `.editorconfig` value ends at the first `;`, and that notice has one** — *"but WITHOUT ANY WARRANTY; without even the implied warranty of"* — with no escape for `;` in the format. The template silently truncated there, Roslyn enforced, and `dotnet format` wrote into seven files a notice whose warranty disclaimer had been cut in half, with the build green because the files matched the truncated template exactly. **The MIT text contains no semicolon**, which is the only reason IDE0073 looked like the answer: the mechanism was never correct, only untested against text that exercised it.
-- **The enforcement is a test, not an analyser.** `tests/DK2.Core.Tests/LicenseHeaderTests.cs` renders `license.txt` and asserts that every source file starts with it. Three reasons: it covers `unity/DK2.Unity/Assets`, which no project in `DK2.slnx` compiles — only `unity/DK2.Unity.Compile` does, and that needs an installed editor (ADR-0036) — so a build-time analyser is structurally blind to exactly the files most likely to be forgotten; it has no `;` problem and no dependence on a template format's parsing (**the three-line notice contains no semicolon, so IDE0073 would work today, and it is still not used, because "correct as long as nobody lengthens the text" is the same accident as before and it fails silently both times**); and CI already runs `dotnet test DK2.slnx` on Linux and Windows, so it is gated with no new workflow step.
+- `LicenseHeaderTests` checks the notice on first-party C# under `src/`, `tests/`
+  and `godot/DK2.Godot/`. It runs in the solution suite on Linux and Windows, and
+  avoids the template parsing issue above.
 - **The sweep asserts its own file count is above 100 before checking anything.** A search that finds nothing passes every content assertion, which is how a check becomes a decoration; this project has enough of those in its history (ADR-0036, ADR-0039, ADR-0040) to write the guard in up front.
 - `.editorconfig` keeps the whole account of the IDE0073 failure, next to the `end_of_line = lf` that stops `dotnet format` rewriting whole files to CRLF on Windows — which it did, twice, while this was being built.
-- **Open, not decided: GPLv3 and Unity.** OpenKeeper builds on jMonkeyEngine, which is BSD; this project builds on Unity, which is proprietary. Distributing GPLv3 game code that links a proprietary engine runtime is a known friction point, unresolved because nothing is distributed yet. It needs an answer before the first public build, not before the next commit.
+- **Closed 2026-11-26 (ADR-0824).** Godot's MIT licence permits distribution
+  with the project's GPLv3 code. The proprietary runtime that prompted the
+  original question is no longer part of the project.
 
 ## ADR-0042 — The portal produces creatures, and three of its rules come from OpenKeeper
 **Date:** 2026-09-04 · **Status:** accepted · amended by ADR-0047: four gates were not enough, a creature's own flags are a fifth · interval half superseded 2026-09-07 by ADR-0086
@@ -16241,7 +16245,7 @@ parallelism plan). Nothing is known about how DK2 itself schedules these loads; 
 
 ## ADR-0689: a second copy of the level ticks on a worker while the level loads
 
-**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** presentation-unity, simulation-core
+**Date:** 2026-11-06. **Status:** amended by ADR-0824: Godot uses its own level warm-up. No hash change. · **Systems:** presentation-unity, simulation-core
 
 **Context.** After ADR-0688 the Level6a fly-by's remaining hitches were at ticks 2 and 3, half a second
 into play: the join waited 73 and 37 ms on the second and third worker ticks, which the headless harness
@@ -16270,7 +16274,7 @@ copy was tried first and dropped: writing the snapshot cost the main thread 176 
 
 ## ADR-0690: standalone players are built with IL2CPP
 
-**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** presentation-unity
+**Date:** 2026-11-06. **Status:** superseded by ADR-0824 on 2026-11-26. No hash change. · **Systems:** presentation-unity
 
 **Context.** Every first-execution cost the Level6a probe found under Mono (ADR-0688's HUD frame, ADR-0689's
 ticks 2 and 3, the dig-wave frames) is the JIT compiling a path on its first use. The game probe can now
@@ -16409,7 +16413,7 @@ beside the live one with equal state hashes (`PresentedWorldOnRealDataTests`, Le
 
 ## ADR-0694: the frame reads a presented copy of the world while the worker ticks the live one
 
-**Date:** 2026-11-06. **Status:** accepted. No hash change. · **Systems:** presentation-unity
+**Date:** 2026-11-06. **Status:** accepted · amended by ADR-0824: worker ticks remain a future Godot option. No hash change. · **Systems:** presentation-unity
 
 **Context.** On the worker-thread path (ADR-0458) every frame joined the tick started at the end of
 the frame before. Above 60 FPS the tick (6–15 ms on the owner's laptop, Level6a) no longer fits in a
@@ -19602,3 +19606,20 @@ the wall from the marker, so a loaded game draws the hidden door as wall, as a l
 **Consequences.** This is a presentation deviation only: the marker, and with it routing, the Imps' uncover
 task and the hover, behave as in DK2, so simulation runs stay comparable with native captures, which is
 what ADR-0783 protects. The defect is still tracked in issue #2 with this ADR as its disposition.
+
+## ADR-0824 - retire the Unity adapter at Godot parity
+**Date:** 2026-11-26 | **Status:** accepted | **Systems:** presentation-godot, simulation-core, legal
+**Context.** The 2026-11-26 parity audit found that Godot covers the player actions
+available in Unity. The adapter split in ADR-0805 keeps gameplay and presentation
+rules in shared C#.
+
+**Decision.** Godot is the sole presentation adapter. Remove the Unity project,
+probes and build configuration. Export the tester package with the pinned Godot
+.NET build (ADR-0810). The open runtime licensing question in ADR-0041 is closed.
+This supersedes ADR-0036 and ADR-0690. Use ADR-0813 for rendering decisions.
+
+**Consequences.** Keep engine dependencies out of shared code (ADR-0002). The
+retargeting commit moves the shared assemblies to net10.0 after the removal commit.
+Godot already warms its own level (ADR-0689). Keep the option to move turns onto a
+worker with a presented-world handoff (ADR-0694). Keep `DeferredEventSink`,
+`WorkerDrawLag` and their CI coverage for that work.

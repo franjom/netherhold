@@ -9,9 +9,7 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Presentation;
 
-/// <summary>The hand's local pickup, moved out of Unity's runner (migration plan step 2c), where it was written twice: the
-/// creature overview's press (DungeonRunner.QueueHudInput) and the world click's command loop (formerly
-/// DungeonRunner.QueueInput, now <see cref="WorldPointerInput"/>).
+/// <summary>The hand's local pickup for both the creature overview and <see cref="WorldPointerInput"/>.
 /// <see cref="LocalPickupFeedback.TryQueue"/> decides whether a pickup is posted (dead, dying, already pending, not
 /// pickable, hand full); a posted one also plays the held-thing cursor and queues the minimap's preview. A drop is
 /// deferred onto a pending pickup (<see cref="LocalPickupFeedback.TryQueueDrop"/>) until
@@ -20,7 +18,7 @@ namespace DK2.Presentation;
 /// overview pickup still takes the press (<see cref="HudPressRouter"/> returns true), while a refused world pickup is only
 /// skipped and the frame's other commands go on; the overview's cursor gets no pointer and the world's gets the pointed
 /// position; and only the overview also queues its own preview (<see cref="CreatureOverview.QueuePickupPreview"/>).
-/// Each method's <c>milliseconds</c> is the host's wall clock (Unity's <c>Time.unscaledTimeAsDouble</c> in milliseconds).</remarks>
+/// Each method's <c>milliseconds</c> is the host's wall clock in milliseconds.</remarks>
 public sealed class PickupFlow
 {
     private readonly WorldView _view;

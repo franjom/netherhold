@@ -15,7 +15,7 @@ using NVector3 = System.Numerics.Vector3;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Objects, structures and wall torches (plan step 3f), as Unity's <c>DungeonScene</c> draws them: each install
+/// <summary>Draws objects, structures and wall torches. Each install
 /// model built once into a shared <see cref="ArrayMesh"/> (one surface per KMF material, <see cref="ModelMesh"/>), a
 /// <see cref="MeshInstance3D"/> per thing with its surfaces' <see cref="ObjectMaterialLook"/>s, a type-6 clip played by the
 /// shared <see cref="CreatureAnimationPlayer{TResources}"/> (<see cref="AnimatedModel"/>), the Heart's beat through
@@ -52,12 +52,11 @@ public partial class WorldScene
     private long _phaseStart;
     private bool _frameBending;
 
-    /// <summary>A Heart's health change from the world's event (Unity's <c>QueueHeartHealthChange</c>); the next
+    /// <summary>A Heart's health change from the world's event. The next
     /// <see cref="DrawFrame"/> advances each Heart of the owner by its phase step.</summary>
     public void QueueHeartHealthChange(PlayerId owner, DungeonHeartVisual visual) => _heartPulse.QueueHealthChange(owner, visual);
 
-    /// <summary>The draw clock's turn for the clips the coming present starts (Unity's <c>SetCreatureFrameTime</c>, called
-    /// before its present).</summary>
+    /// <summary>The draw clock and fraction for clips starting on the next present.</summary>
     public void SetFrameTime(GameTick tick, float fraction, long milliseconds)
     {
         _frame.SetFrameTime(tick, fraction);
@@ -108,7 +107,7 @@ public partial class WorldScene
         _artless.Remove(objectId);
     }
 
-    /// <summary>Unity's <c>ConfigureObjectClip</c>: a still object shows its model again; a playing one starts its clip once
+    /// <summary>A still object shows its model again; a playing one starts its clip once
     /// per <see cref="AnimationClipRequest.Identity(in ObjectView, AssetRef)"/>, else falls back to the model.</summary>
     private void ConfigureObjectClip(ModelSlot slot, in ObjectView pose, in ResolvedAsset mesh)
     {
@@ -129,7 +128,7 @@ public partial class WorldScene
         if (Model(mesh, lastFrame: false) is ModelMesh fallback) slot.ShowStatic(fallback);
     }
 
-    /// <summary>Unity's <c>ClassicMeshes.ConfigureAnimation</c> for an object: the clip's segments (<see cref="ClipSetFor"/>),
+    /// <summary>Configure the object clip's segments (<see cref="ClipSetFor"/>),
     /// played on the draw clock with a Heart's phase step.</summary>
     private bool TryStartClip(ModelSlot slot, in ResolvedAsset asset, in ObjectView pose, double start)
     {
@@ -140,7 +139,7 @@ public partial class WorldScene
         return true;
     }
 
-    /// <summary>Unity's <c>ClassicMeshes.ConfigureAnimation</c> up to the player: a type-6 clip's segments (start, main,
+    /// <summary>Resolve a type-6 clip's segments (start, main,
     /// end by the resource's flags), each with its template model, built once per install entry and shared by every
     /// player, so a clip started again allocates no arrays; null when the asset has no complete clip.</summary>
     private ClipSet? ClipSetFor(in ResolvedAsset asset)
@@ -179,7 +178,7 @@ public partial class WorldScene
     private sealed record ClipSet(RenderAnimation?[] Clips, ModelMesh?[] Templates, CreatureAnimationTiming Timing,
         Dk2ArtResource Resource);
 
-    /// <summary>Unity's <c>PositionObject</c> and its per-frame pose: the object's point and height between its last two
+    /// <summary>Set an object's point and height between its last two
     /// turns (<see cref="PoseInterpolator"/>), its turns (<see cref="MeshOrientation"/>) and its scale, a Heart's taller.</summary>
     private void PlaceObject(ModelSlot slot, in ObjectView pose, float fraction)
     {
@@ -245,7 +244,7 @@ public partial class WorldScene
         SetTorchLight(floorTileIndex, null);
     }
 
-    /// <summary>Unity's <c>DrawCreatureFrame</c> in <see cref="SceneFrame"/>'s order (this scene is its host): the Hearts'
+    /// <summary>Draw in <see cref="SceneFrame"/>'s order: the Hearts'
     /// queued health steps, each creature's drawn place, clip and head, each moving object's drawn pose, each clip's frame
     /// and a Heart's beat (its mana effect and its sound requested), the torches near a changed tile bent
     /// again; then the flames advanced. <see cref="FinishFrame"/> sorts once the camera is placed.
@@ -364,7 +363,7 @@ public partial class WorldScene
         Mark(DrawPhase.Bend);
     }
 
-    /// <summary>The model an install entry draws, built once (Unity's <c>ClassicMeshes.TryBuild</c>): its first frame, or
+    /// <summary>The model an install entry draws, built once: its first frame, or
     /// its last for <paramref name="lastFrame"/> (a door); null for an asset the install did not answer or a group.</summary>
     private ModelMesh? Model(in ResolvedAsset asset, bool lastFrame)
     {
@@ -429,7 +428,7 @@ public partial class WorldScene
     }
 
     /// <summary>An alpha-blended surface's next pass: its environment pass and the hover's red added over the whole
-    /// triangle, as DK2 and Unity draw them after the material, rather than weighed by the texture's alpha in its own pass.</summary>
+    /// triangle as DK2 draws it after the base material.</summary>
     private ShaderMaterial Extras(ObjectMaterialLook? environment, bool kmfBlended, VertexClip? animation)
     {
         if (_extrasMaterials.TryGetValue((environment, kmfBlended, animation), out ShaderMaterial? material)) return material;
@@ -551,10 +550,10 @@ public partial class WorldScene
             PickBox = PickBox.Around(source.Positions);
         }
 
-        /// <summary>The KMF sphere the Hand's pick measures (Unity reads it from UV2); null for a model without one.</summary>
+        /// <summary>The KMF sphere the Hand's pick measures. Null for a model without one.</summary>
         public PickSphere? Sphere { get; }
 
-        /// <summary>The model's own box in the renderers' frame (Unity's mesh bounds).</summary>
+        /// <summary>The model's own box in rendering coordinates.</summary>
         public PickBox PickBox { get; }
 
         public KmfModel Model { get; }
@@ -572,7 +571,7 @@ public partial class WorldScene
 
         /// <summary>A surface's arrays at <paramref name="positions"/> (the renderers' frame), for a copy with its own vertices:
         /// the model's normals unless <paramref name="normals"/> is given, lit as an instance unless <paramref name="instance"/>
-        /// is false (a torch: Unity's <c>LightingMode.TerrainPiece</c>).</summary>
+        /// is false, as for a wall torch.</summary>
         public Godot.Collections.Array Arrays(IReadOnlyList<NVector3> positions, int surface, IReadOnlyList<NVector3>? normals = null,
             bool instance = true)
         {
@@ -586,9 +585,9 @@ public partial class WorldScene
             return Arrays(positions, normals ?? Source.Normals, used, indices, instance);
         }
 
-        /// <summary>The vertices with Unity's light inputs (<see cref="ClassicMeshes"/>' <c>SetLightBounds</c>): the KMF sphere
+        /// <summary>Put the object's light inputs into its vertices: the KMF sphere
         /// (CUSTOM0, its centre in Godot's frame) and the anchor and light kind (CUSTOM1: no anchor, so the origin's tile;
-        /// kind x 1 for an instance, y 1 for the bound skip); a model without a sphere gets zeros, as Unity's missing UVs.</summary>
+        /// kind x 1 for an instance, y 1 for the bound skip). A model without a sphere gets zeros.</summary>
         private Godot.Collections.Array Arrays(IReadOnlyList<NVector3> positions, IReadOnlyList<NVector3> normals,
             IReadOnlyList<int> used, int[] indices, bool instance)
         {
@@ -646,7 +645,7 @@ public partial class WorldScene
             _shown = _static = model;
             Kind = kind;
             Node = new MeshInstance3D { Name = name, Mesh = model.Mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
-            // An effect's model casts no shadow, as Unity draws it with shadows off.
+            // An effect's model casts no shadow.
             if (scene.TorchShadowsActive && kind != SlotKind.Effect) Node.Layers = ShadowCasterLayers;
             (parent ?? (Node3D)scene).AddChild(Node);
         }
@@ -715,8 +714,7 @@ public partial class WorldScene
             Node.Position = ToGodot(RightHandedFrame.Point(position));
         }
 
-        /// <summary>A model-local point (<see cref="RenderMesh"/>'s frame) where it is drawn, in the renderers' frame: Unity's
-        /// <c>Transform.TransformPoint</c>.</summary>
+        /// <summary>Transform a model-local point into rendering coordinates.</summary>
         public NVector3 ToRender(NVector3 local) => RenderPosition + NVector3.Transform(local * RenderScale, RenderTurn);
 
         public void ShowStatic(ModelMesh model)
@@ -745,8 +743,7 @@ public partial class WorldScene
             Show(_static, _static.Mesh);
         }
 
-        /// <summary>Each surface's look (Unity's <c>RestoreModel</c>, <c>ConfigureTexturePhase</c>, <c>SetAlpha</c>,
-        /// <c>Blueprint</c> and <c>InstanceTinted</c>): an object's texture phase (the main segment or the model), terrain
+        /// <summary>Each surface's look: an object's texture phase (the main segment or the model), terrain
         /// light and fade; a structure's plan or tint; a torch's or lock's own. Allocation-free once the materials exist.</summary>
         public void ApplyLooks()
         {
@@ -757,8 +754,8 @@ public partial class WorldScene
             Node.Visible = ObjectMaterialLook.IsDrawn(alpha);
             bool plan = Kind == SlotKind.Structure && Structure.Plan != BlueprintTint.None;
             ObjectMaterialLook?[] environment = _scene.EnvironmentPasses(_shown.SubmeshCount);
-            // A submesh's environment pass draws after its own, also over a plan (structure-drawing.md section 5, where
-            // Unity draws the plan twice); folded into its material, and not drawn while the object fades.
+            // Fold the environment pass into the submesh's material, including on a plan (structure-drawing.md section 5).
+            // Skip it while the object fades.
             foreach (ObjectPass pass in _scene._passes)
                 if (pass.Look.EnvironmentMapped) environment[pass.Submesh] = pass.Look;
             ModelInstanceLook instance = Kind == SlotKind.Object ? ModelInstanceLook.Object(pose.AddedLight, alpha)
@@ -773,12 +770,11 @@ public partial class WorldScene
                 if (pass.Look.EnvironmentMapped) continue;
                 int surface = _shown.SurfaceOf[pass.Submesh];
                 if (surface < 0) continue;
-                // The red pass skips a material made from a blended KMF one, whatever a fade or plan made of it (Unity's
-                // IsKmfBlended; a plan's materials are not KMF ones, so it reads opaque).
+                // The red pass skips blended KMF materials. A plan uses its own opaque materials here.
                 bool kmfBlended = !plan && pass.Look.Blend != KmfBlend.Opaque;
                 ObjectMaterialLook look = plan ? ObjectMaterialLook.Blueprint(Structure.Plan == BlueprintTint.Red) : instance.Shape(pass.Look);
                 bool own = !plan;
-                // A hovered gold object draws its material's twin (Unity draws the twin over it, one queue later).
+                // A hovered gold object draws its highlight in the material.
                 if (Hover.Swap && pass.Submesh < _shown.Model.Materials.Count
                     && ObjectMaterialLook.HoverTwin(_shown.Model.Materials[pass.Submesh]) is ObjectMaterialLook twin)
                 {
@@ -824,7 +820,7 @@ public partial class WorldScene
             if (red != _red) { _red = red; Node.SetInstanceShaderParameter(RedParameter, red); }
         }
 
-        /// <summary>An effect's model lit by its element's tint more (Unity's <c>ClassicMeshes.ElementTinted</c>): the light
+        /// <summary>An effect's model lit by its element's tint more: the light
         /// added to each surface that takes added light, as an instance uniform; an additive surface is at full white.</summary>
         public void SetEffectTint(NVector3 tint)
         {
@@ -979,9 +975,9 @@ public partial class WorldScene
         }
     }
 
-    /// <summary>A wall torch's model (Unity's <c>ClassicTorchGeometry</c>): its vertices placed by
+    /// <summary>A wall torch's model: its vertices placed by
     /// <see cref="TorchGeometry.Vertex"/>, turned, at the mount and bent by the wall's lattice, relative to the torch's point
-    /// where the node stands (the origin whose tile's table lights it, as Unity's torch object), built again when the torch
+    /// where the node stands, using that origin's tile light table. Rebuild when the torch
     /// changes or a tile near its wall does; its normals turned by the heading, lit as a terrain piece.</summary>
     private sealed class TorchSlot
     {
@@ -1059,7 +1055,7 @@ public partial class WorldScene
                                 Extras: pass.Look.Blend == KmfBlend.AlphaBlend && environment[pass.Submesh] != null)));
                 return;
             }
-            // Bent again in place, as Unity's ClassicTorchGeometry.Refresh rewrites its vertices.
+            // Bend the existing vertices again when the lattice changes.
             _scene.UploadPositions(mesh, _model, _bent, out _);
         }
 
@@ -1074,7 +1070,7 @@ public partial class WorldScene
         }
     }
 
-    /// <summary>The wall flames (Unity's <c>ClassicTorchFlames</c>, audit item 6): the install's flame sprite as camera-facing
+    /// <summary>The wall flames use the install's flame sprite as camera-facing
     /// quads, additive (source alpha, one), unshaded, both faces, no depth write, a quarter tile wide; every flame on one
     /// clock (<see cref="ClassicTorchFlameAnimation"/>) at its own phase (<see cref="ClassicTorchFlamePhases"/>), at
     /// <see cref="ClassicTorchFlame.RenderPoint"/>. The frames are one texture array and every flame an instance of one
@@ -1169,7 +1165,7 @@ public partial class WorldScene
             _phases.Remove(floorTileIndex);
         }
 
-        /// <summary>Unity's <c>AdvanceTorchAnimation</c>: the shared clock to now, each flame's frame.</summary>
+        /// <summary>The shared clock to now, each flame's frame.</summary>
         public void Draw(long milliseconds)
         {
             if (_items == null) return;

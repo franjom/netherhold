@@ -7,9 +7,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>How this scene learns which session to start: a loaded save or a restart (<see cref="s_resume"/>), the campaign
-/// map's launch (<see cref="QueueSession"/>, as Unity's runner hands its pending session to the runner that replaces it),
-/// or the scripted arguments <c>--level</c> and <c>--from-map</c> (<see cref="SessionContext.Starting"/> decides).</summary>
+/// <summary>Carries the campaign map's launch request into the new level scene.</summary>
 public partial class InGameHud
 {
     /// <summary>The campaign map's launch the next instance of this scene starts; taken and cleared by its start.</summary>

@@ -9,9 +9,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Godot's <see cref="GameFolders"/>: rooted at <c>user://</c> (%APPDATA%/Godot/app_userdata/DK2.Godot), never
-/// Unity's persistentDataPath. The user arguments <c>--profile</c>, <c>--settings</c>, <c>--saves</c> and
-/// <c>--hiscores</c> name a file or directory instead, so a scripted run need not touch the player's own files.</summary>
+/// <summary>Godot's <see cref="GameFolders"/> under <c>user://</c>. The profile, settings, saves and hi-score paths can be supplied on the command line for an isolated run.</summary>
 public static class UserFolders
 {
     public static GameFolders FromArguments(IReadOnlyList<string> args) => new(ProjectSettings.GlobalizePath("user://"))
@@ -22,7 +20,7 @@ public static class UserFolders
 
     /// <summary>The player's profile into <paramref name="profiles"/>; one that cannot be read or created (corrupt,
     /// unwritable, a failed registry read) warns and leaves a fresh profile in memory only, with no file
-    /// (<see cref="CampaignProfileStore.Adopt"/>), so the scene still runs. Unity lets the error stop it.</summary>
+    /// (<see cref="CampaignProfileStore.Adopt"/>), so the scene still runs.</summary>
     public static CampaignProfile LoadProfile(CampaignProfileStore profiles, string path, GameSessionMode mode, FrontEndPage returnPage)
     {
         try { return profiles.Load(path, mode, returnPage); }

@@ -1,4 +1,4 @@
-// A status flower's layer (WorldScene.Flowers.cs, migration plan step 3k), Unity's ClassicEffect.shader for an A_ icon:
+// A status flower's layer (WorldScene.Flowers.cs) draws the A_ icon:
 // SRCALPHA, INVSRCALPHA, unshaded, both faces, depth-tested without writing. The tint is the instance's colour (the
 // owner's, made linear on upload as a source_color uniform was), the custom data the experience wedge (x, -1 none) and
 // whether the layer is the petal ring (y), which is coloured by twice its luminance, clamped.

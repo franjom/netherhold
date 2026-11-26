@@ -254,7 +254,7 @@ public readonly struct PlacedBitmapGlyphs(BitmapFont font, HudRect box, IReadOnl
     }
 }
 
-/// <summary>A wrapped, centred text kept between frames, as Unity's <c>ClassicBitmapText.DrawCentred</c> keeps its wrap: the
+/// <summary>A wrapped and centred text kept between frames. The
 /// text is wrapped again only when the font, the text or the wrap width changes, so a subtitle that stays allocates
 /// nothing. <see cref="Update"/> says when the glyphs may have changed, for an adapter that keeps its draw until then.</summary>
 public sealed class BitmapTextBlock
@@ -328,7 +328,7 @@ public static class SubtitleLayout
         new(0f, screenHeight * 0.70f, screenWidth, screenHeight / 8f);
 
     /// <summary>The level end's prompt (<see cref="CampaignResultFlow.Prompt"/>): a 30-pixel band, its top 60 pixels above
-    /// the screen's bottom, the whole width, where Unity's runner labels it.</summary>
+    /// the screen's bottom, across its whole width.</summary>
     public static HudRect ResultPromptBox(int screenWidth, int screenHeight) => new(0f, screenHeight - 60f, screenWidth, 30f);
 
     /// <summary>The cutscene title card: the whole screen, at <see cref="TitleScale"/>.</summary>

@@ -189,7 +189,7 @@ public static class PlacementCursor
 
     /// <summary>Keeper spell, mode 8 (<c>0x0040B7F0</c>, drawn by <c>0x0040D310</c>): no cage, no price,
     /// the spell's own icon, and No Go over a target the cast would refuse. The verdict is the
-    /// simulation's own, for the command the click sends (<c>DungeonRunner</c>): a thing spell
+    /// simulation's own, for the command the click sends: a thing spell
     /// (<see cref="KeeperSpellRules.TargetsAThing"/>) on the hovered creature through
     /// <see cref="KeeperSpellRules.CanCast(WorldState, GameDatabase, INavByteGrid, GameTick, CastSpellOnCreatureCommand)"/>,
     /// with no creature none; a place spell at the hovered tile's centre through

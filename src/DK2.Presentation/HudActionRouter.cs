@@ -18,7 +18,7 @@ public interface IHudActionHost
     void PostGuiButton(GuiButtonTarget target);
 }
 
-/// <summary>A HUD action applied as Unity's DungeonRunner.ApplyHudAction applied it: behind
+/// <summary>Applies a HUD action through its host: behind
 /// <see cref="ClassicHudControls.Accepts"/>, the world drag and the bottom panel's press are dropped; navigation goes to
 /// the host, zoom and the query and sell corners post their GUI button first (<see cref="ClassicHudControlLayout.TryGuiButton"/>),
 /// the corners then set the tool (<see cref="HudToolState.SelectCorner"/>), and every other action is the controls'.</summary>

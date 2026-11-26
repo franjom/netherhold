@@ -1,6 +1,6 @@
 # Imps and tile work
 
-`Research: read` · `Simulation: built` · `Verified vs original: measured` · `Unity: partial`
+`Research: read` · `Simulation: built` · `Verified vs original: measured` · `Presentation: partial`
 
 Digging, claiming, reinforcing, gold mining and every other imp job on tiles: how an imp picks a job, walks to it and changes the tile.
 

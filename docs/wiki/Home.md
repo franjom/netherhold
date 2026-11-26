@@ -1,11 +1,11 @@
 # Netherhold
 
-A work-in-progress reimplementation of **Dungeon Keeper 2** in C#, with a Unity
+A work-in-progress reimplementation of **Dungeon Keeper 2** in C#, with a Godot
 presentation layer. The goal is to reproduce the original game's observable
 behaviour, with the simulation kept independent of the renderer.
 
 This is a development and research project, not a finished replacement for the
-original game. Campaign compatibility, gameplay fidelity and the classic Unity
+original game. Campaign compatibility, gameplay fidelity and the Godot
 presentation are still being verified.
 
 > **This wiki is a guide, not the source of truth.** The authoritative documents
@@ -32,8 +32,8 @@ More in the [README](https://github.com/franjom/netherhold#screenshots).
 - **The simulation is deterministic.** It runs on integer ticks (4 per second,
   DK2's own rate), uses fixed-point maths and a seeded random source, and takes
   every balance number from the original game database.
-- **Unity is presentation only.** No game rule or game state lives in the Unity
-  project.
+- **Godot presents the game.** Gameplay rules and simulation state live in the
+  shared C# projects.
 
 ## Start here
 
@@ -42,7 +42,7 @@ More in the [README](https://github.com/franjom/netherhold#screenshots).
 | **Curious about the project** | [[Charter]]: what it is for, and what "faithful" means | [[Status Matrix\|Status-Matrix]] for how far each system has got, or a system page such as [[Imps and Tile Work\|Imps-and-Tile-Work]] |
 | **A C# contributor** | [[Solution Map\|Solution-Map]] and [[Determinism]] | [Build and test](https://github.com/franjom/netherhold#build-and-test), then the [contributor rules](https://github.com/franjom/netherhold/blob/master/AGENTS.md) |
 | **A reverse engineer** | [[Legal and Clean Room\|Legal-and-Clean-Room]]: what may and may not cross from the binary | [[KB Coverage\|KB-Coverage]] and [[Open Questions\|Open-Questions]], and the [method](https://github.com/franjom/netherhold/blob/master/reverse-engineering/README.md) |
-| **A Unity developer** | [Unity presentation](https://github.com/franjom/netherhold/blob/master/unity/README.md): the adapter, which holds no game rules | [Run the Unity presentation](https://github.com/franjom/netherhold#run-the-unity-presentation) and the [architecture](https://github.com/franjom/netherhold/blob/master/docs/ARCHITECTURE.md) |
+| **A Godot developer** | [Godot presentation](https://github.com/franjom/netherhold/blob/master/godot/README.md) | [Run the Godot presentation](https://github.com/franjom/netherhold#run-the-godot-presentation) and the [architecture](https://github.com/franjom/netherhold/blob/master/docs/ARCHITECTURE.md) |
 | **A maintainer** | [Current state (HANDOFF)](https://github.com/franjom/netherhold/blob/master/docs/HANDOFF.md) | [[Decisions by System\|Decisions-by-System]], [[Simulation Read-Write Matrix\|Simulation-Read-Write-Matrix]] and the [plan](https://github.com/franjom/netherhold/blob/master/DK2_REIMPLEMENTATION_PLAN.md) |
 
 Words you may not know are in the [[Glossary]]. Each system has a page in the
@@ -53,8 +53,7 @@ same shape (see the [[System Page Template\|System-Page-Template]]):
 ## Requirements at a glance
 
 - The .NET SDK selected by [`global.json`](https://github.com/franjom/netherhold/blob/master/global.json) (.NET 10).
-- Optional: the Unity editor version pinned in
-  [`ProjectVersion.txt`](https://github.com/franjom/netherhold/blob/master/unity/DK2.Unity/ProjectSettings/ProjectVersion.txt)
+- Optional: the [.NET Godot editor pin](https://github.com/franjom/netherhold/blob/master/godot/godot-version.json)
   for the presentation.
 - Optional: your own original DK2 installation, pointed to by `DK2_DIR`, for
   campaign content, the headless harness and the install-dependent tests.

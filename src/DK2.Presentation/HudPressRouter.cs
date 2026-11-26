@@ -9,7 +9,7 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Presentation;
 
-/// <summary>One frame's mouse presses and modifier keys, read once by the adapter as Unity's runner reads them: the left
+/// <summary>One frame's mouse presses and modifier keys, read once: the left
 /// and right buttons pressed this frame (<c>Input.GetMouseButtonDown</c> 0 and 1) and Shift, Control and Alt held, either
 /// side (<c>Input.GetKey</c>).</summary>
 public readonly record struct HudPress(bool Primary, bool Secondary, bool Shift = false, bool Control = false, bool Alt = false)
@@ -48,7 +48,7 @@ public interface IHudPressHost
     KeeperResourceKind ResourceAtPointer();
 }
 
-/// <summary>Unity's DungeonRunner.QueueHudInput, moved out of the runner (migration plan step 2c): one frame's press offered
+/// <summary>Routes one frame's press to the eligible panels, offered
 /// to the HUD in its order, the first taker ending it. The open full map takes every frame (a left press moves the camera,
 /// any press closes it); the open options menu takes every frame (the Game Options pages poll the keys, otherwise a left
 /// press applies its entry, <see cref="PressOptions"/>); then the creature overview's press (a pickup through

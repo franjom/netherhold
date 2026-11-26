@@ -8,12 +8,10 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The placement cursor beside the hand, the Godot counterpart of Unity's <c>ClassicPlacementOverlay</c> (plan step
-/// 3e): <see cref="PlacementCursorHud"/> decides every draw (the tool icon, No Go, the price, or the held icons), a
-/// <see cref="HudCanvas"/> on a canvas layer over the panels and under the hand draws it in screen pixels. No input.</summary>
+/// <summary>Draws the placement cursor beside the hand and layers it between the panels and the hand cursor.</summary>
 public partial class ClassicPlacementOverlay : Node
 {
-    /// <summary>Over the panels and under the hand, as Unity's sorting order 999 between them.</summary>
+    /// <summary>Between the panels and the hand cursor.</summary>
     public const int CanvasLayerIndex = 100;
 
     private readonly PlacementCursorHud _hud = new();

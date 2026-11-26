@@ -1,4 +1,4 @@
-# Dungeon Keeper 2 — Modern C#/Unity Reimplementation Plan
+# Dungeon Keeper 2 — Modern C# Reimplementation Plan
 
 **Document status:** Phase 0 research deliverable, and the reference for the
 project's strategy, architecture rationale and milestones
@@ -342,7 +342,7 @@ box and still ship a working patched game. It is the opposite of our priority.
    format facts only**. Not written; it is item 5 of §11.
 5. **The identifier boundary is decided — ADR-0080.** A Flame identifier may be *cited* in
    a document, as §2.2 and this section do, provided the sentence makes Flame the source;
-   it never appears in `src/`, `tests/` or the Unity adapter, not even in a comment. Names
+   it never appears in `src/`, `tests/` or the Godot adapter, not even in a comment. Names
    are not copyrightable and a citation is not a copy; the source tree is the one place a
    copying argument could be made, so that is where the rule is absolute, and
    `FlameIdentifierTests` checks the shape of it. OpenKeeper's few remaining names, listed in
@@ -517,7 +517,7 @@ tracks the same ground per mechanic.
 
 ---
 
-## 4. Proposed C#/Unity architecture
+## 4. C# and Godot architecture
 
 The rationale for the shape. **What the tree actually contains is
 `docs/ARCHITECTURE.md`**; where the two differ, the tree is right and the
@@ -525,8 +525,7 @@ difference is noted here.
 
 ### 4.1 Guiding constraints
 
-1. `DK2.Simulation` must have **zero** reference to `UnityEngine`. Asserted from the built
-   assemblies by `ArchitectureTests`.
+1. `DK2.Simulation` stays engine-independent. `ArchitectureTests` checks the built assemblies.
 2. The simulation is a **fixed-tick, deterministic state machine**, matching the original's
    design. [INFERRED, §2.2]
 3. All randomness flows through an explicit, seeded, serialisable RNG.
@@ -546,7 +545,7 @@ difference is noted here.
 │   ├── DK2.Core/                 primitives: fixed-point, TilePos, RNG, hashing, IDs
 │   ├── DK2.Data/                 format parsers: WAD, KWD/KLD, STR, SDT, SAV
 │   ├── DK2.Data.Model/           parsed, immutable game database
-│   ├── DK2.Simulation/           the game. no Unity, no rendering, no I/O.
+│   ├── DK2.Simulation/           game rules and mutable state
 │   ├── DK2.AI/                   the computer keeper, as an input source
 │   ├── DK2.Pathfinding/          isolated on purpose — highest-churn subsystem
 │   ├── DK2.Assets/               IAssetProvider abstraction + resolution chain
@@ -555,8 +554,7 @@ difference is noted here.
 │   ├── DK2.Harness/              headless scenario runner
 │   ├── DK2.Tools/                the dk2tools CLI
 │   └── Shared/                   UnityBound.props, netstandard2.1 polyfills
-├── unity/DK2.Unity/              Unity project — presentation only
-├── unity/DK2.Unity.Compile/      compiles the adapter against Unity's modules
+├── godot/DK2.Godot/              Godot presentation and integration
 ├── tests/                        Core, Data, Simulation, Behavior, Assets,
 │                                 Presentation, Convert, AI, Tools, TestSupport
 ├── docs/
@@ -682,14 +680,10 @@ GameSimulation ──emits──> SimulationEvent stream ──> presentation la
        └──────────────── InputFrame (commands only) ──────────┘
 ```
 
-Unity's job: render, animate, play audio, take input, draw UI. It holds **no**
-authoritative state. A `GameObject` is a view of an entity id; deleting every `GameObject`
-must not change the simulation. This also means the harness can run the game with no
-renderer at all.
-
-As built the boundary is a *view* rather than an event stream: `WorldView` produces
-readonly view structs for one viewing keeper, `ScenePresenter` diffs them and pushes
-through `IRenderTarget` (ADR-0035). Events remain, and are write-only.
+Godot handles rendering, animation, audio, input and UI. The headless harness
+runs the game through the same simulation. `WorldView` produces read-only views
+for a keeper. `ScenePresenter` sends changes to an `IRenderTarget` (ADR-0035).
+See [architecture](docs/ARCHITECTURE.md#godot-presentation) for HUD and world rendering.
 
 ### 4.8 Asset abstraction
 
@@ -875,7 +869,7 @@ original-reference/DK2/          (local only, .gitignored, never committed)
               build/converted/   (also .gitignored)
                               │
                               ▼
-                    IAssetProvider  ←── Unity loads only through this
+                    IAssetProvider  ←── adapter asset access
 ```
 
 The converter is a **build step the user runs against their own legally-owned copy**,
@@ -1197,7 +1191,7 @@ Severity: **C**ritical / **H**igh / **M**edium / **L**ow. Probability: as given.
 | R7 | **KWD's unknown 10%** hides something load-bearing. | M | Medium | Every record image round-trips byte for byte and the corpus audit logs unconsumed ranges (ADR-0091). Cross-check OpenKeeper against dk2-tools `.bt` templates. |
 | R8 | **Tick rate / timing model wrong**, invalidating all timing fidelity. | **H** | Medium | **Retired**: 4 ticks a second, read from the binary and observed live (ADR-0089, ADR-0102). Every relation between ticks and seconds is in `SimulationTiming` alone. |
 | R9 | **Combat formulas unknown**; guessing produces a game that feels wrong. | **H** | High | **Largely retired**: melee, the attack spells, status effects, fear and the friendly arm are built from the binary (ADR-0163–0170), and the Level 1–3 packet replays compare fights with DK2's. Open: the stand-ins Q376 names. |
-| R10 | **Unity leaks into the simulation** over time. | **H** | Medium | `ArchitectureTests` reads the built assemblies' `TargetFrameworkAttribute` and references, so a Unity reference or a wrong target fails the build. |
+| R10 | **An engine dependency leaks into the simulation** over time. | **H** | Medium | `ArchitectureTests` reads the built assemblies' `TargetFrameworkAttribute` and references, so forbidden engine references or a wrong target fail verification. |
 | R11 | **Original assets unavailable to future contributors.** | M | Medium | `PlaceholderProvider` is total, and `AssetCatalogueTests` keeps it so. |
 | R12 | **Computer-player fidelity incomplete.** | M | High | Binary audits are in `docs/research/computer-keeper-*.md`. M12 has a proactive keeper and captured observation; retained combat messages, the attack response, the battle step with all four battle spells, the retreat, the attack planner, task 7's bridges, the training moves and the Treasury, Lair and Hatchery room needs with expansion are built (ADR-0278, 0279, 0283, 0284, 0287, 0298, 0302, 0304, 0317, 0327, 0335); the mood and other room producers and the remaining reactive decisions remain. Close effect-specific UNKNOWNs before implementing their rules. The same-map comparison against two idle captures of DK2's keepers is done; its acceptance table and open timing differences (Q509, Q555, Q563) are at the end of `computer-keeper-observations.md`. |
 | R13 | **Save format divergence** — our saves cannot be validated against DK2's. | L | High | Accept. Our save format is our own. `Dk2SaveReader` reads DK2's tile grid to cross-check design maps (Q182); `save_struct.bt` is a checklist of *what state exists*. |
@@ -1205,8 +1199,8 @@ Severity: **C**ritical / **H**igh / **M**edium / **L**ow. Probability: as given.
 | R15 | **Upstream projects change or disappear.** | M | Low | **Closed**: the whole Flame repository is cloned at `D:\Flame`, pinned at `f6e2a3d`, recorded in `original-reference/README.md`, and builds here — so the maps, the source and a working toolchain all survive upstream disappearing. The dk2-tools templates are still not vendored. |
 | R16 | **AI-generated code silently invents mechanics.** | **H** | Medium | Confidence tags mandatory in docs and code comments; `[Dk2Behavior]` on the rule type. Any simulation constant not traceable to parsed data or a cited source fails review. |
 | R17 | **Regression corpus becomes unmaintainable** as systems change. | M | Medium | Scenarios are declarative data, not code. Comparison tolerances explicit and versioned. |
-| R18 | **Performance** — hundreds of creatures + pathfinding on a fixed tick. | M | Medium | Headless harness makes profiling easy. Fixed-point is cheap. **Budgeted by opt-in tests** (ADR-0575): campaign Levels 1–4 headless at 50× real time or better, no corpus-scenario tick after the first two over 100 ms; measured 80–220× and a worst tick of about 40 ms on hash 328. Not in CI, since a wall-clock assert needs an idle machine. The Unity frame target is separate and unmet (`docs/PERFORMANCE.md`). |
-| R19 | **Unity as the wrong long-term choice.** | M | Low | The simulation is engine-agnostic by construction; swapping presentation is weeks, not years. |
+| R18 | **Performance** — hundreds of creatures + pathfinding on a fixed tick. | M | Medium | Headless harness makes profiling easy. Fixed-point is cheap. **Budgeted by opt-in tests** (ADR-0575): campaign Levels 1–4 headless at 50× real time or better, no corpus-scenario tick after the first two over 100 ms; measured 80–220× and a worst tick of about 40 ms on hash 328. Not in CI, since a wall-clock assert needs an idle machine. The Godot frame target is measured separately (`docs/PERFORMANCE.md`). |
+| R19 | **Adapter choice constrains the simulation.** | M | Low | Godot replaced Unity through the shared presentation boundary (ADR-0824). |
 | R20 | **Multiplayer expectations** creep in early and distort the architecture. | M | Low | Out of scope until post-M10. Determinism happens to make it feasible later; that is a side effect, not a goal. |
 
 **The two that decide the project's fate: R1 (pathfinding) and R4 (scope).**
@@ -1222,11 +1216,11 @@ it; the ADR carries the reason.
 |---|---|
 | Project licence | **GPL-3.0-or-later** (ADR-0041, amending ADR-0003). Every source file carries `SPDX-License-Identifier: GPL-3.0-or-later`, enforced by `LicenseHeaderTests` rather than an analyser. |
 | Clean-room policy | **In force** (ADR-0041). Under GPLv3 copying OpenKeeper's code would be lawful; ADR-0003 (owner, 2026-11-14) makes it facts only, because the brief asks for clean-room behavioural reimplementation and the project must be able to grant licence exceptions. Code taken earlier is rewritten from the binary one item at a time. |
-| Flame identifiers in the repository | **May be cited in a document, never in `src/`, `tests/` or `unity/`**, comments included (ADR-0080, `FlameIdentifierTests`). |
+| Flame identifiers in the repository | **May be cited in a document, never in `src/`, `tests/` or the Godot adapter**, comments included (ADR-0080, `FlameIdentifierTests`). |
 | Vendoring Flame's `mapping/*.map` as research data | **Not vendored, and better than vendored**: the whole repository is cloned outside the tree at a pinned commit (R15, §2.2.1). |
 | Decompiler output | **Never enters the repository, anywhere** (ADR-0046). `reverse-engineering/` is gitignored except its README. |
-| .NET version | net10.0 for tools, harness and tests; **netstandard2.1** for the eight Unity-loadable assemblies, from `src/Shared/UnityBound.props` (ADR-0002 as corrected, ADR-0036). |
-| Unity version | **Unity 6 LTS `6000.6.0f1`** (ADR-0036). |
+| .NET version | net10.0 for tools, harness and tests; **netstandard2.1** for the shared game assemblies until retargeting through migration step 5 (ADR-0824). |
+| Godot version | The .NET build pinned in [`godot/godot-version.json`](godot/godot-version.json) (ADR-0810). |
 | Fixed-point format | **Q32.32, `long`-backed** (`Fp32`, ADR-0001). |
 | Test framework | **xUnit**, with scenario tests generated from YAML (`ScenarioTests`). |
 | Determinism gate | **Enabled from the first commit that had a `Tick()`** (ADR-0006). |

@@ -54,7 +54,7 @@ second camera at view distance 10; `Publish` writes a diff to an `ITileLightSink
 `Clear`), `ClassicLightFlagsRules` (`Torch`, `IsCheapTorch`), `TileView.LitAsExplored` (the tile fill rule),
 `LatticeDirtyTracker` (`ForgetReach`, `TorchReach`), `WorldHoverPicker` (`TryCastTerrain` through `TileTopPlane.TryHit`, then
 `TryAdmit` (the view cull, the pick circle, the bounds entry, `Admits`), `Offer`, `TryRenderedResult`, the sweep and
-`OnPointerTile`; its vector arithmetic is Unity's term by term, so a pick is bit-identical), `PickBox`, `PickSphere` and
+`OnPointerTile`; its vector arithmetic preserves the pinned ray directions), `PickBox`, `PickSphere` and
 `PickTriangles` (the measures of a drawn thing), `ViewFrustum.Excludes` and `HoverOverlayPlan` (the frame's red creatures and
 each submesh's swap and red decision).
 The classic vertex-lit shaders' DK2 light, tested here and copied by each engine's shader: `ClassicVertexLight` (`TableTile`, the
@@ -64,6 +64,6 @@ constant substitution). `ClassicWorldLightCache` pools its `ClassicLightTable`s 
 nothing once warm.
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model`, `DK2.Simulation`
-and `DK2.Assets`. The Unity adapter (`unity/README.md`) implements `IRenderTarget`.
+and `DK2.Assets`. The [Godot adapter](../../godot/README.md) consumes its scene and HUD output.
 
 Test: `dotnet test tests/DK2.Presentation.Tests`.

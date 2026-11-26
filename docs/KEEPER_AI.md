@@ -1205,7 +1205,7 @@ Remaining M12 plan:
 
 ### 12.8 What exists
 
-`src/DK2.AI` (Unity-bound, `netstandard2.1`) changes no world state itself: what its
+`src/DK2.AI` (engine-neutral, `netstandard2.1`) changes no world state itself: what its
 commands cause (Call to Arms, the keeper spells, the level grant) are simulation rules. `KeeperAI.Think` runs the budget, the 1,680-tick task timeout, the 240-tick
 gold untag, imp creation, slapping, and the task machine for tasks 0–7, whose gold step casts
 Create Gold (ADR-0352). The other files

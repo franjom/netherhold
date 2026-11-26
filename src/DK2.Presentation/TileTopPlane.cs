@@ -8,7 +8,7 @@ using DK2.Core;
 namespace DK2.Presentation;
 
 /// <summary>A pointer ray's hit on a tile's top plane (<see cref="TileHeights.Solid"/> or <see cref="TileHeights.Open"/>),
-/// in Unity's axes (x east, y up, z north negated). The adapter casts the ray from its camera; this is the plane math the
+/// in rendering coordinates (x east, y up, z north negated). The adapter casts its camera's ray. This is the plane math the
 /// pointer's map position and the Hand's light share (migration plan step 2i).</summary>
 public static class TileTopPlane
 {

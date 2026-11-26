@@ -117,7 +117,7 @@ original debris. This checks remake integration, not native pixel/timing parity.
 
 Artifact index: `F:/DK2Evidence/studies/level7-heart-destruction--2026-11-01--002/README.md`.
 The earlier 001 artifact is a superseded Z1 diagnostic retained without overwriting.
-The repeatable probe is documented in [the probe README](../../tools/classic-unity-probe/README.md#heart-destruction).
+The repeatable probe is documented in the probe README in `git show 909a6c5e2:tools/classic-unity-probe/README.md` (heart destruction).
 
 ### Integrated master verification (hash/save 364)
 

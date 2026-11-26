@@ -14,8 +14,7 @@ namespace DK2.Presentation;
 
 /// <summary>Pushes what changed in the world to an <see cref="IRenderTarget"/>, and nothing that
 /// did not. It owns what counts as a visible change, the push order, which asset key each thing
-/// needs, and when to create versus update versus remove; the Unity adapter turns a
-/// <see cref="ResolvedAsset"/> into a <c>GameObject</c> and no more.
+/// needs, and when to create, update or remove it. The target draws the resolved assets.
 /// <para><b>Diff rather than redraw</b>: a campaign level is 61x61, so 3,721 tiles — iterating
 /// that per frame is nothing, instantiating it is not, so the presenter remembers what it last
 /// pushed per tile and pushes again only when the visible part differs. <see cref="TextRenderer"/>
@@ -365,8 +364,7 @@ public sealed class ScenePresenter
 
     /// <summary>
     /// Forgets everything, so the next <see cref="Present"/> creates the whole
-    /// scene again. For a target that discarded what it drew — a Unity scene
-    /// reload, a camera moving to a different level.
+    /// scene again after the target discards its previous presentation.
     /// </summary>
     public void Resync()
     {

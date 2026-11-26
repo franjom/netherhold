@@ -115,11 +115,11 @@ for one flat colour. STRONGLY INFERRED from DKII.EXE unless marked.
 Ours: `WorldView.PlanTint` gives each blueprint's `StructureView.Plan` (Blue or Red) from the
 Workshop test (any owned Workshop tile, refreshed once per turn) and the tick parity. A view
 reads `CurrentTick` after the tick that ran DK2 turn `CurrentTick` (`GameSimulation` passes
-`CurrentTick + 1` as the turn, then increments), so the parity is that of the last turn run. `DungeonScene` swaps the model's
-materials for the shared `AA_BlueTexture` or `AA_RedTexture` array (`ObjectMaterialLook.Blueprint`, which Unity's `ClassicMeshes.Blueprint` and Godot's `WorldScene.Objects.cs` both use;
-the dig tag's own overlay look) and, on a blink, swaps the array in place rather than
-rebuilding the model. Not modelled in Unity: the environment pass over a plan (Unity draws the flat overlay twice; Godot draws the overlay and the pass since step 3i), the kind-1 branch, and the second override `0x004A6B70`
-gives the linked thing at door `+0x103`.
+`CurrentTick + 1` as the turn, then increments), so the parity is that of the last turn run. Godot’s
+`WorldScene.Objects.cs` obtains the blue or red plan overlay from `ObjectMaterialLook.Blueprint`.
+The environment pass and overlay draw together from migration step 3i. The retired
+Unity renderer had drawn the overlay twice. The kind-1 branch and second override
+from `0x004A6B70`, which supplies the thing linked at door `+0x103`, remain unmodelled.
 
 ## 6. A built door's base light (Level6a, 2026-11-05)
 

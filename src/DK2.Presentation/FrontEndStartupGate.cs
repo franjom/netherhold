@@ -18,6 +18,6 @@ public sealed class FrontEndStartupGate
         return show;
     }
 
-    /// <summary>For a new run in the same process (Unity's Play mode without a domain reload).</summary>
+    /// <summary>Reset the startup gate for a new run in the same process.</summary>
     public void Reset() => Shown = false;
 }

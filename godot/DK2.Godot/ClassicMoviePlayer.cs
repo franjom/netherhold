@@ -9,11 +9,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Plays one of the install's movies full screen, the Godot counterpart of Unity's <c>ClassicMoviePlayer</c>:
-/// <see cref="MoviePlayback"/> decides which frame is due, decodes ahead on its worker and reads the audio (ADR-0805); this
-/// node uploads each new frame into one reused texture, draws it at the movie's shape on black over everything, feeds the
-/// audio to an <see cref="AudioStreamGenerator"/> at the movie's rate and hands back how much of it Godot's mixer has taken,
-/// which is the clock the frames follow. Esc, Enter, Space or a mouse button ends it. Steady playback allocates nothing.</summary>
+/// <summary>Plays one of the install's movies full screen, with audio at the movie's authored sample rate.</summary>
 public partial class ClassicMoviePlayer : Node
 {
     /// <summary>Over the HUD, the placement cursor, the hand and the screen colours.</summary>
@@ -80,7 +76,7 @@ public partial class ClassicMoviePlayer : Node
 
     private void StartAudio(MoviePlayback movie)
     {
-        // The generator plays at the movie's own rate (22050 Hz) and Godot resamples, as Unity's clip did.
+        // The generator plays at the movie's own rate (22050 Hz) and Godot resamples.
         _generator = new AudioStreamGenerator
         {
             MixRateMode = AudioStreamGenerator.AudioStreamGeneratorMixRate.Custom,
@@ -177,7 +173,7 @@ public partial class ClassicMoviePlayer : Node
     }
 
     /// <summary>Black over the whole screen, and the picture once there is one: its shape is <see cref="MoviePlayback.DisplayAspect"/>,
-    /// centred and scaled uniformly to fit, as Unity's player draws it.</summary>
+    /// centred and scaled uniformly to fit.</summary>
     private void Redraw(MoviePlayback movie)
     {
         Vector2 size = GetViewport().GetVisibleRect().Size;

@@ -1,6 +1,6 @@
 ---
 name: godot-developer
-description: Builds and fixes the Godot presentation adapter of the Dungeon Keeper 2 remake (godot/DK2.Godot) - rendering, cameras, the HudFrame renderer and panels, input, meshes, lighting, shaders, animation playback, editor tooling and Godot performance. Use it for work whose answer lives in the Godot project, including porting a Unity adapter feature. Do not use it for game rules, simulation state, balance numbers or DK2 behaviour questions; those belong in src/ (DK2.Simulation and friends) and are answered from DKII.EXE.
+description: Builds and fixes the Godot presentation adapter of the Dungeon Keeper 2 remake (godot/DK2.Godot) - rendering, cameras, the HudFrame renderer and panels, input, meshes, lighting, shaders, animation playback, editor tooling and Godot performance. Use it for work whose answer lives in the Godot project. Do not use it for game rules, simulation state, balance numbers or DK2 behaviour questions; those belong in src/ (DK2.Simulation and friends) and are answered from DKII.EXE.
 ---
 
 You work on the Godot adapter of a faithful Dungeon Keeper 2 remake. You are a
@@ -21,9 +21,7 @@ Godot practice.
 3. For anything visual, read `docs/ART_DIRECTION.md` and
    `docs/ASSET_PIPELINE.md` before you change it.
 4. Skim `docs/TRAPS.md`; it records mistakes already made in this repo.
-5. When porting a Unity feature, read the Unity counterpart in
-   `unity/DK2.Unity/Assets/DK2/` first; behaviour must match it, not be
-   re-derived. Read the Godot code you are changing and match its idiom.
+5. Read the Godot code you are changing and match its idiom.
 
 ## 1. Where a change belongs
 
@@ -35,15 +33,13 @@ Godot practice.
   there, with what you found.
 - Engine-neutral presentation logic (HUD layout, draw lists, hit areas, pointer
   state, what to show) belongs in `src/DK2.Presentation`, where
-  `tests/DK2.Presentation.Tests` covers it. If Unity holds logic you need, move
-  it into `DK2.Presentation` first so both adapters share it; do not copy it.
-- The HUD renderer draws a `HudFrame` and forwards input, mirroring
-  `HudCanvas.cs`. ADR-0805's table lists what is engine-specific on purpose.
+  `tests/DK2.Presentation.Tests` covers it.
+- The HUD renderer draws a `HudFrame` and forwards input. ADR-0805's table
+  lists the adapter's responsibilities.
 - Original DK2 assets are reached only through `src/DK2.Assets` and
   `src/DK2.Art`. Do not load install files directly from Godot code, and do not
   commit original assets or anything imported from them.
-- No Godot types in `src/`; the netstandard2.1 assemblies must stay
-  Unity-loadable while both adapters exist.
+- Keep the assemblies under `src/` free of Godot references.
 
 ## 2. Fidelity
 

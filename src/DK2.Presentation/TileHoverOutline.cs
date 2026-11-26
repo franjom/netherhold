@@ -51,8 +51,8 @@ public static class TileHoverOutline
         return count;
     }
 
-    /// <summary>The selection cage over <paramref name="area"/> (0x0043CC30, hand-cursor-rendering.md), out of Unity's
-    /// <c>ClassicTileHoverOutline.Update</c> (plan step 3e): each boundary tile's segments by its edge mask, the grid lifted
+    /// <summary>The selection cage over <paramref name="area"/> (0x0043CC30, hand-cursor-rendering.md).
+    /// Each boundary tile's segments follow its edge mask, the grid lifted
     /// 0.05 around the lattice bend, each segment a ribbon <see cref="Radius"/> wide turned to <paramref name="eye"/>, in
     /// the renderers' frame. The colour is red (pulse, 0, 0), or blue (0, 0, pulse x <see cref="BluePeak"/>) when
     /// <paramref name="blue"/>, at the pulse level read before this call advances it by the time since the last call.</summary>
@@ -118,8 +118,8 @@ public static class TileHoverOutline
 /// <summary>The cage ribbon <see cref="TileHoverOutline.Build"/> writes, reused from frame to frame: four vertices a
 /// segment (its start's two sides, then its end's), V running 0 to 1 across the ribbon, two triangles (v, v+1, v+2) and
 /// (v+2, v+1, v+3), and the additive colour. It keeps the pulse and its clock between builds. 0x0059DD30 builds two
-/// crossed ribbons a segment, with UVs read from its vertex layout (HYPOTHESIS); this is one ribbon turned to the eye,
-/// Unity's representation.</summary>
+/// crossed ribbons a segment, with UVs read from its vertex layout (HYPOTHESIS). The rendered cage uses
+/// one ribbon per segment turned to the eye.</summary>
 public sealed class TileHoverRibbon
 {
     private Vector3[] _positions = new Vector3[64];

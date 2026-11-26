@@ -9,10 +9,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The creature query details over the bottom panel, the Godot counterpart of Unity's
-/// <c>ClassicCreatureQueryPanel</c>: <see cref="CreatureQueryHud"/> (ADR-0805) decides every draw, and a
-/// <see cref="HudCanvas"/> draws its frame bottom-docked under the HUD scale. It takes no input; a host asks
-/// <see cref="ContainsPointer"/> to keep the pointer from the world.</summary>
+/// <summary>Draws the queried creature's details over the bottom panel.</summary>
 public partial class ClassicCreatureQueryPanel : Node
 {
     private readonly HudFrame _frame = new();
@@ -23,7 +20,7 @@ public partial class ClassicCreatureQueryPanel : Node
     /// <summary>Screen pixel of the canvas's local (0, 0), rounded as drawn; the pointer is measured from it.</summary>
     private Vector2 _origin;
 
-    /// <summary>The HUD scale percent (Unity's <c>UiScale</c>, the graphics setting).</summary>
+    /// <summary>The HUD scale percent.</summary>
     public int UiScale { get; set; } = 100;
 
     /// <summary>Opens the details; call before it enters the tree.</summary>
@@ -36,7 +33,7 @@ public partial class ClassicCreatureQueryPanel : Node
         if (image is null) throw new ArgumentNullException(nameof(image));
         var hud = new CreatureQueryHud(font);
         var canvas = new HudCanvas { Name = "HudCanvas", Load = image, Visible = false };
-        // Decoded now, as Unity's facade does, and before the canvas is kept, so a failed decode leaves the details
+        // Decoded before keeping the canvas, so a failed decode leaves the details
         // unopened and retryable.
         try { foreach (HudImage part in CreatureQueryHud.Images()) canvas.Preload(part); }
         catch { canvas.Free(); throw; }
@@ -67,7 +64,7 @@ public partial class ClassicCreatureQueryPanel : Node
     public bool ContainsPointer(Vector2 screenPosition, HudVisibility visibility)
     {
         if (_hud == null || _layout.Height <= 0) return false;
-        // Unity's LocalPointer then ToVirtual, from the same rounded origin the drawing uses.
+        // Use the same rounded origin for pointer coordinates and drawing.
         float x = (screenPosition.X - _origin.X) / _layout.Factor / _scale, y = (screenPosition.Y - _origin.Y) / _layout.Factor / _scale;
         return _hud.ContainsPointer(x, y, visibility);
     }

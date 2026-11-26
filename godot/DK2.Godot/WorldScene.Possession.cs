@@ -10,8 +10,8 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>What a possession changes in the drawn world (plan step 3m), as Unity's runner and <c>DungeonScene</c> apply
-/// it: the camera takes the session's pose while it holds the view (<see cref="PossessionPose"/>), the latch goes to the
+/// <summary>Applies a possession session to the drawn world. The camera takes the session's pose while it holds the view.
+/// The latch goes to the
 /// view and the lattice and the possessed model is left out before the present (<see cref="LatchPossession"/>), and the
 /// roof is drawn after it (<see cref="PresentRoof"/>). Every rule is <see cref="PossessionSession"/>'s,
 /// <see cref="PossessionScene"/>'s and <see cref="TerrainCeilingScheduler"/>'s (ADR-0805).</summary>
@@ -33,7 +33,7 @@ public partial class WorldScene
     public PossessionSession? Possession { get; set; }
 
     /// <summary>The session's pose while the camera is the possession's (the first-person view and the timed moves to and
-    /// from it), as Unity's <c>ApplyClassicCamera</c> asks first; null leaves the ordinary camera's.</summary>
+    /// from it). Null leaves the ordinary camera in control.</summary>
     private ClassicCameraPose? PossessionPose(CameraViewport viewport) =>
         Possession is { CameraHeld: true } session && session.TryCamera(ClassicCamera, viewport, out ClassicCameraPose pose)
             ? pose : null;
@@ -47,7 +47,7 @@ public partial class WorldScene
         HideCreature(Possession?.HiddenCreatureId ?? 0);
     }
 
-    /// <summary>Unity's <c>HideCreature</c>: the model hidden until now is shown again, and the frame hides the new one
+    /// <summary>The model hidden until now is shown again, and the frame hides the new one
     /// each time it is drawn (<see cref="ISceneFrameHost.HideCreatureModel"/>).</summary>
     private void HideCreature(int creatureId)
     {
@@ -80,7 +80,7 @@ public partial class WorldScene
 
     /// <summary>The chunk the scheduler just built, as a terrain chunk is uploaded: through the frame change with the
     /// triangle order kept, each vertex carrying its tile and the roof's anchor kind (<see cref="TerrainCustomFormat"/>),
-    /// which the lit shaders light from the tile's table with none of the fill. Unity's <c>TerrainCeilingChunks</c>.</summary>
+    /// which the shaders light from the tile's table without fill.</summary>
     private void UploadRoof(int chunk, Node3D root)
     {
         MeshInstance3D? instance = _roofChunks[chunk];
@@ -114,7 +114,7 @@ public partial class WorldScene
         var mesh = instance?.Mesh as ArrayMesh ?? new ArrayMesh();
         mesh.ClearSurfaces();
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, null, null, TerrainCustomFormat);
-        // Unity's ClassicMeshes.ForTexture: the one Ceiling texture, opaque, lit as the terrain is.
+        // Use the opaque Ceiling texture, lit as the terrain is.
         _roofMaterial ??= FixedTerrainMaterial(new TerrainMaterialKey(
             new ClassicMaterialRecipe(TerrainCeiling.TextureName, KmfBlend.Opaque, 0f), TerrainMaterialVariant.Plain));
         mesh.SurfaceSetMaterial(0, _roofMaterial);

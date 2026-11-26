@@ -21,7 +21,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A shared gameplay art entry resolves only when the Godot adapter registers it with its install art provider. The dollar flower needs `StatusFlowerArt.Entries` in `WorldScene.Open`.
 - Godot 4.8 Movie Maker fixes its frame size at the window size it starts with and scales a later `Window.Size` change into it, so a launcher capture (it resizes its window) runs a copy of the project with an `override.cfg` of the launcher's size (`godot/README.md`, *The launcher*).
 - Godot 4.8 beta 3 on Windows gives a decorated window 4 px less client height than `Window.Size` asks (1100x680 became 1100x676, 1280x720 1280x716); a deferred second set did not help.
-- Godot 4.8's `Viewport.GetMousePosition` (which the adapter polls, as Unity polls `Input.mousePosition`) reads the OS cursor, so `Input.ParseInputEvent` motion does not move it; a hover probe that must `warp_mouse` moves the owner's real cursor while it runs. Drive a capture's pointer with `--pointer-path` instead (`godot/README.md`).
+- Godot 4.8's `Viewport.GetMousePosition` reads the OS cursor, so `Input.ParseInputEvent` motion does not move it; a hover probe that must `warp_mouse` moves the owner's real cursor while it runs. Drive a capture's pointer with `--pointer-path` instead (`godot/README.md`).
 - Godot 4.8's `Camera3D.ProjectRayNormal` assumes a symmetric frustum and drops `frustum_offset`, so under the classic camera's off-centre `PROJECTION_FRUSTUM` it casts the wrong ray (`projection.cpp` at c51ff06e8). Build the pick ray from the placed pose with `MinimapCameraView.RayDirection` (`WorldScene.TryPickRay`).
 - Godot 4.8 sorts a perspective camera's transparents by the straight-line distance from the camera to each instance's AABB centre (unless `InstanceSetPivotData(instance, offset, false)` puts the pivot at the origin), minus `sorting_offset`, not by depth along the view (`_fill_render_list`, render_forward_clustered.cpp at c51ff06e8; checked with two quads, 3q). A world-sized custom AABB therefore keys a thing by the world's centre: give a drawable the box it really has, or centre its box where it should sort (`WorldScene.RunSlot`).
 - Godot's world is the renderers' frame with z negated (`RightHandedFrame`: the map runs from z 0 to +height), so a custom AABB written in the renderers' coordinates lies mirrored off the map, and Godot culls what draws by it as soon as the far plane is short (an opening path's, 24 on Level6a). The blended run slots' world box did until the Workshop's grate and alcove drew black in Level6a's opening; build such a box through `RightHandedFrame.Point` (`WorldScene.WorldBox`).
@@ -104,7 +104,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Gameplay GPU probes that rebuild terrain require isolated Play Mode; edit-mode Object.Destroy can retain old chunks and log errors despite passing pixel/model checks.
 
 - Unity 6000.6 returned the material override tag value `True` as `true`; use lowercase marker tokens when comparing `Material.GetTag` results.
-- Sandboxed Unity batch startup can stall at `Licensing is not yet initialized`; an isolated probe may need execution outside the sandbox to use the installed license.
 
 - A managed worker with a different Windows SID may need per-command `git -c safe.directory=<absolute repository>`; do not change the owner's global Git trust configuration.
 
@@ -125,7 +124,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - If CS0009 names a zero-filled generated reference DLL, rebuild with `--no-incremental` before treating downstream missing types as source defects.
 
 - Cast raw PowerShell Get-Content results to [string] before ConvertTo-Json; otherwise extended properties can turn the value into an object.
-- Unity's C# 9 compiler rejects struct `with` expressions accepted by the adapter's newer compiler; construct replacement values explicitly in Unity/probe source.
 
 - Runtime-selected material variants can disappear only in standalone builds; see [the verified card regression](research/classic-lighting-verification.md#windowed-player-and-counter-calibration).
 
@@ -139,15 +137,13 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Recentring a probe's Mesh.vertices around a moved Transform needs RecalculateBounds after each replacement; stale local bounds can cull unchanged world geometry.
 - Edit-mode world probes must explicitly prepare runtime transparent batches; an opaque capture can otherwise omit blended terrain entirely.
 
-- Unity destroys GameObjects at frame end; a same-frame Transform.Find can return the replaced actor. Disable it immediately and sample the active replacement in probes.
 
 - `dk2tools status` discovery counts can differ from full test-run totals; report verified counts from `dotnet test` summaries.
 
 - Equal source/DLL timestamps can hide edits from incremental MSBuild here; use `dotnet build --no-incremental` when changed decoder tests appear stale.
 - `dotnet test -t` means list-tests, not an MSBuild target; rebuild with `dotnet build --no-incremental`, then use `dotnet test --no-build`.
 
-- Unity Package Manager rejects a UTF-8 BOM in Packages/manifest.json; write that JSON as UTF-8 without a BOM.
-- PowerShell can return early from a GUI executable invoked with `&`. Use `Start-Process -Wait -PassThru` for Unity builds, player captures and Godot release exports that ship only `DK2.exe`. Confirm the Godot run in its log.
+- PowerShell can return early from a GUI executable invoked with `&`. Use `Start-Process -Wait -PassThru` for GUI captures and Godot release exports that ship only `DK2.exe`. Confirm the Godot run in its log.
 
 - PowerShell treats curly apostrophes as quote delimiters; avoid them inside single-quoted command arguments.
 - Windows PowerShell redirects native stdout as UTF-16; detect the BOM when aggregating logs in Python, or regex matches can silently return zero; write JSON artifacts as UTF-8 in the producer.
@@ -198,7 +194,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Snapshot mutable diagnostic objects when recording each row; serializing retained references later repeats their final state across the trace.
 
-- Scratch SDK projects include nested `.cs` snapshots by default; keep copied Unity probe sources outside their compile glob.
+- Scratch SDK projects include nested `.cs` snapshots by default; keep copied probe sources outside their compile glob.
 
 - An authored camera update can overwrite a batch probe's Heart focus; reapply the focus after `DungeonRunner.Update` before judging Heart clearance from captures.
 
@@ -212,8 +208,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Source notices require a blank line after the three license comments; the exact LicenseHeaderTests prefix includes two trailing newlines.
 
-- Unity-loadable DK2.Data targets netstandard2.1; newer Path helpers such as TrimEndingDirectorySeparator are unavailable there.
-- A pixelated Unity Game view can be editor zoom: check its Scale slider at 1x before changing rendering; camera zoom does not reset it (saved under UserSettings/Layouts/).
+- `DK2.Data` still targets netstandard2.1 until the retargeting commit. Newer `Path` helpers such as `TrimEndingDirectorySeparator` are unavailable there.
 - InvalidDataException is not an IOException; command error handling must catch both to report format refusals.
 
 - Typed KWD properties can be wider than their file fields: derive overlay test values and range checks from the reader's width, not the model's CLR type.
@@ -290,13 +285,10 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
   tables; back it up and append the `[mcp_servers.<name>]` block by hand.
 - `codex exec` never prompts, so it denies every MCP call that needs approval; approve a tool for
   one run with `-c 'mcp_servers.<server>.tools.<tool>.approval_mode="approve"'`.
+- Some older Markdown contains non-UTF-8 bytes. Preserve undecodable bytes during scripted edits to avoid corrupting an unrelated historical note.
 - A Python CLI that prints non-ASCII to a cp1252 console crashes after its work is done
   (`mcp-for-blender install-addon` copied the add-on, then raised); set `PYTHONIOENCODING=utf-8`.
 - Ghidra scripts using plain `open(..., 'w')` can fail on non-ASCII decompiler text under Windows cp1252; set `PYTHONUTF8=1` for the runner (stdout encoding alone does not fix file writes).
-- `unity/DK2.Unity.Compile` references Unity's module DLLs directly, so it passes code that the
-  project itself rejects when the built-in module is not in `Packages/manifest.json` (the movie
-  player's `AudioSource` compiled there and failed in the editor until `com.unity.modules.audio`
-  was added). Using a new `UnityEngine.*Module` type means adding its `com.unity.modules.*` entry too.
 - Windows PowerShell with `$ErrorActionPreference = 'Stop'` aborts on a native command's first
   stderr line (Blender prints Python warnings there); set `Continue` around it and judge `$LASTEXITCODE`.
 
@@ -344,14 +336,12 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A fresh worktree's `dotnet test --no-restore` can exit successfully with no tests when its test SDK assets are absent; require an actual test summary and restore that project once.
 - `git switch -c` in the shared main checkout moves every session's HEAD: another session's next three commits landed on the new branch, and one swept in a change staged there (b280ce8b, 2026-10-14). Make side branches in a worktree, and commit with an explicit path list (`git commit -- <paths>`).
 
-- In a Unity batch editor without a rendered view, waiting for `currentPipeline` does not initialize URP; call public `RenderPipeline.SupportsRenderRequest` with a temporary camera before submitting a render request.
 - Windows PowerShell `Set-Content -Encoding utf8` writes a BOM; use BOM-free UTF-8 for commit-message files or the subject starts with an invisible character.
 
 - A centred one-tile GPU lighting fixture does not establish whole-scene parity: also capture production torches on/off, a nonzero grid tile, shifted view and repeated presentation before accepting the result.
 - Sandbox escalation can still receive Windows error5 reading DK2; an explicit Windows `RunAs` launch succeeded. The owner must be present for UAC; sandbox approval does not change the process token.
 - If context-mode file processing fails with missing `better-sqlite3`, use bounded native output for the task rather than repeatedly retrying the broken runtime.
 - An offline restore can fail NU1900 under warnings-as-errors even with cached packages; use `-p:NuGetAudit=false` for that local verification run, leaving CI auditing enabled.
-- A compile harness can reference an installed Unity module that the project's Package manifest has disabled; verify in Unity too (HUD pilot: `com.unity.modules.imageconversion`).
 - A centred GPU minimap fixture hides row-origin errors; test an asymmetric fit and a rotated marker, and retain integer division for native projected boundaries rather than flooring an inexact floating-point quotient.
 - pyghidra search_code defaults to full code even with preview_length; pass include_full_code=false for bounded search results.
 - Ghidra's decompiler search omits undefined functions; a negative field-offset query needs a scan across both executable sections and a known positive control.
@@ -361,13 +351,11 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `apply_patch` with `Add File` can replace an existing file; check that a knowledge-base record is absent before adding it, and preserve existing evidence/history when updating it.
 - If the native oracle's Python helper exits because `py -3` has no registered interpreter, set `DK2_PYTHON` to the installed executable alongside `DK2_UNICORN_DLL`.
 - Unity Mono rounds `TimeSpan.FromSeconds(1f/60f)` to170000ticks; construct elapsed time with `FromTicks(round(seconds*TicksPerSecond))` when sub-millisecond accumulation matters.
-- A Unity editor callback can report another window's `Screen` dimensions; sample live Game-view projection in `RenderPipelineManager.endCameraRendering`, not immediately after assembly reload.
-- The source license gate requires all three notice lines plus a blank line, including the LICENSE reference; a copyright and SPDX pair alone fails, including in Unity editor scripts.
+- The source license gate requires all three notice lines plus a blank line, including the LICENSE reference. A copyright and SPDX pair alone fails.
 - A sandbox account can differ from the checkout owner; use per-command `git -c safe.directory=D:/DungeonKeeperRemake` (or inherited `GIT_CONFIG_COUNT` entries for repo tools), without changing the owner's global Git config.
 - `hand-cursor-rendering.md` contains legacy single-byte section signs among UTF-8 text; strict UTF-8 patching rejects it. Keep unrelated byte normalization out of a cursor fix.
 - Matched-state probes must restore constructor-owned fields before binding RNG; otherwise fixture setup can consume draws before the decision (research/decision-parity-audit.md).
 - A hidden standalone Unity window can skip all screen rendering despite active CPU loops; require camera render callbacks and a nonblank PNG before treating its timings as rendered performance. `game-unity-probe -Windowed` ran hidden until 2026-11-14 (0 GPU frames, black screenshot).
-- Unity can redirect `%LOCALAPPDATA%/Unity/Editor/Editor.log` to `<project>/Logs/Editor.log`; follow its redirect before diagnosing startup or compiler errors.
 - The URP renderer asset has `postProcessData` unset, so URP runs no post-processing and a Volume (`ColorAdjustments.postExposure`) does nothing in a player; a screenshot at Gamma 20/30/45 showed the same mean brightness. Draw a pass from `endCameraRendering` instead (`ClassicSettingsRendering`).
 - `game-unity-probe` runs before 2026-11-14 built a default scene (stock camera, shadow-casting light, fog of war off, wrong ambient and camera preset), so their lighting, GPU and frame numbers are not comparable with later runs, which build `Dungeon.unity`.
 - PowerShell variable names are case-insensitive: a `$r` loop variable overwrote an earlier `$R`. Use distinct names.
@@ -378,7 +366,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Lightning zero-allocation tests reported 624 B in the worktree and 216 B on a clean HEAD archive. The full suite passed with `DOTNET_TC_QuickJitForLoops=0` set only for the test process. Use that control before attributing a failure to the change.
 - `ManualResetEventSlim.Wait` allocates its lock object the first time it has to block (24 bytes, only when the other side is late), so a zero-allocation test around a worker hand-off failed about 1 run in 15 under CPU load; `MoviePlayback` waits on a `ManualResetEvent` for that reason.
 - Runtime level switching must release the old scene before activating its replacement: deferred OnDestroy can clear or dispose shader globals already published by the new scene.
-- Legacy Unity Font atlases can have black RGB with valid glyph alpha; UI Toolkit textured meshes need an in-memory white-RGB copy of that coverage.
 - Restoring source with `Copy-Item` can preserve a timestamp older than the compiled DLL; touch the restored file or rebuild before trusting an incremental regression retest.
 - Windows PowerShell Set-Content defaults to a legacy code page; pass -Encoding UTF8 for Python scripts containing non-ASCII prose.
 - An effect's GenerateIds are effect ids, not element ids, when the effect has flag `0x40` (types 4 and 18); a dump that resolved them as elements made the Inferno look like one spark (shot-effects.md §5).
@@ -386,14 +373,12 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Windows PowerShell piping non-ASCII script text to python - can turn symbols into question marks; keep pipe input ASCII and use Unicode escapes.
 - Windows PowerShell can strip nested quotes from Python `-c` arguments; use a script file for replacements containing quoted prose.
 - Unity `Transform.InverseTransformPoint` can differ in low bits from `worldToLocalMatrix.MultiplyPoint3x4`; preserve native point conversions when extracting bit-exact camera-space geometry.
-- Disk-full compilation can leave fresh-timestamp, truncated `DK2.Simulation.dll` files in Unity verification `obj` and `bin`; incremental sync can skip them and report CS0009 ("Image is too small"), so verify the generated DLLs against a successful build before diagnosing source errors.
-- Keep isolated Unity project paths short: PackageCache importer paths can hit MAX_PATH (260 chars) and fail even when the project copy succeeded.
 - URP `Volume.sharedProfile` is a public field, so reflection must use `GetField`; `GetProperty` compiled but failed during the Options runtime probe.
 
 - UI Toolkit pointer event positions and worldBound are panel units; multiplying them by physical screen-height scaling truncates scrollbar travel above the reference resolution.
 - EditorApplication.update callbacks can outpace rendered play frames; UI capture probes must wait on Time.frameCount before checking page images.
 - Procedural class-grid UVs and Graphics.Blit image UVs can have opposite Y origins; check logical tile colours against UI overlay positions on the active graphics backend.
-- `WatchdogTests.WithTwoJobsTwoRunsOverlap` is wall-clock: rerun it alone after a failure in the full solution run or beside Unity imports; helper-process startup contention can make parallel wall time exceed the serial comparison.
+- `WatchdogTests.WithTwoJobsTwoRunsOverlap` is wall-clock: rerun it alone after a failure in the full solution run or beside editor imports; helper-process startup contention can make parallel wall time exceed the serial comparison.
 - Startup probes inherit the scene's Front End Return Page; reset it to None before expecting title/intros instead of diagnosing a missing repaint from a skipped stage.
 - UI Toolkit can log generateVisualContent exceptions while model updates continue; runtime probes must reject product log exceptions as well as failed assertions.
 - Codex CLI 0.164 rejects an env-only project MCP entry as "invalid transport" before merging user config; repeat that server's command and args in the project entry.
@@ -403,7 +388,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Windows PowerShell `New-Item` has no `-LiteralPath`; use a controlled `-Path` or `Directory.CreateDirectory`.
 - Assign `ConvertFrom-Json` array results directly; wrapping the pipeline in `@()` can retain a nested array and yield `Object[]` member values.
 
-- A scratch master Behavior test baseline needs committed scenarios, tools and Unity input source roots as well as src/tests; missing-root failures are harness setup failures.
+- A scratch master Behavior test baseline needs committed scenarios, tools and Godot input source roots as well as src/tests; missing-root failures are harness setup failures.
 - Use explicit UTF-8 for Markdown reads and writes on Windows; default cp1252 reads cause mojibake, and writes can truncate a file before encoding fails.
 - Direct rule fixtures must refresh WorldSteering before querying NavByte; an uninitialized navigation cache reports solid tiles.
 - Native thing-table player records contain only a 0x40-byte head; read full fields through Snapshot.player(PlayerId - 1) in REGION_PLAYERS, not record(tag).

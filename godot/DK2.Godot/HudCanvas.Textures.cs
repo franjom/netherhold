@@ -8,9 +8,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The canvas's textures, one per image (variant applied, as Unity's <c>HudCanvas.Texture</c>). Godot blends
-/// additively itself, so unlike Unity an image's pixels do not depend on its draw's blend. Gauges, glows and set text
-/// drawn one texel per pixel have their own paths (<c>HudCanvas.Gauges.cs</c>, <c>.Glows.cs</c>, <c>.Atlas.cs</c>).</summary>
+/// <summary>Caches one texture per image variant. The canvas selects the draw blend separately from the texture and point-samples bitmaps where their edges must stay sharp.</summary>
 public partial class HudCanvas
 {
     private readonly Dictionary<HudImage, ImageTexture> _textures = new();
@@ -20,7 +18,7 @@ public partial class HudCanvas
     private readonly HashSet<HudLabel> _labelsDrawn = new();
     private int _catalogueCount;
 
-    /// <summary>Decodes an image now rather than at the first frame that draws it (Unity's <c>HudCanvas.Preload</c>);
+    /// <summary>Decodes an image before the first frame that draws it.
     /// <see cref="Load"/> must be set.</summary>
     public void Preload(HudImage image) => Texture(image);
 
@@ -30,7 +28,7 @@ public partial class HudCanvas
         if (image.IsLive) return Gauge(image);
         if (image.Variant == HudImageVariant.Glow) return Glow(image);
         ImageTexture texture = Cached(image);
-        // Set text keeps hard bitmap edges when the scale stretches it, as Unity's point-filtered text did.
+        // Point-sample set text so its bitmap edges stay sharp when scaled.
         return new Resolved(texture.GetRid(), texture.GetSize(), image.Text != null);
     }
 
@@ -59,7 +57,7 @@ public partial class HudCanvas
     private RgbaImage Catalogue(string path) =>
         (Load ?? throw new InvalidOperationException("HudCanvas.Load is not set."))(path);
 
-    /// <summary>A text or label texture no frame draws any more is freed, as Unity's canvas destroys it.</summary>
+    /// <summary>Free a text or label texture once no frame draws it.</summary>
     private void ReleaseUnusedText()
     {
         if (_textures.Count == _textInUse.Count + _catalogueCount) return;

@@ -31,7 +31,7 @@ public readonly record struct WorldPointerFrame(
     long Milliseconds);
 
 /// <summary>
-/// Unity's DungeonRunner.QueueInput, moved out of the runner (migration plan step 2h): the gates a frame's pointer passes
+/// The gates a frame's pointer passes
 /// on its way to a world command, in order. Without ordinary input (a camera path, the letterbox, the result) the world
 /// drag is dropped. Possessing, the pointer is the view's: only a modal panel takes its presses, and the drag is dropped.
 /// The HUD's press (<see cref="HudPressRouter"/>) or a held choice's (<see cref="WorldClickCommands"/>) takes the frame.

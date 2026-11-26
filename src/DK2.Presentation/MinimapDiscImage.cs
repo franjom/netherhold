@@ -10,9 +10,8 @@ namespace DK2.Presentation;
 /// <summary>The minimap's disc (ADR-0805) as RGBA bytes, top row first, straight alpha, at display resolution: DK2's
 /// 128x128 tile raster (classes in their palette colours, class 1 and the raster outside the map the rock backdrop),
 /// rotated by the camera's heading and cut to a circle with a one-pixel soft rim, then the markers and the Heart trail
-/// over it. For an engine that uploads pixels; Unity draws the same disc on the GPU (<c>Resources/DK2Minimap.shader</c>,
-/// passes 1 and 2, fed by <c>MinimapGpuMap</c>), so the two change together. The shader's per-pixel derivatives
-/// (<c>fwidth</c>) are taken analytically here. Rules: minimap-rendering.md.</summary>
+/// over it. The per-pixel derivatives in the world shader's minimap equivalent are computed analytically here.
+/// Rules: minimap-rendering.md.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-rendering.md")]
 public sealed class MinimapDiscImage
 {
@@ -160,8 +159,7 @@ public sealed class MinimapDiscImage
 
     /// <summary>The repeated rock at a raster point, bilinear as the backdrop texture is sampled (raster / 128 of it).
     /// Raster row 0 reads the PNG's top row, as minimap-rendering.md has Map-BG match the raster's indexing
-    /// (0x0041ADA0, 0x0041C660); Unity's shader samples a <c>LoadImage</c> texture whose v=0 is the bottom row, so its rock
-    /// is flipped vertically against this one.</summary>
+    /// (0x0041ADA0, 0x0041C660).</summary>
     private void Backdrop(float rx, float ry, byte[] pixels, int p)
     {
         float u = rx / Raster * _backdropWidth - .5f, v = ry / Raster * _backdropHeight - .5f;

@@ -7,7 +7,7 @@ using DK2.Core;
 
 namespace DK2.Presentation;
 
-/// <summary>Where the ordinary camera's focus goes, in Unity's axes (x east, y up, z north negated), as
+/// <summary>Where the ordinary camera's focus goes in rendering coordinates (x east, y up, z north negated), as
 /// <see cref="ClassicCamera.Pose(Vector3, CameraViewport)"/> takes it (migration plan step 2i).</summary>
 public static class CameraFocus
 {
@@ -79,8 +79,7 @@ public sealed class CameraGlide
         return next;
     }
 
-    /// <summary>Unity's <c>Vector3.Lerp</c>, term for term (the fraction clamped to [0, 1], then a + (b - a) t), so the
-    /// adapters' focus matches the one Unity's runner computed.</summary>
+    /// <summary>Linearly interpolates component by component after clamping the fraction to [0, 1].</summary>
     private static Vector3 Lerp(Vector3 a, Vector3 b, float t)
     {
         t = CameraFocus.Clamp(t, 0f, 1f);

@@ -127,7 +127,7 @@ For each `implements:` path and each `src/` change that touches a mechanic:
   and we use `/` (rounds toward zero).
 - Ids of different kinds must not share a type, durations are in `Ticks`,
   and sentinels belong on the type (*Meaningful types over primitives*).
-- The simulation stays Unity-free, and asset access goes through the
+- The simulation stays engine-neutral, and asset access goes through the
   abstraction layer.
 - If the change alters simulation output, check that HashVersion (or the
   schema version) was bumped and that the ADR and question numbers do not
@@ -156,7 +156,7 @@ These are hard failures:
   name like `local_1c`, `uVar3` or `param_2`, or a near-verbatim paraphrase
   of a decompiled body is a finding. Facts and offsets are allowed, the
   decompiler's text is not.
-- **No Flame identifiers** in `src/`, `tests/` or the Unity adapter,
+- **No Flame identifiers** in `src/`, `tests/` or the Godot adapter,
   comments included. Documents may cite a Flame name as Flame's (ADR-0080).
   OpenKeeper and wiki facts need provenance and must be in our own words.
 - **The KB rule.** Every new finding or correction about a function is in

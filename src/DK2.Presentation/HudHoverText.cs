@@ -29,7 +29,7 @@ public interface IHudHoverSources
 }
 
 /// <summary>The status line and tooltip while the pointer is over the HUD: the first panel with something under the
-/// pointer, in the order Unity's runner asked them (moved unchanged from <c>DungeonRunner.CaptureHudHover</c>):
+/// pointer, in priority order:
 /// the creature overview's widgets, then its portraits, the message tabs, the battle tab, the bottom panel, the
 /// minimap's corners and last the resource strip. Widget, portrait and resource texts are kept until what they were
 /// built from changes, so a still pointer builds no text.</summary>

@@ -32,7 +32,7 @@ public readonly record struct FrameTicks(int Count, InputFrame FirstInput, bool 
 }
 
 /// <summary>
-/// The frame order of a level frame, from Unity's DungeonRunner.Update (migration plan step 2h), around the adapter's own
+/// The steps of a level frame around the adapter's own
 /// camera, HUD and world-input steps. Per frame the host calls <see cref="UpdateScript"/>, then runs the level end (which
 /// may end the frame), <see cref="AdvancePickups"/>, <see cref="TakeScriptedInput"/>, its own HUD keys (with
 /// <see cref="FrameScriptInput.AllowOptionsKey"/>), possession, camera and <see cref="WorldPointerInput"/> (a session

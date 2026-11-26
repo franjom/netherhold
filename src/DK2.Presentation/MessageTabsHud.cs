@@ -11,7 +11,7 @@ namespace DK2.Presentation;
 /// <summary>Menu39's message tabs and Review Objective button, the message panel (menu40 in message mode),
 /// the level indicators and the objective panel (menu33), engine-free (ADR-0805); docs/research/message-tabs.md.
 /// Sounds 0x320..0x322, the Ally button (mode 3) and name substitution for types 82..87 are not built.
-/// Built back to front in the order the Unity widgets stood; text, clipping and the tiled frame are quads.</summary>
+/// Built back to front from quads for text, clipping and the tiled frame.</summary>
 public sealed class MessageTabsHud
 {
     private const int MenuX = 1112, MenuY = 1460, ButtonWidth = 88, ButtonHeight = 128;

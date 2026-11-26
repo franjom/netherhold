@@ -9,10 +9,7 @@ using NVector3 = System.Numerics.Vector3;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Entity hover (plan step 3h), as Unity's <c>DungeonScene</c> picks and tints: the drawn creatures, objects, doors
-/// and traps offered to <see cref="WorldHoverPicker"/> with their measures (<see cref="ModelSlot.Measure"/>, the triangle
-/// test on the clip's last sample), and the red pass and gold swap <see cref="HoverOverlayPlan"/> plans, drawn as each
-/// hovered surface's material for the frame (<see cref="ModelSlot.CommitHover"/>).</summary>
+/// <summary>Picks drawn creatures, objects, doors and traps for hover. Draws the tint and burning overlays selected by the shared presentation logic.</summary>
 public partial class WorldScene
 {
     private readonly HoverOverlayPlan _hoverOverlay = new();
@@ -22,7 +19,7 @@ public partial class WorldScene
     /// <summary>The view the pick culls by (the classic pose's frustum); null before the camera is placed.</summary>
     public ViewFrustum? PickFrustum => View == null ? null : PlacedFrustum;
 
-    /// <summary>Unity's <c>PickHoverEntity</c> after <see cref="WorldHoverPicker.Begin"/>: every drawn creature, object
+    /// <summary>After <see cref="WorldHoverPicker.Begin"/>, offer every drawn creature, object
     /// that is a hover target, door and trap offered with its measures; the rendered result, else the 3x3 sweep over where
     /// the creatures and objects are drawn. Allocation-free.</summary>
     public WorldHoverHit PickHoverEntity(WorldHoverPicker picker, NVector3 origin, NVector3 direction)
@@ -55,7 +52,7 @@ public partial class WorldScene
         picker.Offer(candidate, probe, slot.NearestTriangle(origin, direction, picker.TerrainDistance));
     }
 
-    /// <summary>Unity's <c>DrawHoverOverlay</c>: the hover tint <see cref="HoverOverlayPlan"/> plans on the hit's model
+    /// <summary>The hover tint <see cref="HoverOverlayPlan"/> plans on the hit's model
     /// (the caller decides which picks are tinted, <see cref="HoverTint"/>), the gold twin and the red pass; shown from
     /// <see cref="CommitHoverOverlay"/> until the next frame asks again.</summary>
     public void DrawHoverOverlay(WorldHoverHit hit, bool coversBlended = false)
@@ -95,7 +92,7 @@ public partial class WorldScene
         foreach (ModelSlot slot in _hoverSlots) slot.Hover = default;
     }
 
-    // A burning creature's red (Unity's DrawBurningRed): the hover overlay's red pass on it.
+    // Apply the hover overlay's red pass to burning creatures.
     void ISceneFrameHost.DrawBurningRed(CreatureId creature, in CreatureView pose) =>
         DrawHoverOverlay(new WorldHoverHit(WorldHoverKind.Creature, pose.Tile, creature.Value));
 }

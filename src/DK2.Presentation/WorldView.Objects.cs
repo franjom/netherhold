@@ -61,7 +61,7 @@ public sealed partial class WorldView
     private WorldState? _objectPositionsWorld;
     private GameTick _objectPositionsTick, _capturedPositionsTick;
 
-    /// <summary>Capture before each simulation tick so a batched Unity frame interpolates only its
+    /// <summary>Capture before each simulation tick so a batched rendered frame interpolates only its
     /// last tick; on the presented-world path, from the presented world just before a batch replaces
     /// it (ADR-0694). Main thread only: it reads the view's per-world caches.
     /// <see cref="PresentObjectPositions"/> hands the capture to the frame.</summary>

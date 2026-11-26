@@ -9,11 +9,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The message tabs above the bottom panel, the message panel they open, the level's indicators and the
-/// objective panel: the Godot counterpart of Unity's <c>ClassicMessageTabs</c>. <see cref="MessageTabsHud"/> (ADR-0805)
-/// decides every draw and click, a <see cref="HudCanvas"/> draws its frame bottom-docked under the HUD scale, and this
-/// node forwards the mouse in virtual units (1920 high). Like Unity's, clicks act on the press, and the message panel's
-/// scroll bar polls the pointer and the left button each draw.</summary>
+/// <summary>Draws message tabs and the objective panel from <see cref="MessageTabsHud"/> (ADR-0805). The model receives pointer positions in virtual units and handles clicks on the press.</summary>
 public partial class ClassicMessageTabs : Node
 {
     private readonly HudFrame _frame = new();
@@ -24,7 +20,7 @@ public partial class ClassicMessageTabs : Node
     /// <summary>Screen pixel of the canvas's local (0, 0), rounded as drawn; the pointer is measured from it.</summary>
     private Vector2 _origin;
 
-    /// <summary>The HUD scale percent (Unity's <c>UiScale</c>, the graphics setting); 100 while the options menu is open.</summary>
+    /// <summary>The HUD scale percent; 100 while the options menu is open.</summary>
     public int UiScale { get; set; } = 100;
 
     /// <summary>Opens the tabs over <paramref name="art"/>, which the caller disposes; call before it enters the tree.</summary>
@@ -42,7 +38,7 @@ public partial class ClassicMessageTabs : Node
         if (art is null) throw new ArgumentNullException(nameof(art));
         var hud = new MessageTabsHud(art, view, font, resolve, briefing, locate, goTo, playerName);
         var canvas = new HudCanvas { Name = "HudCanvas", Load = art.Image };
-        // Decoded now, as Unity's facade does, and before the canvas is kept, so a failed decode leaves the tabs
+        // Decoded before keeping the canvas, so a failed decode leaves the tabs
         // unopened and retryable.
         try { foreach (HudImage image in MessageTabsHud.Images()) canvas.Preload(image); }
         catch { canvas.Free(); throw; }
@@ -108,7 +104,7 @@ public partial class ClassicMessageTabs : Node
         else if (what == NotificationPredelete) { _hud = null; _canvas = null; }
     }
 
-    /// <summary>A screen pixel in the model's virtual units (Unity's <c>LocalPointer</c> then <c>ToVirtual</c>), from the
+    /// <summary>A screen pixel in the model's virtual units, from the
     /// same rounded origin the drawing uses, so hits land on the art at any HUD scale.</summary>
     private (float X, float Y) ToVirtual(Vector2 screen) =>
         ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);

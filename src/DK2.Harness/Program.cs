@@ -53,7 +53,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
                     --playbook <file>  the level's playbook (knowledge/playbooks/): its plan and values,
                     and caps standing in for limits not given; refused (exit 2) when it fails review
                     or is for another level.
-                    Not covered: Unity rendering, audio, the real UI, an external agent, the front end.
+                    Not covered: rendering, audio, the real UI, an external agent, the front end.
 
           replay <scenario.yaml> <input.journal> [--out <dir>] [--seed <n>]
               Re-runs a journal without its keepers or controllers and compares

@@ -7,13 +7,10 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The hand cursor, the Godot counterpart of Unity's <c>ClassicHandCursor</c> (plan step 3e): the kind's Sprite.WAD
-/// sheet with its green keyed out (<see cref="HandCursorHud"/>), animated by <see cref="HandCursorAnimation"/>, drawn by a
-/// <see cref="HudCanvas"/> on the top canvas layer over every panel and the placement cursor. The OS pointer is hidden while
-/// it shows, unless <see cref="ManageSystemPointer"/> is off (a scripted pointer leaves the owner's pointer alone).</summary>
+/// <summary>Draws the hand cursor from the Sprite.WAD frames for the current cursor kind and animation time.</summary>
 public partial class ClassicHandCursor : Node
 {
-    /// <summary>Over the panels (layer 0) and the placement cursor's layer, as Unity's sorting order 1000 over its 999.</summary>
+    /// <summary>Above the panels and the placement cursor's layer.</summary>
     public const int CanvasLayerIndex = 101;
 
     private readonly HudFrame _frame = new();
@@ -23,7 +20,7 @@ public partial class ClassicHandCursor : Node
     private int _sheetFrame;
     private bool _ownsPointer;
 
-    /// <summary>The HUD scale percent (Unity's <c>UiScale</c>), which scales the hand about the pointer.</summary>
+    /// <summary>The HUD scale percent, which scales the hand about the pointer.</summary>
     public int UiScale { get; set; } = 100;
 
     /// <summary>Whether the OS pointer is hidden while the hand shows.</summary>
@@ -48,7 +45,7 @@ public partial class ClassicHandCursor : Node
         AddChild(layer);
     }
 
-    /// <summary>Unity's <c>Update</c>: shows <paramref name="kind"/> at its animation frame, or hides the hand (and gives the
+    /// <summary>Shows <paramref name="kind"/> at its animation frame, or hides the hand (and gives the
     /// pointer back) when not <paramref name="visible"/> or the kind is the default.</summary>
     public void Update(HandCursorKind kind, bool visible, long milliseconds)
     {

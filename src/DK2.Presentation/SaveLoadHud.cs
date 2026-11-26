@@ -29,7 +29,7 @@ public sealed class SaveLoadHud
     /// <summary>Enter in the name, or a press on the name or the Load entry.</summary>
     public event Action? Submit;
     /// <summary>A press on the Back or Continue line: the options menu's action it applies, the same as that menu's own
-    /// Back and Continue Game entries (<see cref="OptionsHud.HudAction"/>; DungeonRunner.InitializeSaves applied them).</summary>
+    /// Back and Continue Game entries (<see cref="OptionsHud.HudAction"/>).</summary>
     public event Action<ClassicHudAction>? HudAction;
 
     /// <param name="text">A string table entry by id.</param>

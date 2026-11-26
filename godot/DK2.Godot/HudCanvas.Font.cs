@@ -7,10 +7,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The replacement TrueType font (ADR-0805 point 4): each plain label glyph is that face's glyph, centred in the
-/// box the BF4 layout gives it, so layout and colour stay the model's. A label whose text the face lacks any glyph for,
-/// and every glow, stays the bitmap. Unlike Unity's fixed 96 px atlas, each label is rasterized at the pixel size its
-/// boxes have on screen and drawn 1:1 on whole pixels, so glyphs are never resampled (owner, 2026-11-15).</summary>
+/// <summary>Resolves the replacement face for labels. The canvas rasterizes each label at its drawn pixel size and keeps set text and glows in the bitmap font.</summary>
 public partial class HudCanvas
 {
     /// <summary>The size each glyph's ink is measured at once, to find the size that fills a box.</summary>

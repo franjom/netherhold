@@ -25,7 +25,7 @@ Its installation and shared adapter are in [tools/qwen](../../tools/qwen/README.
 | Skill | Project use |
 |---|---|
 | csharp-refactoring | Preserve behavior across binding-aware structural edits. |
-| dotnet-breaking-changes | Check assembly consumers, conditional code and Unity compatibility. |
+| dotnet-breaking-changes | Check assembly consumers and conditional code. |
 | msbuild | Diagnose imports, incremental generation and build performance. |
 | dotnet-pinvoke | Check native signatures, layout, ownership and callbacks. |
 | vectorization | Verify measured SIMD changes against scalar behavior. |
@@ -51,10 +51,8 @@ project's binary/data/experiment source order and confidence scale for mechanics
 
 - Preserve integer arithmetic, overflow, truncation, RNG draw order and state
   layout. A faster framework API or SIMD reduction must preserve that contract.
-- The SDK pin is in `global.json`; Unity-bound assemblies use `netstandard2.1`
-  through `src/Shared/UnityBound.props`. Check the actual target and Unity runtime
-  before using modern APIs, intrinsics, source generators or `LibraryImport`.
-  CoreCLR benchmark results do not establish Unity performance.
+- The SDK pin is in `global.json`. Check the project's target framework and the
+  Godot runtime before using framework APIs, intrinsics or native interop.
 - Native interop requires the actual ABI. Do not apply blanket type-table advice:
   `LibraryImport` is not universally required for NativeAOT; `DllImport` support
   depends on the signature/marshalling. Win32 handles have API-specific ownership;

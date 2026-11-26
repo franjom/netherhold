@@ -16,18 +16,10 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Scene root of <c>InGameHud.tscn</c>: a campaign level started as Unity's <c>DungeonRunner</c> starts one
-/// (<see cref="CampaignLevelData"/>, keeper 3, seed 1, fog on, its first turn run before the first frame), paced by
-/// <see cref="TickPacer"/> at normal speed, with the in-game HUD over the level's terrain (<see cref="_world"/>). Ported
-/// (plan step 1b): the resource strip, the bottom panel, the creature overview, the creature query details, the message tabs, the
-/// battle tab, the hover HUD (<see cref="HudHoverText"/>), the options menu (<see cref="ClassicHudControls"/>, opened by
-/// the options key; while it is open the level pauses and the other panels take no input, as Unity's <c>HudModal</c>) and
-/// its save and load pages (<see cref="SaveLoadSubmitted"/>) and game options pages (<see cref="ClassicGameOptionsPanel"/>;
-/// the settings are read from and saved to <c>user://game-settings.ini</c>) and the full map (<see cref="ClassicFullMap"/>, opened
-/// by its key, closed by it, Escape or a left or right press; while it shows the normal HUD hides) and the minimap
-/// (<see cref="ClassicMinimap"/>, from the live camera, whose moves are <see cref="UpdateCamera"/>'s; its grid is the full
-/// map's too). Not wired (logic still in Unity's runner, or needing the 3D world): the list is in
-/// docs/plans/2026-11-15-godot-migration.md. User arguments after <c>--</c> (<c>--stage-battle</c> is <see cref="StageBattle"/>): godot/README.md.</summary>
+/// <summary>Scene root of <c>InGameHud.tscn</c>. Loads a campaign level,
+/// paces its simulation with <see cref="TickPacer"/>, and draws the HUD over the world.
+/// The options menu pauses the level and takes input while it is open. The full map shares
+/// the minimap grid and hides the normal HUD. Launch arguments are documented in godot/README.md.</summary>
 public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPressHost, IWorldPointerHost
 {
     private readonly List<PlayerCommand> _pending = new();
@@ -56,19 +48,18 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _bottomBar.Position = new Vector2(0, size.Y * (1 - bar));
     }
     private readonly PlayerInputTranslator _input = new();
-    /// <summary>The tool, the panel's choice, the query tool and the selected corner, as Unity's runner keeps them.</summary>
+    /// <summary>The tool, the panel's choice, the query tool and the selected corner.</summary>
     private readonly HudToolState _tools = new();
-    /// <summary>The HUD actions, applied as Unity's runner applies them; this scene is its host.</summary>
+    /// <summary>Routes HUD actions to this scene.</summary>
     private HudActionRouter? _router;
     /// <summary>Where the press that raised the action being applied was, for the magnifier's zoom.</summary>
     private Vector2 _actionPointer;
-    /// <summary>The pickups (the overview's and the Hand's world pickup), as Unity's runner's, playing the cursor's
-    /// held state.</summary>
+    /// <summary>The overview and world pickups update the hand cursor's held state.</summary>
     private PickupFlow? _pickups;
-    /// <summary>The hand cursor's transient states (Unity's runner's <c>_cursorFeedback</c>), shared by the pickups, the world
+    /// <summary>The hand cursor's transient states, shared by the pickups, the world
     /// pointer and the hover, whose sounds the mixer plays.</summary>
     private readonly HandCursorFeedback _cursorFeedback = new();
-    /// <summary>The cursor, placement and cage the pointer shows (DungeonRunner.CaptureWorldHover after the pick).</summary>
+    /// <summary>The cursor, placement and cage to draw after the world hover pick.</summary>
     private HoverCursorResolver? _hoverCursor;
     /// <summary>The hand's icons the placement cursor draws while it holds things.</summary>
     private readonly HeldItemStack _heldStack = new();
@@ -77,7 +68,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private InstallHandCursorSheets? _cursorSheets;
     /// <summary>The world pick for the hover: the drawn entities (<see cref="WorldScene.PickHoverEntity"/>), else the tile under the pointer.</summary>
     private readonly WorldHoverPicker _picker = new();
-    /// <summary>Where the hand last pointed on the map (Unity's runner's <c>_pointerWorld</c>), for the cursor's sounds.</summary>
+    /// <summary>The last world point under the hand, used to position its sounds.</summary>
     private FpPosition2? _pointerWorld;
     /// <summary>The Hand's excavation drag's far end; off the map it keeps the last tile the pointer was on.</summary>
     private TilePos? _dragTo;
@@ -87,18 +78,17 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private int _scriptFrame = -1;
     private PointerScriptSample _scripted;
     private Vector2 _scriptPushed = new(float.NaN, float.NaN);
-    /// <summary>The HUD's presses in Unity's order (DungeonRunner.QueueHudInput); this scene is its host.</summary>
+    /// <summary>Routes presses to the eligible HUD panels in priority order.</summary>
     private HudPressRouter? _presses;
-    /// <summary>The query tool's and a held choice's world presses (DungeonRunner.QueuePanelWorldAction), on the tile
+    /// <summary>The query tool's and a held choice's world presses, on the tile
     /// <see cref="PointerTile"/> picks.</summary>
     private WorldClickCommands? _worldClicks;
     /// <summary>The window, whose input is read before any panel takes it.</summary>
     private Window? _window;
     /// <summary>The left and right buttons pressed since the last frame, read from the window before any panel marks the
-    /// event handled, as Unity's <c>Input.GetMouseButtonDown</c> sees every press whatever the UI does with it.</summary>
+    /// event handled.</summary>
     private bool _primaryDown, _secondaryDown, _primaryUp, _secondaryUp;
-    /// <summary>The pointer and the HUD's visibility for this frame's presses (Unity's <c>Input.mousePosition</c> and
-    /// <c>CurrentHud</c> while the runner queues input).</summary>
+    /// <summary>The pointer and the HUD's visibility when this frame's presses are routed.</summary>
     private Vector2 _pressPointer;
     private HudVisibility _pressVisibility;
     private RoomNavigation? _roomNavigation;
@@ -106,11 +96,11 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private readonly List<RoomNavigationEntry> _roomEntries = new();
     private readonly List<ThingNavigationEntry> _thingEntries = new();
     private readonly TickPacer _pacer = new();
-    /// <summary>The frame order around this scene's HUD and input, as Unity's runner runs it (plan step 2h).</summary>
+    /// <summary>The frame order around this scene's HUD and input.</summary>
     private FrameDriver? _frameDriver;
-    /// <summary>The world pointer's gates (Unity's runner's QueueInput), on the tile <see cref="PointerTile"/> picks.</summary>
+    /// <summary>The world pointer rules, applied to the tile <see cref="PointerTile"/> picks.</summary>
     private WorldPointerInput? _worldPointer;
-    /// <summary>The input journal, off unless <c>--input-journal &lt;dir&gt;</c> names a folder (not Unity's variable); its
+    /// <summary>The input journal, enabled by <c>--input-journal &lt;dir&gt;</c>. Its
     /// keys are Godot physical keycodes (<see cref="FrameJournalSession.GodotKeyTable"/>).</summary>
     private readonly FrameJournalSession _journal = new(message => GD.Print(message), message => GD.PushWarning(message));
     private string? _journalRoot;
@@ -120,16 +110,16 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private readonly List<HostKey> _journalDown = new(), _journalUp = new(), _journalHeld = new();
     private FrameMouseButtons _journalButtonsDown, _journalButtonsUp;
     private float _journalWheelX, _journalWheelY;
-    /// <summary>The applied settings, as Unity's runner keeps them: read here for the game speed, the key bindings and the
+    /// <summary>The applied settings, including the game speed, the key bindings and the
     /// HUD scale. Loaded from, and saved to, <see cref="_settingsPath"/>.</summary>
     private GameSettings _settings = new();
     private string _settingsPath = "";
-    /// <summary>The settings pages' transactions (Unity's runner's <c>_optionsPages</c>).</summary>
+    /// <summary>The settings pages' transactions.</summary>
     private OptionsPagesController? _optionsPages;
     private InGameOptionsController? _gameOptions;
     private ClassicGameOptionsPanel? _gameOptionsPanel;
     private readonly ClassicKeyboard _keyboard = new();
-    /// <summary>The options menu's pages and the GUI state, as Unity's runner keeps them.</summary>
+    /// <summary>The options menu's pages and the GUI state.</summary>
     private readonly ClassicHudControls _hudControls = new();
     private PlayerId _viewer = PlayerIds.FirstKeeper;
     private GameSimulation? _simulation;
@@ -148,29 +138,29 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private ClassicCreatureOverview? _overview;
     private CreatureQueryView? _queryView;
     private ClassicCreatureQueryPanel? _queryPanel;
-    /// <summary>The battle records the battle tab reads: the sound driver's music observer, as Unity's runner shares it.</summary>
+    /// <summary>The sound driver's music observer supplies the battle records read by the battle tab.</summary>
     private MusicWorldObserver? _battles;
     /// <summary>The level's sound (plan step 4): Godot's players (<see cref="ClassicSoundOutput"/>) under the shared mixer and
-    /// driver, which decide what plays (Unity's runner's <c>_soundPlayer</c> and <c>DungeonRunner.Sound</c>).</summary>
+    /// driver, which decide what plays.</summary>
     private ClassicSoundOutput? _soundOutput;
     private ClassicSoundMixer? _mixer;
     private LevelSoundDriver? _sound;
     private ClassicBattleTab? _battleTab;
     private ClassicOptionsPanel? _options;
-    /// <summary>The save and load pages' list, as Unity's runner keeps it.</summary>
+    /// <summary>The save and load pages' list.</summary>
     private SaveSlotsView? _saves;
-    /// <summary>The loaded save the next instance of this scene continues (<see cref="SaveLoadSubmitted"/>), as Unity's
-    /// runner hands its pending resume to the runner that replaces it; taken and cleared by <see cref="_Ready"/>.</summary>
+    /// <summary>The loaded save the next instance of this scene continues (<see cref="SaveLoadSubmitted"/>).
+    /// <see cref="_Ready"/> takes and clears it.</summary>
     private static GameSessionRequest? s_resume;
-    /// <summary>The live campaign profile, loaded on the first save or load (Unity's runner's <c>_profiles</c>) from
+    /// <summary>The live campaign profile, loaded on the first save or load from
     /// <see cref="_profilePath"/>.</summary>
     private CampaignProfileStore? _profiles;
     private string _profilePath = "";
     private SessionContext? _context;
-    /// <summary>The level end (Unity's runner's level end): the carry, the statistics, the result and Space back to
+    /// <summary>The level end: the carry, the statistics, the result and Space back to
     /// <c>Main.tscn</c>; it acts only for a level started from the campaign map.</summary>
     private CampaignResultFlow? _resultFlow;
-    /// <summary>The level script's view requests (Unity's runner's <c>_scriptedView</c>): the camera path, the letterbox
+    /// <summary>The level script's view requests: the camera path, the letterbox
     /// count and the flash, which hide the HUD, hold the options key and light the panel and the resources; Escape or Space
     /// skips a path (<see cref="FrameDriver"/>). Its speech plays through <see cref="_sound"/>, its subtitle in <c>InGameHud.Subtitles.cs</c>.</summary>
     private ScriptedViewDirector? _scriptedView;
@@ -190,28 +180,28 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private GameTick _saveTick;
     private GameTick? _hashTick;
     private ClassicSaveLoadPanel? _saveLoad;
-    /// <summary>The full map, over the minimap's class grid, as Unity's runner shares it.</summary>
+    /// <summary>The full map, over the minimap's class grid.</summary>
     private ClassicFullMap? _fullMap;
     private ClassicMinimap? _minimap;
-    /// <summary>The world as the viewer's HUD sees it (Unity's runner's <c>_worldView</c>): the minimap's colours and markers.</summary>
+    /// <summary>The viewer's world state, supplying the minimap colours and markers.</summary>
     private WorldView? _worldView;
     /// <summary>The 3D world under the HUD (plan step 3a), drawn from the camera <see cref="UpdateCamera"/> moves.</summary>
     private WorldScene? _world;
-    /// <summary>The accepted drops' hand animation (Unity's runner's <c>_handCursorEvents</c>), first in the event chain and
+    /// <summary>The accepted drops' hand animation, first in the event chain and
     /// drained after the frame's ticks.</summary>
     private HandCursorEventSink? _handCursorEvents;
     private Action<HeartHealthChange>? _heartHealthObserver;
-    /// <summary>Action 26's focus glide (Unity's runner's <c>_glide</c>), on this scene's engine-time clock.</summary>
+    /// <summary>Action 26's focus glide, on this scene's engine-time clock.</summary>
     private readonly CameraGlide _glide = new();
-    /// <summary>The camera pointer last frame, y up (Unity's runner's <c>_cameraPointer</c>), and the wheel since then.</summary>
+    /// <summary>The camera pointer last frame, y up, and the wheel since then.</summary>
     private System.Numerics.Vector2 _cameraPointer;
     private float _cameraWheel;
     /// <summary>The <c>--glide-to x,y</c> check: a glide started one second into the scene, once no camera path plays.</summary>
     private TilePos? _glideTo;
     private BattleNavigation? _battleNavigation;
-    /// <summary>The world hover's text (DungeonRunner's _hoverText), and the Creatures panel's type text.</summary>
+    /// <summary>The world hover text and the Creatures panel's type text.</summary>
     private WorldHoverText? _typeText;
-    // The world hover's names (DungeonRunner's _identityNames), for a hovered creature's own name.
+    // Names used for the hovered creature's own name.
     private IClassicCreatureNames? _identityNames;
     // The picker's eligibility (HoverPickRules), made once so a frame's pick allocates nothing, and the objects-only key.
     private Func<WorldHoverKind, int, bool>? _renderedPick, _fallbackPick;
@@ -222,19 +212,18 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private long _pickBytes;
     private int _pickFrames, _pickWarmUp = 60;
     private KeeperResourceSnapshot _resourceFacts;
-    /// <summary>The pointer in screen pixels from the top left, sampled once at the frame's start as Unity reads
-    /// <c>Input.mousePosition</c> (an event a panel handles never reaches this node), or the scripted pointer's.</summary>
+    /// <summary>The pointer in screen pixels from the top left, sampled once per frame or supplied by a script.</summary>
     private Vector2 _pointer;
     private bool _pointerInWindow = true;
     private double _elapsed;
-    /// <summary>DK2's ambient level, which the ambient keys step (Unity's runner's <c>_ambientLight</c>).</summary>
+    /// <summary>DK2's ambient level, which the ambient keys step.</summary>
     private readonly ClassicAmbientLight _ambientLight = new();
-    /// <summary>The Hand's light from the last frame's pick (Unity's runner's <c>_handLight</c>), lit by the next frame.</summary>
+    /// <summary>The Hand's light from the last frame's pick, drawn by the next frame.</summary>
     private ClassicPointLight? _handLight;
     /// <summary>The <c>--light-probe-*</c> checks print the frame each turn is first drawn on, for captures at a turn.</summary>
     private bool _reportTicks;
     private long _reportedTick = -1;
-    /// <summary>The <c>--record-frames</c> telemetry (Unity's runner's <c>_recorder</c>); null without the argument.</summary>
+    /// <summary>The <c>--record-frames</c> telemetry. Null without the argument.</summary>
     private FrameRecorder? _recorder;
 
     /// <summary>The time <see cref="RunFrameTicks"/> accrues next under Movie Maker: the last frame's step.</summary>
@@ -252,7 +241,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             Fail(new GameFailure(GameFailureKind.NoInstall, Path: LauncherSettingsStore.NamedInstall(args)), overFrame: false);
             return;
         }
-        // Unity's runner's Start: a level that throws while it loads shows why on screen rather than an empty scene.
+        // If a level fails to load, show the error on screen.
         try
         {
             StartLevel(args, install);
@@ -281,7 +270,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         GameFolders folders = UserFolders.FromArguments(args);
         _levelName = levelName;
         _seed = seed;
-        // Only the argument: DK2_INPUT_JOURNAL is Unity's switch, and a global one must not make every Godot run write a session.
+        // Start the input journal only when the launch argument names a folder.
         _journalRoot = LaunchArguments.Value(args, "--input-journal");
         CampaignLevelData level;
         try
@@ -319,14 +308,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _saver = new SessionSaver(_profiles, LoadProfile, () => DateTime.UtcNow);
         _loader = new SessionLoader(_profiles, LoadProfile, name => CampaignLevelData.Load(install, name))
         { TerrainImportsSupported = true };
-        // DungeonRunner.PrepareCampaignResult, before the first turn: a level started from the campaign map plays its slot;
+        // Before the first turn, record the current campaign slot if the level was launched from the map;
         // a restored save counts its carry as written, a fresh start brings the stored transfer creature in.
         _resultFlow = new CampaignResultFlow(_context, _profiles, LoadProfile, _hudControls)
         {
             LevelTicksPerSecond = level.Level.TicksPerSecond,
         };
         _resultFlow.Prepare(_simulation, _viewer, resumed);
-        // DungeonRunner.InitializeSettings: game-settings.ini beside the campaign profile.
+        // Game settings live beside the campaign profile by default.
         _settingsPath = folders.Settings;
         _settings = LoadSettings(_settingsPath);
         _optionsPages = new OptionsPagesController(_settings) { CreatureShadowsSupported = true };
@@ -338,15 +327,15 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         AddChild(_world);
         _sources = new InstallHudSources(install);
         _art = new InstallBottomPanelArt(_sources, level.Database);
-        // Added first so it draws under the panel, as Unity's sorting orders 11 and 12.
+        // Add the panel base first so it draws underneath the other controls.
         _resourceView = new KeeperResourceView(level.Database, _viewer);
         _resources = new ClassicResourceHud { Name = "ResourceHud" };
         _resources.Open(_sources);
         AddChild(_resources);
         _view = new BottomPanelView(level.Database, _viewer, _art.Name, _art.Order, campaignMode: true);
-        // DungeonRunner.StartGame's room check; the tool starts as the Inspector's default, the hand.
+        // The tool starts as the hand.
         _tools.SelectKnownRoom(level.Database.Rooms.Keys);
-        // DungeonRunner's placement setup: a room build or sell drag posts no wider than the drawn cage.
+        // A room build or sell drag posts no wider than the drawn cage.
         _input.RubberBandLimit = PlacementCursor.RubberBandLimit(level.Database);
         _router = new HudActionRouter(_hudControls, _tools, _input, this);
         _panel = new ClassicBottomPanel { Name = "BottomPanel" };
@@ -357,7 +346,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _model.Selected += SelectPanelChoice;
         _model.SpecialChosen += ActivateStoredSpecial;
         _model.GuiButton += PostGuiButton;
-        // The panel's right clicks walk the rooms, doors and traps as Unity's runner does, each a camera glide.
+        // Right-clicking rooms, doors and traps on the panel starts a camera glide.
         _roomNavigation = new RoomNavigation(_viewer);
         _doorNavigation = new ThingNavigation(_viewer);
         _trapNavigation = new ThingNavigation(_viewer);
@@ -366,21 +355,20 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _model.NavigateTrap += NavigateTrap;
         _model.CollapsedChanged += PanelCollapsed;
         _battleNavigation = new BattleNavigation(_viewer);
-        // Added after the panel and before the tabs, so it draws between them, as Unity's sorting order 13 between 12 and 14.
+        // Add the overview between the bottom panel and the tabs so it draws between them.
         var overviewArt = new InstallCreatureOverviewArt(install, level.Database, _art.Image, _art.Text);
         _overviewView = new CreatureOverview(level.Database, _viewer, overviewArt.Name, overviewArt.Order);
         _overview = new ClassicCreatureOverview { Name = "CreatureOverview" };
         // Its presses are the router's (QueueInput): a pickup is posted, a focus moves the camera.
         _overview.Open(overviewArt, _overviewView);
         AddChild(_overview);
-        // Unity gives it the overview's sorting order 13 and creates it after the overview; added after it here.
+        // Draw the query details over the overview.
         _identityNames = new InstallClassicCreatureNames(install);
         _queryView = new CreatureQueryView(level.Database, _sources.Strings.Resolve, _viewer, _identityNames);
         _queryPanel = new ClassicCreatureQueryPanel { Name = "CreatureQuery" };
         _queryPanel.Open(_art.Font, _sources.Texture);
         AddChild(_queryPanel);
-        // Unity's sorting order 14, over the bottom panel (12) and the creature panels (13), as DK2 draws it over the tab
-        // strip's rail; created before the tabs, as DungeonRunner creates it first.
+        // Draw the battle tab above the bottom and creature panels and below the tab strip's rail.
         _worldView = new WorldView(level.Database, _viewer);
         _pickups = new PickupFlow(_worldView, _cursorFeedback);
         _presses = new HudPressRouter(_hudControls, _tools, _overviewView, _view, _pickups, _viewer, this);
@@ -394,28 +382,28 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _minimap.Open(new InstallMinimapAssets(install, _sources.Texture), _simulation.World.Width, _simulation.World.Height,
             _sources.Texture);
         AddChild(_minimap);
-        // Added after the panel, so it draws over it and takes the mouse first, as Unity's sorting order 14 over 12.
+        // Draw the tabs over the bottom panel and route their mouse presses first.
         _messageView = new MessageTabsView(_viewer, level.Database);
         var messageText = new MessageTextTables(_sources, level.Database.Level?.TextTableId ?? 0, warning => GD.PushWarning(warning));
         InstallHudSources sources = _sources;
         GameSimulation simulation = _simulation;
         MessageTabsView messageView = _messageView;
         _messages = new ClassicMessageTabs { Name = "MessageTabs" };
-        // 0x00415B30 submits game action 4 with the point's tile: the focus glides to that tile's centre, as Unity's runner
-        // wires it (DK2 first drops an off-map point; ours clamps in the glide).
+        // 0x00415B30 submits game action 4 with the point's tile. Glide to that tile's centre.
+        // DK2 drops off-map points before the action. This glide clamps them.
         _messages.Open(_art, _art.Font, _messageView,
             messageText.Resolve, messageText.Briefing, message => messageView.LocationOncePerTick(simulation.World, message),
             (x, y) => StartGlide(new TilePos((int)Math.Floor(x), (int)Math.Floor(y))), PlayerNames.From(level.Players));
         AddChild(_messages);
-        // DungeonRunner.StartGame's sound player: the level's likely clips decode on workers while the level loads, read
-        // before the first tick; the rest decode on first use, also off this thread.
+        // Decode likely clips on workers while the level loads and read them before the first tick.
+        // Decode the rest on first use, also off this thread.
         _soundOutput = new ClassicSoundOutput { Name = "Sound", Spatial = true };
         AddChild(_soundOutput);
         _mixer = new ClassicSoundMixer(_soundOutput, new InstallClassicSoundAssets(install), 0);
         _sound = new LevelSoundDriver(_mixer, level.Database, _viewer);
         Task soundPrefetch = _mixer.Prefetch(LevelSoundPrefetch.Categories(level.Database, _simulation.World, _sound.LevelSpeech),
             Math.Max(1, System.Environment.ProcessorCount - 1));
-        // Created after the tabs, as DungeonRunner creates it, with their sorting order 14 over the panel's 12.
+        // Create the battle tab after the message tabs and above the bottom panel.
         _battles = _sound.Music;
         // --sound-log: each request as it starts on a source, with its sample (a check; nothing subscribes otherwise).
         if (Array.IndexOf(args, "--sound-log") >= 0)
@@ -431,7 +419,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _battleTab.Open(_art.Image, _art.Text);
         _battleTab.Clicked += BattleTabClicked;
         AddChild(_battleTab);
-        // After every panel it covers, so it draws over them and takes the mouse first, as Unity's sorting order 15.
+        // Draw the options menu over every panel it covers and route its mouse presses first.
         _options = new ClassicOptionsPanel { Name = "Options" };
         _options.Open(_sources.Text, _art.Font);
         _options.SetSupported(ClassicOptionsAction.Save, true);
@@ -440,7 +428,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Its press swallow reads the router's own live state (ClassicHudControls), never the drawn menu's.
         _options.HoldsPresses = () => _hudControls.OptionsVisible;
         AddChild(_options);
-        // Created after the menu, as DungeonRunner creates it; the two never show together.
+        // Create the save browser after the menu. Only one shows at a time.
         _gameOptions = new InGameOptionsController(_hudControls, _optionsPages);
         _gameOptionsPanel = new ClassicGameOptionsPanel { Name = "GameOptions" };
         _gameOptionsPanel.Open(_gameOptions, _sources.Text, _art.Font, _sources.Texture);
@@ -448,7 +436,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Listing only reads: nothing is created there.
         string savesDirectory = folders.Saves;
         _saves = new SaveSlotsView(savesDirectory);
-        // After the menu, as Unity's sorting order 16 over its 15.
+        // Draw the game options after the options menu.
         _saveLoad = new ClassicSaveLoadPanel { Name = "SaveLoad" };
         _saveLoad.Open(_sources.Text, _art.Font);
         _saveLoad.Submit += SaveLoadSubmitted;
@@ -458,14 +446,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _hover = new ClassicHoverHud { Name = "HoverHud" };
         _hover.Open(_sources);
         AddChild(_hover);
-        // Last, so it draws over every panel and takes the mouse first, as Unity's sorting order 20 over the rest. Its grid
+        // Draw the full map over every panel and give it first chance at mouse presses. Its grid
         // is the minimap's.
         _fullMap = new ClassicFullMap { Name = "FullMap" };
         _fullMap.Open(_minimap.Model!, _art.Font, PlayerNames.From(level.Players), _sources.Texture);
         _fullMap.HoldsPresses = () => _hudControls.FullMapVisible;
         AddChild(_fullMap);
-        // On their own canvas layers over every panel: the placement cursor, then the hand over it (Unity's sorting orders
-        // 999 and 1000). The cursor's spell icon is the panel's own resource (0x0040D310 reads the same art); the held icons
+        // Draw the placement cursor and hand on their own canvas layers above the HUD.
         // are a creature's Icon1Resource and an object's GuiIconResource (0x0040D450).
         _placement = new ClassicPlacementOverlay { Name = "PlacementCursor" };
         _placement.Open(_sources.Texture);
@@ -483,32 +470,32 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _window = GetWindow();
         _window.WindowInput += ReadPress;
         _hudHover = new HudHoverText(_sources.Strings.Resolve);
-        // The played campaign slot only world hover reads, passed as Unity's runner passes it.
+        // Only world hover reads the campaign slot that was played.
         _typeText = new WorldHoverText(level.Database, _sources.Strings.Resolve, _viewer, CampaignSlot.ForLevel(levelName));
-        // DungeonRunner applies the loaded settings once the level is up.
+        // Apply the loaded settings once the level is up.
         ApplySettings(_settings);
-        // DungeonRunner.StartGame's scripted view, observing the simulation before its first turn.
+        // Observe simulation view requests before the first turn.
         _scriptedView = new ScriptedViewDirector(_viewer, EngineCameraPaths.Loader(install),
             LevelSubtitles.Open(install, level.Database.Level?.TextTableId ?? 0, warning => GD.PushWarning(warning)).Line);
         _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
         _scriptedView.ZoomRequested += ScriptZoom;
-        // Unity's runner's chain: the thing sounds, the scripted view and Level6a's torture speech (ADR-0809); the effects
+        // The thing sounds, scripted view and Level6a's torture speech (ADR-0809) receive events first. The effects
         // observe it next.
         _sound.WireSpeech(_scriptedView);
         OpenSubtitles();
         _simulation.ObserveWith(_sound.Observe(new Level6aTortureSpeech(level.Database, _messageView, _scriptedView)));
-        // Unity's runner's chain: the accepted drops for the hand cursor (drained after the frame's ticks), then the view.
+        // Record accepted drops for the hand cursor, then notify the view.
         _handCursorEvents = new HandCursorEventSink(_cursorFeedback, _viewer, _world.OpenEffects(_simulation, _worldView, _viewer, seed));
         _simulation.ObserveWith(_handCursorEvents);
         _world.Sound = _sound;
         _frameDriver = new FrameDriver(_pending, _worldView, _pacer, _journal);
-        // A restored checkpoint already includes its starting turn (DungeonRunner.StartGame).
+        // A restored checkpoint already includes its starting turn.
         if (!resumed)
             for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame; i++) _simulation.Tick(InputFrame.Empty);
-        // DungeonRunner.StartGame: the effect model runs one update before the first frame.
+        // The effect model runs one update before the first frame.
         _world.StartEffects();
-        // The --light-probe-* checks: Unity's ClassicWorldLightingProbe's frames without torch lights and with the camera
-        // moved by (1, 0, 1) (its shifted frames); --light-fill turns on Godot's fill, off as in the owner's Unity scene.
+        // The --light-probe-* checks render without torch lights or with a camera offset of (1, 0, 1).
+        // --light-fill enables fill lighting.
         _world.ProbeWithoutTorches = Array.IndexOf(args, "--light-probe-no-torches") >= 0;
         _world.Fill = Array.IndexOf(args, "--light-fill") >= 0;
         // --light-perpixel: DK2's light per pixel instead of per vertex (WorldScene.PerPixelLight); classic is the default.
@@ -530,15 +517,15 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         OpenPossessionHud(install, level);
         // --perf-report: the performance harness (PerformanceReport.cs); without it, no node.
         PerformanceReport.Attach(this, args, levelName, seed, _world, _simulation.World.Width, _simulation.World.Height);
-        // --record-frames <dir>: Unity's recorder's frames.csv (FrameRecorder.cs); without it, no node.
+        // --record-frames <dir> enables per-frame CSV telemetry.
         _recorder = FrameRecorder.Attach(this, args, levelName, seed);
         OpenDevOverlay(args, level);
-        // The process delta is the frame's real interval, as Unity's runner samples it: Godot otherwise bends it toward its
+        // Use the frame's real interval. Godot otherwise bends it toward its
         // 60 Hz physics clock (main_timer_sync.cpp), so the draw clock stepped evenly across uneven frames. No physics runs
         // here. Movie Maker keeps the engine's setting, whose fixed steps its captures were made with.
         _movie = Engine.GetWriteMoviePath().Length > 0;
         if (!_movie) Engine.PhysicsJitterFix = 0;
-        // DungeonRunner's heart health observer: each change queued for the next frame's beat.
+        // Queue the heart's health changes for the next frame's beat.
         int maximumHeartHealth = level.Database[VariableTypeId.DungeonHeartObjectHealth];
         WorldScene world = _world;
         _heartHealthObserver = change => world.QueueHeartHealthChange(change.Owner,
@@ -607,7 +594,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             ", settings in ", _settingsPath);
         if (resumed) PrintHash("resumed " + resume!.Resume!.Session.Header.DisplayName + " at");
         else if (resume != null) PrintHash("restarted at");
-        // DungeonRunner.StartGame waits for the sound prefetch before the first frame.
+        // Wait for the sound prefetch before the first frame.
         try { soundPrefetch.Wait(); }
         catch (AggregateException e) { GD.PushWarning("DK2.Godot: sound prefetch failed: ", e.InnerException?.Message); }
         GD.Print("DK2.Godot: sound prefetch decoded ", _mixer.DecodedMegabytes.ToString("F1", CultureInfo.InvariantCulture),
@@ -662,23 +649,23 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Engine time, so a fixed-fps Movie Maker capture is repeatable.
         _elapsed += delta;
         long milliseconds = (long)(_elapsed * 1000);
-        // DungeonRunner.Update's first step: the effects whose clips finished decoding, then the speech line.
+        // Queue the effects whose clips finished decoding, then update speech.
         long started = PartStamp();
         _mixer?.PlayDecoded(milliseconds);
         _mixer?.UpdateSpeech(milliseconds);
         PartSpent(FrameTelemetryPart.Sound, started);
         if (_loadName != null || (_saveAs != null && _simulation.World.CurrentTick >= _saveTick)) RunSaveLoadCheck();
-        // DungeonRunner.UpdateWorldSound after its present, before the HUD draws: the thing sounds, the voices, the ambience
-        // around the tile under the screen's centre (last frame's HUD, as Unity's ScreenToTile reads it), the speech line's
-        // subtitle, and the music once a settled turn, whose battle records the battle tab reads.
+        // Update thing sounds, voices and ambience around the tile under the screen's centre,
+        // using the last frame's HUD. Update the speech subtitle and tick music once per settled turn.
+        // The battle tab reads the music observer's battle records.
         started = PartStamp();
         if (_sound != null)
             _sound.Update(_simulation.World, PointerTile(GetViewport().GetVisibleRect().Size * .5f, _pressVisibility), milliseconds);
         else _battles.Capture(_simulation.World, _simulation.Database, _simulation.World.CurrentTick);
         PartSpent(FrameTelemetryPart.Sound, started);
-        // Once per settled turn, as DungeonRunner captures it before the HUD draws; the full map reads the same grid.
+        // Capture the minimap grid once per settled turn before drawing the HUD. The full map shares it.
         bool minimapCaptured = _minimap.Capture(_simulation.World, _worldView, _simulation.Navigation);
-        // DungeonRunner.Update's script step (FrameDriver): the scripted view on the drawn turn plus the debt toward the next
+        // Advance the scripted view (FrameDriver) using the drawn turn plus the debt toward the next
         // (this scene ticks inline, so none is pending), then the level end, which may leave for the front end.
         started = PartStamp();
         _frameDriver.UpdateScript(_scriptedView, milliseconds, _simulation.World, _viewer, ticksPending: 0);
@@ -697,13 +684,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
         if (escapeCheck) ReportEscape();
         started = PartStamp();
-        // DungeonRunner.Update's input step (FrameDriver): the local pickups, then Escape or Space ends a playing camera path
+        // Handle local pickups, then Escape or Space ends a playing camera path
         // and posts SkipCameraPathCommand (0x00405362); the script's glide starts.
         _frameDriver.AdvancePickups(_simulation.World, _viewer, milliseconds);
         FrameScriptInput script = _frameDriver.TakeScriptedInput(_scriptedView, _viewer, _keyboard.EscapePressed || _keyboard.SpacePressed);
         if (script.Glide is TilePos glide) StartGlide(glide);
-        // The HUD keys, as DungeonRunner.UpdateHudControls reads and applies them: the options menu, the full map, the GUI
-        // toggle and the Heart, portal and fight glides. A camera path holds the options key back that frame. While the
+        // Handle options, full map, GUI visibility, and Heart, portal and fight glides. A camera path
+        // holds the options key back that frame. While the
         // keyboard page captures a key, no shortcut fires.
         UpdatePossession(_scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon), delta, milliseconds);
         HudVisibility camera = _scriptedView.HudFor(ClassicCameraMode.Dungeon);
@@ -713,7 +700,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 firstPersonCameraSettled: _possession?.SettledPossessionCamera == true),
             _keyboard.EscapePressed);
         ApplyHudAction(shortcut);
-        // DungeonRunner.CurrentHud (PlayedHud; the warm frames are not ported): a camera path, the letterbox, the result
+        // A camera path, the letterbox, the result
         // and the full map hide the normal HUD.
         HudVisibility menuVisibility = _scriptedView.PlayedHud(_hudControls, ClassicCameraMode.Dungeon);
         HudVisibility visibility = PossessionHud.OrdinaryVisibility(menuVisibility, _possession);
@@ -724,10 +711,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _fullMap.SetVisible(_hudControls.FullMapShown(camera));
         _minimap.SetVisibility(PossessionHud.MinimapVisibility(menuVisibility, _possession));
         _options.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
-        // DungeonRunner.DrawSavePanel's in-game branch, with this frame's typing (Unity reads Input.inputString there).
+        // Pass this frame's typed characters to the visible save browser.
         (bool saveLoadShown, bool saving) = _hudControls.SaveLoadPage(menuVisibility);
         _saveLoad.Show(_saves, saveLoadShown, saving, _keyboard.Typed);
-        // DungeonRunner.Update's camera step, then QueueInput after the shortcuts, as there; its game options branch polls
+        // Update the camera before routing the world input. The game options page polls
         // the keys before they end.
         UpdateCamera(visibility, delta);
         // The frame's one pose, which this frame's picks read; the follow below places it again only if it moved the focus.
@@ -740,15 +727,15 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _fullMap.PreparePreview(_world, _pointer);
         if (visibility.AllowOrdinaryInput && !_hudControls.Modal) ReadAmbientKeys();
         QueueInput(visibility, milliseconds);
-        // DungeonRunner.Update before its present: the Hand's excavation drag previews its tags; off the map the far end keeps
+        // Preview the Hand's excavation tags before presenting the world. Off the map the far end keeps
         // the last tile the pointer was on.
         TilePos? dragFrom = _input.DragFrom(PlayerToolMode.Hand);
         _dragTo = dragFrom == null ? null : PointerTile(_pointer, visibility) ?? _dragTo ?? dragFrom;
         _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
         PartSpent(FrameTelemetryPart.Input, started);
-        // DungeonRunner.Update's present: the settled world's changes, before the frame's ticks; the chunk build it
+        // Present the settled world's changes before the frame's ticks. The chunk build it
         // starts runs on the thread pool while they do (ADR-0696).
-        // DungeonRunner's frame time before its present, then DrawCreatureFrame's objects after it: the drawn turn and how
+        // Draw objects at the drawn turn and fraction toward the next
         // far toward the next (this scene ticks inline, so the debt left by the last frame).
         float drawFraction = (float)Math.Min(_pacer.Debt, 1d);
         double renderTick = _simulation.World.CurrentTick.Value + (double)drawFraction;
@@ -761,13 +748,13 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         started = PartStamp();
         _world.DrawFrame(_simulation.World.CurrentTick, drawFraction);
         PartSpent(FrameTelemetryPart.Animation, started);
-        // DungeonRunner.FollowQueriedCreature, after DrawCreatureFrame there: the focus keeps the queried creature where it
+        // Keep the queried creature where it
         // is drawn, so the view and the minimap below draw the same focus; the camera is placed again only if it moved,
         // then the blended draws are sorted for it.
         System.Numerics.Vector3 focus = _world.Focus;
         FollowQueriedCreature();
         if (_world.Focus != focus) _world.PlaceCamera();
-        // The pick is last frame's: the hover is resolved after the HUD is drawn, below (DungeonRunner's order).
+        // The pick is last frame's. Resolve the new hover after drawing the HUD.
         started = PartStamp();
         _world.SetHandLight(_handLight);
         _world.FinishFrame();
@@ -778,11 +765,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             GD.Print("DK2.Godot: tick ", _reportedTick, " first drawn on frame ", Engine.GetProcessFrames(), " at fraction ", drawFraction);
         }
         _keyboard.EndFrame();
-        // The HUD draws the settled world, then the frame's ticks run (DungeonRunner's order).
-        // As DungeonRunner.DrawHudControls captures it and CaptureWorldHover shows and draws it.
+        // Draw the HUD from the settled world before the next simulation advance.
         started = PartStamp();
         _resourceFacts = _resourceView.Capture(_simulation.World, displayHealth: visibility.ShowNormalHud);
-        // FLASH_BUTTON, dropped once its item is in use, as DungeonRunner.DrawHudControls resolves it before the resources
+        // Resolve FLASH_BUTTON before the resources draw. Drop the flash once its item is in use.
         // draw their flash.
         _model.FlashTarget = _scriptedView.PanelFlash(_tools, _model.OpenPanel);
         _resources.SetVisibility(visibility);
@@ -791,35 +777,35 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _model.GamePaused = _hudControls.TicksPaused;
         _panel.Draw(milliseconds);
         _messageView.Capture(_simulation.World, milliseconds, visibility);
-        // DungeonRunner.DrawHudControls's sounds, in its order (the warm frames are not ported, so none is dropped).
+        // Play the sounds selected by the HUD controls.
         PlayHudSounds();
         // As the HUD shows; taking input unless the options menu holds it.
         HudVisibility tabs = _hudControls.ModalInput(visibility);
         _messages.Draw(tabs, _model.Collapsed,
             HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, _viewer),
             _hudControls.OptionsVisible, _hudControls.ObjectiveVisible);
-        // After the tabs, as DungeonRunner draws it.
+        // Draw the battle tab after the message tabs.
         _battleTab.Draw(tabs, _model.Collapsed,
             BattleTabView.Capture(_simulation.World, _simulation.Database, _viewer, _battles.Battles), milliseconds);
-        // After the battle tab, as DungeonRunner draws it; the options menu closes it.
+        // Draw the creature overview after the battle tab. The options menu closes it.
         _overviewView.Capture(_simulation.World);
         _overview.Draw(visibility, modal ? null : _model.PanelArea(BottomPanelCategory.Creatures));
-        // After the overview, as DungeonRunner.DrawHudControls updates it, with the selected corner lit.
+        // Draw the details after the overview, with the selected corner lit.
         MinimapCameraView? drawn = _world.View;
         _minimap.Draw(_tools.SelectedCorner, _hudControls.OptionsVisible, MinimapHud.FixedFocus(_world.Focus),
             drawn?.Heading ?? ClassicCamera.LevelStartYaw, drawn,
             _possession?.SettledPossessionCamera == true);
-        // After the minimap, as DungeonRunner.DrawHudControls draws it.
+        // Draw the message tabs after the minimap.
         _options.Draw();
-        // DungeonRunner.DrawHudControls captures it after the bottom panel and draws it after the menu.
+        // Capture the save browser after the bottom panel and draw it after the options menu.
         _fullMap.Capture(_simulation.World, _simulation.Database, _viewer, minimapCaptured, _pointer);
         _fullMap.Draw();
-        // DungeonRunner.DrawHudControls draws it after the save browser; the two never show together.
+        // Draw the game options after the save browser. The two never show together.
         _gameOptionsPanel.Draw(_pointer);
-        // Last, as DungeonRunner.DrawHudControls captures and draws it; the options menu hides it.
+        // Draw the full map last. The options menu hides it.
         _queryPanel.Draw(_queryView.Capture(_simulation.World), visibility, modal);
         DrawPossessionHud(milliseconds);
-        // The hover, after the HUD is drawn (DungeonRunner.CaptureWorldHover): over the HUD, the panels' text; over the world
+        // Resolve hover after drawing the HUD: over the HUD, use the panels' text. Over the world resolve
         // the pick and its text, the Hand's light, then the cursor, placement, tint, cage and hover sound (HoverCursorResolver).
         _hover.SetVisibility(visibility, milliseconds);
         // A failed pick with nothing hovered sends DK2's light to an edge tile, which blacks it out (0x0043BCB8); with
@@ -872,24 +858,22 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         DrawBattleFlyIn(visibility, _model.Collapsed, milliseconds);
         PartSpent(FrameTelemetryPart.Hud, started);
 
-        // Unity's runner's EndFrame: the draw clock is the drawn turn and fraction, the camera the drawn view's eye.
+        // Record the drawn turn and fraction and the drawn camera's eye.
         _recorder?.EndFrame(tickCount, tickMs, renderTick, _world.View?.Position ?? default, _scriptedView.PathPlaying,
             _world.ChunkFlushMilliseconds);
-        // Unity's LateUpdate: the frame's journal record.
+        // Finish the frame's journal record.
         _journal.EndFrame(_pending, _pacer.Debt);
     }
 
-    /// <summary>DungeonRunner.Update's tick step (FrameDriver) for the time since the last frame's: ready drops, then the
-    /// tick gate (no turn runs, and none accrues, while it holds), the hand-off, the ticks and the clear. It runs at the top
-    /// of the frame, so the frame draws the time that has passed (Unity's inline order, which the draw clock measures); the
-    /// last frame's input, camera and HUD came before it as they did when it ran last in that frame, so the same ticks get
-    /// the same commands. Returns the ticks run.</summary>
+    /// <summary>Advance simulation time through <see cref="FrameDriver"/>. Apply ready drops, then
+    /// observe the tick gate. The gate prevents turns from running or accruing while it holds.
+    /// Run at the top of the frame after the preceding frame has submitted its input. Returns the turns run.</summary>
     private int RunFrameTicks(double delta, long lastMilliseconds, out double tickMs)
     {
         GameSimulation simulation = _simulation!;
         // The interval that just ended (Godot's delta, unbent: _Ready). Under Movie Maker the last frame's step, the time
         // these ticks took when they ran last in that frame, so its captures keep every frame (its steps are not all equal
-        // in the last bit). Clamped as Unity's runner clamps it (Time.maximumDeltaTime, 1/3 s), so a stall is not paid back.
+        // in the last bit). Clamp the interval to 1/3 s so a stall is not paid back.
         double elapsed = _movie ? _lastDelta : delta;
         _lastDelta = delta;
         if (_lightningStage?.QueueThunderboltWhenReady(simulation, _pending) == true)
@@ -911,7 +895,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             }
             catch (Exception ex)
             {
-                // Unity's runner's WaitForTick: the game stops and shows why over the last frame drawn; nothing is
+                // When a simulation turn throws, stop and show why over the last frame drawn. Nothing is
                 // rethrown into Godot's loop, which would only log it and draw on.
                 _journal.TickFailed(ex, simulation);
                 Fail(new GameFailure(GameFailureKind.TurnFailed, ex.Message, _levelName, tick + 1), overFrame: true, ex);
@@ -923,14 +907,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
         tickMs = _recorder?.Elapsed(started) ?? 0;
         _devTiming?.AddTurns(ticks.Count, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
-        // DungeonRunner.Update after its ticks: a drop the simulation accepted plays the hand's drop animation, on the clock
+        // After the ticks, a drop the simulation accepted plays the hand's drop animation on the clock
         // this frame's cursor reads.
         _handCursorEvents?.Drain((long)((_elapsed + delta) * 1000));
         _frameDriver.AfterTicks(simulation.World, lastMilliseconds);
         return ticks.Count;
     }
 
-    /// <summary>Unity's runner's JournalBeginFrame: the journal opens on the first frame, and while it records, each frame's
+    /// <summary>The journal opens on the first frame. While it records, each frame's
     /// raw sample (Godot's top-left pointer, its buttons, wheel and physical keys since the last frame) starts the record.</summary>
     private void JournalBeginFrame(double delta)
     {
@@ -1006,9 +990,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _simulation.World.CurrentTick.Value.ToString(CultureInfo.InvariantCulture), "; the HUD ", _pathPlaying ? "hides" : "shows");
     }
 
-    /// <summary>DungeonRunner.UpdateCampaignResult's Space (the session's return page) and the options menu's Return to Menu:
-    /// the session ends and the front end opens at <paramref name="page"/> (<c>Main.tscn</c>, as Unity's runner loads
-    /// <c>GameSessionRequest.FrontEnd(page)</c>), deferred to the frame's end as a load's reload is. After a level end the
+    /// <summary>End the session and open <c>Main.tscn</c> at <paramref name="page"/>, from the campaign
+    /// result or the Return to Menu option. Defer the change to the end of the frame. After a level end the
     /// front end plays the won map's title card and cutscene first (<c>ClassicFrontEndMenu.Movies.cs</c>).</summary>
     private void LeaveForFrontEnd(FrontEndPage page, string why)
     {
@@ -1081,7 +1064,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
     }
 
-    /// <summary>Menu 43's presses, as DungeonRunner.BattleTabClicked applies them (<see cref="BattleTabView.Click"/>, with its
+    /// <summary>Apply Menu 43 presses through <see cref="BattleTabView.Click"/>, with its
     /// suppressed-input and modal gate): the cancel's left click posts; the zoom goes to the router (the fight navigation's
     /// glide), and the cancel's and the alarm's glides start here.</summary>
     private void BattleTabClicked(BattleTabButton button, int mouse)
@@ -1094,7 +1077,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (click.Glide is TilePos tile) StartGlide(tile);
     }
 
-    /// <summary>DungeonRunner.NavigateRoom: the next of the viewer's rooms of a type (<see cref="RoomNavigation.Entries"/>).</summary>
+    /// <summary>Navigate to the next of the viewer's rooms of a type (<see cref="RoomNavigation.Entries"/>).</summary>
     private void NavigateRoom(RoomTypeId type)
     {
         if (_simulation == null || _roomNavigation == null) return;
@@ -1102,7 +1085,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_roomNavigation.Next(_roomEntries, type) is TilePos tile) StartGlide(tile);
     }
 
-    /// <summary>DungeonRunner.NavigateDoor: the next of the viewer's doors of a kind, newest first.</summary>
+    /// <summary>Navigate to the next of the viewer's doors of a kind, newest first.</summary>
     private void NavigateDoor(byte kind)
     {
         if (_simulation == null || _doorNavigation == null) return;
@@ -1110,7 +1093,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_doorNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
     }
 
-    /// <summary>DungeonRunner.NavigateTrap: the next of the viewer's traps of a kind, newest first.</summary>
+    /// <summary>Navigate to the next of the viewer's traps of a kind, newest first.</summary>
     private void NavigateTrap(byte kind)
     {
         if (_simulation == null || _trapNavigation == null) return;
@@ -1118,7 +1101,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_trapNavigation.Next(_thingEntries, kind) is TilePos tile) StartGlide(tile);
     }
 
-    /// <summary>Action 26 (game action 4, 0x00442650), Unity's runner's <c>StartGlide</c>: the focus glides to the tile's
+    /// <summary>Action 26 (game action 4, 0x00442650): the focus glides to the tile's
     /// centre, kept inside the map, angles unchanged (<see cref="CameraGlide"/>).</summary>
     private void StartGlide(TilePos tile)
     {
@@ -1126,17 +1109,16 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _glide.Start(_world.Focus, tile, _simulation.World.Width, _simulation.World.Height, _elapsed * 1000d);
     }
 
-    /// <summary>DungeonRunner.Update's camera step: during a camera path only the pointer is taken (the path's camera is
-    /// step 3n); otherwise the glide, the script's follow (game action 17), then <see cref="ClassicCameraInput.Apply"/>
-    /// while ordinary input is allowed, no menu is modal and the camera is not the possession's, else only the pointer
-    /// (DungeonRunner.ControlCamera).</summary>
+    /// <summary>During a camera path, sample the pointer alone. Otherwise process the glide,
+    /// scripted follow (game action 17), and <see cref="ClassicCameraInput.Apply"/> while ordinary
+    /// input is allowed, no menu is modal and the camera is not the possession camera.</summary>
     private void UpdateCamera(HudVisibility visibility, double delta)
     {
         ClassicCameraControls? controls = _world?.Controls;
         Vector2 size = GetViewport().GetVisibleRect().Size;
         int width = (int)size.X, height = (int)size.Y;
         Vector2 top = _pointer;
-        // Unity's Input.mousePosition is y up; off the window the edge scroll never acts.
+        // The camera uses a y-up pointer. A pointer outside the window does not edge-scroll.
         System.Numerics.Vector2 pointer = _pointerInWindow ? new(top.X, height - top.Y) : new(-1, -1);
         float wheel = _cameraWheel;
         _cameraWheel = 0;
@@ -1170,7 +1152,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _cameraPointer = pointer;
     }
 
-    /// <summary>DungeonRunner.FollowQueriedCreature: while <see cref="ClassicCreatureQueryRules.Follows"/>, the focus keeps
+    /// <summary>While <see cref="ClassicCreatureQueryRules.Follows"/>, the focus keeps
     /// the queried creature where the frame drew it (<see cref="WorldScene.TryGetCreaturePosition"/>, between turns), so
     /// the focus does not step against the model.</summary>
     private void FollowQueriedCreature()
@@ -1181,7 +1163,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _world.Focus = new System.Numerics.Vector3(drawn.X, _world.Focus.Y, drawn.Z);
     }
 
-    /// <summary>DungeonRunner.AimHandLight: the Hand's light follows the pick (<see cref="HoverCursorResolver.TryHandLightPoint"/>);
+    /// <summary>The Hand's light follows the pick (<see cref="HoverCursorResolver.TryHandLightPoint"/>).
     /// on a tile, the pointer's hit on the tile's top plane, or the tile's centre when that misses.</summary>
     private void AimHandLight(WorldState world, TilePos tile, in WorldHoverHit hit)
     {
@@ -1193,7 +1175,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _handLight = HoverCursorResolver.HandLight(world, _viewer, hit, point, cheapLighting: false);
     }
 
-    /// <summary>DungeonRunner.ReadAmbientKeys: the ambient keys step DK2's ambient (<see cref="ClassicAmbientLight"/>).</summary>
+    /// <summary>The ambient keys step DK2's ambient light (<see cref="ClassicAmbientLight"/>).</summary>
     private void ReadAmbientKeys()
     {
         GameBindingInput keys = _keyboard.Read(_settings);
@@ -1203,14 +1185,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (changed) _world?.SetAmbient(_ambientLight.Normalized);
     }
 
-    /// <summary>The bottom panel's collapse moves the view axis, as Unity's runner's handler does.</summary>
+    /// <summary>The bottom panel's collapse moves the view axis.</summary>
     private void PanelCollapsed(bool collapsed) => _world?.SetPanelCollapsed(collapsed);
 
-    /// <summary>The script's camera zoom (Unity's runner's <c>ZoomRequested</c> handler).</summary>
+    /// <summary>Apply the script's camera zoom.</summary>
     private void ScriptZoom(int zoom, int unused) => _world?.ClassicCamera?.SetZoom(new Fp32(zoom));
 
-    /// <summary>A mouse press reaching the window, before any panel's <c>_Input</c> can mark it handled, as Unity's
-    /// <c>Input.GetMouseButtonDown</c> sees every press; <see cref="QueueInput"/> routes it in the next frame.</summary>
+    /// <summary>A mouse press reaching the window before any panel can mark it handled.
+    /// <see cref="QueueInput"/> routes it in the next frame.</summary>
     private void ReadPress(InputEvent @event)
     {
         if (@event is InputEventMouseMotion motion) { ReadPossessionMotion(motion); return; }
@@ -1218,7 +1200,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (@event is not InputEventMouseButton button || _pointerScript != null) return;
         if (button.ButtonIndex == MouseButton.Left) { if (button.Pressed) _primaryDown = true; else _primaryUp = true; }
         else if (button.ButtonIndex == MouseButton.Right) { if (button.Pressed) _secondaryDown = true; else _secondaryUp = true; }
-        // Unity's Input.mouseScrollDelta.y, summed over the frame: positive away from the user.
+        // Wheel notches summed over the frame, positive away from the user.
         else if (button.Pressed && button.ButtonIndex == MouseButton.WheelUp) _cameraWheel += button.Factor;
         else if (button.Pressed && button.ButtonIndex == MouseButton.WheelDown) _cameraWheel -= button.Factor;
         if (!_journal.Recording) return;
@@ -1237,8 +1219,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         else if (button.ButtonIndex == MouseButton.WheelLeft) _journalWheelX -= button.Factor;
     }
 
-    /// <summary>DungeonRunner.QueueInput through the shared <see cref="WorldPointerInput"/> (plan step 2h): nothing while ordinary
-    /// input is not allowed (the world drag is dropped), then the HUD's press in Unity's order (<see cref="HudPressRouter"/>),
+    /// <summary>Route the pointer through <see cref="WorldPointerInput"/>. While ordinary
+    /// input is held the world drag is dropped. Otherwise route the HUD press (<see cref="HudPressRouter"/>),
     /// the query tool's and a choice's world press (<see cref="WorldClickCommands"/>), the minimap's map press
     /// (<see cref="IWorldPointerHost.MinimapPress"/>), the tool, and a press's intent and translation on the picked tile (plan
     /// step 3e), behind the possession gate.</summary>
@@ -1256,7 +1238,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             primaryUp, secondaryUp, milliseconds), _simulation.World, _simulation.Database, _pending);
     }
 
-    /// <summary>Unity's runner's minimap press: a glide to the tile, off while a camera path plays.</summary>
+    /// <summary>A minimap press glides to the tile unless a camera path is playing.</summary>
     void IWorldPointerHost.MinimapPress(in HudPress press)
     {
         if (_scriptedView != null && !_scriptedView.PathPlaying && _minimap != null && press.Primary
@@ -1266,7 +1248,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     FpPosition2? IWorldPointerHost.PointerPosition(TilePos tile) => PointerPosition(_pressPointer, tile);
 
-    /// <summary>DungeonRunner.ScreenToTile: the tile under a screen pixel (top-left origin) by <see cref="TilePicker"/>, which
+    /// <summary>The tile under a screen pixel (top-left origin) by <see cref="TilePicker"/>, which
     /// meets the columns at the heights the scene draws; null over the HUD, off the map or before the camera is placed.</summary>
     private TilePos? PointerTile(Vector2 at, HudVisibility visibility)
     {
@@ -1277,7 +1259,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             _worldView, _simulation.World);
     }
 
-    /// <summary>DungeonRunner.ScreenToPosition: the pointer's point on the tile's top plane, map coordinates
+    /// <summary>The pointer's point on the tile's top plane, in map coordinates
     /// (<see cref="TileTopPlane.PositionOn"/>).</summary>
     private FpPosition2? PointerPosition(Vector2 at, TilePos tile)
     {
@@ -1286,7 +1268,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         return TileTopPlane.PositionOn(origin, direction, tile, _worldView.TileAt(_simulation.World, tile.X, tile.Y).Solid);
     }
 
-    /// <summary>DungeonRunner.ResolveWorldHover: an unexplored tile is the bare tile; else the ray's hit on the tile's top
+    /// <summary>An unexplored tile is the bare tile. For an explored tile, use the ray's hit on its top
     /// plane bounds the pick (<see cref="WorldHoverPicker.TryCastTerrain"/>), which the drawn things are offered to under
     /// <see cref="HoverPickRules"/> (<see cref="WorldScene.PickHoverEntity"/>), culled by the placed view.</summary>
     private WorldHoverHit ResolveWorldHover(Vector2 at, TilePos tile, HudVisibility visibility)
@@ -1366,7 +1348,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 ", tick ", _simulation?.World.CurrentTick.Value ?? 0);
     }
 
-    /// <summary>DungeonRunner.ApplyHudAction, through the shared <see cref="HudActionRouter"/>: the options key, the options
+    /// <summary>Apply the options key and panel actions through <see cref="HudActionRouter"/>: the options
     /// menu's entries, the save browser's Back and Continue lines and the minimap's corners (zoom, and query and sell, which
     /// post their GUI button and set the tool) and right click, and the portal, Heart and fight navigation's glides.</summary>
     private void ApplyHudAction(ClassicHudAction action) => ApplyHudAction(action, _pointer);
@@ -1440,7 +1422,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_world?.ClassicCamera is ClassicCamera camera) ClassicCreatureQueryRules.TurnToFollowHeading(camera);
     }
 
-    /// <summary>DungeonRunner.ApplyGameSettings for what this scene has: the settings it reads (game speed, key bindings)
+    /// <summary>Apply the settings this scene reads, including game speed and key bindings,
     /// and the HUD scale on the ported panels (ApplyHudScale), the camera's scroll speed, the gamma and the sound
     /// (ApplySoundSettings). The other rendering settings (shadows, water, environment mapping) need systems not ported
     /// yet: their values change, and nothing acts on them.</summary>
@@ -1455,7 +1437,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
                 effectsOn: settings.SfxSwitch);
         }
         if (_world?.Controls is ClassicCameraControls controls) controls.ScrollSpeed = settings.ScrollSpeed;
-        // The twin of DungeonRunner.ApplyHudScale's panel list: the two change together while both adapters exist.
+        // Apply the HUD scale to each panel that uses it.
         int scale = settings.UiScale;
         if (_minimap != null) _minimap.UiScale = scale;
         if (_panel != null) _panel.UiScale = scale;
@@ -1466,7 +1448,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_overview != null) _overview.UiScale = scale;
         if (_queryPanel != null) _queryPanel.UiScale = scale;
         if (_handCursor != null) _handCursor.UiScale = scale;
-        // The brightness curve on the 3D view (Unity's ClassicSettingsRendering).
+        // Apply the brightness curve to the 3D view.
         _world?.SetBrightness(DisplaySettings.BrightnessExponent(settings.Gamma));
         // Ours, not DK2's: the 3D view's anti-aliasing and render scale (audit item 17), off by default.
         _world?.SetRenderQuality(settings);
@@ -1485,7 +1467,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
     }
 
-    /// <summary>The settings pages' save request, written as Unity's runner writes it (<see cref="GameSettingsFile"/>); a
+    /// <summary>Write the settings pages' save request through <see cref="GameSettingsFile"/>. A
     /// failed write is a warning, and the settings stay applied.</summary>
     private void SaveSettings(GameSettings settings) => SaveSettings(_settingsPath, settings);
 
@@ -1501,11 +1483,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private static bool IsFileError(Exception e) =>
         e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or System.Security.SecurityException;
 
-    /// <summary>The save browser's Enter, or a press on its name or Load line, as DungeonRunner.SaveSession and LoadSession
-    /// apply it. Save writes the session under the typed name (<see cref="SessionSaver"/>: the carry into the profile, the
-    /// header, the world checkpoint, the profile); Load rebuilds the chosen save's simulation (<see cref="SessionLoader"/>,
-    /// which writes the saved profile to the profile file) and reloads this scene to continue it, as Unity's runner
-    /// replaces itself. This scene ticks inline, so no tick is in flight here. A refused file shows on the page.</summary>
+    /// <summary>Handle the save browser's Enter key and row or Load presses.
+    /// <see cref="SessionSaver"/> writes the typed name, world checkpoint and campaign profile.
+    /// <see cref="SessionLoader"/> rebuilds the chosen simulation, writes its profile and reloads
+    /// this scene. A refused file shows on the page.</summary>
     private void SaveLoadSubmitted()
     {
         if (_simulation == null || _saves == null || _saveLoad == null || _context == null || _saver == null || _loader == null) return;
@@ -1521,7 +1502,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
             {
                 s_resume = _loader.Load(_saves.Selected.Path);
                 GD.Print("DK2.Godot: loaded ", _saves.Selected.Path, "; reloading the scene to continue it.");
-                // Deferred to the frame's end, as Unity's runner switches only once the frame is done with it: a reload
+                // Defer the scene change until the frame ends. A reload
                 // takes this node out of the tree at once, and a submit can come from inside this frame's _Process.
                 Callable.From(ReloadForResume).CallDeferred();
             }
@@ -1547,20 +1528,20 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _saveLoad?.Error("The scene could not be reloaded.");
     }
 
-    /// <summary>DungeonRunner.LoadFrontEndProfile for this session, with the front end's fallback (<see cref="UserFolders.LoadProfile"/>).</summary>
+    /// <summary>Load the campaign profile for this session through <see cref="UserFolders.LoadProfile"/>.</summary>
     private void LoadProfile()
     {
         if (_profiles != null && _context != null) UserFolders.LoadProfile(_profiles, _profilePath, _context.Mode, _context.ReturnPage);
     }
 
-    /// <summary>DungeonRunner.SelectPanelChoice: <see cref="HudToolState.SelectPanelChoice"/>.</summary>
+    /// <summary>Forward the panel selection to <see cref="HudToolState.SelectPanelChoice"/>.</summary>
     private void SelectPanelChoice(BottomPanelSelection selection) => _tools.SelectPanelChoice(selection, _input, _queryView);
 
     /// <summary>A stored special's slot: action 88, or targeting with the panel and the tool back on the hand
     /// (<see cref="HudToolState.ActivateStoredSpecial(PlayerId, BottomPanelChoice, PlayerInputTranslator, BottomPanelView)"/>).</summary>
     private void ActivateStoredSpecial(BottomPanelChoice special)
     {
-        // As DungeonRunner.ActivateStoredSpecial: 0x00411140 ignores a special's slot while the Options menu is open (+0x2722).
+        // 0x00411140 ignores a special's slot while the Options menu is open (+0x2722).
         if (_hudControls.OptionsVisible) return;
         if (_view != null && _tools.ActivateStoredSpecial(_viewer, special, _input, _view) is PlayerCommand command) _pending.Add(command);
     }
@@ -1568,7 +1549,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
     private void PostGuiButton(GuiButtonTarget target) => _pending.Add(new GuiButtonCommand(_viewer, target));
 
-    /// <summary>DungeonRunner.DrawHudControls: the controls', the panel's, its view's, the messages' and the settings pages'
+    /// <summary>Refresh the controls', panel's, view's, messages' and settings pages'
     /// requests, then the messages' speech; without a mixer they are dropped so they do not pile up.</summary>
     private void PlayHudSounds()
     {
@@ -1587,7 +1568,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _mixer.QueueSpeech(_messageView.Speech);
     }
 
-    /// <summary>The panels this scene has, asked as DungeonRunner.PointerOverHud asks its own (<see cref="HudPointerMap"/>).</summary>
+    /// <summary>Collect the panels this scene has through <see cref="HudPointerMap"/>.</summary>
     private bool PointerOverHud(Vector2 position, HudVisibility visibility) =>
         HudPointerMap.Over(new PointerPanels(this, position, visibility), fullMapVisible: _hudControls.FullMapVisible,
             queryHasTarget: _queryView != null && _queryView.Target != CreatureQueryTarget.None, modal: _hudControls.Modal);
@@ -1611,8 +1592,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         };
     }
 
-    // The panels under the pointer for HudHoverText, answered as Unity's runner answers; the ones not ported give the
-    // empty answer.
+    // Report the panels under the pointer to HudHoverText.
     int IHudHoverSources.OverviewTextId() => _overview?.HoveredTextId(_pointer) ?? 0;
     CreatureOverviewType? IHudHoverSources.OverviewColumn() => _overview?.HoveredColumnType(_pointer);
     HoverTextSnapshot IHudHoverSources.CreatureTypeText(CreatureOverviewType column) =>
@@ -1626,9 +1606,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     ClassicHudAction IHudHoverSources.MinimapControl() => _minimap?.HoveredControl(_pointer) ?? ClassicHudAction.None;
     KeeperResourceKind IHudHoverSources.Resource() => _resources?.ResourceAt(_pointer) ?? KeeperResourceKind.None;
 
-    /// <summary>Every key event reaches the keyboard, as Unity's <c>Input.GetKey</c> reads the keys whatever the UI holds.</summary>
-    /// <summary>Unity's runner removes its heart health observer and disposes its sound player when the level goes; so
-    /// does this scene.</summary>
+    /// <summary>Release the heart observer and sound player when the level closes.</summary>
     public override void _ExitTree()
     {
         if (_heartHealthObserver != null && _simulation != null) _simulation.World.HeartHealthChanged -= _heartHealthObserver;
@@ -1660,25 +1638,24 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     public override void _Notification(int what)
     {
-        // A window without focus misses the releases: the keys, the hand, the bottom panel's press and the world drag
-        // (Unity's runner's OnApplicationFocus).
+        // A window without focus misses releases. Clear the keys, the hand, the panel press and the world drag.
         if (what == NotificationApplicationFocusOut)
         {
             _keyboard.ReleaseAll();
             _journalHeld.Clear();
             // A scripted pointer keeps its gestures: the owner's other windows must not change a capture.
             if (_pointerScript != null) return;
-            // Unity's runner's OnApplicationFocus order: the hand back to the default, the panel's press, then the world drag.
+            // Reset the hand, release the panel's press, then drop the world drag.
             _handCursor?.Update(HandCursorKind.Default, false, (long)(_elapsed * 1000));
             PointerGestures.CancelAll(_panel, _input, _cursorFeedback);
             return;
         }
-        // Unity's Input.mousePosition leaves the screen with the pointer; Godot stops reporting it instead.
+        // Godot stops reporting the pointer when it leaves the window.
         if (what == NotificationWMMouseExit && _pointerScript == null) { _pointerInWindow = false; return; }
         if (what == NotificationWMMouseEnter) { _pointerInWindow = true; return; }
         // Freed, not merely removed from the tree: a reparented scene keeps its level.
         if (what != NotificationPredelete) return;
-        // Unity's runner closes its journal when it is destroyed, writing the frame a session switch left open.
+        // Closing the journal writes the final frame if a session switch left it open.
         _journal.Close("destroyed", _pending, _pacer.Debt, _simulation);
         GD.Print("DK2.Godot world hover: the pick and tint allocated ", _pickBytes, " B in ", _pickFrames,
             " frames over the world after the first 60");

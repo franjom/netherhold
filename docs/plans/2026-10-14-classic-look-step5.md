@@ -19,7 +19,7 @@ Original art remains install-backed through the asset provider.
 - [x] Independent protocol review.
 - [ ] Capture matched original-game reference views with recorded display settings.
 
-Protocol: [Unity probe README](../../tools/classic-unity-probe/README.md).
+Protocol: Unity probe README in `git show 909a6c5e2:tools/classic-unity-probe/README.md`.
 Owner screenshots establish the requested orientation, not calibrated colour transfer.
 
 ## 5.2 — Camera
@@ -96,7 +96,7 @@ its visibility mask remain outside this camera/lighting step.
 - [x] Reuse prepared cells, source buffers and unchanged-frame visibility snapshots.
 - [x] Independent performance-path review.
 - [x] Obtain usable GPU frame timings and a windowed player-loop frame-time capture.
-- [x] Add the ShowDiagnostics FPS/frame-time overlay for editor and Development players ([usage](../../unity/README.md#measuring-performance)).
+- [x] Add the ShowDiagnostics FPS/frame-time overlay for editor and Development players (usage in `git show 909a6c5e2:unity/README.md` (measuring performance)).
 - [x] Capture the reported camera-rotation stutter with frame-time/Profiler evidence.
 - [x] Reduce measured asset-key allocations and transparent-terrain rotation cost while preserving fidelity.
 - [ ] Reduce active tick/presentation stalls remaining in the Level8 opening ([measurement](../research/level8-intro-motion.md)).

@@ -10,11 +10,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The front end's 3D station behind the menu, as Unity's runner runs its front-end mode
-/// (<c>DungeonRunner.FrontEnd</c>'s <c>UpdateFrontEnd</c>): the front-end level's world and scenery
-/// (<see cref="FrontEndStation"/>) drawn by a <see cref="WorldScene"/> from the session's camera paths, the campaign map's
-/// lands picked under the pointer (<see cref="CampaignMapController.UpdatePointer"/>), the hi-score name typed, and a
-/// launched land started in <c>InGameHud.tscn</c> (<see cref="InGameHud.QueueSession"/>).</summary>
+/// <summary>Presents the front-end level and campaign scenery behind the menu. It moves the front-end camera and opens the selected campaign level.</summary>
 public partial class ClassicFrontEndMenu
 {
     private const string InGameHudScene = "res://InGameHud.tscn";
@@ -43,7 +39,7 @@ public partial class ClassicFrontEndMenu
         open?.Invoke();
     }
 
-    /// <summary>Unity's runner's front-end start: the front-end level's world, its scenery from the loaded profile, the map's
+    /// <summary>Open the front-end level's world, its scenery from the loaded profile, the map's
     /// pick table, and the launch subscribed, which also enables the briefing's Launch button
     /// (<see cref="CampaignMapController.CanLaunch"/>).</summary>
     private void OpenStation(string install, CampaignProfile profile, bool secretFiveAvailable, ulong seed, float? brightness,
@@ -76,7 +72,7 @@ public partial class ClassicFrontEndMenu
         if (slot.LevelName is string level) _pendingLaunch = GameSessionRequest.Campaign(level);
     }
 
-    /// <summary>Unity's <c>UpdateFrontEnd</c> after the menu's refresh: a queued launch replaces the scene; otherwise the
+    /// <summary>After the menu refresh, a queued launch replaces the scene. Otherwise update the
     /// camera from the session's path, the map pick under <paramref name="pointer"/> while the map shows, the map's sounds,
     /// the scenery the map's revision shows, and the frame drawn on the scenery's creature clock. Returns true when the
     /// scene is being replaced.</summary>
@@ -107,7 +103,7 @@ public partial class ClassicFrontEndMenu
         _campaign.UpdatePointer(picked, primaryHeld);
         (GameTick tick, float fraction) = FrontEndHost.CreatureFrame(_elapsed);
         _world.SetFrameTime(tick, fraction, milliseconds);
-        // As Unity's RefreshCampaignMap: the world never ticks, so it is presented again only when the map's projection
+        // The world never ticks, so present it again only when the campaign map's projection
         // changed (the first frame included), which keeps a still frame from walking the scenery.
         if (_station.Refresh(_campaign)) _world.Present(_station.Simulation.World, _elapsed);
         _world.DrawFrame(tick, fraction);
@@ -127,7 +123,7 @@ public partial class ClassicFrontEndMenu
         GD.PushWarning("DK2.Godot: the level could not be opened (", error.ToString(), ").");
     }
 
-    /// <summary>Unity's <c>FrontEndHost.TypeName</c> call: while a hi-score row takes a name, the frame's typed text.</summary>
+    /// <summary>Forward the frame's typed text while a hi-score row takes a name.</summary>
     private void TypeHiScoreName()
     {
         if (_campaign != null && _campaign.EntryRow >= 0) FrontEndHost.TypeName(_campaign, _keyboard.Typed);

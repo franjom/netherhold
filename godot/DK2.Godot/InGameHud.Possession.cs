@@ -9,11 +9,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The host side of the first-person view (plan step 3m), the Godot counterpart of Unity's
-/// <c>DungeonRunner.Possession.cs</c>: reads the keys, the pointer's travel and the scene's clock into a
-/// <see cref="PossessionInput"/>, and applies what <see cref="PossessionSession"/> answers (the camera through
-/// <see cref="WorldScene.Possession"/>, the pointer lock, commands and its sounds). Every
-/// rule is the session's (ADR-0805).</summary>
+/// <summary>Feeds keys, pointer travel and the scene clock to <see cref="PossessionSession"/>. Applies its camera, pointer lock, commands and sounds (ADR-0805).</summary>
 public partial class InGameHud
 {
     private readonly List<SoundRequest> _possessionSounds = new();
@@ -26,10 +22,10 @@ public partial class InGameHud
 
     private bool Possessing => _possession is { Possessing: true };
     private bool PossessionCameraHeld => _possession is { CameraHeld: true };
-    /// <summary>The pointer is the view's: the Hand is not drawn and the hover is off (Unity's locked pointer).</summary>
+    /// <summary>The pointer is the view's: the Hand is not drawn and the hover is off.</summary>
     private bool PossessionPointerHeld => _possession is { PointerLockWanted: true };
 
-    /// <summary>Unity's runner's session, on camera preset 2 of the level's presets; then the check argument
+    /// <summary>Begin the possession session on camera preset 2. The check argument
     /// <c>--possess-first-creature</c> (<see cref="PossessionStaging"/>), once the level's first turn has run.</summary>
     private void OpenPossession(string install, CampaignLevelData level, string[] args)
     {
@@ -62,7 +58,7 @@ public partial class InGameHud
         if (_pointerScript == null) _possessionMotion += motion.ScreenRelative;
     }
 
-    /// <summary>DungeonRunner.UpdatePossession, before the camera step: allowed while ordinary input is, no menu is modal,
+    /// <summary>Update possession before the camera step while ordinary input is allowed and no menu is modal,
     /// no camera path plays and the window has focus. The clock is the scene's engine time, so a fixed-fps capture
     /// repeats. The presses are this frame's, which <see cref="QueueInput"/> takes after.</summary>
     private void UpdatePossession(HudVisibility visibility, double delta, long milliseconds)
@@ -83,7 +79,7 @@ public partial class InGameHud
             _pending, _possessionSounds);
         UpdateScreenColours();
         DrawPossessionForeground(milliseconds);
-        // Unity's runner plays the view's sounds (its footsteps) as they come.
+        // Play the view's sounds as the session produces them.
         for (int i = 0; i < _possessionSounds.Count; i++) _mixer?.Play(_possessionSounds[i]);
         _possessionSounds.Clear();
         if (update.Entered) _input.CancelPointerGesture();
@@ -101,7 +97,7 @@ public partial class InGameHud
         Input.MouseMode = capture ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.Visible;
     }
 
-    /// <summary>DungeonRunner.EndPossessionView: the level is let go, and the pointer with it.</summary>
+    /// <summary>Release possession's hold on the level and on the pointer.</summary>
     private void ClosePossession()
     {
         _possession?.Reset();

@@ -59,7 +59,7 @@ The method is in
 | Source | Licence | What we may take |
 |---|---|---|
 | **OpenKeeper** | GPLv3 | Facts, and implementation where it answers what the shipped data cannot (ADR-0003, as amended 2026-09-04). Every borrowed piece is listed in `THIRD-PARTY-NOTICES.md`, naming the upstream class. A rule taken from it is never CONFIRMED: it is itself a reimplementation and can be wrong. |
-| **Flame** (a v1.70 symbol map) | none | Facts only. A Flame identifier never appears in `src/`, `tests/` or the Unity project, not even in a comment; `FlameIdentifierTests` checks it. A document may cite a Flame name as Flame's (ADR-0080). |
+| **Flame** (a v1.70 symbol map) | none | Facts only. A Flame identifier never appears in `src/`, `tests/` or the Godot adapter, not even in a comment; `FlameIdentifierTests` checks it. A document may cite a Flame name as Flame's (ADR-0080). |
 | **The Dungeon Keeper wiki on Fandom** | CC BY-SA | Facts, in our own words, with a citation. Its prose is never committed: not as a page, a dump or a long quote. CC BY-SA text cannot be redistributed under the GPL. A short attributed quotation is fine where the exact wording is the evidence ([`wiki-as-a-source.md`](https://github.com/franjom/netherhold/blob/master/docs/research/wiki-as-a-source.md)). |
 | Other DK2 reverse-engineering documents | varies | Facts with citations, as for the wiki. |
 

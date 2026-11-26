@@ -43,7 +43,7 @@ lands (`docs/HANDOFF.md` §"Run and verify" is the canonical list):
 ```
 dotnet build DK2.slnx -c Release                            # zero warnings
 dotnet test  DK2.slnx -c Release --no-build                 # green; expect skips
-dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj -c Release
+dotnet build godot/DK2.Godot/DK2.Godot.csproj -c Release
 dotnet run --project src/DK2.Tools -c Release --no-build -- verification-ledger --check
 dotnet run --project src/DK2.Tools -c Release --no-build -- kb check
 dotnet run --project src/DK2.Tools -c Release --no-build -- coverage --check
@@ -71,7 +71,7 @@ edit the record by hand, then `kb check` and `kb index` there.
 **Reference checkouts, both outside this repository:** `D:\OpenKeeper` (GPLv3 —
 facts only, acknowledgment in `THIRD-PARTY-NOTICES.md`, provenance in `docs/research/`) and `D:\Flame`
 (**unlicensed — facts only, and never one of its identifiers in `src/`, `tests/`
-or `unity/`**). See `docs/research/external-resources.md`.
+or `godot/`**). See `docs/research/external-resources.md`.
 
 ## Boundaries that apply to every brief
 
@@ -138,7 +138,7 @@ ordered world state, ADR-0103). Landed outside a brief: the M12 keeper slices of
 the battle step, pickup gates, casualty priority) and the 2026-09-30 tooling
 (pyghidra-mcp per agent, one record per function).
 
-**Other independent work worth a brief** (2026-10-15, not yet written up): loading converted glTF art in the Unity view (the classic look reads the
+**Other independent work worth a brief** (2026-10-15, not yet written up): loading converted glTF art in the Godot view (the classic look reads the
 install's KMF meshes directly instead) and catalogue entries for sound and music
 (goal 4); specials beyond Increase Level and Receive Imps (`specials.md`, ADR-0441); the
 rooms' remaining unbuilt state categories, one at a time (never two in

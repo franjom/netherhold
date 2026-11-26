@@ -14,7 +14,7 @@ public interface ILightningCameraTransform
     Vector3 ToCamera(Vector3 renderWorld);
     Vector3 ToWorld(Vector3 cameraPoint);
 }
-/// <summary>Unity's lightning selection and camera-space ribbons, with reused frame storage.</summary>
+/// <summary>Lightning selection and camera-space ribbons, with reused frame storage.</summary>
 public sealed class LightningDrawList
 {
     private readonly ILightningCameraTransform? _nativeCamera;

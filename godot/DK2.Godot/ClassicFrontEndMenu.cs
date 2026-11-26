@@ -11,16 +11,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The front-end menu, the Godot counterpart of Unity's <c>ClassicFrontEndMenu</c> plus the menu part of
-/// <c>DungeonRunner.FrontEnd</c>: <see cref="FrontEndMenuHud"/> (ADR-0805) decides every label, colour, hover and
-/// page, and a <see cref="HudCanvas"/> draws its frame. This node runs the session's clock, converts the pointer to
-/// 640 x 480 units and forwards it. The campaign profile and hi-score table load as in Unity
-/// (<see cref="CampaignProfileStore"/>, <see cref="HiScoreStore"/>), so the hi-score and movie gallery pages show the
-/// player's rows and the campaign entries open the map page. The 3D station behind the menu, the land picking, the launch
-/// and the hi-score name are in <c>ClassicFrontEndMenu.Station.cs</c>, the pointer and the check runs' scripted input in
-/// <c>ClassicFrontEndMenu.Input.cs</c>. The movies (the startup, the gallery, the attract and a won map's cutscene) are in
-/// <c>ClassicFrontEndMenu.Movies.cs</c>. The save browser and settings are wired in <c>ClassicFrontEndMenu.Pages.cs</c>.
-/// The pages' sounds play through the shared <see cref="ClassicSoundMixer"/> at the saved settings' volumes.</summary>
+/// <summary>Draws the frame built by <see cref="FrontEndMenuHud"/> (ADR-0805) and forwards pointer input in 640 by 480 virtual units. The campaign profile and hi-score table are shared with the campaign map.</summary>
 public partial class ClassicFrontEndMenu : Node
 {
     private readonly HudFrame _frame = new();
@@ -39,8 +30,7 @@ public partial class ClassicFrontEndMenu : Node
 
     public FrontEndMenuController? Model => _hud?.Model;
 
-    /// <summary>Draw labels with the replacement TrueType face where it can set them (<see cref="Open"/> turns it on, as
-    /// Unity does); without a face on this machine the labels stay the BF4 bitmap.</summary>
+    /// <summary>Use the replacement TrueType face where it can draw labels. Otherwise use the BF4 bitmap.</summary>
     public bool UseReplacementFont
     {
         get => _useReplacement;
@@ -64,16 +54,16 @@ public partial class ClassicFrontEndMenu : Node
     /// <summary>Opens the menu over an install with the player's files in <paramref name="folders"/>; call before the
     /// node enters the tree. A missing profile is created here (from the original game's registry entry on Windows); an
     /// unusable one falls back to memory (<see cref="UserFolders.LoadProfile"/>).</summary>
-    /// <param name="returnPage">The page a level that ended returns to, as Unity's runner passes it to the session and the
-    /// profile load (<see cref="FrontEndPage.CampaignResults"/> repairs the won map's branch row).</param>
-    /// <param name="skipStartup">No title screen and intro movies, as Unity's runner's <c>skipStartup</c>.</param>
+    /// <param name="returnPage">The page the front end opens after a level ends.
+    /// <see cref="FrontEndPage.CampaignResults"/> repairs the won map's branch row.</param>
+    /// <param name="skipStartup">Skip the title screen and intro movies.</param>
     public void Open(string install, GameFolders folders, FrontEndPage returnPage = FrontEndPage.None, bool skipStartup = false)
     {
         if (_hud != null) throw new InvalidOperationException("The menu is already open.");
         _assets = new ClassicFrontEndMenuAssets(install);
         Func<int, IReadOnlyList<KcsFrame>?> paths = EngineCameraPaths.Loader(install);
         _session = new FrontEndSession(path => paths((int)path), returnPage);
-        // DungeonRunner.StartFrontEnd: the profile, the hi-scores, and the map that writes both back.
+        // Load the campaign profile and hi-scores. The map can write changes back.
         _profiles = new CampaignProfileStore(InstalledCampaignRegistry.ReadCurrentUser, () => DateTime.Now);
         CampaignProfile profile = UserFolders.LoadProfile(_profiles, folders.Profile, GameSessionMode.FrontEnd, returnPage);
         var hiScores = new HiScoreStore(folders.HiScores, install);
@@ -93,7 +83,7 @@ public partial class ClassicFrontEndMenu : Node
         _canvas = new HudCanvas { Name = "HudCanvas", Load = _assets.Load };
         AddChild(_canvas);
         OpenSaveBrowser(install, folders, args);
-        // DungeonRunner's sound player, which its front end has too, at the saved settings' volumes: the pages' sounds only
+        // Use the saved settings' volumes. The pages play only their own sounds;
         // (no music, and the throttle never runs there).
         var output = new ClassicSoundOutput { Name = "Sound" };
         AddChild(output);
@@ -131,7 +121,7 @@ public partial class ClassicFrontEndMenu : Node
     {
         NoteKeyPress(@event);
         if (@event is InputEventKey key) _keyboard.Feed(key);
-        // Only the wheel comes from events; the position is polled each frame, as Unity reads Input.mousePosition.
+        // Poll the pointer position each frame and accumulate wheel notches from events.
         if (@event is InputEventMouseButton button)
         {
             if (!button.Pressed) return;
@@ -151,7 +141,7 @@ public partial class ClassicFrontEndMenu : Node
         (_pointer, primaryHeld) = SamplePointer();
         bool pickerOwnsPointer = ImportPickerOwnsPointer(primaryHeld);
         if (pickerOwnsPointer) { primaryHeld = false; _wheel = 0; }
-        // DungeonRunner.Update's first step, the front end's too.
+        // Advance pending startup sound requests first.
         _mixer?.PlayDecoded(milliseconds);
         _mixer?.UpdateSpeech(milliseconds);
         // The startup, a won map's cutscene, or a movie holds the screen; the menu runs once they are over.
@@ -172,7 +162,7 @@ public partial class ClassicFrontEndMenu : Node
         _hud.Advance(pointer, sized ? _wheel : 0, _elapsed);
         UpdateSaveBrowser(width, height, primaryHeld);
         _wheel = 0;
-        // DungeonRunner.UpdateFrontEnd: the menu's sounds, the station (which may leave for a level), then the map's sounds.
+        // Play menu sounds, update the station and any queued launch, then play map sounds.
         if (_mixer != null) _mixer.Play(_hud.Model.Sounds); else _hud.Model.Sounds.Clear();
         if (_options != null)
         {
@@ -212,7 +202,7 @@ public partial class ClassicFrontEndMenu : Node
 
     private void Quit() => GetTree().Quit();
 
-    /// <summary>A profile the map changed re-reads the gallery's unlocks, as Unity's <c>ProfileChanged</c> handler does.</summary>
+    /// <summary>Refresh gallery unlocks after the campaign map changes the profile.</summary>
     private void RefreshMovies(CampaignProfile profile) => _hud?.Model.Movies?.Refresh(profile);
 
     public override void _ExitTree()

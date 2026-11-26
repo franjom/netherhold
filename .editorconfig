@@ -20,17 +20,8 @@ insert_final_newline = true
 # The GPLv3 file notice is NOT enforced here. That is a choice, not an
 # oversight, and it survives the notice getting shorter.
 #
-# The obvious mechanism is IDE0073 with file_header_template, and with
-# EnforceCodeStyleInBuild already set it is a build error for free. Two reasons
-# it is not used:
-#
-# 1. It is blind to unity/DK2.Unity/Assets. No project in DK2.slnx compiles
-#    those three files - only unity/DK2.Unity.Compile does, and that needs an
-#    installed Unity editor (ADR-0036) - so a build-time analyser cannot see
-#    precisely the files most easily forgotten.
-#
-# 2. It truncates a template at the first ";" and does not say so. That is not
-#    hypothetical: the long-form GPL notice this project used briefly on
+# IDE0073 with file_header_template truncates its value at the first ";"
+# without a diagnostic. The long-form GPL notice used briefly on
 #    2026-09-04 has a semicolon in
 #
 #        but WITHOUT ANY WARRANTY; without even the implied warranty of

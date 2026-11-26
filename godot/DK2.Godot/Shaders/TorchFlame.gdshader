@@ -1,6 +1,6 @@
 // The wall flames (WorldScene.TorchFlames, migration plan step 3k): every flame one instance of one batch, its frame the
 // layer in the instance's custom data (x), the frames one texture array. Additive (source alpha, one), unshaded, both
-// faces, no depth write, turned as the camera is, as Unity sets the sprite's rotation to the camera's.
+// faces, no depth writes, and rotation taken from the camera.
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled;
 uniform sampler2DArray frames : filter_linear, repeat_disable;

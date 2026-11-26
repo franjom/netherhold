@@ -9,22 +9,14 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Godot's side of <see cref="ISoundOutput"/>: it only plays what <see cref="ClassicSoundMixer"/> decides (ADR-0805).
-/// A clip becomes an <see cref="AudioStreamWav"/> on its first play and is kept (one for a plain play, one for a loop); an
-/// effect is an <see cref="AudioStreamPlayer3D"/> with Godot's attenuation off, because the mixer's volume already holds DK2's
-/// distance, under one anchor moved to the camera, Godot's listener, each frame, so a placed source sits at its offset from
-/// the listener's point beside the camera and Godot pans it by the camera's turn (Unity's ClassicSoundPlayer places its
-/// sources the same way). With <see cref="Spatial"/> off (the front end has no camera) every source is a plain
-/// <see cref="AudioStreamPlayer"/>, as the speech line always is. The music and the ambience bed are
-/// <see cref="AudioStreamGenerator"/>s fed from their queues in chunks each frame. Nothing here allocates once a clip is
-/// converted.</summary>
+/// <summary>Plays the mixer's sounds through Godot audio players. Positioned sounds use the camera-relative listener and update as the camera turns.</summary>
 public partial class ClassicSoundOutput : Node, ISoundOutput
 {
     /// <summary>Frames pushed to a stream at a time.</summary>
     private const int StreamChunk = 512;
 
     /// <summary>Godot scales a node's panning by the project's <c>audio/general/3d_panning_strength</c> (0.5); twice it pans fully
-    /// at the side, as Unity's 3D sources do.</summary>
+    /// at the side.</summary>
     private const float FullPan = 2f;
 
     private readonly Dictionary<PcmClip, AudioStreamWav> _plain = new(ReferenceEqualityComparer.Instance);

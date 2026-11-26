@@ -7,9 +7,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The keeper's bottom panel, the Godot counterpart of Unity's <c>ClassicBottomPanel</c>: <see cref="BottomPanelHud"/>
-/// (ADR-0805) decides every draw and click, a <see cref="HudCanvas"/> draws its frame bottom-docked under the HUD scale,
-/// and this node forwards the mouse in virtual units (1920 high). Its events are the model's (<see cref="Model"/>).</summary>
+/// <summary>Draws the keeper's bottom panel from <see cref="BottomPanelHud"/> and forwards pointer input in its virtual units.</summary>
 public partial class ClassicBottomPanel : Node, IPointerGestureHolder
 {
     private const float Tall = 1920f;
@@ -20,13 +18,13 @@ public partial class ClassicBottomPanel : Node, IPointerGestureHolder
     private float _scale = 1;
     /// <summary>Screen pixel of the canvas's local (0, 0), rounded as drawn; the pointer is measured from it.</summary>
     private Vector2 _origin;
-    /// <summary>A press the model took and has not let go of (Unity's captured pointer id).</summary>
+    /// <summary>A pointer press that the panel is still holding.</summary>
     private bool _holding;
 
     /// <summary>The panel model; its events are the clicks a host turns into commands.</summary>
     public BottomPanelHud Model => _hud ?? throw new InvalidOperationException("The panel is not open.");
 
-    /// <summary>The HUD scale percent (Unity's <c>UiScale</c>, the graphics setting).</summary>
+    /// <summary>The HUD scale percent.</summary>
     public int UiScale { get; set; } = 100;
 
     /// <summary>Opens the panel over <paramref name="art"/> and <paramref name="view"/>; call before it enters the tree.</summary>
@@ -112,7 +110,7 @@ public partial class ClassicBottomPanel : Node, IPointerGestureHolder
         }
         finally
         {
-            // Released even when a click handler throws, as Unity's facade does.
+            // Release the pointer even if a click handler throws.
             SyncCapture();
         }
         // Hover follows a release away from the pressed widget at once, not at the next move.
@@ -122,13 +120,13 @@ public partial class ClassicBottomPanel : Node, IPointerGestureHolder
     public override void _Notification(int what)
     {
         if (what == NotificationWMMouseExit) _hud?.PointerLeave();
-        // Losing focus ends a held press without a release, as Unity's PointerCaptureOutEvent does.
+        // Losing focus clears the held pointer without dispatching a release.
         else if (what == NotificationApplicationFocusOut) { _holding = false; _hud?.CaptureLost(); }
         // Freed, not merely removed from the tree: a reparented panel keeps working.
         else if (what == NotificationPredelete) { _hud?.CancelPointerGesture(); _holding = false; _hud = null; _canvas = null; }
     }
 
-    /// <summary>A screen pixel in the model's virtual units (Unity's <c>LocalPointer</c> then <c>ToVirtual</c>), from the
+    /// <summary>A screen pixel in the model's virtual units, from the
     /// same rounded origin the drawing uses, so hits land on the art at any HUD scale.</summary>
     private (float X, float Y) ToVirtual(Vector2 screen) =>
         ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);

@@ -14,8 +14,7 @@ namespace DK2.Presentation;
 public readonly record struct CampaignResultFrame(
     PlayerId Viewer, bool PathPlaying, double NowMilliseconds, bool? SpeechPlaying, bool SpacePressed, bool EscapePressed);
 
-/// <summary>A campaign level started from the front end: its verdict, and the way back (Unity's
-/// <c>DungeonRunner.LevelEnd</c> and the win keys of <c>DungeonRunner.Finale</c>, moved for both adapters). Each frame:
+/// <summary>A campaign level started from the front end: its verdict and return to the front end. Each frame:
 /// the carry, the statistics once per player in verdict order, the HUD's result state, the result once, nothing while a
 /// camera path plays, the win keys, then Space leaves. The adapter switches to the front end when
 /// <see cref="Update"/> returns true.</summary>

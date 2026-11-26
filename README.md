@@ -11,14 +11,14 @@ It requires your own Dungeon Keeper 2 installation for original game content;
 original game files are not distributed with this repository.
 
 This is a development and research project, not a finished replacement for the
-original game. Campaign compatibility, gameplay fidelity and the classic Unity
+original game. Campaign compatibility, gameplay fidelity and the Godot
 presentation are still being verified. See the [current state and remaining
 work](docs/HANDOFF.md) and the [implementation plan](DK2_REIMPLEMENTATION_PLAN.md).
 
 ## Screenshots
 
-The classic Unity presentation, captured from the current build: the front-end
-menus and level briefing first, then Level 1.
+Historical screenshots from the retired Unity adapter show the front-end menus,
+level briefing and Level 1.
 
 <p align="center">
 <img src="screenshots/image_main_menu.jpg" alt="Main menu" width="49%">
@@ -35,7 +35,7 @@ menus and level briefing first, then Level 1.
 <img src="screenshots/image_level_1_8.jpg" alt="Level 1, screenshot 8" width="49%">
 </p>
 
-## Performance at 1920×1080
+## Historical Unity performance at 1920×1080
 
 Recorded on **2026-11-06** using a Unity 6000.6.0f1 release IL2CPP player,
 Vulkan, windowed 1920×1080, VSync off. Workload: Level 6a's opening fly-by,
@@ -76,14 +76,14 @@ dotnet build DK2.slnx --no-restore --configuration Release
 dotnet test DK2.slnx --no-build --configuration Release
 ```
 
-The solution builds without Unity or an original DK2 installation. Tests that
+The solution builds without the Godot editor or an original DK2 installation. Tests that
 need the original game report as skipped when its data is unavailable; a green
 run with skips does not verify those integration paths. CI builds and tests on
 Linux and Windows without a DK2 installation.
 
 ## Use an original DK2 installation
 
-Playing campaign content in Unity and running scenarios with the headless
+Playing campaign content in Godot and running scenarios with the headless
 harness require your own original game files. Set `DK2_DIR` to the installation
 directory containing `DKII.EXE` and `Data/`:
 
@@ -115,28 +115,18 @@ synthetic map, so it requires `DK2_DIR`. Reports, events and per-tick hashes go
 under `build/scenario-runs/`. The [scenario guide](scenarios/README.md) describes
 the format and what each experiment can establish.
 
-## Run the Unity presentation
+## Run the Godot presentation
 
-Use the editor version pinned in
-[ProjectVersion.txt](unity/DK2.Unity/ProjectSettings/ProjectVersion.txt), currently
-Unity 6000.6.0f1, with an activated editor license. Players build with IL2CPP
-(ADR-0690), so a player build also needs the editor's Windows IL2CPP module and
-Visual Studio's C++ tools; the editor alone runs Play mode. The scripts under
-`tools/` default to the Unity Hub install path and take `-Unity` for another.
-On Windows, build and copy the Unity-compatible assemblies with:
+Use the .NET editor pinned by [`godot-version.json`](godot/godot-version.json). On Windows, set up
+the editor and open the project:
 
 ```powershell
-powershell -File unity/sync-assemblies.ps1
+powershell -File godot/setup.ps1
+powershell -File godot/editor.ps1
 ```
 
-Open `unity/DK2.Unity`, open `Assets/DK2/Scenes/Dungeon.unity`, and press Play with
-`DK2_DIR` set or the DungeonRunner component's Install Directory configured.
-Rerun the sync script after changing the shared C# projects. See the
-[Unity guide](unity/README.md) for controls, adapter checks and rendering limits.
-
-The optional DungeonKeeperII TrueType font stays local. See the font setup in the
-[Godot guide](godot/README.md#setting-up-a-machine) or the [Unity guide](unity/README.md).
-The game uses the bitmap font from the install when the TrueType face is absent.
+The launcher accepts your original DK2 install. The [Godot guide](godot/README.md)
+covers controls, exports and the optional local replacement font.
 
 ## Project structure and contributing
 

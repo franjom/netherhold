@@ -6,8 +6,7 @@ namespace DK2.Presentation;
 
 /// <summary>The full map's image (ADR-0805) as RGBA bytes, top row first, one pixel per tile: each cell of the minimap's
 /// class grid in its palette colour, opaque, and the unknown class (1) black, as the full map draws it where the minimap
-/// draws its rock backdrop. For an engine that uploads pixels; Unity draws the same image on the GPU
-/// (<c>Resources/DK2FullMap.shader</c>), so the two change together.</summary>
+/// draws its rock backdrop.</summary>
 public sealed class FullMapImage
 {
     private const uint Black = 0xFF000000;

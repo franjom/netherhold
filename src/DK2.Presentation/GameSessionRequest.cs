@@ -62,7 +62,7 @@ public sealed record GameSessionRequest
     private static GameSessionRequest ForTerrain(string levelName, LevelMap terrain) =>
         new(GameSessionMode.ImportedTerrain, levelName, FrontEndPage.None) { ImportedTerrain = terrain };
 
-    /// <summary>The session the options menu's confirmed entry asks for, as Unity's runner maps it
+    /// <summary>The session the options menu's confirmed entry requests
     /// (<c>IHudPressHost.StartSession</c>): Restart starts the running level afresh with its return page, Return to Menu
     /// opens the front end at the campaign map when the level came from it and at the main page otherwise. Quit, and
     /// <see cref="ClassicSessionAction.None"/>, ask for no session: null.</summary>

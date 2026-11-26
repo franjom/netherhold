@@ -387,7 +387,7 @@ runtime DLLs were copied into the branch project. The reviewed original-asset GP
 passed with 1539 peak particles and burning/hover pixel equality. Inspected earlier
 0/2500 ms images show a lasting fire sheet and red Goblin. These checks establish remake
 rendering, not native pixel parity or camera-jitter GPU acceptance. Hash/save 343 and
-pin `0xC9236A4CFBFEC07D` preserve master 342 plus burning. Procedure: [README](../../tools/classic-unity-probe/README.md#shot-effects).
+pin `0xC9236A4CFBFEC07D` preserve master 342 plus burning. Procedure: README in `git show 909a6c5e2:tools/classic-unity-probe/README.md` (shot effects).
 
 ## Confidence
 

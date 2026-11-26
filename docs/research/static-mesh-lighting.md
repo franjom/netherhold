@@ -70,7 +70,7 @@ the file Origin is already retained by the KMF reader.
 
 Built: ordinary objects use the instance shader marker regardless of static or
 animated asset format. Torch mounts explicitly keep terrain-piece lighting:
-their native path is`0x00599960` through`0x00585F90`. `ClassicMeshes` caches by
+their native path is`0x00599960` through`0x00585F90`. The Unity-era `ClassicMeshes` cache kept separate meshes by
 asset, frame choice and lighting mode, preserving distinct shared meshes for
 the two draw roles. No per-renderer material block or frame allocation is added.
 

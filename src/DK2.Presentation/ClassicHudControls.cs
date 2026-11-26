@@ -45,7 +45,7 @@ public sealed class ClassicHudControls
     /// <summary>Whether the named-save browser shows (<see cref="SaveLoadHud"/>): the options menu open on its save or
     /// load page.</summary>
     public bool SaveLoadVisible => OptionsVisible && OptionsPage is ClassicOptionsPage.Save or ClassicOptionsPage.Load;
-    /// <summary>The in-game save browser's showing under the HUD's visibility (DungeonRunner.DrawSavePanel): shown while
+    /// <summary>The in-game save browser follows HUD visibility. It is shown while
     /// <see cref="SaveLoadVisible"/> and the normal HUD shows; saving on the save page, where the name is typed in.</summary>
     public (bool Shown, bool Saving) SaveLoadPage(HudVisibility hud) =>
         (hud.ShowNormalHud && SaveLoadVisible, OptionsPage == ClassicOptionsPage.Save);

@@ -47,7 +47,7 @@ Level8 verifies emitting-tile identity on127793 opaque,5688 transparent and4518
 water/lava vertices, including a consistent anchor across each triangle.
 Evidence: `build/step5-campaign-final-Level1`, `...-Level7`, `...-Level8`.
 
-Reproduce using the protocol in [the probe README](../../tools/classic-unity-probe/README.md)
+Reproduce using the protocol in the probe README in `git show 909a6c5e2:tools/classic-unity-probe/README.md`
 and environment variables `DK2_LIGHTING_PROBE_LEVEL=Level1|Level7|Level8`,
 `DK2_LIGHTING_VERIFY_ANCHORS=1`, `DK2_LIGHTING_PROFILE=1` for profiling,
 and `DK2_LIGHTING_PROBE_OUTPUT=<directory>`. Do not add `-quit` to the batch
@@ -363,7 +363,7 @@ built and verified below. Sustained gameplay remains unmeasured.
 
 Artifacts: `build/step5-rotation-20261017/20261017-142632/` contains timing CSV,
 metadata, screenshot and summary; `allocation/` contains the raw profile and
-calibrated stack report. Reproduction: [probe instructions](../../tools/classic-unity-probe/README.md#camera-rotation-and-allocation-capture).
+calibrated stack report. Reproduction: probe instructions in `git show 909a6c5e2:tools/classic-unity-probe/README.md` (camera rotation and allocation capture).
 
 ### Verified optimization
 

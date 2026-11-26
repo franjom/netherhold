@@ -8,10 +8,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Menu 43, the Battle tab right of the message tabs, the Godot counterpart of Unity's <c>ClassicBattleTab</c>:
-/// <see cref="BattleTabHud"/> (ADR-0805) decides every draw, hit and press, and a <see cref="HudCanvas"/> draws its frame
-/// bottom-docked under the HUD scale. A press on a shown button is taken from the panels under it and raised as
-/// <see cref="Clicked"/>; what it does is <see cref="BattleTabView.Action"/>. Not built: the blades' sound 0x30F (Q775).</summary>
+/// <summary>Draws Menu 43, the Battle tab, using the frame built by <see cref="BattleTabView"/>.</summary>
 public partial class ClassicBattleTab : Node
 {
     private readonly HudFrame _frame = new();
@@ -22,7 +19,7 @@ public partial class ClassicBattleTab : Node
     /// <summary>Screen pixel of the canvas's local (0, 0), rounded as drawn; the pointer is measured from it.</summary>
     private Vector2 _origin;
 
-    /// <summary>The HUD scale percent (Unity's <c>UiScale</c>, the graphics setting).</summary>
+    /// <summary>The HUD scale percent.</summary>
     public int UiScale { get; set; } = 100;
 
     /// <summary>A button and the mouse button (0 left, 1 right) that pressed it.</summary>
@@ -38,8 +35,7 @@ public partial class ClassicBattleTab : Node
         if (text is null) throw new ArgumentNullException(nameof(text));
         var hud = new BattleTabHud(text);
         var canvas = new HudCanvas { Name = "HudCanvas", Load = image, Visible = false };
-        // Decoded now (Unity's facade decodes each frame's art on its first draw), before the canvas is kept, so a failed
-        // decode leaves the menu unopened and retryable.
+        // Decode the art before keeping the canvas so a failed decode leaves no partial panel.
         try { foreach (HudImage art in BattleTabHud.Images()) canvas.Preload(art); }
         catch { canvas.Free(); throw; }
         hud.Clicked += Raise;
@@ -97,7 +93,7 @@ public partial class ClassicBattleTab : Node
         int index = button.ButtonIndex switch { MouseButton.Left => 0, MouseButton.Right => 1, MouseButton.Middle => 2, _ => -1 };
         if (index < 0) return;
         (float x, float y) = ToVirtual(button.Position);
-        // Unity's image stops the press's propagation (any button) once it takes input.
+        // Stop press propagation after the tab accepts the pointer.
         if (_hud.PointerDown(x, y, index)) GetViewport().SetInputAsHandled();
     }
 
@@ -111,7 +107,7 @@ public partial class ClassicBattleTab : Node
         Clicked = null; _hud = null; _canvas = null;
     }
 
-    /// <summary>A screen pixel in the model's virtual units (Unity's <c>LocalPointer</c> then <c>ToVirtual</c>), from the
+    /// <summary>A screen pixel in the model's virtual units, from the
     /// same rounded origin the drawing uses, so hits land on the art at any HUD scale.</summary>
     private (float X, float Y) ToVirtual(Vector2 screen) =>
         ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);

@@ -10,7 +10,7 @@ namespace DK2.Presentation;
 
 /// <summary>The hand cursor as one <see cref="HudFrame"/> quad, for a renderer that draws it through its HUD canvas (the Godot
 /// adapter, plan step 3e): the kind's sheet with its green keyed out, the frame's row, placed by <see cref="HandCursor.Place"/>
-/// and scaled by the HUD factor about the pointer, as Unity's cursor panel scales it.</summary>
+/// and scaled by the HUD factor about the pointer.</summary>
 public static class HandCursorHud
 {
     /// <summary>The kind's sprite sheet as a HUD image: its file name in Sprite.WAD, green keyed.</summary>

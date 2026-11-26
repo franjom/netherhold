@@ -18,7 +18,7 @@ public sealed class RoomNavigation
 
     /// <summary>Every room of the map in <see cref="RoomIndex.Build"/>'s order, into <paramref name="into"/> (cleared first):
     /// its first tile as its identity, its owner, its type and its centre field as the focus. A room whose definition has
-    /// no type is left out. Moved out of Unity's DungeonRunner.NavigateRoom (migration plan step 2c).</summary>
+    /// no type is left out.</summary>
     public static void Entries(WorldState world, GameDatabase database, List<RoomNavigationEntry> into)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));

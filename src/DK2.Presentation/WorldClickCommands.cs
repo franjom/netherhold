@@ -10,7 +10,7 @@ using DK2.Simulation.Commands;
 namespace DK2.Presentation;
 
 /// <summary>What <see cref="WorldClickCommands"/> asks of the adapter: the picking, which is camera-bound, and the camera's
-/// turn after a query. Each is asked only on the path that needs it, as Unity's runner asked.</summary>
+/// turn after a query. Each is asked only on the path that needs it.</summary>
 public interface IWorldClickHost
 {
     /// <summary>Whether the pointer is over the HUD (<see cref="HudPointerMap"/>).</summary>
@@ -24,7 +24,7 @@ public interface IWorldClickHost
     void FollowQueriedCreature();
 }
 
-/// <summary>Unity's DungeonRunner.QueuePanelWorldAction, moved out of the runner (migration plan step 2c): what a press in
+/// <summary>What a press in
 /// the world does while the query tool or a bottom panel choice is held, before the hand's own press is translated.
 /// <list type="bullet">
 /// <item>The query tool takes the frame: a left press on a creature with nothing queried queries it, and a right press

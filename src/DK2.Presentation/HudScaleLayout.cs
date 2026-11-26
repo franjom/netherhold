@@ -15,7 +15,7 @@ public readonly record struct HudScaleLayout(int Width, int Height, int Requeste
     public float LogicalWidth => Width / Factor;
     public float BottomOffset => Height / Factor - Height;
     /// <summary>A bottom-docked panel's top in whole screen pixels, <see cref="BottomOffset"/> scaled and rounded half
-    /// up, for a renderer that places panels itself (the Godot adapter; UI Toolkit docks Unity's).</summary>
+    /// up, for a renderer that places panels itself.</summary>
     public float BottomOriginPixels => MathF.Floor(BottomOffset * Factor + .5f);
     /// <summary>The surface a panel built from a <see cref="HudScreen"/> lays out on: the logical width in whole local
     /// pixels (halves to even, as Unity's <c>Mathf.RoundToInt</c>) over the full screen height.</summary>

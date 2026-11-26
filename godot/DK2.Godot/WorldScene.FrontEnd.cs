@@ -10,9 +10,7 @@ using NVector3 = System.Numerics.Vector3;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The front end's 3D station (Unity's runner in its front-end mode over <c>DungeonScene</c>): the front-end level's
-/// world with the campaign lands and markers (<see cref="FrontEndArt"/>), seen from the front end's camera paths
-/// (<see cref="FrontEndPose"/>) instead of the classic camera, and the map pick (<see cref="PickFrontEndMap"/>).</summary>
+/// <summary>Draws the front-end level as the 3D station. Applies the scripted camera and picks campaign map markers from drawn triangles.</summary>
 public partial class WorldScene
 {
     /// <summary>The front end's camera this frame (<see cref="FrontEndSession.Pose"/>), drawn at the next
@@ -27,7 +25,7 @@ public partial class WorldScene
         OpenCamera();
     }
 
-    /// <summary>Unity's <c>ApplyFrontEndCamera</c>: the path's place and turn, the front end's 4:3 vertical field of view
+    /// <summary>The path's place and turn, the front end's 4:3 vertical field of view
     /// (<see cref="CameraPathPose.FrontEndVerticalFieldOfView"/>), the path's view distance as the far plane, no centre shift.</summary>
     private void PlaceFrontEndCamera(CameraViewport viewport)
     {
@@ -37,7 +35,7 @@ public partial class WorldScene
         PlacePose(pose, viewport, NearPlane);
     }
 
-    /// <summary>Unity's <c>DungeonScene.PickFrontEndMap</c>: the nearest triangle the ray crosses among the drawn objects whose
+    /// <summary>The nearest triangle the ray crosses among the drawn objects whose
     /// box it enters, and the slot of that object in <paramref name="slots"/> (<see cref="CampaignSlot.None"/> for an object
     /// that is no map piece or marker, or for nothing). The ray is in the renderers' frame (<see cref="TryPickRay"/>).
     /// Allocation-free.</summary>

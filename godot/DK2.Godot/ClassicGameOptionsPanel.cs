@@ -9,12 +9,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The options menu's game options pages, the Godot counterpart of Unity's <c>ClassicGameOptionsPanel</c>:
-/// <see cref="GameOptionsHud"/> (ADR-0805) decides every draw, hit, slider drag and captured key, and a
-/// <see cref="HudCanvas"/> draws its frame over the whole screen at the screen's own scale (1920 virtual units high, as the
-/// options menu). While it shows it takes every mouse press from the panels under it, as Unity's runner gives every press
-/// to the open menu; a left press goes to the pages, a press that holds (a slider, the key list's arrow or thumb) follows
-/// the pointer until the left button is released.</summary>
+/// <summary>Draws the options menu's game settings pages. While a page is open, it takes mouse presses before the panels below it.</summary>
 public partial class ClassicGameOptionsPanel : Node
 {
     private readonly HudFrame _frame = new();
@@ -49,7 +44,7 @@ public partial class ClassicGameOptionsPanel : Node
     /// <summary>Binds this frame's key to the row being captured (<see cref="GameOptionsHud.CaptureKey"/>).</summary>
     public void CaptureKey(GameBindingInput keys) => _hud?.CaptureKey(keys);
 
-    /// <summary>Whether the pages show: they hold the whole screen, as Unity's facade answers.</summary>
+    /// <summary>Whether the pages show: they hold the whole screen.</summary>
     public bool ContainsPointer(Vector2 screenPosition) => _hud != null && _hud.Visible;
 
     /// <summary>Lays the page out for the viewport and presents it, the label under the pointer lit.</summary>
@@ -72,13 +67,13 @@ public partial class ClassicGameOptionsPanel : Node
         switch (@event)
         {
             case InputEventMouseButton { Pressed: true } press:
-                // Unity's runner gives every press to the menu while it is open (QueueHudInput); the pages act on the left one.
+                // The menu intercepts every press while open. The pages act on the left button.
                 GetViewport().SetInputAsHandled();
                 _hud.PointerDown(press.Position.X / _scale, press.Position.Y / _scale, press.ButtonIndex == MouseButton.Left ? 0 : 1);
                 return;
             // Only the left button begins a hold, so only its release ends one (the wheel sends synthetic releases).
             case InputEventMouseButton { ButtonIndex: MouseButton.Left }: _hud.PointerUp(); return;
-            // Unity sees the moves only while the canvas holds the pointer.
+            // Forward pointer motion while the canvas holds the pointer.
             case InputEventMouseMotion motion when _hud.Holding:
                 _hud.PointerMove(motion.Position.X / _scale, motion.Position.Y / _scale);
                 return;
@@ -87,7 +82,7 @@ public partial class ClassicGameOptionsPanel : Node
 
     public override void _Notification(int what)
     {
-        // A release the window never sees (focus lost mid-drag) must not leave the press held, as Unity's PointerCaptureOutEvent.
+        // Clear a held press if the window loses focus during a drag.
         if (what == NotificationApplicationFocusOut) { _hud?.PointerUp(); return; }
         // Freed, not merely removed from the tree: a reparented panel keeps working.
         if (what == NotificationPredelete) { _hud = null; _canvas = null; }

@@ -6,7 +6,7 @@ Original and converted assets are proprietary and must never be committed.
 
 Types: `GlbWriter`; `PngWriter` and `RgbaImagePng.ToPng`; `TextureExtractor`;
 `AssetConverter` → `AssetConversionResult`. The readers they
-write from live in `src/DK2.Art` (ADR-0408), which Unity also loads: `KmfReader` →
+write from live in `src/DK2.Art` (ADR-0408), shared with the Godot adapter: `KmfReader` →
 `KmfModel`/`KmfMesh`/`KmfAnimation`/`KmfMaterial`/`KmfPrimitive`; `EngineTextureArchive` +
 `Dk2TextureDecoder` → `RgbaImage`; `IMeshSource`/`ITextureSource`/`WadMeshSource`;
 `Dk2ArtCatalogue`. The format notes below describe those readers.

@@ -33,7 +33,7 @@ public sealed record ScenarioResult(
 
     /// <summary>
     /// The world at the end of the run, drawn as text through the same
-    /// presentation boundary a Unity view uses.
+    /// presentation boundary the Godot view uses.
     ///
     /// <para>Worth having in a scenario report for a reason the hash series
     /// cannot cover: a hash tells you two runs differed, and a picture tells you

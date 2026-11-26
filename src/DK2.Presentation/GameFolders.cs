@@ -4,9 +4,8 @@
 
 namespace DK2.Presentation;
 
-/// <summary>Where a player's files live under an engine's own data folder (<paramref name="Root"/>: Unity's
-/// <c>persistentDataPath</c>, Godot's <c>user://</c>): the campaign profile, the settings beside it, the saves and the
-/// hi-score table. Each file can be named instead; a null or blank override keeps the default.</summary>
+/// <summary>Locations for the campaign profile, settings, saves and hi-score table under <paramref name="Root"/>.
+/// A nonblank override supplies a different path.</summary>
 public sealed record GameFolders(string Root)
 {
     public const string ProfileFileName = "campaign-profile.dk2p";

@@ -8,11 +8,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The hover HUD, the Godot counterpart of Unity's <c>ClassicHoverHud</c>: <see cref="HoverHud"/> (ADR-0805)
-/// decides every draw, and two <see cref="HudCanvas"/>es draw its frames top-docked under the HUD scale, the wooden bar
-/// under the other panels and the status line and tooltip over them. Unity orders them by sorting order (10 and 17
-/// around the panels' 11 to 14); here the bar's canvas has z index -1 and the text's +1, around the panels' 0. Like
-/// Unity's, it takes no input; a host asks whether the pointer is over the bar (<see cref="ContainsPointer"/>).</summary>
+/// <summary>Draws the frame built by <see cref="HoverHud"/> (ADR-0805). The bar lies beneath other panels and the status line and tooltip lie above them. The host checks whether the pointer is over the bar.</summary>
 public partial class ClassicHoverHud : Node
 {
     private readonly HudFrame _frame = new(), _barFrame = new();
@@ -20,7 +16,7 @@ public partial class ClassicHoverHud : Node
     private HudCanvas? _canvas, _barCanvas;
     private HudScaleLayout _layout;
 
-    /// <summary>The HUD scale percent (Unity's <c>UiScale</c>, the graphics setting).</summary>
+    /// <summary>The HUD scale percent.</summary>
     public int UiScale { get; set; } = 100;
 
     /// <summary>Whether a creature's name pops up (the options' creature tooltip setting).</summary>
@@ -36,13 +32,13 @@ public partial class ClassicHoverHud : Node
     {
         if (_hud != null) throw new InvalidOperationException("The hover HUD is already open.");
         if (sources is null) throw new ArgumentNullException(nameof(sources));
-        // Read once for its size and its texture, as Unity's InstallClassicHoverAssets reads StatusBar.
+        // Read the status bar image once for its size and texture.
         RgbaImage bar = sources.Texture(HoverHud.Bar.Path!);
         string barPath = HoverHud.Bar.Path!;
         Func<string, RgbaImage> load = path => path == barPath ? bar : sources.Texture(path);
         var canvas = new HudCanvas { Name = "HudCanvas", Load = load, ZIndex = 1 };
         var barCanvas = new HudCanvas { Name = "BarCanvas", Load = load, ZIndex = -1 };
-        // Decoded now, as Unity's facade does, and before the canvases are kept, so a failed decode leaves the HUD
+        // Decoded now, and before the canvases are kept, so a failed decode leaves the HUD
         // unopened and retryable.
         try
         {
@@ -94,7 +90,7 @@ public partial class ClassicHoverHud : Node
         _frame.Clear(); _barFrame.Clear();
         _hud.Build(screen, height / toVirtual, snapshot, (cursor.X / toVirtual, cursor.Y / toVirtual), cursorReach,
             milliseconds, _barFrame, _frame);
-        // Top-docked (Unity's panel scale with no offset): local (0, 0) is the screen's top left.
+        // Top-docked: local (0, 0) is the top-left screen pixel.
         _barCanvas.Present(_barFrame, Vector2.Zero, screen.Scale, _layout.Factor);
         _canvas.Present(_frame, Vector2.Zero, screen.Scale, _layout.Factor);
     }

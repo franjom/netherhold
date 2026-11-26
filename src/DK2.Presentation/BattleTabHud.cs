@@ -6,8 +6,7 @@ namespace DK2.Presentation;
 
 /// <summary>Menu 43, the Battle tab, as a draw list (ADR-0805): each shown button's art at its static place
 /// (<see cref="BattleTabView"/>), hit areas over the last frame's shown buttons, the blades' hover text and the
-/// presses. Unity's <c>ClassicBattleTab</c> places the same squares as UI Toolkit images; like its images, a button
-/// is hit while the HUD shows, a press only while ordinary input is allowed, and only the left and right buttons
+/// presses. A button intercepts pointer input only while visible.
 /// raise <see cref="Clicked"/> (any button is taken). What a click does is <see cref="BattleTabView.Action"/>.</summary>
 public sealed class BattleTabHud
 {

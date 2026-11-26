@@ -32,23 +32,23 @@ Selecting a backend does not certify the frame budget.
 - Verify visual ordering, lighting, blending, animation and effect content
   independently. A faster image with missing effects is a failed change.
 
-The local command is documented in
-[the probe README](../tools/classic-unity-probe/README.md#portal-arrival-performance-research).
-`frame_budget.py` defaults to lightweight FPS qualification: Unity Frame Timing
-Stats and profiler recorders are disabled, and PresentMon captures presentation
-intervals without GPU tracking. Every CPU loop and native presentation interval
-must fit the budget. This checks application cadence, not physical display refresh.
-GPU diagnostic mode cannot certify FPS acceptance. The checker returns 0 only
-for a valid passing FPS capture, 1 for a budget failure, 2 for invalid evidence,
-and 3 for a valid diagnostic capture.
-Its regression tests run in CI without a GPU. CI does not run the actual
-graphics benchmark; a green CI build is not a performance acceptance result.
+Use the [tester package](../tools/tester-package/README.md) for release
+qualification. The regression checks run in CI without a GPU. Rendered acceptance
+requires a capture on the target machine.
+
+The historical Unity capture used its lightweight FPS qualification with frame
+timing and profiler recorders disabled. PresentMon measured presentation intervals
+without GPU tracking. Its procedure is in
+`git show 909a6c5e2:tools/classic-unity-probe/README.md` under *Portal arrival
+performance research*. `tools/perf/frame_budget.py` still reads those captures.
+It returns 0 for a passing capture, 1 for a budget failure, 2 for invalid evidence,
+and 3 for a valid GPU diagnostic capture.
 
 ## Coverage and current status
 
-The implemented acceptance fixture is Level2's Warlock introduction. Other
-entries in the target's required scenario list still need rendered acceptance
-fixtures and results. A passing capture certifies only that capture, not the
+The historical Unity acceptance fixture was Level2’s Warlock introduction.
+Godot measurements cover Level1, Level6a and Level7 below. Other required
+scenarios still need rendered acceptance fixtures and results. A passing capture certifies only that capture, not the
 whole game. New effects, renderers, shaders and gameplay workloads need
 representative regression coverage before claiming the target is met.
 
@@ -57,7 +57,7 @@ have one home: [portal arrival performance](research/portal-arrival-performance.
 The closed Unity FPS investigation and scoped engine-neutral cache measurements are in
 [Level6a Editor performance](research/level6a-editor-performance.md).
 
-This target is the Unity frame. The headless simulation has its own opt-in budget
+The headless simulation has its own opt-in budget
 (50x real time, 100 ms per tick): [ADR-0575](DECISIONS.md), `GOAL_ALIGNMENT.md` gap 4.
 
 ## Regression guards
@@ -117,7 +117,7 @@ causes, all on the opening fly-by the owner saw stutter:
 
 - **Pacing.** Godot's `physics_jitter_fix` bent the process delta toward its physics clock, and the frame ran its
   ticks after drawing, so each frame drew the last frame's time; the iGPU alternates short and long frames (3.3/6.5 ms).
-  Fixed in `InGameHud` (Unity's inline order: ticks for the interval just ended, then the draw; a real delta). Draw clock
+  Fixed in `InGameHud`, which now ticks for the interval just ended and then draws. Draw clock
   19% to 0% of path frames; Movie Maker frames and the turn-400 hash unchanged.
 - **Every frame.** `ScenePresenter` compared the whole tile map byte by byte each frame; it now uses the runtime's
   vectorised compare where there is one: present p50 1.03 to 0.68 ms, mean 1.40 to 0.97 ms.
@@ -175,7 +175,7 @@ and returns files for review (ADR-0691):
    columns, ADR-0691): off by default, allocation-free on ordinary frames: per frame the
    interval, ticks run, the join wait, Present, the animated frame, chunk
    rebuilds, GC collections, the draw clock, the camera and whether a path
-   plays, in the game probe's columns, from stopwatches of its own. Written at
+   plays, using stopwatch timestamps. Written at
    exit, with `perf-report.json` from the harness (`--perf-report`: GPU and render
    times, draw calls, allocation). `godot.log` is in the capture.
 3. **The draw-clock evenness metric** (`tools/perf/draw_clock.py`,

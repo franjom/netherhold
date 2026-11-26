@@ -15,19 +15,14 @@ using NVector3 = System.Numerics.Vector3;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The effects (Unity's <c>ClassicConstructionEffects</c>, plan step 3k) over the shared CPU particle simulation
-/// (<see cref="EffectDrawList"/>): a sprite particle is an instance of its sheet's batch among the blended items
-/// (<see cref="AddItem"/>), placed by its own distance; a mesh particle (an element's model, a KMF group's part, a type-6
-/// model's frame) is a pooled model drawn with the element's tint added to its light, which Godot sorts by its box as an
-/// object. Requests come from the simulation's events, the Heart's beat (its mana effect), a gem carrier's sparkle, the
-/// loose level gems' idle effects and the Hand's local pickup dust, as Unity's runner wires them.</summary>
+/// <summary>Draws the shared CPU particle model and feeds it world requests, idle effects and local pickup dust.</summary>
 public partial class WorldScene : ISimulationEventSink
 {
     private EffectDrawList? _effects;
     private IEffectSpriteProvider? _effectSprites;
     private ISimulationEventSink? _effectDownstream, _effectSink;
     private GameSimulation? _effectSimulation;
-    // The frame's requests in Unity's runner order: the loose gems' idle effects, the scene's, then the advance.
+    // Process loose-gem idle effects, then scene requests, then advance the model.
     private EffectFrame? _effectFrame;
     private PlayerId _effectViewer;
     private readonly Dictionary<AssetRef, EffectSpriteBatch?> _effectBatches = new();
@@ -40,8 +35,7 @@ public partial class WorldScene : ISimulationEventSink
     private Rid _effectQuadMesh;
 
     /// <summary>Observe the real shot/effect requests before the first turn; camera entry itself emits nothing. Returns the
-    /// view's sink over this scene's effects and the chain observed so far, for the host to wrap and observe with (Unity's
-    /// runner puts its <see cref="HandCursorEventSink"/> in front of it).</summary>
+    /// view's sink for this scene's effects and prior observers. The host wraps it with <see cref="HandCursorEventSink"/>.</summary>
     public ISimulationEventSink OpenEffects(GameSimulation simulation, WorldView view, PlayerId viewer, ulong seed)
     {
         _effectSimulation = simulation;
@@ -66,7 +60,7 @@ public partial class WorldScene : ISimulationEventSink
             creatureGroundHeight: id => world.CreatureById(id.Value) is CreatureState creature
                 ? view.CreatureEffectGround(world, creature) : null,
             viewer: viewer);
-        // Unity's runner: the Hand's local pickup shows its dust at once, and its authoritative echo is then dropped.
+        // Show dust for the local pickup immediately and skip the matching simulation event.
         RoomConstructionParticles model = _effects.Model;
         OpenLightning(model, view, unchecked((uint)seed));
         view.LocalPickups.DustRequested += request => model.RequestPickupDust(request);
@@ -76,7 +70,7 @@ public partial class WorldScene : ISimulationEventSink
     }
 
     /// <summary>The level's sound (plan step 4): the Heart's beat and the creatures' steps the frame lets through, and the
-    /// effects the model creates (a Casino party's pop), as Unity's runner wires its scene's and model's callbacks. Set after
+    /// effects the model creates, such as a Casino party's pop. Set after
     /// <see cref="OpenEffects"/>.</summary>
     public LevelSoundDriver? Sound
     {
@@ -89,7 +83,7 @@ public partial class WorldScene : ISimulationEventSink
     }
     private LevelSoundDriver? _sound;
 
-    /// <summary>DungeonRunner.IsPointInCamera: a one-tile sphere at <paramref name="point"/> (the view's space) against the
+    /// <summary>Test a one-tile sphere at <paramref name="point"/> in the view's space against the
     /// placed camera's frustum; everything counts before the camera is placed.</summary>
     private bool PointInPlacedCamera(System.Numerics.Vector3 point)
     {
@@ -100,7 +94,7 @@ public partial class WorldScene : ISimulationEventSink
         return true;
     }
 
-    /// <summary>Unity's runner after the turns before the first frame: the effect model runs one update.</summary>
+    /// <summary>Run the initial effect update before the first frame.</summary>
     public void StartEffects() => _effects?.Model.UpdateNow();
 
     public void Emit(in SimEvent simEvent)
@@ -110,7 +104,7 @@ public partial class WorldScene : ISimulationEventSink
     }
 
     /// <summary>The members of a KMF group an effect flings (art type 8), with their offsets (<see cref="EffectGroupParts.Of"/>),
-    /// read once; null when the install has no such group (Unity's <c>ClassicMeshes.GroupParts</c>).</summary>
+    /// read once; null when the install has no such group.</summary>
     private IReadOnlyList<EffectGroupPart>? GroupParts(string groupName)
     {
         if (_groupParts.TryGetValue(groupName, out IReadOnlyList<EffectGroupPart>? parts)) return parts;
@@ -125,7 +119,7 @@ public partial class WorldScene : ISimulationEventSink
         var point = RenderWorld.Ground(request.Position.X.Raw / 4096f,
             request.Position.Y.Raw / 4096f, request.Position.Z.Raw / 4096f);
         ViewFrustum frustum = PlacedFrustum;
-        // The same one-tile sphere as DungeonRunner.IsPointInCamera.
+        // Use the same one-tile sphere for the camera test.
         for (int i = 0; i < 6; i++)
             if (System.Numerics.Plane.DotCoordinate(frustum[i], point) < -1f)
             {
@@ -213,7 +207,7 @@ public partial class WorldScene : ISimulationEventSink
         }
     }
 
-    /// <summary>Unity's mesh branch: the model (a type-6 one at the particle's frame) at the particle's drawn point, turn and
+    /// <summary>Draw the model at the particle's point, turn and
     /// scale, its surfaces lit by the element's tint more (<see cref="ObjectMaterialLook.InstanceTinted"/>; an additive one is
     /// at full white and takes none).</summary>
     private void DrawEffectMesh(ConstructionParticle particle, AssetRef key, EffectGroupKind kind, float fraction)
@@ -248,7 +242,7 @@ public partial class WorldScene : ISimulationEventSink
         if (mesh.Used > mesh.Shown) slot.Node.Visible = true;
     }
 
-    // SceneFrame's step 8: a gem carrier's sparkle (0x0043A8E0), owned by the viewer as Unity's runner takes it.
+    // SceneFrame's step 8 draws the gem carrier's sparkle (0x0043A8E0) for the viewer.
     bool ISceneFrameHost.TakesGemSparkles => _effects != null;
 
     void ISceneFrameHost.RequestGemSparkle(FpPosition3 point) =>
@@ -282,7 +276,7 @@ public partial class WorldScene : ISimulationEventSink
     }
 
     /// <summary>A mesh particle's models: the element's model or group part, or each frame of a type-6 one, built on first
-    /// use, with its authored rate (Unity's <c>MeshGroup</c>), and the drawn models this frame takes in turn.</summary>
+    /// use, with its authored rate, and the drawn models this frame takes in turn.</summary>
     private sealed class EffectMesh
     {
         public readonly List<ModelSlot> Slots = new();
@@ -330,7 +324,7 @@ public partial class WorldScene : ISimulationEventSink
 
     private readonly Dictionary<(string Entry, int Frame), ModelMesh> _effectFrames = new();
 
-    /// <summary>A type-6 model's frame as a model (Unity's <c>ClassicMeshes.TryGetMeshFrame</c>), shared by entry.</summary>
+    /// <summary>Cache the mesh for a type-6 model's frame by entry.</summary>
     private ModelMesh EffectFrame(KmfModel model, string entry, int frame)
     {
         if (!_effectFrames.TryGetValue((entry, frame), out ModelMesh? built))
@@ -338,7 +332,7 @@ public partial class WorldScene : ISimulationEventSink
         return built;
     }
 
-    /// <summary>One sprite sheet's batch (Unity's sprite group): its frames side by side in one texture, its shape and its
+    /// <summary>One sprite sheet's batch: its frames side by side in one texture, its shape and its
     /// blend (<see cref="EffectDrawList.Blend"/>: ONE, ONE; SRCALPHA, INVSRCALPHA; or ONE, ZERO), drawn as blended items.</summary>
     private sealed class EffectSpriteBatch
     {

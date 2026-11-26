@@ -8,7 +8,7 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation;
 
-/// <summary>The entire game. Deterministic, headless, serialisable, Unity-free.</summary>
+/// <summary>The entire game. Deterministic, headless, serialisable and engine-neutral.</summary>
 /// <remarks>
 /// <para>Contract: <b>same database + same initial world + same seed + same
 /// input frames, in the same order, produce the same <see cref="StateHash"/> at

@@ -7,8 +7,7 @@ using DK2.Data.Settings;
 namespace DK2.Presentation;
 
 /// <summary>The name the game options key list shows for a DirectInput scan code (<see cref="GameOptionsHud"/>'s key
-/// column). The names are those Unity's adapter showed, its <c>KeyCode</c> names for the keys its
-/// <c>ClassicKeyBindings.Key</c> table maps; a scan code with no key there is "None". Not DK2's own key names.</summary>
+/// column). The labels preserve the key names already used by the project. An unmapped scan code displays "None".</summary>
 public static class ClassicKeyNames
 {
     private static readonly string[] Names = Build();

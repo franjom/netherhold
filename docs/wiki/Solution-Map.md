@@ -7,11 +7,11 @@ The `.csproj` references are the final authority.
 
 ## Layering
 
-Dependencies point downward only. Only the Unity project references `UnityEngine`.
+Dependencies point downward only. The Godot adapter references `DK2.Presentation`.
 
 ```
-unity/DK2.Unity            the only assembly that references UnityEngine
-        │                  (loads the netstandard2.1 DLLs below)
+godot/DK2.Godot            presentation and integration
+        └───────────────► DK2.Presentation
 DK2.Tools / DK2.Harness / DK2.Convert       net10.0 executables and tooling
         │
         ├──────────────► DK2.Presentation ──► DK2.Assets ◄── DK2.Art (KMF, textures)
@@ -21,11 +21,11 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
         │         └──► DK2.Pathfinding             │
         └──────► DK2.Data.Model ◄── DK2.Data (parsers)
                        │
-                   DK2.Core                netstandard2.1 (Unity-loadable)
+                   DK2.Core                netstandard2.1
 ```
 
-The game assemblies target **netstandard2.1** so that Unity can load them. The
-executables, tools and tests target **net10.0**.
+The shared game assemblies still target **netstandard2.1** until the retargeting
+commit. Godot, the executables, tools and tests target **net10.0**.
 
 ## Projects in `src/`
 
@@ -43,15 +43,13 @@ executables, tools and tests target **net10.0**.
 | **DK2.Convert** | Converts original art to glTF/GLB and PNG | Art, Assets, Data |
 | **DK2.Harness** | Headless scenario runner: runs YAML scenarios and writes reports, events and per-tick hashes | Core, Data, Data.Model, Simulation, AI, Assets, Presentation |
 | **DK2.Tools** | The `dk2tools` command line: `status`, `docs`, `kb`, `coverage`, `convert`, `replay`, `simmatrix` and the data inspectors ([README](https://github.com/franjom/netherhold/blob/master/src/DK2.Tools/README.md)) | Assets, Convert, Core, Data, Data.Model, Simulation |
-| **Shared** | `UnityBound.props`, which sets the netstandard2.1 target from inside each Unity-loadable project, and polyfills | — |
+| **Shared** | The shared game projects’ netstandard2.1 target and compiler shims | — |
 
-## Unity: `unity/`
+## Godot
 
-| Folder | Role |
-|---|---|
-| **DK2.Unity** | The Unity project and presentation adapter: rendering, cameras, input and HUD. It holds no game state and decides no rule ([README](https://github.com/franjom/netherhold/blob/master/unity/README.md)) |
-| **DK2.Unity.Compile** | Builds the adapter against Unity's modules outside the editor |
-| `sync-assemblies.ps1` | Builds the shared assemblies and copies them into the Unity project. Rerun it after changing `src/` |
+[`godot/DK2.Godot`](https://github.com/franjom/netherhold/blob/master/godot/README.md)
+hosts rendering, cameras, input, audio and HUD. Game rules and simulation state
+live in the shared C# projects.
 
 ## Tests: `tests/`
 
@@ -62,9 +60,8 @@ executables, tools and tests target **net10.0**.
 | DK2.Oracle.Tests | Checks our code against the original: runs functions from `DKII.EXE` and compares with state captured from the running game |
 | DK2.TestSupport | Shared fixtures and helpers |
 
-Architecture tests read the *built* assemblies to check that no simulation
-assembly references Unity and that the Unity-loadable ones really target
-netstandard2.1.
+Architecture tests read the built assemblies to check engine independence and each
+project's target framework.
 
 ## Documentation and research: `docs/`
 
@@ -87,7 +84,7 @@ netstandard2.1.
 | `tools/kb` | Function knowledge base tooling |
 | `tools/oracle` | State and memory capture from the running original game |
 | `tools/blender` | Repeatable Blender scripts for asset work |
-| `tools/*-probe`, `tools/meshreplay` | Unity and animation probes and mesh replay, used for visual verification |
+| `tools/perf`, `tools/meshreplay` | Capture analysis and mesh replay, used for visual verification |
 | `reverse-engineering/` | Method and notes for the binary work |
 | `original-reference/` | Reference material about the original game; no game files |
 | [`DK2_REIMPLEMENTATION_PLAN.md`](https://github.com/franjom/netherhold/blob/master/DK2_REIMPLEMENTATION_PLAN.md) | The overall plan, milestones and acceptance criteria |
@@ -97,8 +94,8 @@ netstandard2.1.
 
 - **A game rule or a balance behaviour:** `DK2.Simulation`, with numbers from `DK2.Data.Model`
   and a research note in `docs/research/`.
-- **Something you see on screen that doesn't depend on Unity:** `DK2.Presentation`.
-- **Unity-specific rendering, input or editor work:** `unity/DK2.Unity`.
+- **Something you see on screen that is engine-neutral:** `DK2.Presentation`.
+- **Godot rendering, input or editor work:** `godot/DK2.Godot`.
 - **Reading a new original file format:** `DK2.Data` (or `DK2.Art` for models and textures).
 - **The computer opponent:** `DK2.AI`.
 

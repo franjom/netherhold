@@ -1,6 +1,6 @@
 # DK2.Simulation
 
-The game rules, independent of Unity. `WorldState` holds everything that changes
+The game rules, independent of the presentation engine. `WorldState` holds everything that changes
 (`WorldState.FromMap` builds one from a loaded `LevelMap`); `GameSimulation` owns a
 world and advances it: `Tick(InputFrame)` applies the player's commands, then runs
 each `ISimulationSystem` in order. `SimulationSystems.Default()` is the standard

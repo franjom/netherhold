@@ -24,9 +24,8 @@ public interface ICampaignCutsceneHost
     void PlayMovie(string relativePath, string install);
 }
 
-/// <summary>The won-level title card and cutscene that run before the front end (0x0053B980), as Unity's runner ran
-/// them: the title after a pause, its voiced line, a pause once it ends, then each movie in turn. The clock is the
-/// adapter's unscaled time in seconds.</summary>
+/// <summary>The won-level title card and cutscene before the front end (0x0053B980). The title follows a pause,
+/// then its voiced line and another pause, then each movie in turn. The clock is unscaled seconds.</summary>
 public sealed class CampaignCutsceneRunner(ICampaignCutsceneHost host)
 {
     private readonly ICampaignCutsceneHost _host = host ?? throw new ArgumentNullException(nameof(host));

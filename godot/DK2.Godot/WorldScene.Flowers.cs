@@ -10,12 +10,7 @@ using NVector3 = System.Numerics.Vector3;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The status flowers (Unity's <c>ClassicStatusFlowers</c>, plan step 3k): each layer
-/// <see cref="StatusFlowerLayers.Build"/> gives a camera-facing quad at <see cref="StatusFlowerRules.LayerPlacement"/>, an
-/// instance of its icon's batch among the blended items, so it joins DK2's one back-to-front list (0x0057F7E0 queues the
-/// A_ sprite with batch state 0x200; 0x0058B9D0) as Unity's <c>TransparentTerrain.PlaceItems</c> places it: a blended run
-/// or an effect nearer than the icon draws over it. The tint is the instance colour, the experience wedge and the ring
-/// its custom data (<c>Shaders/StatusFlower.gdshader</c>). The dollar is an animated world mesh instead.</summary>
+/// <summary>Draws status flowers from the scene frame, layering the sprite and mesh parts in their authored order.</summary>
 public partial class WorldScene
 {
     private readonly StatusFlowerLayer[] _flowerLayers = new StatusFlowerLayer[StatusFlowerLayers.MaxLayers];

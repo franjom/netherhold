@@ -27,8 +27,7 @@ public enum AssetSource
 /// <summary>
 /// What a provider hands back: a description a renderer can act on — a file path, or
 /// a placeholder's shape and colour — and never an engine object. This assembly is
-/// loaded by Unity and must not depend on it (ADR-0002), so turning the description
-/// into a mesh is the renderer's job.
+/// engine-neutral (ADR-0002). The renderer turns the description into a mesh.
 /// </summary>
 public readonly struct ResolvedAsset
 {

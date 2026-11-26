@@ -11,11 +11,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The full map, the Godot counterpart of Unity's <c>ClassicFullMap</c>: <see cref="FullMapHud"/> (ADR-0805) drawn
-/// by two <see cref="HudCanvas"/>es, the black backdrop under and the room icon, creature squares and legend over the map
-/// image, which <see cref="FullMapImage"/> colours from the minimap's class grid (<see cref="ClassicMinimap.Model"/>, as
-/// Unity's full map reads its minimap's) and this node only uploads (Unity blits the same image with a shader). The panel is in screen pixels. While it shows it takes every mouse press
-/// from the panels under it; what a press does is the host's <see cref="HudPressRouter"/> (<see cref="FullMapHud.Press"/>).</summary>
+/// <summary>Draws the full map from <see cref="FullMapHud"/> (ADR-0805) over the minimap's class grid. While open, it takes mouse presses before other panels.</summary>
 public partial class ClassicFullMap : Node
 {
     private readonly HudFrame _backFrame = new(), _frontFrame = new();
@@ -152,7 +148,7 @@ public partial class ClassicFullMap : Node
         _front.Present(_frontFrame, Vector2.Zero, screen.Scale, 1);
     }
 
-    /// <summary>The map image stretched over its rect, point-sampled as Unity's render target is.</summary>
+    /// <summary>Point-sample the map image over its rectangle.</summary>
     private void RecordMap(Rect2 rect)
     {
         if (!_mapItem.IsValid)
@@ -172,7 +168,7 @@ public partial class ClassicFullMap : Node
 
     public override void _Input(InputEvent @event)
     {
-        // Unity's runner gives every frame to the open map (QueueHudInput): the panels under it get no press. The router
+        // While the full map is open, panels beneath it get no presses. The router
         // reads the press from the window; this node and the router decide on the same state.
         if (@event is InputEventMouseButton { Pressed: true } && HoldsPresses?.Invoke() == true) GetViewport().SetInputAsHandled();
     }

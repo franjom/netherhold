@@ -53,7 +53,7 @@ public sealed class ClassicCamera
     /// <summary>Startup command7's requested focus, before active-bound clamping (classic-camera.md section4).</summary>
     public static Vector3 LevelStartFocus(TilePos tile) => new(tile.X + .5f, 1f, -tile.Y - .5f);
 
-    /// <summary>The level's starting focus for a viewer (DungeonRunner's startup): the viewer's player record's camera
+    /// <summary>The level's starting focus for a viewer comes from the player record's camera
     /// tile (<see cref="LevelStartFocus(TilePos)"/>), else, with no records or none for the viewer, the map's centre.</summary>
     public static Vector3 LevelStartFocus(IReadOnlyList<PlayerDef>? players, PlayerId viewer, int mapWidth, int mapHeight)
     {

@@ -12,12 +12,7 @@ using NVector3 = System.Numerics.Vector3;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Creatures (plan step 3g), as Unity's <c>DungeonScene</c> draws them: each install model shared with the objects
-/// (<see cref="ModelMesh"/>), a <see cref="ModelSlot"/> per creature, its type-6 clip played by the shared
-/// <see cref="CreatureAnimationPlayer{TResources}"/> with each segment's positions rewritten in place, and each frame drawn
-/// in <see cref="SceneFrame"/>'s order, which this scene hosts; the hover overlay's frame and the burning red are
-/// WorldScene.Hover.cs's, the possessed model's hiding WorldScene.Possession.cs's and the crackle WorldScene.Lightning.cs's.
-/// Footsteps go to <see cref="Sound"/>.</summary>
+/// <summary>Draws creatures using the install meshes, positions and animation requests supplied by the scene frame.</summary>
 public partial class WorldScene : ISceneFrameHost
 {
     private readonly SceneFrame _frame;
@@ -31,8 +26,7 @@ public partial class WorldScene : ISceneFrameHost
 
     public WorldScene() => _frame = new SceneFrame(this);
 
-    /// <summary>A drawn creature's place as the last frame drew it, in the renderers' frame (Unity's
-    /// <c>TryGetCreaturePosition</c>, its model's position); false for a creature not drawn.</summary>
+    /// <summary>The last drawn position of a creature in rendering coordinates. Returns false for a creature that was not drawn.</summary>
     public bool TryGetCreaturePosition(CreatureQueryTarget target, out NVector3 position)
     {
         position = default;
@@ -63,10 +57,8 @@ public partial class WorldScene : ISceneFrameHost
         CountPush(before, created);
     }
 
-    /// <summary>A new look for the same creature (an idle creature's mesh is its idle clip, <c>WorldView</c>): Unity's
-    /// <c>UpdateCreature</c> removes it keeping its head, so a tied effect is not let go, and creates it again. Here the
-    /// node and its clip copies are kept, and the rest starts afresh: the frame's entry, the clip and the player's
-    /// clock, so a deferred clip starts at once as on a new model.</summary>
+    /// <summary>A new mesh for the same creature. Keep its node and clip copies, but reset the frame entry,
+    /// clip and player clock so a deferred clip starts as it does on a newly drawn model.</summary>
     private void ChangeLook(int creatureId, CreatureSlot slot, in CreatureView creature, in ResolvedAsset mesh,
         in ResolvedAsset animation)
     {
@@ -92,7 +84,7 @@ public partial class WorldScene : ISceneFrameHost
         _frame.Remove(new CreatureId(creatureId), keepHead);
     }
 
-    /// <summary>Unity's <c>CreateCreature</c>: with the install, a creature it has no model for draws nothing, as an object
+    /// <summary>With the install, a creature it has no model for draws nothing, as an object
     /// does (Godot has no placeholder boxes, audit open point 6).</summary>
     private void AddCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
     {
@@ -105,13 +97,13 @@ public partial class WorldScene : ISceneFrameHost
         slot.Slot.ApplyLooks();
     }
 
-    /// <summary>Unity's <c>PositionCreature</c>: a model stands at the creature's point and height, modelled in tiles about
+    /// <summary>A model stands at the creature's point and height, modelled in tiles about
     /// its feet, turned by <see cref="MeshOrientation.Mesh"/>; each frame then moves it between turns, keeping the turns.</summary>
     private static void PlaceCreature(ModelSlot slot, in CreatureView creature) =>
         slot.Place(new NVector3(creature.PosX / (float)Fp32.One, creature.Height / (float)Fp32.One, -creature.PosY / (float)Fp32.One),
             MeshOrientation.Mesh(creature.MeshYaw, creature.Pitch, creature.Roll), Vector3.One);
 
-    /// <summary>Unity's <c>ConfigureCreatureClip</c>: a clip starts once per <see cref="AnimationClipRequest.Identity(in
+    /// <summary>A clip starts once per <see cref="AnimationClipRequest.Identity(in
     /// CreatureView, AssetRef)"/>; a creature playing none, or whose clip the install lacks, shows its model.</summary>
     private void ConfigureCreatureClip(CreatureSlot creatureSlot, in CreatureView creature, in ResolvedAsset mesh,
         in ResolvedAsset animation)
@@ -176,7 +168,7 @@ public partial class WorldScene : ISceneFrameHost
 
     int ISceneFrameHost.FootstepCrossing(CreatureId creature) => _drawn!.Slot.Animation?.Player.FootstepCrossing ?? 0;
 
-    // Unity's scene hands its runner the drawn point, and the runner sounds a step only for a creature the camera sees, as
+    // Use the drawn point to play a step only when the camera sees the creature, as
     // DK2's pass draws only those (CreatureFootsteps).
     void ISceneFrameHost.RequestFootstep(CreatureId creature, in CreatureView pose, int crossing)
     {

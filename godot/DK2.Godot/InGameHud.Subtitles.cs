@@ -8,10 +8,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The Mentor's subtitle while a camera path plays, as Unity's runner's <c>DrawCinematic</c> draws it: the scripted
-/// view's line (<see cref="ScriptedViewDirector.Subtitle"/>, timed by the speech line, or by the subtitle queue with speech
-/// off), centred in <see cref="SubtitleLayout.SpeechBox"/> in <see cref="InterfaceFonts.LegibleFileName"/>'s font, or the
-/// replacement face when there is one. Its layer is over the letterbox and the hand cursor and under the screen colours.</summary>
+/// <summary>Draws the Mentor's subtitle over the letterbox and the hand cursor while a camera path plays. <see cref="ScriptedViewDirector.Subtitle"/> supplies the timed line.</summary>
 public partial class InGameHud
 {
     private const int SubtitleLayer = 103;

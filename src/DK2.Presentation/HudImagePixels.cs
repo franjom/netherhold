@@ -41,7 +41,7 @@ public static class HudImagePixels
     }
 
     /// <summary>The hand cursor sheets' key, in place: a pure green pixel (0, 255, 0) turns transparent and keeps its
-    /// colour; every other pixel is left as it is. Out of Unity's <c>ClassicHandCursor.Sheet</c> (plan step 3e).</summary>
+    /// colour. Every other pixel is left as it is.</summary>
     public static void KeyGreen(Span<byte> rgba)
     {
         for (int i = 0; i + 3 < rgba.Length; i += 4)

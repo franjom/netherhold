@@ -11,13 +11,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The minimap, the Godot counterpart of Unity's <c>DungeonMinimap</c>: <see cref="MinimapHud"/> (ADR-0805) decides
-/// the frame, corners, north sprite, hit areas and presses, and a <see cref="HudCanvas"/> draws them bottom-docked under
-/// the HUD scale over the disc. <see cref="MinimapGpuDisc"/> draws the disc's tile and ordered marker passes into a
-/// reused GPU viewport when a capture, the zoom, the view or the size changes; <see cref="MinimapDiscImage"/> remains
-/// the independent CPU oracle. It takes no press itself: the host asks <see cref="HandlePress"/> and <see cref="TryNavigate"/> in
-/// Unity's order (<see cref="HudPressRouter"/>), and the press is not taken from the panels under it, as Unity's minimap
-/// canvas picks nothing. The camera footprint is the frame's first draw (<see cref="MinimapHud.SetCamera"/>).</summary>
+/// <summary>Draws the frame built by <see cref="MinimapHud"/> (ADR-0805). The disc uses the class grid shared with the full map, and <see cref="HudPressRouter"/> orders minimap presses relative to other panels.</summary>
 public partial class ClassicMinimap : Node
 {
     private static readonly Vector2 Away = new(-1e9f, -1e9f);
@@ -38,12 +32,12 @@ public partial class ClassicMinimap : Node
     private FpPosition3 _focus;
     private Dk2Angle _heading;
     private MinimapZoom _drawnZoom = MinimapZoom.WholeMap;
-    /// <summary>A capture since the disc was last drawn (Unity's <c>MinimapGpuMap</c> dirty flag).</summary>
+    /// <summary>The class grid has changed since the disc was last drawn.</summary>
     private bool _captured = true;
     private TilePos? _heart;
     private GameTick _tick;
 
-    /// <summary>The HUD scale percent (Unity's <c>UiScale</c>, the graphics setting).</summary>
+    /// <summary>The HUD scale percent.</summary>
     public int UiScale { get; set; } = 100;
 
     /// <summary>The model, whose class grid and palette the full map shares.</summary>
@@ -51,7 +45,7 @@ public partial class ClassicMinimap : Node
 
 
     /// <summary>The palette from the native colour strip's PNG (<see cref="IMinimapAssets.PalettePng"/>), decoded by Godot
-    /// as Unity's <c>DungeonMinimap</c> decodes it (stored bytes: <see cref="PngChunks.WithoutColourSpace"/>), and read by
+    /// as stored bytes (<see cref="PngChunks.WithoutColourSpace"/>), and read by
     /// <see cref="MinimapPalette.FromTopRow"/>.</summary>
     public static MinimapPalette DecodePalette(byte[] png)
     {
@@ -82,12 +76,12 @@ public partial class ClassicMinimap : Node
             Load = path => art.TryGetValue(path, out RgbaImage? image) ? image
                 : (catalogue ?? throw new InvalidOperationException("The minimap catalogue source is unavailable."))(path),
         };
-        // Decoded now, as Unity's facade preloads them, and before the canvas is kept, so a failed decode leaves the
+        // Decode the art before keeping the canvas, so a failed decode leaves the
         // minimap unopened and retryable.
         try { foreach (HudImage image in MinimapHud.Images()) canvas.Preload(image); }
         catch { canvas.Free(); throw; }
         _hud = hud; _disc = new MinimapGpuDisc(); _disc.Open(backdrop); _canvas = canvas;
-        // Under the frame, as Unity's disc image is under its canvas.
+        // Draw the disc under its frame.
         _discNode = new Node2D { Name = "Disc", Visible = false };
         _discNode.AddChild(_disc);
         AddChild(_discNode);
@@ -184,7 +178,7 @@ public partial class ClassicMinimap : Node
         return resized;
     }
 
-    /// <summary>The disc texture stretched over its rect, as Unity's image stretches its render target.</summary>
+    /// <summary>Draw the disc texture stretched over its rectangle.</summary>
     private void RecordDisc(Rect2 rect)
     {
         if (!_discItem.IsValid)
@@ -197,7 +191,7 @@ public partial class ClassicMinimap : Node
         _discRect = rect;
     }
 
-    /// <summary>This frame's press at a screen pixel (Unity's <c>DungeonMinimap.HandlePress</c>): the action
+    /// <summary>Route this frame's press at a screen pixel. The action
     /// <see cref="MinimapHud.Press"/> gives from the drawn focus and heading, a corner's or the full map on a secondary
     /// press on the map; None when it does not act.</summary>
     public ClassicHudAction HandlePress(Vector2 screenPosition, bool primary, bool secondary)
@@ -208,7 +202,7 @@ public partial class ClassicMinimap : Node
     }
 
     /// <summary>The tile a press on the map at a screen pixel goes to (<see cref="MinimapHud.TryNavigate"/>), from the drawn
-    /// focus and heading, as Unity's <c>DungeonMinimap.TryNavigate</c>.</summary>
+    /// focus and heading.</summary>
     public bool TryNavigate(Vector2 screenPosition, out TilePos tile)
     {
         tile = default;
@@ -225,7 +219,7 @@ public partial class ClassicMinimap : Node
 
     public override void _Notification(int what)
     {
-        // Unity's Input.mousePosition leaves the screen with the pointer; Godot stops reporting it instead.
+        // Godot stops reporting the pointer when it leaves the window.
         if (what == NotificationWMMouseExit) { _pointerInWindow = false; return; }
         if (what == NotificationWMMouseEnter) { _pointerInWindow = true; return; }
         // Freed, not merely removed from the tree: a reparented minimap keeps working.
@@ -249,7 +243,7 @@ public partial class ClassicMinimap : Node
         return image;
     }
 
-    /// <summary>A screen pixel in the model's virtual units (Unity's <c>Virtual</c>), from the same rounded origin the
+    /// <summary>A screen pixel in the model's virtual units, from the same rounded origin the
     /// drawing uses, so hits land on the art at any HUD scale.</summary>
     private (float X, float Y) ToVirtual(Vector2 screen) =>
         ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);

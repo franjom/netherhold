@@ -169,9 +169,9 @@ checks; do not describe direct level loading as an end-to-end campaign pass.
 
 Use an isolated windowed standalone player and separate build/scratch project,
 save/profile/settings locations, logs and evidence destinations. Do not save,
-restart or drive the owner's editor or alter its open scene. Follow the current
-[player build workflow](../../README.md#run-the-unity-presentation) and ADR-0690;
-release-player checks use IL2CPP, while any diagnostic build is labelled separately.
+restart or drive the owner’s editor or alter its open scene. The Unity-era
+player build workflow used IL2CPP for release checks (ADR-0690). See
+`git show 909a6c5e2:README.md` for the archived workflow.
 
 For an automation session:
 

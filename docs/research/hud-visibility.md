@@ -158,12 +158,13 @@ The direct result updater `0x004039A0` establishes these campaign rules:
   action `0x74` value 2 and shows menu51. Mode 4 is outside the campaign gate.
 
 `ClassicHudControls.UpdateResult` implements the FD/F5 subset (STRONGLY INFERRED against
-`0x004039A0`'s stores) and is tested, but **Unity does not feed it**. The key
+`0x004039A0`'s stores). Godot's campaign-result flow feeds it through
+`CampaignResultFlow`. The key
 dispatcher `0x00405010` tests Status and FD before the Options (0x18) and GUI (0x26)
 bindings, so DK2 also refuses Options and G after a result; its way out is Space/Esc
 (Status 2, not game mode 3: Space posts action 1, Esc posts action 134 then 0x4B and
-sets `+0x13DA`) or the result menu above. The remake has neither, so suppressing input on
-a terminal Status would strand the player. Wire it together with the end-of-level flow.
+sets `+0x13DA`) or the result menu above. Godot's result prompt handles continuation
+through the campaign-result flow.
 Our simulation keeps Status terminal and has no action-134 continue flag. No simulation change or
 HashVersion bump was made. The special post-conquest view is likewise unbuilt.
 

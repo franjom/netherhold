@@ -443,9 +443,8 @@ public readonly struct ObjectView
 /// <para>It exists rather than each renderer reading <see cref="WorldState"/> itself because every
 /// renderer would otherwise repeat the same three decisions — which asset key a terrain implies,
 /// which animation an activity implies, how a room's floor differs from its furniture — and a
-/// disagreement between two of them looks like a simulation bug. The Unity view and the harness's
-/// text view consume this same type, which is what makes the text view evidence about the Unity
-/// view.</para>
+/// disagreement between them can look like a simulation bug. Godot and the harness's
+/// text view consume the same view types.</para>
 /// <para><b>Observation only</b>, by convention rather than compiler guarantee: the view types are
 /// readonly structs holding copies, but <see cref="WorldState.Tile(int,int)"/> hands out a
 /// <c>ref</c>. What holds absolutely is the other direction — the simulation holds no reference to

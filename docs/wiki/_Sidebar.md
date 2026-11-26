@@ -4,7 +4,7 @@
 - [Build and test](https://github.com/franjom/netherhold#build-and-test)
 - [Use your DK2 install](https://github.com/franjom/netherhold#use-an-original-dk2-installation)
 - [Headless scenarios](https://github.com/franjom/netherhold#run-a-headless-scenario)
-- [Unity presentation](https://github.com/franjom/netherhold#run-the-unity-presentation)
+- [Godot presentation](https://github.com/franjom/netherhold#run-the-godot-presentation)
 
 **About**
 - [[Charter]]

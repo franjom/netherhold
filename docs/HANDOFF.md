@@ -30,17 +30,10 @@ questions live in their canonical documents; this file links to them.
   and [HUD comparison checklist](research/hud-comparison-checklist.md).
   Lighting acceptance and remaining comparison/performance limits live in
   [classic lighting verification](research/classic-lighting-verification.md).
-- Engine switch (owner, 2026-11-15): the switch to Godot is decided ([ADR-0805](DECISIONS.md)).
-  Stop Unity FPS optimization; continue engine-independent Q710 simulation/replay work.
-  Engine-neutral lighting-cache measurements are in [Level6a performance](research/level6a-editor-performance.md);
-  local pickup dust timing (ADR-0808) and verification are in [the pick-up's turn](research/hand-pickup-turn.md).
-  The hover-cage shader check is in [hand cursor rendering](research/hand-cursor-rendering.md#selection-outline-rendering); live-scene acceptance remains open.
-  GPLv3 code linked to Unity's runtime remains [ADR-0041](DECISIONS.md)'s open question. ADR-0805 moves each HUD
-  panel's DK2 logic into `DK2.Presentation` as a draw list and says where Godot files go. The bottom
-  panel is moved (`BottomPanelHud`, `HudCanvas`) and the owner checked it in the Unity editor on 2026-11-14. The
-  resource strip (`KeeperResourceHud`), the message tabs (`MessageTabsHud`), the hover HUD (`HoverHud`), the creature overview and query details (`CreatureOverviewHud`, `CreatureQueryHud`), the in-game options menu, save browser and settings pages (`OptionsHud`, `SaveLoadHud`, `GameOptionsHud`) the front-end menu (`FrontEndMenuHud`, with its label bitmap and glow pixels in `HudLabelPixels`) and the minimap and full-map markers (`MinimapHud`, `FullMapHud`; both adapters draw the disc on the GPU and share the footprint; see the [Godot pipeline](../godot/README.md#gpu-minimap)) are moved too; they build and their models are
-  tested, but none has been run in the Unity editor as of 2026-11-15, and the message-tab frame tile seams against UI Toolkit
-  background-repeat are unchecked. Every step of the order in the ADR is done. Three of the four probes that broke during the panel moves are fixed; `run-scaled-integration.ps1` still reads blank panel textures: [known-broken probes](../tools/classic-unity-probe/README.md#known-broken-probes). `godot/DK2.Godot` opens on the classic front-end menu (`FrontEndMenuHud`), drawn by its own `HudCanvas`, and has been run (captures at 1152x648, 1024x768 and 1920x1080, a scripted hover and click to the Options page); the owner has not used it with a real mouse. The remaining Godot work is under Other pending work. The pinned toolchain and agent setup are in [godot/README.md](../godot/README.md) (ADR-0810).
+- Godot is the presentation adapter (ADR-0824). The
+  [migration plan](plans/2026-11-15-godot-migration.md#step-5-remove-unity-at-parity)
+  tracks the remaining framework retarget. The [Godot guide](../godot/README.md)
+  covers the pinned toolchain, gameplay, capture and export.
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
   own block decoders run in emulation ([texture codec](research/texture-codec.md); Q812, the loading-screen precision,
@@ -138,64 +131,24 @@ These are entry points, not a new priority order.
 - Level6a torture-death scene: the shared speech override is built (ADR-0809); Q824 retains native playback/subtitle and live-scene checks
   ([evidence](research/torture-information.md#7-level6as-opening-guard-2026-11-15)). The owner's corpse-placement change remains deferred under
   [ADR-0807](DECISIONS.md#adr-0807---defer-moving-torture-corpses-clear-of-their-devices).
-- Possession first-person view: built, unit-tested and inspected in Godot captures; owner play acceptance remains. Rules are in `PossessionSession` (`DK2.Presentation`, ADR-0805); `DungeonRunner.Possession.cs`
-  is the Unity glue, `InGameHud.Possession.cs` the Godot's. The room-pillar roof is built; remaining
+- Possession first-person view: built, unit-tested and inspected in Godot captures; owner play acceptance remains. Rules are in `PossessionSession` (`DK2.Presentation`, ADR-0805). `InGameHud.Possession.cs` supplies the input and applies its result. The room-pillar roof is built; remaining
   lighting, listener, object-death bridge and mouse-calibration boundaries are recorded in
-  [client completion](research/possession-client-completion.md). Unity keeps its near clip at 0.3;
-  Godot uses `PossessionCamera.NearClipDistance`, 0.05, a remake choice. Owner play acceptance remains. Evidence and remake choices:
+  [client completion](research/possession-client-completion.md). Godot uses `PossessionCamera.NearClipDistance`, 0.05, a remake choice. Evidence and remake choices:
   [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
   The special abilities and sniper are partly built; carry/throw physics remain unbuilt ([scope](research/possession-special-abilities.md), ADR-0819; trap flight consumer ADR-0820).
   Authored foreground swings and creature filters are built ([scope](research/possession-foreground.md));
   current-action and transition-pointer targets use the existing hover pass, with ordinary world-space badges ([scope](research/possession-target-highlight.md)).
   The shared possession HUD and Godot canvas implement the reviewed 4:3 geometry and compositing, height-fitted widescreen content (ADR-0821), settled-only shortcuts and native-stamp recharge display; [scope and limits](research/possession-hud.md).
-- Godot adapter (ADR-0805, ADR-0810): the road to parity and to deleting `unity/` is [the migration plan](plans/2026-11-15-godot-migration.md);
-  steps 1, 2, 3a, 3b, 3c, 3d, 3e, 3f, 3g, 3h, 3i, 3m and 3o are done and step 3 is in progress. Rules that were Unity-only now live in `DK2.Presentation` and both adapters call them;
-  Godot draws and forwards input (`godot/README.md` lists the scenes, files and launch arguments).
-  Now in Godot: the front end; the in-game HUD, twelve panels (bottom panel, resource strip, message tabs, hover HUD, creature overview
-  and query details, battle tab, options menu with its save and load and Game Options pages, full map, minimap) over a live Level1 in
-  `godot/DK2.Godot/InGameHud.tscn` (the main menu stays the default scene); Level1's terrain from the shared `TerrainTileBuilder` (`WorldScene`, 3a), with [tile-state updates and waving liquids](../godot/README.md) (3p-b, 3c), and its blended terrain drawn back to front by the shared `BlendedTerrainStream`, one instance per run with `sorting_offset` (3d); the output is in gamma space through the camera's `Environment`, so blends match Unity's;
-  the camera moving through the shared rules (`ClassicCameraInput`, `CameraGlide`; every glide, the query follow and turn, the full map's
-  and the overview's focus jumps, 3b); the minimap drawn from the live camera with its footprint (`MinimapCameraView`); and the world pointer (3e): the pick ray from the placed pose (`WorldScene.TryPickRay`), tile picking and terrain hover, the hand cursor, the placement cursor and the selection cage, with tagging and placing posted through the shared `WorldPointerInput`, so the level is playable from the pointer; objects, structures and torches (`WorldScene.Objects.cs`, 3f): the Heart with its beat, doors, traps, wall-torch meshes and their flames; and creatures (`WorldScene.Creatures.cs`, 3g): the imps walk and dig through the shared `CreatureAnimationPlayer`, in the frame order of the shared `SceneFrame` that Unity hosts too, with the query follow on the drawn creature, crackle through `LightningDrawList` (3l), sparkle through the effects (3k), and footsteps sounding (step 4); and possession (`InGameHud.Possession.cs`, `WorldScene.Possession.cs`, 3m): the shared `PossessionSession` drives the first-person camera on the same `Camera3D`, the pointer lock, the roof and the hidden model, seen only in scripted-pointer captures (real mouse capture, alt-tab re-capture, the walking keys and the death view not exercised; the roof black away from lights); and entity hover (`WorldScene.Hover.cs`, 3h): creatures, hover-target objects, doors and traps offered to `WorldHoverPicker`, the red pass (also the burning red) and the gold twin, the hover text through the screen-space hover HUD, with the hover sound (step 4), and the gold swap and burning red uncaptured; and the classic lighting (`WorldScene.Lighting.cs`, 3i): DK2's own tile tables, ambient keys, torch, portal, object and Hand lights through the shared `ClassicVertexLight`, with the environment pass (also over plans) and the distance fade, in the owner's Unity in-game look (native ambient, no fill; `--light-fill` adds the ADR-0522 fill). `--pointer-path` drives a capture's pointer from a script and never moves the owner's cursor. Level1's
-  turn-400 hash is `60C97ECC6F9F0501`, the same on master before 3i; `D7290428D81A902F`, which earlier entries state, predates other sessions' simulation commits.
-  Shot creation-effect sprites and lights are wired; entry stars and capture limits are in [Q749](research/possession-entry-effect.md), roof timing in [the ceiling note](research/kwd-terrain-rooms.md#ceiling-the-possession-view-roof), and entry/return HUD display in [the HUD note](research/possession-hud.md#entry-and-landing).
-  Lightning rendering (3l) is implemented; its remaining acceptance checks are in [the migration plan](plans/2026-11-15-godot-migration.md).
-  Steps 3j (torch shadows), 3n (scripted paths, letterbox) and step 4's sound, level sound driver, movies and subtitles are done ([Sound](../godot/README.md#sound), [Movies](../godot/README.md#movies), [Subtitles](../godot/README.md#subtitles): `ClassicSoundMixer`, `LevelSoundDriver`, `MoviePlayback` and `BitmapTextBlock` in `DK2.Presentation`, Unity's copy left as it is until step 5). The [creature-shadow setting](../godot/README.md#creature-shadows) applies live and defaults to off. The [dollar-mesh status flower](../godot/README.md#shot-effects) draws in ordinary and possession views. Effect uploads remain in 3k.
-  The campaign is playable from the menu: the front end draws the 3D station (`FrontEndStation` in `DK2.Presentation`, the same `WorldScene`), the page flights show, the campaign map's lands are picked under the pointer, a briefing's Launch starts the level in `InGameHud.tscn` with the campaign's result flow, and the level's end returns to the results page ([godot/README.md](../godot/README.md), first paragraph); checked end to end with a scripted pointer, not with a real mouse.
-  The in-game keys go through `ClassicKeyboard` and `GameBindingInput` (`InGameHud.cs`), every HUD shortcut included (Heart, portal and fight glides); live keys have not been driven, scripted ones (`--key-path`) have.
-  In-game parity with Unity's runner (2026-11-25): the options menu's Restart, Return to Menu and Quit (`GameSessionRequest.ForSessionAction`), the level end's prompt, the room build and sell drag's rubber-band limit and the hand's drop animation after an accepted drop (`HandCursorEventSink`) are wired. Godot draws the [win screen](../godot/README.md#subtitles) under the result prompt and the battle fly-in above the HUD overlays.
-  A start without a scene now shows the Netherhold launcher (install folder, menu font, screen mode; [godot/README.md](../godot/README.md), *The launcher*);
-  scripted runs skip it. [Front-end Load Game and settings](../godot/README.md#front-end-load-game-and-settings)
-  resume Netherhold checkpoints, import original save terrain and tile ownership, and persist settings and key bindings.
-  [`--dk2-save`](../godot/README.md#importing-an-original-dk2-save) also imports through the exported entry point.
-  A missing install, a level that fails to load, a turn that throws and a failed save import show a
-  [failure screen](../godot/README.md#failure-screens) (`GameFailureCopy`) with the log file, Back to the menu and Quit;
-  F3 or `--dev-overlay` shows the [developer overlay](../godot/README.md#developer-overlay) (`DevOverlayModel`), and
-  [Debugging and profiling](../godot/README.md#debugging-and-profiling) covers the editor's own tools. Unity's diagnostics
-  overlay is not ported.
-  `--record-frames` writes `frames.csv` for `tools/perf/draw_clock.py`. The
-  [Godot probes](../godot/README.md#probes) document coverage for the remaining Unity probes.
-  The tester package is a release Godot export (`tools/tester-package`, [Exporting](../godot/README.md#exporting)). CI builds
-  `godot/DK2.Godot` and the architecture gate holds it to its one `DK2.Presentation` reference. Step 4 is complete: the Godot
-  targets are `tools/tester-package/performance-target.json` (tiers and harness ceilings, each with its source). Level6a's
-  release capture passes the draw clock since the frame ticks first on a real delta, and its tick cost 3 ms p50 and 8 ms p95
-  (16.6 and 33) once the export compiled optimised, the tile-key caches replaced the per-query tile scans and level load did the
-  first-use work; no tick frame misses the budget. The floor tier still fails on 2-4 frames (the first draw, the HUD's first
-  show when the path ends, a chunk rebuild), the desktop tier on 2-3% ([PERFORMANCE.md](PERFORMANCE.md)).
-  Open readings: whether secret-level and My Pet Dungeon briefing lines show in play ([Q854](research/open-questions.md)); whether `ClassicKeyNames`, equal to Unity's
-  `KeyCode` names, matches DK2's own ([Q857](research/open-questions.md)); whether the front end's brightness, after `PngChunks.WithoutColourSpace` drops Godot's gAMA handling,
-  is Unity's ([Q859](research/open-questions.md), [0x005B6030](research/functions/005B6030.md)).
-  Verified with Movie Maker captures at 1920x1080 (`godot/README.md`, *Verifying*), the rules' unit tests, the `DK2.Unity.Compile` stand-in and
-  Unity's own batch compile, `SmokeTest` and `SaveSmokeTest` run in a worktree. Live keys, edges, the wheel and a real OS click have not been driven in Godot (the scripted pointer has), and Unity's
-  Play mode is unrun; the step entries in the plan list what each capture showed and left unchecked.
-  Godot's lit frames are judged against Unity's in-game probe frames (`ClassicWorldLightingProbe`; the recipe is in the plan's step 3); in 3i every pair is within 0.002 luminance and 0.004 saturation.
-  Policy (owner, 2026-11-18, [ADR-0813](DECISIONS.md)): Godot's rendering uses the modern engine's features, not Unity's 20-year-old techniques; DK2's rules, simulation and AI stay faithful and DK2's data drives the presentation; Unity stays frozen as the classic reference and gets no modern work; Godot's classic path stays a switch until the owner accepts the modern look; modern items are accepted by the owner's eye, the harness numbers and gameplay correctness, not byte-identity with Unity.
-  The performance harness (3o, ADR-0813): `--perf-report` with `godot/perf.ps1` and `godot/perf_compare.py` (`godot/README.md`, *Measuring performance*); the later items are measured by it. Quiet 1080p medians (2026-11-25, classic): GPU p50 Level1 1.7 ms, Level7 2.1 ms, Level6a 2.9 ms; they are the harness ceilings' baselines (`godot/perf_targets.py`).
-  The per-pixel torch rim and AO noise have adapter fixes; the classic reference stays unchanged. Scope, historical
-  flag comparisons, focused GPU proof, scene validation and measured costs: [torch-light artifacts](research/godot-torch-light-artifacts.md).
-  GPU vertex animation is built; scope, capture comparisons and measurements are in [modern-rendering audit item 8](plans/2026-11-18-godot-modern-rendering-audit.md).
-  Continue the remaining order in [the modern-rendering audit](plans/2026-11-18-godot-modern-rendering-audit.md);
-  the torch correction does not complete items 16 or 17. [Migration plan](plans/2026-11-15-godot-migration.md).
+- Godot migration steps 1–4 are complete. The modern-rendering audit remains
+  open for the owner's visual acceptance of `--light-perpixel`. See the
+  [migration plan](plans/2026-11-15-godot-migration.md#step-3-a-playable-level-in-godot)
+  and [torch-light artifacts](research/godot-torch-light-artifacts.md).
+  Campaign play, options, saves, HUD, possession, sound and media are described in
+  the [adapter guide](../godot/README.md). For the exit conditions and evidence on
+  camera, lighting and controls, see the verification entries in the plan. The
+  [performance targets](PERFORMANCE.md) cover the tester export, draw clock and
+  gameplay frame budgets.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
 - Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)
@@ -271,24 +224,11 @@ These are entry points, not a new priority order.
 - Modern Imp asset proof of concept: [asset pipeline §10](ASSET_PIPELINE.md)
   and [image-to-3D trial](plans/2026-10-07-imp-image-to-3d-trial.md).
   Read [art direction](ART_DIRECTION.md) before asset work.
-- Rendering cost candidates, none measured yet. Measure each with `game-unity-probe -Benchmark`
-  ([README](../tools/game-unity-probe/README.md)) before changing anything:
-  - Overdraw of large additive and transparent effects in a busy battle (`ClassicEffect.shader`,
-    `ClassicLightning`, `ClassicTorchFlames`, `ClassicHoverOutline`): trim quads to the visible texels
-    where the frame is fill-bound. Needs a busy scene, not Level1's opening.
-  - Off-screen and menu work only when something changed: `MinimapGpuMap` command buffers,
-    Unity's `ClassicFullMap` blit and preview target, `HudCanvas`'s font-atlas blit for the front-end menu's replacement font.
-  - `ClassicCreatureShadows`: skip the coverage redraw when no caster moved. It is already cheap
-    (R8 targets, frustum-culled casters), so this is the lowest priority.
-
 ## Workspace and evidence
 
 - Check `git status` and `git worktree list` before editing. Another session may
   own a checkout; do not switch branches in the shared main checkout. Retained
   worktrees and their branch names must be discovered, not copied from this file.
-- The main checkout has an owner-edited `unity/DK2.Unity/Assets/DK2/Scenes/Dungeon.unity`.
-  Preserve it. Use serial Unity checks; isolated probes must not save or restart
-  the owner's editor. Editor workflow: [Unity README](../unity/README.md).
 - Irreplaceable native captures, extracts and replay rigs belong in
   `F:/DK2Evidence/`. Follow AGENTS.md's add-only, no-links and cleanup-approval
   rules. Do not rely on legacy `reverse-engineering/dk2runs/` paths;
@@ -306,8 +246,8 @@ These are entry points, not a new priority order.
 
 - Project boundaries and simulation order: [architecture](ARCHITECTURE.md).
   Rules and mutable state belong in `src/DK2.Simulation`; `src/DK2.AI` observes
-  and emits commands; `src/DK2.Harness` runs headless scenarios. Unity integrates
-  and presents them.
+  and emits commands. `src/DK2.Harness` runs headless scenarios, and Godot
+  presents the game.
 - Tool and scenario entry points: [tool commands](../src/DK2.Tools/README.md)
   and [scenarios](../scenarios/README.md).
 - Follow AGENTS.md for verification, reviewer/documenter passes and documentation
@@ -322,7 +262,7 @@ From the repository root, the verification gate list is:
 ```sh
 dotnet build DK2.slnx -c Release
 dotnet test DK2.slnx -c Release --no-build
-dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj -c Release
+dotnet build godot/DK2.Godot/DK2.Godot.csproj -c Release
 dotnet run --project src/DK2.Tools -c Release --no-build -- verification-ledger --check
 dotnet run --project src/DK2.Tools -c Release --no-build -- kb check
 dotnet run --project src/DK2.Tools -c Release --no-build -- coverage --check
@@ -331,8 +271,7 @@ dotnet run --project src/DK2.Tools -c Release --no-build -- status --check
 ```
 
 Build/test prerequisites and install-dependent skips: [root README](../README.md#build-and-test).
-The Unity compile project is outside the solution; run `unity/sync-assemblies.ps1`
-after source changes before editor checks. See [Unity workflow](../unity/README.md).
+Use the [pinned Godot workflow](../godot/README.md#verifying) for editor checks.
 Check the changed diff with `git diff --check`.
 
 A simulation state change requires matching `GameSimulation.HashVersion` and

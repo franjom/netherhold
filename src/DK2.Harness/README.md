@@ -13,7 +13,7 @@ raise `--timeout-seconds` with `--jobs` when needed. Separate simultaneous `watc
 can still collide on their millisecond-stamped output-root names; that existing limitation
 is unchanged (ADR-0552's parallel-watch amendment).
 
-The headless scenario runner (an `Exe` on `net10.0`, not loaded by Unity). It loads
+The headless scenario runner (a headless `net10.0` executable). It loads
 YAML scenarios (`Scenario.cs`), builds a world, runs the simulation and any computer
 keepers, checks `expect` claims, and writes a report per run.
 
@@ -35,8 +35,7 @@ timeout, and writes a new `watch-<utc stamp>/` folder per watch (nothing is dele
 `watch-summary.tsv` and, for a run that did not pass, `failure.md` plus the child's stdout and
 stderr. Verdicts are passed, failed, setup, crashed, timeout, cancelled and invalid. Exit 1
 means a run did not pass, 4 means a limit left scenarios unrun, 2 is a usage error. The
-journal format is `DK2.Simulation` (`CommandCodec`, `InputJournal`); Unity does not write one
-yet. `watch` passes the run options through; `--fuzz` goes unchanged unless `--fuzz-seeds n`
+journal format is defined in `DK2.Simulation` (`CommandCodec`, `InputJournal`). `watch` passes the run options through; `--fuzz` goes unchanged unless `--fuzz-seeds n`
 runs each scenario with fuzz seeds 1 to n (refused without `--fuzz`); `watch-summary.tsv` has a
 label column for the seed.
 
@@ -176,7 +175,7 @@ The claim line names the map, seed, controller, win tick, finale, receipt direct
 "Headless only ... `report.md` lists what this build cannot act on." The claim covers that one
 headless run, not rendered play; only Level 1 has been won so far.
 
-Not implemented (design stages 3-8): play beyond Level 1, an external model or agent, Unity,
+Not implemented (design stages 3-8): play beyond Level 1, an external model or agent,
 rendering, audio, the real UI, the front end and skirmish maps. A headless run does not certify rendered timing. Plan and as-built notes:
 `docs/plans/2026-11-07-campaign-player-stages1-2.md` (tasks 4, 6 and 7); the receipt procedure is also described in `tools/build_receipt.py`'s header.
 

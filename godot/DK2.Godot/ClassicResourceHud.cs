@@ -7,10 +7,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The keeper's resource strip at the top left (mana, gold, the Heart and payday gauges, the rates), the Godot
-/// counterpart of Unity's <c>ClassicResourceHud</c>: <see cref="KeeperResourceHud"/> (ADR-0805) decides every draw, and a
-/// <see cref="HudCanvas"/> draws its frame top-docked under the HUD scale. Like Unity's, it never takes the pointer; a host
-/// asks it what the pointer is over (<see cref="ContainsPointer"/>, <see cref="ResourceAt"/>).</summary>
+/// <summary>Draws the top-docked resource strip from <see cref="KeeperResourceHud"/> (ADR-0805). The host tests pointer coverage; the strip has no input handlers.</summary>
 public partial class ClassicResourceHud : Node
 {
     private readonly KeeperResourceHud _hud = new();
@@ -18,11 +15,11 @@ public partial class ClassicResourceHud : Node
     private HudCanvas? _canvas;
     private HudScaleLayout _layout;
 
-    /// <summary>The HUD scale percent (Unity's <c>UiScale</c>, the graphics setting).</summary>
+    /// <summary>The HUD scale percent.</summary>
     public int UiScale { get; set; } = 100;
 
     /// <summary>The strip's lower edge in local pixels, as last laid out; before the first draw, laid out for the current
-    /// viewport (as Unity's falls back to the screen).</summary>
+    /// viewport.</summary>
     public float Bottom
     {
         get
@@ -54,7 +51,7 @@ public partial class ClassicResourceHud : Node
     }
 
     /// <summary>Lays the strip out for the viewport and presents it; <paramref name="milliseconds"/> drives its count-up
-    /// and flashes (Unity passes unscaled time).</summary>
+    /// and flashes on the unscaled clock.</summary>
     public void Draw(KeeperResourceSnapshot snapshot, uint milliseconds, KeeperResourceFlash flash = KeeperResourceFlash.None)
     {
         if (_canvas == null) return;

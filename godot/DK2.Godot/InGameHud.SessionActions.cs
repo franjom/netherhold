@@ -8,9 +8,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The options menu's confirmed Restart, Return to Menu and Quit (<see cref="HudPressRouter"/>'s session action,
-/// mapped by <see cref="GameSessionRequest.ForSessionAction"/> as Unity's runner's <c>StartSession</c> maps it), the level
-/// end's prompt (Unity's runner's <c>DrawCampaignResultPrompt</c>) and the <c>--key-path</c> check's key taps.</summary>
+/// <summary>Handles confirmed session actions, the campaign result prompt and scripted key presses. Maps session actions through <see cref="GameSessionRequest.ForSessionAction"/>.</summary>
 public partial class InGameHud
 {
     /// <summary>The script frames a handover (a restart or a loaded save) continues from, so the next instance's
@@ -22,7 +20,7 @@ public partial class InGameHud
     private KeyScript? _keyScript;
     private int _keyFrame = -1, _nextKey;
 
-    /// <summary>Unity's runner's <c>StartSession</c>: Restart reloads this scene for the same level and return page, Return
+    /// <summary>Restart reloads this scene for the same level and return page. Return
     /// to Menu opens <c>Main.tscn</c> at the campaign map for a level launched from it and at the main page otherwise, and
     /// Quit quits. A handover already under way takes no second one.</summary>
     void IHudPressHost.StartSession(ClassicSessionAction session)
@@ -60,7 +58,7 @@ public partial class InGameHud
     private void OpenResultPrompt(CanvasLayer layer, FontFile? face) =>
         _resultPrompt = new BitmapTextItem(layer.GetCanvas()) { ReplacementFont = face };
 
-    /// <summary>Unity's runner's <c>DrawCampaignResultPrompt</c>: once the result is recorded, the flow's line
+    /// <summary>Once the result is recorded, the flow's line
     /// (<see cref="CampaignResultFlow.Prompt"/>) in <see cref="SubtitleLayout.ResultPromptBox"/>, over the win screen.</summary>
     private void DrawResultPrompt()
     {

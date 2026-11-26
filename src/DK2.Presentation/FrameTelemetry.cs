@@ -37,11 +37,11 @@ public sealed class FrameTelemetry
     public const string FramesFile = "frames.csv";
     public const string MetadataFile = "metadata.txt";
 
-    /// <summary>The columns, as Unity's recorder writes them.</summary>
+    /// <summary>The recorder's CSV columns.</summary>
     public const string Header = "frame,play_seconds,frame_ms,update_ms,ticks,tick_ms,sound_ms,wait_tick_ms,script_ms,input_ms,"
         + "present_ms,animated_frame_ms,chunk_rebuild_ms,lights_ms,hud_ms,gc_collections,render_tick,cam_x,cam_y,cam_z,path";
 
-    /// <summary>Ten minutes at 240 frames a second, Unity's recorder's; a longer run keeps its first ten minutes.</summary>
+    /// <summary>Capacity for ten minutes at 240 frames a second.</summary>
     public const int DefaultCapacity = 240 * 600;
 
     private const int PartCount = (int)FrameTelemetryPart.Hud + 1;
@@ -128,7 +128,7 @@ public sealed class FrameTelemetry
         _collections = end.Gen0Collections;
     }
 
-    /// <summary>The rows under <see cref="Header"/>, in Unity's recorder's formats (milliseconds to 3 places, the draw clock
+    /// <summary>The rows under <see cref="Header"/> (milliseconds to 3 places, the draw clock
     /// and the camera to 4). A frame's <c>frame_ms</c> is the interval ending as it began; its parts are its own work.</summary>
     public void WriteCsv(TextWriter writer)
     {

@@ -96,7 +96,7 @@ public readonly record struct PickSphere(Vector3 Centre, float Radius)
         new(position + Vector3.Transform(Centre * scale, turn), ScaledRadius(Radius, scale));
 }
 
-/// <summary>The Hand's triangle test on a drawn model, in the model's own space (Unity's <c>DungeonScene.NearestTriangle</c>).</summary>
+/// <summary>The Hand's triangle test on a drawn model, in model coordinates.</summary>
 public static class PickTriangles
 {
     /// <summary>Lowers <paramref name="nearest"/> to the ray distance of the nearest triangle of <paramref name="triangles"/>

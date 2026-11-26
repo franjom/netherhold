@@ -13,7 +13,7 @@ namespace DK2.Presentation;
 public sealed class TickPacer
 {
     /// <summary>The whole ticks one frame may run, so a stall is paid back at this rate rather than fast-forwarding the
-    /// game in one frame (Unity's runner's <c>maxTicksPerFrame</c> default).</summary>
+    /// game in one frame.</summary>
     public const int DefaultMaxTicksPerFrame = 2;
 
     /// <summary>The most real time one frame may accrue, 1/3 s: Unity's maximum timestep in this project
@@ -32,7 +32,7 @@ public sealed class TickPacer
     }
 
     /// <summary>The frame's whole ticks, at most <paramref name="maxTicksPerFrame"/> (at least one); the rest stays owed. The
-    /// host clamps each frame's elapsed time too (Unity's maximum timestep), or a long stall is paid back at the cap.</summary>
+    /// host clamps each frame's elapsed time too, or a long stall is paid back at the cap.</summary>
     public int Take(int maxTicksPerFrame)
     {
         int ticks = (int)Math.Min(Debt, Math.Max(1, maxTicksPerFrame));

@@ -49,7 +49,7 @@ public sealed class TerrainChunkScheduler
 
     public const double DefaultFlushBudgetMilliseconds = 4.0;
 
-    /// <summary>The spans a flush opens, named as Unity's markers were.</summary>
+    /// <summary>The profiling spans opened during a flush.</summary>
     public static class Markers
     {
         public static readonly SimulationMarker Prepare = SimulationMarker.Named("TerrainChunks.Prepare");

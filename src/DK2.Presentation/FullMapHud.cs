@@ -52,7 +52,7 @@ public sealed class FullMapHud
     public ClassicFullMapLayout Layout(int screenWidth, int screenHeight) =>
         ClassicFullMapLayout.Fit(screenWidth, screenHeight, _mapWidth, _mapHeight);
 
-    /// <summary>What a mouse press does while the map is open (DungeonRunner.QueueHudInput's full-map branch): the left
+    /// <summary>What a mouse press does while the map is open: the left
     /// button sends the camera to the tile under the pointer and closes the map, else the right button closes it. The
     /// open map takes every press, acted on or not.</summary>
     public static FullMapPress Press(bool primary, bool secondary) =>

@@ -8,8 +8,8 @@ counts: `docs/HANDOFF.md` and `dk2tools status`.
 ## Layering (dependencies point downward only)
 
 ```
-unity/DK2.Unity            the only assembly that references UnityEngine
-        │                  (loads the netstandard2.1 DLLs below)
+godot/DK2.Godot            the presentation adapter, targeting net10.0
+        └───────────────► DK2.Presentation
 DK2.Tools / DK2.Harness / DK2.Convert       net10.0 executables and tooling
         │
         ├──────────────► DK2.Presentation ──► DK2.Assets ◄── DK2.Art (KMF, textures)
@@ -19,7 +19,7 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
         │         └──► DK2.Pathfinding             │
         └──────► DK2.Data.Model ◄── DK2.Data (parsers)
                        │
-                   DK2.Core                netstandard2.1 (Unity-loadable)
+                   DK2.Core                netstandard2.1
 ```
 
 `DK2.Pathfinding` references only `DK2.Core`; `DK2.Data` never references
@@ -41,26 +41,16 @@ from `DK2.Data`; `DK2.Assets` has no Data dependency. The `.csproj` references a
 | `DK2.Convert` | original art → glTF/GLB and PNG (`dk2tools convert`) |
 | `DK2.Harness` | headless scenario runner |
 | `DK2.Tools` | the `dk2tools` CLI: `status`, `docs`, `kb`, `coverage`, `convert`, `replay`, `simmatrix`, and the data inspectors |
-| `unity/DK2.Unity` | the adapter; `unity/DK2.Unity.Compile` builds it against Unity's modules |
-| `godot/DK2.Godot` | the Godot adapter, namespace `DK2.GodotAdapter` (ADR-0805, ADR-0810); shows the classic front-end menu, the in-game HUD and, since step 3a, the level's terrain, and since step 3f its objects, structures and wall torches |
+| `godot/DK2.Godot` | Godot presentation and integration in namespace `DK2.GodotAdapter` (ADR-0805, ADR-0810, ADR-0824) |
 
 `docs/HANDOFF.md` §"Where to work" says which project a change belongs in.
 
-- **These assemblies target netstandard2.1** so Unity can load them: `DK2.Core`,
-  `DK2.Data.Model`, `DK2.Data`, `DK2.Art`, `DK2.Pathfinding`, `DK2.Simulation`,
-  `DK2.Assets`, `DK2.Presentation`, `DK2.AI`. `DK2.Convert`, the tools, the
-  harness and the tests target net10.0 (`Directory.Build.props`).
-- The framework comes from **`src/Shared/UnityBound.props`, imported from inside
-  each project's own body** — *not* as a condition in `Directory.Build.props`,
-  where MSBuild's evaluation order made the condition unsatisfiable and every
-  assembly silently built as net10.0 for four months (ADR-0002 correction,
-  ADR-0036). The props file's own comment has the detail.
-- **No simulation assembly may reference Unity**, and **the Unity-loadable ones
-  must actually be netstandard2.1.** Both are asserted from the *built*
-  assemblies, reading `TargetFrameworkAttribute` rather than the project files
-  (`ArchitectureTests` for Core, Data.Model, Simulation and Pathfinding; the
-  other Unity-loadable assemblies have the guard in their own test projects) — because the project
-  files were the thing that was wrong.
+- The shared game assemblies still target **netstandard2.1** through
+  `src/Shared/UnityBound.props` until the migration's retargeting commit. The Godot
+  adapter, executables, tools, harness and tests target **net10.0**.
+- Architecture tests check the built assemblies' target frameworks and protect
+  engine independence. The adapter's only direct project reference is
+  `DK2.Presentation`. See ADR-0002 and ADR-0824.
 
 ## Simulation rules
 
@@ -219,7 +209,7 @@ would look exactly like a simulation bug (ADR-0035).
 
 ```
 WorldState ──► WorldView ──► ScenePresenter ──► IRenderTarget
-                                  │                   ├── DungeonScene   (Unity)
+                                  │                   ├── WorldScene     (Godot)
                                   │                   ├── WorldScene     (Godot)
                              AssetProviderChain        └── (a text view redraws
                                   │                        from WorldView direct)
@@ -274,34 +264,23 @@ tier; the converted tier stays the classic look. What a modern asset may and may
 not change is `docs/ART_DIRECTION.md`; the proposed Blender pipeline that makes
 and validates them is `docs/ASSET_PIPELINE.md` (ADR-0242).
 
-## Unity (M3)
+## Godot presentation
 
-`unity/DK2.Unity` — Unity 6 LTS `6000.6.0f1` (ADR-0036). It consumes the
-netstandard2.1 DLLs from `Assets/Plugins/DK2` (synced by
-`unity/sync-assemblies.ps1`; build output, gitignored) and owns no game state:
-`DungeonRunner` ticks a `GameSimulation` and calls `ScenePresenter.Present`, and
-`DungeonScene` implements `IRenderTarget` in GameObjects. Deleting every
-GameObject would change nothing, because the simulation references none of it. It
-renders campaign level 1 as coloured boxes rather than DK2's walls (Q71).
-`DungeonRunner` projects mouse rays to tiles, moves the camera and passes button
-edges to `PlayerInputTranslator`; gesture-to-command behaviour remains in the
-Unity-free presentation assembly (ADR-0104).
+`godot/DK2.Godot` renders the world and handles input, audio and UI. Gameplay rules
+and simulation state live in the shared projects. The adapter runs the shared
+`SceneFrame` and sends player gestures through `WorldPointerInput`. See the
+[Godot guide](../godot/README.md).
 
-**Possession view (ADR-0805).** `PossessionSession` (`DK2.Presentation`) holds the first-person view's rules: when a
-possession starts and ends, the timed camera moves, the commands, the hidden creature and the pointer lock. A host fills
-a `PossessionInput` and applies the answer; `DungeonRunner.Possession.cs` is Unity's side and `InGameHud.Possession.cs`
-Godot's. The latch that rests the walls at full height, the roof's shown rule and the roof's chunk scheduling and geometry
-are shared too (`PossessionScene`, `TerrainCeilingScheduler`, `TerrainCeilingGeometry`).
+**Possession (ADR-0805).** `PossessionSession` decides the camera transitions, commands,
+pointer lock and creature visibility. `InGameHud.Possession.cs` supplies its input
+and applies the returned instructions. The shared `PossessionScene`,
+`TerrainCeilingScheduler` and `TerrainCeilingGeometry` provide the room roof.
 
-**HUD (ADR-0805).** A HUD panel's DK2 behaviour lives in `DK2.Presentation` and writes a `HudFrame`
-(`HudDrawList.cs`). The adapter draws it with `HudCanvas` and forwards pointer input. The bottom panel,
-the resource strip, the message tabs, the hover HUD, the creature query and overview, the options menu, save browser and settings pages, the front-end menu, and the minimap and full-map markers have moved (`MinimapHud`, `FullMapHud`); both adapters draw the minimap disc on the GPU; shared `MinimapDiscGeometry` supplies Godot's ordered marker quads and `MinimapDiscImage` remains its independent CPU oracle (pipeline: `godot/README.md`), and its camera footprint is a `HudDrawKind.Triangles` draw (`MinimapCameraView`, `HudTriangles.ClipToCircle`) that both adapters draw. A
-front-end label is a `HudLabel` in BF4 glyph boxes: `HudCanvas` draws the shared bitmap (`HudLabelPixels`) or the replacement TrueType glyphs in those boxes. The ADR's
-table says where new HUD files go, including the `godot/DK2.Godot` adapter, which today shows the classic front-end menu and the in-game HUD through its own `HudCanvas`, over the level's terrain, objects, structures and torches (`WorldScene`) (ADR-0810; toolchain and run notes in `godot/README.md`). Its csproj is outside `DK2.slnx` and CI.
-
-`unity/DK2.Unity.Compile` compiles the adapter against Unity's real module
-assemblies, which is the only way "do not commit code you have not built" reaches
-Unity code. It is outside `DK2.slnx` on purpose. See `unity/README.md`.
+**HUD (ADR-0805).** Panel rules in `DK2.Presentation` produce a `HudFrame`. Godot's
+`HudCanvas` draws it and forwards pointer input. The minimap uses
+`MinimapDiscGeometry` for ordered marker quads and retains `MinimapDiscImage` as its
+CPU reference. Front-end labels use BF4 glyph boxes for either bitmap or replacement
+TrueType glyphs.
 
 ## Scenarios (M2)
 
@@ -601,7 +580,7 @@ flag bytes, 16 timer dwords, one opaque special value. Hashed and snapshotted.
 - Every source file carries the three-line SPDX notice,
   `SPDX-License-Identifier: GPL-3.0-or-later`, enforced by `LicenseHeaderTests`
   (ADR-0041).
-- **No Flame identifier in `src/`, `tests/` or `unity/`**, comments included
+- **No Flame identifier in `src/`, `tests/` or the Godot adapter**, comments included
   (`FlameIdentifierTests`, ADR-0080). A document may *cite* a Flame name as
   Flame's.
 - The Unicorn emulator (GPLv2) is used, never committed: `tests/DK2.Oracle.Tests` runs

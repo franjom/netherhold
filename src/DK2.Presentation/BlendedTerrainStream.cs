@@ -32,13 +32,13 @@ public static class BlendedTerrainStream
     }
 
     /// <summary>The order run <paramref name="run"/> draws at, lowest first: a tag overlay's precedes every actor and
-    /// flower (order 0) and all other blended terrain; the rest follow the stream from 1. Unity's sorting order.</summary>
+    /// flower (order 0) and all other blended terrain. The rest follow the stream from 1.</summary>
     public static int SortingOrder(int run, bool tagOverlay) => tagOverlay ? run - short.MaxValue : run + 1;
 }
 
 /// <summary>Every chunk's blended terrain triangles, and this frame's blended effect meshes, as one back-to-front stream
 /// across chunks and materials: culled to the view, sorted by <see cref="TriangleDepthOrderBuffer"/> and split into runs
-/// of one material (Unity's <c>TransparentTerrain</c>, moved for plan step 3d). Status flowers join through
+/// of one material. Status flowers join through
 /// <see cref="PlaceItems"/>. A material is any reference the adapter draws with, told apart by its default equality.
 /// The adapter uploads <see cref="Runs"/> over <see cref="Vertices"/> in <see cref="BlendedTerrainStream.SortingOrder"/>.</summary>
 public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class

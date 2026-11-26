@@ -10,7 +10,7 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Presentation;
 
-/// <summary>Which simulation a session starts with, as Unity's runner chose it (migration plan step 2i): a restored save's,
+/// <summary>Selects the simulation a session starts with: a restored save's,
 /// the front end's map world, a campaign level's, or an original DK2 save's grid. A restored <c>.dk2g</c> comes from
 /// <see cref="SessionLoader"/>; a campaign level's records from <see cref="CampaignLevelData"/>.</summary>
 public static class GameSessionStarter

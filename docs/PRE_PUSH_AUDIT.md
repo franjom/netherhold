@@ -93,7 +93,7 @@ references. Personal author/committer email metadata is present in history.
 
 ### Some contributor documentation remains stale
 
-[unity/README.md](../unity/README.md) tells normal play to leave Native Initial
+unity/README.md in `git show 909a6c5e2:unity/README.md` tells normal play to leave Native Initial
 Ambient off, while the saved scene enables it and [HANDOFF.md](HANDOFF.md)
 records that as the owner's selected setting. The hook's introductory comment
 also says there is no CI, although `.github/workflows/ci.yml` exists. These were

@@ -62,7 +62,7 @@ public interface ISceneFrameHost
     void RefreshTorches();
 }
 
-/// <summary>The drawn creatures and the order a frame draws them in (Unity's <c>DungeonScene.DrawCreatureFrame</c>):
+/// <summary>The drawn creatures and the order a frame draws them in:
 /// the hover overlay's frame, the Hearts' health, then per creature its drawn place (<see cref="PoseInterpolator"/>),
 /// its clip, the possessed model hidden, its footstep, the burning red, the crackle, its head point
 /// (<see cref="Heads"/>) and a gem carrier's sparkle (<see cref="GemSparkleGate"/>), then the objects and the torches.

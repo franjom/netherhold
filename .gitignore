@@ -36,33 +36,9 @@ converted-assets/
 *.tgq
 *.bf4
 
-# Unity
-unity/**/Library/
-unity/**/Temp/
-unity/**/Logs/
-unity/**/UserSettings/
-unity/**/Build/
-
 # Local config
 local.settings.json
 *.local.json
-
-# Unity: the DK2 assemblies are build output, synced by unity/sync-assemblies.ps1
-unity/DK2.Unity/Assets/Plugins/DK2/*.dll
-unity/DK2.Unity/Assets/Plugins/DK2/*.pdb
-unity/DK2.Unity/Assets/Plugins/DK2/*.meta
-# Unity: Bullfrog's DungeonKeeperII TrueType font (Astigmatic One Eye, 1998) is not ours to
-# ship; each machine supplies it (unity/README.md).
-unity/DK2.Unity/Assets/Resources/Fonts/
-unity/DK2.Unity/Assets/Resources/Fonts.meta
-unity/DK2.Unity/Assets/Resources.meta
-unity/**/obj/
-
-# Unity regenerates these from the asmdefs on every open; they are not sources.
-# Scoped to the Unity project so src/**/*.csproj and unity/DK2.Unity.Compile stay tracked.
-unity/DK2.Unity/*.csproj
-unity/DK2.Unity/*.sln
-unity/DK2.Unity/.vsconfig
 
 # Godot (ADR-0810): the import cache, C# build output, and the Godot AI addon, which is agent
 # tooling that godot/setup.ps1 installs at the version godot/godot-version.json pins.

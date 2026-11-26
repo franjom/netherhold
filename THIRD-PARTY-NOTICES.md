@@ -56,7 +56,7 @@ earlier, are being rewritten from the binary and leave this list when done.
   research reference.
 - [DiaLight/Flame](https://github.com/DiaLight/Flame) - structure and symbol
   research reference. Unlicensed; no code or identifiers reused in source,
-  tests or the Unity adapter (ADR-0080).
+  tests or the Godot adapter (ADR-0080).
 
 ## YamlDotNet
 - https://github.com/aaubry/YamlDotNet — MIT License, Copyright (c) Antoine Aubry
@@ -75,7 +75,7 @@ earlier, are being rewritten from the binary and leave this list when done.
 
 - https://github.com/naudio/NLayer, version 3.0.0, MIT licence, Copyright (c) 2018 Mark Heath, Andrew Ward & Contributors.
 - Runtime MPEG Layer I/II audio decoder, used only behind `DK2.Data.Media.MpegAudioDecoder`.
-  Unity loads its dependency-free netstandard2.0 assembly. See ADR-0583.
+  The shared decoder uses its dependency-free netstandard2.0 assembly. See ADR-0583.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

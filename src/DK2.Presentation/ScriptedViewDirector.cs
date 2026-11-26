@@ -87,7 +87,7 @@ public sealed class ScriptedViewDirector(
     public HudVisibility HudFor(ClassicCameraMode normalMode) => HudVisibilityRules.ForCamera(
         PathPlaying ? CameraModeId.ScriptedPath : new((ushort)normalMode), _letterbox.RequestCount);
 
-    /// <summary>The visibility the game is in (Unity's runner's <c>PlayedHud</c>): this view's camera visibility
+    /// <summary>The visibility of the game's HUD during a scripted view: this view's camera visibility
     /// (<see cref="HudFor"/>: hidden while a path plays or the letterbox is asked for) under the HUD's own gates.</summary>
     public HudVisibility PlayedHud(ClassicHudControls controls, ClassicCameraMode normalMode) =>
         (controls ?? throw new ArgumentNullException(nameof(controls))).Visibility(HudFor(normalMode));

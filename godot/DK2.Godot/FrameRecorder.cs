@@ -12,11 +12,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Unity's release-player recorder and <c>tools/game-unity-probe</c>'s <c>frames.csv</c> for Godot (migration
-/// plan step 4, probes): with <c>--record-frames &lt;dir&gt;</c> on <c>InGameHud.tscn</c> each frame's interval, parts,
-/// ticks, draw clock, camera and path go into a preallocated <see cref="FrameTelemetry"/>, written to
-/// <c>frames.csv</c> and <c>metadata.txt</c> when the scene leaves the tree. Without the argument there is no node.
-/// Allocation-free per frame. <c>tools/perf/draw_clock.py</c> reads the CSV (godot/README.md, <i>Probes</i>).</summary>
+/// <summary>Records per-frame CSV telemetry with <see cref="FrameTelemetry"/>. The buffer is preallocated. <c>tools/perf/draw_clock.py</c> uses the timestamps to analyse the draw clock.</summary>
 public partial class FrameRecorder : Node
 {
     private FrameTelemetry _telemetry = null!;
@@ -59,7 +55,7 @@ public partial class FrameRecorder : Node
 
     public override void _Ready()
     {
-        // The machine and display as the run starts, read once (Unity's metadata.txt keys where Godot has them).
+        // Record the machine and display metadata once at the start of the run.
         Vector2 size = GetViewport().GetVisibleRect().Size;
         Add("Godot", Engine.GetVersionInfo()["string"].AsString());
         Add("Backend", "Godot .NET");

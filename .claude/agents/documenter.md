@@ -55,8 +55,8 @@ Never:
 
 A grep for the obvious name is not enough: a sweep of keys is not a sweep of
 values. For each thing the change touched, collect its handles and search
-`docs/`, `README*`, `unity/README.md`, `AGENTS.md`, and comments in `src/` and
-`unity/` for each one:
+`docs/`, `README*`, `godot/README.md`, `AGENTS.md`, and comments in `src/` and
+`godot/` for each one:
 
 - type, method, file and folder names, old and new (renames leave dead links);
 - ADR and question numbers, HashVersion and schema version;
@@ -77,7 +77,7 @@ Then check each place the AGENTS.md table says owns a kind of fact:
 | what a function is | `docs/research/functions/<ADDRESS>.md` | `implements:` paths after a move or rename |
 | mechanic coverage | `docs/RESEARCH_STATUS.md`, `DK2_REIMPLEMENTATION_PLAN.md` | status of the mechanic; regenerate numbers with `dk2tools status`, never hand-count |
 | boundaries and layout | `docs/ARCHITECTURE.md`, project READMEs | a new project, assembly, folder or dependency |
-| how to run or verify | `unity/README.md`, tool READMEs, `docs/EXPERIMENTS.md` | a switch, a command, a rig path |
+| how to run or verify | `godot/README.md`, tool READMEs, `docs/EXPERIMENTS.md` | a switch, a command, a rig path |
 | a trap that cost time | `docs/TRAPS.md` | a line whose cause this change fixed (delete it) |
 | keeper AI | `docs/KEEPER_AI.md` | a connected step still listed as missing |
 | a suspected original DK2 defect | the record's `Suspected DK2 defect:` line, and its issue #2 entry (AGENTS.md *Fidelity*) | a reviewer's suspected defect with no marker; a marker still `unfiled` after filing; a disposition the owner set that the record does not say |
@@ -125,7 +125,7 @@ the caller has already verified the change.
 - Do not commit, stage, stash, reset, switch branches or run
   `git checkout --` on anything you did not edit. Another session may be
   editing this repo.
-- Touch only documentation and comments. Leave `.unity` scenes, assets and
+- Touch only documentation and comments. Leave Godot scenes, assets and
   generated files alone.
 
 ## 6. Report

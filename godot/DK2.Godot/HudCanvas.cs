@@ -7,12 +7,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Draws a <see cref="HudFrame"/> built in DK2.Presentation (ADR-0805), the Godot counterpart of Unity's
-/// <c>HudCanvas</c>. The frame is recorded into RenderingServer canvas items only when it changes: one item per run
-/// of draws that share a blend and a texture filter, so back-to-front order holds while additive draws
-/// (<see cref="HudBlend.Additive"/>, DK2's render flag 8) use Godot's own additive blend rather than a pixel bake.
-/// A <see cref="HudLabel"/> is drawn as its shared BF4 bitmap or, once <see cref="ReplacementFont"/> is set, as that
-/// face's glyphs in the label's glyph boxes. Edges snap to whole screen pixels as Unity's layout did.</summary>
+/// <summary>Draws a <see cref="HudFrame"/> built in DK2.Presentation (ADR-0805). The canvas maps virtual layout boxes to screen pixels, applies the draw blend, and snaps edges to whole pixels.</summary>
 public partial class HudCanvas : Node2D
 {
     private readonly HudFrame _shown = new();
@@ -102,7 +97,7 @@ public partial class HudCanvas : Node2D
             Rect2 r = Snapped(draw.Rect);
             if (draw.Kind == HudDrawKind.Sector)
             {
-                // The fan is laid over the snapped rect, as Unity's sector element's content rect was.
+                // Lay the fan over the snapped rectangle.
                 int n = HudSector.Fan(new HudRect(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y), draw.Percent, fan);
                 if (n == 0) continue;
                 SectorBuffers buffers = _fans[n] ??= new SectorBuffers(n);
@@ -134,7 +129,7 @@ public partial class HudCanvas : Node2D
         }
     }
 
-    /// <summary>A triangle list in screen pixels, unsnapped, as Unity's footprint element placed its vertices.</summary>
+    /// <summary>A triangle list in unsnapped screen pixels.</summary>
     private void RecordTriangles(Rid item, ReadOnlySpan<HudVertex> vertices, Rid texture, Color tint)
     {
         int slot = vertices.Length / 3 - 1;
@@ -206,7 +201,7 @@ public partial class HudCanvas : Node2D
     /// beside the canvas on the same grid (the minimap's disc).</summary>
     public Rect2 ScreenRect(HudRect rect) => Snapped(rect);
 
-    /// <summary>A virtual rect in screen pixels with its edges on whole pixels, as Unity's layout placed images.</summary>
+    /// <summary>A virtual rectangle in screen pixels with edges on whole pixels.</summary>
     private Rect2 Snapped(HudRect r)
     {
         float left = Edge(r.X), top = Edge(r.Y), right = Edge(r.X + r.Width), bottom = Edge(r.Y + r.Height);
@@ -214,7 +209,7 @@ public partial class HudCanvas : Node2D
     }
 
     /// <summary>A virtual coordinate in whole screen pixels, halves rounded up like layout rounding. The local value
-    /// is first cleaned to 1/1024 so a float round trip cannot land a hair under a half (Unity's <c>Edge</c>).</summary>
+    /// is first cleaned to 1/1024 so a float round trip cannot land a hair under a half.</summary>
     private float Edge(float v)
     {
         float local = MathF.Round(v * _scale * 1024f) / 1024f;

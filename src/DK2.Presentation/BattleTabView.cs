@@ -85,7 +85,7 @@ public static class BattleTabView
     };
 
     /// <summary>The menu's top in the reference screen: <see cref="MenuY"/>, dropped with the panel when it is
-    /// collapsed (moved unchanged from Unity's <c>ClassicBattleTab</c>).</summary>
+    /// collapsed.</summary>
     public static int MenuTop(bool collapsed) =>
         MenuY + (collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0);
 
@@ -94,12 +94,11 @@ public static class BattleTabView
     /// over the bottom panel's metal rail end, which sits the same way.</summary>
     public static float MenuLeft(HudScreen screen) => screen.FromRight(MenuX);
 
-    /// <summary>A button's square in native virtual units (1920 high) on <paramref name="screen"/>, where Unity's
-    /// <c>ClassicBattleTab</c> places its image.</summary>
+    /// <summary>A button's square in native virtual units (1920 high) on <paramref name="screen"/>.</summary>
     public static HudRect Rect(BattleTabButton button, bool collapsed, HudScreen screen) =>
         new(MenuLeft(screen) + LocalX(button), MenuTop(collapsed), ButtonSize, ButtonSize);
 
-    /// <summary>A press's action, moved unchanged from Unity's <c>DungeonRunner.BattleTabClicked</c>: the blades and the
+    /// <summary>A press's action. The blades and the
     /// alarm take only the right click (their records have no left-click callback), the cancel both.</summary>
     /// <param name="mouse">0 left, 1 right.</param>
     public static BattleTabAction Action(BattleTabButton button, int mouse) => (button, mouse) switch
@@ -111,7 +110,7 @@ public static class BattleTabView
         _ => BattleTabAction.None,
     };
 
-    /// <summary>A press on menu 43, moved out of Unity's <c>DungeonRunner.BattleTabClicked</c> (migration plan step 2c):
+    /// <summary>A press on menu 43:
     /// nothing while input is suppressed or a menu is modal; otherwise <see cref="Action"/>'s, the blades' zoom as the F
     /// key's (<see cref="ClassicHudAction.NavigateFight"/>), the cancel's <see cref="RemoveCallToArmsCommand"/> (action 0x81)
     /// or glide to <see cref="CallToArmsTile"/>, and the alarm's glide to <see cref="ThingNavigation.NextAlarm"/> over
@@ -223,7 +222,7 @@ public static class BattleTabView
         MinimapMarkerRules.IsAlarmRingActive(tick, new GameTick(trap.RechargeAt));
 }
 
-/// <summary>Menu 43's hover text, moved unchanged from Unity's <c>ClassicBattleTab.HoverText</c>: over the blades,
+/// <summary>Menu 43's hover text: over the blades,
 /// Text.str 2166 "Battle Tab: right-click to zoom, click again to cycle." as the status line and 2165 "Zoom to
 /// Battle" as the name (seen in DK2, 2026-11-13, battle-tab.md section 8); the cancel and the alarm have no text.
 /// The blades' text is built once.</summary>

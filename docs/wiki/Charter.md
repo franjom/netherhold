@@ -9,7 +9,7 @@ and where each one stands in
 ## The mission
 
 A behaviourally faithful reimplementation of **Dungeon Keeper 2** in C#, with
-Unity as the presentation layer. What is preserved is the game's **playable
+Godot as the presentation layer. What is preserved is the game's **playable
 behaviour and simulation**, so that it outlives the operating systems, graphics
 APIs and hardware the original was written for (goal 12).
 
@@ -25,7 +25,7 @@ APIs and hardware the original was written for (goal 12).
 8. **A modding framework.**
 9. **Deterministic, fast simulation**: the same inputs give the same state on every machine, faster than real time (see [[Determinism]]).
 10. **An AI and bot interface**: anything that can send commands can play a keeper.
-11. **Several presentation modes**: headless, text and Unity over one view of the world.
+11. **Several presentation modes**: headless, text and Godot over one view of the world.
 12. **Preservation.**
 
 These are end states. They do not dictate what is built first:

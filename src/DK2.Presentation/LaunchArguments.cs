@@ -8,8 +8,8 @@ using DK2.Core;
 namespace DK2.Presentation;
 
 /// <summary>The level, seed and install a scripted run names on its command line (the tester package,
-/// docs/PERFORMANCE.md). Each engine has its own prefix: Unity's player takes <c>-level</c>, Godot's user arguments
-/// <c>--level</c>. An argument absent, or a seed that is not a plain decimal, leaves the host's own value.</summary>
+/// docs/PERFORMANCE.md). The host supplies the argument prefix. A missing argument or a seed that
+/// is not a plain decimal leaves the host's value in use.</summary>
 public sealed record LaunchArguments(string? Level, ulong? Seed, string? Install)
 {
     public static LaunchArguments Parse(IReadOnlyList<string> args, string prefix)

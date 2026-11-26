@@ -7,11 +7,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The creature overview in the Creatures panel, the Godot counterpart of Unity's <c>ClassicCreatureOverview</c>:
-/// <see cref="CreatureOverviewHud"/> (ADR-0805) decides every draw and press, and a <see cref="HudCanvas"/> draws its frame
-/// bottom-docked under the HUD scale. Like Unity's facade it takes no press itself: the host's <see cref="HudPressRouter"/>
-/// asks <see cref="TryPress"/> in Unity's order, and the press is not taken from the other panels. A mode button or a page
-/// strip changes the overview, and a press on a worker row or a column gives the pickup or focus it asks for.</summary>
+/// <summary>Draws the creature overview from its model under the HUD scale. The host routes its presses through <see cref="HudPressRouter"/>.</summary>
 public partial class ClassicCreatureOverview : Node
 {
     /// <summary>A pointer no widget contains, for while it is outside the window.</summary>
@@ -25,7 +21,7 @@ public partial class ClassicCreatureOverview : Node
     private Vector2 _origin;
     private bool _pointerInWindow = true;
 
-    /// <summary>The HUD scale percent (Unity's <c>UiScale</c>, the graphics setting).</summary>
+    /// <summary>The HUD scale percent.</summary>
     public int UiScale { get; set; } = 100;
 
     public CreatureOverviewMode Mode => _hud?.Mode ?? CreatureOverviewMode.Total;
@@ -37,7 +33,7 @@ public partial class ClassicCreatureOverview : Node
         if (art is null) throw new ArgumentNullException(nameof(art));
         var hud = new CreatureOverviewHud(art.Portrait, view);
         var canvas = new HudCanvas { Name = "HudCanvas", Load = art.Image, Visible = false };
-        // Decoded now, as Unity's facade does, and before the canvas is kept, so a failed decode leaves the overview
+        // Decoded before keeping the canvas, so a failed decode leaves the overview
         // unopened and retryable. Portraits load as their types appear.
         try { foreach (HudImage image in CreatureOverviewHud.Images()) canvas.Preload(image); }
         catch { canvas.Free(); throw; }
@@ -89,7 +85,7 @@ public partial class ClassicCreatureOverview : Node
         return _hud.ContainsPointer(x, y);
     }
 
-    /// <summary>This frame's press at a screen pixel (Unity's facade's <c>TryPress</c>): a mode button or a page strip changes
+    /// <summary>This frame's press at a screen pixel: a mode button or a page strip changes
     /// the overview and gives false; a worker row or a column gives the pickup or focus it asks for.</summary>
     public bool TryPress(Vector2 screenPosition, in HudPress press, out CreatureOverviewRequest request)
     {
@@ -101,14 +97,14 @@ public partial class ClassicCreatureOverview : Node
 
     public override void _Notification(int what)
     {
-        // Unity's Input.mousePosition leaves the screen with the pointer; Godot stops reporting it instead.
+        // Godot stops reporting the pointer when it leaves the window.
         if (what == NotificationWMMouseExit) _pointerInWindow = false;
         else if (what == NotificationWMMouseEnter) _pointerInWindow = true;
         // Freed, not merely removed from the tree: a reparented overview keeps working.
         else if (what == NotificationPredelete) { _hud = null; _canvas = null; }
     }
 
-    /// <summary>A screen pixel in the model's virtual units (Unity's <c>LocalPointer</c> then <c>ToVirtual</c>), from the
+    /// <summary>A screen pixel in the model's virtual units, from the
     /// same rounded origin the drawing uses, so hits land on the art at any HUD scale.</summary>
     private (float X, float Y) ToVirtual(Vector2 screen) =>
         ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);

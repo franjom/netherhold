@@ -33,7 +33,7 @@ public sealed class ThingNavigation
 
     /// <summary>The doors for <see cref="Next"/>, newest first (<c>0x00416150</c> walks the per-player list, which
     /// <c>Thing_LinkToOwner</c> <c>0x004B4C30</c> links at the head; ours is descending id), blueprints included, into
-    /// <paramref name="into"/> (cleared first). Moved out of Unity's DungeonRunner.NavigateDoor (migration plan step 2c).</summary>
+    /// <paramref name="into"/> (cleared first).</summary>
     public static void DoorEntries(IReadOnlyList<DoorState> doors, List<ThingNavigationEntry> into)
     {
         if (doors is null) throw new ArgumentNullException(nameof(doors));
@@ -47,8 +47,7 @@ public sealed class ThingNavigation
     }
 
     /// <summary>The traps for <see cref="Next"/>, newest first as <see cref="DoorEntries"/> (<c>0x004162A0</c>), without
-    /// the alarm's fields (<see cref="BattleTabView.TrapEntries"/> has them). Moved out of Unity's
-    /// DungeonRunner.NavigateTrap (migration plan step 2c).</summary>
+    /// the alarm's fields (<see cref="BattleTabView.TrapEntries"/> has them).</summary>
     public static void TrapEntries(IReadOnlyList<TrapState> traps, List<ThingNavigationEntry> into)
     {
         if (traps is null) throw new ArgumentNullException(nameof(traps));

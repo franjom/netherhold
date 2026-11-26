@@ -10,7 +10,7 @@ namespace DK2.Presentation;
 /// <summary>The queried creature, kept between frames, and the details text it shows (<see cref="ClassicCreatureQuery"/>
 /// with the creature's own name and blood group). A host sets the target on a query click and clears it on the query's
 /// cancels; each <see cref="Capture"/> keeps the target the snapshot keeps, so it drops once the creature is gone or out
-/// of every state. Moved from Unity's <c>DungeonRunner.Hud.cs</c> so every engine adapter shares it.</summary>
+/// of every state.</summary>
 public sealed class CreatureQueryView
 {
     private readonly ClassicCreatureQuery _query;

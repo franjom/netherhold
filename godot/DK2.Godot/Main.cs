@@ -7,18 +7,10 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>Scene root: shows the classic front-end menu over a black screen, after the <see cref="Launcher"/> when the
-/// process's first start asks for it (<see cref="LauncherSettingsStore.Decide"/>; scripted runs never see it). The install
-/// is <see cref="LauncherSettingsStore.FindInstall"/>'s; its files are read in place and never copied into the project. The
-/// campaign profile and hi-score table are the player's files under <see cref="UserFolders"/>. The first front end of the
-/// process runs the title screen and the intro movies, unless <c>--skip-startup</c> is given or there is no display
-/// (<c>--headless</c>). <c>--play-movie &lt;path&gt;</c> plays one movie, relative to the install, and quits, as Unity's
-/// <c>DK2/Movies</c> menu does; <c>--movie-skip-frame &lt;n,...&gt;</c> sends an Esc press at each frame n (counted from this scene's start) to test
-/// skipping. <c>--level &lt;name&gt;</c> starts <c>InGameHud.tscn</c> instead, as naming that scene does, since an exported game
-/// cannot name a scene on its command line.</summary>
+/// <summary>Starts the launcher when needed, then opens the front end over a black screen. The install is read in place and player files use <see cref="UserFolders"/>. Launch arguments can skip startup, play one movie, script Escape or open a level.</summary>
 public partial class Main : Node, IDevOverlayHost
 {
-    /// <summary>The page a level that ended hands this scene (Unity's <c>GameSessionRequest.FrontEnd(returnPage)</c>);
+    /// <summary>The page the front end opens after a level ends:
     /// taken and cleared by <see cref="_Ready"/>.</summary>
     internal static FrontEndPage s_returnPage;
     /// <summary>Whether this process has made its start decision; a later entry (a level that ended) goes straight on.</summary>

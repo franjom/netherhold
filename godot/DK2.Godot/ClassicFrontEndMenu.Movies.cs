@@ -11,12 +11,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The front end's movies, as Unity's <c>DungeonRunner.Startup</c> and <c>DungeonRunner.Cutscene</c> run them: the
-/// title screen and the two intros on the first front end of the process (<see cref="FrontEndStartup"/>), the attract movies
-/// after three idle minutes (<see cref="FrontEndAttract"/>), the gallery's and the trailer's movies, and a won map's title
-/// card and cutscene before the front end runs (<see cref="CampaignCutsceneRunner"/>). While any of them runs the menu does
-/// not. The card's title is drawn as Unity's <c>DrawCutsceneTitle</c> draws it (<see cref="DrawTitle"/>); no movie shows
-/// subtitles, as in Unity.</summary>
+/// <summary>Plays the title card, startup and attract movies. <see cref="DrawTitle"/> draws the card title over black. Movies have no subtitles.</summary>
 public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
 {
     private static readonly FrontEndStartupGate StartupGate = new();
@@ -145,7 +140,7 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
         };
     }
 
-    /// <summary>Unity's <c>Input.anyKeyDown</c> for the attract timer: a key or a mouse button went down this frame.</summary>
+    /// <summary>Whether any key or mouse button went down this frame, for the attract timer.</summary>
     private void NoteKeyPress(InputEvent @event)
     {
         if (@event is InputEventKey { Pressed: true, Echo: false } or InputEventMouseButton { Pressed: true }) _keyPressed = true;
@@ -171,7 +166,7 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
             new Rect2((size.X - 640 * scale) / 2, (size.Y - 480 * scale) / 2, 640 * scale, 480 * scale), _titleImage.GetRid());
     }
 
-    /// <summary>Unity's <c>DrawCutsceneTitle</c>: while the card's black is up, its title centred over the whole screen
+    /// <summary>While the card's black is up, its title centred over the whole screen
     /// (<see cref="SubtitleLayout.TitleBox"/>) at <see cref="SubtitleLayout.TitleScale"/> in the subtitle's font, or the
     /// menu's replacement face; on the cover, after its black.</summary>
     private void DrawTitle()

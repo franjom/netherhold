@@ -3,7 +3,7 @@
 ## Mission
 
 Create a behaviorally faithful reimplementation of Dungeon Keeper 2
-using C# and Unity.
+using C# and Godot.
 
 ## Critical rule
 
@@ -76,7 +76,7 @@ Before implementing DK2 behavior, check, in this order:
    reviewed to `tools/openkeeper-review/last-reviewed.txt`.
 5. **Flame** — cloned at `D:\Flame` (pinned `f6e2a3d`, 2026-03-01).
    **Unlicensed: no reuse rights at all**, so facts only and *never* one of its
-   identifiers in `src/`, `tests/` or the Unity adapter, comments included
+   identifiers in `src/`, `tests/` or the Godot adapter, comments included
    (`FlameIdentifierTests`); documents may *cite* a Flame name as Flame's
    (ADR-0080). Best for **structure** — struct
    layouts, vtable membership, cross-references — and measurably weak on
@@ -93,7 +93,7 @@ Before implementing DK2 behavior, check, in this order:
 For how a **library, framework, SDK or tool** works, query Context7
 (`resolve-library-id`, then `query-docs`) before answering from memory:
 training data lags releases. That covers .NET and C# APIs, xUnit, YamlDotNet,
-Unity (the adapter, packages, editor scripting), Ghidra's scripting API,
+Godot (the adapter, packages, editor scripting), Ghidra's scripting API,
 BenchmarkDotNet, and dotnet/git CLI flags.
 
 It is **never a source for DK2 behaviour**: that order is the list above. Skip
@@ -117,7 +117,7 @@ results.
 ## Large output — use context-mode
 
 **This applies to every agent: the main session, every subagent (reviewer, documenter,
-unity-developer, Explore, general-purpose and any other) and Codex.** Context-mode is the
+godot-developer, Explore, general-purpose and any other) and Codex.** Context-mode is the
 default for anything that produces more than about 20 lines: builds, test runs, `kb check`,
 docs gates, DK2.Tools dumps (`kwd triggers`, `kwd things`), Ghidra or decompile listings,
 capture CSVs, logs, git log or diff over many files, searches across the tree, and web pages.
@@ -168,12 +168,10 @@ stay outside the clone. Setup, rules and sources: `tools/footage/README.md`.
 
 ## Architecture
 
-Game simulation must remain independent from Unity wherever practical.
+Keep simulation independent of the engine. Godot is the presentation adapter.
 
-Unity is presentation/integration.
-
-A switch to Godot is being prepared (ADR-0805). DK2 behaviour never goes into an engine adapter; a HUD panel's
-logic goes in `DK2.Presentation` as a draw list, and ADR-0805's table says where each kind of new file goes.
+A HUD panel's logic lives in `DK2.Presentation` as a draw list. ADR-0805 defines
+where shared code and adapter code belong.
 The Godot project and its toolchain are in `godot/` (`godot/README.md`, ADR-0810).
 
 ## Original assets
@@ -189,7 +187,7 @@ All asset access must go through an abstraction layer.
 **Preserve design. Increase fidelity.** For animation: **preserve motion,
 modernize representation.** Original DK2 visual design is the source of truth
 for graphics exactly as original DK2 behaviour is for gameplay: modern assets
-and Unity rendering re-express it and never redesign it, and photorealism is
+and Godot rendering re-express it and never redesign it, and photorealism is
 out of scope. Before creating, generating or reviewing any modern asset, read
 `docs/ART_DIRECTION.md` (the standard) and `docs/ASSET_PIPELINE.md` (how assets
 are made and checked). ADR-0242.
@@ -454,7 +452,7 @@ Signals that a signature has the problem:
 - A parameter compared to a magic literal (`owner == 0`, `id != -1`) inside the callee.
 - The same conversion (`tileIndex % Width`, `tick - stamp > n`) repeated in more than two callers.
 
-When touching existing code that has the problem, fix the signature you are changing and its callers; do not sweep the codebase. Wrappers go in the assembly that owns the concept (DK2.Core for engine-neutral values, DK2.Data.Model for ids the map format defines, DK2.Simulation for simulation-only state), and they must remain Unity-loadable like everything else there.
+When touching existing code that has the problem, fix the signature you are changing and its callers; do not sweep the codebase. Wrappers go in the assembly that owns the concept (DK2.Core for engine-neutral values, DK2.Data.Model for ids the map format defines, DK2.Simulation for simulation-only state), and stay independent of engine types.
 
 ## Write C#, not transliterated disassembly
 
@@ -488,7 +486,7 @@ These are **end-state objectives**, not requirements for the initial prototype. 
 
 ## Goal 1 — Modern Dungeon Keeper 2 Engine
 
-Create a modern C#/Unity implementation of the Dungeon Keeper 2 game engine.
+Create a modern C#/Godot implementation of the Dungeon Keeper 2 game engine.
 
 The engine should reproduce the original game's core simulation, including:
 

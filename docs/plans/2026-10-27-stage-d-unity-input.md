@@ -142,7 +142,7 @@ gamepad. Device state stays outside `GameSimulation`.
 ## 7. Phase 5 — rendered HUD automation
 
 - **Where it runs.** A windowed standalone player built from a separate checkout;
-  use the [current release-player workflow](../../README.md#run-the-unity-presentation)
+  the historical release-player workflow is in `git show 909a6c5e2:README.md`
   and ADR-0690. Any diagnostic build is labelled separately. The copy's Library
   is imported once and reused; DLLs come from `sync-assemblies.ps1`. Never
   `-nographics` for layout, hit tests or screenshots. One instance, one scenario, a wall-clock

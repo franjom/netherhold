@@ -77,7 +77,7 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
     internal static RgbaImage DecodePng(byte[] bytes)
     {
         using var image = new Image();
-        // Stored bytes, as Unity's LoadImage reads them: most FrontEnd.WAD PNGs declare a gamma Godot would correct.
+        // Read stored PNG bytes. Most FrontEnd.WAD PNGs declare a gamma that Godot would correct.
         if (image.LoadPngFromBuffer(PngChunks.WithoutColourSpace(bytes)) != Error.Ok) throw new InvalidDataException("Invalid front-end PNG.");
         if (image.GetFormat() != Image.Format.Rgba8) image.Convert(Image.Format.Rgba8);
         return new RgbaImage(image.GetWidth(), image.GetHeight(), image.GetData());

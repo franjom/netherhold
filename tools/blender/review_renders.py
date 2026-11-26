@@ -37,7 +37,7 @@ HEAD_VIEWS = {"front": (0, 2), "front_3q_right": (45, 6), "profile_right": (90, 
 HEAD_BOX = ((-0.42, -0.42, 0.56), (0.42, 0.22, 1.02))
 FACE_BOX = ((-0.24, -0.34, 0.60), (0.24, 0.10, 0.98))   # tight, for the portrait comparison
 PORTRAIT_CROP = (205, 40, 402, 268)                      # the close-up face in the 445x280 portrait: both eyes, teeth, ear tip
-GAMEPLAY_PITCH, GAMEPLAY_FOV = 55.0, 60.0        # DungeonRunner.cameraPitch; Unity's default vertical FOV
+GAMEPLAY_PITCH, GAMEPLAY_FOV = 55.0, 60.0        # historical comparison pitch and vertical FOV
 GAMEPLAY_TILES_ACROSS = 10.0                     # tiles across a 4:3 frame at the target, as in DK2 screenshots
 
 

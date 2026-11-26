@@ -14,18 +14,18 @@ namespace DK2.Presentation;
 /// <summary>One frame's pointer, as <see cref="HoverCursorResolver.Resolve"/> needs it from the adapter.</summary>
 /// <param name="Hit">The world hover, the adapter's pick (<see cref="HoverCursorResolver.FogHit"/> first); null when nothing was
 /// picked: input not allowed, the pointer over the HUD or off the map, or no camera.</param>
-/// <param name="Allowed">Ordinary input is on, the window focused and the pointer inside it (Unity also: no possession lock).</param>
+/// <param name="Allowed">Ordinary input is on, the window focused and the pointer inside it.</param>
 /// <param name="OverHud">The pointer is over the HUD (<see cref="HudPointerMap"/>), whether or not input is allowed.</param>
 /// <param name="PrimaryHeld">The primary button is down, for the tag cursor's hold.</param>
 /// <param name="Gold">The resource strip's gold, which prices the placement cursor.</param>
-/// <param name="Milliseconds">The host's wall clock (Unity's <c>Time.unscaledTimeAsDouble</c> in milliseconds).</param>
+/// <param name="Milliseconds">The host's wall clock, in milliseconds.</param>
 /// <param name="PointerWorld">Where the hand last pointed in the world, for the cursor's positional sounds.</param>
 public readonly record struct HoverCursorInput(WorldHoverHit? Hit, bool Allowed, bool OverHud, bool PrimaryHeld, int Gold,
     long Milliseconds, FpPosition2? PointerWorld);
 
 /// <summary>What the pointer shows this frame: the hand's cursor, the placement cursor (cage, tool icon, price), the creature the
 /// status flowers stamp as hovered, the hovered creature's sound, and whether the hit takes the Hand's red tint (and the 0x400
-/// blend). The adapter draws the overlay of <see cref="Placement"/> only while input is allowed, as Unity's runner did.</summary>
+/// blend). The adapter draws the overlay of <see cref="Placement"/> only while input is allowed.</summary>
 public readonly record struct HoverFeedback(HandCursorKind Cursor, PlacementFeedback Placement, CreatureQueryTarget HoveredCreature,
     SoundRequest? HoverSound, bool Tinted, bool TintBlended)
 {
@@ -33,7 +33,7 @@ public readonly record struct HoverFeedback(HandCursorKind Cursor, PlacementFeed
     public float TooltipReach => Cursor == HandCursorKind.Default ? 80 : HandCursor.Reach(Cursor);
 }
 
-/// <summary>Unity's DungeonRunner.CaptureWorldHover after the pick, moved out of the runner (migration plan step 2d): from the
+/// <summary>Resolves cursor feedback after the hover pick: from the
 /// pick, the tool state and the hand, the cursor, placement, tint, hover sound and hovered creature. It also holds the cast
 /// hand (<see cref="SpellCastCursor"/>) and the spell refusal that gates it (<see cref="CastPosted"/>). Picking, the hover text,
 /// drawing and playing sounds stay in the adapter. Presentation only: nothing here reaches the command stream.</summary>

@@ -8,12 +8,7 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The keyboard as the settings' DirectInput scan codes, the Godot counterpart of Unity's
-/// <c>ClassicKeyBindings</c>: the host feeds it key events, and <see cref="Read"/> answers held keys and the keys pressed
-/// since the last <see cref="EndFrame"/> (Unity's <c>GetKey</c> and <c>GetKeyDown</c>) to <see cref="GameBindingInput"/>.
-/// Keys are read by their physical position, as scan codes are; a key Unity's table has no entry for is ignored. It also
-/// keeps the text typed since the last <see cref="EndFrame"/> (<see cref="Typed"/>, Unity's <c>Input.inputString</c>) for the
-/// save page's name, whose editing rules are <see cref="SaveLoadHud.Type"/>'s.</summary>
+/// <summary>Maps physical key positions to DirectInput scan codes for the settings. <see cref="Read"/> answers held and newly pressed keys for <see cref="GameBindingInput"/>. <see cref="Typed"/> reports text typed since <see cref="EndFrame"/>.</summary>
 public sealed class ClassicKeyboard
 {
     private readonly bool[] _held = new bool[256];
@@ -28,22 +23,21 @@ public sealed class ClassicKeyboard
         _readPressed = scan => scan.Value is > 0 and < 256 && _pressed[scan.Value];
     }
 
-    /// <summary>Shift, Control and Alt from either side, as Unity's <c>ClassicKeyBindings.Modifiers</c>.</summary>
+    /// <summary>Shift, Control and Alt from either side.</summary>
     public KeyModifiers Modifiers =>
         (_held[0x2A] || _held[0x36] ? KeyModifiers.Shift : 0)
         | (_held[0x1D] || _held[0x9D] ? KeyModifiers.Control : 0)
         | (_held[0x38] || _held[0xB8] ? KeyModifiers.Alt : 0);
 
-    /// <summary>Escape went down this frame (Unity's <c>Input.GetKeyDown(KeyCode.Escape)</c>), whatever it is bound to.</summary>
+    /// <summary>Escape went down this frame, whatever it is bound to.</summary>
     public bool EscapePressed => _pressed[0x01];
 
-    /// <summary>Space went down this frame (Unity's <c>Input.GetKeyDown(KeyCode.Space)</c>), whatever it is bound to.</summary>
+    /// <summary>Space went down this frame, whatever it is bound to.</summary>
     public bool SpacePressed => _pressed[0x39];
 
     public GameBindingInput Read(GameSettings settings) => new(settings, Modifiers, _readHeld, _readPressed);
 
-    /// <summary>The characters typed since the last <see cref="EndFrame"/>, key repeats included, as Unity's
-    /// <c>Input.inputString</c> gives them (<see cref="TypedTextBuffer"/>).</summary>
+    /// <summary>Characters typed since the last <see cref="EndFrame"/>, including key repeats.</summary>
     public ReadOnlySpan<char> Typed => _typed.Text;
 
     /// <summary>Takes a key event; returns whether it was a key the table knows.</summary>
@@ -74,9 +68,8 @@ public sealed class ClassicKeyboard
         _typed.Add(kind, unicode is > 0 and <= uint.MaxValue ? (uint)unicode : 0);
     }
 
-    /// <summary>The scan code of a physical key; 0 for none. A key with no side (<see cref="KeyLocation.Unspecified"/>)
-    /// reads as the left one. This is the inverse of Unity's <c>ClassicKeyBindings.Key</c> table (0x01..0xD3), checked
-    /// row by row against it: the two tables must change together while both adapters exist.</summary>
+    /// <summary>Returns the DirectInput scan code for a physical key, or zero for an unmapped key.
+    /// An unspecified side (<see cref="KeyLocation.Unspecified"/>) resolves to the left key.</summary>
     public static int ScanCode(Key key, KeyLocation location)
     {
         bool right = location == KeyLocation.Right;

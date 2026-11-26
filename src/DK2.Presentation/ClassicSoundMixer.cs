@@ -10,8 +10,7 @@ namespace DK2.Presentation;
 
 /// <summary>The classic sound player's decisions without an engine (ADR-0805): which request plays on which pooled source, at
 /// what place and volume, the speech queue and its duck, the music and ambience streams and the terrain beds. The engine's
-/// sources come through <see cref="ISoundOutput"/>. Unity's <c>ClassicSoundPlayer</c> makes the same decisions and keeps its own
-/// copy until Unity is removed (migration plan step 5). A frame calls <see cref="PlayDecoded"/> and <see cref="UpdateSpeech"/>
+/// sources come through <see cref="ISoundOutput"/>. A frame calls <see cref="PlayDecoded"/> and <see cref="UpdateSpeech"/>
 /// first, then the level's driver (<see cref="LevelSoundDriver.Update"/>) and the frame's requests. Clips are decoded off the
 /// frame's thread (<see cref="SoundClipDecoder"/>); a frame that plays known clips allocates nothing.</summary>
 public sealed class ClassicSoundMixer : IDisposable

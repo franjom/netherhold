@@ -143,8 +143,8 @@ group 2 is a list to audit, not a finding.
       beneath it may show (see [Q855](research/open-questions.md)). The session action after Yes on
       Restart, Return to Menu and Quit and the other HUD keys (GUI toggle, Heart, portal and fight navigation) were
       wired later (2026-11-25, `InGameHud.SessionActions.cs`, with the level end's prompt, the rubber-band limit and the
-      hand's drop animation). Not wired in the options menu: `AllowOptionsKey`, passed true, where Unity's scripted camera path holds the key
-      back (step 2); and the open and close sounds 0x139 and 0x13A. Godot also has the
+      hand's drop animation). The options shortcut now uses the scripted camera's
+      `AllowOptionsKey`, and `ClassicHudControls` requests the open and close sounds 0x139 and 0x13A. Godot also has the
       full map (`ClassicFullMap.cs` over `FullMapHud`: M, scan 0x32, opens it, and M, Escape or a
       left or right press closes it; it draws the map image, the creature squares, the keepers' legend and the
       hovered room's icon on two `HudCanvas` layers over one reused `Image` and `ImageTexture`, uploaded
@@ -171,8 +171,8 @@ group 2 is a list to audit, not a finding.
       (142,0,0), (126,109,33) and (185,0,34), and in the "Player" legend's place and colour;
       synthesized Escape, M, left and right presses opened and closed it. Real input, the room hover,
       a legend with several keepers, the Unity runtime and the front end's brightness against Unity's are
-      unverified. Not wired on the full map: the camera preview at the top right (needs the 3D world; the move on a left press
-      is wired in 3b); the dig-tag and pickup
+      unverified at this step. The full map now renders its hover camera preview in a `SubViewport`
+      (`ClassicFullMap.PreparePreview`) and moves on a left press. The dig-tag and pickup
       previews are step 2 below, and whether the wheel does anything over it is
       [Q860](research/open-questions.md).
       The twelfth panel is the minimap (`ClassicMinimap.cs` over `MinimapHud`: the disc, frame, markers,
@@ -885,7 +885,7 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       is continuous; the classic per-vertex reference remains unchanged. Modern AO (`--light-post`) uses filtered
       compute passes before transparency. Historical cause, focused proofs, scoped scene validation and measured costs:
       [torch-light artifacts](../research/godot-torch-light-artifacts.md). Owner visual acceptance remains separate.
-- [ ] The rest of step 3, in the order of [the modern-rendering audit](2026-11-18-godot-modern-rendering-audit.md)
+- [x] The rest of step 3, in the order of [the modern-rendering audit](2026-11-18-godot-modern-rendering-audit.md)
       (ADR-0813; it supersedes the step-3 audit's move order from 3j; acceptance is the owner's eye, 3o's numbers and
       gameplay correctness, not byte-identity with Unity):
   - [x] 3o. Performance harness (2026-11-18, ADR-0813; audit item 0). `--perf-report <file>` on `InGameHud.tscn` samples
@@ -1114,10 +1114,11 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       read it unchanged.
       Every other probe is covered by Godot's check arguments, Movie Maker recipes, `perf.ps1` and the probe scenes, or
       by `DK2.Presentation` tests, or was a Unity-only check or reference frame whose purpose ended. `tools/hud-probe` is
-      deleted (it did not compile); its ignored `bin/` and `obj/` are left for the owner's cleanup. Step 5 may delete the
-      Unity probe tools and the 15 editor scripts, after moving what the tester package reads by path
-      (`game-unity-probe/draw_clock.py` and its test, `frame_budget.py`
-      and `install-presentmon.ps1`) and `capture-native-render-inputs.py`, which reads DK2's process, not Unity.
+      deleted (it did not compile); its ignored `bin/` and `obj/` are left for the owner's cleanup.
+      Step 5 moved `draw_clock.py`, `test_draw_clock.py`, `frame_budget.py`, `test_frame_budget.py`,
+      `compare-camera.py` and `capture-native-render-inputs.py` to `tools/perf/`, and
+      `install-presentmon.ps1` to `tools/tester-package/`. `frame_budget.py` now uses the tester package's
+      canonical `performance-target.json`. `compare_captures.py` imports `verify_render_proof` from the new location.
 - [x] Performance targets set again in Godot, from 3o's harness numbers (owner, 2026-11-15: Unity FPS work stopped),
       2026-11-25. `tools/tester-package/performance-target.json` holds the tiers (floor 60, desktop 120 FPS, every frame)
       that `summarise_capture.py` reads, and per-level harness ceilings (quiet 1080p medians plus 20% or 0.25 ms) that
@@ -1176,15 +1177,18 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 - [x] [Front-end Load Game and settings](../../godot/README.md#front-end-load-game-and-settings). The scripted Main scene
       resumed a Netherhold checkpoint, imported a synthetic DK2 save through Load Game and saved a key rebind.
 
-## Step 5: remove Unity (one change, at parity)
+## Step 5: remove Unity at parity
 
-- [ ] Delete `unity/`, the Unity-only tools and the CI steps for them (first move the files step 4's probes item lists).
-- [ ] Move every `src/` assembly from netstandard2.1 to net10.0: drop `src/Shared/UnityBound.props`
-      and the polyfills.
-- [ ] Supersede ADR-0690 (IL2CPP players); close ADR-0041's licensing question.
-- [ ] Update AGENTS.md, ARCHITECTURE, READMEs and `.gitignore`; remove the `unity-developer`
-      agent and the `unity@claude-plugins-official` plugin; drop the Unity font fallback in
-      `ClassicFrontEndMenuAssets`.
+2026-11-26. The parity re-audit found no remaining Unity-only player action. The
+preparation and removal commits keep the framework retarget separately verifiable
+(ADR-0824).
+
+- [x] Move the retained tools and font before removal (`909a6c5e2`). Keep the font local.
+- [x] Remove the tracked Unity adapter, its remaining probes, editor tooling and CI step.
+- [x] Supersede ADR-0690 (IL2CPP players) and close ADR-0041's runtime licensing question.
+- [x] Update the repository guides, agent configuration and ignore rules for Godot.
+- [ ] Retarget the shared assemblies to net10.0 and remove the old target props and shims.
+- [ ] Resolve the remaining retired-adapter helpers while preserving settings and replay compatibility.
 
 ## Step 6: tidy the C# codebase (owner, 2026-11-20; after step 5, on net10.0)
 

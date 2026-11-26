@@ -294,7 +294,7 @@ the native strict endpoint reversal.
 The adapter clamps the profile input to 0..1 before the fractional power, so
 MSAA edge extrapolation cannot produce a negative base and NaNs. The in-band
 profile is unchanged. D3D11 finite/additive regression results and the isolated
-launcher are documented in [the probe guide](../../tools/classic-unity-probe/README.md);
+launcher are documented in the probe guide in `git show 909a6c5e2:tools/classic-unity-probe/README.md`;
 owner acceptance in the live scene remains open.
 
 ### Native cage observations

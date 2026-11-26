@@ -6,7 +6,7 @@ systems: [hud-front-end]
 Status: 16 remake full-view captures and two preview captures prepared; matching DK2 screenshots and owner
 comparison pending. No visual acceptance is claimed. The standard is
 [ART_DIRECTION.md](../ART_DIRECTION.md); capture tooling and conditions are in
-[HUD_COMPARISON.md](../../tools/classic-unity-probe/HUD_COMPARISON.md).
+HUD_COMPARISON.md in `git show 909a6c5e2:tools/classic-unity-probe/HUD_COMPARISON.md`.
 
 ## Scene and matching-original request
 

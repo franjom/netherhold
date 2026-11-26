@@ -11,7 +11,7 @@ namespace DK2.Presentation;
 /// colour, and the intensity in 1/128 steps packed with the <see cref="ClassicLightFlags"/> above it.</summary>
 public readonly record struct ClassicTileLightSource(Vector4 PositionRadiusSquared, Vector3 Colour, uint IntensityFlags)
 {
-    /// <summary>The packing Unity's <c>ClassicTileLightBuffer</c> writes: <c>round(I x 128) | flags &lt;&lt; 8</c>.</summary>
+    /// <summary>Packed intensity and flags: <c>round(I x 128) | flags &lt;&lt; 8</c>.</summary>
     public static ClassicTileLightSource Of(in ClassicPointLight light) => new(
         new Vector4(light.Position.X, light.Position.Y, light.Position.Z, light.Radius * light.Radius), light.Colour,
         (uint)Math.Round(light.Intensity * 128f) | ((uint)light.Flags << 8));
@@ -21,7 +21,7 @@ public readonly record struct ClassicTileLightSource(Vector4 PositionRadiusSquar
 }
 
 /// <summary>What one vertex brings to <see cref="ClassicVertexLight.TableSum"/>: its object-space position and normal, the
-/// shader's light inputs (Unity's TEXCOORD1-3: the table anchor, the KMF bound sphere, the light kind), its object's
+/// shader's light inputs (table anchor, KMF bound sphere and light kind), its object's
 /// transform (System.Numerics, row vectors), and its world position and normal as the shader computed them.</summary>
 public readonly record struct ClassicLitVertex(Vector3 Position, Vector3 Normal, Vector2 TileAnchor, Vector4 LightBounds,
     Vector2 LightKind, Matrix4x4 ObjectToWorld, Vector3 WorldPosition, Vector3 WorldNormal);
@@ -35,10 +35,9 @@ public readonly ref struct ClassicTileLightGrid(ReadOnlySpan<ClassicTileLightSou
     public int Width { get; } = width;
 }
 
-/// <summary>The tested reference of the classic vertex-lit shaders' DK2 light (Unity's <c>ClassicVertexLit.shader</c>,
-/// <c>TileLightContribution</c> and <c>ClassicPointLighting.hlsl</c>; Godot's <c>WorldScene</c> shader): the table a
-/// vertex reads, the bound-sphere skip, the per-flag sum, and the packed diffuse. Nothing calls it at run time; each
-/// shader copies it in float arithmetic, and a change to one is made to the others. Its terms are those of
+/// <summary>The tested reference for the world shader's DK2 lighting: the table a vertex reads,
+/// the bound-sphere skip, the per-flag sum, and the packed diffuse. Keep the shader's float arithmetic
+/// in sync with this reference. Its terms are those of
 /// <see cref="ClassicPointLight"/> and <see cref="ClassicInstancePointLight"/> written as the shaders run them, which
 /// add nothing where those references throw (the 256-bin overflow, zero incidence in the first bin).</summary>
 public static class ClassicVertexLight

@@ -66,7 +66,7 @@ public static class PlayerRunReport
     /// <summary>What the report says no player run of this build checks; listed in every report.</summary>
     public static IReadOnlyList<string> Untested { get; } =
     [
-        "Unity rendering, audio and the real UI are not exercised (stages 4-5)",
+        "Rendering, audio and the real UI are not exercised (stages 4-5)",
         "no external model or agent drives the player (stage 3)",
         "front end, briefing, save/load, results and campaign continuation are not played",
         "milestones are not recorded as such; player-decisions.tsv and player-actions.tsv hold what was done",

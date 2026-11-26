@@ -16,7 +16,7 @@ page to `_Sidebar.md` under **Systems**.
 ````markdown
 # <System title>
 
-`Research: <chip>` · `Simulation: <chip>` · `Verified vs original: <chip>` · `Unity: <chip>`
+`Research: <chip>` · `Simulation: <chip>` · `Verified vs original: <chip>` · `Presentation: <chip>`
 
 <One sentence: what the system is, in the scope words of docs/systems.yaml.>
 
@@ -69,7 +69,7 @@ Each chip is one word from a fixed list, so they can be compared across pages.
 | Research | `read` · `partial` · `unread` | How much of the system's DK2 behaviour has been read in the binary and the shipped data |
 | Simulation | `built` · `partial` · `not built` | How much of it `DK2.Simulation` runs |
 | Verified vs original | `measured` · `spot-checked` · `none` | Whether runs of our simulation have been compared with DK2's own: `measured` means a replay or capture comparison over many events, `spot-checked` a few observations |
-| Unity | `drawn` · `partial` · `not drawn` | Whether the Unity presentation shows it |
+| Presentation | `drawn` · `partial` · `not drawn` | Whether the Godot presentation shows it |
 
 A chip states the page author's judgment on the date in the footer. The
 [[Status Matrix|Status-Matrix]] gives the counts behind it.

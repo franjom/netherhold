@@ -10,7 +10,7 @@ none does; the converter writes those entries out and `InstallArtProvider` reads
 `InstallArtProvider` is the converted tier over the install: it resolves a key to
 `AssetSource.InstallEntry` and loads the model and its textures, decoding each once.
 
-Targets `netstandard2.1` so the Unity adapter can load it; depends on `DK2.Data`. It writes
+Targets `netstandard2.1` and depends on `DK2.Data`. It writes
 nothing: the GLB and PNG writers are `DK2.Convert`'s. Original files and anything decoded from
 them stay out of the repository.
 
@@ -25,4 +25,4 @@ Format notes: `src/DK2.Convert/README.md`. Tests: `dotnet test tests/DK2.Convert
 `WadImageSource` supplies BMP24 and unmasked `.444` images as top-down RGBA,
 using an injected PNG decoder (`InstallFrontEndSources` in `DK2.Presentation` takes each engine's). Indexed reads
 preserve duplicate names; name lookup retains the archive's last-match behavior.
-The source owns its archive; callers own textures returned by the Unity adapter.
+The source owns its archive; the adapter owns the textures it uploads.

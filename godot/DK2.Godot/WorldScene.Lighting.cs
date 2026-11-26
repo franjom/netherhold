@@ -11,8 +11,8 @@ using NVector3 = System.Numerics.Vector3;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The classic lighting (plan step 3i), as Unity's <c>DungeonScene</c> and <c>ClassicVertexLit.shader</c> light
-/// the world: the scene's light sources in a <see cref="ClassicWorldLightCache"/>, the visible tiles' tables published by
+/// <summary>Classic world lighting: the scene's sources in a <see cref="ClassicWorldLightCache"/>,
+/// the visible tiles' tables published by
 /// <see cref="ClassicLightPublisher"/> into <see cref="LightTables"/>, and each lit vertex summing them in the world shader
 /// (Shaders/WorldLight.gdshaderinc, <see cref="ClassicVertexLight"/>), plus DK2's ambient and Godot's own fill and
 /// distance fade.</summary>
@@ -56,10 +56,10 @@ public partial class WorldScene
     private ClassicCameraPose _lightPose;
     private CameraViewport _lightViewport;
 
-    /// <summary>Unity's lighting probe's switch for its frames without torch lights (<c>--light-probe-no-torches</c>).</summary>
+    /// <summary>Disable torch lights for the render probe (<c>--light-probe-no-torches</c>).</summary>
     public bool ProbeWithoutTorches { get; set; }
 
-    /// <summary>Godot's fill (<c>--light-fill</c>), off as native ambient is in the owner's Unity scene.</summary>
+    /// <summary>Enable fill lighting with <c>--light-fill</c>.</summary>
     public bool Fill { get; set; }
 
     /// <summary>DK2's light evaluated per pixel (<c>--light-perpixel</c>): the same tables, formulas, clamp and pack as the
@@ -67,9 +67,8 @@ public partial class WorldScene
     /// Shaders/World.gdshaderinc). Set before <see cref="Open"/>; off, the light is evaluated per vertex.</summary>
     public bool PerPixelLight { get; set; }
 
-    /// <summary>The scene's lights over a <paramref name="width"/> by <paramref name="height"/> map: Unity's
-    /// <c>DungeonScene</c> constructor with classic vertex lighting, and its globals (ambient zero, as
-    /// <c>RenderSink_Init</c>; the look).</summary>
+    /// <summary>Initialize the light tables for a <paramref name="width"/> by <paramref name="height"/> map.
+    /// Start with zero ambient light, as in <c>RenderSink_Init</c>.</summary>
     private void OpenLighting(WorldState world, WorldView view, int width, int height)
     {
         _lightWorld = world;
@@ -81,7 +80,7 @@ public partial class WorldScene
         Global(LightTablesGlobal, RenderingServer.GlobalShaderParameterType.Sampler2Darray, _lightTables.Texture);
         Global(LightGridGlobal, RenderingServer.GlobalShaderParameterType.Ivec2, new Vector2I(width, height));
         Global(AmbientGlobal, RenderingServer.GlobalShaderParameterType.Vec3, Vector3.Zero);
-        // Without the fill every fill term is zero, as Unity's shader skips the block under native ambient.
+        // Set every fill term to zero while fill is disabled.
         Global(FillSkyGlobal, RenderingServer.GlobalShaderParameterType.Vec3, Fill ? FillSky : Vector3.Zero);
         Global(FillEquatorGlobal, RenderingServer.GlobalShaderParameterType.Vec3, Fill ? FillEquator : Vector3.Zero);
         Global(FillGroundGlobal, RenderingServer.GlobalShaderParameterType.Vec3, Fill ? FillGround : Vector3.Zero);
@@ -109,10 +108,10 @@ public partial class WorldScene
     public void SetAmbient(float level) =>
         RenderingServer.GlobalShaderParameterSet(AmbientGlobal, new Vector3(level, level, level));
 
-    /// <summary>The Hand's light (Unity's <c>SetHandLight</c>), drawn from the next <see cref="FinishFrame"/>.</summary>
+    /// <summary>The Hand's light, drawn from the next <see cref="FinishFrame"/>.</summary>
     public void SetHandLight(ClassicPointLight? light) => _handLight = light;
 
-    /// <summary>A tile's terrain light and whether it takes the full fill (Unity's <c>CreateTile</c>).</summary>
+    /// <summary>A tile's terrain light and whether it takes the full fill.</summary>
     private void SetTileLight(int tileIndex, in TileView tile)
     {
         _worldLights?.SetTerrain(tile.Position, tile.PointLight);
@@ -128,9 +127,9 @@ public partial class WorldScene
         SetShadowTorch(floorTileIndex, light);
     }
 
-    /// <summary>The frame's lights, in Unity's runner's order once the camera is placed: the entrances, the objects at the
-    /// drawn fraction, the Hand (the last frame's pick), then the visible tiles' tables published from the placed pose with
-    /// Unity's zero centre shift, pitch and yaw (audit open point 5), and the distance fade's far plane. AdvanceEffects
+    /// <summary>Once the camera is placed, publish lights for entrances, objects at the drawn fraction,
+    /// and the Hand from the last frame's pick. Build the visible tiles' tables from the placed pose
+    /// and the distance fade's far plane. AdvanceEffects
     /// has already published effect lights. Allocation-free once warm while the camera holds still.</summary>
     private void PrepareLighting()
     {
@@ -184,8 +183,8 @@ public partial class WorldScene
             Milliseconds(_lightTicks / Math.Max(1, _lightFrames - DrawWarmUp - _lightMovedFrames)), " ms mean and ",
             Milliseconds(_lightMaxTicks), " ms max with it still");
 
-    /// <summary>The light tables the shaders read (Unity's <c>ClassicTileLightBuffer</c> and <c>ClassicTileFillBuffer</c> in
-    /// one): a float texture array with a layer per row of tiles, <see cref="TexelsPerTile"/> texels a tile: the count and
+    /// <summary>The shader light tables: a float texture array with a layer per row of tiles,
+    /// <see cref="TexelsPerTile"/> texels a tile: the count and
     /// the fill weight, then two texels a source (position in Godot's frame and radius squared; colour and the packed
     /// intensity and flags, <see cref="ClassicTileLightSource"/>). A layer wraps every <see cref="TilesPerTextureRow"/>
     /// tiles onto a new texel row (<see cref="ClassicLightTableLayout"/>), so it stays within the 4,096 texels Vulkan
@@ -296,8 +295,8 @@ public partial class WorldScene
         }
     }
 
-    /// <summary>A gamma table of <paramref name="exponent"/> over the display values (Unity's <c>ClassicExposure</c>,
-    /// <c>pow(c, 30 / Gamma)</c>), folded into the camera's colour correction table: the 3D view's brightness, the HUD's
+    /// <summary>A gamma table of <paramref name="exponent"/> over display values, using <c>pow(c, 30 / Gamma)</c>.
+    /// Fold it into the camera's colour correction table so the 3D view's brightness changes with the HUD's
     /// canvas untouched, at no cost a frame; null is the default gamma.</summary>
     public void SetBrightness(float? exponent)
     {

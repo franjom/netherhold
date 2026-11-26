@@ -118,10 +118,10 @@ public sealed class WorldHoverPicker
         return _rendered == null || _rendered(candidate.Kind, candidate.EntityId);
     }
 
-    /// <summary>A drawn candidate's measures before its triangles (Unity's <c>DungeonScene.PickHoverEntity</c>). First the
+    /// <summary>A drawn candidate's measures before testing its triangles. First the
     /// view cull: DK2 tests the bounding sphere against the view's four side planes (0x00575D70) before the pick circle,
     /// so a sphere reaching behind the eye cannot hold every pointer (<see cref="HoverPickRules.CircleHolds"/>); ours tests
-    /// the bounds box against six planes (<see cref="ViewFrustum.Excludes(in PickBox)"/>), Unity's approximation. Then the
+    /// the bounds box against six planes (<see cref="ViewFrustum.Excludes(in PickBox)"/>). Then the
     /// screen circle of <paramref name="sphere"/> (placed; the adapter passes one only where the model's own is
     /// <see cref="PickSphere.Usable"/>), else of the bounds' centre and half diagonal; then <see cref="Admits"/> with the
     /// ray's entry into the bounds. On true, the adapter offers it with its triangle.</summary>

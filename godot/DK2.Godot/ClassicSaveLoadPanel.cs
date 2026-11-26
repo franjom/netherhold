@@ -9,14 +9,10 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The options menu's save and load pages, the Godot counterpart of Unity's <c>ClassicSaveLoadPanel</c>:
-/// <see cref="SaveLoadHud"/> (ADR-0805) decides every draw, hit and typed character, and a <see cref="HudCanvas"/> draws
-/// its frame over the whole screen at the screen's own scale (1920 virtual units high, as the options menu). While it shows
-/// it takes every mouse press from the panels under it, as Unity's runner gives every press to the open menu; a left
-/// press goes to the browser, and the wheel scrolls its list a line a notch.</summary>
+/// <summary>Draws the options menu's save and load pages. While open, it takes pointer presses before other panels. The browser handles primary-button presses.</summary>
 public partial class ClassicSaveLoadPanel : Node
 {
-    /// <summary>The canvas's image source: the browser draws set text only, as Unity's facade loads nothing.</summary>
+    /// <summary>The canvas's image source. The browser draws set text only.</summary>
     private static readonly RgbaImage BlankImage = new(1, 1, new byte[4]);
     private static readonly Func<string, RgbaImage> Blank = _ => BlankImage;
     private readonly HudFrame _frame = new();
@@ -24,7 +20,7 @@ public partial class ClassicSaveLoadPanel : Node
     private HudCanvas? _canvas;
     /// <summary>Local units per virtual unit (the screen height over 1920) at the last draw; 0 before it.</summary>
     private float _scale;
-    /// <summary>Wheel notches since the last <see cref="Show"/>, positive up (Unity's <c>Input.mouseScrollDelta.y</c>).</summary>
+    /// <summary>Wheel notches since the last <see cref="Show"/>, positive up.</summary>
     private int _wheel;
     private bool _frontEnd;
     private Vector2 _origin;
@@ -108,12 +104,12 @@ public partial class ClassicSaveLoadPanel : Node
         if (@event is not InputEventMouseButton { Pressed: true } button) return;
         GetViewport().SetInputAsHandled();
         // Two presses in one frame both see the page as last drawn: a press that changes the page (Back, Continue) is
-        // applied by the host, and this browser hears of it at the next Show. Unity polls the same way, once a frame.
+        // applied by the host, and this browser reads it at the next Show.
         switch (button.ButtonIndex)
         {
             case MouseButton.WheelUp: _wheel++; return;
             case MouseButton.WheelDown: _wheel--; return;
-            // Unity's canvas passes the button and the browser acts on the primary one only.
+            // The browser acts only on a primary-button press.
             case MouseButton.Left: _hud.PointerDown(button.Position.X / _scale, button.Position.Y / _scale, 0); return;
         }
     }

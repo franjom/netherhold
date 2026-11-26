@@ -4,7 +4,7 @@
 // DK2_BLEND_OPAQUE, DK2_BLEND_MIX or DK2_BLEND_ADD. The light step is per vertex, or per pixel with DK2_PER_PIXEL
 // (--light-perpixel), and DK2_TORCH_SHADOWS (--light-shadows) adds the torch shadows; WorldScene defines those two.
 // WorldLiquid.gdshader is the opaque state with DK2_LIQUID, the liquids' wave in the vertex step.
-// The colour buffer holds the stored bytes over 255 and blends them there, as DK2 and Unity's gamma space do.
+// The colour buffer holds the stored bytes over 255 and blends them in gamma space.
 uniform sampler2D albedo_texture : filter_linear_mipmap, repeat_disable;
 // A Color set on a plain vec4 is turned linear (material_storage.cpp, _fill_std140_variant_ubo_value).
 uniform vec4 base_colour : source_color, color_conversion_disabled = vec4(1.0);

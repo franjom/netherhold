@@ -19,9 +19,10 @@ The baseline sections below precede the renderer optimization described at the e
 
 ## Controlled experiment
 
-Run `tools/classic-unity-probe/run-tag-overlay.ps1 -PortalPerformance` with
-an activated Unity editor. It uses a marked isolated project, not the owner's
-open scene. `PortalPerformanceProbe.cs` uses the real Level2 data, effect165,
+The Unity experiment ran `run-tag-overlay.ps1 -PortalPerformance` in a marked
+isolated project. The script is archived at
+`git show 909a6c5e2:tools/classic-unity-probe/run-tag-overlay.ps1`.
+`PortalPerformanceProbe.cs` used the real Level2 data, effect165,
 `ClassicConstructionEffects`, `DungeonScene` lighting and `TransparentTerrain`.
 Simulation does not run. The camera is fixed; effect time advances 16ms per
 callback after a 2s preadvance, so moving particles exercise the dirty path.

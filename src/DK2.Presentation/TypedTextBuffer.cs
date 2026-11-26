@@ -7,7 +7,7 @@ namespace DK2.Presentation;
 /// <summary>What a pressed key types besides its character: Backspace and Enter type control characters.</summary>
 public enum TypedKey : byte { Other, Backspace, Enter }
 
-/// <summary>The characters typed in one frame, as Unity's <c>Input.inputString</c> gives them to
+/// <summary>The characters typed in one frame, as sent by
 /// <see cref="SaveLoadHud.Type"/>: Backspace as <c>'\b'</c>, Enter (either one) as <c>'\n'</c>, any other key as its
 /// Unicode code point (a surrogate pair above the BMP). A host feeds it each pressed key, key repeats included, reads
 /// <see cref="Text"/> and clears it once a frame. It holds a fixed number of characters; a key whose characters do not all

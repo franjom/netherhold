@@ -64,7 +64,7 @@ runs on every push to `master` and every pull request, on Linux and Windows:
 
 | Gate | Checks |
 |---|---|
-| Architecture | the simulation assemblies do not reference Unity (`ArchitectureTests`) |
+| Architecture | the simulation assemblies are engine-independent (`ArchitectureTests`) |
 | Determinism | the pinned hash and snapshot continuation (`DeterminismTests`, `SnapshotTests`) |
 | Test | the whole suite; tests that need a DK2 install skip without one, never pass (ADR-0100) |
 | Docs and KB | documentation budgets, the function knowledge base, commit messages |

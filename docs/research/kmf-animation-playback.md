@@ -98,7 +98,7 @@ possessed displacement rates are built; see animation-transitions.md. Meal,
 combat and training actions restart from their entry stamps. See §5 for the
 built choices; the complete status/action chooser remains a broader engine
 boundary. Actual Unity sampling/upload and standalone measurements are in
-tools/classic-unity-probe/README.md; shared arrays allocate nothing per sample.
+`git show 909a6c5e2:tools/classic-unity-probe/README.md`. Shared arrays allocated nothing per sample.
 
 The Release probe on this machine (200 instances, 300 renders, 2026-10-10) measured
 sampler-only cost: Imp 0.121 ms, Giant 0.132 ms, Salamander 0.125 ms, Mistress

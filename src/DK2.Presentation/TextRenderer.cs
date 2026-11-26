@@ -13,9 +13,8 @@ using DK2.Simulation;
 namespace DK2.Presentation;
 
 /// <summary>Draws a world as text, through the same <see cref="WorldView"/> and the same
-/// <see cref="IAssetProvider"/> chain a Unity view would use.
-/// <para>A second renderer is what proves the boundary is a boundary (Goal 11): if the view types
-/// were secretly Unity-shaped this would not compile, and unlike the Unity view it runs in CI.
+/// <see cref="IAssetProvider"/> chain used for the rendered world.
+/// <para>Rendering the same world as text in CI exercises the engine-neutral boundary (Goal 11).
 /// Every glyph falls back to <see cref="PlaceholderProvider.GlyphFor"/> when nothing resolved, so
 /// a run with no converted assets looks like what it is.</para>
 /// <para>Not a game interface: no input, no camera, no scrolling — it renders a rectangle of a

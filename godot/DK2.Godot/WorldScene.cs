@@ -55,7 +55,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private int _generation;
 
     // The blended stream: a chunk's blended faces over its tiles' vertices, per material in first-use order across
-    // rebuilds (as Unity's TerrainChunks keeps one dictionary), and the run slots that draw the stream.
+    // rebuilds, and the run slots that draw the stream.
     private BlendedTerrainStream<ShaderMaterial>? _blended;
     private readonly List<BlendedVertex> _blendedVertices = new();
     private readonly Dictionary<ShaderMaterial, List<int>> _blendedByMaterial = new();
@@ -134,7 +134,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         IEnumerable<ArtEntry>? additionalArt)
     {
         _art = InstallArtProvider.Open(install, level.Database, additionalArt);
-        // DungeonRunner's defaults: the lattice bends the terrain, with DK2's high walls.
+        // Bend the terrain with the lattice and draw DK2's high walls by default.
         var lattice = new TerrainLattice(level.Database, world, viewer) { HighWalls = true };
         _lattice = lattice;
         _terrain = new TerrainChunkScheduler(new InstallTerrainPieces(_art), world.Width, world.Height, lattice, stateTexture: true);
@@ -161,7 +161,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             _white = ImageTexture.CreateFromImage(white);
         }
 
-        // The install, then the placeholder, as Unity's chain without its optional folders. The first present builds
+        // Look up the install art, then the placeholder. The first present builds
         // every chunk inline, so the level appears whole.
         OpenObjects(_art, level.Database, world.Width, world.Height);
         _presenter = new ScenePresenter(view, AssetProviderChain.Standard(install: _art), this, new TorchLayout(level.Database));
@@ -170,7 +170,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             _collectionsAtOpen[generation] = GC.CollectionCount(generation);
     }
 
-    /// <summary>The scene's one camera, with Unity's near plane, the gamma output and the post effects, placed now.</summary>
+    /// <summary>Place the scene's camera with the default near plane, gamma output and post effects.</summary>
     private void OpenCamera()
     {
         _camera = new Camera3D
@@ -188,8 +188,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         PlaceCamera();
     }
 
-    /// <summary>The bottom panel's collapse moves the view axis (Unity's runner's <c>CollapsedChanged</c> handler,
-    /// <see cref="ClassicCamera.ProjectionCentreFromTop"/>); drawn at the next <see cref="PlaceCamera"/>.</summary>
+    /// <summary>The bottom panel's collapse moves the view axis (<see cref="ClassicCamera.ProjectionCentreFromTop"/>).
+    /// Drawn at the next <see cref="PlaceCamera"/>.</summary>
     public void SetPanelCollapsed(bool collapsed)
     {
         if (ClassicCamera == null) return;
@@ -198,7 +198,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     }
 
     /// <summary>The classic camera's pose at <see cref="Focus"/> for the current viewport, through the frame change, with
-    /// Unity's off-centre projection (<c>projection[1,2] = -shift</c>) as a frustum offset; the camera is written only
+    /// the off-centre projection as a frustum offset. Write the camera only
     /// when the pose changed. Allocation-free.</summary>
     public ScriptedViewDirector? ScriptedView { get; set; }
     public float LetterboxBar => ScriptedView?.LetterboxBar ?? 0;
@@ -294,8 +294,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         return new Aabb(low, a.Max(b) - low);
     }
 
-    /// <summary>The ray through a screen pixel (top-left origin), in the renderers' frame, as Unity's <c>ScreenPointToRay</c>
-    /// casts it through the off-centre frustum (<see cref="MinimapCameraView.RayDirection"/>), from the camera as last
+    /// <summary>Cast a ray from a screen pixel with top-left origin through the off-centre frustum
+    /// (<see cref="MinimapCameraView.RayDirection"/>), from the camera as last
     /// placed (<see cref="PlaceCamera"/>); false before the first placement. Not <see cref="Camera3D.ProjectRayNormal"/>:
     /// 4.8's assumes a symmetric frustum and drops the frustum offset (<c>Projection::get_viewport_half_extents</c>, c51ff06e8).</summary>
     public bool TryPickRay(Vector2 screen, out NVector3 origin, out NVector3 direction)
@@ -419,7 +419,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             }
             if (_blendedMaterials.Contains(material))
             {
-                // Unity's chunk: the tile's vertices in the renderers' frame once, its blended triangles numbered from them.
+                // Write each tile's render vertices once and index its blended triangles into them.
                 if (blendedStart < 0)
                 {
                     blendedStart = _blendedVertices.Count;
@@ -445,10 +445,10 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             material = WorldMaterial(look.Texture, look.Blend, look.WritesDepth, look.FullLight, look.Colour, look.AddedLight);
             ConfigureTerrainMaterial(material, key, look);
             _lookMaterials.Add(shaderKey, material);
-            // Unity's split: render queue Transparent, which every non-opaque look takes.
+            // Every non-opaque look goes to the transparent queue.
             if (look.Blend != KmfBlend.Opaque) _blendedMaterials.Add(material);
         }
-        // Unity's DK2TagOverlay tag: the dig tag's and the tutorial's additive pass, which DK2 draws with its opaque base
+        // The dig tag and tutorial additive pass draw with the opaque base
         // before every depth-sorted triangle (tag-highlight.md section 3), so before every other blended thing here.
         if (key.IsOverlay) _overlayMaterials.Add(material);
         _keyMaterials.Add(key, material);
@@ -773,9 +773,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         }
     }
 
-    /// <summary>The cage as Unity's <c>ClassicTileHoverOutline</c> draws it (plan step 3e): <see cref="TileHoverRibbon"/>'s
-    /// triangles unindexed in one dynamic surface, zero-area triangles past the ribbon, drawn by Shaders/Cage.gdshader
-    /// (Unity's <c>ClassicHoverOutline.shader</c>). Its box is the ribbon's, so Godot keys it by the distance to the
+    /// <summary>Draw the cage with <see cref="TileHoverRibbon"/>'s triangles unindexed in a dynamic surface.
+    /// Pad with zero-area triangles. Its box is the ribbon's, so Godot keys it by the distance to the
     /// ribbon's centre among the blended runs and objects (<see cref="RunSlot"/>).</summary>
     private sealed class CageRibbon
     {

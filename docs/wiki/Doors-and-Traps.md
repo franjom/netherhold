@@ -1,6 +1,6 @@
 # Doors and traps
 
-`Research: read` · `Simulation: built` · `Verified vs original: spot-checked` · `Unity: partial`
+`Research: read` · `Simulation: built` · `Verified vs original: spot-checked` · `Presentation: partial`
 
 Door and trap placement, manufacture, triggering and effects: what a keeper's blueprints become, how a door opens, locks and is fought, and how every shipped trap fires.
 

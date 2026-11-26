@@ -48,7 +48,7 @@ public sealed class InstallCreatureOverviewArt
     /// <summary>The type's portrait catalogue image (record <c>+0xD40</c>).</summary>
     public string Portrait(CreatureOverviewType type) => _portraits[type.Value];
 
-    /// <summary>The type's <c>Text.str</c> name; <paramref name="fallback"/> is not used, as Unity's reader never used it.</summary>
+    /// <summary>The type's <c>Text.str</c> name.</summary>
     public string Name(CreatureOverviewType type, string fallback) => _text(_database.CreatureById(type.Value).NameStringId);
 
     /// <summary>The type's overview order (record byte <c>+0xCF6</c>).</summary>

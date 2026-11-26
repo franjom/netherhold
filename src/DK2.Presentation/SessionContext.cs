@@ -23,7 +23,7 @@ public sealed record SessionContext(string LevelName, GameSessionMode Mode, Fron
     /// <summary>A campaign level started from the front end's map, which records its result in the profile.</summary>
     public bool LaunchedFromFrontEnd => StartedFromFrontEnd(Mode, ReturnPage);
 
-    /// <summary>The session a level scene starts, as Unity's runner takes it from the request that replaced the last one: a
+    /// <summary>The session a level scene starts from the request that replaced the last scene: a
     /// loaded save or a restart (<paramref name="resumed"/>) first, then the campaign map's launch (<paramref name="launched"/>),
     /// else the scripted arguments' level (Level1 when none), started as the map starts one with
     /// <paramref name="fromMap"/> and directly, returning to no page, without it.</summary>

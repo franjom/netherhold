@@ -1,7 +1,5 @@
 {
-  "enabledPlugins": {
-    "unity@claude-plugins-official": true
-  },
+  "enabledPlugins": {},
   "includeCoAuthoredBy": false,
   "attribution": {
     "commit": "Assisted-by: Claude <noreply@anthropic.com>",

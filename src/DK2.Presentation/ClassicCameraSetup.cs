@@ -8,7 +8,7 @@ using DK2.Data.Model;
 
 namespace DK2.Presentation;
 
-/// <summary>The ordinary camera a level starts with, as Unity's runner set it up (migration plan step 2i): the chosen
+/// <summary>The ordinary camera a level starts with: the chosen
 /// preset with its zoom-out limit scaled, the reference screen width, the controls over the map's focus bounds, and the
 /// viewer's start focus.</summary>
 public sealed class ClassicCameraSetup

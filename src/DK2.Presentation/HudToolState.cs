@@ -20,9 +20,9 @@ public enum DungeonToolMode : byte
     CreateImp = 6,
 }
 
-/// <summary>The HUD's tool state, moved out of Unity's runner (migration plan step 2b): the tool, the bottom panel's
+/// <summary>The HUD's tool state: the tool, the bottom panel's
 /// choice, the query tool, the selected minimap corner and the room the build tool places. Each reset is its own
-/// transition and resets exactly what its Unity call site reset; the six differ, and the differences are an open point
+/// transition and resets the relevant state. The six differ, and the differences are an open point
 /// (docs/plans/2026-11-16-godot-step2-audit.md, "Tool resets"), not settled here.</summary>
 public sealed class HudToolState
 {
@@ -50,7 +50,7 @@ public sealed class HudToolState
         }
     }
 
-    /// <summary>A session's start (DungeonRunner.StartGame): the configured tool, the hand unless it is one of the four,
+    /// <summary>A session starts with the configured tool, the hand unless it is one of the four,
     /// and the configured room. The other fields are left as they are.</summary>
     public void StartWith(DungeonToolMode tool, RoomTypeId room)
     {

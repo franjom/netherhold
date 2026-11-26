@@ -8,8 +8,8 @@ namespace DK2.Presentation;
 
 /// <summary>The tool icon, the No Go icon over it and the price beside the hand, or in Hand mode the held-item icons with
 /// I-Dismiss or No Go over them (0x0040CAE0, 0x0040CFE0, docs/research/placement-cursor.md section 3), as a
-/// <see cref="HudFrame"/> in screen pixels over 1920-high virtual units, out of Unity's <c>ClassicPlacementOverlay.Draw</c>
-/// (plan step 3e). The draw order is DK2's: held icon 0, I-Dismiss inside its draw (0x0040D58B..0x0040D5AF), held icons
+/// <see cref="HudFrame"/> in screen pixels over 1920-high virtual units. DK2 draws held icon 0,
+/// I-Dismiss inside its draw (0x0040D58B..0x0040D5AF), then held icons
 /// 1..7, the overflow icon (0x0040D1F1..0x0040D27C), No Go over them (0x0040CF1E); then the price digits.</summary>
 [DK2.Core.Dk2Behavior(DK2.Core.Confidence.StronglyInferred, "docs/research/placement-cursor.md")]
 public sealed class PlacementCursorHud

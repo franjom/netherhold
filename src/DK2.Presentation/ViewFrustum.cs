@@ -47,7 +47,7 @@ public readonly struct ViewFrustum
             Normalised(row3 - row1), Normalised(row3 + row2), Normalised(row3 - row2));
     }
 
-    /// <summary>The frustum Unity's camera has at <paramref name="pose"/> (<c>DungeonRunner.ApplyCameraPose</c>): a
+    /// <summary>The frustum of the camera at <paramref name="pose"/>: a
     /// perspective of the pose's vertical field of view over <paramref name="aspect"/> (width over height), from
     /// <paramref name="near"/> to the pose's far distance but at least 0.01 beyond the near, with
     /// <c>projection[1, 2] = -shift</c>, looking along the forward with the pose's up (<c>Quaternion.LookRotation</c>).</summary>

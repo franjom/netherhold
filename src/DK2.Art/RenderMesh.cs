@@ -9,7 +9,7 @@ namespace DK2.Art;
 
 /// <summary>
 /// One KMF mesh in the renderer's frame, ready to copy into an engine: X east, Y up, Z north,
-/// one unit a tile, left-handed (Unity's). Triangles are grouped by material, one list per
+/// one unit a tile, left-handed. Triangles are grouped by material, one list per
 /// <see cref="KmfModel.Materials"/> entry, empty where a material is unused.
 /// </summary>
 /// <remarks>

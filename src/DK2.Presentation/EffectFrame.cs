@@ -6,7 +6,7 @@ using DK2.Simulation;
 
 namespace DK2.Presentation;
 
-/// <summary>A frame's effect requests in Unity's runner order (<c>DungeonRunner.Update</c>), which decides how the shared
+/// <summary>A frame's effect requests in processing order, which decides how the shared
 /// effect generator (<see cref="RoomConstructionParticles"/>, seeded) hands out its numbers: after the present, the loose
 /// level gems' idle effects for the turns crossed (<see cref="AfterPresent"/>); then the scene frame's requests, a Heart's
 /// mana effect and a gem carrier's sparkle (<see cref="RequestFromScene"/>); then the shots' bodies and the updates due

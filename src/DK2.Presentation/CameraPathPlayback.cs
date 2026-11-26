@@ -9,7 +9,7 @@ using DK2.Simulation;
 
 namespace DK2.Presentation;
 
-/// <summary>Where a camera path puts the view this frame, in Unity's axes (x east, y up,
+/// <summary>Where a camera path puts the view this frame in rendering coordinates (x east, y up,
 /// z north negated), as <see cref="ClassicCameraPose"/> gives them.</summary>
 /// <param name="FieldOfView">DK2's horizontal field of view, radians: the focal length is
 /// <c>screenWidth / (2 tan(fov / 2))</c> pixels.</param>

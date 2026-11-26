@@ -9,14 +9,10 @@ using Godot;
 
 namespace DK2.GodotAdapter;
 
-/// <summary>The in-game options menu over the paused level, the Godot counterpart of Unity's <c>ClassicOptionsPanel</c>:
-/// <see cref="OptionsHud"/> (ADR-0805) decides every draw and hit, and a <see cref="HudCanvas"/> draws its frame over the
-/// whole screen at the screen's own scale (1920 virtual units high; the HUD scale does not apply, as in Unity). While it
-/// shows it takes every mouse press from the panels under it; the host's <see cref="HudPressRouter"/> asks
-/// <see cref="ActionAt"/> on a left press, and what it does is <see cref="OptionsHud.HudAction"/>.</summary>
+/// <summary>Draws the in-game options menu over the paused level at the screen's own scale. While open, it takes pointer presses before the panels underneath.</summary>
 public partial class ClassicOptionsPanel : Node
 {
-    /// <summary>The canvas's image source: the menu draws set text only, as Unity's facade loads nothing.</summary>
+    /// <summary>The canvas's image source. The menu draws set text only.</summary>
     private static readonly RgbaImage BlankImage = new(1, 1, new byte[4]);
     private static readonly Func<string, RgbaImage> Blank = _ => BlankImage;
     private readonly HudFrame _frame = new();
@@ -53,7 +49,7 @@ public partial class ClassicOptionsPanel : Node
 
     public void SetPage(ClassicOptionsPage page, ClassicSessionAction confirmation) => _hud?.SetPage(page, confirmation);
 
-    /// <summary>Whether the menu shows: it holds the whole screen, as Unity's facade answers.</summary>
+    /// <summary>Whether the full-screen options menu is open.</summary>
     public bool ContainsPointer(Vector2 screenPosition) => _hud != null && _hud.Visible;
 
     /// <summary>Lays the page out for the viewport and presents it, the entry under the pointer lit.</summary>
@@ -71,7 +67,7 @@ public partial class ClassicOptionsPanel : Node
         _canvas.Present(_frame, Vector2.Zero, _scale, 1);
     }
 
-    /// <summary>The supported entry under a screen pixel (Unity's facade's <c>ActionAt</c>), None off the entries or
+    /// <summary>The supported entry under a screen pixel, None off the entries or
     /// before the first draw.</summary>
     public ClassicOptionsAction ActionAt(Vector2 screenPosition)
     {
@@ -86,7 +82,7 @@ public partial class ClassicOptionsPanel : Node
 
     public override void _Input(InputEvent @event)
     {
-        // Unity's runner gives every frame to the open menu (QueueHudInput): the panels under it get no press. The router
+        // While the options menu is open, panels beneath it get no presses. The router
         // reads the press from the window; this node and the router decide on the same state.
         if (@event is InputEventMouseButton { Pressed: true } && HoldsPresses?.Invoke() == true) GetViewport().SetInputAsHandled();
     }
@@ -97,6 +93,6 @@ public partial class ClassicOptionsPanel : Node
         if (what == NotificationPredelete) { HoldsPresses = null; _hud = null; _canvas = null; }
     }
 
-    /// <summary>A screen pixel (top-left origin) in virtual units: Unity's <c>Virtual</c>, 1920 over the screen height.</summary>
+    /// <summary>Convert a screen pixel with top-left origin to virtual units, 1920 per screen height.</summary>
     private (float X, float Y) ToVirtual(Vector2 screen) => (screen.X / _scale, screen.Y / _scale);
 }

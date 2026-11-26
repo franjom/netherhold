@@ -139,7 +139,7 @@ public sealed class MinimapHud
         && x >= 8 * Unit && x < 192 * Unit && y > 584 * Unit && y <= 768 * Unit;
 
     /// <summary>The drawn camera, whose footprint the whole-map disc shows (<see cref="MinimapCameraFootprint"/>, turned by
-    /// the camera's yaw), cut to the disc's circle as Unity's footprint element was; null, or a corner ray that misses
+    /// the camera's yaw), cut to the disc's circle. Null, or a corner ray that misses
     /// the floor, shows none.</summary>
     public void SetCamera(MinimapCameraView? view)
     {
@@ -174,7 +174,7 @@ public sealed class MinimapHud
         return true;
     }
 
-    /// <summary>What a press on the minimap does (DungeonRunner.QueueHudInput): a corner's action, else
+    /// <summary>What a press on the minimap does: a corner's action, else
     /// <see cref="ClassicHudAction.ToggleFullMap"/> for a secondary press on the map that resolves to a tile; None
     /// otherwise. A primary press on the map moves the camera (<see cref="TryNavigate"/>), which the host asks after its
     /// other HUD presses.</summary>
@@ -228,7 +228,7 @@ public sealed class MinimapHud
     public void Build(HudScreen screen, (float X, float Y) pointer, Dk2Angle heading, HudFrame frame)
     {
         if (!_visibility.ShowNormalHud || screen.Height <= 0) return;
-        // Over the disc and under the frame: the remake's choice, as in Unity's footprint element, the native z-order being
+        // Draw over the disc and under the frame. The native z-order is
         // unread (minimap-rendering.md). Whole map only.
         if (_zoom.IsWholeMap && _footprintCount > 0)
             frame.AddTriangles(FootprintArt, new ReadOnlySpan<HudVertex>(_footprint, 0, _footprintCount), HudColor.White);

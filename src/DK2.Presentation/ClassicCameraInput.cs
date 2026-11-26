@@ -20,7 +20,7 @@ namespace DK2.Presentation;
 public readonly record struct CameraPointerSample(Vector2 Position, int ScreenWidth, int ScreenHeight, bool Focused,
     bool OverHud, float Wheel);
 
-/// <summary>The ordinary camera's input mapping, from Unity's runner (migration plan step 2i): the edge scroll, the
+/// <summary>The ordinary camera's input mapping: edge scroll,
 /// bound keys, the wheel and key zoom and the held-button mouse rotate and zoom, over <see cref="ClassicCameraControls"/>.</summary>
 public static class ClassicCameraInput
 {
