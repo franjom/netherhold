@@ -834,7 +834,7 @@ public static class FightRules
     }
 
     // Per thread, not per process: the original is single-threaded, the test host is not.
-    [ThreadStatic] private static List<Fixed16Vector>? _routeScratch;
+    [ThreadStatic] private static List<Fixed16Vector>? s_routeScratch;
 
-    private static List<Fixed16Vector> RouteScratch => _routeScratch ??= [];
+    private static List<Fixed16Vector> RouteScratch => s_routeScratch ??= [];
 }

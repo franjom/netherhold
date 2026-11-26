@@ -189,7 +189,7 @@ public sealed class HeartDefenceSystem : IRoomTickStep
             return true;
         }
 
-        List<Steering.Fixed16Vector> points = _routeScratch ??= [];
+        List<Steering.Fixed16Vector> points = s_routeScratch ??= [];
         points.Clear();
         // The found word is the route's point count (0x004D0F4B), as the travel's own test
         // (RouteWindow.Request) asks for a non-empty route.
@@ -201,5 +201,5 @@ public sealed class HeartDefenceSystem : IRoomTickStep
     }
 
     // Per thread, as the other route queries' scratch: two worlds can tick at once.
-    [ThreadStatic] private static List<Steering.Fixed16Vector>? _routeScratch;
+    [ThreadStatic] private static List<Steering.Fixed16Vector>? s_routeScratch;
 }

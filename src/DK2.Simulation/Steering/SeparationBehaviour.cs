@@ -23,9 +23,9 @@ public static class SeparationBehaviour
     public const int ArrivalSlack = 0x8000;
 
     // Per thread, not per process: the original is single-threaded, the test host is not.
-    [ThreadStatic] private static List<SteeringNeighbour>? _scratch;
+    [ThreadStatic] private static List<SteeringNeighbour>? s_scratch;
 
-    private static List<SteeringNeighbour> Scratch => _scratch ??= new List<SteeringNeighbour>();
+    private static List<SteeringNeighbour> Scratch => s_scratch ??= new List<SteeringNeighbour>();
 
     public static Fixed16Vector Compute(SteeringBody body, SteeringMover mover, ISteeringWorld world)
     {

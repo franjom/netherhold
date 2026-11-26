@@ -11,7 +11,7 @@ namespace DK2.Simulation;
 public static class AnimationTimingRules
 {
     private const int One = 4096;
-    [ThreadStatic] private static CreatureState? _countedClock;
+    [ThreadStatic] private static CreatureState? s_countedClock;
 
     public static int KnockdownHoldTicks(CreatureDef definition) => ActionHoldTicks(
         SlotOrFallback(definition.KnockdownAnimation, definition.KnockdownFallbackAnimation));
@@ -80,7 +80,7 @@ public static class AnimationTimingRules
             return 1;
         }
 
-        CreatureState clock = _countedClock ??= new CreatureState();
+        CreatureState clock = s_countedClock ??= new CreatureState();
         bool hasStart = (animation.Flags & CreatureAnimationFlags.StartSegment) != 0 && animation.StartSegmentFrames != 0;
         int frames = hasStart ? animation.StartSegmentFrames : animation.FrameCount;
         clock.ActionAnimationPhase = 0;

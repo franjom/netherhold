@@ -78,8 +78,8 @@ public static class ApproachRules
         return false;
     }
 
-    [ThreadStatic] private static List<Fixed16Vector>? _scratch;
-    private static List<Fixed16Vector> Scratch => _scratch ??= [];
+    [ThreadStatic] private static List<Fixed16Vector>? s_scratch;
+    private static List<Fixed16Vector> Scratch => s_scratch ??= [];
 
     /// <summary>Stops the approach and enters the current resume state, including one
     /// replaced during reselection.</summary>

@@ -16,9 +16,9 @@ public static class RepelObstacleRules
     public const int Weight = 0x6666;
 
     // Per thread, not per process: the original is single-threaded, the test host is not.
-    [ThreadStatic] private static List<SteeringObstacle>? _scratch;
+    [ThreadStatic] private static List<SteeringObstacle>? s_scratch;
 
-    private static List<SteeringObstacle> Scratch => _scratch ??= new List<SteeringObstacle>();
+    private static List<SteeringObstacle> Scratch => s_scratch ??= new List<SteeringObstacle>();
 
     public static Fixed16Vector Compute(SteeringBody body, ISteeringWorld world)
     {

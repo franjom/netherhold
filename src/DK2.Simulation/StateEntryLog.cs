@@ -28,26 +28,26 @@ public static class StateEntryLog
     private static readonly ConcurrentDictionary<int, string> FirstCaller = new();
 
     // Per thread, because a suspended test and a recorded one may run at the same time.
-    [ThreadStatic] private static int _suspended;
+    [ThreadStatic] private static int s_suspended;
 
     /// <summary>Stops recording on this thread until the result is disposed: for a test that
     /// drives the transition gate with arbitrary ids, which is not the game entering them.</summary>
     public static Suspension Unrecorded()
     {
-        _suspended++;
+        s_suspended++;
         return default;
     }
 
     /// <summary>The scope <see cref="Unrecorded"/> opens.</summary>
     public readonly struct Suspension : IDisposable
     {
-        public void Dispose() => _suspended--;
+        public void Dispose() => s_suspended--;
     }
 
     // A set bit is never cleared, so the loop ends.
     internal static void Record(int stateId)
     {
-        if (_suspended > 0)
+        if (s_suspended > 0)
         {
             return;
         }
