@@ -13,7 +13,7 @@ namespace DK2.Simulation.Tests;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 internal sealed class StatesUnrecordedAttribute : BeforeAfterTestAttribute
 {
-    [ThreadStatic] private static StateEntryLog.Suspension? _scope;
+    [ThreadStatic] private static StateEntryLog.Suspension? s_scope;
 
     public override void Before(MethodInfo methodUnderTest)
     {
@@ -23,12 +23,12 @@ internal sealed class StatesUnrecordedAttribute : BeforeAfterTestAttribute
             throw new InvalidOperationException($"{methodUnderTest.Name}: StatesUnrecorded needs a synchronous test.");
         }
 
-        _scope = StateEntryLog.Unrecorded();
+        s_scope = StateEntryLog.Unrecorded();
     }
 
     public override void After(MethodInfo methodUnderTest)
     {
-        _scope?.Dispose();
-        _scope = null;
+        s_scope?.Dispose();
+        s_scope = null;
     }
 }

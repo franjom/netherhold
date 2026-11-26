@@ -266,7 +266,7 @@ public class CombatCategoryHooksTests
     // The Combat leave delegate, wrapped once for the process with a counter for watched creatures;
     // the wrapper calls the original, so other tests running at the same time see no difference.
     private static readonly ConcurrentDictionary<CreatureState, int> Watched = new();
-    private static Delegate? original;
+    private static Delegate? s_original;
     private static readonly object InstallGate = new();
 
     private static int LeaveRuns(CreatureState creature, Action act)
@@ -282,15 +282,15 @@ public class CombatCategoryHooksTests
     {
         lock (InstallGate)
         {
-            if (original is not null)
+            if (s_original is not null)
             {
                 return;
             }
 
             var leaves = (Array)typeof(CategoryHooks).GetField("Leaves", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
-            original = (Delegate)leaves.GetValue((int)CreatureStateCategory.Combat)!;
+            s_original = (Delegate)leaves.GetValue((int)CreatureStateCategory.Combat)!;
             MethodInfo counting = typeof(CombatCategoryHooksTests).GetMethod(nameof(Counting), BindingFlags.NonPublic | BindingFlags.Static)!;
-            leaves.SetValue(Delegate.CreateDelegate(original.GetType(), counting), (int)CreatureStateCategory.Combat);
+            leaves.SetValue(Delegate.CreateDelegate(s_original.GetType(), counting), (int)CreatureStateCategory.Combat);
         }
     }
 
@@ -301,6 +301,6 @@ public class CombatCategoryHooksTests
             Watched[creature] = n + 1;
         }
 
-        original!.DynamicInvoke(hooks, creature);
+        s_original!.DynamicInvoke(hooks, creature);
     }
 }

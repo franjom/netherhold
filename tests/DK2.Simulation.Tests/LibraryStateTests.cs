@@ -434,16 +434,16 @@ public class LibraryStateTests
 
     private sealed class ChangeNeighbourOnce : ISimulationSystem
     {
-        private bool changed;
+        private bool _changed;
         public string Name => "change Library neighbour";
         public void Execute(SimulationContext context)
         {
-            if (changed)
+            if (_changed)
             {
                 return;
             }
 
-            changed = true;
+            _changed = true;
             ref TileState tile = ref context.World.Tile(4, 2);
             (byte before, PlayerId owner) = (tile.TerrainId, tile.OwnerPlayerId);
             tile.TerrainId = Dk2TerrainFixture.ReinforcedWall;
