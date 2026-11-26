@@ -25,7 +25,7 @@ public sealed class ClassicSoundMixer : IDisposable
     /// <summary>The music and ambience segments' rate; the queue starts its next segment with a second left.</summary>
     private const int StreamRate = 22050;
 
-    private static readonly Func<Source, bool> s_playing = source => source.Engine.IsPlaying;
+    private static readonly Func<Source, bool> Playing = source => source.Engine.IsPlaying;
 
     private readonly ISoundOutput _output;
     private readonly IClassicSoundAssets _assets;
@@ -331,7 +331,7 @@ public sealed class ClassicSoundMixer : IDisposable
 
         SoundResolver resolver = Resolver(request.Category);
         SoundPriority? priority = resolver.PriorityOf(request.Id);
-        if (!priority.HasValue || _voices.CanRetain(request.Voice, priority.Value, s_playing))
+        if (!priority.HasValue || _voices.CanRetain(request.Voice, priority.Value, Playing))
         {
             return;
         }

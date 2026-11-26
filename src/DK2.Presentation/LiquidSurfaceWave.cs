@@ -80,8 +80,8 @@ public sealed class LiquidSurfaceWave
     /// <summary>The longest sine table (lava's): the size a shader's copy of <see cref="Sines"/> needs.</summary>
     public const int MaximumSines = 128;
 
-    private static readonly float[] s_waterSines = BuildSines(LiquidSurface.Water);
-    private static readonly float[] s_lavaSines = BuildSines(LiquidSurface.Lava);
+    private static readonly float[] WaterSines = BuildSines(LiquidSurface.Water);
+    private static readonly float[] LavaSines = BuildSines(LiquidSurface.Lava);
 
     /// <summary>Each axis phase as a whole step of its liquid's sine table, the table's index being
     /// (tile*<see cref="PhaseTileStep"/> + vertex*<see cref="PhaseVertexStep"/> + frame) &amp; <see cref="PhaseMask"/>:
@@ -102,7 +102,7 @@ public sealed class LiquidSurfaceWave
 
     /// <summary>The liquid's sine table: entry n is the sine DK2's masked phase n (times 4096 for water) gives,
     /// evaluated once as <see cref="Phase"/> always did, so a shader reading it gets the same floats.</summary>
-    public static ReadOnlySpan<float> Sines(LiquidSurface kind) => kind == LiquidSurface.Water ? s_waterSines : s_lavaSines;
+    public static ReadOnlySpan<float> Sines(LiquidSurface kind) => kind == LiquidSurface.Water ? WaterSines : LavaSines;
 
     private static float[] BuildSines(LiquidSurface kind)
     {
