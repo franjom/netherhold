@@ -434,6 +434,46 @@ The Graphics, Sound, Controls and Keyboard pages share `OptionsPagesController` 
 applies its supported graphics and audio settings and saves applied changes, including captured key bindings, through
 `GameSettingsFile` to the `--settings` path or its default. Launched and resumed levels use that settings file.
 
+### Failure screens
+
+When the game cannot go on it says so on screen, as Unity's runner does ("DK2 could not start", "tick failed"), instead
+of logging and showing an empty scene. The kinds, the words and what each choice does are `DK2.Presentation`'s
+(`GameFailureCopy`); `FailureScreen` draws them on canvas layer 125 in the launcher's fonts and palette, never DK2's art,
+since the failure may be a missing install:
+
+- no install, in either scene: the folder the run named (DK2_DIR or `--dk2Install`) and why it is no install; the first
+  choice, *Choose the folder*, shows the launcher;
+- a level that throws while it loads (an unknown `--level`, a checkpoint that cannot be restored);
+- a turn that throws: the scene stops ticking, drawing, playing sound and reading input, and the screen dims the last
+  frame drawn; nothing is rethrown into Godot's loop. `--fail-tick <n>` on `InGameHud.tscn` makes turn n throw (a check);
+- an original save that cannot be imported (`--dk2-save`, or Import DK2 Save).
+
+Each names the log file (Godot's `--log-file`, else `user://logs/godot.log` while file logging is on). Enter takes the
+first choice (*Back to the menu* opens `Main.tscn` at its main page) and Esc quits with exit code 1. A run without a
+display (`--headless`) logs the failure and quits with 1, as the import failure did before.
+
+### Developer overlay
+
+Ours, not DK2's. F3 shows or hides it, in game and in the front end; `--dev-overlay` starts it shown, and it stays as it
+is across the process's scenes. It draws at the top right in the launcher's font and palette, rebuilt four times a second:
+
+- *Performance*: frames per second; the frame time now, its average and its worst over the last full second; the GPU
+  time; in game the CPU time a frame spends on the turns, the world's draw (present, animation, lights), the HUD and the
+  rest (the `--record-frames` parts); draw calls, objects and video memory from Godot's `Performance` monitors.
+- *Game*: the level, turn, game speed (and whether paused), the turns run a second against the rate the speed asks for,
+  and whether a camera path plays. In the front end, the page instead.
+- *Hovered tile*: its coordinates, terrain, owner (the level's player name and id) and room type, from the level's data
+  whatever the fog; none while the pointer is over the HUD.
+- *Determinism*: the state hash and its turn, computed when F4 is pressed, since it costs too much every frame.
+
+The rows and their words are `DevOverlayModel` (`DK2.Presentation`); `DevOverlay` (canvas layer 124) only draws. Off, it
+neither processes nor draws, times nothing and asks the engine for no GPU timing, so the frames are those without it. On,
+its steady state allocates nothing: the values are written into reused character buffers and drawn a character at a
+time with `Font.DrawChar` (no kerning); its exit line (`DK2.Godot developer overlay: ...`) prints what it allocated after
+its first 60 shown frames, 0 B in a 1,440-frame `--perf-report` run and a 340-frame Movie Maker run of Level1 (2026-11-26).
+Alegreya Sans draws old-style figures, so a 1 reads close to an i. DK2's default keys bind F3 and F4 to the Oblique and User Camera 1 views, which
+the remake does not wire yet; porting those must move the overlay's keys.
+
 ### Importing an original DK2 save
 
 Pass `--dk2-save <path>` after `--` to `InGameHud.tscn`. A relative name is tried as given first, then in the
@@ -454,7 +494,9 @@ it stored. Restart uses the imported grid or the resumed checkpoint's terrain an
 | `DK2.Godot/Launcher/` | the launcher (*The launcher*): `Launcher.cs` (the page), `LauncherTheme.cs`, `LauncherDisplay.cs` (applies the screen mode), `LauncherSettingsStore.cs` (the saved file, the install, the start decision), `LauncherSystem.cs` (Shift and reduced motion from Windows), the two shaders and the OFL fonts |
 | `DK2.Godot/UserFolders.cs` | `GameFolders` over `user://` with the `--profile`, `--settings`, `--saves` and `--hiscores` overrides, for both scenes |
 | `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD and its `WorldScene` (see above) |
-| `DK2.Godot/InGameHud.Launch.cs` | session requests for campaign launches, checkpoint resumes and original save import |
+| `DK2.Godot/InGameHud.Launch.cs` | session requests for campaign launches, checkpoint resumes and original save import; the scene's failure stop and its screen's choices |
+| `DK2.Godot/FailureScreen.cs` | the [failure screens](#failure-screens): `GameFailureCopy`'s words and choices in the launcher's theme |
+| `DK2.Godot/DevOverlay.cs`, `InGameHud.DevOverlay.cs` | the [developer overlay](#developer-overlay) and its in-game host: the frame's part timings shared with `--record-frames`, the facts and the F4 hash, `--fail-tick` |
 | `DK2.Godot/WorldScene.cs` | the 3D world: `TerrainTileBuilder`'s chunks through `RightHandedFrame`, rebuilt by `TerrainChunkScheduler` (`ITerrainChunkSink`) with shared recipe materials on the world shader (`ShaderFor`, `WorldMaterial`), the liquids waved by `WorldLiquid.gdshader` (`LiquidLayer`, `LiquidSurfaceField`), the blended runs (`BlendedTerrainStream`, `ViewFrustum`, one `RenderingServer` instance per run), the gamma-space output `Environment`, the selection cage (`CageRibbon`, `TileHoverOutline.Build`'s ribbon with Godot's own additive shader), `TryPickRay` (the pointer's ray), and the classic `Camera3D`, placed once a frame at the focus the scene moves |
 | `DK2.Godot/WorldScene.ChunkUpload.cs` | the opaque terrain chunks' upload (audit item 12): `ChunkPacker`, the scheduler's `ITerrainChunkPacker`, gathers each rebuilt chunk's opaque surfaces on the build task and writes them as Godot's uncompressed vertex, attribute and index bytes (`PackedSurface`, the layout checked against a surface Godot built at open); the frame's thread hands them to `RenderingServer.MeshAddSurface`, one mesh and instance per chunk |
 | `DK2.Godot/WorldScene.TerrainState.cs` | the persistent tile-state image, dirty-frame texture upload, state shader parameters and static overlay chunk batches (3p-b); mapping and state comparison belong to `DK2.Presentation` |
@@ -623,6 +665,28 @@ To capture the battle fly-in on Level1, use `--stage-battle --key-path "3:Escape
 Movie Maker settings and temporary player files. The taps skip the opening paths so the regular HUD can show the fly-in.
 
 The optional lightning fixture is `--stage-lightning` on `InGameHud.tscn`, normally with `--level Level1 --seed 1`. It places a Mistress and an opposing hero on dry owned floor, activates three Increase Level specials and a Mana Boost through ordinary commands, and lets combat produce the creature cast and electrification. After thirty turns it posts one ordinary paid Thunderbolt at a fresh target. It turns the ordinary camera through half a turn to face the hero. It is off by default; no simulation rule changes. Add `--possess-first-creature` for the possession-camera check. Use all four temporary player-file overrides and `--pointer-path` as above.
+
+## Debugging and profiling
+
+Godot's editor debugger works on a run the editor starts (it attaches over its remote debugger; an exported or
+command-line run has only the [developer overlay](#developer-overlay) and the flags below):
+
+1. Open the editor with `powershell -File godot/editor.ps1`.
+2. Choose what runs: F5 runs the main scene (the front end); with `InGameHud.tscn` open, F6 runs it at Level1, seed 1.
+   For other user arguments use **Debug > Customize Run Instances...** and put them in the instance's arguments after
+   `--` (for example `-- --level Level7 --dev-overlay`), with the temporary player-file overrides of *Verifying* if the
+   run should not touch your own files. Do not put them in Project Settings' *Main Run Args*: that writes `project.godot`.
+3. Open the **Debugger** bottom panel while it runs:
+   - **Monitors**: tick FPS, process time, static memory, objects, draw calls or video memory to graph them live.
+   - **Profiler**: press *Start*, play, then *Stop*, and click a frame: its frame, process and physics time. Its function
+     list is GDScript's, so the C# adapter's methods do not appear; for them use the overlay's CPU split,
+     `--record-frames`, `--perf-report` or a .NET profiler.
+   - **Visual Profiler**: press *Start*; each frame's CPU and GPU time by render stage (opaque, transparent, post).
+   - **Errors** lists the warnings and errors the scene pushes; the Scene dock's **Remote** tab shows the running tree.
+4. The editor builds the C# as Debug, so its times are slower than an export's (*Measuring performance* says the same of
+   the harness).
+
+Outside the editor, Godot's `--print-fps` (before `--`) prints the frame rate every second.
 
 ## Measuring performance
 

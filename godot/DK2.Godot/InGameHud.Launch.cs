@@ -15,6 +15,9 @@ public partial class InGameHud
     /// <summary>The campaign map's launch the next instance of this scene starts; taken and cleared by its start.</summary>
     private static GameSessionRequest? s_launch;
 
+    /// <summary>Set once a failure screen shows (<see cref="Fail"/>); the scene then does nothing more.</summary>
+    private bool _failed;
+
     /// <summary>Whether this process has started a level in this scene; <see cref="Main"/> then no longer sends
     /// <c>--level</c> back here when a level hands it the front end.</summary>
     internal static bool LevelStarted { get; private set; }
@@ -40,7 +43,7 @@ public partial class InGameHud
             }
             catch (Exception ex) when (IsLegacyImportError(ex))
             {
-                ReportLegacyImportError(ex);
+                ReportLegacyImportError(ex, LaunchArguments.Value(args, "--dk2-save"));
                 return null;
             }
         }
@@ -52,9 +55,44 @@ public partial class InGameHud
         ex is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException
             or ArgumentException or KeyNotFoundException;
 
-    private void ReportLegacyImportError(Exception error)
+    /// <summary>Shows the import's failure screen, naming <paramref name="path"/> (the <c>--dk2-save</c> argument, null for a
+    /// front-end import).</summary>
+    private void ReportLegacyImportError(Exception error, string? path) =>
+        Fail(new GameFailure(GameFailureKind.SaveImportFailed, error.Message, Path: path), overFrame: false, error);
+
+    /// <summary>Stops the scene on <paramref name="failure"/> and shows its screen (<see cref="FailureScreen"/>), over the last
+    /// frame drawn when <paramref name="overFrame"/>: no more turns, sound or input, the pointer given back. Without a display
+    /// nobody can choose, so the run quits with <see cref="GameFailureCopy.ExitCode"/> once the failure is logged.</summary>
+    private void Fail(in GameFailure failure, bool overFrame, Exception? error = null)
     {
-        GD.PushError("DK2.Godot could not import the DK2 save. " + error.Message);
-        GetTree().Quit(1);
+        if (_failed) return;
+        _failed = true;
+        // Main must not send a command-line level back here.
+        LevelStarted = true;
+        if (error != null) GD.PushError("DK2.Godot: ", error.ToString());
+        _handCursor?.Update(HandCursorKind.Default, false, (long)(_elapsed * 1000));
+        CapturePointer(false);
+        if (_soundOutput != null) _soundOutput.ProcessMode = ProcessModeEnum.Disabled;
+        _mixer?.Dispose();
+        FailureScreen screen = FailureScreen.Show(this, failure, overFrame);
+        if (!GameFailureCopy.WaitsForChoice(hasDisplay: DisplayServer.GetName() != "headless"))
+        {
+            GetTree().Quit(GameFailureCopy.ExitCode);
+            return;
+        }
+        screen.Chosen += FailureChosen;
+    }
+
+    /// <summary>The failure screen's choice, as <see cref="GameFailureAction"/> says: the launcher and the menu are
+    /// <c>Main.tscn</c>'s.</summary>
+    private void FailureChosen(GameFailureAction action)
+    {
+        if (action == GameFailureAction.Quit)
+        {
+            GetTree().Quit(GameFailureCopy.ExitCode);
+            return;
+        }
+        Main.s_openLauncher = action == GameFailureAction.OpenLauncher;
+        LeaveForFrontEnd(FrontEndPage.None, "the failure screen asked for " + (Main.s_openLauncher ? "the launcher" : "the menu"));
     }
 }

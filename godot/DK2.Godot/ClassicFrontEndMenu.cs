@@ -201,8 +201,14 @@ public partial class ClassicFrontEndMenu : Node
         return new HudScaleLayout((int)size.X, (int)size.Y, percent).EffectivePercent;
     }
 
-    private static void PageChanged(FrontEndPage page) =>
+    /// <summary>The page shown last, for the developer overlay; None until the first page change.</summary>
+    public FrontEndPage Page { get; private set; }
+
+    private void PageChanged(FrontEndPage page)
+    {
+        Page = page;
         GD.Print("DK2.Godot front end: page ", page.ToString(), " at process frame ", Engine.GetProcessFrames());
+    }
 
     private void Quit() => GetTree().Quit();
 

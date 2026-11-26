@@ -168,6 +168,11 @@ These are entry points, not a new priority order.
   scripted runs skip it. [Front-end Load Game and settings](../godot/README.md#front-end-load-game-and-settings)
   resume Netherhold checkpoints, import original save terrain and tile ownership, and persist settings and key bindings.
   [`--dk2-save`](../godot/README.md#importing-an-original-dk2-save) also imports through the exported entry point.
+  A missing install, a level that fails to load, a turn that throws and a failed save import show a
+  [failure screen](../godot/README.md#failure-screens) (`GameFailureCopy`) with the log file, Back to the menu and Quit;
+  F3 or `--dev-overlay` shows the [developer overlay](../godot/README.md#developer-overlay) (`DevOverlayModel`), and
+  [Debugging and profiling](../godot/README.md#debugging-and-profiling) covers the editor's own tools. Unity's diagnostics
+  overlay is not ported.
   Step 4's probes item is done: `--record-frames` writes Unity's recorder's `frames.csv` for `draw_clock.py`; every other
   Unity probe is covered or obsolete ([Probes](../godot/README.md#probes)); `tools/hud-probe` is deleted.
   The tester package is a release Godot export (`tools/tester-package`, [Exporting](../godot/README.md#exporting)). CI builds
