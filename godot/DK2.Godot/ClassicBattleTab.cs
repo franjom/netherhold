@@ -55,6 +55,14 @@ public partial class ClassicBattleTab : Node
         return _hud.HoverText(x, y);
     }
 
+    /// <summary>The centre of the blades in the same bottom-docked transform used to draw the tab.</summary>
+    internal Vector2 BattleCentre(bool collapsed)
+    {
+        HudRect bounds = BattleTabView.Rect(BattleTabButton.Battle, collapsed, _layout.Screen);
+        Rect2 pixels = _canvas?.ScreenRect(bounds) ?? default;
+        return pixels.Position + pixels.Size / 2;
+    }
+
     /// <summary>Whether a screen pixel (top-left origin) is a shown button taking input, so a host keeps it from the world.</summary>
     public bool ContainsPointer(Vector2 screenPosition)
     {

@@ -37,6 +37,11 @@ public sealed class BattleFlyIn
     private static readonly SoundCategory Category = new("gui_button_tab_new_combat");
     private readonly RewardTablet _tablet = new(endScale: 0, holdMilliseconds: 0);
 
+    public BattleFlyIn() { }
+
+    /// <param name="tabletPointCount">The mesh's control points, used to size the tablet's reusable sparkle buffer.</param>
+    public BattleFlyIn(int tabletPointCount) => _tablet.ReserveSparkles(tabletPointCount);
+
     /// <summary>The latch <c>+0x4D75</c>: a fly-in is running.</summary>
     public bool Running { get; private set; }
     public RewardTablet Tablet => _tablet;
@@ -51,6 +56,15 @@ public sealed class BattleFlyIn
         Running = true;
         _tablet.Start(startX, startY, StartScale, targetX, targetY, now + WaitMilliseconds);
         return true;
+    }
+
+    /// <summary>Starts from the viewport-relative position and takes the blades' centre in screen pixels.</summary>
+    public bool Start(double now, HudScreen screen, Vector2 targetPixels)
+    {
+        if (screen.Width <= 0 || screen.Height <= 0) return false;
+        float unit = screen.Height / TabletDrawList.ReferenceHeight;
+        return Start(now, StartReferenceX / HudScreen.ReferenceWidth * screen.Width / unit,
+            StartReferenceY * screen.Scale / unit, targetPixels.X / unit, targetPixels.Y / unit);
     }
 
     /// <summary>The start of one drawn frame of <c>0x0042C390</c>'s tail: nothing while the GUI is

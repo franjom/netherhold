@@ -96,9 +96,11 @@ line and the delayed tooltip over them), which shows what the shared `HudHoverTe
 pointer (the resource strip, the bottom panel, the creature overview, the message tabs, the battle tab) or, over the world, from what the pick found (a creature's own name included; step 3h); the battle tab right of the message tabs (`ClassicBattleTab` over `BattleTabHud` and
 `BattleTabView`, fed by the battle records of `MusicWorldObserver`: the crossed blades while one of the keeper's
 creatures fights, the Call to Arms cancel, the alarm; the cancel's left click posts its command, while the blades' zoom
-and the cancel's and the alarm's glides move the camera. The battle fly-in remains pending;
+and the cancel's and the alarm's glides move the camera). The shared `BattleFlyIn` targets the snapped centre of the
+crossed blades. Its tablet draws above the other overlays while the normal HUD is visible, the letterbox is down
+and the options menu is closed.
 Level1 has no early fight, so the scene's `--stage-battle` argument spawns a hero Knight on the tile of the keeper's
-first creature and lets the simulation start the fight); the
+first creature and lets the simulation start the fight. The panels also include the
 resource strip at the top left (`ClassicResourceHud` over `KeeperResourceHud`, fed by
 `KeeperResourceView`: mana with its income and upkeep, gold, the Heart and payday gauges), which takes no input; the
 bottom panel (`ClassicBottomPanel` over `BottomPanelHud`), whose clicks post the commands Unity's do; the creature
@@ -260,7 +262,7 @@ speech as the HUD draws, then the hover's and the cursor's); the settings' volum
 whether speech is busy. `--sound-log` prints each request as it starts (frame, turn, category, id, voice, place, sample); on `Main.tscn` it prints
 the front end's (frame, clock in ms, category, id, sample) and when the title card queues its line. A Movie Maker
 capture (*Verifying*) also writes the mixed audio: `<name>.wav` beside PNG frames (48 kHz, 32-bit stereo), or in an `.avi`.
-The battle fly-in's sounds await its renderer.
+The battle fly-in plays its start and end sounds through `ClassicSoundMixer`.
 
 ### Movies
 
@@ -432,6 +434,7 @@ The in-game scene loads the profile on the first save or load, from the same pat
 | `DK2.Godot/WorldScene.PossessionRendering.cs` | the world-shader distance fade; scope and verification: [possession-warp section 4](../docs/research/possession-warp.md#4-the-possession-distance-fade-strongly-inferred-implementable) |
 | `DK2.Godot/InGameHud.SessionActions.cs` | the options menu's Restart, Return to Menu and Quit, the level end's prompt and the `--key-path` check |
 | `DK2.Godot/InGameHud.Finale.cs`, `ClassicTabletCanvas.cs`, `WorldScene.Tablet.cs` | reward speech and text, tablet and sparkle drawing, and runtime tablet asset access |
+| `DK2.Godot/InGameHud.BattleFlyIn.cs` | the battle fly-in's overlay and sound output |
 | `DK2.Godot/InGameHud.Possession.cs` | the possession's host (`InGameHud`, partial, step 3m): the shared `PossessionSession` driven every frame from the keys, pointer travel and engine clock, the pointer lock (`Input.MouseMode`, never under `--pointer-path`), `--possess-first-creature` |
 | `DK2.Godot/InGameHud.PossessionForeground.cs` | submits the engine-free authored swing triangle list; [scope](../docs/research/possession-foreground.md) |
 | `DK2.Godot/InGameHud.PossessionHighlight.cs` | submits the shared current-action target to the existing hover pass, and captures the status flowers (`StatusFlowers`) for `WorldScene.DrawFlowers` while the ordinary HUD shows; [scope](../docs/research/possession-target-highlight.md) |
@@ -569,6 +572,9 @@ Both pass `--log-file <temp>/godot.log` before `--` and the same temporary playe
 `-- --level Level1 --seed 1 --settings <temp>/settings.ini --profile <temp>/profile.dk2p --saves <temp>/saves --hiscores <temp>/HiScores.dat --launcher-config <temp>/launcher.cfg --pointer-path "0:960,540"`.
 For the preview append `--load <name> --open-full-map` and use map-area pointer coordinates; repeat with
 `--light-perpixel --light-shadows --light-post` for the lighting check. Keep Movie Maker at 1920x1080 as above.
+To capture the battle fly-in on Level1, use `--stage-battle --key-path "3:Escape;30:Escape"` with the same
+Movie Maker settings and temporary player files. The taps skip the opening paths so the regular HUD can show the fly-in.
+
 The optional lightning fixture is `--stage-lightning` on `InGameHud.tscn`, normally with `--level Level1 --seed 1`. It places a Mistress and an opposing hero on dry owned floor, activates three Increase Level specials and a Mana Boost through ordinary commands, and lets combat produce the creature cast and electrification. After thirty turns it posts one ordinary paid Thunderbolt at a fresh target. It turns the ordinary camera through half a turn to face the hero. It is off by default; no simulation rule changes. Add `--possess-first-creature` for the possession-camera check. Use all four temporary player-file overrides and `--pointer-path` as above.
 
 ## Measuring performance

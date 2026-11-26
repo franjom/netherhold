@@ -17,13 +17,12 @@ public partial class InGameHud
     private ClassicTabletCanvas? _rewardCanvas;
     private BitmapTextItem? _rewardText;
 
-    private void OpenWinScreen(string install, LevelDef? level)
+    private void OpenWinScreen(string install, LevelDef? level, TabletMesh? mesh)
     {
         if (level == null || _world == null || _scriptedView == null || _resultFlow == null) return;
 
         var layer = new CanvasLayer { Name = "WinScreenLayer", Layer = SubtitleLayer - 1 };
         AddChild(layer);
-        TabletMesh? mesh = _world.LoadTabletMesh();
         if (mesh != null) _rewardCanvas = new ClassicTabletCanvas(layer.GetCanvas(), mesh, _world.TabletTexture);
         _rewardText = new BitmapTextItem(layer.GetCanvas()) { ReplacementFont = _subtitleFace };
 

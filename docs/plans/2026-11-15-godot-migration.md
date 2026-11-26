@@ -128,8 +128,8 @@ group 2 is a list to audit, not a finding.
       for repeatable frames. Godot opens the query panel on the viewer's first creature only with the
       test-scene argument `--query-first-creature`, as it has no world picking yet, and
       the battle tab with `--stage-battle`, which spawns a hero Knight on the tile of the viewer's
-      first creature, Level1 having no early fight. Not wired in Godot for the battle tab: the
-      blades' zoom, the glides and the fly-in (need the camera). Godot opens the options menu at
+      first creature, Level1 having no early fight. The battle tab's zoom and glides landed with the camera. See
+      step 4 for the fly-in. Godot opens the options menu at
       start with the test-scene argument `--open-options [Entry]`, which refuses an entry the menu does
       not support (`GameOptions`, `Save` and `Load` open their pages), lists saves from the directory
       `--saves <dir>` names, and reads the settings from the file `--settings <file>` names. Not wired on the save and load pages: the submit, that is writing or
@@ -1163,6 +1163,9 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 
 - [x] Campaign win screen and reward tablet. The Godot adapter uses the shared `WinScreen` and `TabletDrawList`.
       See the [adapter notes](../../godot/README.md#subtitles) for runtime art, reward text and layering.
+
+- [x] Battle fly-in. Godot renders the shared `BattleFlyIn` over the HUD overlays with the reward tablet canvas.
+      See the [scripted Level1 capture recipe](../../godot/README.md#verifying).
 
 ## Step 5: remove Unity (one change, at parity)
 

@@ -61,6 +61,7 @@ public readonly record struct TabletSparkleQuad(float X, float Y, float Half);
 /// the mesh's order, even when every face of it is culled. Reuses its buffers, so a frame allocates nothing.</summary>
 public sealed class TabletDrawList
 {
+    internal const float ReferenceHeight = 768;
     private readonly TabletVertex[] _vertices;
     private readonly TabletBatch[] _batches;
     private TabletSparkleQuad[] _sparkles;
@@ -87,7 +88,7 @@ public sealed class TabletDrawList
     {
         if (tablet is null) throw new ArgumentNullException(nameof(tablet));
         _vertexCount = 0; _batchCount = 0; _sparkleCount = 0;
-        float unit = screenHeight / 768f;
+        float unit = screenHeight / ReferenceHeight;
         float cx = originX + tablet.X * unit, cy = originY + tablet.Y * unit;
         Matrix4x4 turn = tablet.Turn();
         IReadOnlyList<KmfPrimitive> primitives = Mesh.Primitives;

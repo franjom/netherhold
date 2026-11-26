@@ -486,7 +486,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _reportTicks = _world.ProbeWithoutTorches || probeShift || Array.IndexOf(args, "--light-probe") >= 0;
         // The first frame's terrain, built whole; each frame's Present pushes the changes since.
         _world.Open(install, level, _simulation.World, _worldView, _viewer, startFocus, _settings.ScrollSpeed);
-        OpenWinScreen(install, level.Database.Level);
+        TabletMesh? tabletMesh = _world.LoadTabletMesh();
+        OpenWinScreen(install, level.Database.Level, tabletMesh);
+        OpenBattleFlyIn(tabletMesh);
         if (probeShift) _world.Focus += new System.Numerics.Vector3(1, 0, 1);
         _world.SetBrightness(DisplaySettings.BrightnessExponent(_settings.Gamma));
         OpenPossession(install, level, args);
@@ -756,7 +758,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _messages.Draw(tabs, _model.Collapsed,
             HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, _viewer),
             _hudControls.OptionsVisible, _hudControls.ObjectiveVisible);
-        // After the tabs, as DungeonRunner draws it. The fly-in it starts (BattleFlyIn, the reward tablet) is not ported.
+        // After the tabs, as DungeonRunner draws it.
         _battleTab.Draw(tabs, _model.Collapsed,
             BattleTabView.Capture(_simulation.World, _simulation.Database, _viewer, _battles.Battles), milliseconds);
         // After the battle tab, as DungeonRunner draws it; the options menu closes it.
@@ -826,6 +828,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // Every blended item is in (the effects and flames since FinishFrame, the flowers above), and every blended thing
         // Godot sorts on its own is placed and looked (the hover's looks, the cage): ordered among them and drawn.
         _world.DrawBlendedItems();
+        DrawBattleFlyIn(visibility, _model.Collapsed, milliseconds);
         _recorder?.Spent(FrameTelemetryPart.Hud, started);
 
         // Unity's runner's EndFrame: the draw clock is the drawn turn and fraction, the camera the drawn view's eye.
@@ -1581,6 +1584,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_heartHealthObserver != null && _simulation != null) _simulation.World.HeartHealthChanged -= _heartHealthObserver;
         _heartHealthObserver = null;
         _mixer?.Dispose();
+        CloseBattleFlyIn();
         CloseWinScreen();
         CloseSubtitles();
         ClosePossession();
