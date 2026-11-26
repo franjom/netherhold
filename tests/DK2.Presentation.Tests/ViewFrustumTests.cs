@@ -24,9 +24,9 @@ public sealed class ViewFrustumTests
     {
         ClassicCameraPose pose = Pose(shift);
         const float aspect = 16f / 9f, near = .3f;
-        ViewFrustum frustum = ViewFrustum.FromPose(pose, aspect, near);
+        var frustum = ViewFrustum.FromPose(pose, aspect, near);
         var view = new MinimapCameraView(pose.Position, pose.Forward, pose.Up, pose.VerticalFieldOfView, aspect, shift);
-        Vector3 forward = Vector3.Normalize(pose.Forward);
+        var forward = Vector3.Normalize(pose.Forward);
         (float X, float Y, int[] Planes)[] corners = [(0, 0, [0, 2]), (1, 0, [1, 2]), (0, 1, [0, 3]), (1, 1, [1, 3])];
         foreach ((float x, float y, int[] planes) in corners)
         {
@@ -50,7 +50,7 @@ public sealed class ViewFrustumTests
     public void A_triangle_is_excluded_only_when_all_three_corners_lie_outside_one_plane()
     {
         ClassicCameraPose pose = Pose(0f);
-        ViewFrustum frustum = ViewFrustum.FromPose(pose, 1f, .3f);
+        var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         Vector3 behind = pose.Position - Vector3.Normalize(pose.Forward) * 2f;
         Vector3 inside = pose.Position + Vector3.Normalize(pose.Forward) * 5f;
         Assert.True(frustum.Excludes(behind, behind + Vector3.UnitX * .1f, behind + Vector3.UnitZ * .1f));
@@ -64,9 +64,9 @@ public sealed class ViewFrustumTests
     public void One_corner_inside_a_plane_by_less_than_the_margin_keeps_the_triangle()
     {
         ClassicCameraPose pose = Pose(0f);
-        ViewFrustum frustum = ViewFrustum.FromPose(pose, 1f, .3f);
+        var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         Plane near = frustum[4];
-        Vector3 forward = Vector3.Normalize(pose.Forward);
+        var forward = Vector3.Normalize(pose.Forward);
         // Corner a lies half a margin outside the near plane; b and c are well outside it.
         Vector3 onPlane = pose.Position + forward * .3f;
         Vector3 a = onPlane - near.Normal * (Value(near, onPlane) + ViewFrustum.CullMargin / 2);
@@ -81,13 +81,13 @@ public sealed class ViewFrustumTests
     {
         Assert.Equal(.0001f, ViewFrustum.CullMargin);
         ClassicCameraPose pose = Pose(.16f);
-        ViewFrustum frustum = ViewFrustum.FromPose(pose, 16f / 9f, .3f);
+        var frustum = ViewFrustum.FromPose(pose, 16f / 9f, .3f);
         Vector3 inside = pose.Position + Vector3.Normalize(pose.Forward) * 10f;
         for (int index = 0; index < 6; index++)
         {
             Plane plane = frustum[index];
             Vector3 onPlane = inside - plane.Normal * Value(plane, inside);
-            Vector3 t = Vector3.Normalize(Vector3.Cross(plane.Normal, MathF.Abs(plane.Normal.Y) < .9f ? Vector3.UnitY : Vector3.UnitX));
+            var t = Vector3.Normalize(Vector3.Cross(plane.Normal, MathF.Abs(plane.Normal.Y) < .9f ? Vector3.UnitY : Vector3.UnitX));
             Vector3 Outside(float distance, Vector3 offset) => onPlane + offset - plane.Normal * distance;
             // Corners 5e-5 outside stay; 5e-4 outside (between 1e-4 and 1e-3) go.
             Assert.False(frustum.Excludes(Outside(5e-5f, default), Outside(5e-5f, t * .01f), Outside(5e-5f, -t * .01f)), $"plane {index}");
@@ -98,7 +98,7 @@ public sealed class ViewFrustumTests
     [Fact]
     public void The_same_view_is_unity_matrix_equality_within_its_epsilon()
     {
-        ViewFrustum a = ViewFrustum.FromPose(Pose(.1f), 1.5f, .3f);
+        var a = ViewFrustum.FromPose(Pose(.1f), 1.5f, .3f);
         Matrix4x4 nudged = a.ViewProjection;
         nudged.M11 += 5e-6f;
         Assert.True(a.SameView(ViewFrustum.FromViewProjection(nudged)));

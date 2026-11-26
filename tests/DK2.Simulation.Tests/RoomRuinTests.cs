@@ -17,7 +17,7 @@ public sealed class RoomRuinTests
     private static (GameDatabase Db, WorldState World, RoomInstance Heart) RuinedHeartOfA()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, A, B, C]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, A, B, C]);
         for (int y = 5; y <= 7; y++)
             for (int x = 5; x <= 7; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), A);

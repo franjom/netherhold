@@ -29,7 +29,7 @@ public class MeshRouterTests
 
     private static (MeshRouter router, NavMesh mesh) Make(params string[] rows)
     {
-        NavMesh mesh = NavMesh.Build(new Grid(rows));
+        var mesh = NavMesh.Build(new Grid(rows));
         return (new MeshRouter(mesh), mesh);
     }
 

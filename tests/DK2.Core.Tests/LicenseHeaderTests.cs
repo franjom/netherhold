@@ -30,7 +30,7 @@ public class LicenseHeaderTests
             .Split('\n')
             .Select(l => l.Length == 0 ? "//" : "// " + l));
 
-        List<string> files = SourceFiles(root).ToList();
+        var files = SourceFiles(root).ToList();
 
         // A sweep that finds nothing would pass, which would make this test a
         // decoration rather than a check. The floor sits deliberately far below
@@ -39,7 +39,7 @@ public class LicenseHeaderTests
             $"Only {files.Count} source files found under src, tests and the Godot " +
             "adapter. The sweep is not looking where the code is.");
 
-        List<string> offenders = files
+        var offenders = files
             .Where(f => !File.ReadAllText(f).Replace("\r\n", "\n")
                              .StartsWith(expected + "\n\n", StringComparison.Ordinal))
             .Select(f => Path.GetRelativePath(root, f))

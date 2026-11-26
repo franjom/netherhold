@@ -29,7 +29,7 @@ public class StructureDeathEffectTests
             source.Variables, source.KeeperSpells.Values, source.Objects.Values,
             source.Doors.Values.Select(d => d with { DeathEffectId = doorEffect }),
             source.Traps.Values.Select(t => t with { DeathEffectId = trapEffect }));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper]);
         return (db, world);
     }
 
@@ -50,7 +50,7 @@ public class StructureDeathEffectTests
     [InlineData(100, false, 217, 0, 0)]
     public void DoorUpdateRequestsOnlyCompletedDeathEffect(int health, bool construction, ushort effect, byte orientation, int expected)
     {
-        var (db, world) = Setup(doorEffect: effect);
+        (GameDatabase? db, WorldState? world) = Setup(doorEffect: effect);
         if (orientation == 0)
         {
             world.Tile(2, 1).TerrainId = Dk2TerrainFixture.Rock;
@@ -90,7 +90,7 @@ public class StructureDeathEffectTests
     [InlineData(100, false, 263, 0)]
     public void TrapUpdateRequestsOnlyCompletedDeathEffect(int health, bool construction, ushort effect, int expected)
     {
-        var (db, world) = Setup(trapEffect: effect);
+        (GameDatabase? db, WorldState? world) = Setup(trapEffect: effect);
         byte id = db.Traps.Keys.First();
         ThingProjection.Place(world, db, [new TrapThing(new byte[16]) { X = 2, Y = 2,
             PlayerId = Keeper, TrapId = id, NumberOfShots = 1 }]);
@@ -116,7 +116,7 @@ public class StructureDeathEffectTests
     [Fact]
     public void OwnerLossRequestsCompletedDoorAndTrapEffects()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         ThingProjection.Place(world, db,
         [
             new DoorThing(new byte[20]) { X = 2, Y = 2, PlayerId = Keeper, DoorId = 1, Unknown_0011 = new byte[3] },
@@ -137,7 +137,7 @@ public class StructureDeathEffectTests
     [Fact]
     public void SupportLossRequestsDoorDeathEffect()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = 2, Y = 2,
             PlayerId = Keeper, DoorId = 1, Unknown_0011 = new byte[3] }]);
         ListEventSink events = Run(db, world, new DoorHealthSystem(), new DoorRemovalSystem());
@@ -150,7 +150,7 @@ public class StructureDeathEffectTests
     [InlineData(true, 0)]
     public void DeadBarricadeHasItsOwnEffectArmBeforeSupport(bool construction, int expected)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         byte id = db.Doors.Values.First(d => (d.Flags & DoorFlags.Barricade) != 0).DoorId;
         ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = 2, Y = 2,
             PlayerId = Keeper, DoorId = id, Unknown_0011 = new byte[3] }]);
@@ -164,7 +164,7 @@ public class StructureDeathEffectTests
     [Fact]
     public void LethalShotRequestsDoorEffectBeforeTheRemovalPass()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         world.Tile(2, 1).TerrainId = Dk2TerrainFixture.Rock;
         world.Tile(2, 3).TerrainId = Dk2TerrainFixture.Rock;
         ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = 2, Y = 2,
@@ -179,7 +179,7 @@ public class StructureDeathEffectTests
     [Fact]
     public void DoorEffectsFollowTheNewestFirstThingUpdateOrder()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         ThingProjection.Place(world, db,
         [
             new DoorThing(new byte[20]) { X = 1, Y = 1, PlayerId = Keeper, DoorId = 1, Unknown_0011 = new byte[3] },
@@ -194,7 +194,7 @@ public class StructureDeathEffectTests
     [Fact]
     public void RemovalPassesDoNotRequestEffects()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         ThingProjection.Place(world, db,
         [
             new DoorThing(new byte[20]) { X = 2, Y = 2, PlayerId = Keeper, DoorId = 1, Unknown_0011 = new byte[3] },

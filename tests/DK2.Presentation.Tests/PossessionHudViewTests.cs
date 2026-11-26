@@ -17,7 +17,7 @@ public sealed class PossessionHudViewTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var viewer = new PlayerId(3);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [1, 3, 4], fogOfWarEnabled: false);
         CreatureDef definition = db.Creatures.Values.Single(d => d.Name == "Warlock");
         CreatureState creature = world.SpawnCreature(db, definition.CreatureId, viewer, new TilePos(4, 4));
@@ -38,7 +38,7 @@ public sealed class PossessionHudViewTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var viewer = new PlayerId(3);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [1, 3, 4], fogOfWarEnabled: false);
         CreatureState creature = world.SpawnCreature(db, 22, viewer, new TilePos(4, 4));
         world.Player(viewer).PossessedCreatureId = creature.Id;
@@ -63,7 +63,7 @@ public sealed class PossessionHudViewTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var viewer = new PlayerId(3);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [1, 3, 4], fogOfWarEnabled: false);
         CreatureDef carrier = db.Creatures.Values.First(d => (byte)d.PrimaryAbility == 1);
         CreatureState creature = world.SpawnCreature(db, carrier.CreatureId, viewer, new TilePos(4, 4));
@@ -89,7 +89,7 @@ public sealed class PossessionHudViewTests
         var database = new GameDatabase(original.Terrain.Values, original.Rooms.Values, [definition], original.Variables,
             creatureSpells: original.CreatureSpells.Values);
         var viewer = new PlayerId(3);
-        WorldState world = WorldState.FromMap(original, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(original, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [1, 3, 4], fogOfWarEnabled: false);
         CreatureState creature = world.SpawnCreature(original, warlock.CreatureId, viewer, new TilePos(4, 4));
         creature.Level = 1;
@@ -114,7 +114,7 @@ public sealed class PossessionHudViewTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var viewer = new PlayerId(3);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [1, 3, 4], fogOfWarEnabled: false);
         CreatureDef definition = db.Creatures.Values.First(d => (byte)d.SecondaryAbility == 5);
         CreatureState creature = world.SpawnCreature(db, definition.CreatureId, viewer, new TilePos(4, 4));
@@ -134,7 +134,7 @@ public sealed class PossessionHudViewTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var viewer = new PlayerId(3);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [1, 3, 4], fogOfWarEnabled: false);
         CreatureDef definition = db.Creatures.Values.First(d => (byte)d.PrimaryAbility == kind);
         CreatureState creature = world.SpawnCreature(db, definition.CreatureId, viewer, new TilePos(4, 4));
@@ -153,7 +153,7 @@ public sealed class PossessionHudViewTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var viewer = new PlayerId(3);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [1, 3, 4], fogOfWarEnabled: false);
         CreatureState creature = world.SpawnCreature(db, 13, viewer, new TilePos(4, 4));
         world.Player(viewer).PossessedCreatureId = creature.Id;
@@ -178,7 +178,7 @@ public sealed class PossessionHudViewTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var viewer = new PlayerId(3);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [1, 3, 4], fogOfWarEnabled: false);
         CreatureDef warlock = db.Creatures.Values.Single(d => d.Name == "Warlock");
         CreatureState me = world.SpawnCreature(db, warlock.CreatureId, viewer, new TilePos(4, 4));

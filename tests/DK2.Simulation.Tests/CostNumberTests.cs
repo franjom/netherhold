@@ -18,7 +18,7 @@ public sealed class CostNumberTests
     [Fact]
     public void ADraggedBuildShowsOneSumAtThePressCornerWhenTheWaveCloses()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         int cost = RoomRules.CostPerTile(sim.Database.Room(RoomTypeId.Lair));
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(Keeper, RoomTypeId.Lair, 1, 1, 2, 2)));
         sim.Tick();
@@ -38,7 +38,7 @@ public sealed class CostNumberTests
     [Fact]
     public void AMoneyRefusalShowsWhatWasPaidAtThePressCorner()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         int cost = RoomRules.CostPerTile(sim.Database.Room(RoomTypeId.Lair));
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(Keeper, RoomTypeId.Lair, 1, 1, 2, 2)));
         Assert.True(GoldStore.TryWithdraw(sim.World, Keeper, GoldStore.Total(sim.World, Keeper)));
@@ -51,7 +51,7 @@ public sealed class CostNumberTests
     [Fact]
     public void ABuildThatPlacedNothingShowsNothing()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.World.Tile(new TilePos(2, 1)).OwnerPlayerId = PlayerIds.Neutral;
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(Keeper, RoomTypeId.Lair, 2, 1, 2, 1)));
         sim.Run(2);
@@ -62,7 +62,7 @@ public sealed class CostNumberTests
     [Fact]
     public void ADraggedSaleShowsEachTilesRefundAtThatTileOneDiagonalATurn()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         RoomDef treasury = sim.Database.Room(RoomTypeId.Treasury);
         foreach (int x in new[] { 1, 2 })
             RoomRules.Place(sim.Database, ref sim.World.Tile(new TilePos(x, 1)), treasury, Keeper);
@@ -83,7 +83,7 @@ public sealed class CostNumberTests
     [Fact]
     public void AnImmediateSaleShowsTheRefundOfEachTileItSold()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(SellRoomCommand.At(Keeper, new TilePos(3, 1), new TilePos(2, 2))));
         ViewEffectRequest shown = Assert.Single(Amounts(events));
         Assert.Equal(new TilePos(3, 1), shown.Tile);
@@ -94,8 +94,8 @@ public sealed class CostNumberTests
 
     private static (GameSimulation Sim, ListEventSink Events) Start()
     {
-        var db = Dk2TerrainFixture.Database();
-        var world = Dk2TerrainFixture.Sellable(WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]));
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = Dk2TerrainFixture.Sellable(WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]));
         RoomRules.Place(db, ref world.Tile(new TilePos(3, 3)), db.Room(RoomTypeId.DungeonHeart), Keeper);
         RoomRules.Place(db, ref world.Tile(new TilePos(3, 1)), db.Room(RoomTypeId.Treasury), Keeper);
         GoldStore.Deposit(world, db, Keeper, 10000);

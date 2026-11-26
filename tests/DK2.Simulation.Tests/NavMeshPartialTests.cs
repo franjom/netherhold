@@ -60,7 +60,7 @@ public class NavMeshPartialTests
     public void DiggingOneTileLeavesAValidMeshWithTheNewByte()
     {
         var grid = new Grid(Room);
-        NavMesh mesh = NavMesh.Build(grid);
+        var mesh = NavMesh.Build(grid);
         int before = mesh.LiveTriangleCount();
 
         grid.Set(3, 2, NavBytes.Floor);
@@ -74,7 +74,7 @@ public class NavMeshPartialTests
     public void ClosingATileLeavesAValidMeshWithTheNewByte()
     {
         var grid = new Grid(Room);
-        NavMesh mesh = NavMesh.Build(grid);
+        var mesh = NavMesh.Build(grid);
 
         grid.Set(5, 5, NavBytes.Solid);
         mesh.Retriangulate(grid, 5, 5, 6, 6);
@@ -86,7 +86,7 @@ public class NavMeshPartialTests
     public void ARectangleOfTilesIsEmptiedAndRefilled()
     {
         var grid = new Grid(Room);
-        NavMesh mesh = NavMesh.Build(grid);
+        var mesh = NavMesh.Build(grid);
 
         for (int y = 2; y < 5; y++)
             for (int x = 2; x < 5; x++)
@@ -100,11 +100,11 @@ public class NavMeshPartialTests
     public void ARectangleOnTheMapEdgeRebuildsTheWholeMap()
     {
         var grid = new Grid(Room);
-        NavMesh mesh = NavMesh.Build(grid);
+        var mesh = NavMesh.Build(grid);
         grid.Set(0, 3, NavBytes.Floor);
         mesh.Retriangulate(grid, 0, 3, 1, 4);
 
-        NavMesh fresh = NavMesh.Build(grid);
+        var fresh = NavMesh.Build(grid);
         Assert.Equal(fresh.LiveTriangleCount(), mesh.LiveTriangleCount());
         Assert.Equal(fresh.TriangleSlots, mesh.TriangleSlots);
         AssertEdited(mesh, grid);
@@ -114,7 +114,7 @@ public class NavMeshPartialTests
     public void ASequenceOfEditsKeepsTheMeshValid()
     {
         var grid = new Grid(Room);
-        NavMesh mesh = NavMesh.Build(grid);
+        var mesh = NavMesh.Build(grid);
         uint state = 12345;
         for (int i = 0; i < 60; i++)
         {
@@ -142,7 +142,7 @@ public class NavMeshPartialTests
     public void AnEditThatChangesNothingLeavesTheTrianglesOfTheTile()
     {
         var grid = new Grid(Room);
-        NavMesh mesh = NavMesh.Build(grid);
+        var mesh = NavMesh.Build(grid);
         mesh.Retriangulate(grid, 6, 1, 7, 2);
         AssertEdited(mesh, grid);
     }

@@ -25,7 +25,7 @@ public sealed class BoulderSoundTests
     private static (GameDatabase Db, WorldState World) Open(GameDatabase? db = null)
     {
         db ??= SoundFixture.Database(new Dictionary<byte, string> { [BoulderRules.ObjectId] = "TRAP_BOULDER" });
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = y != Row ? Dk2TerrainFixture.Rock : Dk2TerrainFixture.DirtPath;

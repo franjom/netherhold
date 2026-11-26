@@ -58,7 +58,7 @@ public sealed class ImpSelectionCapTests
     {
         const byte Rival = Keeper + 1;
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)

@@ -19,7 +19,7 @@ public class TrainingCycleTests
     [InlineData(true)]
     public void PickupBeforeATrainingHitCancelsTheAction(bool spell)
     {
-        var (db, world, trainee) = Setup(112, spell);
+        (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup(112, spell);
         ObjectState target = world.SpawnObject(db, spell ? (byte)29 : (byte)14, Keeper, 63);
         StartPendingHit(trainee, target, spell);
         var sim = new GameSimulation(db, world, 42,
@@ -39,7 +39,7 @@ public class TrainingCycleTests
     [InlineData(true)]
     public void CombatEntryBeforeATrainingHitCancelsTheAction(bool spell)
     {
-        var (db, world, trainee) = Setup(112, spell);
+        (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup(112, spell);
         ObjectState target = world.SpawnObject(db, spell ? (byte)29 : (byte)14, Keeper, 63);
         StartPendingHit(trainee, target, spell);
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), trainee, 199, 0));
@@ -74,7 +74,7 @@ public class TrainingCycleTests
             } : c),
             basis.Variables, basis.KeeperSpells.Values, objects: basis.Objects.Values,
             creatureSpells: basis.CreatureSpells.Values, shots: basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 5; y++)
         for (int x = 1; x <= 5; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TrainingRoom), Keeper);
@@ -92,7 +92,7 @@ public class TrainingCycleTests
     [Fact]
     public void ATrainingDummyOnTheCurrentTileStillRequiresWalkingToItsStandOff()
     {
-        var (db, world, trainee) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup();
         foreach (ObjectState item in world.Objects.ToArray()) world.RemoveObject(item.Id);
         world.SpawnObject(db, 14, Keeper, 63);
         var sim = new GameSimulation(db, world, 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
@@ -112,7 +112,7 @@ public class TrainingCycleTests
     [Fact]
     public void TrainingNaturallyWalksToADummyStrikesItAndChoosesAgain()
     {
-        var (db, world, trainee) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup();
         Assert.Contains(world.Objects, o => o.ObjectTypeId == 14);
         var sim = new GameSimulation(db, world, 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
         var seen = new HashSet<int>();
@@ -131,7 +131,7 @@ public class TrainingCycleTests
     [Fact]
     public void ATraineeMovedAfterItsFirstWorkingTurnEndsItsAction()
     {
-        var (db, world, trainee) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup();
         var sim = new GameSimulation(db, world, 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
         for (int i = 0; i < 100 && trainee.Dk2StateId != 112; i++) sim.Tick();
         Assert.Equal(112, trainee.Dk2StateId);
@@ -145,7 +145,7 @@ public class TrainingCycleTests
     [Fact]
     public void TrainingSpellStartsItsCooldownAndLaunchesAfterTheShotDelay()
     {
-        var (db, world, trainee) = Setup(spell: true);
+        (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup(spell: true);
         foreach (ObjectState item in world.Objects.ToArray()) world.RemoveObject(item.Id);
         world.SpawnObject(db, 29, Keeper, 63);
         var sim = new GameSimulation(db, world, 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
@@ -165,7 +165,7 @@ public class TrainingCycleTests
     [InlineData(112)]
     public void MachineAndWorkingStatesRefuseTheTrainingCap(int state)
     {
-        var (db, world, trainee) = Setup(state);
+        (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup(state);
         trainee.Level = (byte)TrainingRules.LevelCap(db);
         var sim = new GameSimulation(db, world, 42, [new CreatureJobSystem()]);
         sim.Tick();
@@ -176,7 +176,7 @@ public class TrainingCycleTests
     [Fact]
     public void ATrainingHitRunsTheDummyReactionOnTheSameDefaultTick()
     {
-        var (db, world, trainee) = Setup(112);
+        (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup(112);
         ObjectState target = world.Objects.First(o => o.ObjectTypeId == 14);
         trainee.TrainingActionId = 30;
         trainee.TrainingActionStartedTick = 0;
@@ -192,7 +192,7 @@ public class TrainingCycleTests
     [Fact]
     public void ATrainingShotTakesItsFirstStepOnTheSameDefaultTick()
     {
-        var (db, world, trainee) = Setup(112, spell: true);
+        (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup(112, spell: true);
         ObjectState target = world.SpawnObject(db, 29, Keeper, 84);
         trainee.TrainingActionId = 31;
         trainee.TrainingActionStartedTick = 0;

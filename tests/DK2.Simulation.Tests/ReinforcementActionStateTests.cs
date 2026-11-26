@@ -15,7 +15,7 @@ public sealed class ReinforcementActionStateTests
     public void AnotherCreaturesArt12IsNotAReinforcementAction()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3]);
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.Goblin().CreatureId, 3, new TilePos(3, 3));
         creature.ActionArtSlot = 12;
         creature.ActionAnimationPhase = 123;
@@ -27,7 +27,7 @@ public sealed class ReinforcementActionStateTests
     [Fact]
     public void AReplacementPossessedActionCancelsTheIndependentWorkPoint()
     {
-        var sim = ReinforcementActionTests.Begin(ActionAnimationFlags.Loop);
+        GameSimulation sim = ReinforcementActionTests.Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
         imp.Possessed = true;
         var commands = (List<ISimulationSystem>)sim.Systems;
@@ -41,7 +41,7 @@ public sealed class ReinforcementActionStateTests
     [Fact]
     public void AReplacementArtActionCancelsTheIndependentWorkPoint()
     {
-        var sim = ReinforcementActionTests.Begin(ActionAnimationFlags.Loop);
+        GameSimulation sim = ReinforcementActionTests.Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
         var commands = (List<ISimulationSystem>)sim.Systems;
         commands[0] = new Once(commands[0], context =>
@@ -58,7 +58,7 @@ public sealed class ReinforcementActionStateTests
     [Fact]
     public void State22DoesNotReplaceAnUnrelatedBusyAction()
     {
-        var sim = ReinforcementActionTests.Start();
+        GameSimulation sim = ReinforcementActionTests.Start();
         CreatureState imp = sim.World.Creatures[0];
         imp.ActionUntilTick = 100;
         sim.Run(4);
@@ -70,14 +70,14 @@ public sealed class ReinforcementActionStateTests
     [Fact]
     public void StickyAnimationCompletionSurvivesASaveWhileTheHandlerRemainsBusy()
     {
-        var original = ReinforcementActionTests.Begin(ActionAnimationFlags.Loop);
+        GameSimulation original = ReinforcementActionTests.Begin(ActionAnimationFlags.Loop);
         CreatureState imp = original.World.Creatures[0];
         imp.ActionAnimationRate = 0;
         original.World.Tile(4, 3).Health = 659;
         original.Tick();
         Assert.True(imp.ReinforcementAction.AnimationComplete);
         Assert.False(imp.ActionHandlerDone);
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), original.Database, [new ImpTaskSystem()]);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), original.Database, [new ImpTaskSystem()]);
         Assert.Equal(original.StateHash(), restored.StateHash());
         original.Run(3);
         restored.Run(3);
@@ -88,7 +88,7 @@ public sealed class ReinforcementActionStateTests
     [Fact]
     public void CountOneKeepsTheStickyCompletionGateUntilTheAnimationRateStops()
     {
-        var sim = ReinforcementActionTests.Begin(ActionAnimationFlags.Loop | ActionAnimationFlags.Wrapped);
+        GameSimulation sim = ReinforcementActionTests.Begin(ActionAnimationFlags.Loop | ActionAnimationFlags.Wrapped);
         CreatureState imp = sim.World.Creatures[0];
         imp.ActionCount = 2;
         sim.Tick();
@@ -108,7 +108,7 @@ public sealed class ReinforcementActionStateTests
     [Fact]
     public void GoldPickupPrecedesTheReinforcementApplication()
     {
-        var sim = ReinforcementActionTests.Start(defaultCreaturePass: true);
+        GameSimulation sim = ReinforcementActionTests.Start(defaultCreaturePass: true);
         sim.Run(2);
         var events = new ListEventSink();
         sim.ObserveWith(events);
@@ -118,7 +118,7 @@ public sealed class ReinforcementActionStateTests
         pile.Cell = MiningSlots.AnyCell;
         sim.World.Tile(4, 3).Health = 659;
         sim.Tick();
-        var sequence = events.Events.ToArray();
+        SimEvent[] sequence = events.Events.ToArray();
         int pickup = Array.FindIndex(sequence, e => e.Kind == "gold_picked_up_in_passing");
         int work = Array.FindIndex(sequence, e => e.System == "TileWork");
         Assert.True(pickup >= 0);

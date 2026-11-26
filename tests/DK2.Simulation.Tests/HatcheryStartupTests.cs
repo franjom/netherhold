@@ -30,7 +30,7 @@ public class HatcheryStartupTests
     [InlineData(25, 3)]
     public void PreplacedRoomFirstAttemptUsesSizeTableWithoutAnExtraConstructorDelay(int tiles, int seconds)
     {
-        var (sim, sink) = Start(tiles);
+        (GameSimulation? sim, ListEventSink? sink) = Start(tiles);
         Assert.Equal(seconds * 4, sim.World.Tile(1, 1).HatcheryStartupIntervalTicks);
         sim.Run(seconds * 4 - 1);
         Assert.DoesNotContain(sink.Events, IsAttempt);
@@ -43,7 +43,7 @@ public class HatcheryStartupTests
     [Fact]
     public void StartupIntervalAndLastGeneratedStampAreHashedAndSaved()
     {
-        var (sim, _) = Start(9);
+        (GameSimulation? sim, ListEventSink _) = Start(9);
         sim.Run(17);
         byte[] bytes = WorldSnapshot.ToBytes(sim);
         GameSimulation restored = WorldSnapshot.FromBytes(bytes, sim.Database, [new HatcherySystem()]);
@@ -62,7 +62,7 @@ public class HatcheryStartupTests
     [Fact]
     public void AddingATileReplacesStartupIntervalWithFormulaAndKeepsTheClock()
     {
-        var (sim, sink) = Start(9);
+        (GameSimulation? sim, ListEventSink? sink) = Start(9);
         sim.Run(13);
         ref TileState tile = ref sim.World.Tile(10, 1);
         byte before = tile.TerrainId, owner = tile.OwnerPlayerId;
@@ -79,7 +79,7 @@ public class HatcheryStartupTests
     [Fact]
     public void RuntimeConstructionUsesFormulaAndWaitsFromItsConstructionTurn()
     {
-        var (empty, _) = Start(0);
+        (GameSimulation? empty, ListEventSink _) = Start(0);
         empty.Run(13);
         var sim = new GameSimulation(empty.Database, empty.World, 42,
             [new BuildAtTurn(), new HatcherySystem()]);
@@ -97,7 +97,7 @@ public class HatcheryStartupTests
     [Fact]
     public void RemovalRestartsEachPiecesClockAndClearsTheTableOverride()
     {
-        var (sim, sink) = Start(9);
+        (GameSimulation? sim, ListEventSink? sink) = Start(9);
         sim.Run(13);
         ref TileState tile = ref sim.World.Tile(5, 1);
         tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -135,7 +135,7 @@ public class HatcheryStartupTests
     [InlineData(true)]
     public void CaptureKeepsItsClockAndOnlyAnActualMergeClearsTheStartupTable(bool neighbour)
     {
-        var (sim, _) = Start(9);
+        (GameSimulation? sim, ListEventSink _) = Start(9);
         for (int x = 1; x <= 9; x++) sim.World.Tile(x, 1).OwnerPlayerId = x < 5 && neighbour ? (byte)3 : (byte)2;
         RoomInstance captured = RoomIndex.Build(sim.World, sim.Database).Single(r => r.OwnerPlayerId == 2);
         ref TileState clock = ref sim.World.TileAtIndex(captured.TileIndices[0]);
@@ -152,7 +152,7 @@ public class HatcheryStartupTests
     [Fact]
     public void ConstructionMergeMigratesTheFirstJoinedRoomsClockToTheNewLowestTile()
     {
-        var (sim, _) = Start(9);
+        (GameSimulation? sim, ListEventSink _) = Start(9);
         sim.World.Tile(5, 1).TerrainId = Dk2TerrainFixture.ClaimedPath;
         sim.World.Tile(1, 1).HatcheryLastGeneratedTick = 2;
         sim.World.Tile(6, 1).HatcheryLastGeneratedTick = 7;
@@ -169,9 +169,9 @@ public class HatcheryStartupTests
 
     private static (GameSimulation Sim, ListEventSink Events) Start(int tiles)
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         int width = 40, height = 4;
-        var map = Enumerable.Repeat(new MapTile(Dk2TerrainFixture.Rock, 2, 0, 0), width * height).ToArray();
+        MapTile[] map = Enumerable.Repeat(new MapTile(Dk2TerrainFixture.Rock, 2, 0, 0), width * height).ToArray();
         for (int x = 1; x <= tiles; x++) map[width + x] = new MapTile(Dk2TerrainFixture.HatcheryTerrain, 3, 0, 0);
         var world = WorldState.FromMap(db, new LevelMap(width, height, map), [(byte)2, (byte)3]);
         var sim = new GameSimulation(db, world, 42, [new HatcherySystem()]);

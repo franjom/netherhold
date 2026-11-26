@@ -134,7 +134,7 @@ public class WatchdogTests : IDisposable
     [Fact]
     public void SummaryAndConsoleKeepJobOrderWhenTheSecondFinishesFirst()
     {
-        var limits = WatchLimits.Default with { Jobs = 2 };
+        WatchLimits limits = WatchLimits.Default with { Jobs = 2 };
         using var log = new StringWriter();
         WatchSummary summary = new Watchdog(Path.Combine(_root, "ordered"), limits,
             (job, _) => Sleep(job.Label == "first" ? 2 : 0))
@@ -165,7 +165,7 @@ public class WatchdogTests : IDisposable
             foreach (string name in new[] { "first", "second" })
             {
                 int pid = int.Parse(File.ReadAllText(Path.Combine(_root, name + ".pid")));
-                try { using Process process = Process.GetProcessById(pid); Assert.True(process.HasExited); }
+                try { using var process = Process.GetProcessById(pid); Assert.True(process.HasExited); }
                 catch (ArgumentException) { /* The exited process has already left the process table. */ }
             }
         }
@@ -238,7 +238,7 @@ public class WatchdogTests : IDisposable
         {
             InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() => watching.WaitAsync(ChildStart + TimeSpan.FromSeconds(10)));
             Assert.Equal("launch failed", error.Message);
-            try { using Process child = Process.GetProcessById(int.Parse(File.ReadAllText(pid))); Assert.True(child.HasExited); }
+            try { using var child = Process.GetProcessById(int.Parse(File.ReadAllText(pid))); Assert.True(child.HasExited); }
             catch (ArgumentException) { }
         }
         finally

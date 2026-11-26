@@ -28,7 +28,7 @@ public class TortureTests
     /// wheel in its middle, on paved ground the keeper owns.</summary>
     private static WorldState World(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
         for (int x = 1; x <= 12; x++)
@@ -507,7 +507,7 @@ public class TortureTests
     public void AConvertedMessageRepeatsForEachCreature_TheLostOneDoesNot()
     {
         GameDatabase db = Db;
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
         world.Messages.Post(world, Keeper, PlayerMessageKind.CreatureConverted, 10, 0);
         world.Messages.Post(world, Keeper, PlayerMessageKind.CreatureConverted, 11, 0);
         world.Messages.Post(world, Rival, PlayerMessageKind.CreatureConvertedAway, 10, 0);

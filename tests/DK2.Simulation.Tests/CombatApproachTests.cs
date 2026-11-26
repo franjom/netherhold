@@ -76,10 +76,10 @@ public class CombatApproachTests
     [Fact]
     public void ANewApproachCanRequestAnotherBattleCallWithoutACooldown()
     {
-        var (db, world) = OpenWorld();
-        var fighter = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
+        (GameDatabase? db, WorldState? world) = OpenWorld();
+        CreatureState fighter = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
         Frozen(Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 10));
-        var sim = Sim(db, world);
+        GameSimulation sim = Sim(db, world);
         var events = new ListEventSink();
         sim.ObserveWith(events);
         sim.Run(3);
@@ -97,7 +97,7 @@ public class CombatApproachTests
     {
         GameSimulation Approach()
         {
-            var (db, world) = OpenWorld();
+            (GameDatabase? db, WorldState? world) = OpenWorld();
             Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
             Frozen(Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 10));
             return Sim(db, world);
@@ -115,9 +115,9 @@ public class CombatApproachTests
     [Fact]
     public void SwingsWithoutAnApproachRequestNoBattleCall()
     {
-        var (db, world) = OpenWorld();
-        var fighter = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
-        var target = Frozen(Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 3, 10));
+        (GameDatabase? db, WorldState? world) = OpenWorld();
+        CreatureState fighter = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
+        CreatureState target = Frozen(Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 3, 10));
         target.PosX += 100;
         var sim = new GameSimulation(db, world, 1, [new CombatSystem()]);
         var events = new ListEventSink();
@@ -330,7 +330,7 @@ public class CombatApproachTests
         // The targets are held on the withdraw walk every tick, in place: the chase counters run. The
         // route stays loaded, because a withdraw that arrives ends, and its Combat leave hook lets
         // its attackers go (ADR-0319).
-        var held = new[] { runner, runner2 }.Select(r => (r, r.PosX, r.PosY)).ToArray();
+        (CreatureState r, int PosX, int PosY)[] held = new[] { runner, runner2 }.Select(r => (r, r.PosX, r.PosY)).ToArray();
         for (int i = 0; i < 20; i++)
         {
             foreach ((CreatureState r, int x, int y) in held)
@@ -496,7 +496,7 @@ public class CombatApproachTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        var seen = StateTrace.Of(sim, killer, 120, () => killer.Activity == CreatureActivity.Celebrating);
+        List<(int State, int Saved, int Resume)> seen = StateTrace.Of(sim, killer, 120, () => killer.Activity == CreatureActivity.Celebrating);
 
         Assert.Equal(199, seen[0].State);
         Assert.Contains((6, 199, 259), seen);
@@ -638,7 +638,7 @@ public class CombatApproachTests
 
     private static WorldState OpenWorld(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
         {

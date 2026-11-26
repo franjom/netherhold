@@ -38,10 +38,10 @@ public class LordOfTheLandCorpseTests
 
         Assert.True(CreatureDeathRules.IsCorpse(lord));
         CreatureView body = Assert.Single(new WorldView(database).Creatures(world), c => c.Id == lord.Id);
-        AssetRef dead = AssetRef.ForCreature("Lord Of The Land", AssetKind.Mesh, "dead");
+        var dead = AssetRef.ForCreature("Lord Of The Land", AssetKind.Mesh, "dead");
         Assert.Equal(dead, body.Mesh);
         Assert.False(body.PlaysAnimation);
-        using InstallArtProvider art = InstallArtProvider.Open(install, database);
+        using var art = InstallArtProvider.Open(install, database);
         Assert.True(art.TryResolve(dead, out ResolvedAsset asset));
         Assert.Equal("LOL-DiePose.kmf", asset.InstallEntry, ignoreCase: true);
 

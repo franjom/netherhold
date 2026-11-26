@@ -222,9 +222,9 @@ public sealed class ClaimActionClockTests
         GameSimulation sim = Start(kind, 2000);
         sim.Run(2);
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, [new ImpTaskSystem()]);
-        WorldState copiedWorld = WorldState.CopyOf(sim.World);
-        var random = sim.Rng.SaveState();
-        GameSimulation copied = GameSimulation.Resume(sim.Database, copiedWorld,
+        var copiedWorld = WorldState.CopyOf(sim.World);
+        (ulong S0, ulong S1, ulong S2, ulong S3) random = sim.Rng.SaveState();
+        var copied = GameSimulation.Resume(sim.Database, copiedWorld,
             SimRandom.Restore(random), [new ImpTaskSystem()]);
         Assert.Equal(sim.StateHash(), restored.StateHash());
         Assert.Equal(sim.StateHash(), copied.StateHash());
@@ -271,7 +271,7 @@ public sealed class ClaimActionClockTests
         var db = new GameDatabase(fixture.Terrain.Values, fixture.Rooms.Values,
             fixture.Creatures.Values.Select(c => c.CreatureId == 1 ? c with { ArtSlots = art } : c),
             fixture.Variables, objects: fixture.Objects.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, (byte)3, (byte)4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, (byte)3, (byte)4]);
         if (kind == TileWorkKind.ConvertRoom)
         {
             for (int y = 2; y <= 4; y++)

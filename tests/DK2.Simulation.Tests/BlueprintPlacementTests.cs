@@ -24,7 +24,7 @@ public sealed class BlueprintPlacementTests
     private static (GameDatabase, WorldState) World(int gold = 10_000)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 8; y++)
         for (int x = 1; x <= 10; x++)
         {

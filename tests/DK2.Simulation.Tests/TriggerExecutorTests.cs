@@ -227,7 +227,7 @@ public class TriggerExecutorTests
     public void ARestoredWorldKeepsAnArmedPartySubtreeArmed()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, 3]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, 3]);
         HeroPartyThing[] parties = [Party(0, triggerId: 5, (7, 9))];
         var original = new GameSimulation(database, world, 1, [], new TriggerTree(PartyRecords(), 0xFFFE, parties));
         original.Run(1);
@@ -913,7 +913,7 @@ public class TriggerExecutorTests
     /// <summary>Three imps and two goblins, all the keeper's.</summary>
     private static WorldState CreatureWorld(GameDatabase database)
     {
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int i = 0; i < 3; i++)
             world.SpawnCreature(database, ImpId, Keeper, new TilePos(2, 2));
@@ -1331,7 +1331,7 @@ public class TriggerExecutorTests
     private static (WorldState World, GameDatabase Database) HandoverWorld()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         foreach ((int x, int y) in HandoverRoomTiles)
         {
             ref TileState tile = ref world.Tile(x, y);
@@ -1368,7 +1368,7 @@ public class TriggerExecutorTests
     public void AllianceActionWritesBothPlayers_ZeroAllies(byte mode, bool allied)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, 4]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, 4]);
         world.SetAllied(Keeper, 4, !allied);
         TriggerRecord[] records = [LevelTime(5, comparison: 5, seconds: 0, child: 0xFFFF), AllianceRecord(1, Keeper, 4, mode)];
         TriggerRunResult result = new TriggerExecutor(new TriggerTree(records, 5, playerRoots: []), world.Triggers, world, database).Run(1);
@@ -1432,7 +1432,7 @@ public class TriggerExecutorTests
     public void TheRoomCacheDoesNotSurviveIntoTheNextTurn()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         // Zero treasuries now, so ">= 1" is false on turn 1.
@@ -1526,7 +1526,7 @@ public class TriggerExecutorTests
         int state, int spellId, int asked, bool holds)
     {
         GameDatabase database = SpellDatabase(spellId, state, Keeper);
-        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
 
         TriggerRecord[] records = [SpellAvailable(5, asked), Action(1, 3, 0x0A, 1)];
         var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
@@ -1545,7 +1545,7 @@ public class TriggerExecutorTests
     {
         GameDatabase database = Dk2TerrainFixture.Database().ForLevel(Level(
             new AvailabilityEntry((ushort)kind, (ushort)owner, 7, 3)));
-        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper, (byte)owner]);
+        var world = WorldState.FromMap(database, TestWorld.Map(), [Keeper, (byte)owner]);
 
         var tree = new TriggerTree(
             [SpellAvailable(5, 7), Action(1, 3, 0x0A, 1)], 0,
@@ -1562,7 +1562,7 @@ public class TriggerExecutorTests
     public void ConditionTwentyNineIsAnsweredRatherThanDeclined()
     {
         GameDatabase database = SpellDatabase(7, 1, Keeper);
-        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
 
         TriggerRunResult result = new TriggerExecutor(
                 new TriggerTree([SpellAvailable(5, 7), Action(1, 3, 0x0A, 1)], 0,
@@ -1592,7 +1592,7 @@ public class TriggerExecutorTests
     public void WinGameInAPlayerTreeEndsThatPlayersGameAsWon()
     {
         GameDatabase database = TestWorld.Database();
-        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
         var tree = new TriggerTree(
             [Condition(5, repeat: 255, child: 0xFFFF, next: 0, FlagEqualsZero()), EndGameAction(1, 10)],
             0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
@@ -1608,7 +1608,7 @@ public class TriggerExecutorTests
     public void LoseGameEndsTheGameAsLost_AndALaterWinDoesNotOverturnIt()
     {
         GameDatabase database = TestWorld.Database();
-        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
         var lose = new TriggerTree(
             [Condition(5, repeat: 255, child: 0xFFFF, next: 0, FlagEqualsZero()), EndGameAction(1, 11)],
             0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]);
@@ -1629,7 +1629,7 @@ public class TriggerExecutorTests
     public void WinGameInAWorldTreeIsRefusedAsDk2Refuses()
     {
         GameDatabase database = TestWorld.Database();
-        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
         var tree = new TriggerTree(
             [Condition(5, repeat: 255, child: 0xFFFF, next: 0, FlagEqualsZero()), EndGameAction(1, 10)], 5);
 
@@ -1912,7 +1912,7 @@ public class TriggerExecutorTests
     {
         GameDatabase database = TestWorld.Database().ForLevel(Level(
             new AvailabilityEntry(kind, Keeper, 7, 1)));
-        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
 
         TriggerRunResult enabled = new TriggerExecutor(
             new TriggerTree([AvailabilityAction(1, Keeper, kind, 7, available: 2)], 0xFFFF),
@@ -1932,7 +1932,7 @@ public class TriggerExecutorTests
     public void ActionSixDoesNotCreateAMissingAvailabilityRow()
     {
         GameDatabase database = TestWorld.Database();
-        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
 
         new TriggerExecutor(
             new TriggerTree([AvailabilityAction(1, Keeper, 2, 7, available: 1)], 0xFFFF),
@@ -1947,7 +1947,7 @@ public class TriggerExecutorTests
     {
         GameDatabase database = TestWorld.Database().ForLevel(Level(
             new AvailabilityEntry(5, Keeper, 7, 1)));
-        WorldState world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, TestWorld.Map(), [Keeper]);
         TriggerRecord[] records =
         [
             AvailabilityAction(1, Keeper, 5, 7, available: 1),
@@ -2614,7 +2614,7 @@ public class TriggerExecutorTests
 
     private static ulong StateHash(TriggerState state)
     {
-        DK2.Core.Hash64 hash = DK2.Core.Hash64.Start();
+        var hash = DK2.Core.Hash64.Start();
         state.HashInto(ref hash);
         return hash.Value;
     }

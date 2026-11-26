@@ -17,7 +17,7 @@ public class SaveReaderTests
     {
         using var stream = new MemoryStream(new byte[8]);
         using var reader = new BinaryReader(stream);
-        var error = Assert.Throws<SaveIncompatibleException>(() => SaveReader.CheckCount(reader, count, "entries", minimumBytes, maximum));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => SaveReader.CheckCount(reader, count, "entries", minimumBytes, maximum));
         Assert.Equal(reason, error.Reason);
         Assert.Equal(0L, error.Position);
     }

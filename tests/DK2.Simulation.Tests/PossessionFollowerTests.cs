@@ -21,7 +21,7 @@ public sealed class PossessionFollowerTests
     private static (GameDatabase Db, WorldState World) Open()
     {
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Possessor());
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(30, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(30, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -67,7 +67,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void SlotThreeRecruitsTheBestAimedHappyFriendNotTheNearestAndDoesNotStamp_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         CreatureState nearOffAxis = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(7, 11));
         CreatureState farOnAxis = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
@@ -86,7 +86,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void ATieKeepsTheFirstSeenWhichIsTheNewestCreature_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         CreatureState older = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 10));
         CreatureState newer = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
@@ -101,7 +101,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void TheRecruitScansSevenTilesFromTheCreatureAndSkipsEnemiesAndTheUnhappy_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 3, 10);
         CreatureState far = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
         CreatureState enemy = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 10));
@@ -118,7 +118,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void TheCapStopsTheRecruitAtTheMaximumGroupSize_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         CreatureState ahead = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 10));
         GameSimulation sim = Sim(db, world);
@@ -133,7 +133,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void AFollowerRoutesToItsLeaderAndRunsWhenFar_ConfirmedFromBinary_ArrivalCycleUnread()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 3, 10);
         CreatureState near = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         CreatureState far = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(9, 10));
@@ -151,7 +151,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void TheFollowEndsWhenTheLeaderIsNoLongerPossessedAndTheCountIsZeroed_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 3, 10);
         CreatureState follower = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         Follow(db, world, me, follower);
@@ -171,7 +171,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void DismissLetsEveryFollowerGoAndCountsDownOnceEach_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 3, 10);
         CreatureState counted = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         CreatureState uncounted = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(6, 10));
@@ -189,7 +189,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void TheCountRuleLowersOnceAndFrightAlsoLetsGo_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 3, 10);
         CreatureState follower = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         follower.FollowLeaderId = me.Id;
@@ -205,7 +205,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void AMeleeHitIsTheFollowersTargetUntilThreeSecondsPass_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 10, 10);
         CreatureState enemy = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
         CreatureState follower = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 10));
@@ -229,7 +229,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void AFollowerIsBusyToItsNeeds_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState follower = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         Assert.False(NeedRules.IsBusy(world, follower, 0));
         follower.FollowLeaderId = 99;
@@ -239,7 +239,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void TheScanStopsAtSevenTilesStrictly_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 3, 10);
         CreatureState atSeven = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
         GameSimulation sim = Sim(db, world);
@@ -256,7 +256,7 @@ public sealed class PossessionFollowerTests
     [InlineData(true)]
     public void PitRecruitmentChecksTheKeeperBindingRatherThanTheFighterFlag(bool bound)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         CreatureState fighter = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 10));
         fighter.CombatPitFighter = true;
@@ -269,7 +269,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void AFollowerRemovedFromTheWorldLowersItsLeadersCountOnce_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 3, 10);
         CreatureState follower = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         follower.FollowLeaderId = me.Id;
@@ -283,7 +283,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void AnIdleFollowerReFollowsAndARefusedOneLetsGoWithoutCounting_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 3, 10);
         CreatureState idle = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         CreatureState sulking = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(6, 10));
@@ -302,7 +302,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void AnImpFollowsThroughItsOwnSystem_ConfirmedFromBinary_ArrivalCycleUnread()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 3, 10);
         CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 10));
         Follow(db, world, me, imp);
@@ -315,7 +315,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void AFollowerTakesNoLairAnger_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         LairOffer.Offer(world, Keeper);
         CreatureState bedless = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         CreatureDef goblin = db.CreatureById(bedless.CreatureTypeId);
@@ -327,7 +327,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void AFollowerFightsItsLeadersTargetOverANearerEnemy_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 10, 10);
         CreatureState struck = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(9, 10));
         CreatureState follower = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(6, 10));
@@ -348,7 +348,7 @@ public sealed class PossessionFollowerTests
     [Fact]
     public void FollowerFieldsSurviveASnapshot()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 3, 10);
         me.FollowLeaderId = 7;
         me.FollowRouteTick = 11;

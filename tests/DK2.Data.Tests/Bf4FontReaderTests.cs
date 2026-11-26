@@ -97,7 +97,7 @@ public class Bf4FontReaderTests
 
     private static byte[] Glyph(char c, int width, int height, uint flags, params byte[] data)
     {
-        var file = new byte[8 + 4 + 0x18 + data.Length];
+        byte[] file = new byte[8 + 4 + 0x18 + data.Length];
         "F4FB"u8.CopyTo(file);
         file[4] = 1;
         file[5] = 18;

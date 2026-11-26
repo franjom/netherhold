@@ -15,9 +15,9 @@ public class EaMovieTests
     public void AStereoAdpcmGroupTakesHighNibblesLeftAndScalesByTwentyMinusShift()
     {
         // Coefficient index 0 and shift 0 on both channels: new = (nibble << 20 + 0x80) >> 8.
-        var payload = new byte[12 + 30];
+        byte[] payload = new byte[12 + 30];
         payload[14] = 0x1F; // first sample: L nibble 1, R nibble -1
-        var stereo = new short[2 * 28];
+        short[] stereo = new short[2 * 28];
 
         int frames = EaAudio.DecodeBlock(payload, channels: 2, compression: 7, stereo);
 
@@ -29,10 +29,10 @@ public class EaMovieTests
     public void AdpcmPredictsFromTheBlockHeadersCurrentAndPreviousSamples()
     {
         // Index 1 (c1 240, c2 0): new = (0 + 240 * cur + 0x80) >> 8 from the header's current sample.
-        var payload = new byte[12 + 30];
+        byte[] payload = new byte[12 + 30];
         BinaryPrimitives.WriteInt16LittleEndian(payload.AsSpan(4), 1000);
         payload[12] = 0x10;
-        var stereo = new short[2 * 28];
+        short[] stereo = new short[2 * 28];
 
         EaAudio.DecodeBlock(payload, 2, 7, stereo);
 
@@ -43,9 +43,9 @@ public class EaMovieTests
     public void MonoAdpcmGroupsStartAfterTheTwelveByteHeaderAsDk2sCodeReadsThem_NoShippedMovieIsMono()
     {
         // 0x005A8430: (len - 12) / 15 groups from payload+12; index high nibble, shift low nibble.
-        var payload = new byte[12 + 15];
+        byte[] payload = new byte[12 + 15];
         payload[13] = 0x10; // first data byte: high nibble 1 then low nibble 0
-        var stereo = new short[2 * 28];
+        short[] stereo = new short[2 * 28];
 
         int frames = EaAudio.DecodeBlock(payload, channels: 1, compression: 7, stereo);
 
@@ -61,7 +61,7 @@ public class EaMovieTests
         bits.Put("1111110"); bits.Put("10000000"); bits.Put("000001"); bits.Put("000000"); bits.Put("00101000"); bits.Put("10");
         for (int i = 0; i < 3; i++) { bits.Put("100"); bits.Put("10"); }
         for (int i = 0; i < 2; i++) { bits.Put("11111110"); bits.Put("10000000"); bits.Put("10"); }
-        var rgba = new byte[16 * 16 * 4];
+        byte[] rgba = new byte[16 * 16 * 4];
 
         new TqiDecoder().Decode(Frame(16, 16, 107, bits), rgba);
 
@@ -87,7 +87,7 @@ public class EaMovieTests
         bits.Put("1111110"); bits.Put("10000000"); bits.Put("10"); // Y0: size 8, +128, end of block
         for (int i = 0; i < 3; i++) { bits.Put("100"); bits.Put("10"); } // Y1-Y3: size 0
         for (int i = 0; i < 2; i++) { bits.Put("11111110"); bits.Put("10000000"); bits.Put("10"); } // Cb, Cr
-        var rgba = new byte[16 * 16 * 4];
+        byte[] rgba = new byte[16 * 16 * 4];
 
         int used = new TqiDecoder().Decode(Frame(16, 16, 100, bits), rgba);
 
@@ -104,7 +104,7 @@ public class EaMovieTests
         bits.Put("1111110"); bits.Put("10000000"); bits.Put("000001"); bits.Put("000000"); bits.Put("00101000"); bits.Put("10");
         for (int i = 0; i < 3; i++) { bits.Put("100"); bits.Put("10"); }
         for (int i = 0; i < 2; i++) { bits.Put("11111110"); bits.Put("10000000"); bits.Put("10"); }
-        var rgba = new byte[16 * 16 * 4];
+        byte[] rgba = new byte[16 * 16 * 4];
 
         new TqiDecoder().Decode(Frame(16, 16, 100, bits), rgba);
 
@@ -118,7 +118,7 @@ public class EaMovieTests
         byte[] header = [(byte)'P', (byte)'T', 0, 0, 0x82, 0x01, 0x05, 0xFD, 0x82, 0x01, 0x02, 0x83, 0x01, 0x07, 0x84, 0x02, 0x56, 0x22, 0x8A, 0x82, 0x01, 0x09];
         byte[] file = [.. Chunk("SCHl", header), .. Chunk("SCEl", [])];
 
-        EaMovie movie = EaMovie.Read(file);
+        var movie = EaMovie.Read(file);
 
         Assert.Equal(2, movie.Channels);
         Assert.Equal(7, movie.Compression);
@@ -128,10 +128,10 @@ public class EaMovieTests
     [InstallFact]
     public void BullfrogIntroDecodesEveryFrameToItsLastWordAndEveryAudioBlock()
     {
-        EaMovie movie = EaMovie.Open(Path.Combine(Dk2InstallGate.Path, "Data", "Movies", "BullfrogIntro.tgq"));
+        var movie = EaMovie.Open(Path.Combine(Dk2InstallGate.Path, "Data", "Movies", "BullfrogIntro.tgq"));
         var decoder = new TqiDecoder();
-        var rgba = new byte[320 * 480 * 4];
-        var stereo = new short[2 * 4096];
+        byte[] rgba = new byte[320 * 480 * 4];
+        short[] stereo = new short[2 * 4096];
         int frames = 0, blocks = 0;
 
         foreach (EaMovieChunk chunk in movie.Chunks)
@@ -162,9 +162,9 @@ public class EaMovieTests
     {
         // No DK2-rendered frame has been captured to compare against; this only catches a decoder
         // that produces noise or swaps channels.
-        EaMovie movie = EaMovie.Open(Path.Combine(Dk2InstallGate.Path, "Data", "Movies", "BullfrogIntro.tgq"));
+        var movie = EaMovie.Open(Path.Combine(Dk2InstallGate.Path, "Data", "Movies", "BullfrogIntro.tgq"));
         EaMovieChunk frame = movie.Chunks.Where(c => c.Kind == EaMovieChunkKind.Video).ElementAt(120);
-        var rgba = new byte[320 * 480 * 4];
+        byte[] rgba = new byte[320 * 480 * 4];
 
         new TqiDecoder().Decode(movie.Payload(frame), rgba);
 
@@ -176,7 +176,7 @@ public class EaMovieTests
     private static byte[] Frame(int width, int height, int quantiser, BitWriter bits)
     {
         byte[] stream = bits.ToWords();
-        var frame = new byte[8 + stream.Length];
+        byte[] frame = new byte[8 + stream.Length];
         BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)width);
         BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(2), (ushort)height);
         frame[4] = (byte)quantiser;
@@ -187,7 +187,7 @@ public class EaMovieTests
 
     private static byte[] Chunk(string tag, byte[] payload)
     {
-        var chunk = new byte[8 + payload.Length];
+        byte[] chunk = new byte[8 + payload.Length];
         Encoding.ASCII.GetBytes(tag).CopyTo(chunk, 0);
         BinaryPrimitives.WriteInt32LittleEndian(chunk.AsSpan(4), chunk.Length);
         payload.CopyTo(chunk, 8);
@@ -204,7 +204,7 @@ public class EaMovieTests
         public byte[] ToWords()
         {
             string all = _bits.ToString().PadRight((_bits.Length + 31) / 32 * 32, '0');
-            var bytes = new byte[all.Length / 8];
+            byte[] bytes = new byte[all.Length / 8];
             for (int w = 0; w < all.Length / 32; w++)
                 BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(w * 4), Convert.ToUInt32(all.Substring(w * 32, 32), 2));
             return bytes;

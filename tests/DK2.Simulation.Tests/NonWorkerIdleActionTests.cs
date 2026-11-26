@@ -23,7 +23,7 @@ public class NonWorkerIdleActionTests
         shapeArt?.Invoke(slots);
         CreatureDef goblin = Dk2TerrainFixture.Goblin() with { CreatureId = 54, ArtSlots = slots };
         GameDatabase db = Dk2TerrainFixture.Database(goblin);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         CreatureState c = world.SpawnCreature(db, goblin.CreatureId, PlayerIds.Neutral, new TilePos(2, 2));
         StatePlacement.Place(c, CreatureJobSystem.NeutralIdleState);
         c.WanderStamp = 1;
@@ -47,7 +47,7 @@ public class NonWorkerIdleActionTests
     [InlineData(75, 31, 44)]
     public void AnIdleChoiceStartsItsCountedClip(int lowerRoll, byte slot, int action)
     {
-        var (sim, c, db, _) = Start(lowerRoll);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db, ListEventSink _) = Start(lowerRoll);
         sim.Tick();
         Assert.Equal(slot, c.ActionArtSlot);
         Assert.Equal(204, c.ActionAnimationRate);
@@ -62,7 +62,7 @@ public class NonWorkerIdleActionTests
     [InlineData(true)]
     public void ARunningClipStillBlocksWanderingAfterEightTicks(bool separateHosts)
     {
-        var (sim, c, _, _) = Start(separateHosts: separateHosts);
+        (GameSimulation? sim, CreatureState? c, GameDatabase _, ListEventSink _) = Start(separateHosts: separateHosts);
         sim.Tick();
         uint seed = ((Dk2Lcg)sim.Rng.Algorithm).Seed;
         sim.Run(12);
@@ -75,7 +75,7 @@ public class NonWorkerIdleActionTests
     [Fact]
     public void AnUnavailableIdleFallsThroughToWanderingWithoutStartingAnAction()
     {
-        var (sim, c, _, sink) = Start(artPresent: false);
+        (GameSimulation? sim, CreatureState? c, GameDatabase _, ListEventSink? sink) = Start(artPresent: false);
         sim.Tick();
         Assert.Equal(ImpStates.Wandering, c.Dk2StateId);
         Assert.Equal(132, c.WanderStamp);
@@ -86,7 +86,7 @@ public class NonWorkerIdleActionTests
     [Fact]
     public void ATravelHelperCancelsTheIdleAction()
     {
-        var (sim, c, db, _) = Start();
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db, ListEventSink _) = Start();
         sim.Tick();
         CreatureStateMachine.BeginTravel(new StateHookContext(sim.World, db), c, 6, 1);
         Assert.False(CreatureCurrentAction.IsRunning(c, sim.CurrentTick));
@@ -97,7 +97,7 @@ public class NonWorkerIdleActionTests
     [Fact]
     public void SaveAndRestoreKeepTheIdleClockAndItsFutureDraws()
     {
-        var (sim, c, db, _) = Start();
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db, ListEventSink _) = Start();
         sim.Run(9);
         Assert.True(CreatureCurrentAction.IsRunning(c, sim.CurrentTick));
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, [new CreatureJobSystem()]);
@@ -113,7 +113,7 @@ public class NonWorkerIdleActionTests
     public void TheRunnerClearsACompletedActionBeforeTheFirstStateStep()
     {
         var observer = new ActionObserver();
-        var (sim, c, _, _) = Start(observer: observer);
+        (GameSimulation? sim, CreatureState? c, GameDatabase _, ListEventSink _) = Start(observer: observer);
         sim.Tick();
         Assert.Equal(IdleActionId.Second, c.IdleAction);
         c.ActionAnimationRate = 0;
@@ -131,7 +131,7 @@ public class NonWorkerIdleActionTests
     [InlineData(75, 31, 20, 44)]
     public void AResolvedFallbackKeepsTheRequestedSlotAndActionIdentity(int roll, byte requested, byte resolved, int action)
     {
-        var (sim, c, db, _) = Start(roll, shapeArt: slots =>
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db, ListEventSink _) = Start(roll, shapeArt: slots =>
         {
             slots[resolved] = slots[requested];
             slots[requested] = default;
@@ -145,7 +145,7 @@ public class NonWorkerIdleActionTests
     [Fact]
     public void ChangingTheRequestedSlotReinstallsEvenWhenTheFallbackResourceIsTheSame()
     {
-        var (sim, _, db, _) = Start(shapeArt: slots => slots[31] = default);
+        (GameSimulation? sim, CreatureState _, GameDatabase? db, ListEventSink _) = Start(shapeArt: slots => slots[31] = default);
         CreatureDef definition = db.CreatureById(54);
         var c = new CreatureState { ActionArtSlot = 20, ActionAnimationPhase = 1234, ActionAnimationRate = 204 };
         ActionAnimationClock.BeginCounted(c, definition, 31, 1, sim.Rng);
@@ -157,7 +157,7 @@ public class NonWorkerIdleActionTests
     [Fact]
     public void RepeatingTheSameRequestedFallbackSlotKeepsItsPhase()
     {
-        var (sim, _, db, _) = Start(shapeArt: slots => slots[31] = default);
+        (GameSimulation? sim, CreatureState _, GameDatabase? db, ListEventSink _) = Start(shapeArt: slots => slots[31] = default);
         var c = new CreatureState { ActionArtSlot = 31, ActionAnimationPhase = 1234, ActionAnimationRate = 204 };
         ActionAnimationClock.BeginCounted(c, db.CreatureById(54), 31, 1, sim.Rng);
         Assert.Equal(1234, c.ActionAnimationPhase);
@@ -167,7 +167,7 @@ public class NonWorkerIdleActionTests
     [Fact]
     public void PresentArtWithNoTimingEndsOnTheNextPoll()
     {
-        var (sim, c, _, _) = Start(shapeArt: slots => slots[31] = slots[31] with { FrameCount = 0 });
+        (GameSimulation? sim, CreatureState? c, GameDatabase _, ListEventSink _) = Start(shapeArt: slots => slots[31] = slots[31] with { FrameCount = 0 });
         sim.Tick();
         Assert.True(CreatureCurrentAction.IsRunning(c, sim.CurrentTick));
         Assert.Equal(0, c.ActionAnimationRate);
@@ -178,7 +178,7 @@ public class NonWorkerIdleActionTests
     [Fact]
     public void TheActionIdentityChangesTheHashEvenWithTheSameClip()
     {
-        var (sim, c, _, _) = Start();
+        (GameSimulation? sim, CreatureState? c, GameDatabase _, ListEventSink _) = Start();
         sim.Tick();
         ulong second = sim.StateHash();
         c.IdleAction = IdleActionId.First;
@@ -200,7 +200,7 @@ public class NonWorkerIdleActionTests
                     : StatusEffectRules.StunOnLanding(context, c, definition));
             },
         };
-        var (sim, c, _, _) = Start(observer: replacement);
+        (GameSimulation? sim, CreatureState? c, GameDatabase _, ListEventSink _) = Start(observer: replacement);
         sim.Tick();
         Assert.Equal(IdleActionId.Second, c.IdleAction);
 
@@ -216,7 +216,7 @@ public class NonWorkerIdleActionTests
         var before = new ActionObserver();
         var after = new ActionObserver();
         var combat = new CombatSystem();
-        var (sim, c, _, _) = Start(orderedSteps:
+        (GameSimulation? sim, CreatureState? c, GameDatabase _, ListEventSink _) = Start(orderedSteps:
             [new CreatureStatusSystem(), before, combat, after, combat.States, new CreatureJobSystem()]);
         sim.Tick();
         c.ActionAnimationRate = 0;
@@ -241,7 +241,7 @@ public class NonWorkerIdleActionTests
         };
         var action = new ActionTriggerRecord(new byte[16])
         { Body = new byte[8], TriggerId = ushort.MaxValue, Type = 7, Parameters = parameters };
-        var (sim, c, _, _) = Start(triggers: new TriggerTree([condition, action], 0),
+        (GameSimulation? sim, CreatureState? c, GameDatabase _, ListEventSink _) = Start(triggers: new TriggerTree([condition, action], 0),
             orderedSteps: [new CreatureJobSystem()]);
         target = c;
         c.TriggerId = 1;
@@ -272,7 +272,7 @@ public class NonWorkerIdleActionTests
     [Fact]
     public void ACountOfTwoKeepsTheAnimationLoopEnabled()
     {
-        var (sim, _, db, _) = Start();
+        (GameSimulation? sim, CreatureState _, GameDatabase? db, ListEventSink _) = Start();
         var c = new CreatureState();
         ActionAnimationClock.BeginCounted(c, db.CreatureById(54), 31, 2, sim.Rng);
         Assert.Equal(3, c.ActionCount);
@@ -284,7 +284,7 @@ public class NonWorkerIdleActionTests
     [InlineData(255, 0)]
     public void AHighBitCycleCountUsesTheSignedByteGateAndWraps(byte plays, byte stored)
     {
-        var (sim, _, db, _) = Start();
+        (GameSimulation? sim, CreatureState _, GameDatabase? db, ListEventSink _) = Start();
         var c = new CreatureState();
         ActionAnimationClock.BeginCounted(c, db.CreatureById(54), 31, plays, sim.Rng);
         Assert.Equal(stored, c.ActionCount);

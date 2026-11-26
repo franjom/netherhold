@@ -35,7 +35,7 @@ public class PortalArrivalEffectsOnRealDataTests
             Arrival(0xFFFF, 0xFFFE, creatureId),
             Arrival(0xFFFE, 0, creatureId),
         ];
-        var (world, requests) = Run(db, "level1", actions);
+        (WorldState? world, ViewEffectRequest[]? requests) = Run(db, "level1", actions);
 
         Assert.Equal(2, world.Creatures.Count);
         Assert.Equal(effectId == 0 ? 0 : 2, requests.Length);
@@ -65,7 +65,7 @@ public class PortalArrivalEffectsOnRealDataTests
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, level);
         TriggerRecord action = GameDatabaseLoader.LoadCampaignTriggers(install, level)!
             .Single(record => record.TriggerId == triggerId);
-        var (world, requests) = Run(db, level, [action with { ChildTriggerId = 0, NextTriggerId = 0 }]);
+        (WorldState? world, ViewEffectRequest[]? requests) = Run(db, level, [action with { ChildTriggerId = 0, NextTriggerId = 0 }]);
 
         Assert.Single(world.Creatures);
         Assert.Equal((int)action.Parameters["Level"], requests.Length);
@@ -82,7 +82,7 @@ public class PortalArrivalEffectsOnRealDataTests
     private static (WorldState World, ViewEffectRequest[] Requests) Run(
         GameDatabase db, string level, TriggerRecord[] actions)
     {
-        WorldState world = WorldState.FromMap(db,
+        var world = WorldState.FromMap(db,
             GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, level)!, [0, 1, 2, 3]);
         RoomInstance portal = RoomIndex.Build(world, db).First(room => room.Definition.TypeId == RoomTypeId.Portal);
         foreach (int tile in portal.TileIndices) world.TileAtIndex(tile).OwnerPlayerId = 3;

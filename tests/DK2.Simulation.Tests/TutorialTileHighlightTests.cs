@@ -12,7 +12,7 @@ public class TutorialTileHighlightTests
     [Fact]
     public void AnIndefiniteRectangleIsInclusiveAndOnlyTheScriptClearsIt()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Run(db, world, 1, true, 0);
         Assert.True(world.TileHighlights.Contains(new TilePos(2, 3)));
         Assert.True(world.TileHighlights.Contains(new TilePos(3, 4)));
@@ -30,7 +30,7 @@ public class TutorialTileHighlightTests
     [InlineData(-2, 20)]
     public void FiniteDurationsCountGameTicksAndNegativeDurationsRemain(int durationTicks, int ticks)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Run(db, world, 1, true, durationTicks);
         var sim = new GameSimulation(db, world, 1, []);
         sim.Run(ticks - 1);
@@ -42,7 +42,7 @@ public class TutorialTileHighlightTests
     [Fact]
     public void ExpirationPrecedesTheTurnsTriggerActions()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         var sim = new GameSimulation(db, world, 1, [], new TriggerTree([Record(1, true, 1) with { RepeatCount = 1 }], 0xFFFF));
         sim.Tick();
         Assert.Equal(1, world.TileHighlights.Slots[0].RemainingTicks);
@@ -53,7 +53,7 @@ public class TutorialTileHighlightTests
     [Fact]
     public void FourSlotsChooseTheFirstFreeOrMatchingEntryAndClearOnlyOneMatch()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         for (byte id = 1; id <= 5; id++) Run(db, world, id, true, 0);
         Assert.Equal(new byte[] { 1, 2, 3, 4 }, world.TileHighlights.Slots.ToArray().Select(s => s.ActionPoint.Value));
         Run(db, world, 2, false, 0);
@@ -66,7 +66,7 @@ public class TutorialTileHighlightTests
     [Fact]
     public void AnUnknownActionPointRetainsTheSlotsPreviousRectangle()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Run(db, world, 1, true, 0); Run(db, world, 1, false, 0); Run(db, world, 99, true, 0);
         Assert.Equal(new ActionPointId(99), world.TileHighlights.Slots[0].ActionPoint);
         Assert.True(world.TileHighlights.Contains(new TilePos(2, 3)));
@@ -75,13 +75,13 @@ public class TutorialTileHighlightTests
     [Fact]
     public void RectanglesAndCountdownsAreHashedAndSurviveSaveRestore()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         var sim = new GameSimulation(db, world, 1, []);
         ulong before = sim.StateHash();
         Run(db, world, 1, true, 3); Run(db, world, 2, true, 0);
         Assert.NotEqual(before, sim.StateHash());
         sim.Tick();
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db);
         Assert.Equal(sim.StateHash(), restored.StateHash());
         Assert.Equal(world.TileHighlights.Slots.ToArray(), restored.World.TileHighlights.Slots.ToArray());
         sim.Run(2); restored.Run(2);
@@ -93,7 +93,7 @@ public class TutorialTileHighlightTests
     [Fact]
     public void Action16IsPerformedAsTheWorldActionItIs()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         var record = new ActionTriggerRecord(new byte[16])
         {
@@ -101,13 +101,13 @@ public class TutorialTileHighlightTests
             Parameters = new Dictionary<string, long> { ["ActionPointId"] = 1, ["Available"] = 1, ["Value"] = 0 },
         };
         var tree = new TriggerTree([record], 0xFFFF);
-        var result = new TriggerExecutor(tree, world.Triggers, world, db).Run(1);
+        TriggerRunResult result = new TriggerExecutor(tree, world.Triggers, world, db).Run(1);
         Assert.Empty(result.Partial);
     }
 
     private static (GameDatabase, WorldState) Setup()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         ThingProjection.Place(world, db, Enumerable.Range(1, 5).Select(id => new ActionPointThing(new byte[24])
         { ActionPointId = (byte)id, StartX = 2, StartY = 3, EndX = 3, EndY = 4, Name = "test" }));

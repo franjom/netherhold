@@ -100,7 +100,7 @@ public sealed class TriggerEventProducerTests
         byte creatureEvent, byte? playerEvent, Action<SimulationContext> rule)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper]);
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 3));
         goblin.TriggerId = CreatureRoot;
         Dk2TerrainFixture.SetKnownIdentities(world);

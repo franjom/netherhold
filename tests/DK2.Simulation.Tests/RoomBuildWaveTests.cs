@@ -14,7 +14,7 @@ public sealed class RoomBuildWaveTests
     [Fact]
     public void ReleaseCornerThenOneDiagonalPerTickWithAnEffectForEachTile()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2)));
         Assert.Equal([new TilePos(2, 2)], EffectTiles(events));
         Assert.Equal(1, CountRoom(sim));
@@ -29,7 +29,7 @@ public sealed class RoomBuildWaveTests
     [Fact]
     public void CompletionSkipsLaterSlotsDiagonalWithoutCatchUp()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(
             BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 3, 2, 3, 2),
             BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2)));
@@ -44,7 +44,7 @@ public sealed class RoomBuildWaveTests
     [Fact]
     public void OnlyThreeOrdersFitAndFourthDoesNotReplaceAQueuedOrder()
     {
-        var (sim, _) = Start();
+        (GameSimulation? sim, ListEventSink _) = Start();
         sim.Tick(InputFrame.Of(
             BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2),
             BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 3, 1, 3),
@@ -57,7 +57,7 @@ public sealed class RoomBuildWaveTests
     [Fact]
     public void ANewOrderReusesTheFirstFreeSlotBeforeAnOlderPendingOrder()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(
             BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 3, 2, 3, 2),
             BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2)));
@@ -70,7 +70,7 @@ public sealed class RoomBuildWaveTests
     [Fact]
     public void GoldSpentBetweenDiagonalsAbortsTheRemainingOrder()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2)));
         Assert.True(GoldStore.TryWithdraw(sim.World, PlayerIds.FirstKeeper, GoldStore.Total(sim.World, PlayerIds.FirstKeeper)));
         sim.Tick();
@@ -83,7 +83,7 @@ public sealed class RoomBuildWaveTests
     [Fact]
     public void PlacementChangedBetweenDiagonalsSkipsOnlyThatTile()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2)));
         sim.World.Tile(new TilePos(2, 1)).OwnerPlayerId = PlayerIds.Neutral;
         sim.Run(2);
@@ -94,10 +94,10 @@ public sealed class RoomBuildWaveTests
     [Fact]
     public void SnapshotRestoresPendingWaveAndContinuesIdentically()
     {
-        var (sim, _) = Start();
+        (GameSimulation? sim, ListEventSink _) = Start();
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2)));
         Assert.Equal(1, CountRoom(sim));
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database,
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database,
             [new RoomBuildSystem(), new RoomBuildWaveSystem()]);
         Assert.Equal(sim.StateHash(), restored.StateHash());
         for (int i = 0; i < 4; i++)
@@ -112,7 +112,7 @@ public sealed class RoomBuildWaveTests
     [Fact]
     public void DirectBuilderRetainsImmediateTimingAndDoesNotRequestPlayerWaveEffects()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(BuildRoomCommand.At(PlayerIds.FirstKeeper, RoomTypeId.Lair,
             new TilePos(1, 1), new TilePos(1, 2))));
         Assert.Equal(2, CountRoom(sim));
@@ -122,7 +122,7 @@ public sealed class RoomBuildWaveTests
     [Fact]
     public void FailedWholeRectanglePrecheckDoesNotLeaveAnOrderForLaterGold()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         GoldStore.TryWithdraw(sim.World, PlayerIds.FirstKeeper, GoldStore.Total(sim.World, PlayerIds.FirstKeeper));
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2)));
         GoldStore.Deposit(sim.World, sim.Database, PlayerIds.FirstKeeper, 10000);
@@ -134,7 +134,7 @@ public sealed class RoomBuildWaveTests
     [Fact]
     public void DefeatedKeeperDoesNotAdvanceAnAlreadyQueuedWave()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2)));
         sim.World.Player(PlayerIds.FirstKeeper).KilledByPlayerId = 4;
         sim.Run(4);
@@ -145,7 +145,7 @@ public sealed class RoomBuildWaveTests
     [Fact]
     public void GoldSpentAfterInputQueueingButBeforeThePlayerFramePreventsTheFirstTile()
     {
-        var (sim, events) = Start(context => GoldStore.TryWithdraw(context.World, PlayerIds.FirstKeeper,
+        (GameSimulation? sim, ListEventSink? events) = Start(context => GoldStore.TryWithdraw(context.World, PlayerIds.FirstKeeper,
             GoldStore.Total(context.World, PlayerIds.FirstKeeper)));
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2)));
         Assert.Empty(EffectTiles(events));
@@ -161,10 +161,10 @@ public sealed class RoomBuildWaveTests
     [InlineData("slot")]
     public void PendingWaveFieldsAndItsSlotAffectTheStateHash(string field)
     {
-        var (sim, _) = Start();
+        (GameSimulation? sim, ListEventSink _) = Start();
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2)));
         ulong original = sim.StateHash();
-        var slots = Assert.IsType<RoomBuildWaveState?[]>(sim.World.RoomBuildWaves);
+        RoomBuildWaveState?[] slots = Assert.IsType<RoomBuildWaveState?[]>(sim.World.RoomBuildWaves);
         int index = Array.FindIndex(slots, slot => slot.HasValue);
         RoomBuildWaveState wave = slots[index]!.Value;
         if (field == "slot")
@@ -191,7 +191,7 @@ public sealed class RoomBuildWaveTests
 
     private static (GameSimulation Sim, ListEventSink Events) Start(Action<SimulationContext>? intervene = null)
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         RoomRules.Place(db, ref world.Tile(new TilePos(3, 3)), db.Room(RoomTypeId.DungeonHeart), PlayerIds.FirstKeeper);
         RoomRules.Place(db, ref world.Tile(new TilePos(3, 1)), db.Room(RoomTypeId.Treasury), PlayerIds.FirstKeeper);

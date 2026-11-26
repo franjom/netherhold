@@ -110,7 +110,7 @@ public class TriggerCaptureComparisonOnRealDataTests
         List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName)!;
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, levelName)!;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, levelName);
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, map, players.Select(p => p.PlayerId).ToArray());
         HeroPartyThing[] parties = things.OfType<HeroPartyThing>().ToArray();
         ThingProjection.Place(world, database, things);

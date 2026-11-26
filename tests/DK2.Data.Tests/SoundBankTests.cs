@@ -14,7 +14,7 @@ public class SoundBankTests
     {
         var bank = new SoundBank(SdtArchive.Open(Path.Combine(Dk2InstallGate.Path,
             "Data", "Sound", "SFX", "Global", "FrontEndHD.sdt")));
-        var first = bank.GetClip(new SoundEntryId(0));
+        PcmClip? first = bank.GetClip(new SoundEntryId(0));
         Assert.NotNull(first);
         Assert.Same(first, bank.GetClip(new SoundEntryId(0)));
         Assert.Null(bank.GetClip(new SoundEntryId(1)));

@@ -265,7 +265,7 @@ public class PlayerContractsTests
     {
         var a = new PlayerRequest(Stamp(), new PlayerActionId(1), new PlayerAction.BuildRoom(RoomTypeId.Treasury, new TilePos(1, 1), new TilePos(3, 3)));
         var same = new PlayerRequest(Stamp(), new PlayerActionId(1), new PlayerAction.BuildRoom(RoomTypeId.Treasury, new TilePos(1, 1), new TilePos(3, 3)));
-        var moved = a with { Action = new PlayerAction.BuildRoom(RoomTypeId.Treasury, new TilePos(2, 1), new TilePos(4, 3)) };
+        PlayerRequest moved = a with { Action = new PlayerAction.BuildRoom(RoomTypeId.Treasury, new TilePos(2, 1), new TilePos(4, 3)) };
         Assert.Equal(a, same);
         Assert.NotEqual(a, moved);
         Assert.NotEqual(a, a with { BasedOn = Stamp(2) });

@@ -23,7 +23,7 @@ public class SoundVoiceBindingsTests
     public void ReusingAVoiceSourceForAnUnvoicedSoundRevokesTheOldOwner()
     {
         var bindings = new SoundVoiceBindings<object>();
-        var source = new object();
+        object source = new object();
         bindings.Assign(new SoundVoiceId(1), new SoundId(0x321), source);
         bindings.Assign(SoundVoiceId.None, new SoundId(0x30f), source);
         Assert.False(bindings.TryGet(new SoundVoiceId(1), out _, out _));
@@ -33,7 +33,7 @@ public class SoundVoiceBindingsTests
     public void ReusingASourceForAnotherVoiceLeavesOnlyTheNewOwnerAbleToStopIt()
     {
         var bindings = new SoundVoiceBindings<object>();
-        var source = new object();
+        object source = new object();
         bindings.Assign(new SoundVoiceId(1), new SoundId(0x321), source);
         bindings.Assign(new SoundVoiceId(2), new SoundId(0x320), source);
         Assert.False(bindings.TryGet(new SoundVoiceId(1), out _, out _));

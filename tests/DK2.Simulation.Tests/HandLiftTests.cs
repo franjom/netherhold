@@ -136,7 +136,7 @@ public class HandLiftTests
     private static (GameDatabase, WorldState) World()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         return (db, world);
     }
 

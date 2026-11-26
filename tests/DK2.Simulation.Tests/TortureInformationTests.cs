@@ -96,7 +96,7 @@ public sealed class TortureRevealTests
     private static (GameDatabase Db, WorldState World) Setup(bool fog = true)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival], fogOfWarEnabled: fog);
         Place(db, world, RoomA, 1);
         Place(db, world, RoomB, 2);

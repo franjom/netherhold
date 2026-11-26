@@ -32,7 +32,7 @@ public sealed class LevelSoundDriverTests
         foreach (VariableTypeId id in Enum.GetValues<VariableTypeId>()) variables.Misc[id] = new MiscVariable(id, 0, 0, 0);
         var database = new GameDatabase([water], [], [], variables);
         var map = new LevelMap(4, 4, Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16).ToArray());
-        WorldState world = WorldState.FromMap(database, map, [PlayerIds.Good, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(database, map, [PlayerIds.Good, PlayerIds.FirstKeeper]);
         for (int y = 0; y < 4; y++)
             for (int x = 0; x < 4; x++) world.Tile(x, y).SetExploredBy(Viewer);
 

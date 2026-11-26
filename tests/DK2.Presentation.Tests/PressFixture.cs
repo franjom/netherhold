@@ -96,7 +96,7 @@ internal static class PressFixture
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte floor = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
-        WorldState world = WorldState.FromMap(db, new LevelMap(5, 5,
+        var world = WorldState.FromMap(db, new LevelMap(5, 5,
             Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 25).ToArray()), [PlayerIds.Neutral, Keeper.Value]);
         return (db, world, world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, Keeper, new TilePos(2, 2)));
     }

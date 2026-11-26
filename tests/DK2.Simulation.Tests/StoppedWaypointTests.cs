@@ -17,7 +17,7 @@ public sealed class StoppedWaypointTests
     [InlineData(PlayerIds.FirstKeeper, 199)]
     public void StoppedWaypointUsesNavigationPrecisionWhileBodyAndTargetStayExact(byte owner, int state)
     {
-        var (_, _, creature) = Setup((PlayerId)owner, state);
+        (GameDatabase _, WorldState _, CreatureState? creature) = Setup((PlayerId)owner, state);
         creature.Body.Vel = new Fixed16Vector(777, -888);
 
         creature.StopMoving();
@@ -33,7 +33,7 @@ public sealed class StoppedWaypointTests
     [Fact]
     public void TheStoppedWaypointDirectsTheExistingEscapeNudge()
     {
-        var (db, world, creature) = Setup(PlayerIds.FirstKeeper, ResearchStep.ChoosingState);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup(PlayerIds.FirstKeeper, ResearchStep.ChoosingState);
         creature.StopMoving();
         StatePlacement.Place(creature, ResearchStep.ReturningState);
         creature.Body.EscapeStuckMode = true;
@@ -48,7 +48,7 @@ public sealed class StoppedWaypointTests
     [Fact]
     public void AnOwnedIdleStopKeepsItsSelfPoint()
     {
-        var (_, _, creature) = Setup(PlayerIds.FirstKeeper, CreatureStateMachine.Idle);
+        (GameDatabase _, WorldState _, CreatureState? creature) = Setup(PlayerIds.FirstKeeper, CreatureStateMachine.Idle);
 
         creature.StopMoving();
 
@@ -59,7 +59,7 @@ public sealed class StoppedWaypointTests
     private static (GameDatabase, WorldState, CreatureState) Setup(PlayerId owner, int state)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 40),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 40),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
         for (int x = 1; x < world.Width - 1; x++)
@@ -67,7 +67,7 @@ public sealed class StoppedWaypointTests
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
             world.Tile(x, y).OwnerPlayerId = PlayerIds.FirstKeeper;
         }
-        var creature = world.SpawnCreature(db, Dk2TerrainFixture.VampireCreatureId, owner, new TilePos(6, 30));
+        CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.VampireCreatureId, owner, new TilePos(6, 30));
         creature.PosX = 26762;
         creature.PosY = 123294;
         StatePlacement.Place(creature, state);

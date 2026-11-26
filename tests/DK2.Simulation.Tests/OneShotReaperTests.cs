@@ -15,7 +15,7 @@ public sealed class OneShotReaperTests
 
     private static (GameDatabase Db, WorldState World, TilePos At) Setup(int durationSeconds = 99, byte level = 3, bool metadata = true)
     {
-        var (basis, world, at) = SummonHornyTests.Setup();
+        (GameDatabase? basis, WorldState? world, TilePos at) = SummonHornyTests.Setup();
         KeeperSpellDef spell = basis.KeeperSpellById(5)! with
         {
             Name = "OneShotReaper", KeeperSpellId = SpellId,
@@ -40,7 +40,7 @@ public sealed class OneShotReaperTests
     [Fact]
     public void CastCreatesTheTimedReaperForTheCaster_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(new CastSpellAtPlaceCommand(Keeper, SpellId,
             CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y))));
@@ -66,7 +66,7 @@ public sealed class OneShotReaperTests
     [InlineData(255, 10)]
     public void LevelComesFromTheLevelRecordAndUsesOrdinaryLevelGrants_ConfirmedFromBinary(byte selected, int expected)
     {
-        var (db, world, at) = Setup(level: selected);
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup(level: selected);
         new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]).Tick(InputFrame.Of(Cast(at)));
         Assert.Equal(expected, Assert.Single(world.Creatures).Level);
     }
@@ -79,7 +79,7 @@ public sealed class OneShotReaperTests
     [InlineData(0, 0, false)]
     public void NonzeroDwordSelectsTheVariantAndDurationMultipliesAsAWord_ConfirmedFromBinary(int seconds, int ticks, bool variant)
     {
-        var (db, world, at) = Setup(seconds);
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup(seconds);
         new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]).Tick(InputFrame.Of(Cast(at)));
         CreatureState reaper = Assert.Single(world.Creatures);
         Assert.Equal(ticks, reaper.ReaperTicks);
@@ -90,7 +90,7 @@ public sealed class OneShotReaperTests
     [Fact]
     public void ExpiryRunsDepartureAgeOneOnTheSameTurnAndRemovalThirtyUpdatesLater_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         var sim = new GameSimulation(db, world, 1,
             [new CreatureStatusSystem(), new ReaperSystem(), new ReaperRemovalSystem(), new KeeperSpellSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(Cast(at)));
@@ -122,7 +122,7 @@ public sealed class OneShotReaperTests
     [InlineData(PlayerStatus.Lost)]
     public void OwnerResultDoesNotPauseTheReaperCountdown_ConfirmedFromBinary(byte status)
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, 201, Keeper, at);
         reaper.Dk2StateId = 238;
         reaper.ReaperTicks = 2;
@@ -137,7 +137,7 @@ public sealed class OneShotReaperTests
     [Fact]
     public void HoldingCanRefuseExpiryStateButStillSpendsTimerAndClearsCombat_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, 201, Keeper, at);
         reaper.Dk2StateId = 76;
         reaper.InHand = true;
@@ -154,7 +154,7 @@ public sealed class OneShotReaperTests
     [InlineData(2, -1, 2)]
     public void ZeroTimerAndNonliveCreatureDoNotEnterDeparture_ConfirmedFromBinary(ushort timer, int state, ushort expected)
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, 201, Keeper, at);
         reaper.Dk2StateId = state;
         reaper.ReaperTicks = timer;
@@ -166,7 +166,7 @@ public sealed class OneShotReaperTests
     [Fact]
     public void OneShotCanCoexistWithNormalReaperAndFirstOwnedVariantSuppressesUpkeep_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState normal = world.SpawnCreature(db, 201, Keeper, at);
         normal.Dk2StateId = 238;
         new GameSimulation(db, world, 1, []).Run(1000);
@@ -174,7 +174,7 @@ public sealed class OneShotReaperTests
         new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]).Tick(InputFrame.Of(Cast(at)));
         Assert.Equal(2, world.Creatures.Count);
         Assert.Equal(0, ManaRules.UpkeepPerSecondByPlayerIndex(world, db).Sum());
-        var reaper = world.Creatures.Single(c => c.IsOneShotReaper);
+        CreatureState reaper = world.Creatures.Single(c => c.IsOneShotReaper);
         world.RemoveCreature(reaper.Id);
         Assert.Equal(2000, ManaRules.UpkeepPerSecondByPlayerIndex(world, db).Sum());
     }
@@ -182,7 +182,7 @@ public sealed class OneShotReaperTests
     [Fact]
     public void CreaturePoolFailureStillSpendsTheOneUse_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         for (int i = 0; i < 448; i++) world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, at);
         new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]).Tick(InputFrame.Of(Cast(at)));
         Assert.Equal(448, world.Creatures.Count);
@@ -192,7 +192,7 @@ public sealed class OneShotReaperTests
     [Fact]
     public void MissingLevelMetadataRefusesInsteadOfGuessingTheReaperLevel()
     {
-        var (db, world, at) = Setup(metadata: false);
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup(metadata: false);
         new GameSimulation(db, world, 1, [new CallbackSystem(context =>
             Assert.Equal(KeeperSpellRefusal.MissingLevelDefinition, KeeperSpellRules.CanCastAtPlace(context, Cast(at))))]).Tick();
         Assert.False(world.Player(Keeper).OneShotReaperUsed);
@@ -201,7 +201,7 @@ public sealed class OneShotReaperTests
     [Fact]
     public void UsedFlagAffectsHashAndSnapshotPreservesCountdownAndRefusalAfterRemoval()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         ulong before = sim.StateHash();
         world.Player(Keeper).OneShotReaperUsed = true;
@@ -223,7 +223,7 @@ public sealed class OneShotReaperTests
     [Fact]
     public void InvalidLocationDoesNotSpendTheUseAndSuccessfulCastStampsBothClocks_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(Cast(new TilePos(-1, -1))));
         Assert.False(world.Player(Keeper).OneShotReaperUsed);
@@ -242,7 +242,7 @@ public sealed class OneShotReaperTests
     [Fact]
     public void DownCreatureStillSpendsItsPrefixTimer_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, 201, Keeper, at);
         reaper.Dk2StateId = 238;
         reaper.Health = 0;

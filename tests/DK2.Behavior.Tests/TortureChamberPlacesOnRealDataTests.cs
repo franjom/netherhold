@@ -36,7 +36,7 @@ public class TortureChamberPlacesOnRealDataTests(ITestOutputHelper output)
         foreach (string level in LevelNames(install))
         {
             LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, level)!;
-            WorldState world = WorldState.FromMap(db, map, [0, 1, 2, 3, 4, 5, 6, 7]);
+            var world = WorldState.FromMap(db, map, [0, 1, 2, 3, 4, 5, 6, 7]);
             var rooms = RoomIndex.Build(world, db).Where(r => r.Definition.TypeId == RoomTypeId.TortureChamber).ToList();
             if (rooms.Count == 0) continue;
 

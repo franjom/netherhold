@@ -41,7 +41,7 @@ public class HandInputTests
     [Fact]
     public void RightClickWithAnEmptyHandSlapsTheCreature()
     {
-        var snapshot = Creature(false);
+        PlayerInputSnapshot snapshot = Creature(false);
         var input = new PlayerInputTranslator();
         SlapCreatureCommand slap = Assert.IsType<SlapCreatureCommand>(Assert.Single(input.Translate(
             Intent(Start, secondary: PointerButtonTransition.Pressed), snapshot).All));
@@ -115,8 +115,8 @@ public class HandInputTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte floor = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
-        var tiles = Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 49).ToArray();
-        WorldState world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 49).ToArray();
+        var world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
         world.Tile(End).TerrainId = db.Terrain.Values.Single(t => t.Name == "Water").TerrainId;
         world.Tile(End).OwnerPlayerId = PlayerIds.Neutral;
         CreatureState creature = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, Keeper, Start);
@@ -144,8 +144,8 @@ public class HandInputTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte floor = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
-        var tiles = Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 49).ToArray();
-        WorldState world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 49).ToArray();
+        var world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
         world.Tile(End).OwnerPlayerId = PlayerIds.Neutral;
         ObjectState mine = world.SpawnObject(db, 117, PlayerIds.Neutral, Start.Y * 7 + Start.X);
         world.SpawnObject(db, 117, PlayerIds.Neutral, End.Y * 7 + End.X);
@@ -166,9 +166,9 @@ public class HandInputTests
     public void SnapshotReadsOnlyThePointedTilesOwnTagAndPreviewDoesNotMutateIt()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var tiles = Enumerable.Repeat(new MapTile(db.Terrain.Values.Single(t => t.Name == "Rock").TerrainId,
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(db.Terrain.Values.Single(t => t.Name == "Rock").TerrainId,
             PlayerIds.Neutral, 0, 0), 49).ToArray();
-        WorldState world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
+        var world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
         var view = new WorldView(db, Keeper);
         world.Tile(Start).SetTaggedBy(Keeper, true);
         Assert.Equal(new ExcavationTarget(Start, true), PlayerInputSnapshot.Capture(view, world, Keeper, db, Start).Excavation);
@@ -190,9 +190,9 @@ public class HandInputTests
     public void ReleasedTagPreviewSurvivesUntilTheCommandTick(bool initiallyTagged)
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var tiles = Enumerable.Repeat(new MapTile(db.Terrain.Values.Single(t => t.Name == "Rock").TerrainId,
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(db.Terrain.Values.Single(t => t.Name == "Rock").TerrainId,
             PlayerIds.Neutral, 0, 0), 49).ToArray();
-        WorldState world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
+        var world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
         var view = new WorldView(db, Keeper);
         world.Tile(Start).SetTaggedBy(Keeper, initiallyTagged);
         view.PreviewTags(Start, End, !initiallyTagged);

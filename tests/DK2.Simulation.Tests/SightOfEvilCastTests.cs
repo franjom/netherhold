@@ -37,7 +37,7 @@ public sealed class SightOfEvilCastTests
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values,
             basis.Variables, [Spell()], objects: basis.Objects.Values,
             shots: withShot ? basis.Shots.Values.Append(SightShot()) : basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         world.Player(Keeper).Mana = 45000;
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.SightOfEvil, 3));
@@ -53,7 +53,7 @@ public sealed class SightOfEvilCastTests
     public void ACastOnRockPaysOnceAndRegistersSightOnTheShotsFirstUpdate()
     {
         // Location 5 admits anything, so a rival's rock or a solid tile is a place.
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         world.Tile(At).TerrainId = Dk2TerrainFixture.Rock;
         world.Tile(At).OwnerPlayerId = Rival;
         var sim = new GameSimulation(db, world, 1, Systems());
@@ -85,7 +85,7 @@ public sealed class SightOfEvilCastTests
     [InlineData(3, KeeperSpellRefusal.MissingShot)]
     public void ARefusalPaysAndStampsNothing(int change, KeeperSpellRefusal reason)
     {
-        var (db, world) = Setup(withShot: change != 3);
+        (GameDatabase? db, WorldState? world) = Setup(withShot: change != 3);
         CastSpellAtPlaceCommand cast = Cast();
         if (change == 0) world.Player(Keeper).Mana = 4999;
         if (change == 1) world.Player(Keeper).Availabilities.Clear();
@@ -103,7 +103,7 @@ public sealed class SightOfEvilCastTests
     [Fact]
     public void EqualManaIsEnough()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         world.Player(Keeper).Mana = 5000;
         new GameSimulation(db, world, 1, Systems()).Tick(InputFrame.Of(Cast()));
 

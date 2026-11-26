@@ -23,7 +23,7 @@ public class LevelStatisticsTests
         WorldState world = NewWorld(database);
         CreatureDef goblin = database.CreatureById(Dk2TerrainFixture.GoblinCreatureId);
         CreatureDef knight = database.CreatureById(Dk2TerrainFixture.KnightCreatureId);
-        CreatureState Dead(byte owner) { var c = world.SpawnCreature(database, goblin.CreatureId, owner, new TilePos(2, 2)); c.Health = 0; return c; }
+        CreatureState Dead(byte owner) { CreatureState c = world.SpawnCreature(database, goblin.CreatureId, owner, new TilePos(2, 2)); c.Health = 0; return c; }
 
         LevelStatisticsRules.CreditDeath(world, goblin, Dead(Rival), Keeper);
         LevelStatisticsRules.CreditDeath(world, goblin, Dead(Keeper), Keeper);

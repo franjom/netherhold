@@ -19,7 +19,7 @@ public class KwdTypedRecordsTests
         int count=0; var types=new HashSet<KwdRecordType>();
         foreach(string file in files)
         {
-            var chunks=KwdReader.ReadFile(file);
+            List<KwdChunk> chunks =KwdReader.ReadFile(file);
             KwdChunk[] rewritten=chunks.Select(chunk=>
             {
                 types.Add(chunk.Type); count+=KwdTypedRecords.Read(chunk).Count;

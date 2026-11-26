@@ -13,7 +13,7 @@ public sealed class TerrainCeilingSchedulerTests
 
     private static bool[] Map(params (int X, int Y)[] closed)
     {
-        var map = new bool[Size * Size];
+        bool[] map = new bool[Size * Size];
         foreach ((int x, int y) in closed) map[(y * Size) + x] = true;
         return map;
     }

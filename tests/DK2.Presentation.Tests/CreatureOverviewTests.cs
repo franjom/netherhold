@@ -13,7 +13,7 @@ public sealed class CreatureOverviewTests
     public void AlternateViewsCountActualMoodAndKeepPitSelectionDistinctFromTrainingCount()
     {
         GameDatabase db=GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        WorldState world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
+        var world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
         CreatureDef goblin=db.CreatureByName("Goblin")!;
         CreatureState creature=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new(8,8));
         creature.Mood=CreatureMood.Angry;creature.CombatPitFighter=true;
@@ -32,7 +32,7 @@ public sealed class CreatureOverviewTests
     public void WorkerRemainsFirstAndHeldCreaturesStayInRosterButNotDisplayedCount()
     {
         GameDatabase db=GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        WorldState world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
+        var world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
         var panel=new CreatureOverview(db,PlayerIds.FirstKeeper,(_,fallback)=>fallback,_=>0);
         CreatureDef goblin=db.CreatureByName("Goblin")!;
         CreatureState first=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new(8,8));
@@ -51,7 +51,7 @@ public sealed class CreatureOverviewTests
     public void PickupCyclesNewestOwnershipFirstAndFocusDoesNotRequirePickupPermission()
     {
         GameDatabase db=GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        WorldState world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
+        var world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
         CreatureDef goblin=db.CreatureByName("Goblin")!;
         CreatureState first=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new(8,8));
         CreatureState second=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new(9,8));
@@ -69,7 +69,7 @@ public sealed class CreatureOverviewTests
     public void WorkerFiltersMatchDisplayedActivityCounts()
     {
         GameDatabase db=GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        WorldState world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
+        var world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
         CreatureDef worker=db.Creatures.Values.First(d=>(d.Flags&(CreatureFlags.IsEvil|CreatureFlags.IsWorker))==(CreatureFlags.IsEvil|CreatureFlags.IsWorker));
         CreatureState idle=world.SpawnCreature(db,worker.CreatureId,PlayerIds.FirstKeeper,new(8,8));
         idle.WorkerIdle=true;

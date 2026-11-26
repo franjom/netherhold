@@ -28,7 +28,7 @@ public class FrameOrderJournalEquivalenceTests
     public void TheRecordedCommandStream_ComesOutOfTheHandOffByteForByte()
     {
         byte[] recorded = File.ReadAllBytes(Dk2CaptureGate.PathFor(Fixture + "input.journal"));
-        InputJournal journal = InputJournal.Read(new MemoryStream(recorded));
+        var journal = InputJournal.Read(new MemoryStream(recorded));
         Replayed replayed = Drive(journal);
 
         byte[] rewritten = Rewrite(journal, replayed.Given);
@@ -75,7 +75,7 @@ public class FrameOrderJournalEquivalenceTests
     public void SanityReplay_TheDriversFramesStillReplayToTheRecordedHashes()
     {
         InputJournal journal = Read();
-        InputJournal rebuilt = InputJournal.Read(new MemoryStream(Rewrite(journal, Drive(journal).Given)));
+        var rebuilt = InputJournal.Read(new MemoryStream(Rewrite(journal, Drive(journal).Given)));
 
         ScenarioResult result = new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path).Replay(
             Scenario.Load(Dk2CaptureGate.PathFor(Fixture + "level1.yaml")), rebuilt);
@@ -171,7 +171,7 @@ public class FrameOrderJournalEquivalenceTests
     private static Replayed Drive(InputJournal journal)
     {
         GameDatabase database = ScenarioTests.SyntheticDatabase();
-        WorldState world = WorldState.FromMap(database, new LevelMap(4, 4, Enumerable.Repeat(new MapTile(3, 0, 0, 0), 16).ToArray()),
+        var world = WorldState.FromMap(database, new LevelMap(4, 4, Enumerable.Repeat(new MapTile(3, 0, 0, 0), 16).ToArray()),
             [Viewer.Value]);
         var pending = new List<PlayerCommand>();
         var pacer = new TickPacer();

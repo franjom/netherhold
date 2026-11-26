@@ -20,7 +20,7 @@ public class WallDeteriorationTests
     {
         GameDatabase basis = Dk2TerrainFixture.Database();
         var variables = new GlobalVariables();
-        foreach (var entry in basis.Variables.Misc) variables.Misc[entry.Key] = entry.Value;
+        foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in basis.Variables.Misc) variables.Misc[entry.Key] = entry.Value;
         variables.Misc[VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond] =
             new(VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond, picks, 0, 0);
         variables.Misc[VariableTypeId.WallDeteriorationDamage] = new(VariableTypeId.WallDeteriorationDamage, damage, 0, 0);
@@ -31,7 +31,7 @@ public class WallDeteriorationTests
     /// claimed floor down the middle: only the walls either side of it touch its floor.</summary>
     private static WorldState World(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
         for (int x = 1; x < world.Width - 1; x++)
         {

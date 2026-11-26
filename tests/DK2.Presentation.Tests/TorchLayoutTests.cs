@@ -44,7 +44,7 @@ public class TorchLayoutTests
             if (layout.At(i) is not TorchView torch) continue;
             Vector3 straight = TorchGeometry.Vertex(torch, Vector3.Zero, null);
             Vector3 wallPoint = lattice.Deform(new Vector3(straight.X, -straight.Z, -straight.Y), torch.Wall.X, torch.Wall.Y);
-            Vector3 wallMount = new Vector3(wallPoint.X, -wallPoint.Z, -wallPoint.Y);
+            var wallMount = new Vector3(wallPoint.X, -wallPoint.Z, -wallPoint.Y);
             if (Vector3.Distance(straight, wallMount) > 0.001f) moved++;
             Assert.True(Vector3.Distance(wallMount, TorchGeometry.Vertex(torch, Vector3.Zero, lattice)) < 0.00001f);
         }
@@ -115,7 +115,7 @@ public class TorchLayoutTests
         string dir = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(dir, "level1");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "level1")!;
-        WorldState world = WorldState.FromMap(db, map,
+        var world = WorldState.FromMap(db, map,
             GameDatabaseLoader.LoadCampaignPlayers(dir, "level1")!.Select(p => p.PlayerId).ToArray());
         var layout = new TorchLayout(db);
         layout.Update(world);

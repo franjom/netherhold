@@ -18,7 +18,7 @@ public class RoomBorderFlameTests
 
     private static WorldState World(GameDatabase db, params (int X, int Y)[] tiles)
     {
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         foreach ((int x, int y) in tiles)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);

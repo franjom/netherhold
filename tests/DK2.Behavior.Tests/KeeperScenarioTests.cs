@@ -43,7 +43,7 @@ public class Level10KeeperScenarioTests(ITestOutputHelper output)
         ScenarioResult run = ScenarioCorpus.Run(scenario, output);
 
         // Skill level 10 and a minimum of 30: never ready, so step 9 moves its creatures (ADR-0317).
-        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is TakeCreatureCommand or DropCommand).ToList();
+        var moves = run.KeeperCommandLog.Where(e => e.Command is TakeCreatureCommand or DropCommand).ToList();
         Assert.NotEmpty(moves);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level10")!;
         byte training = ScenarioCorpus.Database.RoomById((byte)RoomTypeId.TrainingRoom).TerrainId;
@@ -107,7 +107,7 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
             .Where(e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5).ToArray();
         Assert.NotEmpty(calls);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "level11A")!;
-        WorldState stock = WorldState.FromMap(ScenarioCorpus.Database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
+        var stock = WorldState.FromMap(ScenarioCorpus.Database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
         foreach (KeeperCommandEmission callEmission in calls)
         {
             var call = (CastSpellAtPlaceCommand)callEmission.Command;
@@ -149,9 +149,9 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
             // The battle step's own commands, not a scripted cast: action 54 on a turn divisible by
             // 40 at the Black Knight's tile, and action 63 once the call is seen and Harkan's
             // removal gates fail (ADR-0283). A later fight on a later such turn draws another call.
-            List<KeeperCommandEmission> casts = run.KeeperCommandLog
+            var casts = run.KeeperCommandLog
                 .Where(e => e.Command is CastSpellAtPlaceCommand { SpellId: CallToArmsRules.SpellId }).ToList();
-            List<KeeperCommandEmission> removals = run.KeeperCommandLog.Where(e => e.Command is RemoveCallToArmsCommand).ToList();
+            var removals = run.KeeperCommandLog.Where(e => e.Command is RemoveCallToArmsCommand).ToList();
             if (casts.Count == 0) Assert.DoesNotContain(run.Events, e => e.Kind == "call_to_arms_raised");
             Assert.Equal(casts.Count, removals.Count);
             for (int i = 0; i < casts.Count; i++)
@@ -184,7 +184,7 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         // while it seeks its bed and lifted once asleep, each pick-up followed at once by a drop
         // on one of player 5's Lair tiles (ADR-0284, the scenario's comment for the turn).
         Assert.Empty(run.ExpectationFailures);
-        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is TakeCreatureCommand or DropCommand).ToList();
+        var moves = run.KeeperCommandLog.Where(e => e.Command is TakeCreatureCommand or DropCommand).ToList();
         Assert.NotEmpty(moves);
         Assert.All(moves, e => Assert.Equal((byte)5, e.Command.PlayerId));
         Assert.All(moves.Chunk(2), pair => Assert.True(pair[0].Command is TakeCreatureCommand && pair[1].Command is DropCommand
@@ -213,7 +213,7 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         // placement (ADR-0735) lifts alone, and a later tick drops the held Black Knight at the
         // Training Room's position.
         Assert.Empty(run.ExpectationFailures);
-        List<KeeperCommandEmission> moves = run.KeeperCommandLog.Where(e => e.Command is TakeCreatureCommand or DropCommand).ToList();
+        var moves = run.KeeperCommandLog.Where(e => e.Command is TakeCreatureCommand or DropCommand).ToList();
         Assert.NotEmpty(moves);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level17")!;
         byte training = database.RoomById((byte)RoomTypeId.TrainingRoom).TerrainId;
@@ -286,7 +286,7 @@ public class Level17PrisonConstructionTests
         var builder = new ScenarioWorldBuilder(database, install);
         var inputs = new ScenarioInputBuilder(database, install);
         var unsupported = new List<string>();
-        WorldState world = WorldState.FromMap(database, builder.ResolveMap(scenario.Map),
+        var world = WorldState.FromMap(database, builder.ResolveMap(scenario.Map),
             ScenarioRunner.ActivationOrder(scenario.Setup.Players.Select(p => p.Id),
                 GameDatabaseLoader.LoadCampaignPlayers(install, "level17")),
             fogOfWarEnabled: scenario.FogOfWar);
@@ -340,7 +340,7 @@ public class Level17TreasuryNeedScenarioTests(ITestOutputHelper output)
 
         // 0x004FBE00 on the stock Treasury (rows 5 to 9): north is the only side whose strip and gap
         // line pass, west and east being owned wall twice over. Policy 0 builds just that row.
-        List<TilePos> built = run.KeeperCommandLog.Select(e => e.Command).OfType<BuildRoomCommand>()
+        var built = run.KeeperCommandLog.Select(e => e.Command).OfType<BuildRoomCommand>()
             .Where(b => b.RoomId == RoomTypeId.Treasury).SelectMany(b => b.Tiles).Distinct().OrderBy(t => t.X).ToList();
         Assert.Equal([new TilePos(12, 4), new TilePos(13, 4), new TilePos(14, 4), new TilePos(15, 4)], built);
 
@@ -444,7 +444,7 @@ public class Level18AttackKeeperScenarioTests(ITestOutputHelper output)
         // TheNearestEnemyHeartWinsAndAlliesAndFinishedPlayersAreSkipped, as is the call's creep.
         Assert.Empty(run.ExpectationFailures);
         Assert.All(scenario.Setup.Players, p => Assert.Empty(p.Spells));
-        List<GrantCreatureLevelCommand> grants = run.KeeperCommandLog.Select(e => e.Command).OfType<GrantCreatureLevelCommand>().ToList();
+        var grants = run.KeeperCommandLog.Select(e => e.Command).OfType<GrantCreatureLevelCommand>().ToList();
         // The 27 placed knights do not count against the portal cap (0x004DBF90 counts portal-made
         // creatures only), so the portal adds level-1 arrivals the test grants to as well. A
         // regression count, not DK2 evidence: 39/13 until ADR-0614 refused arrivals without lair space.

@@ -162,7 +162,7 @@ public class KeeperAttackPlannerTests
 
         IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
 
-        List<GrantCreatureLevelCommand> grants = commands.OfType<GrantCreatureLevelCommand>().ToList();
+        var grants = commands.OfType<GrantCreatureLevelCommand>().ToList();
         Assert.Equal(2, grants.Count);
         Assert.Equal(2, grants.Select(g => g.CreatureId).Distinct().Count());
     }

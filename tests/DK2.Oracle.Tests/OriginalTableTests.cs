@@ -22,7 +22,7 @@ public class OriginalTableTests
     [InstallFact]
     public void SquareRootSeeds_MatchTheOriginalsTable()
     {
-        OriginalExecutable exe = OriginalExecutable.Load();
+        var exe = OriginalExecutable.Load();
         for (int i = 0; i < 32; i++)
             Assert.True(exe.UInt16(0x0065FB14u + (uint)(2 * i)) == IntegerMath.SquareRootSeedEntry(i),
                 $"seed {i}: original {exe.UInt16(0x0065FB14u + (uint)(2 * i))}, ours {IntegerMath.SquareRootSeedEntry(i)}");
@@ -32,7 +32,7 @@ public class OriginalTableTests
     [InstallFact]
     public void ArctangentTable_MatchesTheOriginalsTable()
     {
-        OriginalExecutable exe = OriginalExecutable.Load();
+        var exe = OriginalExecutable.Load();
         for (int i = 0; i <= 256; i++)
             Assert.True(exe.UInt16(0x0065FC94u + (uint)(2 * i)) == Bearing.ArctangentEntry(i),
                 $"atan {i}: original {exe.UInt16(0x0065FC94u + (uint)(2 * i))}, ours {Bearing.ArctangentEntry(i)}");
@@ -44,7 +44,7 @@ public class OriginalTableTests
     [InstallFact]
     public void SineTable_MatchesTheOriginalsTable()
     {
-        OriginalExecutable exe = OriginalExecutable.Load();
+        var exe = OriginalExecutable.Load();
         for (int i = 0; i < 2560; i++)
         {
             int ours = i < Bearing.Turn ? TrapRules.Sine(i) : TrapRules.Cosine(i - 512);

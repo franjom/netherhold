@@ -17,12 +17,12 @@ public class PortalCrystalRollbackTests
     [InlineData(RoomTypeId.HeroPortal)]
     public void CrystalPillarsAllowCrossingsAndDoNotProjectTargets(RoomTypeId type)
     {
-        var navigation = Setup(type);
+        WorldSteering navigation = Setup(type);
         Assert.True(navigation.CanMove(Point(4.2, 4.7), Point(5.6, 4.7)));
         Assert.True(navigation.CanMove(Point(4.2, 5.8), Point(5.6, 5.8)));
         Assert.True(navigation.CanMove(Point(5.5, 5.0), Point(6.6, 5.0)));
         Assert.True(navigation.CanMove(Point(5.5, 6.0), Point(6.6, 6.0)));
-        var target = Point(5.0, 4.7);
+        Fixed16Vector target = Point(5.0, 4.7);
         Assert.Equal(target, navigation.ConstrainTarget(Point(4.2, 4.7), target));
         Assert.Equal(NavBytes.PortalHole, navigation.NavByte(5, 5));
     }
@@ -32,13 +32,13 @@ public class PortalCrystalRollbackTests
     [InlineData(true)]
     public void SteeringCrossesPillarsWithoutContactsOrDeflection(bool escape)
     {
-        var navigation = Setup(RoomTypeId.Portal);
+        WorldSteering navigation = Setup(RoomTypeId.Portal);
         var body = new SteeringBody
         {
             Pos = Point(5.32, 4.5), Vel = Point(-.25, 0), Radius = 5200,
             EscapeStuckMode = escape, MaxSpeed = Fixed16.One,
         };
-        var expected = body.Pos + body.Vel;
+        Fixed16Vector expected = body.Pos + body.Vel;
         SteeringIntegrator.Step(body, Fixed16Vector.Zero, MoverProfile.Walker, navigation);
         Assert.Empty(body.SolidContacts);
         Assert.Equal(expected, body.Pos);
@@ -49,7 +49,7 @@ public class PortalCrystalRollbackTests
 
     private static WorldSteering Setup(RoomTypeId type)
     {
-        var database = Dk2TerrainFixture.Database();
+        GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 9; y++)

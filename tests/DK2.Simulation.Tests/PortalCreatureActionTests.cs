@@ -13,7 +13,7 @@ public class PortalCreatureActionTests
     [Fact]
     public void FullNativePoolRefusesScriptedArrivalWithoutChangingItsTally()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         for (int i = 0; i < 448; i++) world.SpawnCreature(db, 7, 3, new TilePos(1, 1));
         Assert.Null(PortalRules.CreateScriptedArrival(new StateHookContext(world, db), 3, 7, 1));
@@ -25,7 +25,7 @@ public class PortalCreatureActionTests
     [Fact]
     public void AnArrivalStandsOnThePortalCentresFloor()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         CreatureState creature = Assert.IsType<CreatureState>(PortalRules.CreateScriptedArrival(new StateHookContext(world, db), 3, 7, 1));
         Assert.Equal(0, FloorHeightRules.At(world, db, creature.PosX, creature.PosY));
@@ -35,13 +35,13 @@ public class PortalCreatureActionTests
     [Fact]
     public void ScriptedPromotionsReachTheSimulationEffectSink()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         var tree = new TriggerTree(Records(4), 0, playerRoots: [new TriggerPlayerRoot(3, 0xFFFF)]);
         var sim = new GameSimulation(db, world, 1, [], tree);
         var sink = new ListEventSink(); sim.ObserveWith(sink);
         sim.Tick();
-        var requests = sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value).ToArray();
+        ViewEffectRequest[] requests = sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value).ToArray();
         Assert.Equal(4, Assert.Single(world.Creatures).Level);
         Assert.Equal(3, requests.Length);
         Assert.All(requests, request => Assert.Equal(new EffectId(339), request.EffectId));
@@ -53,7 +53,7 @@ public class PortalCreatureActionTests
     [Fact]
     public void EachScriptedPromotionRequests349InTheCreaturesCategoryWithItsVoiceAtItsPosition()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         var tree = new TriggerTree(Records(4), 0, playerRoots: [new TriggerPlayerRoot(3, 0xFFFF)]);
         var sim = new GameSimulation(db, world, 1, [], tree);
@@ -82,7 +82,7 @@ public class PortalCreatureActionTests
     [InlineData(255, 10)]
     public void BinaryInferredActionBypassesOrdinaryGatesAndPromotes(byte requested, int expected)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         for (int i = 0; i < PortalRules.CreatureCapacity(db, 1); i++)
             world.SpawnCreature(db, 7, 3, new TilePos(1, 1));
@@ -113,7 +113,7 @@ public class PortalCreatureActionTests
     [Fact]
     public void MissingOwnedKeeperPortalStillDescends()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 5, 5, 4);
         TriggerRunResult result = Run(db, world, 1);
         Assert.Empty(world.Creatures);
@@ -124,7 +124,7 @@ public class PortalCreatureActionTests
     [Fact]
     public void WorldContextRefusesActionAndItsChild()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         var tree = new TriggerTree(Records(1), 0xFFFF);
         TriggerRunResult result = new TriggerExecutor(tree, world.Triggers, world, db).Run(1);
@@ -136,7 +136,7 @@ public class PortalCreatureActionTests
     [Fact]
     public void AreaContextUsesTheWorldDispatcherAndRefusesAction()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         ThingProjection.Place(world, db,
         [
             new ActionPointThing(new byte[56])
@@ -166,7 +166,7 @@ public class PortalCreatureActionTests
     [InlineData(false)]
     public void CreatureContextDelegatesToItsOwnerWithoutInvalidatingTheWalk(bool creationEvent)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         CreatureState caller = world.SpawnCreature(db, 7, 3, new TilePos(1, 1));
         caller.TriggerId = 1;
@@ -192,7 +192,7 @@ public class PortalCreatureActionTests
     [Fact]
     public void DerivedRoomOrderIsAnExplicitApproximationForMultiplePortals()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 10, 8, 3);
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         Run(db, world, 1);
@@ -213,7 +213,7 @@ public class PortalCreatureActionTests
             EntranceFrames = 147, EntranceFramesPerSecond = 30,
         };
         GameDatabase db = Dk2TerrainFixture.Database(joiner);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, 3, 4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, 3, 4]);
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         var sim = new GameSimulation(db, world, seed: 1, Dk2TerrainFixture.DefaultSystems());
 
@@ -248,7 +248,7 @@ public class PortalCreatureActionTests
             EntranceFrames = 147, EntranceFramesPerSecond = 30,
         };
         GameDatabase db = Dk2TerrainFixture.Database(joiner);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, 3, 4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, 3, 4]);
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         Paint(db, world, RoomTypeId.Lair, 8, 5, 3);
         var sim = new GameSimulation(db, world, seed: 1, Dk2TerrainFixture.DefaultSystems());
@@ -277,7 +277,7 @@ public class PortalCreatureActionTests
     [InlineData(-1, 0)]
     public void APortalCreaturesDeath_GivesItsPortalASlotBack(int tallyBeforeDeath, int expectedAfter)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         Run(db, world, 1);
         CreatureState creature = world.Creatures.Last();

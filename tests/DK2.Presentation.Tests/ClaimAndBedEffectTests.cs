@@ -67,7 +67,7 @@ public class ClaimAndBedEffectTests
         variables.CreaturePool.Add(new CreaturePoolEntry(goblin.CreatureId, 15, PlayerIds.FirstKeeper));
         GameDatabase db = original.ForLevel(variables);
         var map = new LevelMap(7, 7, Enumerable.Repeat(new MapTile(1, PlayerIds.Unowned, 0, 0), 49).ToArray());
-        WorldState world = WorldState.FromMap(db, map, [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, map, [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 4; y++)
             for (int x = 2; x <= 4; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Portal), PlayerIds.FirstKeeper);
@@ -89,7 +89,7 @@ public class ClaimAndBedEffectTests
         int warningTick = PortalRules.SpawnIntervalTicks(db, 0) - 3 * SimulationTiming.OriginalTicksPerGameSecond;
         sim.Run(warningTick - 1);
         Assert.DoesNotContain(events.Events, e => e.EffectRequest.HasValue);
-        var randomBefore = sim.Rng.SaveState();
+        (ulong S0, ulong S1, ulong S2, ulong S3) randomBefore = sim.Rng.SaveState();
         EntranceInfoState[] rowsBefore = world.Player(PlayerIds.FirstKeeper).EntranceInfo.ToArray();
         sim.Tick();
         Assert.Equal(randomBefore, sim.Rng.SaveState());

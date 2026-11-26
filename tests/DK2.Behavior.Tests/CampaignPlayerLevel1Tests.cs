@@ -65,7 +65,7 @@ public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
                     }
                 },
             });
-            InputJournal read = InputJournal.Read(new MemoryStream(journal.ToArray()));
+            var read = InputJournal.Read(new MemoryStream(journal.ToArray()));
             return new Attempt(result, result.PlayerRun!, read, won, othersWon, gem, gemTile, gemPoint);
         }
     }
@@ -208,7 +208,7 @@ public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
             int exit = PlayerRunCommand.Run(runner, ScenarioCorpus.Database, Dk2InstallGate.Path, ScenarioCorpus.Load(ScenarioFile), template,
                 Path.Combine(root, "out"), "accept", TextWriter.Null, error, tune: null, harnessDirectory: harness);
             Assert.True(exit == 0, error.ToString());
-            using JsonDocument report = JsonDocument.Parse(File.ReadAllText(
+            using var report = JsonDocument.Parse(File.ReadAllText(
                 Path.Combine(root, "out", "campaign-player-level1", "accept", PlayerRunReport.RunFile)));
             string acceptance = report.RootElement.GetProperty("acceptance").GetString()!;
             Assert.True(report.RootElement.GetProperty("acceptance_claimed").GetBoolean(), acceptance);

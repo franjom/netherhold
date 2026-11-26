@@ -80,7 +80,7 @@ public sealed class HiScoreStoreTests : IDisposable
         var store = new HiScoreStore(Own, Install);
         var frame = new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000);
         var session = new FrontEndSession(_ => new[] { frame, frame, frame }, FrontEndPage.CampaignResults);
-        var profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
+        CampaignProfile profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
         profile = CampaignProgression.RecordStatistics(profile, PlayerIds.FirstKeeper,
             new LevelStatisticsBlock { LevelWon = true, GoldMined = 700 }, new CampaignSlot(2), keeperRank: 10);
         using var map = new CampaignMapController(session, profile, false,

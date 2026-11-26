@@ -25,7 +25,7 @@ public class RoomFloorTests
         string dir = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.Load(dir);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!;
-        WorldState world = WorldState.FromMap(db, map, [0, 1]);
+        var world = WorldState.FromMap(db, map, [0, 1]);
         byte wall = db.Terrain.Values.Single(t => t.Name == "Reinforced Wall").TerrainId;
         byte floor = db.Room(type).TerrainId;
         for (int y = Y0; y <= Y0 + height + 1; y++)

@@ -23,7 +23,7 @@ public sealed class PossessionActTests
     private static (GameDatabase Db, WorldState World) Open()
     {
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Possessor());
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -62,7 +62,7 @@ public sealed class PossessionActTests
     [Fact]
     public void MeleeStrikesTheEnemyInTheConeAndStampsBeforeTheSwing_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
         GameSimulation sim = Sim(db, world, new CombatSystem());
@@ -78,7 +78,7 @@ public sealed class PossessionActTests
     [Fact]
     public void MeleeMissStillStampsAndStartsNothing_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         // Behind the aim: outside the strict cone.
         world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(9, 10));
@@ -92,7 +92,7 @@ public sealed class PossessionActTests
     [Fact]
     public void MeleeRechargeEqualityRefusesWithoutAStamp_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
         GameSimulation sim = Sim(db, world);
@@ -117,7 +117,7 @@ public sealed class PossessionActTests
     [Fact]
     public void AFirstSurvivorIsKeptAgainstANearerButWorseAimedOne_NotNearestDistance_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         // Tile (11, 9) is visited before (11, 10). A: farther, near the aim; B: nearer, 43 degrees off.
         CreatureState a = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 9));
@@ -132,7 +132,7 @@ public sealed class PossessionActTests
     [Fact]
     public void ANearerAndBetterAimedLaterCandidateReplacesTheFirst_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         CreatureState a = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 9));
         CreatureState b = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
@@ -148,7 +148,7 @@ public sealed class PossessionActTests
     [InlineData(true)]
     public void OnOneTileTheLatestArrivalAcrossClassesIsMetFirst_StronglyInferredFromBinary(bool creatureArrivesLast)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(12, 12));
         // The trap: on the aim, farther. The creature: nearer, worse aimed. Neither replaces the
@@ -202,7 +202,7 @@ public sealed class PossessionActTests
     [InlineData(East - PossessionRules.AimConeHalfWidth + 1, true)]
     public void ATargetBearingExactlyOnTheConesEdgeIsRefused_BothEndsStrict_StronglyInferredFromBinary(int yaw, bool struck)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         // Straight east of the pose: bearing exactly East, so the yaw puts it on or inside an edge.
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
@@ -216,7 +216,7 @@ public sealed class PossessionActTests
     [InlineData(false)]
     public void AHiddenEnemyTrapIsNotAMeleeTarget_StronglyInferredFromBinary(bool hidden)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         TrapState trap = PlaceTrap(db, world, new TilePos(11, 10), Rival);
         trap.Hidden = hidden;
@@ -230,7 +230,7 @@ public sealed class PossessionActTests
     [InlineData(true)]
     public void AThingOfTheCreaturesOwnOwnerIsNotAMeleeTarget_StronglyInferredFromBinary(bool trap)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         if (trap) PlaceTrap(db, world, new TilePos(11, 10), Keeper);
         else world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
@@ -244,7 +244,7 @@ public sealed class PossessionActTests
     [Fact]
     public void ANearerWorseAimedCandidateReplacesWithinThe300Over256Margin_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         // A on (11, 10), met third: 10 degrees off the aim, dot ~4034. B on the pose's own tile, met
         // last: nearer, 25 degrees off, dot ~3712. 4034 < 3712 x 300 / 256 = 4350, so B replaces A;
@@ -267,7 +267,7 @@ public sealed class PossessionActTests
     [InlineData(1220 - Fp32.One, FightTargetKind.Creature)]
     public void AShotAtItsFlightHeightReplacesTheFartherCreature_ConfirmedInCapture(int shotHeight, FightTargetKind expected)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         Place(me, 43858, 43883);
         CreatureState wizard = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 11));
@@ -284,7 +284,7 @@ public sealed class PossessionActTests
     [Fact]
     public void ACandidateAtEqualDistanceDoesNotReplace_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         // Mirror images on one tile: equal distance, equal aim. The later arrival is met first and
         // kept; the other is not strictly nearer.
@@ -304,7 +304,7 @@ public sealed class PossessionActTests
     public void GoldPickUpTakesTwiceTheLackCappedAt100AndPursesHalf_ReachHeadingHalfOnly_StronglyInferredFromBinary(
         ushort heading, int taken)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 11, 10);
         me.PosX = 45500;
         me.Heading = heading;
@@ -326,7 +326,7 @@ public sealed class PossessionActTests
     [InlineData(false)]
     public void GoldReachEndsAtSixFifthsOfTheRadius_FootprintRadiusStandsInForTheUnreadSize_Hypothesis(bool atTheEdge)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         // The bound is read (6/5 of the summed radii, the object's 0); the creature's size is its
         // vtable +0x3C, unread, for which the footprint stands in.
@@ -345,7 +345,7 @@ public sealed class PossessionActTests
     [Fact]
     public void ACreatureOnATortureDeviceIsStampedNotStruck_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         CreatureState victim = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
         victim.Dk2StateId = TortureRules.TorturedState;
@@ -361,7 +361,7 @@ public sealed class PossessionActTests
     [Fact]
     public void NoTargetCastsFreeAimAtPosePlusAimAndStampsTheSlot_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 10, 10);
         GameSimulation sim = Sim(db, world, new CombatSystem());
         long now = sim.CurrentTick.Value;
@@ -378,7 +378,7 @@ public sealed class PossessionActTests
     [Fact]
     public void TheSpellScanPrefersTheBestAimedEnemyOverTheNearest_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 5, 10);
         CreatureState far = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(12, 10));
         CreatureState near = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 10));
@@ -393,7 +393,7 @@ public sealed class PossessionActTests
     [Fact]
     public void AnEnemyOutsideTheAccuracyThresholdIsNotTargeted_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 5, 10);
         // 25 degrees off the aim: score ~384, above 45 x 2048 / 360 = 256.
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(9, 12));
@@ -408,7 +408,7 @@ public sealed class PossessionActTests
     [InlineData(false)]
     public void TheSpellScanSkipsADownEnemy_StronglyInferredFromBinary(bool down)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 5, 10);
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(8, 10));
         if (down) enemy.Health = 0;
@@ -428,7 +428,7 @@ public sealed class PossessionActTests
     [InlineData(true, 9, false)]
     public void TrapsAndDoorsAreScannedOnlyWithinSevenTiles_StronglyInferredFromBinary(bool door, int tiles, bool targeted)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 2, 10);
         var at = new TilePos(2 + tiles, 10);
         if (door) PlaceDoor(db, world, at, Rival);
@@ -443,7 +443,7 @@ public sealed class PossessionActTests
     [Fact]
     public void ADoorIsSightedFromOneTileNearerThePose_SoItsOwnBlockingTileDoesNotHideIt_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 5, 10);
         DoorState door = PlaceDoor(db, world, new TilePos(8, 10), Rival);
         GameSimulation sim = Sim(db, world);
@@ -454,7 +454,7 @@ public sealed class PossessionActTests
     [Fact]
     public void AFriendlySpellScansTheCastersOwnSide_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         // The Priest's slot 0 is Haste, a friendly spell (flag bit 2).
         CreatureState me = Possess(db, world, Dk2TerrainFixture.PriestCreatureId, 5, 10);
         Assert.True(SpellRules.IsFriendly(SpellRules.SpellOf(db, db.CreatureById(me.CreatureTypeId), 0)!));
@@ -467,7 +467,7 @@ public sealed class PossessionActTests
     [Fact]
     public void ASelfOnlySpellTargetsTheCasterWhateverTheScanFound_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         // The Thief's slot 0 is Invisible: friendly and self-only (flag bit 7).
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ThiefCreatureId, 5, 10);
         Assert.True(SpellRules.IsSelfOnly(SpellRules.SpellOf(db, db.CreatureById(me.CreatureTypeId), 0)!));
@@ -480,7 +480,7 @@ public sealed class PossessionActTests
     [Fact]
     public void ASlotStillRechargingAtEqualityDoesNothingAndKeepsItsStamp_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 10, 10);
         GameSimulation sim = Sim(db, world);
         CreatureDef def = db.CreatureById(me.CreatureTypeId);
@@ -504,7 +504,7 @@ public sealed class PossessionActTests
     [InlineData(7)]
     public void ASlotOutsideTheSpellsIsRefusedByTheSlotBound_StronglyInferredFromBinary(int slot)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 10, 10);
         GameSimulation sim = Sim(db, world);
         sim.Tick(InputFrame.Of(Act(me, melee: false, slot: slot)));
@@ -517,7 +517,7 @@ public sealed class PossessionActTests
     [Fact]
     public void SlotThreeNeverStamps_RefusedByTheSlotBoundFirst_FollowerArmGuardUntested()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 10, 10);
         world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(12, 10));
         GameSimulation sim = Sim(db, world);
@@ -529,7 +529,7 @@ public sealed class PossessionActTests
     [Fact]
     public void AFreeAimShotType30StartsNothingButStillStamps_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.PossessorCreatureId, 10, 10);
         GameSimulation sim = Sim(db, world);
         long now = sim.CurrentTick.Value;
@@ -541,7 +541,7 @@ public sealed class PossessionActTests
     [Fact]
     public void TheSpeedFlagModifiesSpeedByTheDataWordsAndStamps_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.PossessorCreatureId, 10, 10);
         GameSimulation sim = Sim(db, world);
         long now = sim.CurrentTick.Value;
@@ -556,7 +556,7 @@ public sealed class PossessionActTests
     [InlineData(false)]
     public void TheTeleportFlagMovesToTheHeartsFirstTileCentreAndStampsEitherWay_StronglyInferredFromBinary(bool heart)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         if (heart)
             for (int y = 3; y <= 5; y++)
                 for (int x = 3; x <= 5; x++)
@@ -586,7 +586,7 @@ public sealed class PossessionActTests
     [Fact]
     public void FreeAimFieldsAndTileLinksSurviveASnapshot()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 10, 10);
         world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (10 * world.Width) + 12).GoldHeld = 50;
         PlaceTrap(db, world, new TilePos(13, 10), Rival);

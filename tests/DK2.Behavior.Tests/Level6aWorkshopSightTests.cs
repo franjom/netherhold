@@ -75,7 +75,7 @@ public class Level6aWorkshopSightTests
         string install = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level6a");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "Level6a")!;
-        WorldState world = WorldState.FromMap(db, map, [Keeper, 1, 2], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(db, map, [Keeper, 1, 2], fogOfWarEnabled: true);
         Assert.True(world.Tile(32, 21).IsExploredBy(Keeper));
 
         DiscoveryRules.SetExplored(world, db, new TilePos(32, 21), Keeper, explored: false);
@@ -97,8 +97,8 @@ public class Level6aWorkshopSightTests
         string install = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level6a");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "Level6a")!;
-        var players = GameDatabaseLoader.LoadCampaignPlayers(install, "Level6a")!;
-        WorldState world = WorldState.FromMap(db, map, players.Select(p => p.PlayerId), fogOfWarEnabled: true);
+        List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, "Level6a")!;
+        var world = WorldState.FromMap(db, map, players.Select(p => p.PlayerId), fogOfWarEnabled: true);
         ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(install, "Level6a")!);
         for (int y = 25; y <= 28; y++)
             for (int x = 36; x <= 38; x++) world.Tile(x, y).ClearExploredBy(Keeper);

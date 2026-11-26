@@ -4,6 +4,7 @@
 
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 using DK2.Simulation;
 using DK2.Simulation.Navigation;
 using DK2.Simulation.Steering;
@@ -17,15 +18,15 @@ public sealed class HeartRouteOnRealDataTests
     public void FirstLevel4DigWalkUsesTheNativeHeartRoute()
     {
         string install = Dk2InstallGate.Path;
-        var database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level4");
-        var map = GameDatabaseLoader.LoadCampaignMap(install, "Level4")!;
-        var players = GameDatabaseLoader.LoadCampaignPlayers(install, "Level4")!;
-        var simulation = CampaignSimulationFactory.Create(database, map,
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level4");
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "Level4")!;
+        List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, "Level4")!;
+        GameSimulation simulation = CampaignSimulationFactory.Create(database, map,
             GameDatabaseLoader.LoadCampaignLevel(install, "Level4")!, players,
             GameDatabaseLoader.LoadCampaignThings(install, "Level4")!,
             GameDatabaseLoader.LoadCampaignTriggers(install, "Level4")!, 1);
         var points = new List<Fixed16Vector>();
-        var profile = WorldSteering.ProfileOf(database.CreatureById(1),
+        MoverProfile profile = WorldSteering.ProfileOf(database.CreatureById(1),
             new PlayerId(3), MoveOptions.Plain);
 
         // Coordinates measured at chooser return; see imp-boundary-route.md.

@@ -236,7 +236,7 @@ public class PlacedThingsOnRealDataTests
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level2")!;
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "level2")!;
         List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, "level2")!;
-        WorldState world = WorldState.FromMap(db, map, [.. players.Select(p => p.PlayerId)]);
+        var world = WorldState.FromMap(db, map, [.. players.Select(p => p.PlayerId)]);
 
         ThingProjection.Place(world, db, things, players.ToDictionary(p => p.PlayerId, p => p.StartingGold));
 
@@ -254,7 +254,7 @@ public class PlacedThingsOnRealDataTests
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "level1")!;
 
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
 
         ThingProjectionResult result = ThingProjection.Place(world, db, things);
@@ -316,7 +316,7 @@ public class PlacedThingsOnRealDataTests
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
             Assert.NotNull(things);
 
-            WorldState world = WorldState.FromMap(
+            var world = WorldState.FromMap(
                 db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, .. Keepers()]);
 
             ThingProjectionResult result = ThingProjection.Place(world, db, things);

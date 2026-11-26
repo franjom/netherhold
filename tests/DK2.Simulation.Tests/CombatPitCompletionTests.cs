@@ -18,7 +18,7 @@ public sealed class CombatPitCompletionTests
     [Fact]
     public void NonfighterIdleClearsTheKeeperBindingAndCurrentJob()
     {
-        var (sim, c, _) = Start(CreatureStateMachine.Idle);
+        (GameSimulation? sim, CreatureState? c, GameDatabase _) = Start(CreatureStateMachine.Idle);
         c.CombatPitFighter = false;
         c.PrisonOwnerPlayerId = PlayerIds.FirstKeeper;
         c.CurrentJob = JobType.Train;
@@ -30,7 +30,7 @@ public sealed class CombatPitCompletionTests
     [Fact]
     public void IdleFighterKeepsItsBindingAndJobWhenReturningToThePit()
     {
-        var (sim, c, db) = Start(CreatureStateMachine.Idle);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db) = Start(CreatureStateMachine.Idle);
         PutPit(sim, db);
         c.PrisonOwnerPlayerId = PlayerIds.FirstKeeper;
         c.CurrentJob = JobType.Train;
@@ -44,7 +44,7 @@ public sealed class CombatPitCompletionTests
     [Fact]
     public void IdleFighterRefollowsBeforeReturningToThePitWhenItsBindingIsClear()
     {
-        var (sim, c, db) = Start(CreatureStateMachine.Idle);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db) = Start(CreatureStateMachine.Idle);
         PutPit(sim, db);
         CreatureState leader = sim.World.SpawnCreature(db, c.CreatureTypeId, c.OwnerPlayerId, new TilePos(7, 4));
         leader.Possessed = true;
@@ -59,7 +59,7 @@ public sealed class CombatPitCompletionTests
     [Fact]
     public void RefusedIdleRefollowClearsTheLeaderBeforeReturningTheBoundFighter()
     {
-        var (sim, c, db) = Start(CreatureStateMachine.Idle);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db) = Start(CreatureStateMachine.Idle);
         PutPit(sim, db);
         c.FollowLeaderId = 12345;
         c.PrisonOwnerPlayerId = PlayerIds.FirstKeeper;
@@ -74,7 +74,7 @@ public sealed class CombatPitCompletionTests
     [InlineData(true)]
     public void IdleRefollowWaitsOneHandlerTurnAndThenRoutesEvenForAFighter(bool fighter)
     {
-        var (basis, c, db) = Start(CreatureStateMachine.Idle);
+        (GameSimulation? basis, CreatureState? c, GameDatabase? db) = Start(CreatureStateMachine.Idle);
         PutPit(basis, db);
         c.CombatPitFighter = fighter;
         CreatureState leader = basis.World.SpawnCreature(db, c.CreatureTypeId, c.OwnerPlayerId, new TilePos(7, 4));
@@ -97,7 +97,7 @@ public sealed class CombatPitCompletionTests
         GameDatabase db = Dk2TerrainFixture.Database(goblin);
         db.Variables.Misc[VariableTypeId.ModifyAngerOfCombatPitVictor] =
             new MiscVariable(VariableTypeId.ModifyAngerOfCombatPitVictor, -100, 0, 0);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         CreatureState c = world.SpawnCreature(db, goblin.CreatureId, PlayerIds.FirstKeeper, new TilePos(6, 4));
         StatePlacement.Place(c, state);
         c.PitStateEnteredTick = -1;
@@ -107,7 +107,7 @@ public sealed class CombatPitCompletionTests
     [Fact]
     public void LevelCapStartsPlainAction44AndWaitsForItsAnimationBeforeAddingAnger()
     {
-        var (sim, c, db) = Start(139, frames: 100);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db) = Start(139, frames: 100);
         c.Level = (byte)db[VariableTypeId.CombatPitMaxExperienceLevel];
         c.ActionUntilTick = 1000;
         sim.Tick();
@@ -125,7 +125,7 @@ public sealed class CombatPitCompletionTests
     [Fact]
     public void LoadedVictoryStateStartsAction35AndWaitsPastTheAgeLimitForItsAnimation()
     {
-        var (sim, c, db) = Start(140, frames: 100);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db) = Start(140, frames: 100);
         c.Anger[AngerBucket.Treatment] = 1000;
         sim.Tick();
         Assert.Equal(35, CreatureCurrentAction.IndexOf(c, db.CreatureById(c.CreatureTypeId), sim.CurrentTick));
@@ -140,14 +140,14 @@ public sealed class CombatPitCompletionTests
     [Fact]
     public void MissingVictoryArtStillStartsTheNativeAction()
     {
-        var (sim, c, db) = Start(140, frames: 0);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db) = Start(140, frames: 0);
         sim.Tick();
         Assert.Equal(35, CreatureCurrentAction.IndexOf(c, db.CreatureById(c.CreatureTypeId), sim.CurrentTick));
     }
     [Fact]
     public void CapActionDoesNotRestartAfterItsFirstAgeTick()
     {
-        var (sim, c, db) = Start(139, frames: 0);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db) = Start(139, frames: 0);
         c.Level = (byte)db[VariableTypeId.CombatPitMaxExperienceLevel];
         sim.Tick();
         sim.Tick();
@@ -157,7 +157,7 @@ public sealed class CombatPitCompletionTests
     [Fact]
     public void VictoryAgeBoundaryIncludesFourTicksPerConfiguredSecond()
     {
-        var (sim, c, _) = Start(140, frames: 0);
+        (GameSimulation? sim, CreatureState? c, GameDatabase _) = Start(140, frames: 0);
         c.PitStateEnteredTick = -16;
         c.Anger[AngerBucket.Treatment] = 1000;
         sim.Tick();
@@ -170,7 +170,7 @@ public sealed class CombatPitCompletionTests
     [Fact]
     public void VictoryUsesTheNativeConfiguredTicksPerSecond()
     {
-        var (sim, c, db) = Start(140, frames: 0);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db) = Start(140, frames: 0);
         db.Variables.Misc[VariableTypeId.TicksPerSecond] = new MiscVariable(VariableTypeId.TicksPerSecond, 1, 0, 0);
         c.PitStateEnteredTick = -5;
         c.Anger[AngerBucket.Treatment] = 1000;
@@ -181,7 +181,7 @@ public sealed class CombatPitCompletionTests
     [Fact]
     public void VictoryWaitsForAnExistingActionWithoutReplacingIt()
     {
-        var (sim, c, db) = Start(140);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db) = Start(140);
         c.ActionUntilTick = 10;
         c.PitStateEnteredTick = -17;
         c.Anger[AngerBucket.Treatment] = 1000;

@@ -30,7 +30,7 @@ public class WorkshopStateTests
     /// <summary>A 5×5 Workshop of the keeper's from (1,1), furnished, with an order too dear to finish.</summary>
     private static WorldState World(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 5; y++)
         for (int x = 1; x <= 5; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);

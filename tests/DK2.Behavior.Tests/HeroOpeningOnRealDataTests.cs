@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data;
+using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.TestSupport;
 
@@ -19,8 +20,8 @@ public class HeroOpeningOnRealDataTests
     {
         string install = Dk2InstallGate.Path;
         const string level = "Level2";
-        var db = GameDatabaseLoader.LoadForCampaignLevel(install, level);
-        var sim = CampaignSimulationFactory.Create(db,
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, level);
+        GameSimulation sim = CampaignSimulationFactory.Create(db,
             GameDatabaseLoader.LoadCampaignMap(install, level)!,
             GameDatabaseLoader.LoadCampaignLevel(install, level)!,
             GameDatabaseLoader.LoadCampaignPlayers(install, level)!,

@@ -24,7 +24,7 @@ public class TrapCombatTests
     private static (GameDatabase db, WorldState world) Open()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
@@ -92,7 +92,7 @@ public class TrapCombatTests
         Assert.Empty(world.Traps);
         // Every blow is the same, from wherever it lands: no bearing bonus on a thing. The trap's own
         // recovery (+0xA4 a second) is why the blows outnumber its health over the blow.
-        List<SimEvent> hits = sink.Events.Where(e => e.Kind == "trap_hit" && e.Detail.Contains($"trap={alarm.Id}")).ToList();
+        var hits = sink.Events.Where(e => e.Kind == "trap_hit" && e.Detail.Contains($"trap={alarm.Id}")).ToList();
         Assert.True(hits.Count >= (2000 + blow - 1) / blow, $"{hits.Count} blows");
         Assert.All(hits, e => Assert.Contains($"blow={blow} ", e.Detail));
         Assert.Contains(sink.Events, e => e.Kind == "trap_removed" && e.Detail.Contains($"trap={alarm.Id}"));

@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Numerics;
+using DK2.Art.Textures;
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
@@ -142,7 +143,7 @@ public class LightningTests
     public void TheRibbonHasZeroWidthEndsAndDoubleSidedQuads()
     {
         Vector3[] path = [Vector3.Zero, Vector3.UnitX, Vector3.UnitX * 2];
-        LightningRibbon ribbon = LightningRibbon.Build(path);
+        var ribbon = LightningRibbon.Build(path);
         Assert.Equal(8, ribbon.Vertices.Count);
         Assert.Equal(ribbon.Vertices[0], ribbon.Vertices[1]);
         Assert.Equal(ribbon.Vertices[6], ribbon.Vertices[7]);
@@ -156,7 +157,7 @@ public class LightningTests
     public void RibbonOffsetsStayInViewXyWithDepthKeptAtEveryNode()
     {
         Vector3[] nodes = [new(0, 0, 1), new(1, 0, 2), new(2, 1, 4)];
-        LightningRibbon ribbon = LightningRibbon.Build(nodes);
+        var ribbon = LightningRibbon.Build(nodes);
         Assert.Equal(2f, ribbon.Vertices[2].Z);
         Assert.Equal(2f, ribbon.Vertices[3].Z);
     }
@@ -165,7 +166,7 @@ public class LightningTests
     public void AnAlmostReversedRibbonUsesThePreviousNormalInsteadOfCollapsing()
     {
         Vector3[] nodes = [new(0, 0, 1), new(1, 0, 1), new(0, 0, 1)];
-        LightningRibbon ribbon = LightningRibbon.Build(nodes);
+        var ribbon = LightningRibbon.Build(nodes);
         Assert.InRange(Vector3.Distance(ribbon.Vertices[2], ribbon.Vertices[3]), .05999f, .06001f);
     }
 
@@ -181,7 +182,7 @@ public class LightningTests
         Assert.Equal(ProceduralArtKind.FixedLightning, database.Effects[4].ArtResource.ProceduralKind);
         Assert.Equal(ProceduralArtKind.IceRing, database.Effects[28].ArtResource.ProceduralKind);
         using var art = DK2.Art.InstallArtProvider.Open(Dk2InstallGate.Path, database);
-        var lightning = art.LoadTexture("Lightning");
+        RgbaImage lightning = art.LoadTexture("Lightning");
         Assert.InRange(lightning.Width, 1, 4096);
         Assert.InRange(lightning.Height, 1, 4096);
         Assert.Equal(lightning.Width * lightning.Height * 4, lightning.Pixels.Length);

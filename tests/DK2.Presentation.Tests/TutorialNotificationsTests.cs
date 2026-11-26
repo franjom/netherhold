@@ -16,7 +16,7 @@ public sealed class TutorialNotificationsTests
     [InstallFact]
     public void AScriptedMessageTabsWithItsLevelTextAndExpiresAfterFiftySeconds()
     {
-        var (db, world) = LevelOneWorld();
+        (GameDatabase? db, WorldState? world) = LevelOneWorld();
         var sim = new GameSimulation(db, world, 1, [], PlayerTree(Action(24,
             new() { ["SpeechId"] = 4, ["SpeakOnly"] = 0 })));
         sim.Tick();
@@ -44,7 +44,7 @@ public sealed class TutorialNotificationsTests
     [InstallFact]
     public void LevelOnesFirstGoblinPostsItsIntroductionAndOnlyOnceAcrossARestore()
     {
-        var (db, world) = LevelOneWorld();
+        (GameDatabase? db, WorldState? world) = LevelOneWorld();
         for (int y = 0; y < world.Height; y++)
             for (int x = 0; x < world.Width; x++)
                 if (world.Tile(x, y).TerrainId == db.Room(RoomTypeId.Portal).TerrainId)
@@ -52,7 +52,7 @@ public sealed class TutorialNotificationsTests
         TriggerTree tree = PlayerTree(Action(28, new() { ["CreatureId"] = 7, ["Level"] = 1 }));
         var sim = new GameSimulation(db, world, 1, [], tree);
         var sink = new ListEventSink(); sim.ObserveWith(sink);
-        var disable = Action(45, new() { ["Available"] = 0 });
+        TriggerRecord disable = Action(45, new() { ["Available"] = 0 });
         new TriggerExecutor(new TriggerTree([disable], disable.TriggerId), world.Triggers, world, db).Run(1);
         sim.Tick();
 
@@ -79,13 +79,13 @@ public sealed class TutorialNotificationsTests
     [InstallFact]
     public void TheShippedFirstGoblinCameraSequenceRequestsItsOwnIntroduction()
     {
-        var (db, world) = LevelOneWorld();
-        foreach (var room in RoomIndex.Build(world, db))
+        (GameDatabase? db, WorldState? world) = LevelOneWorld();
+        foreach (RoomInstance room in RoomIndex.Build(world, db))
             if (room.Definition.TypeId == RoomTypeId.Portal)
                 foreach (int tile in room.TileIndices) world.TileAtIndex(tile).OwnerPlayerId = PlayerIds.FirstKeeper;
-        var things = GameDatabaseLoader.LoadCampaignThings(Dk2InstallGate.Path, "Level1")!;
+        List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(Dk2InstallGate.Path, "Level1")!;
         ThingProjection.Place(world, db, things.OfType<ActionPointThing>());
-        var records = GameDatabaseLoader.LoadCampaignTriggers(Dk2InstallGate.Path, "Level1")!;
+        List<TriggerRecord> records = GameDatabaseLoader.LoadCampaignTriggers(Dk2InstallGate.Path, "Level1")!;
         var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(PlayerIds.FirstKeeper, 65526)]);
         var sim = new GameSimulation(db, world, 1, [], tree);
         var sink = new ListEventSink(); sim.ObserveWith(sink);
@@ -99,7 +99,7 @@ public sealed class TutorialNotificationsTests
     [InstallFact]
     public void LevelOnesFlowerTutorialShowsEveryImpWithoutHoverAndSurvivesSaving_TickEqualsNativeTurnStronglyInferred()
     {
-        var (db, world) = LevelOneWorld();
+        (GameDatabase? db, WorldState? world) = LevelOneWorld();
         string install = Dk2InstallGate.Path;
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "Level1")!;
         ThingProjection.Place(world, db, things);
@@ -116,7 +116,7 @@ public sealed class TutorialNotificationsTests
         sim.Tick();
         Assert.All(imps, id => Assert.Contains(flowers.Capture(world, world.CurrentTick, CreatureQueryTarget.None), f => f.CreatureId == id));
 
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
         Assert.Equal(sim.StateHash(), restored.StateHash());
         var restoredFlowers = new StatusFlowers(db, PlayerIds.FirstKeeper);
         Assert.All(imps, id => Assert.Contains(restoredFlowers.Capture(restored.World, new GameTick(471), CreatureQueryTarget.None), f => f.CreatureId == id));

@@ -20,7 +20,7 @@ public sealed class LairDepartureTests
     [InlineData(42u)]
     public void OutsideDepartureUsesOneRoomPointDraw(uint seed)
     {
-        var (sim, creature, attempt) = Setup(new TilePos(2, 2), seed);
+        (GameSimulation? sim, CreatureState? creature, Attempt? attempt) = Setup(new TilePos(2, 2), seed);
         RoomInstance room = RoomIndex.Build(sim.World, sim.Database).Single();
         var expected = new Dk2Lcg(((Dk2Lcg)sim.Rng.Algorithm).Seed);
         int tile = SlabChain.Order(sim.World, room)[expected.NextInt(room.TileCount)];
@@ -37,7 +37,7 @@ public sealed class LairDepartureTests
     [Fact]
     public void OutsideDepartureUsesTightSnappingArrival()
     {
-        var (sim, creature, attempt) = Setup(new TilePos(2, 2), 1);
+        (GameSimulation? sim, CreatureState? creature, Attempt? attempt) = Setup(new TilePos(2, 2), 1);
         sim.Tick();
         Assert.True(attempt.Succeeded);
         Assert.Equal(MoveOptions.ExactSpot, creature.RouteOptions);
@@ -48,7 +48,7 @@ public sealed class LairDepartureTests
     [Fact]
     public void InsideDepartureDoesNotRouteDrawOrEndTheExistingAction()
     {
-        var (sim, creature, attempt) = Setup(new TilePos(6, 1), 1);
+        (GameSimulation? sim, CreatureState? creature, Attempt? attempt) = Setup(new TilePos(6, 1), 1);
         uint seed = ((Dk2Lcg)sim.Rng.Algorithm).Seed;
         creature.UtilityNewState = 123;
         creature.Body.PathTargetPos = new(12345, 67890);
@@ -67,7 +67,7 @@ public sealed class LairDepartureTests
     private static (GameSimulation, CreatureState, Attempt) Setup(TilePos at, uint seed)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3]);
         for (int y = 1; y <= 3; y++)
             for (int x = 1; x <= 8; x++)
             {

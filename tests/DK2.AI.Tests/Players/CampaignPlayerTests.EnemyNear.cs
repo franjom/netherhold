@@ -19,8 +19,8 @@ public partial class CampaignPlayerTests
     [Fact]
     public void AFarEnemyDoesNotStopThePitButOneNearHomeOrThePitDoes()
     {
-        var idle = Goblin1(new TilePos(9, 6), level: 3, petals: 6, ordinal: 0);
-        var partner = Goblin1(new TilePos(10, 6), level: 4, petals: 6, ordinal: 1);
+        (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) idle = Goblin1(new TilePos(9, 6), level: 3, petals: 6, ordinal: 0);
+        (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) partner = Goblin1(new TilePos(10, 6), level: 4, petals: 6, ordinal: 1);
         PlayerObservation With(TilePos hero) => Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000,
             things: [idle.Thing, partner.Thing, HeroAt(hero)], creatures: [idle.Flower, partner.Flower]);
         // Fighting off: a near hero would otherwise draw a lift of its own, to fight it.

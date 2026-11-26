@@ -18,7 +18,7 @@ public class LowHealthSpeedTests
     public void ACreatureUnderAFifthOfItsHealthHasHalfItsSpeed_AtAFifthItsWhole()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 10), [(byte)0, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 10), [(byte)0, PlayerIds.FirstKeeper]);
         CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new TilePos(5, 5));
         CreatureDef definition = db.CreatureById(goblin.CreatureTypeId);
         int fifth = CreatureLevelRules.MaxHealth(db, definition, goblin.Level) * 20 / 100;
@@ -44,7 +44,7 @@ public class LowHealthSpeedTests
     public void AnImpUnderAFifthOfItsHealthKeepsItsSpeedAndItsRecharge()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 10), [(byte)0, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 10), [(byte)0, PlayerIds.FirstKeeper]);
         CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, PlayerIds.FirstKeeper, new TilePos(5, 5));
         CreatureDef definition = db.CreatureById(imp.CreatureTypeId);
         imp.Health = 1;
@@ -59,7 +59,7 @@ public class LowHealthSpeedTests
     public void AWeakCreaturesStampsMoveOnOneOnOddTurns()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 10), [(byte)0, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 10), [(byte)0, PlayerIds.FirstKeeper]);
         CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new TilePos(5, 5));
         CreatureDef definition = db.CreatureById(goblin.CreatureTypeId);
         goblin.Health = 1;

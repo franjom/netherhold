@@ -29,7 +29,7 @@ public sealed class PossessedExcavationTests
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => c.CreatureId == definition.CreatureId ? definition : c),
             basis.Variables, basis.KeeperSpells.Values, objects: basis.Objects.Values, shots: basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < 19; y++)
         for (int x = 1; x < 19; x++)
@@ -61,7 +61,7 @@ public sealed class PossessedExcavationTests
     [InlineData(true, 2)]
     public void ThePressStartsTheExcavationClockAndDrawsOneInstallCoin(bool mine, int action)
     {
-        var (sim, imp) = Setup(mine);
+        (GameSimulation? sim, CreatureState? imp) = Setup(mine);
         uint before = ((Dk2Lcg)sim.Rng.Algorithm).Seed;
         var expected = new Dk2Lcg(before);
         expected.NextInt(2);
@@ -79,7 +79,7 @@ public sealed class PossessedExcavationTests
     [Fact]
     public void ASecondPressKeepsTheUnfinishedLoopWithoutAnotherCoin()
     {
-        var (sim, imp) = Setup();
+        (GameSimulation? sim, CreatureState? imp) = Setup();
         sim.Tick(Press(imp));
         uint seed = ((Dk2Lcg)sim.Rng.Algorithm).Seed;
         imp.TimeLastUsedMelee = -100;
@@ -93,7 +93,7 @@ public sealed class PossessedExcavationTests
     [Fact]
     public void AnIntactWallIsStruckOnceWithoutAnotherPress()
     {
-        var (sim, imp) = Setup();
+        (GameSimulation? sim, CreatureState? imp) = Setup();
         sim.Tick(Press(imp));
         int health = sim.World.Tile(6, 5).Health;
         Assert.True(health < 30000);
@@ -109,7 +109,7 @@ public sealed class PossessedExcavationTests
     [Fact]
     public void ARemovedWallKeepsItsActionUntilTheStoppedClipCompletes()
     {
-        var (sim, imp) = Setup(health: 1);
+        (GameSimulation? sim, CreatureState? imp) = Setup(health: 1);
         sim.Tick(Press(imp));
         Assert.Equal(Dk2TerrainFixture.DirtPath, sim.World.Tile(6, 5).TerrainId);
         Assert.True((imp.ActionAnimationFlags & ActionAnimationFlags.Stop) != 0);
@@ -126,11 +126,11 @@ public sealed class PossessedExcavationTests
     [Fact]
     public void TheCurrentActionPointChangesTheHashIndependentlyOfAiJobFields()
     {
-        var (east, eastImp) = Setup();
-        var (west, westImp) = Setup();
+        (GameSimulation? east, CreatureState? eastImp) = Setup();
+        (GameSimulation? west, CreatureState? westImp) = Setup();
         east.Tick(Press(eastImp));
         west.Tick(Press(westImp, 0x600));
-        foreach (var sim in new[] { east, west })
+        foreach (GameSimulation? sim in new[] { east, west })
             foreach (int x in new[] { 4, 6 }) sim.World.Tile(x, 5).Health = 30000;
 
         Assert.NotEqual(east.StateHash(), west.StateHash());
@@ -139,7 +139,7 @@ public sealed class PossessedExcavationTests
     [Fact]
     public void ASnapshotRetainsThePendingStoppedActionAndItsContinuation()
     {
-        var (sim, imp) = Setup(health: 1);
+        (GameSimulation? sim, CreatureState? imp) = Setup(health: 1);
         sim.Tick(Press(imp));
         GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, Systems());
         CreatureState restored = copy.World.CreatureById(imp.Id)!;
@@ -156,7 +156,7 @@ public sealed class PossessedExcavationTests
     [Fact]
     public void AFixtureWithoutTimingKeepsTheExistingInstantWorkAdapter()
     {
-        var (sim, imp) = Setup(art: false);
+        (GameSimulation? sim, CreatureState? imp) = Setup(art: false);
         sim.Tick(Press(imp));
         Assert.True(sim.World.Tile(6, 5).Health < 30000);
         Assert.False(CreatureCurrentAction.IsRunning(imp, sim.CurrentTick));
@@ -168,7 +168,7 @@ public sealed class PossessedExcavationTests
     [InlineData(SpellRules.FreeAimCast, CreatureActionTable.FreeAimCast)]
     public void AReplacementAttackOwnsTheCurrentAction(byte kind, int action)
     {
-        var (sim, imp) = Setup();
+        (GameSimulation? sim, CreatureState? imp) = Setup();
         sim.Tick(Press(imp));
         new GameSimulation(sim.Database, sim.World, sim.Rng,
             [new CreatureUpdateSystem(new ReplacementAttack(kind))]).Tick();
@@ -179,7 +179,7 @@ public sealed class PossessedExcavationTests
     [Fact]
     public void ATravelReplacementClearsTheActionBeforeTheLaterAnimationChoice()
     {
-        var (sim, imp) = Setup();
+        (GameSimulation? sim, CreatureState? imp) = Setup();
         sim.Tick(Press(imp));
         int health = sim.World.Tile(6, 5).Health;
         CreatureStateMachine.BeginTravel(new StateHookContext(sim.World, sim.Database), imp, 6, 1);
@@ -196,7 +196,7 @@ public sealed class PossessedExcavationTests
     [InlineData(true)]
     public void AStoppedZeroRateClipNeedsItsTerminalFlagToCompleteTheHandler(bool terminal)
     {
-        var (sim, imp) = Setup();
+        (GameSimulation? sim, CreatureState? imp) = Setup();
         sim.Tick(Press(imp));
         sim.World.Tile(6, 5).TerrainId = Dk2TerrainFixture.DirtPath;
         imp.ActionHandlerDone = false;
@@ -211,9 +211,9 @@ public sealed class PossessedExcavationTests
     [Fact]
     public void AWorldCopyRetainsThePendingActionAndOwnsItsValueState()
     {
-        var (sim, imp) = Setup(health: 1);
+        (GameSimulation? sim, CreatureState? imp) = Setup(health: 1);
         sim.Tick(Press(imp));
-        WorldState copy = WorldState.CopyOf(sim.World);
+        var copy = WorldState.CopyOf(sim.World);
         CreatureState cloned = copy.CreatureById(imp.Id)!;
         Assert.Equal(1, CreatureCurrentAction.IndexOf(cloned, sim.Database.CreatureById(cloned.CreatureTypeId), sim.CurrentTick));
         Hash64 liveHash = Hash64.Start(), copiedHash = Hash64.Start();

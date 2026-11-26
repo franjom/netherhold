@@ -22,7 +22,7 @@ public class EffectChainTests
     [Fact]
     public void TheNextEffectIsCreatedWithItsParent_AndTheDeathEffectOnlyAfterTheLastElementDies()
     {
-        var model = Model(out _);
+        RoomConstructionParticles model = Model(out _);
         model.Request(new ViewEffectRequest(new EffectId(First), PlayerIds.FirstKeeper, Point(8192)));
         model.AdvanceTo(new EffectTime(51));
         // First (HP 1) and Next (HP 3) each emitted a wave on the first update.
@@ -42,7 +42,7 @@ public class EffectChainTests
     [Fact]
     public void AGeneratorEffectCreatesEffectsNotElements()
     {
-        var model = Model(out _);
+        RoomConstructionParticles model = Model(out _);
         model.Request(new ViewEffectRequest(new EffectId(Generator), PlayerIds.FirstKeeper, Point(8192)));
         model.AdvanceTo(new EffectTime(51));
         // Generator (HP 1, flag 0x40, generates First) made a First instance, and First's own Next.
@@ -57,7 +57,7 @@ public class EffectChainTests
     {
         // Randomness 7 lets a wave through one update in eight: over 240 updates of a long-lived
         // effect, about 30 waves; every update emits without it.
-        var model = Model(out _, randomness: 7, hp: 240);
+        RoomConstructionParticles model = Model(out _, randomness: 7, hp: 240);
         model.Request(new ViewEffectRequest(new EffectId(Next), PlayerIds.FirstKeeper, Point(8192)));
         int waves = 0;
         for (int call = 1; call <= 240; call++)
@@ -67,7 +67,7 @@ public class EffectChainTests
             if (model.Particles.Any(p => p.VisualUpdates == 0)) waves++;
         }
         Assert.InRange(waves, 12, 60);
-        var every = Model(out _);
+        RoomConstructionParticles every = Model(out _);
         every.Request(new ViewEffectRequest(new EffectId(Next), PlayerIds.FirstKeeper, Point(8192)));
         for (int call = 1; call <= 3; call++) every.AdvanceTo(new EffectTime(call * 50 + 1));
         Assert.Equal(3, every.Particles.Count(p => p.Definition.EffectElementId == Flake));
@@ -76,7 +76,7 @@ public class EffectChainTests
     [Fact]
     public void AGroupArtsMembersAreFlungAtBirth_EachDrawingItsOwnMeshHalfATurnFromTheInstance()
     {
-        var model = Model(out _, groupParts: name => name == "Group_test"
+        RoomConstructionParticles model = Model(out _, groupParts: name => name == "Group_test"
             ? [new EffectGroupPart("PartA", 1000, -2000, 300), new EffectGroupPart("PartB", -500, 0, 0)] : null);
         model.Request(new ViewEffectRequest(new EffectId(Grouped), PlayerIds.FirstKeeper, Point(8192),
             new Dk2Angle(100)));
@@ -293,8 +293,8 @@ public class EffectChainTests
             Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerationType = 4, ElementsPerTurn = 1, MinHp = 1, MaxHp = 1,
             GenerateIds = [],
         };
-        var generator = unlit with { Name = "lit generator", EffectId = LitGenerator, GenerateIds = [Lit], Flags = 0x80 | 0x40 };
-        var parent = unlit with { Name = "lit parent", EffectId = LitParent, DeathEffectId = Lit, Flags = 0x80 };
+        EffectDef generator = unlit with { Name = "lit generator", EffectId = LitGenerator, GenerateIds = [Lit], Flags = 0x80 | 0x40 };
+        EffectDef parent = unlit with { Name = "lit parent", EffectId = LitParent, DeathEffectId = Lit, Flags = 0x80 };
         return new([], [], [], new GlobalVariables(), effects: [lit, generator, parent], effectElements: [sparkle]);
     }
 
@@ -316,8 +316,8 @@ public class EffectChainTests
             Name = "sparkle", EffectElementId = Sparkle, ArtResource = art, MinHp = 2, MaxHp = 2,
             MinScale = 1024, MaxScale = 1024, Red = 10, Green = 255, Blue = 200
         };
-        var flake = sparkle with { Name = "flake", EffectElementId = Flake, MinHp = 10, MaxHp = 10 };
-        var part = sparkle with { Name = "part", EffectElementId = Part, MinHp = 10, MaxHp = 10, ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
+        EffectElementDef flake = sparkle with { Name = "flake", EffectElementId = Flake, MinHp = 10, MaxHp = 10 };
+        EffectElementDef part = sparkle with { Name = "part", EffectElementId = Part, MinHp = 10, MaxHp = 10, ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
             Flags = partFlags, MinScale = partScale, MaxScale = partScale };
         EffectDef Effect(ushort id, string name, ushort hp, ushort[] generates, ushort next = 0, ushort death = 0,
             uint flags = 0x80, KwdArtResource? ownArt = null, byte perTurn = 1) => new([])
@@ -327,12 +327,12 @@ public class EffectChainTests
             ElementsPerTurn = perTurn, MinHp = hp, MaxHp = hp, NextEffectId = next, DeathEffectId = death,
             GenerateRandomness = randomness,
         };
-        var first = Effect(First, "first", 1, [Sparkle], next: Next, death: Death);
-        var nextEffect = Effect(Next, "next", nextHp, [Flake]);
-        var death = Effect(Death, "death", 1, [Part]);
-        var generator = Effect(Generator, "generator", 1, [First], flags: 0x80 | 0x40);
+        EffectDef first = Effect(First, "first", 1, [Sparkle], next: Next, death: Death);
+        EffectDef nextEffect = Effect(Next, "next", nextHp, [Flake]);
+        EffectDef death = Effect(Death, "death", 1, [Part]);
+        EffectDef generator = Effect(Generator, "generator", 1, [First], flags: 0x80 | 0x40);
         // Like the shipped 215: a group art and no wave of its own (ElementsPerTurn 0).
-        var grouped = Effect(Grouped, "grouped", 1, [Part], ownArt: new KwdArtResource("Group_test", 0, new byte[12], 8, 0, 0, 0), perTurn: 0);
+        EffectDef grouped = Effect(Grouped, "grouped", 1, [Part], ownArt: new KwdArtResource("Group_test", 0, new byte[12], 8, 0, 0, 0), perTurn: 0);
         return new([], [], [], new GlobalVariables(), effects: [first, nextEffect, death, generator, grouped],
             effectElements: [sparkle, flake, part]);
     }

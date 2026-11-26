@@ -5,6 +5,7 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace DK2.Simulation.Tests;
 
@@ -47,7 +48,7 @@ public class ArchitectureTests
     {
         var assembly = Assembly.Load(assemblyName);
 
-        var target = assembly
+        string? target = assembly
             .GetCustomAttribute<System.Runtime.Versioning.TargetFrameworkAttribute>()
             ?.FrameworkName;
 
@@ -62,7 +63,7 @@ public class ArchitectureTests
         string src = Path.Combine(RepositoryRoot(), "src");
         string[] projects = Directory.GetFiles(src, "*.csproj", SearchOption.AllDirectories);
         Assert.NotEmpty(projects);
-        var offenders = projects
+        string[] offenders = projects
             .Where(f => Regex.IsMatch(File.ReadAllText(f), @"Godot\.NET\.Sdk|Include=""Godot|GodotSharp", RegexOptions.IgnoreCase))
             .Concat(SourceFiles(src).Where(f => Regex.IsMatch(File.ReadAllText(f), @"^\s*using\s+(static\s+)?Godot\b", RegexOptions.Multiline)))
             .Select(f => Path.GetRelativePath(src, f))
@@ -78,7 +79,7 @@ public class ArchitectureTests
     {
         string root = RepositoryRoot();
         string adapter = Path.Combine(root, "godot", "DK2.Godot");
-        var project = System.Xml.Linq.XDocument.Load(Path.Combine(adapter, "DK2.Godot.csproj")).Root!;
+        XElement project = System.Xml.Linq.XDocument.Load(Path.Combine(adapter, "DK2.Godot.csproj")).Root!;
         Assert.StartsWith("Godot.NET.Sdk/", (string?)project.Attribute("Sdk"));
         string[] references = project.Descendants("ProjectReference")
             .Select(r => Path.GetRelativePath(root, Path.GetFullPath(Path.Combine(adapter, (string)r.Attribute("Include")!)))
@@ -89,7 +90,7 @@ public class ArchitectureTests
 
         string[] sources = AdapterFiles(adapter, "*.cs").ToArray();
         Assert.NotEmpty(sources);
-        var reachesPast = sources
+        IEnumerable<string> reachesPast = sources
             .Where(f => Regex.IsMatch(File.ReadAllText(f), @"^\s*using\s+(static\s+)?DK2\.(AI|Tools|Harness|Convert)\b", RegexOptions.Multiline))
             .Select(f => Path.GetRelativePath(adapter, f));
         Assert.Empty(reachesPast);
@@ -143,7 +144,7 @@ public class ArchitectureTests
         Assert.NotEmpty(files);
 
         const string write = @"[.\s]Dk2StateId\s*(?:=[^=]|\+\+|--)";
-        var offenders = files
+        string[] offenders = files
             .Where(f => Regex.IsMatch(File.ReadAllText(f), write))
             .Select(f => Path.GetFileName(f))
             // The gate itself; the field's own declaration; and the snapshot reader and the
@@ -195,7 +196,7 @@ public class ArchitectureTests
         // Two worlds tick on different threads (worker execution and parallel tests), and a static
         // they both write races: FightRules.RouteScratch did (cbee8a3d). A mutable static, or a
         // static readonly mutable collection, must be [ThreadStatic] or on the allow-list.
-        var offenders = typeof(WorldState).Assembly.GetTypes()
+        string[] offenders = typeof(WorldState).Assembly.GetTypes()
             .Where(t => !t.IsDefined(typeof(CompilerGeneratedAttribute), false))
             .SelectMany(t => t.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
             .Where(f => !f.IsLiteral

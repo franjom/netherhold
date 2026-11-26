@@ -77,7 +77,7 @@ public class ClassicTorchShadowsTests
     [Fact]
     public void StrengthIsTheProjectionsStrength()
     {
-        Assert.True(ClassicMeshShadow.TryProject(new(new(0, 1, 0), .25f, 1), new(new(-1.2f, 1, 0), 2f), out var shadow));
+        Assert.True(ClassicMeshShadow.TryProject(new(new(0, 1, 0), .25f, 1), new(new(-1.2f, 1, 0), 2f), out ClassicShadowProjection shadow));
         Assert.Equal(shadow.Strength, ClassicMeshShadow.Strength(1.2f, 2f));
         Assert.Equal(.7f, ClassicMeshShadow.Strength(0f, 2.5f));
     }

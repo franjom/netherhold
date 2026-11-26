@@ -5,6 +5,7 @@
 using DK2.Art;
 using DK2.Convert;
 using DK2.Data;
+using DK2.Data.Model;
 using DK2.TestSupport;
 
 namespace DK2.Convert.Tests;
@@ -14,17 +15,17 @@ public class ArtCatalogueTests
     [InstallFact]
     public void StationaryMovementUsesTheShippedPoseFrameInsteadOfGuiIconsOrWalking()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
         var entries = ArtSourceMap.ForDatabase(database, art).ToDictionary(entry => entry.Reference.Key);
-        var imp = database.Creatures.Values.Single(c => c.Name == "Imp");
+        CreatureDef imp = database.Creatures.Values.Single(c => c.Name == "Imp");
         Assert.Equal("Imp-PoseFrame", art.CreatureStandingPoses[imp.CreatureId].Name);
         Assert.Equal((byte)5, art.CreatureStandingPoses[imp.CreatureId].Type);
-        foreach (var creature in database.Creatures.Values)
+        foreach (CreatureDef creature in database.Creatures.Values)
         {
-            var standing = art.CreatureStandingPoses[creature.CreatureId];
-            var expected = standing.Type != 0 ? standing : art.Creatures[creature.CreatureId][0];
-            var entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
+            Dk2ArtResource standing = art.CreatureStandingPoses[creature.CreatureId];
+            Dk2ArtResource expected = standing.Type != 0 ? standing : art.Creatures[creature.CreatureId][0];
+            ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, "movement_idle").Key];
             if (expected.IsEmpty) Assert.False(entry.HasSource);
             else Assert.Equal(expected, entry.Source);
@@ -36,13 +37,13 @@ public class ArtCatalogueTests
     [InlineData("getting_up", 26, 0)]
     public void DropRecoveryUsesTheAuthoredKnockdownAndGetUpResources(string clip, int slot, int fallback)
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
         var entries = ArtSourceMap.ForDatabase(database, art).ToDictionary(e => e.Reference.Key);
-        foreach (var creature in database.Creatures.Values)
+        foreach (CreatureDef creature in database.Creatures.Values)
         {
-            var resources = art.Creatures[creature.CreatureId];
-            var expected = resources[slot].Type != 0 ? resources[slot] : resources[fallback];
+            IReadOnlyList<Dk2ArtResource> resources = art.Creatures[creature.CreatureId];
+            Dk2ArtResource expected = resources[slot].Type != 0 ? resources[slot] : resources[fallback];
             ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, clip).Key];
             if (expected.IsEmpty) Assert.False(entry.HasSource);
@@ -55,20 +56,20 @@ public class ArtCatalogueTests
     [InstallFact]
     public void WorkingIsArtTwentyTwoOrTheMeleeSwingItFallsBackTo()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
         var entries = ArtSourceMap.ForDatabase(database, art).ToDictionary(e => e.Reference.Key);
-        foreach (var creature in database.Creatures.Values.Where(c => c.Name != "Imp"))
+        foreach (CreatureDef? creature in database.Creatures.Values.Where(c => c.Name != "Imp"))
         {
-            var resources = art.Creatures[creature.CreatureId];
-            var expected = resources[21].Type != 0 ? resources[21] : resources[4];
+            IReadOnlyList<Dk2ArtResource> resources = art.Creatures[creature.CreatureId];
+            Dk2ArtResource expected = resources[21].Type != 0 ? resources[21] : resources[4];
             ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, "working").Key];
             if (expected.IsEmpty) Assert.False(entry.HasSource);
             else Assert.Equal(expected, entry.Source);
         }
 
-        var troll = database.Creatures.Values.Single(c => c.Name == "Troll");
+        CreatureDef troll = database.Creatures.Values.Single(c => c.Name == "Troll");
         Assert.Equal("Troll_Melee", entries[DK2.Assets.AssetRef.ForCreature("Troll",
             DK2.Assets.AssetKind.Animation, "working").Key].Source!.Name);
         Assert.True(art.Creatures[troll.CreatureId][21].IsEmpty);
@@ -77,14 +78,14 @@ public class ArtCatalogueTests
     [InstallFact]
     public void PortalEntranceUsesTheAuthoredBlockThirtyAndPreservesItsClockMetadata()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
         var entries = ArtSourceMap.ForDatabase(database, art).ToDictionary(e => e.Reference.Key);
-        foreach (var creature in database.Creatures.Values)
+        foreach (CreatureDef creature in database.Creatures.Values)
         {
             ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, "entrance").Key];
-            var expected = art.Creatures[creature.CreatureId][29];
+            Dk2ArtResource expected = art.Creatures[creature.CreatureId][29];
             if (expected.IsEmpty) Assert.False(entry.HasSource);
             else
             {
@@ -98,8 +99,8 @@ public class ArtCatalogueTests
     [InstallFact]
     public void ADeadGoblinResolvesToItsCorpseMeshInsteadOfWalking()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
         ArtEntry entry = ArtSourceMap.ForDatabase(database, art).Single(e =>
             e.Reference.Key == "creature.goblin.animation.dead");
 
@@ -115,15 +116,15 @@ public class ArtCatalogueTests
     public void LandingUsesArtTwentyFourOrItsSingleFallbackFour()
     {
         string install = Dk2InstallGate.Path;
-        var database = GameDatabaseLoader.Load(install);
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        var art = Dk2ArtCatalogue.Load(install);
         var entries = ArtSourceMap.ForDatabase(database, art).ToDictionary(e => e.Reference.Key);
-        foreach (var creature in database.Creatures.Values)
+        foreach (CreatureDef creature in database.Creatures.Values)
         {
-            var resources = art.Creatures[creature.CreatureId];
+            IReadOnlyList<Dk2ArtResource> resources = art.Creatures[creature.CreatureId];
             ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, "landing").Key];
-            var expected = resources[23].Type != 0 ? resources[23] : resources[3];
+            Dk2ArtResource expected = resources[23].Type != 0 ? resources[23] : resources[3];
             if (expected.IsEmpty) Assert.False(entry.HasSource);
             else Assert.Equal(expected, entry.Source);
         }
@@ -133,15 +134,15 @@ public class ArtCatalogueTests
     public void ASpellCastUsesArtSix()
     {
         string install = Dk2InstallGate.Path;
-        var database = GameDatabaseLoader.Load(install);
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        var art = Dk2ArtCatalogue.Load(install);
         var entries = ArtSourceMap.ForDatabase(database, art).ToDictionary(e => e.Reference.Key);
-        foreach (var creature in database.Creatures.Values)
+        foreach (CreatureDef creature in database.Creatures.Values)
         {
-            var resources = art.Creatures[creature.CreatureId];
+            IReadOnlyList<Dk2ArtResource> resources = art.Creatures[creature.CreatureId];
             ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, "casting").Key];
-            var expected = resources[5].Type != 0 ? resources[5] : resources[4];
+            Dk2ArtResource expected = resources[5].Type != 0 ? resources[5] : resources[4];
             if (expected.IsEmpty) Assert.False(entry.HasSource);
             else Assert.Equal(expected, entry.Source);
         }
@@ -151,9 +152,9 @@ public class ArtCatalogueTests
     public void AGiantFightUsesTheMeleeResourceInsteadOfWalking()
     {
         string install = Dk2InstallGate.Path;
-        var database = GameDatabaseLoader.Load(install);
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
-        var giant = database.CreatureByName("Giant")!;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        var art = Dk2ArtCatalogue.Load(install);
+        CreatureDef giant = database.CreatureByName("Giant")!;
         ArtEntry entry = ArtSourceMap.ForDatabase(database, art).Single(e =>
             e.Reference.Key == "creature.giant.animation.fighting");
         Assert.Equal(art.Creatures[giant.CreatureId][4], entry.Source);
@@ -166,8 +167,8 @@ public class ArtCatalogueTests
     public void ImpActionsResolveToTheAuthoredWorkAndRunResources(string action, int fileSlot)
     {
         string install = Dk2InstallGate.Path;
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
-        var database = GameDatabaseLoader.Load(install);
+        var art = Dk2ArtCatalogue.Load(install);
+        GameDatabase database = GameDatabaseLoader.Load(install);
         ArtEntry entry = ArtSourceMap.ForDatabase(database, art).Single(e =>
             e.Reference.Key == "creature.imp.animation." + action);
         Dk2ArtResource requested = art.Creatures[1][fileSlot];
@@ -181,8 +182,8 @@ public class ArtCatalogueTests
     {
         string install = Dk2InstallGate.Path;
 
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
-        var database = GameDatabaseLoader.Load(install);
+        var art = Dk2ArtCatalogue.Load(install);
+        GameDatabase database = GameDatabaseLoader.Load(install);
 
         Assert.Equal(database.Terrain.Count, art.Terrains.Count);
         Assert.Equal(database.Rooms.Count, art.Rooms.Count);
@@ -197,14 +198,14 @@ public class ArtCatalogueTests
     public void MealsResolveToArtThirteenOrItsIdleFallback()
     {
         string install = Dk2InstallGate.Path;
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
-        var database = GameDatabaseLoader.Load(install);
-        foreach (var creature in database.Creatures.Values)
+        var art = Dk2ArtCatalogue.Load(install);
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        foreach (CreatureDef creature in database.Creatures.Values)
         {
             ArtEntry entry = ArtSourceMap.ForDatabase(database, art).Single(e =>
                 e.Reference.Key == DK2.Assets.AssetRef.ForCreature(creature.Name,
                     DK2.Assets.AssetKind.Animation, "eating").Key);
-            var resources = art.Creatures[creature.CreatureId];
+            IReadOnlyList<Dk2ArtResource> resources = art.Creatures[creature.CreatureId];
             Dk2ArtResource expected = resources[12].Type != 0 ? resources[12] : resources[7];
             if (expected.IsEmpty) Assert.False(entry.HasSource);
             else Assert.Equal(expected, entry.Source);
@@ -218,8 +219,8 @@ public class ArtCatalogueTests
     public void AnAnimationResourceCarriesItsDescriptorsRate()
     {
         string install = Dk2InstallGate.Path;
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(install);
-        var database = GameDatabaseLoader.Load(install);
+        var art = Dk2ArtCatalogue.Load(install);
+        GameDatabase database = GameDatabaseLoader.Load(install);
 
         Dk2ArtResource knockdown = art.Creatures[1][23];
         Assert.Equal(6, knockdown.Type);
@@ -234,15 +235,15 @@ public class ArtCatalogueTests
     [InstallFact]
     public void HeldItemIconsAreTheCreaturesIcon1ResourceAndTheObjectsGuiIconResource()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
-        var imp = database.Creatures.Values.Single(c => c.Name == "Imp");
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
+        CreatureDef imp = database.Creatures.Values.Single(c => c.Name == "Imp");
         // Creatures.kwd file +0xC44, the compact definition's +0x510 that 0x0040D450 draws.
         Assert.Equal(@"gui\creatures\evil\imp", art.CreatureIcons[imp.CreatureId].Name);
         Assert.Equal(database.Creatures.Count, art.CreatureIcons.Count);
         // Objects.kwd file +0x74 is art 1 of the object list (art 0 is the mesh at +0x20).
-        var gold = database.Objects.Values.Single(o => o.Name == "Gold");
-        var flag = database.Objects.Values.Single(o => o.Name == "Call To Arms");
+        ObjectDef gold = database.Objects.Values.Single(o => o.Name == "Gold");
+        ObjectDef flag = database.Objects.Values.Single(o => o.Name == "Call To Arms");
         Assert.Equal(@"gui\rooms\Treasury", art.Objects[gold.ObjectId][1].Name);
         Assert.Equal(@"gui\spells\call_to_arms", art.Objects[flag.ObjectId][1].Name);
     }

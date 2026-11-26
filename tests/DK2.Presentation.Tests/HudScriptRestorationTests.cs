@@ -20,7 +20,7 @@ public sealed class HudScriptRestorationTests
         var controls = new ClassicHudControls();
         if (options) controls.Apply(ClassicHudAction.ToggleOptions);
         else controls.Apply(ClassicHudAction.ToggleGui);
-        var director = Director(controls);
+        ScriptedViewDirector director = Director(controls);
         Letterbox(director, true);
         director.Update(0, 0);
         Assert.False(controls.GuiVisible);
@@ -36,7 +36,7 @@ public sealed class HudScriptRestorationTests
     {
         var controls = new ClassicHudControls();
         controls.Apply(ClassicHudAction.ToggleGui);
-        var director = Director(controls);
+        ScriptedViewDirector director = Director(controls);
         StartPath(director);
         director.Update(0, 0);
         Assert.True(director.Skip());
@@ -52,7 +52,7 @@ public sealed class HudScriptRestorationTests
     {
         var controls = new ClassicHudControls();
         controls.Apply(ClassicHudAction.ToggleOptions);
-        var director = Director(controls);
+        ScriptedViewDirector director = Director(controls);
         Letterbox(director, true);
         StartPath(director);
         director.Update(0, 0);
@@ -79,7 +79,7 @@ public sealed class HudScriptRestorationTests
     public void OtherPlayersLetterboxCannotChangeTheViewersGui()
     {
         var controls = new ClassicHudControls();
-        var director = Director(controls);
+        ScriptedViewDirector director = Director(controls);
         Letterbox(director, true, new PlayerId(4));
         director.Update(0, 0);
         Assert.True(controls.GuiVisible);
@@ -93,7 +93,7 @@ public sealed class HudScriptRestorationTests
     public void PossessionCountsBalancedLetterboxRequestsWithoutAnimatingAndRestoresGui(ushort mode)
     {
         var controls = new ClassicHudControls();
-        var director = Director(controls);
+        ScriptedViewDirector director = Director(controls);
         Letterbox(director, true);
         director.Update(0, 0, new CameraModeId(mode));
         director.Update(2500, 0, new CameraModeId(mode));
@@ -115,7 +115,7 @@ public sealed class HudScriptRestorationTests
     [InlineData(11)]
     public void RestrictedCameraModesDiscardMoves(int mode)
     {
-        var director = Director(new ClassicHudControls());
+        ScriptedViewDirector director = Director(new ClassicHudControls());
         director.Emit(new SimEvent(default, "test", "view", "")
         {
             ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraMove, PlayerIds.FirstKeeper, 0, new TilePos(3, 4), false),
@@ -128,7 +128,7 @@ public sealed class HudScriptRestorationTests
     [Fact]
     public void ModeOneStillAnimatesLetterbox()
     {
-        var director = Director(new ClassicHudControls());
+        ScriptedViewDirector director = Director(new ClassicHudControls());
         Letterbox(director, true);
         director.Update(0, 0, new CameraModeId(1));
         director.Update(2000, 0, new CameraModeId(1));
@@ -138,7 +138,7 @@ public sealed class HudScriptRestorationTests
     [Fact]
     public void ModeChangeRestoresViewportEvenWhenForceOffAnimationIsSuppressed()
     {
-        var director = Director(new ClassicHudControls());
+        ScriptedViewDirector director = Director(new ClassicHudControls());
         Letterbox(director, true);
         Letterbox(director, true);
         director.Update(0, 0);
@@ -162,7 +162,7 @@ public sealed class HudScriptRestorationTests
     [InlineData(7, 3, 0)]
     public void ModeChangeRetargetsFullViewportWithoutChangingRaisedCount(ushort from, ushort to, int duration)
     {
-        var director = Director(new ClassicHudControls());
+        ScriptedViewDirector director = Director(new ClassicHudControls());
         Letterbox(director, true);
         director.Update(0, 0, new(from));
         director.Update(2000, 0, new(from));
@@ -183,7 +183,7 @@ public sealed class HudScriptRestorationTests
     [Fact]
     public void EqualFullViewportTargetDoesNotRestartItsBlendOnAnotherModeChange()
     {
-        var director = Director(new ClassicHudControls());
+        ScriptedViewDirector director = Director(new ClassicHudControls());
         Letterbox(director, true);
         director.Update(0, 0, new(3));
         director.Update(2000, 0, new(3));
@@ -200,7 +200,7 @@ public sealed class HudScriptRestorationTests
     [InlineData(true)]
     public void SameModeRequestRestoresFullViewportAndDefersUntilAPathEnds(bool duringPath)
     {
-        var director = Director(new ClassicHudControls());
+        ScriptedViewDirector director = Director(new ClassicHudControls());
         Letterbox(director, true);
         if (duringPath) StartPath(director);
         director.Update(0, 0, new(3));
@@ -230,7 +230,7 @@ public sealed class HudScriptRestorationTests
     [Fact]
     public void PathEndAfterForceOffLeavesNegativeCountAndHidesHudUntilMatchingRaise()
     {
-        var director = Director(new ClassicHudControls());
+        ScriptedViewDirector director = Director(new ClassicHudControls());
         StartPath(director);
         director.Update(0, 0, new(3));
         director.Emit(new SimEvent(default, "test", "force_off", "")
@@ -251,8 +251,8 @@ public sealed class HudScriptRestorationTests
     [InstallFact]
     public void ShippedLevel14HasAnOffWithoutAnExplicitOnAndStartsPath214()
     {
-        var records = GameDatabaseLoader.LoadCampaignTriggers(Dk2InstallGate.Path, "Level14")!;
-        var letterbox = Assert.Single(records, r => r.Tag == 214 && r.Type == 38);
+        List<TriggerRecord> records = GameDatabaseLoader.LoadCampaignTriggers(Dk2InstallGate.Path, "Level14")!;
+        TriggerRecord letterbox = Assert.Single(records, r => r.Tag == 214 && r.Type == 38);
         Assert.Equal(65500, letterbox.TriggerId);
         Assert.Equal(0, letterbox.Parameters["Available"]);
         Assert.Contains(records, r => r.Tag == 214 && r.Type == 31 && r.Parameters["PathId"] == 214);
@@ -276,7 +276,7 @@ public sealed class HudScriptRestorationTests
     [InlineData(10, 0f)]
     public void NegativeLetterboxCountUsesTheIdleModeRule(ushort mode, float expected)
     {
-        var director = Director(new ClassicHudControls());
+        ScriptedViewDirector director = Director(new ClassicHudControls());
         Letterbox(director, false);
         director.Update(0, 0, new(mode));
         director.Update(1, 0, new(mode));
@@ -287,7 +287,7 @@ public sealed class HudScriptRestorationTests
     [Fact]
     public void ScriptedModeSurvivesAnUnchangedSampledDungeonMode()
     {
-        var director = Director(new ClassicHudControls());
+        ScriptedViewDirector director = Director(new ClassicHudControls());
         director.Update(0, 0, new(3));
         director.Emit(new SimEvent(default, "test", "mode", "")
         {

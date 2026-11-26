@@ -36,7 +36,7 @@ public class CapturedSteeringTests(ITestOutputHelper log)
     [CapturedFact(Dump)]
     public void AvoidWalls_OnTheDump_MatchesTheOriginal()
     {
-        CapturedState state = CapturedState.LoadWithDump(Capture, 500, Dump);
+        var state = CapturedState.LoadWithDump(Capture, 500, Dump);
         Assert.NotNull(state.NavBytes);
         var grid = new GridWorld(state.Width, state.Height, state.NavBytes!);
         CapturedCreature[] live = [.. state.Creatures.Where(c => c.Body is not null && c.Mover is not null)];
@@ -80,7 +80,7 @@ public class CapturedSteeringTests(ITestOutputHelper log)
     [CapturedFact(Dump)]
     public void OurNavigationBytes_AreDk2s_WithTheHeartAndDoorStamps()
     {
-        CapturedState state = CapturedState.LoadWithDump(Capture, 500, Dump);
+        var state = CapturedState.LoadWithDump(Capture, 500, Dump);
         (GameDatabase database, WorldState world) = CapturedState.Level("Level4");
         new GameSimulation(database, world, 1, [new DoorHealthSystem(), new DoorRemovalSystem()]).Run(1);
         Assert.Equal([new NavStamp(54 * world.Width + 24, 14, NavBytes.Lava), new NavStamp(9 * world.Width + 24, 4, NavBytes.Floor)],

@@ -22,7 +22,7 @@ public class SaveLoadingBoundsTests
     public void TruncationHasOneSaveException(int length)
     {
         byte[] bytes = Snapshot();
-        var error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes[..length], TestWorld.Database()));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes[..length], TestWorld.Database()));
         Assert.Equal(SaveIncompatibleReason.Truncated, error.Reason);
         Assert.NotNull(error.Position);
     }
@@ -37,7 +37,7 @@ public class SaveLoadingBoundsTests
         BitConverter.GetBytes(count).CopyTo(bytes, 59);
         // Leave only the header when testing the remaining-bytes bound.
         if (count == 256) bytes = bytes[..63];
-        var error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
         Assert.Equal(reason, error.Reason);
     }
 
@@ -51,7 +51,7 @@ public class SaveLoadingBoundsTests
         byte[] bytes = Snapshot();
         BitConverter.GetBytes(width).CopyTo(bytes, 49);
         BitConverter.GetBytes(height).CopyTo(bytes, 53);
-        var error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
         Assert.Equal(SaveIncompatibleReason.OutOfRange, error.Reason);
     }
 
@@ -61,7 +61,7 @@ public class SaveLoadingBoundsTests
         byte[] bytes = Snapshot();
         int tileCountOffset = 63 + BitConverter.ToInt32(bytes, 59);
         BitConverter.GetBytes(int.MaxValue).CopyTo(bytes, tileCountOffset);
-        var error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
         Assert.Equal(SaveIncompatibleReason.Truncated, error.Reason);
     }
 
@@ -70,7 +70,7 @@ public class SaveLoadingBoundsTests
     {
         byte[] bytes = PartySnapshot(out int prefix);
         new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 7 }.CopyTo(bytes, prefix);
-        var error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
         Assert.Equal(SaveIncompatibleReason.Truncated, error.Reason);
     }
 
@@ -79,7 +79,7 @@ public class SaveLoadingBoundsTests
     {
         byte[] bytes = PartySnapshot(out int prefix);
         bytes.AsSpan(prefix, 5).Fill(0xFF);
-        var error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
         Assert.Equal(SaveIncompatibleReason.OutOfRange, error.Reason);
     }
 
@@ -88,7 +88,7 @@ public class SaveLoadingBoundsTests
     {
         byte[] bytes = PartySnapshot(out int prefix);
         bytes[prefix + 1] = 0xFF;
-        var error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
         Assert.Equal(SaveIncompatibleReason.Corrupt, error.Reason);
         Assert.IsType<DecoderFallbackException>(error.InnerException);
         Assert.True(error.Position > prefix);
@@ -97,14 +97,14 @@ public class SaveLoadingBoundsTests
     [Fact]
     public void SampledCorruptionAndTruncationNeverEscapeTheSaveBoundary()
     {
-        var simulation = TestWorld.Simulation();
+        GameSimulation simulation = TestWorld.Simulation();
         simulation.Run(50);
         simulation.Navigation.Refresh();
         ThingProjection.Place(simulation.World, simulation.Database, [new HeroPartyThing(new byte[555]) { Name = "fuzz party", Members = [] }]);
         byte[] original = WorldSnapshot.ToBytes(simulation);
-        var database = TestWorld.Database();
+        GameDatabase database = TestWorld.Database();
         // Header bytes plus evenly spaced samples include the populated mesh suffix.
-        var offsets = Enumerable.Range(0, 100)
+        IEnumerable<int> offsets = Enumerable.Range(0, 100)
             .Concat(Enumerable.Range(0, 512).Select(i => (int)((long)i * (original.Length - 1) / 511))).Distinct();
         foreach (int offset in offsets)
         foreach (byte value in new byte[] { 0xFF, 0x7F, 0x80 })
@@ -117,7 +117,7 @@ public class SaveLoadingBoundsTests
         }
         foreach (int length in Enumerable.Range(0, 128).Select(i => (int)((long)i * (original.Length - 1) / 127)))
         {
-            var error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(original[..length], database));
+            SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(original[..length], database));
             Assert.Equal(SaveIncompatibleReason.Truncated, error.Reason);
         }
     }
@@ -125,13 +125,13 @@ public class SaveLoadingBoundsTests
     [Fact]
     public void HandCountCannotExceedTheDatabaseCapacity()
     {
-        var simulation = TestWorld.Simulation();
-        var database = simulation.Database;
+        GameSimulation simulation = TestWorld.Simulation();
+        GameDatabase database = simulation.Database;
         database.Variables.Misc[VariableTypeId.MaxNumberOfThingsInHand] =
             new MiscVariable(VariableTypeId.MaxNumberOfThingsInHand, 0, 0, 0);
         simulation.World.Player(1).Hand.Add(new HandItem(HandItemKind.Creature, simulation.World.Creatures[0].Id));
         byte[] bytes = WorldSnapshot.ToBytes(simulation);
-        var error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, database));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, database));
         Assert.Equal(SaveIncompatibleReason.OutOfRange, error.Reason);
     }
 
@@ -153,7 +153,7 @@ public class SaveLoadingBoundsTests
             for (int side = 0; side < 4; side++) writer.Write(0);
         }
         writer.Write(bytes, countOffset + 4, bytes.Length - countOffset - 4);
-        var error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(stream.ToArray(), TestWorld.Database()));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(stream.ToArray(), TestWorld.Database()));
         Assert.Equal(SaveIncompatibleReason.Corrupt, error.Reason);
         Assert.IsType<ArgumentException>(error.InnerException);
         Assert.Equal(countOffset + 4 + 58, error.Position);
@@ -164,7 +164,7 @@ public class SaveLoadingBoundsTests
     [InlineData(int.MaxValue, SaveIncompatibleReason.Truncated)]
     public void NestedMeshPointCountsAreBounded(int count, SaveIncompatibleReason reason)
     {
-        var simulation = TestWorld.Simulation();
+        GameSimulation simulation = TestWorld.Simulation();
         simulation.Navigation.Refresh();
         byte[] bytes = WorldSnapshot.ToBytes(simulation);
         using var navStream = new MemoryStream();
@@ -173,7 +173,7 @@ public class SaveLoadingBoundsTests
         int centresOffset = navOffset + 1 + 4 + simulation.World.TileCount + 4 + simulation.World.TileCount;
         int pointsOffset = centresOffset + 4 + BitConverter.ToInt32(bytes, centresOffset) * 4 + 16;
         BitConverter.GetBytes(count).CopyTo(bytes, pointsOffset);
-        var error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
         Assert.Equal(reason, error.Reason);
     }
 
@@ -181,7 +181,7 @@ public class SaveLoadingBoundsTests
 
     private static byte[] PartySnapshot(out int prefix)
     {
-        var simulation = TestWorld.Simulation();
+        GameSimulation simulation = TestWorld.Simulation();
         const string name = "unique party marker";
         ThingProjection.Place(simulation.World, simulation.Database, [new HeroPartyThing(new byte[555]) { Name = name, Members = [] }]);
         byte[] bytes = WorldSnapshot.ToBytes(simulation);

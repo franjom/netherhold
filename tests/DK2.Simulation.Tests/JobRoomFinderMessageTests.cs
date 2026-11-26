@@ -19,7 +19,7 @@ public class JobRoomFinderMessageTests
     /// <summary>Paved ground at (1..12, 1..8) the keeper owns, a treasury tile at (12, 8); rock beyond.</summary>
     private static WorldState World()
     {
-        WorldState world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(width: 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(width: 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
             for (int x = 1; x <= 12; x++)
             {

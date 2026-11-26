@@ -22,7 +22,7 @@ public class DoorNavigationTests
     private static (WorldState world, GameDatabase db, DoorState door) Build(byte doorOwner, byte flags, byte doorId = 1, bool vertical = false)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         foreach (int x in new[] { 4, 5, 6, 7 })
         {
             ref TileState tile = ref world.Tile(new TilePos(x, 2));
@@ -32,7 +32,7 @@ public class DoorNavigationTests
 
         if (vertical)
         {
-            var solid = world.Tile(new TilePos(5, 1)).TerrainId;
+            byte solid = world.Tile(new TilePos(5, 1)).TerrainId;
             world.Tile(new TilePos(4, 2)).TerrainId = solid;
             world.Tile(new TilePos(6, 2)).TerrainId = solid;
             world.Tile(new TilePos(5, 1)).TerrainId = Dk2TerrainFixture.DirtPath;

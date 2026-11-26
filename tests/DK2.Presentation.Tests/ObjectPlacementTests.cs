@@ -10,6 +10,7 @@ using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.TestSupport;
+using DK2.Art.Kmf;
 
 namespace DK2.Presentation.Tests;
 
@@ -29,7 +30,7 @@ public class ObjectPlacementTests
         string dir = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.Load(dir);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!;
-        WorldState world = WorldState.FromMap(db, map, [0, 1]);
+        var world = WorldState.FromMap(db, map, [0, 1]);
         byte wall = db.Terrain.Values.Single(t => t.Name == "Reinforced Wall").TerrainId;
         byte floor = db.Room(type).TerrainId;
         for (int y = Y0; y <= Y0 + height + 1; y++)
@@ -356,13 +357,13 @@ public class ObjectPlacementTests
     public void PrisonDoorMeshesStandAtTheCellEntranceRatherThanTheNorthWall()
     {
         Room room = Carve(RoomTypeId.Prison, 4, 4);
-        using InstallArtProvider art = InstallArtProvider.Open(Dk2InstallGate.Path, room.Database);
+        using var art = InstallArtProvider.Open(Dk2InstallGate.Path, room.Database);
         foreach (byte type in new byte[] { 109, 116 })
         {
             ObjectView instance = Decorations(room, type).Single();
             Assert.True(art.TryResolve(instance.Mesh, out ResolvedAsset resolved));
-            Assert.True(art.TryLoadModel(resolved, out var model));
-            Quaternion turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, instance.MeshYaw * MathF.PI / 1024f);
+            Assert.True(art.TryLoadModel(resolved, out KmfModel? model));
+            var turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, instance.MeshYaw * MathF.PI / 1024f);
             Vector3[] vertices = RenderMesh.FromModel(model).Positions.Select(p => Vector3.Transform(p, turn)).ToArray();
             // The cell is south of its north-rim door tile: both meshes must face that opening.
             Assert.InRange(vertices.Min(p => -p.Z), 0.19f, 0.6f);

@@ -20,7 +20,7 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void InfernoRearmsBurningForItsWholeLifeAndTheLastFlamesFollowOnTheNextCreatureTurn()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
         target.Health = 1000;
         var sim = new GameSimulation(db, world, 1,
@@ -48,7 +48,7 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void AChickenedEnemyCarriesSixtySecondsEntersStateNinetySixAndPaysTheMana()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
 
         Tick(db, world, new CastSpellOnCreatureCommand(Keeper, KeeperSpellRules.Chicken, enemy.Id));
@@ -62,7 +62,7 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void AnImmuneKindCostsTheTenThousandAndIsUnchanged()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState prince = world.SpawnCreature(db, ImmuneId, Rival, new TilePos(10, 10));
         int state = prince.Dk2StateId;
 
@@ -77,7 +77,7 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void ADyingCreatureRefusesTheStateButStillCarriesTheTimer_AsRead()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), enemy, CreatureDeathRules.DyingState));
 
@@ -89,7 +89,7 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void TheSpentTimerSendsTheCreatureToIdleWhateverItIsDoing()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), enemy, ChickenRules.ChickenState));
         enemy.ChickenTicks = 2;
@@ -104,7 +104,7 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void WithoutAHatcheryTheChickenWalksToANeighbouringTileAndResumesTheState()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), enemy, ChickenRules.ChickenState));
         enemy.ChickenTicks = 100;
@@ -119,7 +119,7 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void WithAReachableHatcheryOfItsOwnKeeperTheChickenWalksIntoIt()
     {
-        var (db, world) = Setup((_, w) =>
+        (GameDatabase? db, WorldState? world) = Setup((_, w) =>
         {
             for (int y = 9; y <= 11; y++)
                 for (int x = 14; x <= 16; x++)
@@ -144,7 +144,7 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void AnInfernoHurtsEveryOwnersCreatureWithinOneTileOnceATickForThirtyTicks()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState own = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
         CreatureState near = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
         near.PosX += 0x600;
@@ -164,7 +164,7 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void TheFirstTickHalvesTheRadiusSquaredSoACreatureFourFifthsOfATileOutTakesTwentyNine()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState edge = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
         edge.Health = 1000;
         int x = edge.PosX - 0xCCC, y = edge.PosY;
@@ -179,7 +179,7 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void ALavaWalkerThatCannotFlyIsSparedAndOneThatFliesBurns_ConfirmedInPlay()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState salamander = world.SpawnCreature(db, SalamanderId, Rival, new TilePos(10, 10));
         CreatureState firefly = world.SpawnCreature(db, FireflyId, Rival, new TilePos(10, 10));
         salamander.Health = firefly.Health = 1000;
@@ -194,7 +194,7 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void TheCooldownRefusesASecondInfernoForSixtySecondsAndRivalLandRefusesTheFirst()
     {
-        var (db, world) = Setup((_, w) => w.Tile(13, 10).OwnerPlayerId = Rival);
+        (GameDatabase? db, WorldState? world) = Setup((_, w) => w.Tile(13, 10).OwnerPlayerId = Rival);
         var boundary = new PlaceBoundary();
         var sim = new GameSimulation(db, world, 1, [boundary]);
         int at = CreatureState.CentreOf(10), rival = CreatureState.CentreOf(13), y = CreatureState.CentreOf(10);
@@ -213,8 +213,8 @@ public class KeeperChickenInfernoTests
     [Fact]
     public void AShotTheWorldStopsWithoutDiesOnSolidStillCountsDown()
     {
-        var (db, world) = Setup();
-        var shot = ShotRules.Spawn(world, db.Shots[BoltId], Keeper, CreatureState.CentreOf(16), CreatureState.CentreOf(10), 0, 0, 0,
+        (GameDatabase? db, WorldState? world) = Setup();
+        ShotState shot = ShotRules.Spawn(world, db.Shots[BoltId], Keeper, CreatureState.CentreOf(16), CreatureState.CentreOf(10), 0, 0, 0,
             FightTargetKind.None, -1, Keeper, -1, 0, 0);
         shot.VelX = 0x1000; // into the rock at x = 17
         var sim = new GameSimulation(db, world, 1, [new ShotSystem()]);
@@ -239,7 +239,7 @@ public class KeeperChickenInfernoTests
         public KeeperSpellRefusal Refusal;
         public void Execute(SimulationContext context)
         {
-            foreach (var command in context.Input.All.OfType<CastSpellAtPlaceCommand>())
+            foreach (CastSpellAtPlaceCommand command in context.Input.All.OfType<CastSpellAtPlaceCommand>())
                 KeeperSpellRules.CastAtPlace(context, command, out Refusal);
         }
     }
@@ -284,7 +284,7 @@ public class KeeperChickenInfernoTests
             shots: [Shot(10, ShotRules.ChickenProcess, 0x6, 16, ShotRules.HitThingEvent, ShotRules.CollideEnemies),
                     Shot(15, ShotRules.InfernoProcess, 0x104, 30, ShotRules.PreMoveEvent),
                     Shot(BoltId, 0, ShotRules.CountsDown, 3)]);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         world.Player(Keeper).Mana = 100000;
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.Inferno, 3));
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.Chicken, 3));

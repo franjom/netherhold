@@ -41,7 +41,7 @@ public class CampaignResultsTests
     [Fact]
     public void UnderAnHourTheTimeIsMinutesAndSecondsAndNoBlockMeansNoRows()
     {
-        var profile = CampaignProgression.RecordStatistics(new CampaignProfile(), Keeper,
+        CampaignProfile profile = CampaignProgression.RecordStatistics(new CampaignProfile(), Keeper,
             new LevelStatisticsBlock { TimeTaken = 125 }, new CampaignSlot(1), keeperRank: null);
         Assert.Equal("02 : 05", CampaignResults.Build(profile, new CampaignSlot(1))!.Cells[1].Value);
         Assert.Equal(22u, CampaignResults.Build(profile, new CampaignSlot(1))!.Cells[0].ValueTextId);
@@ -51,7 +51,7 @@ public class CampaignResultsTests
     [Fact]
     public void TheSummarySitsAtItsFixedBoxesWithTheOverallSumAndSpecialsOutsideASecretLevel()
     {
-        var ratings = new uint[40];
+        uint[] ratings = new uint[40];
         ratings[0] = 100; ratings[3] = 250; ratings[24] = 7; ratings[25] = 9000;   // slot 26 is a secret one
         var profile = new CampaignProfile { TotalEvilRating = ratings };
         profile = CampaignProgression.RecordStatistics(profile, Keeper,
@@ -71,7 +71,7 @@ public class CampaignResultsTests
     [Fact]
     public void ASecretLevelPrintsNoOverallRating()
     {
-        var profile = CampaignProgression.RecordStatistics(new CampaignProfile(), Keeper,
+        CampaignProfile profile = CampaignProgression.RecordStatistics(new CampaignProfile(), Keeper,
             new LevelStatisticsBlock(), new CampaignSlot(26), keeperRank: 10);
         CampaignResults results = CampaignResults.Build(profile, new CampaignSlot(26))!;
         Assert.Null(results.Overall);
@@ -81,7 +81,7 @@ public class CampaignResultsTests
     [Fact]
     public void TheRowsSkipEnemyKeepersVanquishedStepTwentyFivePixelsAndClipToTheList()
     {
-        var profile = CampaignProgression.RecordStatistics(new CampaignProfile(), Keeper,
+        CampaignProfile profile = CampaignProgression.RecordStatistics(new CampaignProfile(), Keeper,
             new LevelStatisticsBlock { LevelWon = true }, new CampaignSlot(1), keeperRank: null);
         CampaignResults results = CampaignResults.Build(profile, new CampaignSlot(1))!;
         var list = new FrontEndRect(760, 968, 1500, 512);                     // widget 180
@@ -123,7 +123,7 @@ public class CampaignResultsTests
 
     private static uint[] Attempts(int slot, uint value)
     {
-        var attempts = new uint[40]; attempts[slot - 1] = value; return attempts;
+        uint[] attempts = new uint[40]; attempts[slot - 1] = value; return attempts;
     }
 
     [Theory]
@@ -143,10 +143,10 @@ public class CampaignResultsTests
     {
         var frame = new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000);
         var session = new FrontEndSession(_ => new[] { frame, frame, frame }, FrontEndPage.CampaignResults);
-        var profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
+        CampaignProfile profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
         profile = CampaignProgression.RecordStatistics(profile, Keeper,
             new LevelStatisticsBlock { LevelWon = true, GoldMined = 700 }, new CampaignSlot(2), keeperRank: 10);
-        var scores = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1")).ToArray();
+        HiScoreEntry[] scores = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1")).ToArray();
         using var map = new CampaignMapController(session, profile, false,
             slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()), scores);
         IReadOnlyList<HiScoreEntry>? saved = null;
@@ -172,10 +172,10 @@ public class CampaignResultsTests
     {
         var frame = new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000);
         var session = new FrontEndSession(_ => new[] { frame, frame, frame }, FrontEndPage.CampaignResults);
-        var profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
+        CampaignProfile profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
         profile = CampaignProgression.RecordStatistics(profile, Keeper,
             new LevelStatisticsBlock { LevelWon = true, GoldMined = 700 }, new CampaignSlot(2), keeperRank: 10);
-        var scores = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1")).ToArray();
+        HiScoreEntry[] scores = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1")).ToArray();
         using var map = new CampaignMapController(session, profile, false,
             slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()), scores);
         using var menu = new FrontEndMenuController(session, _ => new FrontEndRect(0, 0, 10, 10), map);
@@ -191,7 +191,7 @@ public class CampaignResultsTests
     [Fact]
     public void ALossOrALowScoreGoesStraightBackToTheMap()
     {
-        var scores = Enumerable.Repeat(new HiScoreEntry(5000, "K", "1"), 10).ToArray();
+        HiScoreEntry[] scores = Enumerable.Repeat(new HiScoreEntry(5000, "K", "1"), 10).ToArray();
         Assert.False(HiScoreTable.Qualifies(scores, 4999));
         Assert.True(HiScoreTable.Qualifies(scores, 5000));
         Assert.Equal(-1, HiScoreTable.Position(scores, 10));
@@ -207,7 +207,7 @@ public class CampaignResultsTests
     public void AWonMapPlaysItsLevelsTitleCardAndCutscene(int slot, int level, uint title)
     {
         var statuses = new CampaignLevelStatus[40]; statuses[slot - 1] = CampaignLevelStatus.Won;
-        var cutscene = CampaignCutscene.AfterLevel(new CampaignProfile { LevelNumber = (byte)slot, PlayerLevelStatus = statuses })!;
+        CampaignCutscene cutscene = CampaignCutscene.AfterLevel(new CampaignProfile { LevelNumber = (byte)slot, PlayerLevelStatus = statuses })!;
         Assert.Equal(level, CampaignCutscene.LevelNumber(new CampaignSlot(slot)));
         Assert.Equal((title, title + 1), (cutscene.TitleTextId, cutscene.SpeechId));
         Assert.Equal(new[] { $"Data/Movies/CutSceneLevel{level}.tgq" }, cutscene.Movies);
@@ -217,7 +217,7 @@ public class CampaignResultsTests
     public void LevelTwentyPlaysBothOutrosAndLossesOrSecretsPlayNothing()
     {
         var statuses = new CampaignLevelStatus[40]; statuses[23] = CampaignLevelStatus.Won; statuses[0] = CampaignLevelStatus.Open;
-        var outro = CampaignCutscene.AfterLevel(new CampaignProfile { LevelNumber = 24, PlayerLevelStatus = statuses })!;
+        CampaignCutscene outro = CampaignCutscene.AfterLevel(new CampaignProfile { LevelNumber = 24, PlayerLevelStatus = statuses })!;
         Assert.Equal(0u, outro.TitleTextId);
         Assert.Equal(new[] { "Data/Movies/Outro.tgq", "Data/Movies/BullfrogOutro.tgq" }, outro.Movies);
         Assert.Null(CampaignCutscene.AfterLevel(new CampaignProfile { LevelNumber = 1, PlayerLevelStatus = statuses }));

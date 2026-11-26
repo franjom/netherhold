@@ -24,7 +24,7 @@ public sealed class AmbienceGridTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
-        WorldState world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!, [0, 1]);
+        var world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!, [0, 1]);
         byte water = database.WaterTerrain!.TerrainId;
         var listener = new TilePos(20, 20);
         for (int y = 0; y < world.Height; y++)
@@ -52,7 +52,7 @@ public sealed class AmbienceGridTests
     [Fact]
     public void ACategoryWithAnAmbientGroupGetsOneEmitterAtTheCentreOfItsCellsInViewSpace()
     {
-        var cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
+        string[] cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
         Array.Fill(cells, "");
         cells[(5 * AmbienceGrid.Side) + 3] = "TERRAIN_WATER";    // two cells left of the listener's column
         cells[(5 * AmbienceGrid.Side) + 5] = "TERRAIN_WATER";    // the listener's own
@@ -69,7 +69,7 @@ public sealed class AmbienceGridTests
     [Fact]
     public void OnlyTheTwoCategoriesWithTheMostCellsKeepAnEmitter_TheHeapOrderAndTheTieBreakAreInferred()
     {
-        var cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
+        string[] cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
         Array.Fill(cells, "");
         void Put(string category, int count, int from) { for (int i = 0; i < count; i++) cells[from + i] = category; }
         Put("TERRAIN_LAVA", 3, 0);
@@ -88,7 +88,7 @@ public sealed class AmbienceGridTests
     [Fact]
     public void AnEmptyGridHasNoEmitters()
     {
-        var cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
+        string[] cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
         Array.Fill(cells, "");
         Assert.Empty(AmbienceGrid.Emitters(cells, new TilePos(5, 5), _ => true));
     }
@@ -96,7 +96,7 @@ public sealed class AmbienceGridTests
     [Fact]
     public void TheReusedListIsClearedAndRefilledWithoutAllocating()
     {
-        var cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
+        string[] cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
         Array.Fill(cells, "");
         for (int i = 0; i < 30; i++) cells[i] = "TERRAIN_LAVA";
         for (int i = 30; i < 40; i++) cells[i] = "ROOM_GRAVEYARD";

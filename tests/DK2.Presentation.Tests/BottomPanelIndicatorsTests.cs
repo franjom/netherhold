@@ -174,7 +174,7 @@ public sealed class BottomPanelIndicatorsTests
 
     private static (GameDatabase, WorldState, PlayerId) Level1()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         return (db, world, PlayerIds.FirstKeeper);

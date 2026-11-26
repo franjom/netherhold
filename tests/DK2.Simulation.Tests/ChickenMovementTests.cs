@@ -14,7 +14,7 @@ public class ChickenMovementTests
     private static (GameDatabase Db, WorldState World, ObjectState Chicken) HatchBird()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y <= 3; y++)
             for (int x = 1; x <= 3; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), PlayerIds.FirstKeeper);
@@ -26,7 +26,7 @@ public class ChickenMovementTests
     [Fact]
     public void OwnedHatcheryRegistrationDisablesEscapeAndRetainsCapacityOutsideTheRoom()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
         sim.Tick();
         Assert.False(chicken.ChickenCanEscape);
@@ -41,7 +41,7 @@ public class ChickenMovementTests
     [Fact]
     public void ARegisteredBirdDoesNotDecay()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
         sim.Run(20);
         Assert.True(chicken.HatcheryRoomAnchorTileIndex >= 0);
@@ -51,7 +51,7 @@ public class ChickenMovementTests
     [Fact]
     public void SuccessfulHandLiftReleasesRegisteredHatcheryCapacity()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         var sim = new GameSimulation(db, world, 42, [new HandSystem(), new ChickenMovementSystem()]);
         sim.Tick();
         sim.Tick(InputFrame.Of(new PickUpObjectCommand(PlayerIds.FirstKeeper, chicken.Id)));
@@ -65,7 +65,7 @@ public class ChickenMovementTests
     [Fact]
     public void AHeldBirdDoesNotDecay()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         var sim = new GameSimulation(db, world, 42, [new HandSystem(), new ChickenMovementSystem()]);
         sim.Tick();
         sim.Tick(InputFrame.Of(new PickUpObjectCommand(PlayerIds.FirstKeeper, chicken.Id)));
@@ -79,7 +79,7 @@ public class ChickenMovementTests
     [Fact]
     public void ASpawnedBirdStartsAtItsRequestedTileCentre()
     {
-        var (db, world, _) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState _) = HatchBird();
         ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId,
             PlayerIds.FirstKeeper, 6 * world.Width + 5);
         Assert.Equal(CreatureState.CentreOf(5), chicken.PosX);
@@ -91,7 +91,7 @@ public class ChickenMovementTests
     [InlineData(HatcheryRules.EggObjectId)]
     public void AMapPlacedBirdStartsAtItsPlacedTileCentre(byte type)
     {
-        var (db, world, _) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState _) = HatchBird();
         ThingProjection.Place(world, db,
         [
             new ObjectThing(new byte[24])
@@ -108,7 +108,7 @@ public class ChickenMovementTests
     [Fact]
     public void ACapacityRefusedChickenStillRoamsAndRetainsEscapeEligibility()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         for (int i = 0; i < 9; i++)
         {
             ObjectState newer = world.SpawnObject(db, HatcheryRules.ChickenObjectId,
@@ -126,7 +126,7 @@ public class ChickenMovementTests
     [Fact]
     public void NorthWestRoomGrowthPreservesRegisteredCapacityAndEscapeEligibility()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
         sim.Tick();
         int anchor = chicken.HatcheryRoomAnchorTileIndex;
@@ -140,7 +140,7 @@ public class ChickenMovementTests
     [Fact]
     public void LosingTheRegisteredRoomAnchorReleasesTheChicken()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
         sim.Tick();
         world.TileAtIndex(chicken.HatcheryRoomAnchorTileIndex).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -152,7 +152,7 @@ public class ChickenMovementTests
     [Fact]
     public void AHatchedChickenWalksAcrossItsOwnedRoomInsteadOfRemainingAtItsEgg()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         var sim = new GameSimulation(db, world, seed: 42, SimulationSystems.Default());
         var positions = new HashSet<(int, int)>();
         for (int i = 0; i < 120; i++)
@@ -169,7 +169,7 @@ public class ChickenMovementTests
     [Fact]
     public void TurningConsumesTicksWithoutAdvancingTheMovementCountdown()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         chicken.ProcessState = (byte)ChickenProcess.Moving;
         chicken.MoveFlags = ObjectMoveFlags.Turning;
         chicken.MoveTicksRemaining = 3;
@@ -198,7 +198,7 @@ public class ChickenMovementTests
     [InlineData(true)]
     public void AHeldOrCarriedChickenDoesNotRunItsProcess(bool carried)
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         if (carried) chicken.CarriedByCreatureId = 17;
         else chicken.InHand = true;
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
@@ -214,7 +214,7 @@ public class ChickenMovementTests
     [Fact]
     public void TheRoomSearchRejectsCoopObstacleTilesButNotOtherBirds()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         foreach (TilePos tile in new[] { new TilePos(2, 1), new TilePos(3, 2), new TilePos(2, 3) })
             world.SpawnObject(db, HatcheryRules.CoopObjectId, PlayerIds.FirstKeeper, tile.Y * world.Width + tile.X);
         world.SpawnObject(db, HatcheryRules.ChickenObjectId, PlayerIds.FirstKeeper, 2 * world.Width + 1);
@@ -229,7 +229,7 @@ public class ChickenMovementTests
     [Fact]
     public void ReactionWaitsForItsCountdownBeforeSelectingAnotherRoomPoint()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         chicken.ProcessState = (byte)ChickenProcess.Reaction;
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
         // The level start's rebuild draws once for each coop it places (ADR-0672) before the reaction draws.
@@ -250,7 +250,7 @@ public class ChickenMovementTests
     [Fact]
     public void AMovingChickenRoundTripsAndContinuesWithTheSameRandomStream()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
         sim.Run(5);
         Assert.Equal((byte)ChickenProcess.Moving, chicken.ProcessState);
@@ -267,7 +267,7 @@ public class ChickenMovementTests
     [Fact]
     public void EveryChickenMovementFieldContributesToItsStateHash()
     {
-        var (_, _, chicken) = HatchBird();
+        (GameDatabase _, WorldState _, ObjectState? chicken) = HatchBird();
         var changes = new Action<ObjectState>[]
         {
             c => c.Heading++, c => c.ProcessAgeTicks++, c => c.ChickenCanEscape = false,
@@ -278,10 +278,10 @@ public class ChickenMovementTests
         };
         foreach (Action<ObjectState> change in changes)
         {
-            Hash64 before = Hash64.Start();
+            var before = Hash64.Start();
             chicken.HashInto(ref before);
             change(chicken);
-            Hash64 after = Hash64.Start();
+            var after = Hash64.Start();
             chicken.HashInto(ref after);
             Assert.NotEqual(before.Value, after.Value);
         }
@@ -293,7 +293,7 @@ public class ChickenMovementTests
     [InlineData(4096, 4096, 21)]
     public void MovementCountUsesTheSquaredDistanceQuotientAndRemainder(int dx, int dy, int expectedTicks)
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         var starter = new ProcessProbe(context =>
             Assert.True(ChickenMovementRules.StartMove(context, chicken,
                 new ObjectMovePoint(new Fp32(chicken.PosX + dx), new Fp32(chicken.PosY + dy)),
@@ -315,7 +315,7 @@ public class ChickenMovementTests
     public void AReactionEscapesAGroundedCreatureButNotAWorkerOrAScaredChicken(
         bool worker, bool scared, bool escapes, int aboveFloor, bool flies = false)
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         CreatureDef def = db.Creatures.Values.First(c => c.Flags.HasFlag(CreatureFlags.IsWorker) == worker
             && !c.Flags.HasFlag(CreatureFlags.CanFly));
         if (flies)
@@ -347,32 +347,32 @@ public class ChickenMovementTests
     [InlineData(128)]
     public void ASubQuantumMovementSpeedIsRejectedInsteadOfDividingSilently(int fileSpeed)
     {
-        var (originalDb, world, chicken) = HatchBird();
+        (GameDatabase? originalDb, WorldState? world, ObjectState? chicken) = HatchBird();
         var db = new GameDatabase(originalDb.Terrain.Values, originalDb.Rooms.Values,
             originalDb.Creatures.Values, originalDb.Variables,
             objects: originalDb.Objects.Values.Select(o => o.ObjectId == HatcheryRules.ChickenObjectId
                 ? o with { Speed = new Fp32(fileSpeed) } : o));
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
-        var error = Assert.Throws<DivideByZeroException>(() => sim.Tick());
+        DivideByZeroException error = Assert.Throws<DivideByZeroException>(() => sim.Tick());
         Assert.Contains("fixed-point square", error.Message);
     }
 
     [Fact]
     public void AnOutOfMapChickenPositionReportsTheMovementInvariant()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         chicken.PosX = -1;
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
-        var error = Assert.Throws<InvalidOperationException>(() => sim.Tick());
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => sim.Tick());
         Assert.Contains("outside the map", error.Message);
     }
 
     [Fact]
     public void TheNewestChickenConsumesTheFirstRoomDestinationDraws()
     {
-        var (db, referenceWorld, reference) = HatchBird();
+        (GameDatabase? db, WorldState? referenceWorld, ObjectState? reference) = HatchBird();
         new GameSimulation(db, referenceWorld, 42, [new ChickenMovementSystem()]).Tick();
-        var (_, world, older) = HatchBird();
+        (GameDatabase _, WorldState? world, ObjectState? older) = HatchBird();
         ObjectState egg = world.SpawnObject(db, HatcheryRules.EggObjectId, PlayerIds.FirstKeeper, older.TileIndex);
         egg.PosX = older.PosX;
         egg.PosY = older.PosY;
@@ -388,7 +388,7 @@ public class ChickenMovementTests
     [InlineData(RoomTypeId.Treasury, 5)]
     public void DroppingAMovingChickenSelectsItsLandingRoomInsteadOfResumingTheOldDestination(RoomTypeId room, int expectedProcess)
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         var landing = new TilePos(6, 6);
         RoomRules.Place(db, ref world.Tile(landing), db.Room(room), PlayerIds.FirstKeeper);
         chicken.ProcessState = (byte)ChickenProcess.Moving;
@@ -410,7 +410,7 @@ public class ChickenMovementTests
     [Fact]
     public void AChickenDroppedOnFloorNeverSnapsBackToItsPrePickupDestination()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         var landing = new TilePos(6, 6);
         world.Tile(landing).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(landing).OwnerPlayerId = PlayerIds.FirstKeeper;
@@ -433,7 +433,7 @@ public class ChickenMovementTests
     [Fact]
     public void ARefusedDropKeepsTheMovingChickenSuspendedInTheHand()
     {
-        var (db, world, chicken) = HatchBird();
+        (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         chicken.ProcessState = (byte)ChickenProcess.Moving;
         chicken.ProcessAgeTicks = 17;
         chicken.MoveTicksRemaining = 1;

@@ -23,7 +23,7 @@ public class PlacedHeroObjectiveOnRealDataTests
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level2")!;
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "level2")!;
         List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, "level2")!;
-        WorldState world = WorldState.FromMap(db, map, [.. players.Select(p => p.PlayerId)]);
+        var world = WorldState.FromMap(db, map, [.. players.Select(p => p.PlayerId)]);
 
         ThingProjection.Place(world, db, things);
 

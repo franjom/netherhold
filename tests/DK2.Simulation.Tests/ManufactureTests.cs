@@ -23,7 +23,7 @@ public class ManufactureTests
 
     private static WorldState World(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 2; y <= 4; y++)
         for (int x = 2; x <= 4; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);

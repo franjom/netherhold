@@ -262,7 +262,7 @@ public sealed class PresentationAllocationTests
         GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte heart = database.Rooms.Values.First(r => r.TypeId == RoomTypeId.DungeonHeart).TerrainId;
         byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
-        var tiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 100).ToArray();
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 100).ToArray();
         // Two pieces of the viewer's heart terrain apart, one of the rival's, and the viewer's own tile beside it.
         foreach ((int x, int y, byte owner) in new[] { (2, 1, PlayerIds.FirstKeeper), (3, 1, PlayerIds.FirstKeeper),
             (7, 6, PlayerIds.FirstKeeper), (7, 8, PlayerIds.Good), (8, 8, PlayerIds.Good) })

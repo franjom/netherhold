@@ -17,7 +17,7 @@ public sealed class HandPickupEffectTests
     private static (GameDatabase Db, WorldState World, GameSimulation Sim, ListEventSink Events) Setup(bool stored = false)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper]);
         var sim = new GameSimulation(db, world, 42, [new HandSystem { StoredCommandPickups = stored }]);
         var events = new ListEventSink();
         sim.ObserveWith(events);
@@ -32,7 +32,7 @@ public sealed class HandPickupEffectTests
     [InlineData(true)]
     public void HumanPreparationRequestsOneUnattachedPuffAtCurrentXYAndAbsoluteHeight(bool stored)
     {
-        var (db, world, sim, events) = Setup(stored);
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(stored);
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, Floor);
         creature.PosX += 321;
         creature.PosY -= 654;
@@ -55,7 +55,7 @@ public sealed class HandPickupEffectTests
     [Fact]
     public void AForeignPrisonersPuffBelongsToTheLiftingKeeper()
     {
-        var (db, world, sim, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup();
         CreatureState prisoner = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.Neutral, Floor);
         PrisonRules.Imprison(new StateHookContext(world, db), prisoner, Keeper, world.TileIndex(Floor));
 
@@ -68,7 +68,7 @@ public sealed class HandPickupEffectTests
     [Fact]
     public void AFullHandStillPuffsOncePerSuccessfulCallbackIncludingAlreadyPreparedCreatures()
     {
-        var (db, world, sim, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup();
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, Floor);
         while (world.Player(Keeper).Hand.Count < HandRules.Capacity(db))
             world.Player(Keeper).Hand.Add(HandItem.Of(creature));
@@ -87,7 +87,7 @@ public sealed class HandPickupEffectTests
     [Fact]
     public void RefusedPermissionDoesNotPrepareOrPuff()
     {
-        var (db, world, sim, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup();
         CreatureState foreign = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.Neutral, Floor);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, foreign.Id)));
@@ -101,7 +101,7 @@ public sealed class HandPickupEffectTests
     [InlineData(true)]
     public void DirectComputerTakeDoesNotRunTheHumanCallbacksPuff(bool stored)
     {
-        var (db, world, sim, events) = Setup(stored);
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(stored);
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, Floor);
 
         sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));

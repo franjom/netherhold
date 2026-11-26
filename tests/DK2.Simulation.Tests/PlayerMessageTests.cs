@@ -42,7 +42,7 @@ public class PlayerMessageTests
     public void CapacityIsSharedAndEvictionIgnoresRecipientAndHandledState()
     {
         WorldState world = TestWorld.World(TestWorld.Database());
-        var oldest = world.Messages.Post(world, 1, PlayerMessageKind.HeartAttacked, 0, 0)!.Value;
+        PlayerMessage oldest = world.Messages.Post(world, 1, PlayerMessageKind.HeartAttacked, 0, 0)!.Value;
         for (int i = 0; i < PlayerMessageQueue.Capacity; i++)
             world.Messages.Post(world, 2, PlayerMessageKind.CombatStarted, i, 0);
         Assert.Equal(256, world.Messages.Entries.Count);
@@ -55,7 +55,7 @@ public class PlayerMessageTests
     public void ExpirationAndTabThresholdAreExactAndAcknowledgmentDoesNotRemove()
     {
         var sim = new GameSimulation(TestWorld.Database(), TestWorld.World(TestWorld.Database()), 1);
-        var message = sim.World.Messages.Post(sim.World, 1, PlayerMessageKind.HeartAttacked, 0, 0)!.Value;
+        PlayerMessage message = sim.World.Messages.Post(sim.World, 1, PlayerMessageKind.HeartAttacked, 0, 0)!.Value;
         sim.Tick(InputFrame.Of(new AcknowledgePlayerMessageCommand(2, message.Id)));
         Assert.False(Assert.Single(sim.World.Messages.Entries).Handled);
         sim.Tick(InputFrame.Of(new AcknowledgePlayerMessageCommand(1, message.Id)));
@@ -97,7 +97,7 @@ public class PlayerMessageTests
     public void SnapshotContinuesTheQueueIncludingIdsAndHandledDuplicates()
     {
         GameSimulation a = TestWorld.Simulation();
-        var message = a.World.Messages.Post(a.World, 1, PlayerMessageKind.HeartAttacked, 2, 3)!.Value;
+        PlayerMessage message = a.World.Messages.Post(a.World, 1, PlayerMessageKind.HeartAttacked, 2, 3)!.Value;
         a.Tick(InputFrame.Of(new AcknowledgePlayerMessageCommand(1, message.Id)));
         a.World.Messages.Post(a.World, 2, PlayerMessageKind.CombatStarted, 4, 5);
         GameSimulation b = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(a), a.Database, [new ChaosSystem()]);
@@ -115,8 +115,8 @@ public class PlayerMessageTests
     public void ZeroTimeoutCombatMessagesDoNotSatisfyTheDuplicateAgeTest()
     {
         GameSimulation sim = TestWorld.Simulation();
-        var first = sim.World.Messages.Post(sim.World, 1, PlayerMessageKind.CombatStarted, 2, 3)!.Value;
-        var next = sim.World.Messages.Post(sim.World, 1, PlayerMessageKind.CombatStarted, 2, 3)!.Value;
+        PlayerMessage first = sim.World.Messages.Post(sim.World, 1, PlayerMessageKind.CombatStarted, 2, 3)!.Value;
+        PlayerMessage next = sim.World.Messages.Post(sim.World, 1, PlayerMessageKind.CombatStarted, 2, 3)!.Value;
         Assert.NotEqual(first.Id, next.Id);
         Assert.Equal(2, sim.World.Messages.Entries.Count);
         sim.Tick();

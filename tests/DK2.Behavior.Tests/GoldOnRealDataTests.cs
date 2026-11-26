@@ -59,7 +59,7 @@ public class GoldOnRealDataTests
         // file (340), and without it a miner fills to the full 1400 (ADR-0296).
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "level1");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, map, map.Tiles.Select(t => t.PlayerId).Distinct());
 
         // If the survey above ever stops describing the shipped map, fail here
@@ -170,7 +170,7 @@ public class GoldOnRealDataTests
         int perTile = level.Db[VariableTypeId.MaxGoldPerDungeonHeartTile];
         level.Sim.Run(400);
 
-        List<SimEvent> loads = level.Of("gold_delivered").ToList();
+        var loads = level.Of("gold_delivered").ToList();
         Assert.NotEmpty(loads);
         Assert.All(loads, e => Assert.EndsWith("carrying=0", e.Detail));
         Assert.Contains(loads, e => Amount(e) > perTile);
@@ -245,7 +245,7 @@ public class GoldOnRealDataTests
         Level? level = Level1();
         Assert.NotNull(level);
 
-        List<RoomInstance> hearts = RoomIndex.Build(level.World, level.Db)
+        var hearts = RoomIndex.Build(level.World, level.Db)
             .Where(r => r.Definition.TypeId == RoomTypeId.DungeonHeart
                         && r.OwnerPlayerId == Keeper)
             .ToList();

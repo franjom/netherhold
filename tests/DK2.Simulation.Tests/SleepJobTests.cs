@@ -162,7 +162,7 @@ public sealed class SleepJobTests
         GameDatabase database = lairEffect == 0 ? fixture : new GameDatabase(fixture.Terrain.Values,
             fixture.Rooms.Values.Select(r => r.TypeId == RoomTypeId.Lair ? r with { RoomEffect425Id = lairEffect } : r),
             fixture.Creatures.Values, fixture.Variables, objects: fixture.Objects.Values);
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, Keeper]);
         // A 3x3 Lair whose room point (the centre) is not the bed, so the job's walk has somewhere to go.
         for (int y = 1; y <= 3; y++)

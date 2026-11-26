@@ -30,7 +30,7 @@ public sealed class WalkOverGoldTests
     private static Run Start(byte terrain = Dk2TerrainFixture.ClaimedPath)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(12, 12), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(12, 12), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < 11; y++)
         {
             for (int x = 1; x < 11; x++)

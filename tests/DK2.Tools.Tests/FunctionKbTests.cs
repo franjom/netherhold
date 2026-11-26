@@ -63,7 +63,7 @@ public sealed class FunctionKbTests
     public void AcceptsTheTwoWordConfidence()
     {
         var errors = new List<string>();
-        var r = Parse(Sample.Replace("confidence: CONFIRMED", "confidence: STRONGLY INFERRED"), errors);
+        FunctionRecord r = Parse(Sample.Replace("confidence: CONFIRMED", "confidence: STRONGLY INFERRED"), errors);
         Assert.Empty(errors);
         Assert.Equal("STRONGLY INFERRED", r.Confidence);
     }
@@ -202,11 +202,11 @@ public sealed class FunctionKbTests
     [Fact]
     public void NamesTableSkipsGhidraDefaultsAndSortsByAddress()
     {
-        var named = Record("0050EA70") with { Name = "Logging_World" };
-        var earlier = Record("00405010") with { Name = "KeyHandler" };
-        var unnamed = Record("00414BC0") with { Name = "FUN_00414BC0" };
+        FunctionRecord named = Record("0050EA70") with { Name = "Logging_World" };
+        FunctionRecord earlier = Record("00405010") with { Name = "KeyHandler" };
+        FunctionRecord unnamed = Record("00414BC0") with { Name = "FUN_00414BC0" };
         // A SUPERSEDED record may not even be an entry (00498E34 was four bytes into one).
-        var superseded = Record("00498E34") with { Name = "Combat_MeleeSwing_MidEntry", Status = "SUPERSEDED" };
+        FunctionRecord superseded = Record("00498E34") with { Name = "Combat_MeleeSwing_MidEntry", Status = "SUPERSEDED" };
         Assert.Equal("00405010\tKeyHandler\n0050EA70\tLogging_World\n", FunctionKbNames.Table([named, unnamed, earlier, superseded]));
         Assert.Equal("", FunctionKbNames.Table([unnamed]));
     }
@@ -214,11 +214,11 @@ public sealed class FunctionKbTests
     [Fact]
     public void NamesTableMarksDoubtfulNamesWithTheirConfidence()
     {
-        var hypothesis = Record("004F39A0") with { Name = "Treasury_Tick", Confidence = "HYPOTHESIS" };
-        var unknown = Record("004DF6E0") with { Name = "HeroGate_Tick", Confidence = "UNKNOWN" };
-        var disputed = Record("0050F8C0") with { Name = "World_PlaceGeneratedSpecial", Confidence = "DISPUTED" };
-        var inferred = Record("004E8C60") with { Name = "Room_HatedCompanyStep", Confidence = "STRONGLY INFERRED" };
-        var confirmed = Record("004E8C70") with { Name = "Room_Observed" };
+        FunctionRecord hypothesis = Record("004F39A0") with { Name = "Treasury_Tick", Confidence = "HYPOTHESIS" };
+        FunctionRecord unknown = Record("004DF6E0") with { Name = "HeroGate_Tick", Confidence = "UNKNOWN" };
+        FunctionRecord disputed = Record("0050F8C0") with { Name = "World_PlaceGeneratedSpecial", Confidence = "DISPUTED" };
+        FunctionRecord inferred = Record("004E8C60") with { Name = "Room_HatedCompanyStep", Confidence = "STRONGLY INFERRED" };
+        FunctionRecord confirmed = Record("004E8C70") with { Name = "Room_Observed" };
         Assert.Equal("004DF6E0\tHeroGate_Tick_UNKNOWN\n004E8C60\tRoom_HatedCompanyStep\n004E8C70\tRoom_Observed\n"
             + "004F39A0\tTreasury_Tick_HYPOTHESIS\n0050F8C0\tWorld_PlaceGeneratedSpecial_DISPUTED\n",
             FunctionKbNames.Table([hypothesis, unknown, disputed, inferred, confirmed]));
@@ -227,8 +227,8 @@ public sealed class FunctionKbTests
     [Fact]
     public void DuplicateAddressesAreOneFinding()
     {
-        var a = Record("0050EA70");
-        var b = Record("0050EA70") with { RelativePath = "docs/research/functions/copy.md" };
+        FunctionRecord a = Record("0050EA70");
+        FunctionRecord b = Record("0050EA70") with { RelativePath = "docs/research/functions/copy.md" };
         string finding = Assert.Single(FunctionKb.CheckSet([a, b], _ => true, _ => Doc));
         Assert.Contains("twice", finding, StringComparison.Ordinal);
     }
@@ -236,18 +236,18 @@ public sealed class FunctionKbTests
     [Fact]
     public void EvidenceMustResolveToFileAndHeading()
     {
-        var ok = Record("0050EA70", "docs/research/debug-dumpers.md#world-log");
+        FunctionRecord ok = Record("0050EA70", "docs/research/debug-dumpers.md#world-log");
         Assert.Empty(FunctionKb.CheckSet([ok], _ => true, _ => Doc));
-        var badAnchor = Record("0050EA70", "docs/research/debug-dumpers.md#nowhere");
+        FunctionRecord badAnchor = Record("0050EA70", "docs/research/debug-dumpers.md#nowhere");
         Assert.Single(FunctionKb.CheckSet([badAnchor], _ => true, _ => Doc));
-        var badFile = Record("0050EA70", "docs/research/missing.md");
+        FunctionRecord badFile = Record("0050EA70", "docs/research/missing.md");
         Assert.Single(FunctionKb.CheckSet([badFile], _ => false, _ => []));
     }
 
     [Fact]
     public void OnlyTheUnresolvedEvidenceLinkIsAFinding()
     {
-        var r = Record("0050EA70", "docs/research/debug-dumpers.md#world-log\nevidence: docs/research/missing.md");
+        FunctionRecord r = Record("0050EA70", "docs/research/debug-dumpers.md#world-log\nevidence: docs/research/missing.md");
         string finding = Assert.Single(FunctionKb.CheckSet([r], f => f == "docs/research/debug-dumpers.md", _ => Doc));
         Assert.Contains("docs/research/missing.md", finding, StringComparison.Ordinal);
     }
@@ -255,12 +255,12 @@ public sealed class FunctionKbTests
     [Fact]
     public void AChangedHeaderNeedsAHistoryLineDatedToday()
     {
-        var before = Record("0050EA70");
-        var now = before with { Confidence = "DISPUTED" };
+        FunctionRecord before = Record("0050EA70");
+        FunctionRecord now = before with { Confidence = "DISPUTED" };
         var today = new DateOnly(2026, 10, 01);
         string changed = Assert.Single(FunctionKb.HistoryRequired(now, before, today));
         Assert.EndsWith("header changed but no History line is dated 2026-10-01", changed, StringComparison.Ordinal);
-        var withLine = now with { History = [.. now.History, new HistoryEntry("2026-10-01", "codex", "disputed: the caller passes a room, not a creature")] };
+        FunctionRecord withLine = now with { History = [.. now.History, new HistoryEntry("2026-10-01", "codex", "disputed: the caller passes a room, not a creature")] };
         Assert.Empty(FunctionKb.HistoryRequired(withLine, before, today));
         Assert.Empty(FunctionKb.HistoryRequired(before, before, today));       // untouched header
         string born = Assert.Single(FunctionKb.HistoryRequired(now, null, today));   // a new record also dates its birth
@@ -271,10 +271,10 @@ public sealed class FunctionKbTests
     [Fact]
     public void StatusAndImplementsAgreeWhenTheHeaderChanges()
     {
-        var read = Record("0050EA70") with { Status = "READ", Implements = [] };
-        var built = read with { Status = "BUILT", Implements = ["src/DK2.Simulation/WorldState.cs"] };
-        var partial = built with { Status = "PARTIAL" };
-        var bare = built with { Implements = [] };
+        FunctionRecord read = Record("0050EA70") with { Status = "READ", Implements = [] };
+        FunctionRecord built = read with { Status = "BUILT", Implements = ["src/DK2.Simulation/WorldState.cs"] };
+        FunctionRecord partial = built with { Status = "PARTIAL" };
+        FunctionRecord bare = built with { Implements = [] };
         Assert.Null(FunctionKb.StatusMismatch(read, null));
         Assert.Null(FunctionKb.StatusMismatch(built, read));
         Assert.Null(FunctionKb.StatusMismatch(partial, read));
@@ -291,8 +291,8 @@ public sealed class FunctionKbTests
     [Fact]
     public void ARangeCheckAcceptsTheDayACommitWroteTheRecord()
     {
-        var before = Record("0050EA70");
-        var now = before with
+        FunctionRecord before = Record("0050EA70");
+        FunctionRecord now = before with
         {
             Confidence = "DISPUTED",
             History = [.. before.History, new HistoryEntry("2026-10-24", "codex", "disputed")],
@@ -309,11 +309,11 @@ public sealed class FunctionKbTests
     [Fact]
     public void AMergedInRecordIsDatedByTheSideThatWroteIt()
     {
-        var theirs = Record("0050EA70");
+        FunctionRecord theirs = Record("0050EA70");
         var today = new DateOnly(2026, 10, 03);
         Assert.Empty(FunctionKb.HistoryRequired(theirs, null, today, merged: theirs));
 
-        var changedInTheMerge = theirs with { Confidence = "DISPUTED" };
+        FunctionRecord changedInTheMerge = theirs with { Confidence = "DISPUTED" };
         Assert.Single(FunctionKb.HistoryRequired(changedInTheMerge, null, today, merged: theirs));
     }
 
@@ -328,7 +328,7 @@ public sealed class FunctionKbTests
     [Fact]
     public void AMentionInAChangedLineNeedsARecord()
     {
-        var changes = new[]
+        (string, string[])[] changes = new[]
         {
             ("docs/research/combat.md", new[] { "`FUN_0047AB10` decides the target", "and FUN_0050ea70 dumps it" }),
             ("src/DK2.Simulation/Combat.cs", new[] { "// mirrors FUN_0047AB10" }),
@@ -354,7 +354,7 @@ public sealed class FunctionKbTests
     [Fact]
     public void APipeInARoleIsEscapedInItsIndexRow()
     {
-        var record = Record("0050EA70") with { Role = "counts imps | dumps the world" };
+        FunctionRecord record = Record("0050EA70") with { Role = "counts imps | dumps the world" };
         string row = FunctionKb.Index([record]).Split('\n').Single(l => l.StartsWith("| `0x", StringComparison.Ordinal));
         Assert.Contains(@"counts imps \| dumps the world", row, StringComparison.Ordinal);
         Assert.Equal(7, row.Count(c => c == '|'));   // six cell boundaries plus the escaped one

@@ -45,7 +45,7 @@ public class ImpFetchesGoldTests
     private static Run Start(TilePos impAt, int imps = 1, ulong seed = 99)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < imps; i++)

@@ -71,7 +71,7 @@ public class KillCountConditionTests
 
     private static WorldState World(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         Dk2TerrainFixture.SetKnownIdentities(world);
         return world;
     }

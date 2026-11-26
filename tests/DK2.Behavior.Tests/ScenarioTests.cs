@@ -28,7 +28,7 @@ public class ScenarioTests
 
         foreach (string file in files)
         {
-            Scenario scenario = Scenario.Load(file);
+            var scenario = Scenario.Load(file);
             Assert.False(string.IsNullOrWhiteSpace(scenario.Id), $"{file}: no id");
             Assert.False(string.IsNullOrWhiteSpace(scenario.Map), $"{file}: no map");
             Assert.True(scenario.DurationTicks > 0, $"{file}: duration_ticks must be positive");
@@ -45,7 +45,7 @@ public class ScenarioTests
         // because nothing in YAML can make it so.
         foreach (string file in ScenarioFiles())
         {
-            Scenario scenario = Scenario.Load(file);
+            var scenario = Scenario.Load(file);
             foreach (ScenarioExpectation expectation in scenario.Expect)
             {
                 Assert.False(string.IsNullOrWhiteSpace(expectation.Because),
@@ -70,7 +70,7 @@ public class ScenarioTests
     {
         // Ids name the output directory, so a duplicate silently overwrites
         // another scenario's evidence.
-        List<string> ids = ScenarioFiles().Select(f => Scenario.Load(f).Id).ToList();
+        var ids = ScenarioFiles().Select(f => Scenario.Load(f).Id).ToList();
         Assert.Equal(ids.Count, ids.Distinct().Count());
     }
 
@@ -97,7 +97,7 @@ public class ScenarioTests
         File.WriteAllText(path, $"id: random-probe\nmap: flat_8x8\nduration_ticks: 1\n{line}\n");
         try
         {
-            Scenario scenario = Scenario.Load(path);
+            var scenario = Scenario.Load(path);
             Assert.Empty(scenario.UnknownKeys);
             IRandomAlgorithm algorithm = scenario.CreateRandom().Algorithm;
             Assert.IsType(expected, algorithm);
@@ -254,7 +254,7 @@ public class ScenarioTests
 
         try
         {
-            Scenario scenario = Scenario.Load(path);
+            var scenario = Scenario.Load(path);
             Assert.Contains("wibble", scenario.UnknownKeys);
 
             ScenarioResult result = new ScenarioRunner(SyntheticDatabase(), null).Run(scenario);
@@ -323,8 +323,8 @@ public class ScenarioTests
 
         try
         {
-            Scenario scenario = Scenario.Load(path);
-            var withMana = new ScenarioRunner(SyntheticDatabase(), null).Run(scenario);
+            var scenario = Scenario.Load(path);
+            ScenarioResult withMana = new ScenarioRunner(SyntheticDatabase(), null).Run(scenario);
 
             scenario.Setup.Players[0].Mana = 0;
             ScenarioResult without = new ScenarioRunner(SyntheticDatabase(), null).Run(scenario);

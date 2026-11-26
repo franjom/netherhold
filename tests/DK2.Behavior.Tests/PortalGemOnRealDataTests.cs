@@ -104,10 +104,10 @@ public class PortalGemOnRealDataTests
         string install = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, name);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, name)!;
-        var players = GameDatabaseLoader.LoadCampaignPlayers(install, name)!;
-        var things = GameDatabaseLoader.LoadCampaignThings(install, name)!;
-        var level = GameDatabaseLoader.LoadCampaignLevel(install, name)!;
-        var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, name)!;
+        List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, name)!;
+        List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, name)!;
+        LevelDef level = GameDatabaseLoader.LoadCampaignLevel(install, name)!;
+        List<TriggerRecord> triggers = GameDatabaseLoader.LoadCampaignTriggers(install, name)!;
         return CampaignSimulationFactory.Create(db, map, level, players, things, triggers, 1);
     }
 }

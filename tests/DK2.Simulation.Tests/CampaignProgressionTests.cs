@@ -11,7 +11,7 @@ public class CampaignProgressionTests
     [Fact]
     public void BranchesOpenTogetherAndWinningOneClosesOnlyItsUnsettledSiblings()
     {
-        var p = CampaignProgression.NewCampaign(new CampaignProfile());
+        CampaignProfile p = CampaignProgression.NewCampaign(new CampaignProfile());
         p = CampaignProgression.CompleteMap(p, new CampaignSlot(5));
         Assert.Equal(CampaignLevelStatus.Open, p.PlayerLevelStatus[5]);
         Assert.Equal(CampaignLevelStatus.Open, p.PlayerLevelStatus[6]);
@@ -23,10 +23,10 @@ public class CampaignProgressionTests
         Assert.False(CampaignProgression.CanSelect(p, new CampaignSlot(7), false));
         p = CampaignProgression.CompleteMap(p, new CampaignSlot(5));
         Assert.Equal(CampaignLevelStatus.ClosedBranch, p.PlayerLevelStatus[6]);
-        foreach (var (winner, siblings, next) in new[] { (12, new[] { 13, 14 }, 15), (13, new[] { 12, 14 }, 15),
+        foreach ((int winner, int[]? siblings, int next) in new[] { (12, new[] { 13, 14 }, 15), (13, new[] { 12, 14 }, 15),
             (14, new[] { 12, 13 }, 15), (18, new[] { 19 }, 20), (19, new[] { 18 }, 20) })
         {
-            var branch = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(winner));
+            CampaignProfile branch = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(winner));
             Assert.Equal(CampaignLevelStatus.Open, branch.PlayerLevelStatus[next - 1]);
             foreach (int sibling in siblings) Assert.Equal(CampaignLevelStatus.ClosedBranch, branch.PlayerLevelStatus[sibling - 1]);
         }
@@ -40,7 +40,7 @@ public class CampaignProgressionTests
             SecretLevels = Enumerable.Repeat(1u, 16).ToArray(), SecretLevelsCompleted = Enumerable.Repeat(1u, 16).ToArray(),
             TransferCreatureId = 4, TransferCreatureLevel = 8, LevelNumber = 20, PetDungeonLevelNumber = 6,
             SpecialLevelsCompleted = Enumerable.Repeat(1u, 16).ToArray(), PetDungeonLevelsCompleted = Enumerable.Repeat(1u, 7).ToArray() };
-        var p = CampaignProgression.NewCampaign(old);
+        CampaignProfile p = CampaignProgression.NewCampaign(old);
         Assert.Equal(CampaignLevelStatus.Open, p.PlayerLevelStatus[0]);
         Assert.All(p.PlayerLevelStatus.Skip(1).Take(24), s => Assert.Equal(CampaignLevelStatus.Locked, s));
         Assert.All(p.PlayerLevelStatus.Skip(25), s => Assert.Equal(CampaignLevelStatus.Won, s));
@@ -78,11 +78,11 @@ public class CampaignProgressionTests
     [Fact]
     public void StartupRepairOpensTheFirstUnsettledSlotAndNeverReopensAClosedBranch()
     {
-        var statuses = Enumerable.Repeat(CampaignLevelStatus.Won, 40).ToArray();
+        CampaignLevelStatus[] statuses = Enumerable.Repeat(CampaignLevelStatus.Won, 40).ToArray();
         statuses[6] = CampaignLevelStatus.ClosedBranch; statuses[7] = CampaignLevelStatus.Locked;
         statuses[8] = CampaignLevelStatus.Open;
         var profile = new CampaignProfile { PlayerLevelStatus = statuses };
-        var repaired = CampaignProgression.EnsureOpenMap(profile);
+        CampaignProfile repaired = CampaignProgression.EnsureOpenMap(profile);
         Assert.Equal(CampaignLevelStatus.ClosedBranch, repaired.PlayerLevelStatus[6]);
         Assert.Equal(CampaignLevelStatus.Open, repaired.PlayerLevelStatus[7]);
         Assert.Equal(CampaignLevelStatus.Locked, profile.PlayerLevelStatus[7]);
@@ -103,15 +103,15 @@ public class CampaignProgressionTests
     [Fact]
     public void ALossReopensTheMapCountsAnAttemptAndDropsOnlyTheTransferCreatureId()
     {
-        var p = CampaignProgression.NewCampaign(new CampaignProfile()) with { TransferCreatureId = 7, TransferCreatureLevel = 4 };
+        CampaignProfile p = CampaignProgression.NewCampaign(new CampaignProfile()) with { TransferCreatureId = 7, TransferCreatureLevel = 4 };
         p = CampaignProgression.RecordResult(p, new CampaignSlot(1), won: false);
         Assert.Equal(CampaignLevelStatus.Open, p.PlayerLevelStatus[0]);
         Assert.Equal(1u, p.LevelAttempts[0]);
         Assert.Equal(0, p.TransferCreatureId);
         Assert.Equal(4, p.TransferCreatureLevel);
-        var won = CampaignProgression.RecordResult(p, new CampaignSlot(1), won: true);
+        CampaignProfile won = CampaignProgression.RecordResult(p, new CampaignSlot(1), won: true);
         Assert.Equal(CampaignLevelStatus.Won, CampaignProgression.RecordResult(won, new CampaignSlot(1), won: false).PlayerLevelStatus[0]);
-        var secret = CampaignProgression.RecordResult(p, new CampaignSlot(27), won: false);
+        CampaignProfile secret = CampaignProgression.RecordResult(p, new CampaignSlot(27), won: false);
         Assert.Equal(1u, secret.LevelAttempts[26]);
         Assert.Equal(CampaignLevelStatus.Open, secret.PlayerLevelStatus[0]);
         Assert.Equal(1u, CampaignProgression.RecordResult(p, new CampaignSlot(27), won: true).SecretLevelsCompleted[1]);
@@ -126,11 +126,11 @@ public class CampaignProgressionTests
     [InlineData(23, 24)]
     public void AcceptingTheResultsMovesLevelNumberPastAWonMap(int won, int next)
     {
-        var p = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = (byte)won }, new CampaignSlot(won), won: true);
+        CampaignProfile p = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = (byte)won }, new CampaignSlot(won), won: true);
         Assert.Equal(next, CampaignProgression.AdvanceAfterResults(p).LevelNumber);
         var lost = new CampaignProfile { LevelNumber = (byte)won };
         Assert.Same(lost, CampaignProgression.AdvanceAfterResults(lost));
-        var secret = p with { SecretLevelNumber = 2 };
+        CampaignProfile secret = p with { SecretLevelNumber = 2 };
         Assert.Equal(new CampaignSlot(27), CampaignProgression.PlayedSlot(secret));
         Assert.Same(secret, CampaignProgression.AdvanceAfterResults(secret));
     }
@@ -140,7 +140,7 @@ public class CampaignProgressionTests
     {
         var statuses = new CampaignLevelStatus[40]; statuses[10] = CampaignLevelStatus.Won;
         var p = new CampaignProfile { LevelNumber = 11, PlayerLevelStatus = statuses };
-        var repaired = CampaignProgression.RepairAfterLevel(p);
+        CampaignProfile repaired = CampaignProgression.RepairAfterLevel(p);
         Assert.All(new[] { 11, 12, 13 }, i => Assert.Equal(CampaignLevelStatus.Open, repaired.PlayerLevelStatus[i]));
         statuses = new CampaignLevelStatus[40]; statuses[23] = CampaignLevelStatus.Won;
         var last = new CampaignProfile { LevelNumber = 24, PlayerLevelStatus = statuses };

@@ -16,12 +16,12 @@ public class BurningViewTests
     [InstallFact]
     public void BurningBaseUsesTheCreatureFloorRatherThanThePortalHole()
     {
-        var database = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
         var world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level8")!, [1, 3]);
         var view = new WorldView(database);
         TilePos portal = Enumerable.Range(0, world.Width * world.Height)
             .Select(i => new TilePos(i % world.Width, i / world.Width))
-            .First(p => database.RoomsByTerrain.TryGetValue(world.Tile(p).TerrainId, out var room)
+            .First(p => database.RoomsByTerrain.TryGetValue(world.Tile(p).TerrainId, out RoomDef? room)
                 && room.TypeId == RoomTypeId.Portal && view.GroundHeightAt(world,
                     new(new(CreatureState.CentreOf(p.X)), new(CreatureState.CentreOf(p.Y)), default)).Raw == 0);
         CreatureState creature = world.SpawnCreature(database, database.CreatureByName("Goblin")!.CreatureId, 1, portal);

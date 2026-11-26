@@ -31,7 +31,7 @@ public class DroppedToDoJobTests
 
     private static WorldState World(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
         for (int x = 1; x <= 3; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
@@ -133,7 +133,7 @@ public class DroppedToDoJobTests
             CreatureId = MakerId, Name = "Idler", ManufacturePerSecond = 0, ResearchPerSecond = 0,
             HappyJobs = [new(JobType.Train, 0, 0, 100)], HateJobs = [],
         }).ForLevel(level);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
         for (int x = 1; x <= 3; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), Keeper);

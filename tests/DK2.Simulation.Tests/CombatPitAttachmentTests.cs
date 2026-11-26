@@ -13,7 +13,7 @@ public sealed class CombatPitAttachmentTests
     public void KeeperBindingDoesNotAttachAFighterToTheRoomUnderItsFeet()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         var tile = new TilePos(4, 4);
         RoomRules.Place(db, ref world.Tile(tile), db.Room(RoomTypeId.Prison), PlayerIds.FirstKeeper);
         CreatureState fighter = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, tile);
@@ -29,7 +29,7 @@ public sealed class CombatPitAttachmentTests
     public void AttachmentUsesTheHeldPlaceEvenWhenTheCreatureHasMovedAway(RoomTypeId type, int units)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         var place = new TilePos(4, 4);
         RoomRules.Place(db, ref world.Tile(place), db.Room(type), PlayerIds.FirstKeeper);
         CreatureState fighter = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new TilePos(1, 1));

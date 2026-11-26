@@ -11,7 +11,7 @@ public class FrontEndMenuTests
     [Fact]
     public void LoadPageEnablesOnlyWithABrowserAndItsLoadRaisesTheSelectedPath()
     {
-        var session = ReadySession();
+        FrontEndSession session = ReadySession();
         using var menu = new FrontEndMenuController(session, HitBounds);
         var entry = new DK2.Data.Save.SavedSessionEntry("first.dk2g", new("Level1", 1, 26,
             new DateTime(2026, 10, 29, 12, 0, 0, DateTimeKind.Utc), "First save"));
@@ -35,7 +35,7 @@ public class FrontEndMenuTests
         Assert.Equal(32, FrontEndPages.All.Count);
         Assert.Equal(402, FrontEndPages.All.Sum(p => p.Widgets.Count));
         Assert.Equal(32, FrontEndPages.All.Select(p => p.Id).Distinct().Count());
-        var single = FrontEndPages.Get(FrontEndPage.Main).Widgets.Single(w => w.Id.Value == 1);
+        FrontEndWidget single = FrontEndPages.Get(FrontEndPage.Main).Widgets.Single(w => w.Id.Value == 1);
         Assert.Equal(71u, single.TextId);
         Assert.Equal(new FrontEndRect(628, 492, 1304, 172), single.DrawRect);
         Assert.Equal(FrontEndActionKind.SwapPage, single.Primary.Kind);
@@ -45,7 +45,7 @@ public class FrontEndMenuTests
     [Fact]
     public void PointerPressSwapsPageOnceUntilReleasedAndBlocksDuringCameraPaths()
     {
-        var session = ReadySession();
+        FrontEndSession session = ReadySession();
         using var menu = new FrontEndMenuController(session, HitBounds);
         menu.UpdatePointer(new(1, 1, true));
         Assert.Equal(FrontEndPage.SinglePlayer, session.Page);
@@ -58,7 +58,7 @@ public class FrontEndMenuTests
     [Fact]
     public void QuitDialogCanCancelThenConfirmWithoutClosingTheGameOnOpen()
     {
-        var session = ReadySession();
+        FrontEndSession session = ReadySession();
         using var menu = new FrontEndMenuController(session, HitBounds);
         int exits = 0;
         menu.QuitRequested += () => exits++;
@@ -91,7 +91,7 @@ public class FrontEndMenuTests
     [Fact]
     public void OptionsStartsTheNativePathAndHidesWidgetsUntilItFinishes()
     {
-        var session = ReadySession();
+        FrontEndSession session = ReadySession();
         using var menu = new FrontEndMenuController(session, HitBounds);
         menu.Activate(new(3));
         Assert.Equal(FrontEndPath.EntryToOptions, session.Path);
@@ -112,7 +112,7 @@ public class FrontEndMenuTests
     [Fact]
     public void TodaysTopKeepersShowsTheHiScoresAndItsAcceptReturnsToExtras()
     {
-        var session = ReadySession();
+        FrontEndSession session = ReadySession();
         using var menu = new FrontEndMenuController(session, HitBounds);
         menu.Activate(new(4));
         session.Update(TimeSpan.FromSeconds(3));

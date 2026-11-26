@@ -513,7 +513,7 @@ public class TileWorkTests
         sim.World.QueueWork(5, 5, TileWorkKind.MineGold, 2);
         sim.Tick();
 
-        List<string> gold = events.Events
+        var gold = events.Events
             .Where(e => e.Kind == "gold_uncollected")
             .Select(e => e.Detail)
             .ToList();

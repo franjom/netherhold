@@ -34,7 +34,7 @@ public class HatcheryPillarMovementTests
         ObjectDef substitute = template with { ObjectId = 200, Flags = ObjectFlags.Pillar };
         var db = new GameDatabase(original.Terrain.Values, original.Rooms.Values, original.Creatures.Values,
             original.Variables, objects: original.Objects.Values.Append(pillar).Append(substitute));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y <= 3; y++)
             for (int x = 1; x <= roomWidth; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), PlayerIds.FirstKeeper);

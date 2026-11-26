@@ -18,7 +18,7 @@ public sealed class PacketPlaybackClockTests
     {
         WithPacket([firstStamp, firstStamp + 1], packet =>
         {
-            PacketLog log = PacketLog.Read(packet, 1, 69);
+            var log = PacketLog.Read(packet, 1, 69);
             var map = new PacketEntityMap();
             map.Add(453, 1, 8, PacketEntityKind.Creature);
             Assert.Equal(new PickUpCreatureCommand(3, 8), Assert.Single(log.At(1, map).All));
@@ -32,7 +32,7 @@ public sealed class PacketPlaybackClockTests
     {
         WithPacket([2, 3, 4], packet =>
         {
-            PacketLog log = PacketLog.Read(packet, 2, 69);
+            var log = PacketLog.Read(packet, 2, 69);
             var map = new PacketEntityMap();
             map.Add(453, 1, 8, PacketEntityKind.Creature);
             map.Add(453, 2, 9, PacketEntityKind.Creature);
@@ -46,7 +46,7 @@ public sealed class PacketPlaybackClockTests
     {
         WithPacket([1], packet =>
         {
-            PacketLog log = PacketLog.Read(packet, 1, 69);
+            var log = PacketLog.Read(packet, 1, 69);
             Assert.Equal(1, log.ActionCount);
             Assert.Throws<InvalidDataException>(() => PacketLog.Read(packet, 2, 69));
         });

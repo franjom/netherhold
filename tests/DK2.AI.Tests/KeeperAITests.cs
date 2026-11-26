@@ -147,7 +147,7 @@ public class KeeperAITests
     public void GoldScannerFindsCardinalSeamsAndSumsTheirGold()
     {
         WorldState world = KeeperWorld.World(Db);
-        var seams = new[] { new TilePos(4, 4), new TilePos(25, 4), new TilePos(4, 25), new TilePos(25, 25), new TilePos(15, 3) };
+        TilePos[] seams = new[] { new TilePos(4, 4), new TilePos(25, 4), new TilePos(4, 25), new TilePos(25, 25), new TilePos(15, 3) };
         foreach (TilePos s in seams)
             for (int dy = 0; dy < 2; dy++)
                 for (int dx = 0; dx < 2; dx++)
@@ -180,7 +180,7 @@ public class KeeperAITests
             KeeperWorld.DigWhatIsTagged(world, Db, KeeperWorld.Keeper);
         }
 
-        List<RoomInstance> rooms = RoomIndex.Build(world, Db).Where(r => r.OwnerPlayerId == KeeperWorld.Keeper).ToList();
+        var rooms = RoomIndex.Build(world, Db).Where(r => r.OwnerPlayerId == KeeperWorld.Keeper).ToList();
         Assert.Contains(rooms, r => r.Definition.TypeId == RoomTypeId.Treasury && r.TileCount == 9);
         Assert.Contains(rooms, r => r.Definition.TypeId == RoomTypeId.Lair && r.TileCount == 9);
         Assert.Contains(rooms, r => r.Definition.TypeId == RoomTypeId.Hatchery && r.TileCount == 9);
@@ -452,7 +452,7 @@ public class KeeperAITests
             world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
             var sim = new GameSimulation(Db, world, 1, [new TileTagSystem(), new RoomBuildSystem()]);
             var keeper = new KeeperAI(KeeperWorld.Keeper, KeeperWorld.Parameters(speed: 2), new SimRandom(seed));
-            Hash64 hash = Hash64.Start();
+            var hash = Hash64.Start();
             for (int tick = 0; tick < 120; tick++)
             {
                 var frame = new InputFrame(keeper.Think(Db, world));

@@ -236,7 +236,7 @@ public class CombatCategoryHooksTests
     private static (WorldState, StateHookContext) OpenWorld(out GameDatabase db)
     {
         db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         return (world, new StateHookContext(world, db));
     }

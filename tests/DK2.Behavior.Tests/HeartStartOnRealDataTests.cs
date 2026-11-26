@@ -53,9 +53,9 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
     {
         string install = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level7");
-        var players = GameDatabaseLoader.LoadCampaignPlayers(install, "Level7")!;
-        var things = GameDatabaseLoader.LoadCampaignThings(install, "Level7")!;
-        WorldState world = WorldState.FromMap(db,
+        List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, "Level7")!;
+        List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "Level7")!;
+        var world = WorldState.FromMap(db,
             GameDatabaseLoader.LoadCampaignMap(install, "Level7")!, players.Select(p => p.PlayerId));
         ThingProjection.Place(world, db, things);
         Assert.Equal(new PlayerId[] { new(4), new(3), new(2), new(1) }, world.ActivePlayerOrder);
@@ -90,7 +90,7 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
             if (map is null || things is null) continue;
 
-            WorldState world = WorldState.FromMap(
+            var world = WorldState.FromMap(
                 db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper,
                     (byte)(PlayerIds.FirstKeeper + 1), (byte)(PlayerIds.FirstKeeper + 2), (byte)(PlayerIds.FirstKeeper + 3), (byte)(PlayerIds.FirstKeeper + 4)]);
             ThingProjection.Place(world, db, things);
@@ -136,7 +136,7 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
             if (map is null || things is null) continue;
-            WorldState world = WorldState.FromMap(
+            var world = WorldState.FromMap(
                 db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper,
                     (byte)(PlayerIds.FirstKeeper + 1), (byte)(PlayerIds.FirstKeeper + 2), (byte)(PlayerIds.FirstKeeper + 3), (byte)(PlayerIds.FirstKeeper + 4)]);
             ThingProjection.Place(world, db, things);

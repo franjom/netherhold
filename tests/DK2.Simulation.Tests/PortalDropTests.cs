@@ -14,7 +14,7 @@ public sealed class PortalDropTests
     [Fact]
     public void OwnPortalCentreEnters197ThenRunsSackingWithoutSpillingGold()
     {
-        var (sim, creature, events) = Setup();
+        (GameSimulation? sim, CreatureState? creature, ListEventSink? events) = Setup();
         creature.DroppedToDoJob = JobType.Train;
         sim.World.Player(PlayerIds.FirstKeeper).EntranceInfo.Add(new(7, 0, 0));
         creature.GoldHeld = 350;
@@ -40,8 +40,8 @@ public sealed class PortalDropTests
     [Fact]
     public void ImpIsRefusedAndOffCentreDropDoesNotEnter197()
     {
-        var (sim, goblin, _) = Setup();
-        var imp = sim.World.SpawnCreature(sim.Database, 1, PlayerIds.FirstKeeper, new TilePos(4, 4));
+        (GameSimulation? sim, CreatureState? goblin, ListEventSink _) = Setup();
+        CreatureState imp = sim.World.SpawnCreature(sim.Database, 1, PlayerIds.FirstKeeper, new TilePos(4, 4));
         sim.Tick(InputFrame.Of(new TakeCreatureCommand(PlayerIds.FirstKeeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(PlayerIds.FirstKeeper, new TilePos(6, 6))));
         Assert.True(imp.InHand);
@@ -58,7 +58,7 @@ public sealed class PortalDropTests
     [InlineData(6, 6, 4)]
     public void State197RequiresAnOwnedPortalCentre(int x, int y, byte owner)
     {
-        var (sim, creature, _) = Setup(owner);
+        (GameSimulation? sim, CreatureState? creature, ListEventSink _) = Setup(owner);
         creature.PosX = CreatureState.CentreOf(x);
         creature.PosY = CreatureState.CentreOf(y);
         creature.Dk2StateId = 197;
@@ -70,7 +70,7 @@ public sealed class PortalDropTests
     [Fact]
     public void GetUpRoomDropRespectsCasinoWinnerGate()
     {
-        var (sim, creature, _) = Setup();
+        (GameSimulation? sim, CreatureState? creature, ListEventSink _) = Setup();
         creature.PosX = CreatureState.CentreOf(6);
         creature.PosY = CreatureState.CentreOf(6);
         creature.CasinoBigWinnerTicks = 10;
@@ -85,7 +85,7 @@ public sealed class PortalDropTests
     [InlineData(RoomTypeId.HeroPortal)]
     public void PlacedKeeperNonImpWorkerUsesEitherPortalCentreState(RoomTypeId roomType)
     {
-        var (sim, creature, _) = Setup(worker: true, portalType: roomType);
+        (GameSimulation? sim, CreatureState? creature, ListEventSink _) = Setup(worker: true, portalType: roomType);
         creature.PosX = CreatureState.CentreOf(6);
         creature.PosY = CreatureState.CentreOf(6);
         creature.Flags |= LevelPlacedCreatureRules.PlacedAsDropped;
@@ -104,7 +104,7 @@ public sealed class PortalDropTests
     [InlineData(RoomTypeId.HeroPortal, true, DropLandingRules.StunnedState)]
     public void LevelPlacedNonKeeperPortalIsImmediateWhileHeroPortalStuns(RoomTypeId roomType, bool worker, int firstState)
     {
-        var (sim, creature, _) = Setup(portalOwner: PlayerIds.Good, worker: worker, portalType: roomType);
+        (GameSimulation? sim, CreatureState? creature, ListEventSink _) = Setup(portalOwner: PlayerIds.Good, worker: worker, portalType: roomType);
         sim.World.ChangeCreatureOwner(creature, PlayerIds.Good);
         creature.PosX = CreatureState.CentreOf(6);
         creature.PosY = CreatureState.CentreOf(6);
@@ -124,7 +124,7 @@ public sealed class PortalDropTests
     [Fact]
     public void NonWorkerHandDropRespectsCasinoWinnerGate()
     {
-        var (sim, creature, _) = Setup();
+        (GameSimulation? sim, CreatureState? creature, ListEventSink _) = Setup();
         creature.CasinoBigWinnerTicks = 20;
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(PlayerIds.FirstKeeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(PlayerIds.FirstKeeper, new TilePos(6, 6))));
@@ -137,7 +137,7 @@ public sealed class PortalDropTests
     [InlineData(true)]
     public void TimedChickenExpiryAndPossessionPreventThePortalHandler(bool possessing)
     {
-        var (sim, creature, _) = Setup();
+        (GameSimulation? sim, CreatureState? creature, ListEventSink _) = Setup();
         creature.PosX = CreatureState.CentreOf(6);
         creature.PosY = CreatureState.CentreOf(6);
         creature.Dk2StateId = 197;
@@ -156,7 +156,7 @@ public sealed class PortalDropTests
         GameDatabase db = new(fixture.Terrain.Values,
             fixture.Rooms.Values.Select(r => r.TypeId == RoomTypeId.Portal ? r with { CreatedObjectEffectId = 96 } : r),
             fixture.Creatures.Values.Select(c => worker && c.CreatureId == 7 ? c with { Flags = c.Flags | CreatureFlags.IsWorker } : c), fixture.Variables);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, (byte)3, (byte)4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, (byte)3, (byte)4]);
         for (int y = 4; y <= 8; y++)
         for (int x = 4; x <= 8; x++)
         {
@@ -166,7 +166,7 @@ public sealed class PortalDropTests
             if (x is >= 5 and <= 7 && y is >= 5 and <= 7)
                 RoomRules.Place(db, ref tile, db.Room(portalType), portalOwner);
         }
-        var creature = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, new TilePos(4, 4));
+        CreatureState creature = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, new TilePos(4, 4));
         var events = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new HandSystem(), new CreatureStatusSystem(), new CreatureJobSystem()]);
         sim.ObserveWith(events);

@@ -35,7 +35,7 @@ public class RoomTests
     private static Run Start(ulong seed = 7)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
 
         var sim = new GameSimulation(database, world, seed, Dk2TerrainFixture.DefaultSystems());

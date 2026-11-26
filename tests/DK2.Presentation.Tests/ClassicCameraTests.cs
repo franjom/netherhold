@@ -64,9 +64,9 @@ public class ClassicCameraTests
     public void LetterboxingCropsTheViewWithoutWideningTheLens(int width, int height)
     {
         var camera = new ClassicCamera(Profile()) { ReferenceScreenWidth = 1600 };
-        var full = camera.Pose(Vector3.Zero, new CameraViewport(width, width, height));
+        ClassicCameraPose full = camera.Pose(Vector3.Zero, new CameraViewport(width, width, height));
         int croppedHeight = height * 3 / 4;
-        var cropped = camera.Pose(Vector3.Zero, new CameraViewport(width, width, croppedHeight));
+        ClassicCameraPose cropped = camera.Pose(Vector3.Zero, new CameraViewport(width, width, croppedHeight));
         Assert.Equal(full.Position, cropped.Position);
         Assert.Equal(HorizontalHalfAngle(full, width, height), HorizontalHalfAngle(cropped, width, croppedHeight), 5);
         Assert.True(cropped.VerticalFieldOfView < full.VerticalFieldOfView);
@@ -152,7 +152,7 @@ public class ClassicCameraTests
         var gold = new Vector3(14.5f, 1f, -24.5f);
         var camera = new ClassicCamera(Profile(), initialYaw: ClassicCamera.LevelStartYaw);
         ClassicCameraPose pose = camera.Pose(focus, new CameraViewport(640, 640, 480));
-        Vector3 right = Vector3.Normalize(Vector3.Cross(pose.Up, pose.Forward));
+        var right = Vector3.Normalize(Vector3.Cross(pose.Up, pose.Forward));
         Assert.True(Vector3.Dot(gold - focus, right) < 0);
         Assert.True(camera.PanDirection(Vector2.UnitX).Z < 0);
     }
@@ -287,7 +287,7 @@ public class ClassicCameraTests
 
     private static KwdChunk CameraChunk(params (ushort Id, int Zoom)[] rows)
     {
-        var content = new byte[92 * rows.Length];
+        byte[] content = new byte[92 * rows.Length];
         for (int i = 0; i < rows.Length; i++)
         {
             Span<byte> record = content.AsSpan(i * 92, 92);
@@ -296,7 +296,7 @@ public class ClassicCameraTests
             BinaryPrimitives.WriteInt32LittleEndian(record.Slice(8 + 48), rows[i].Zoom);
             BinaryPrimitives.WriteUInt16LittleEndian(record.Slice(8 + 82), rows[i].Id);
         }
-        var header = new byte[28];
+        byte[] header = new byte[28];
         BinaryPrimitives.WriteInt32LittleEndian(header, rows.Length);
         return new KwdChunk
         {

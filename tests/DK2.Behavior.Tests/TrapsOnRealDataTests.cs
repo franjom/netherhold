@@ -117,7 +117,7 @@ public class TrapsOnRealDataTests
         Assert.Equal(0, upkeep["Guard Post"]);
         Assert.Equal(30, upkeep["Magic Door"]);
 
-        List<string> free = upkeep.Where(e => e.Value == 0).Select(e => e.Key).ToList();
+        var free = upkeep.Where(e => e.Value == 0).Select(e => e.Key).ToList();
         Assert.Equal(["Guard Post"], free);
     }
 

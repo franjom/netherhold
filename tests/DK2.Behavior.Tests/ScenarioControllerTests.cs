@@ -66,7 +66,7 @@ public class ScenarioControllerTests
         var rogue = new ScenarioController("rogue", Keeper,
             _ => [TagTilesCommand.Tag(new PlayerId(1), Rock)]);
 
-        var thrown = Assert.Throws<InvalidOperationException>(() => Run(Yaml(), rogue));
+        InvalidOperationException thrown = Assert.Throws<InvalidOperationException>(() => Run(Yaml(), rogue));
         Assert.Contains("rogue", thrown.Message, StringComparison.Ordinal);
     }
 
@@ -92,7 +92,7 @@ public class ScenarioControllerTests
     {
         var never = new ScenarioController("never", Keeper, _ => []) { IntervalTicks = 0 };
 
-        var thrown = Assert.Throws<ArgumentException>(() => Run(Yaml(), never));
+        ArgumentException thrown = Assert.Throws<ArgumentException>(() => Run(Yaml(), never));
         Assert.Contains("IntervalTicks", thrown.Message, StringComparison.Ordinal);
     }
 
@@ -101,7 +101,7 @@ public class ScenarioControllerTests
     {
         var broken = new ScenarioController("broken", Keeper, _ => null!);
 
-        var thrown = Assert.Throws<InvalidOperationException>(() => Run(Yaml(), broken));
+        InvalidOperationException thrown = Assert.Throws<InvalidOperationException>(() => Run(Yaml(), broken));
         Assert.Contains("broken", thrown.Message, StringComparison.Ordinal);
     }
 

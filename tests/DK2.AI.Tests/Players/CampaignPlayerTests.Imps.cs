@@ -32,7 +32,7 @@ public partial class CampaignPlayerTests
     /// <summary><see cref="ImpMap"/> with the first <paramref name="marks"/> rock tiles marked to dig.</summary>
     private static string[] Marked(int marks)
     {
-        var rows = new string[ImpMap.Length];
+        string[] rows = new string[ImpMap.Length];
         for (int y = 0; y < ImpMap.Length; y++)
         {
             char[] row = ImpMap[y].ToCharArray();

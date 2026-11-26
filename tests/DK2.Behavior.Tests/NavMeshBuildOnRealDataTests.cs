@@ -119,10 +119,10 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             if (map is null) continue;
-            WorldState world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
+            var world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
             byte[] shipped = WorldSteering.CaptureNavigationBytes(database, world);
 
-            Fnv1a64 hash = Fnv1a64.Start();
+            var hash = Fnv1a64.Start();
             foreach (int rewrites in Rewrites)
             {
                 byte[] bytes = Rewrite(shipped, rewrites, seed: (uint)(level.GetStableHashCode() ^ rewrites));
@@ -151,10 +151,10 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             if (map is null) continue;
-            WorldState world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
+            var world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
             byte[] bytes = WorldSteering.CaptureNavigationBytes(database, world);
             var grid = new Grid(world.Width, world.Height, bytes);
-            NavMesh mesh = NavMesh.Build(grid);
+            var mesh = NavMesh.Build(grid);
             uint state = (uint)level.GetStableHashCode() | 1;
             for (int i = 0; i < 40; i++)
             {

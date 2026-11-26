@@ -17,7 +17,7 @@ public sealed class LairDropTests
     [Fact]
     public void DefaultSimulationRelocatesDroppedCreaturesBed()
     {
-        var (sim, creature, oldBed) = Start(defaultPipeline: true);
+        (GameSimulation? sim, CreatureState? creature, ObjectState? oldBed) = Start(defaultPipeline: true);
         Drop(sim, creature, NewTile);
         sim.Run(160);
         Assert.Equal(sim.World.TileIndex(NewTile), LairRules.BedTileIndex(sim.World, sim.Database, creature));
@@ -27,7 +27,7 @@ public sealed class LairDropTests
     [Fact]
     public void CreatureWithoutABedDefinitionDoesNotGetStuckSelectingABed()
     {
-        var database = Dk2TerrainFixture.Database();
+        GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         RoomRules.Place(database, ref world.Tile(NewTile), database.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
@@ -47,7 +47,7 @@ public sealed class LairDropTests
         // Isolates the zero-sleep field used by the original Dwarf and Stone Knight.
         CreatureDef definition = Dk2TerrainFixture.Goblin() with
             { CreatureId = 60, Name = "Zero Sleep Bed User", TimeSleep = 0 };
-        var (sim, creature, oldBed) = Start(definition);
+        (GameSimulation? sim, CreatureState? creature, ObjectState? oldBed) = Start(definition);
         Drop(sim, creature, NewTile);
         sim.Run(160);
         Assert.Equal(sim.World.TileIndex(NewTile), LairRules.BedTileIndex(sim.World, sim.Database, creature));
@@ -58,7 +58,7 @@ public sealed class LairDropTests
     [Fact]
     public void DropIntoAnotherLairMovesBedAndMakesOldTileAvailableToAnotherCreature()
     {
-        var (sim, creature, oldBed) = Start();
+        (GameSimulation? sim, CreatureState? creature, ObjectState? oldBed) = Start();
         Drop(sim, creature, NewTile);
         sim.Run(160);
 
@@ -78,7 +78,7 @@ public sealed class LairDropTests
     [Fact]
     public void SuccessfulSelectionFreesOldBedBeforeWalkingAndSurvivesSaveRestore()
     {
-        var (sim, creature, oldBed) = Start();
+        (GameSimulation? sim, CreatureState? creature, ObjectState? oldBed) = Start();
         Drop(sim, creature, NewTile);
         for (int i = 0; i < 120 && LairRules.BedOf(sim.World, sim.Database, creature) is not null; i++) sim.Tick();
         Assert.Null(LairRules.BedOf(sim.World, sim.Database, creature));
@@ -89,7 +89,7 @@ public sealed class LairDropTests
         long x = (creature.Body.PathTargetPos.X >> 4) - CreatureState.CentreOf(NewTile.X);
         long y = (creature.Body.PathTargetPos.Y >> 4) - CreatureState.CentreOf(NewTile.Y);
         Assert.InRange(x * x + y * y, 1363L * 1363, 1367L * 1367);
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database,
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database,
             [new HandSystem(), new CreatureStatusSystem(), new CreatureMovementSystem(), new CreatureSleepSystem()]);
         for (int i = 0; i < 80; i++)
         {
@@ -103,7 +103,7 @@ public sealed class LairDropTests
     [Fact]
     public void FullDestinationLairKeepsExistingBed()
     {
-        var (sim, creature, oldBed) = Start();
+        (GameSimulation? sim, CreatureState? creature, ObjectState? oldBed) = Start();
         CreatureState other = sim.World.SpawnCreature(sim.Database,
             Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, NewTile);
         LairRules.PlaceBed(sim.World, sim.Database, other, sim.World.TileIndex(NewTile));
@@ -118,7 +118,7 @@ public sealed class LairDropTests
     [Fact]
     public void DropIntoSameLairUsesExistingBedWithoutMovingIt()
     {
-        var (sim, creature, oldBed) = Start();
+        (GameSimulation? sim, CreatureState? creature, ObjectState? oldBed) = Start();
         TilePos adjacent = new(1, 2);
         RoomRules.Place(sim.Database, ref sim.World.Tile(adjacent),
             sim.Database.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
@@ -134,7 +134,7 @@ public sealed class LairDropTests
     [Fact]
     public void OccupiedDropTileUsesAnotherFreeTileInTheDestinationLair()
     {
-        var (sim, creature, oldBed) = Start();
+        (GameSimulation? sim, CreatureState? creature, ObjectState? oldBed) = Start();
         TilePos adjacent = new(3, 2);
         RoomRules.Place(sim.Database, ref sim.World.Tile(adjacent),
             sim.Database.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
@@ -151,7 +151,7 @@ public sealed class LairDropTests
     [Fact]
     public void RelocationMovesOccupancyAndTheBedStaysInTheNewLair()
     {
-        var (sim, creature, _) = Start();
+        (GameSimulation? sim, CreatureState? creature, ObjectState _) = Start();
         RoomInstance oldLair = LairAt(sim, OldTile), newLair = LairAt(sim, NewTile);
         Assert.Equal((1, 0), (LairRules.Occupied(sim.World, sim.Database, oldLair),
             LairRules.Occupied(sim.World, sim.Database, newLair)));
@@ -180,7 +180,7 @@ public sealed class LairDropTests
         // DroppedToDoJobId takes (hand-drop-landing.md section 4).
         CreatureDef definition = Dk2TerrainFixture.Goblin() with
             { CreatureId = 60, Name = "Sleep Hater", HateJobs = [JobType.Sleep] };
-        var (sim, creature, oldBed) = Start(definition);
+        (GameSimulation? sim, CreatureState? creature, ObjectState? oldBed) = Start(definition);
         creature.DroppedToDoJob = JobType.Train;
         Drop(sim, creature, NewTile);
         sim.Run(160);
@@ -192,8 +192,8 @@ public sealed class LairDropTests
     [Fact]
     public void RelocationIsDeterministicAcrossRuns()
     {
-        var (first, a, _) = Start(defaultPipeline: true);
-        var (second, b, _) = Start(defaultPipeline: true);
+        (GameSimulation? first, CreatureState? a, ObjectState _) = Start(defaultPipeline: true);
+        (GameSimulation? second, CreatureState? b, ObjectState _) = Start(defaultPipeline: true);
         Drop(first, a, NewTile);
         Drop(second, b, NewTile);
         for (int i = 0; i < 200; i++)
@@ -216,7 +216,7 @@ public sealed class LairDropTests
 
     private static (GameSimulation, CreatureState, ObjectState) Start(CreatureDef? definition = null, bool defaultPipeline = false)
     {
-        var database = definition is null ? Dk2TerrainFixture.Database() : Dk2TerrainFixture.Database(definition);
+        GameDatabase database = definition is null ? Dk2TerrainFixture.Database() : Dk2TerrainFixture.Database(definition);
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         foreach (TilePos at in new[] { OldTile, NewTile })
@@ -224,7 +224,7 @@ public sealed class LairDropTests
         CreatureState creature = world.SpawnCreature(database,
             definition?.CreatureId ?? Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, OldTile);
         ObjectState bed = LairRules.PlaceBed(world, database, creature, world.TileIndex(OldTile));
-        var simulation = defaultPipeline ? new GameSimulation(database, world, 42, SimulationSystems.Default())
+        GameSimulation simulation = defaultPipeline ? new GameSimulation(database, world, 42, SimulationSystems.Default())
             : new GameSimulation(database, world, 42,
                 [new HandSystem(), new CreatureStatusSystem(), new CreatureMovementSystem(), new CreatureSleepSystem()]);
         return (simulation, creature, bed);

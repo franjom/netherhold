@@ -26,7 +26,7 @@ internal static class KwdScalarOverlayChecks
         Assert.Equal(source, write(read(source), template));
         foreach (PropertyInfo property in properties)
         {
-            var field = fields[property.Name];
+            (int Offset, int Width) field = fields[property.Name];
             T changed = read(source);
             Type scalar = property.PropertyType;
             object value = customValues is not null && customValues.TryGetValue(property.Name, out object? custom) ? custom
@@ -53,7 +53,7 @@ internal static class KwdScalarOverlayChecks
             else if (value is ReadOnlyMemory<byte> memory) Assert.Equal(memory.ToArray(), Assert.IsType<ReadOnlyMemory<byte>>(reread).ToArray());
             else if (value is KwdArtResource art)
             {
-                var actual = Assert.IsType<KwdArtResource>(reread);
+                KwdArtResource actual = Assert.IsType<KwdArtResource>(reread);
                 Assert.Equal(art with { Unknown_0044 = ReadOnlyMemory<byte>.Empty }, actual with { Unknown_0044 = ReadOnlyMemory<byte>.Empty });
                 Assert.Equal(art.Unknown_0044.ToArray(), actual.Unknown_0044.ToArray());
             }

@@ -18,7 +18,7 @@ public sealed class WorldSteeringMeshTests
     [Fact]
     public void NeighboursUseTheTileRectangleBeforeTheCombinedRadiusCheck()
     {
-        var (db, world, steering, mover) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? steering, CreatureState? mover) = Setup();
         CreatureState touching = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, mover.Tile);
         touching.PosX += 740;
         CreatureState corner = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, new TilePos(4, 7));
@@ -36,8 +36,8 @@ public sealed class WorldSteeringMeshTests
     public void NeighbourUpperYClampKeepsTheNativeWidthQuirk()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        var tiles = Enumerable.Repeat(new MapTile(Dk2TerrainFixture.ClaimedPath, PlayerIds.FirstKeeper, 0, 0), 54).ToArray();
-        WorldState world = WorldState.FromMap(db, new LevelMap(6, 9, tiles), [PlayerIds.FirstKeeper]);
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(Dk2TerrainFixture.ClaimedPath, PlayerIds.FirstKeeper, 0, 0), 54).ToArray();
+        var world = WorldState.FromMap(db, new LevelMap(6, 9, tiles), [PlayerIds.FirstKeeper]);
         CreatureState creature = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, new TilePos(2, 8));
         WorldSteering.SyncBody(creature);
         var neighbours = new List<SteeringNeighbour>();
@@ -48,7 +48,7 @@ public sealed class WorldSteeringMeshTests
     [Fact]
     public void ADugTileIsEditedIntoTheStandingMeshAndRoutable()
     {
-        var (db, world, steering, goblin) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? steering, CreatureState? goblin) = Setup();
         int before = steering.Rebuilds;
         Assert.False(steering.TryRoute(goblin, new TilePos(11, 6), MoveOptions.ExactSpot));
 
@@ -64,7 +64,7 @@ public sealed class WorldSteeringMeshTests
     [Fact]
     public void TheEditedMeshSurvivesASnapshotRoundTrip()
     {
-        var (db, world, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering _, CreatureState _) = Setup();
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
         sim.Tick(InputFrame.Empty);
         Claim(world, 11, 6);
@@ -91,7 +91,7 @@ public sealed class WorldSteeringMeshTests
     [Fact]
     public void ATileChangedBeforeTheSaveIsEditedAfterTheLoadAsItWouldHaveBeen()
     {
-        var (db, world, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering _, CreatureState _) = Setup();
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
         sim.Tick(InputFrame.Empty);
         Claim(world, 11, 6);
@@ -109,7 +109,7 @@ public sealed class WorldSteeringMeshTests
     [Fact]
     public void ASaveWithNothingPendingLoadsToTheSameMeshAndEditsNothing()
     {
-        var (db, world, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering _, CreatureState _) = Setup();
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
         sim.Tick(InputFrame.Empty);
         Claim(world, 11, 6);
@@ -130,7 +130,7 @@ public sealed class WorldSteeringMeshTests
     [Fact]
     public void AnEditedMeshHashesDifferentlyFromAFreshBuildOfTheSameTiles()
     {
-        var (db, world, steering, _) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? steering, CreatureState _) = Setup();
         // Tiles kept a tile clear of the map edge: an edit nearer rebuilds the whole map, as the
         // original's does, and then matches a fresh build slot for slot.
         for (int x = 11; x <= 13; x++)
@@ -154,7 +154,7 @@ public sealed class WorldSteeringMeshTests
     [Fact]
     public void OnlyTheFieldsTheBytesReadMoveTheMesh_AndTheBytesAlwaysEqualAFreshCapture()
     {
-        var (db, world, steering, _) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? steering, CreatureState _) = Setup();
         var random = new Random(7);
         byte[] terrains = [Dk2TerrainFixture.ClaimedPath, Dk2TerrainFixture.Water, Dk2TerrainFixture.ReinforcedWall];
         for (int step = 0; step < 200; step++)
@@ -196,7 +196,7 @@ public sealed class WorldSteeringMeshTests
     private static (GameDatabase, WorldState, WorldSteering, CreatureState) Setup()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 10; y++)
             for (int x = 2; x <= 10; x++) Claim(world, x, y);

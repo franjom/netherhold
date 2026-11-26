@@ -180,7 +180,7 @@ public class LevelVariablesOnRealDataTests
 
         // Keeper 3's rooms: the level's two, the template's for the rest.
         const ushort room = 1;
-        Dictionary<int, int> rooms = level1.Variables.AvailabilitiesOf(3)
+        var rooms = level1.Variables.AvailabilitiesOf(3)
             .Where(a => a.Kind == room).ToDictionary(a => a.TypeId, a => a.Value);
         Assert.Equal(1, rooms[(int)RoomTypeId.Treasury]);
         Assert.Equal(1, rooms[(int)RoomTypeId.Library]);
@@ -310,8 +310,8 @@ public class LevelVariablesOnRealDataTests
         string install = Install();
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "level18");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level18")!;
-        var players = GameDatabaseLoader.LoadCampaignPlayers(install, "level18")!;
-        Simulation.WorldState world = Simulation.WorldState.FromMap(db, map, players.Select(p => p.PlayerId));
+        List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, "level18")!;
+        var world = Simulation.WorldState.FromMap(db, map, players.Select(p => p.PlayerId));
 
         Assert.True(world.AreAllied(PlayerIds.Neutral, PlayerIds.Good));
         foreach (byte keeper in new byte[] { 3, 4, 5, 6 })
@@ -339,7 +339,7 @@ public class LevelVariablesOnRealDataTests
         IReadOnlyList<byte> order = Harness.ScenarioRunner.ActivationOrder(scrambled, records);
 
         Assert.Equal([(byte)0, .. fileOrder], order);
-        Simulation.WorldState world = Simulation.WorldState.FromMap(
+        var world = Simulation.WorldState.FromMap(
             GameDatabaseLoader.LoadForCampaignLevel(install, "level18"),
             GameDatabaseLoader.LoadCampaignMap(install, "level18")!, order);
         Assert.Equal(order.Reverse().Select(id => new PlayerId(id)), world.ActivePlayerOrder);

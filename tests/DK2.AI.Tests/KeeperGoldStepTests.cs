@@ -209,7 +209,7 @@ public class KeeperGoldStepTests
     public void AnUnaffordableRoomWithNoGoldStoredSendsTaskFiveTowardTileZero_Q539()
     {
         WorldState world = CannotAffordARoom();
-        var keeper = Keeper1();
+        KeeperAI keeper = Keeper1();
 
         keeper.Think(Db, world);
 
@@ -224,7 +224,7 @@ public class KeeperGoldStepTests
     {
         WorldState world = CannotAffordARoom();
         world.Tile(new TilePos(15, 6)).TaggedBy = PlayerMask.None.With(Keeper);
-        var keeper = Keeper1();
+        KeeperAI keeper = Keeper1();
 
         keeper.Think(Db, world);
 

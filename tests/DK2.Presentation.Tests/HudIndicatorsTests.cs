@@ -17,7 +17,7 @@ public sealed class HudIndicatorsTests
     [Fact]
     public void ShownIndicatorsPackLeftToRightFromTwentyAndHiddenOnesTakeNoSlot()
     {
-        var placed = HudIndicatorLayout.Place(Shown(time: true, kills: true, next: true), panelTop: 1460);
+        IReadOnlyList<(HudIndicator Indicator, int X, int Y)> placed = HudIndicatorLayout.Place(Shown(time: true, kills: true, next: true), panelTop: 1460);
         Assert.Equal(new[]
         {
             (HudIndicator.TimeRemaining, 20, 1332),
@@ -29,7 +29,7 @@ public sealed class HudIndicatorsTests
     [Fact]
     public void OnlyTheFirstIndicatorKeepsY1332WhenThePanelTopMoves()
     {
-        var placed = HudIndicatorLayout.Place(Shown(time: true, score: true), panelTop: 1800);
+        IReadOnlyList<(HudIndicator Indicator, int X, int Y)> placed = HudIndicatorLayout.Place(Shown(time: true, score: true), panelTop: 1800);
         Assert.Equal((HudIndicator.TimeRemaining, 20, 1332), placed[0]);
         Assert.Equal((HudIndicator.Score, 464, 1672), placed[1]);
     }
@@ -37,7 +37,7 @@ public sealed class HudIndicatorsTests
     [Fact]
     public void CameraClassOneStacksThemUpwardFrom1332()
     {
-        var placed = HudIndicatorLayout.Place(Shown(time: true, score: true, kills: true), panelTop: 1460, stacked: true);
+        IReadOnlyList<(HudIndicator Indicator, int X, int Y)> placed = HudIndicatorLayout.Place(Shown(time: true, score: true, kills: true), panelTop: 1460, stacked: true);
         Assert.Equal(new[] { 1332, 1204, 1076 }, placed.Select(p => p.Y));
         Assert.All(placed, p => Assert.Equal(20, p.X));
     }
@@ -92,7 +92,7 @@ public sealed class HudIndicatorsTests
     public void NextRoomShowsForRoomTypes1To25(byte room, bool shown)
     {
         var triggers = new TriggerState { SpecialInfoNextRoomTypeId = room };
-        HudIndicatorSnapshot snapshot = HudIndicatorSnapshot.Capture(triggers, null);
+        var snapshot = HudIndicatorSnapshot.Capture(triggers, null);
         Assert.Equal(shown, snapshot.NextRoom);
         Assert.Equal(shown, snapshot.Any);
     }
@@ -110,7 +110,7 @@ public sealed class HudIndicatorsTests
     public void TimeRemainingShowsWhileTheLimitIsNonZero()
     {
         Assert.False(HudIndicatorSnapshot.Capture(new TriggerState(), null).TimeRemaining);
-        HudIndicatorSnapshot running = HudIndicatorSnapshot.Capture(new TriggerState { LevelTimeLimit = 37 }, null);
+        var running = HudIndicatorSnapshot.Capture(new TriggerState { LevelTimeLimit = 37 }, null);
         Assert.True(running.TimeRemaining);
         Assert.Equal(37, running.TimeLimitTurns);
     }
@@ -121,7 +121,7 @@ public sealed class HudIndicatorsTests
         Assert.False(HudIndicatorSnapshot.Capture(new TriggerState(), null).Score);
         var triggers = new TriggerState();
         triggers.Write(TriggerState.SpecialFlagId, FlagWriteMode.Assign, 0);
-        HudIndicatorSnapshot snapshot = HudIndicatorSnapshot.Capture(triggers, null);
+        var snapshot = HudIndicatorSnapshot.Capture(triggers, null);
         Assert.True(snapshot.Score);
         Assert.Equal(0, snapshot.ScoreValue);
         Assert.True(snapshot.Any);
@@ -132,7 +132,7 @@ public sealed class HudIndicatorsTests
     {
         Assert.False(HudIndicatorSnapshot.Capture(new TriggerState(), null).SlapsRemaining);
         var triggers = new TriggerState { MaximumSlaps = 5 };
-        HudIndicatorSnapshot left = HudIndicatorSnapshot.Capture(triggers, null, slaps: 5);
+        var left = HudIndicatorSnapshot.Capture(triggers, null, slaps: 5);
         Assert.True(left.SlapsRemaining);
         Assert.Equal(0, left.SlapsLeft);
         Assert.False(HudIndicatorSnapshot.Capture(triggers, null, slaps: 6).SlapsRemaining);
@@ -142,7 +142,7 @@ public sealed class HudIndicatorsTests
     public void CurrentHolderShowsWhileAPlayerIsNamed()
     {
         Assert.False(HudIndicatorSnapshot.Capture(new TriggerState(), null).CurrentHolder);
-        HudIndicatorSnapshot held = HudIndicatorSnapshot.Capture(new TriggerState { SpecialInfoPlayerId = 3 }, null);
+        var held = HudIndicatorSnapshot.Capture(new TriggerState { SpecialInfoPlayerId = 3 }, null);
         Assert.True(held.CurrentHolder);
         Assert.Equal(3, held.HolderPlayerId);
         Assert.True(held.Any);
@@ -159,7 +159,7 @@ public sealed class HudIndicatorsTests
     {
         var triggers = new TriggerState { LevelTimeLimit = 1, SpecialInfoPlayerId = 3, MaximumSlaps = 1, SpecialInfoNextRoomTypeId = 2 };
         triggers.Write(TriggerState.SpecialFlagId, FlagWriteMode.Assign, 0);
-        var placed = HudIndicatorLayout.Place(HudIndicatorSnapshot.Capture(triggers, Level(0x80)), 1460);
+        IReadOnlyList<(HudIndicator Indicator, int X, int Y)> placed = HudIndicatorLayout.Place(HudIndicatorSnapshot.Capture(triggers, Level(0x80)), 1460);
         Assert.Equal(new[] { 20, 464, 908, 1352, 1796, 2052 }, placed.Select(p => p.X));
     }
 }

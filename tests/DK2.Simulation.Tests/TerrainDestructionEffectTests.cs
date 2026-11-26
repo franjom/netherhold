@@ -46,7 +46,7 @@ public class TerrainDestructionEffectTests
         Assert.Equal(expected, events.Events.Count(e => e.EffectRequest.HasValue));
         if (expected != 0)
         {
-            var request = Assert.Single(events.Events, e => e.EffectRequest.HasValue).EffectRequest!.Value;
+            ViewEffectRequest request = Assert.Single(events.Events, e => e.EffectRequest.HasValue).EffectRequest!.Value;
             Assert.Equal(new EffectId(effectId), request.EffectId);
             Assert.Equal(at, request.Tile);
             Assert.Equal(Fp32.One, request.Height.Raw);

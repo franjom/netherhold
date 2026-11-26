@@ -20,7 +20,7 @@ public sealed class ThingTileLinkTests
     private static (GameDatabase Db, WorldState World) Open()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -31,7 +31,7 @@ public sealed class ThingTileLinkTests
     [Fact]
     public void ATileChangeLinksAtTheHeadAndAMoveWithinTheTileKeepsThePlace_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState c = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
         ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (5 * world.Width) + 6);
         Assert.Equal((5 * world.Width) + 5, c.TileLink.TileIndex);
@@ -47,7 +47,7 @@ public sealed class ThingTileLinkTests
     [Fact]
     public void AHandOrACarrierTakesAThingOffTheChainAndPuttingItDownLinksItAtTheHead_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState c = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
         ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (5 * world.Width) + 5);
         int before = c.TileLink.Order;
@@ -66,7 +66,7 @@ public sealed class ThingTileLinkTests
     [Fact]
     public void ShotsTrapsAndDoorsAreLinkedWhenMade_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         ShotState shot = world.SpawnShot(Dk2TerrainFixture.FireballShotId, Keeper, CreatureState.CentreOf(7), CreatureState.CentreOf(7));
         Assert.Equal((7 * world.Width) + 7, shot.TileLink.TileIndex);
         TrapState trap = PlaceTrap(db, world, new TilePos(9, 7));
@@ -82,7 +82,7 @@ public sealed class ThingTileLinkTests
     [InlineData(false)]
     public void AShotRelinksWhenEitherAxisCrossesATile_StronglyInferredFromBinary(bool alongX)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         ShotState shot = world.SpawnShot(Dk2TerrainFixture.FireballShotId, Keeper, CreatureState.CentreOf(7), CreatureState.CentreOf(7));
         ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (7 * world.Width) + 7);
         if (alongX) shot.PosX += 4096;
@@ -94,7 +94,7 @@ public sealed class ThingTileLinkTests
     [Fact]
     public void AnObjectRelinksWhenItsTileOrItsHandChanges_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (5 * world.Width) + 5);
         CreatureState c = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 6));
         pile.TileIndex = (6 * world.Width) + 5;
@@ -110,7 +110,7 @@ public sealed class ThingTileLinkTests
     [Fact]
     public void ACreatureThatDiesIntoABodyIsLinkedAfreshAtTheHead_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
         ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (5 * world.Width) + 5);
         Assert.True(pile.TileLink.Order > goblin.TileLink.Order);
@@ -145,7 +145,7 @@ public sealed class ThingTileLinkTests
     [Fact]
     public void OrdinaryWalkingRelinksAtEveryTileChange_NotOnlyPossession_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState walker = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 10));
         var navigation = new WorldSteering(db, world);
         navigation.Refresh();
@@ -171,7 +171,7 @@ public sealed class ThingTileLinkTests
     public void EveryThingsLinkMatchesWhereItIsAfterEveryTickOfTheFullSystemList()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
         ref TileState graveyard = ref world.Tile(1, 1);
         RoomRules.Place(db, ref graveyard, db.Room(RoomTypeId.Graveyard), Keeper);
         CreatureState corpse = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 3));

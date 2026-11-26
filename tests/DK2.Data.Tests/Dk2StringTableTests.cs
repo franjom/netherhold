@@ -19,7 +19,7 @@ public class Dk2StringTableTests
         byte[] second = Entry(StringChunk(3), ParameterChunk(0), StringChunk(2));
         byte[] data = Table(400, first, second);
 
-        Dk2StringTable table = Dk2StringTable.Read(data, codePage);
+        var table = Dk2StringTable.Read(data, codePage);
 
         Assert.Equal(400u, table.FileId);
         Assert.Equal("ABC", table.Resolve(0));
@@ -46,7 +46,7 @@ public class Dk2StringTableTests
         byte[] codePage = CodePage(characters);
         codePage[4] = 2; // threshold = 253; indexes from here consume two bytes
 
-        Dk2StringTable table = Dk2StringTable.Read(
+        var table = Dk2StringTable.Read(
             Table(1, Entry(StringChunk(254, 1))), codePage);
 
         Assert.Equal("\u03a9", table.Resolve(0));
@@ -71,7 +71,7 @@ public class Dk2StringTableTests
         string install = Dk2InstallGate.Path;
 
         GameDatabase database = GameDatabaseLoader.Load(install);
-        Dk2StringTable text = Dk2StringTable.Open(
+        var text = Dk2StringTable.Open(
             Path.Combine(install, "Data", "Text", "Default", "Text.str"));
 
         CreatureDef goblin = database.CreatureByName("Goblin")!;
@@ -102,7 +102,7 @@ public class Dk2StringTableTests
         long bytes = 0;
         foreach (string file in files)
         {
-            Dk2StringTable table = Dk2StringTable.Open(file);
+            var table = Dk2StringTable.Open(file);
             entries += table.Entries.Count;
             bytes += new FileInfo(file).Length;
             Assert.Equal((uint)(table.Entries.Count * sizeof(uint)),

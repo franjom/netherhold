@@ -166,7 +166,7 @@ public class BuildReceiptTests : IDisposable
             """);
         RunTemplate template = HarnessCommandLine.RunOptions(["run", "x", "--campaign-player", "3", "--player-receipt", Receipt])!;
         var error = new StringWriter();
-        var database = ScenarioTests.SyntheticDatabase();
+        GameDatabase database = ScenarioTests.SyntheticDatabase();
         int exit = PlayerRunCommand.Run(new ScenarioRunner(database, null), database, null, Scenario.Load(scenarioPath), template,
             Path.Combine(_root, "out"), "run", TextWriter.Null, error, tune: null, harnessDirectory: Harness);
         Assert.Equal(2, exit);

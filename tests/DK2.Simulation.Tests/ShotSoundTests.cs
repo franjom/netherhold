@@ -33,7 +33,7 @@ public sealed class ShotSoundTests
         };
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values,
             basis.Variables, shots: [definition]);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, (byte)1, (byte)2, (byte)3, (byte)4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, (byte)1, (byte)2, (byte)3, (byte)4]);
         for (int y = 1; y < 11; y++)
             for (int x = 1; x < 19; x++) world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
         ShotState shot = ShotRules.Spawn(world, definition, Owner, CreatureState.CentreOf(4), CreatureState.CentreOf(4), 0, 0,

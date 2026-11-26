@@ -23,7 +23,7 @@ public class KeeperHealTests
     [InlineData(true, 700)]
     public void TheCastHealsTheLesserOfTheDataWordAndTheMissingHealthPaysAndStampsBothClocks(bool upgraded, int amount)
     {
-        var (db, world, target) = Setup(Spell() with { ShotData1 = 500, BonusShotData1 = 700 });
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup(Spell() with { ShotData1 = 500, BonusShotData1 = 700 });
         world.SetUpgraded(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Heal, upgraded);
         target.Health = 300;
         var boundary = new Boundary();
@@ -38,14 +38,14 @@ public class KeeperHealTests
         Assert.Equal(300 + amount, target.Health);
         Assert.Empty(world.Shots);
         Assert.Equal((7000, 5000), (world.Player(Keeper).Mana, world.Player(Keeper).OneShotManaSpent));
-        var row = Assert.Single(world.Player(Keeper).Availabilities);
+        AvailabilityState row = Assert.Single(world.Player(Keeper).Availabilities);
         Assert.Equal((7L, 7L), (row.LastCastTick, row.LastCheckedTick));
     }
 
     [Fact]
     public void TheShippedWordExceedsAnyMissingHealthSoTheHealLandsExactlyTheDeficitAndClampsAtTheMaximum()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Health = 1;
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
@@ -70,7 +70,7 @@ public class KeeperHealTests
     [InlineData(8, KeeperSpellRefusal.Target)]
     public void ARefusalChangesNeitherManaClocksNorShotsNorTheTarget(int change, KeeperSpellRefusal expected)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         byte spell = KeeperSpellRules.Heal; int id = target.Id; ushort flags = 0;
         switch (change)
         {
@@ -99,7 +99,7 @@ public class KeeperHealTests
     [Fact]
     public void ManaEqualToTheCostPassesAndTheOwnTargetsFloorMayBelongToAnybody_UnlikeThunderbolts()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         world.Player(Keeper).Mana = 5000;
         world.Tile(target.Tile).OwnerPlayerId = Rival;
         var boundary = new Boundary();
@@ -115,7 +115,7 @@ public class KeeperHealTests
     [Fact]
     public void ACooldownRefusesUntilTheRawSecondsHaveElapsedAndEqualityIsReady()
     {
-        var (db, world, target) = Setup(Spell() with { CooldownRaw = 0x1000 });
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup(Spell() with { CooldownRaw = 0x1000 });
         world.Player(Keeper).Mana = 100000;
         var boundary = new Boundary();
         var sim = new GameSimulation(db, world, 1, [boundary, new ShotSystem()]);
@@ -143,7 +143,7 @@ public class KeeperHealTests
     [InlineData(true, false, false, KeeperSpellRefusal.Target)] // the same creature without the mark
     public void TargetOneAdmitsByTheRoomsOwnerForAnAttachedCreatureAndAPitFighterOnTheRoom(bool foreign, bool attached, bool pitFighter, KeeperSpellRefusal expected)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         byte roomOwner = foreign ? Keeper : Rival;
         byte prison = db.Rooms.Values.Single(r => r.TypeId == RoomTypeId.Prison).TerrainId;
         for (int y = 9; y <= 11; y++)
@@ -166,7 +166,7 @@ public class KeeperHealTests
     [Fact]
     public void ADyingTargetPassesThePermissionConsumesManaAndIsNotHealed()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Dk2StateId = CreatureDeathRules.DyingState;
         target.Health = 0;
         target.DyingTicks = 19;
@@ -183,7 +183,7 @@ public class KeeperHealTests
     [Fact]
     public void TheHealSetsAFightingTargetIdleBeforeTheHealthLands()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), target, FightState));
         target.FightTargetId = enemy.Id;
@@ -203,7 +203,7 @@ public class KeeperHealTests
     [InlineData(4)] // keeper binding shared by Prison and Torture
     public void TheIdleIsSkippedForAFrozenHeldPitOrAbnormalTargetingCreatureButTheHealStillLands(int which)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), target, FightState));
         target.FightTargetId = enemy.Id;
@@ -228,7 +228,7 @@ public class KeeperHealTests
     [Fact]
     public void AForcedHealMissesACreatureInTheHand()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.InHand = true;
         int mana = world.Player(Keeper).Mana;
 
@@ -242,7 +242,7 @@ public class KeeperHealTests
     [Fact]
     public void TheIdleDropsTheTargetsWalkSoItStopsWhereTheHealFoundIt()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         Walk(target, 16);
 
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new CreatureMovementSystem(), new ShotSystem()]);
@@ -261,7 +261,7 @@ public class KeeperHealTests
     [InlineData(1)] // a Combat Pit fighter
     public void ASkippedIdleLeavesTheWalkRunning(int which)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         Walk(target, 16);
         if (which == 0) target.FrozenTicks = 100; else target.CombatPitFighter = true;
 
@@ -276,7 +276,7 @@ public class KeeperHealTests
     [Fact]
     public void AKindOnlyAttackableByHornyPaysForTheHealAndGainsNothing()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.CreatureTypeId = OnlyHornyCreatureId;
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
@@ -296,7 +296,7 @@ public class KeeperHealTests
         // Spawned first, so the overlap finder's equal-distance tie would keep it; owned by the
         // Rival so collide class 3 admits it.
         CreatureState stacked = null!;
-        var (db, world, target) = Setup(before: (d, w) => stacked = w.SpawnCreature(d, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10)));
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup(before: (d, w) => stacked = w.SpawnCreature(d, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10)));
         stacked.Health = 300;
 
         new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()])
@@ -308,7 +308,7 @@ public class KeeperHealTests
     [Fact]
     public void TheForcedWordSurvivesSaveLoadAndIsSpentOnTheFirstCollisionCheck()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         var boundary = new Boundary();
         var sim = new GameSimulation(db, world, 1, [boundary]);
         sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, KeeperSpellRules.Heal, target.Id)));
@@ -330,11 +330,11 @@ public class KeeperHealTests
     [Fact]
     public void ADirectHealthProcessHealsAHeldCreatureWithoutChangingItsStateOrRoute()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         Walk(target, 16);
         target.InHand = true;
         Assert.False(PrisonRules.HasKeeperBinding(target));
-        var route = (target.Body.PathTotalCount, target.Body.PathTotalDist);
+        (byte PathTotalCount, int PathTotalDist) route = (target.Body.PathTotalCount, target.Body.PathTotalDist);
 
         new GameSimulation(db, world, 1, [new DirectHealthProcess(target)]).Tick();
 
@@ -360,7 +360,7 @@ public class KeeperHealTests
         public KeeperSpellRefusal Refusal;
         public void Execute(SimulationContext context)
         {
-            foreach (var command in context.Input.All.OfType<CastSpellOnCreatureCommand>())
+            foreach (CastSpellOnCreatureCommand command in context.Input.All.OfType<CastSpellOnCreatureCommand>())
                 Result = KeeperSpellRules.CastOnCreature(context, command, out Refusal);
         }
     }
@@ -370,7 +370,7 @@ public class KeeperHealTests
     [Fact]
     public void HealingAStrappedHeroPreservesItsDeviceAndConversionProgressWithoutAnAttackedEvent()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.OwnerPlayerId = PlayerIds.Good;
         target.TriggerId = EventCounterTree.Root;
         for (int y = 9; y <= 11; y++)
@@ -383,7 +383,7 @@ public class KeeperHealTests
         target.TorturedDuration = TortureRules.ConversionThreshold(db,
             db.CreatureById(target.CreatureTypeId), target.Level) - TortureRules.DurationPerAct;
         int duration = target.TorturedDuration;
-        var place = target.HeldPlace;
+        RoomPlace place = target.HeldPlace;
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, 1,
             [new KeeperSpellSystem(), new ShotSystem(), new TortureSystem()],
@@ -438,7 +438,7 @@ public class KeeperHealTests
         CreatureDef onlyHorny = goblin with { Name = "Stone", CreatureId = OnlyHornyCreatureId, Flags = goblin.Flags | CreatureFlags.OnlyAttackableByHorny };
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, [.. basis.Creatures.Values, horny, onlyHorny],
             basis.Variables, [spell ?? Spell()], objects: basis.Objects.Values, shots: [Shot()]);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         world.Player(Keeper).Mana = 12000;
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.Heal, 3));
         for (int y = 8; y <= 12; y++)

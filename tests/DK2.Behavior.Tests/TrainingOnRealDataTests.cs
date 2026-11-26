@@ -93,7 +93,7 @@ public sealed class TrainingOnRealDataTests
         GameDatabase maybe = RealDatabase();
         GameDatabase db = maybe;
 
-        var exceptions = db.Creatures.Values
+        string[] exceptions = db.Creatures.Values
             .Where(c => c.ExpPerSecondTraining != 0
                         && c.ExpPerSecond != c.ExpPerSecondTraining * 5)
             .Select(c => c.Name)

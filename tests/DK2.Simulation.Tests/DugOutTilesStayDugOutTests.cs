@@ -35,7 +35,7 @@ public class DugOutTilesStayDugOutTests
     public void NoTileEverGoesFromOpenBackToSolid()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < 4; i++)
@@ -85,7 +85,7 @@ public class DugOutTilesStayDugOutTests
     public void AGemSeamIsNeverExhausted()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         var at = new TilePos(6, 5);
@@ -161,7 +161,7 @@ public class DugOutTilesStayDugOutTests
     public void NoWorkerEverSelectsAFillIn()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < 4; i++)

@@ -32,7 +32,7 @@ public sealed class MessageTabsViewTests
     [InstallFact]
     public void HiddenHud_00403E27_ObservesMessagesWithoutTabSoundsOrSuppressingSpeech()
     {
-        var world = MessageWorld();
+        WorldState world = MessageWorld();
         world.Messages.Post(world, PlayerIds.FirstKeeper, PlayerMessageKind.HeartAttacked, 0, 0);
         var view = new MessageTabsView(PlayerIds.FirstKeeper);
         view.Capture(world, 1000, new HudVisibility(false, false));
@@ -46,7 +46,7 @@ public sealed class MessageTabsViewTests
     [InstallFact]
     public void RestoredHud_00423D8D_DoesNotRestartAnExpiredSlideOrPlayItsLanding()
     {
-        var world = MessageWorld();
+        WorldState world = MessageWorld();
         world.Messages.Post(world, PlayerIds.FirstKeeper, PlayerMessageKind.HeartAttacked, 0, 0);
         var view = new MessageTabsView(PlayerIds.FirstKeeper);
         view.Capture(world, 1000, new HudVisibility(false, false));
@@ -58,7 +58,7 @@ public sealed class MessageTabsViewTests
     [InstallFact]
     public void RestoredHud_00423CF3_UsesTheRemainingSlideTimeAndThenLandsOnce()
     {
-        var world = MessageWorld();
+        WorldState world = MessageWorld();
         world.Messages.Post(world, PlayerIds.FirstKeeper, PlayerMessageKind.HeartAttacked, 0, 0);
         var view = new MessageTabsView(PlayerIds.FirstKeeper);
         view.Capture(world, 1000, new HudVisibility(false, false));
@@ -74,7 +74,7 @@ public sealed class MessageTabsViewTests
     [InstallFact]
     public void ReusedSlot_00423D04_KeepsItsSlideStateAndVoice()
     {
-        var world = MessageWorld();
+        WorldState world = MessageWorld();
         world.Messages.Post(world, PlayerIds.FirstKeeper, PlayerMessageKind.HeartAttacked, 0, 0);
         var view = new MessageTabsView(PlayerIds.FirstKeeper);
         view.Capture(world, 1000);
@@ -187,7 +187,7 @@ public sealed class MessageTabsViewTests
             view.Location(world, Message(PlayerMessageKind.CreatureUnhappy, 4, imp.Id)));
         Assert.Null(view.Location(world, Message(PlayerMessageKind.CreatureUnhappy, 4, 9999)));
 
-        var heart = ManaRemovalLifecycle.HeartTile(world, db, keeper);
+        (ushort X, ushort Y) heart = ManaRemovalLifecycle.HeartTile(world, db, keeper);
         RoomInstance room = RoomIndex.RoomAt(world, db, heart.Y * world.Width + heart.X)!;
         int firstSlab = SlabChain.FirstSlab(world, room);
         Assert.Equal((room.CentreFieldX + .5f, room.CentreFieldY + .5f),
@@ -200,7 +200,7 @@ public sealed class MessageTabsViewTests
     [InstallFact]
     public void TheGotoLocationIsWorkedOutOnceATickPerMessage()
     {
-        CampaignLevelData level = CampaignLevelData.Load(Dk2InstallGate.Path, "Level1");
+        var level = CampaignLevelData.Load(Dk2InstallGate.Path, "Level1");
         GameSimulation simulation = level.CreateSimulation(1, fogOfWarEnabled: true);
         WorldState world = simulation.World;
         GameDatabase db = level.Database;

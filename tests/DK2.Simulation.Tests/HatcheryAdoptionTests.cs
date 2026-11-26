@@ -17,7 +17,7 @@ public class HatcheryAdoptionTests
     private static (GameDatabase Db, WorldState World) Start()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
         return (db, world);
     }
 
@@ -50,7 +50,7 @@ public class HatcheryAdoptionTests
     [Fact]
     public void AHatcheryBuiltUnderAFreeRangeBirdTakesItInAndItStopsDecaying()
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         ObjectState bird = FreeBird(db, world, 2, 2);
         Build(db, world, 2, 2);
         Assert.True(bird.HatcheryRoomAnchorTileIndex >= 0);
@@ -64,7 +64,7 @@ public class HatcheryAdoptionTests
     [Fact]
     public void AnotherOwnersBirdTakesTheRoomsOwner()
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         ObjectState bird = FreeBird(db, world, 2, 2, PlayerIds.Neutral);
         Build(db, world, 2, 2);
         Assert.Equal(Keeper, bird.OwnerPlayerId);
@@ -75,7 +75,7 @@ public class HatcheryAdoptionTests
     [Fact]
     public void CapacityTakesTheHeadOfTheTilesThingListFirst()
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         ObjectState older = FreeBird(db, world, 2, 2);
         ObjectState newer = FreeBird(db, world, 2, 2);
         Build(db, world, 2, 2);
@@ -89,7 +89,7 @@ public class HatcheryAdoptionTests
     [Fact]
     public void ACutRoomsPiecesTakeBackOnlyTheBirdsOnTheirTiles()
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         ObjectState west = FreeBird(db, world, 1, 2);
         ObjectState middle = FreeBird(db, world, 2, 2);
         ObjectState east = FreeBird(db, world, 3, 2);
@@ -108,7 +108,7 @@ public class HatcheryAdoptionTests
     [Fact]
     public void AnotherRoomTakesNoBird()
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         ObjectState bird = FreeBird(db, world, 2, 2);
         Build(db, world, 2, 2, RoomTypeId.Lair);
         Assert.Equal(-1, bird.HatcheryRoomAnchorTileIndex);
@@ -119,7 +119,7 @@ public class HatcheryAdoptionTests
     [Fact]
     public void ABirdHeldForAnotherOwnerIsReleasedAndTakenIn()
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         ObjectState bird = FreeBird(db, world, 2, 2, PlayerIds.Neutral);
         (bird.HatcheryRoomAnchorTileIndex, bird.ChickenCanEscape) = ((5 * world.Width) + 7, false);
         Build(db, world, 2, 2);
@@ -132,7 +132,7 @@ public class HatcheryAdoptionTests
     [Fact]
     public void AMergeReleasesTheAbsorbedRoomsBirdsThatStandOffItsTiles()
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         Build(db, world, 1, 2);
         Build(db, world, 3, 2);
         ObjectState away = FreeBird(db, world, 2, 1);

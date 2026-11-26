@@ -6,6 +6,7 @@ using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.Simulation.Combat;
+using DK2.Simulation.Steering;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -138,7 +139,7 @@ public class DeathFallTests
     private static (GameSimulation, CreatureState, Dk2Lcg) Setup(uint seed, (int Dx, int Dy)[] open)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int dy = -1; dy <= 1; dy++)
         for (int dx = -1; dx <= 1; dx++)
             world.Tile(At.X + dx, At.Y + dy).TerrainId = (dx, dy) == (0, 0) || open.Contains((dx, dy))
@@ -176,7 +177,7 @@ public class DeathFallTests
         byte behind, bool steps)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int ty = 1; ty < world.Height - 1; ty++)
         for (int tx = 1; tx < world.Width - 1; tx++)
             world.Tile(tx, ty).TerrainId = Dk2TerrainFixture.DirtPath;
@@ -214,7 +215,7 @@ public class DeathFallTests
     public void TheFallenCreaturesBodyStaysWhereItFell_ConfirmedInCapture()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int ty = 1; ty < world.Height - 1; ty++)
         for (int tx = 1; tx < world.Width - 1; tx++)
             world.Tile(tx, ty).TerrainId = Dk2TerrainFixture.DirtPath;
@@ -222,7 +223,7 @@ public class DeathFallTests
         CreatureDef stepping = db.CreatureById(goblin.CreatureTypeId) with { DeathFallStepY = 3223 };
         goblin.Heading = 893;
         DK2.Simulation.Navigation.WorldSteering.SyncBody(goblin);
-        var fell = goblin.Body.Pos;
+        Fixed16Vector fell = goblin.Body.Pos;
         int x = goblin.PosX, y = goblin.PosY;
         var sim = new GameSimulation(db, world, 1, [new Run(context =>
         {

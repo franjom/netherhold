@@ -34,7 +34,7 @@ public sealed class PossessionTests
             basis.Creatures.Values.Select(c => horny && c.CreatureId == Dk2TerrainFixture.GoblinCreatureId
                 ? c with { Flags = c.Flags | CreatureFlags.IsHorny } : c), basis.Variables, [spell],
             objects: basis.Objects.Values, shots: basis.Shots.Values.Append(shot));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         var at = new TilePos(10, 10);
         world.Tile(at).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -48,7 +48,7 @@ public sealed class PossessionTests
     [Fact]
     public void CastSetsPossessedIdPaysAndKeepsStateAndAction_StronglyInferredFromBinary()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Dk2StateId = 199;
         target.SwingInProgress = true;
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
@@ -67,7 +67,7 @@ public sealed class PossessionTests
     [Fact]
     public void ExistingPossessionRefusesEffectAfterOrdinaryCastPayment_StronglyInferredFromBinary()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         CreatureState first = world.SpawnCreature(db, target.CreatureTypeId, Keeper, new TilePos(11, 10));
         world.Player(Keeper).PossessedCreatureId = first.Id;
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
@@ -80,7 +80,7 @@ public sealed class PossessionTests
     [Fact]
     public void PossessedPointerSurvivesSnapshotAndActivatesInstantDeathGate_StronglyInferredFromBinary()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         var systems = new ISimulationSystem[] { new KeeperSpellSystem(), new ShotSystem() };
         var sim = new GameSimulation(db, world, 1, systems);
         sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, SpellId, target.Id)));
@@ -105,7 +105,7 @@ public sealed class PossessionTests
     [InlineData(280)]
     public void TargetSixRefusesTheOriginalStateBranchesWithoutPaying(int state)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Dk2StateId = state;
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, SpellId, target.Id)));
@@ -116,7 +116,7 @@ public sealed class PossessionTests
     [Fact]
     public void LeaveClearsPointerAndFlagAndRunsTheCombatLeaveHook_StronglyInferredFromBinary()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Dk2StateId = 199;
         var sim = new GameSimulation(db, world, 1,
             [new KeeperSpellSystem(), new ShotSystem(), new PossessionSystem()]);
@@ -131,7 +131,7 @@ public sealed class PossessionTests
     [Fact]
     public void InfluenceDeadlineAndFlagsSurviveSnapshot_StronglyInferredFromBinary()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Possessed = true;
         target.InfluencedByPossessed = true;
         target.NextPossessionInfluenceTick = new GameTick(45);
@@ -147,7 +147,7 @@ public sealed class PossessionTests
     [Fact]
     public void InfluenceRefreshIsStrictAndHasNoRadius_StronglyInferredFromBinary()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
             {
@@ -180,7 +180,7 @@ public sealed class PossessionTests
     [Fact]
     public void LeavingFrozenPossessionEndsTheActionAndEntersFrozen_StronglyInferredFromBinary()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Possessed = true;
         target.FrozenTicks = 5;
         target.SwingInProgress = true;
@@ -195,7 +195,7 @@ public sealed class PossessionTests
     [Fact]
     public void PossessionKeepsTrainingClaimButPausesWorkAndLeaveReleasesIt_StronglyInferredFromBinary()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         for (int y = 9; y <= 11; y++)
             for (int x = 9; x <= 11; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TrainingRoom), Keeper);
@@ -225,7 +225,7 @@ public sealed class PossessionTests
     [InlineData(Dk2TerrainFixture.GoblinCreatureId)]
     public void OwnLandHealingContinuesEveryTurnWhileNeedsPause(byte creatureType)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         CreatureState imp = world.SpawnCreature(db, creatureType, Keeper, target.Tile);
         imp.Possessed = true;
         imp.Health = 100;
@@ -243,7 +243,7 @@ public sealed class PossessionTests
     [Fact]
     public void PossessedDeathLeavesImmediatelyAndClearsInfluence_StronglyInferredFromBinary()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Possessed = true;
         target.Health = 0;
         world.Player(Keeper).PossessedCreatureId = target.Id;
@@ -265,7 +265,7 @@ public sealed class PossessionTests
     public void BodySpeedUsesTheSpeedStatAndPossessionPriority_StronglyInferredFromBinary(
         bool possessed, bool influenced, int expectedEntitySpeed)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, target.Tile);
         db.Variables.CreatureStats.Add(new((int)CreatureStatId.Speed, 200, 1, true));
         target.Possessed = possessed;
@@ -284,7 +284,7 @@ public sealed class PossessionTests
     public void PossessionSpeedTruncatesIntegerUnitsAndClampsUnsignedProducts(
         int stat, bool influenced, int expectedEntitySpeed)
     {
-        var (basis, world, target) = Setup();
+        (GameDatabase? basis, WorldState? world, CreatureState? target) = Setup();
         basis.Variables.CreatureStats.Add(new((int)CreatureStatId.Speed, stat, 0, true));
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(d => d.CreatureId == target.CreatureTypeId
@@ -299,7 +299,7 @@ public sealed class PossessionTests
     [Fact]
     public void PossessionScalesTheAlreadyClampedPrecedingSpeedEffect()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         db.Variables.CreatureStats.Add(new((int)CreatureStatId.Speed, -50, 0, true));
         target.Possessed = true;
         target.SpeedEffectTicks = 5;
@@ -318,7 +318,7 @@ public sealed class PossessionTests
     [InlineData("horny")]
     public void TargetSixRefusesItsFlagAndOwnershipBranchesWithoutPayment(string refusal)
     {
-        var (db, world, target) = Setup(horny: refusal == "horny");
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup(horny: refusal == "horny");
         switch (refusal)
         {
             case "held": target.InHand = true; break;
@@ -339,7 +339,7 @@ public sealed class PossessionTests
     [InlineData(2)]
     public void EveryNewPossessionFieldChangesTheStateHash(int field)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         var sim = new GameSimulation(db, world, 1, []);
         ulong before = sim.StateHash();
         switch (field)
@@ -358,12 +358,12 @@ public sealed class PossessionTests
     [InlineData(6)]
     public void PossessionPausesCallToArmsStateAndArrivalWithoutRandomDraws(int state)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Possessed = true;
         target.Dk2StateId = state;
         target.UtilityNewState = CallToArmsRules.ArrivedState;
         var sim = new GameSimulation(db, world, 1, [new CallToArmsSystem()]);
-        var random = sim.Rng.SaveState();
+        (ulong S0, ulong S1, ulong S2, ulong S3) random = sim.Rng.SaveState();
         sim.Tick(InputFrame.Empty);
         Assert.Equal(state, target.Dk2StateId);
         Assert.Equal(CallToArmsRules.ArrivedState, target.UtilityNewState);
@@ -374,7 +374,7 @@ public sealed class PossessionTests
     [Fact]
     public void PossessionKeepsTheCallToArmsFlagRecallRunning()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Possessed = true;
         target.HeedingCallToArms = true;
         target.Dk2StateId = CallToArmsRules.ArrivedState;
@@ -396,13 +396,13 @@ public sealed class PossessionTests
     [InlineData(6)]
     public void PossessionPausesChickenStateAndArrivalWhileItsCountdownContinues(int state)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Possessed = true;
         target.Dk2StateId = state;
         target.UtilityNewState = ChickenRules.ChickenState;
         target.ChickenTicks = 5;
         var sim = new GameSimulation(db, world, 1, [new CreatureStatusSystem(), new ChickenSystem()]);
-        var random = sim.Rng.SaveState();
+        (ulong S0, ulong S1, ulong S2, ulong S3) random = sim.Rng.SaveState();
         sim.Tick(InputFrame.Empty);
         Assert.Equal(state, target.Dk2StateId);
         Assert.Equal(ChickenRules.ChickenState, target.UtilityNewState);
@@ -418,7 +418,7 @@ public sealed class PossessionTests
     [Fact]
     public void AStoredActionStillLandsWhilePossessedWithoutAutonomousFightAcquisition()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         CreatureState enemy = world.SpawnCreature(db, target.CreatureTypeId, PlayerIds.Good, target.Tile);
         target.Possessed = true;
         world.Player(Keeper).PossessedCreatureId = target.Id;

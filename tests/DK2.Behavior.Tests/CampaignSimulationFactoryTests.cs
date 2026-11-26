@@ -39,7 +39,7 @@ public class CampaignSimulationFactoryTests
             // Moving or choosing its next point: which one at this turn depends on the stream's draws.
             Assert.Contains(rat.ProcessState, new[] { ObjectMovementRules.MovingProcess.Value, RatRules.WanderingProcess.Value });
         });
-        var positions = rats.Select(rat => (rat.PosX, rat.PosY)).ToArray();
+        (int PosX, int PosY)[] positions = rats.Select(rat => (rat.PosX, rat.PosY)).ToArray();
         simulation.Run(20);
         Assert.All(rats.Select((rat, index) => (rat, index)), item =>
             Assert.NotEqual(positions[item.index], (item.rat.PosX, item.rat.PosY)));
@@ -80,10 +80,10 @@ public class CampaignSimulationFactoryTests
         string install = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "Level8")!;
-        var players = GameDatabaseLoader.LoadCampaignPlayers(install, "Level8")!;
-        var things = GameDatabaseLoader.LoadCampaignThings(install, "Level8")!;
-        var level = GameDatabaseLoader.LoadCampaignLevel(install, "Level8")!;
-        var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, "Level8")!;
+        List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, "Level8")!;
+        List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "Level8")!;
+        LevelDef level = GameDatabaseLoader.LoadCampaignLevel(install, "Level8")!;
+        List<TriggerRecord> triggers = GameDatabaseLoader.LoadCampaignTriggers(install, "Level8")!;
         return CampaignSimulationFactory.Create(db, map, level, players, things, triggers, 1);
     }
 }

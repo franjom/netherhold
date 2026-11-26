@@ -27,7 +27,7 @@ public sealed class JailBreakTests
     private static (GameDatabase, WorldState) World(int size = 5)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Hero, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Hero, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 8; y++)
         for (int x = 1; x <= 12; x++)
         {

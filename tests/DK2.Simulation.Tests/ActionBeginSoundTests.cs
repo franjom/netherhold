@@ -37,7 +37,7 @@ public sealed class ActionBeginSoundTests
         var database = new GameDatabase(fixture.Terrain.Values, fixture.Rooms.Values,
             fixture.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.ImpCreatureId ? c with { ArtSlots = art } : c),
             fixture.Variables, objects: fixture.Objects.Values, keeperSpells: fixture.KeeperSpells.Values);
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
         ref TileState tile = ref world.Tile(Face);
         tile.TerrainId = kind == TileWorkKind.MineGold ? Dk2TerrainFixture.Gold : Dk2TerrainFixture.Rock;
@@ -59,7 +59,7 @@ public sealed class ActionBeginSoundTests
     [Fact]
     public void ADiggingImpAsks334WhenItsDigActionBeginsAndAgainEachTimeItsClipWraps_TheCadenceIsOursOfTheBeginGate()
     {
-        var (sim, events, imp) = Worker(TileWorkKind.Dig, entered: 100);
+        (GameSimulation? sim, ListEventSink? events, CreatureState? imp) = Worker(TileWorkKind.Dig, entered: 100);
         sim.Run(40);
 
         ThingSoundRequest[] heard = Heard(events, 0x334);
@@ -80,7 +80,7 @@ public sealed class ActionBeginSoundTests
     [Fact]
     public void AMiningImpAsks109ForActionTwoAndNot334()
     {
-        var (sim, events, _) = Worker(TileWorkKind.MineGold, entered: 100);
+        (GameSimulation? sim, ListEventSink? events, CreatureState _) = Worker(TileWorkKind.MineGold, entered: 100);
         sim.Run(40);
 
         Assert.NotEmpty(Heard(events, 0x109));
@@ -91,7 +91,7 @@ public sealed class ActionBeginSoundTests
     [Fact]
     public void AWallGoneBeforeTheFirstTurnEndsTheWorkStateAndAsksNothing_NotGuardedByTheBeginBranchItself()
     {
-        var (sim, events, _) = Worker(TileWorkKind.Dig, entered: 100);
+        (GameSimulation? sim, ListEventSink? events, CreatureState _) = Worker(TileWorkKind.Dig, entered: 100);
         sim.World.Tile(Face).TerrainId = Dk2TerrainFixture.DirtPath;
         sim.World.Tile(Face).SetTaggedBy(Keeper, false);
         sim.Run(10);
@@ -109,7 +109,7 @@ public sealed class ActionBeginSoundTests
     public void AnImpRepairingAWallAsks10COnceAtTheFirstCallOfItsWorkState_ModelsOnlyTheFirstBegin()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         var at = new TilePos(8, 5);
         ref TileState floor = ref world.Tile(at);
         floor.TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -148,7 +148,7 @@ public sealed class ActionBeginSoundTests
     private static (GameDatabase Db, WorldState World) Open()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;

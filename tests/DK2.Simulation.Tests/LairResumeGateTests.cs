@@ -17,7 +17,7 @@ public sealed class LairResumeGateTests
     [InlineData(56)]
     public void SavedMakingAHomeResumeRefusesAcquisitionOutsideTravel(int state)
     {
-        var (sim, creature, attempt) = Start(state, LairRules.MakingAHomeState);
+        (GameSimulation? sim, CreatureState? creature, Attempt? attempt) = Start(state, LairRules.MakingAHomeState);
         uint seed = ((Dk2Lcg)sim.Rng.Algorithm).Seed;
 
         sim.Tick();
@@ -34,7 +34,7 @@ public sealed class LairResumeGateTests
     [InlineData(53)]
     public void OtherSavedResumesStillAllowTheBedlessChooserToAcquire(int resume)
     {
-        var (sim, creature, attempt) = Start(CreatureJobSystem.IdleChooserState, resume);
+        (GameSimulation? sim, CreatureState? creature, Attempt? attempt) = Start(CreatureJobSystem.IdleChooserState, resume);
 
         sim.Tick();
 
@@ -47,7 +47,7 @@ public sealed class LairResumeGateTests
     private static (GameSimulation, CreatureState, Attempt) Start(int state, int resume)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3]);
         for (int y = 1; y <= 3; y++)
             for (int x = 1; x <= 8; x++)
             {

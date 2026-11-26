@@ -42,7 +42,7 @@ public class KwdEffectWriterTests
     public void EveryShippedEffectTypedOverlayIsByteIdentical()
     {
         KwdChunk chunk = KwdReader.ReadFile(Path.Combine(Dk2InstallGate.Path, "Data", "editor", "Effects.kwd")).Single();
-        var rows = KwdAdditionalRecords.ParseEffects([chunk]); var images = KwdRecordRoundTrip.Split(chunk);
+        List<EffectDef> rows = KwdAdditionalRecords.ParseEffects([chunk]); List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(370, rows.Count);
         for (int i = 0; i < rows.Count; i++) Assert.Equal(images[i].ToBytes(), KwdAdditionalRecords.WriteEffectRecord(rows[i], images[i]));
     }

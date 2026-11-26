@@ -43,7 +43,7 @@ public class KwdThingEditingTests
             ["triggers.kld"]=[KwdLevelFileSetTests.Fixture(KwdRecordType.Triggers,Trigger(213,13),1)] });
         byte[] original=editor.ToBytes("things.kld"); byte[] body=new byte[24];
         var row=(ObjectThing)KwdThings.Parse(194,body);
-        var template=KwdThingsWriterTests.Image(194,body);
+        KwdRecordImage template =KwdThingsWriterTests.Image(194,body);
         Assert.Throws<InvalidDataException>(()=>editor.InsertThing(new("things.kld",0,0),row with { TriggerId=14 },template));
         Assert.Throws<ArgumentOutOfRangeException>(()=>editor.InsertThing(new("things.kld",0,1),row,template));
         Assert.Equal(original,editor.ToBytes("things.kld"));

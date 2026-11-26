@@ -31,7 +31,7 @@ public class MoodMessageTests
     [Fact]
     public void ACrossingToUnhappyPosts17ToTheOwnerWithTheComplaintAndTheCreature()
     {
-        var (_, world, goblin, state) = Goblin();
+        (GameDatabase _, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         CreatureAngerRules.Apply(world, goblin, state, AngerBucket.Lair,
             CreatureAngerRules.UnhappyAt(goblin), AngerComplaint.NoLair);
 
@@ -46,7 +46,7 @@ public class MoodMessageTests
     public void Data1IsTheComplaintNotTheBucket()
     {
         // The pay charge lands in bucket 4 and sends complaint 2 (0x00478EF0).
-        var (_, world, goblin, state) = Goblin();
+        (GameDatabase _, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         var delta = new CreatureAnger { Pay = CreatureAngerRules.UnhappyAt(goblin) };
         CreatureAngerRules.Apply(world, goblin, state, delta, CreatureAngerRules.NeedComplaints);
 
@@ -59,7 +59,7 @@ public class MoodMessageTests
     {
         // 0x00478D00 adds lair before food (ADR-0651), so the lair add makes the crossing and
         // the food add finds the band already changed.
-        var (_, world, goblin, state) = Goblin();
+        (GameDatabase _, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         int unhappy = CreatureAngerRules.UnhappyAt(goblin);
         var delta = new CreatureAnger { Hunger = unhappy, Lair = unhappy };
         CreatureAngerRules.ApplyNeeds(world, goblin, state, delta);
@@ -70,7 +70,7 @@ public class MoodMessageTests
     [Fact]
     public void ACrossingFromUnhappyToAngryPosts18()
     {
-        var (_, world, goblin, state) = Goblin();
+        (GameDatabase _, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         CreatureAngerRules.Apply(goblin, state, AngerBucket.Lair, CreatureAngerRules.UnhappyAt(goblin));
         CreatureAngerRules.Apply(world, goblin, state, AngerBucket.Treatment,
             CreatureAngerRules.Ceiling + 1, AngerComplaint.Slapped);
@@ -83,7 +83,7 @@ public class MoodMessageTests
     [Fact]
     public void AJumpFromContentToAngryPostsOnly18()
     {
-        var (_, world, goblin, state) = Goblin();
+        (GameDatabase _, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         CreatureAngerRules.Apply(world, goblin, state, AngerBucket.Work,
             CreatureAngerRules.Ceiling + 1, AngerComplaint.NoWork);
 
@@ -93,7 +93,7 @@ public class MoodMessageTests
     [Fact]
     public void AnAddThatLeavesTheBandWhereItWasPostsNothing()
     {
-        var (_, world, goblin, state) = Goblin();
+        (GameDatabase _, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         CreatureAngerRules.Apply(world, goblin, state, AngerBucket.Lair, 100, AngerComplaint.NoLair);
         Assert.Empty(world.Messages.Entries);
 
@@ -105,7 +105,7 @@ public class MoodMessageTests
     [Fact]
     public void ANegativeAmountPostsNothingEvenWhenTheBandFallsToUnhappy()
     {
-        var (_, world, goblin, state) = Goblin();
+        (GameDatabase _, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         CreatureAngerRules.Apply(goblin, state, AngerBucket.Treatment, 40000);
         Assert.Equal(CreatureMood.Angry, CreatureAngerRules.MoodOf(goblin, state));
 
@@ -130,7 +130,7 @@ public class MoodMessageTests
     [Fact]
     public void WithAngerSwitchedOffNothingIsAddedOrPosted()
     {
-        var (_, world, goblin, state) = Goblin();
+        (GameDatabase _, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         PaydayTests.SwitchAngerOff(world);
         CreatureAngerRules.Apply(world, goblin, state, AngerBucket.Lair, 40000, AngerComplaint.NoLair);
 
@@ -141,7 +141,7 @@ public class MoodMessageTests
     [Fact]
     public void ForgettingABucketPostsNothing()
     {
-        var (_, world, goblin, state) = Goblin();
+        (GameDatabase _, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         CreatureAngerRules.Apply(goblin, state, AngerBucket.Lair, 40000);
         CreatureAngerRules.Forget(world, goblin, state, AngerBucket.Lair);
 
@@ -151,7 +151,7 @@ public class MoodMessageTests
     [Fact]
     public void ASecondCreaturesCrossingIsSwallowedByTheFirstUnexpired17()
     {
-        var (db, world, goblin, first) = Goblin();
+        (GameDatabase? db, WorldState? world, CreatureDef? goblin, CreatureState? first) = Goblin();
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 2));
         int unhappy = CreatureAngerRules.UnhappyAt(goblin);
         CreatureAngerRules.Apply(world, goblin, first, AngerBucket.Lair, unhappy, AngerComplaint.NoLair);
@@ -164,7 +164,7 @@ public class MoodMessageTests
     [Fact]
     public void AFull256QueueEvictsItsOldestRecordForA17()
     {
-        var (_, world, goblin, state) = Goblin();
+        (GameDatabase _, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         for (int i = 0; i < PlayerMessageQueue.Capacity; i++)
             world.Messages.Post(world, Keeper, PlayerMessageKind.CombatStarted, i, 0);
         uint oldest = world.Messages.Entries[0].Id;
@@ -180,7 +180,7 @@ public class MoodMessageTests
     [Fact]
     public void TheSweepFreesA17OnceItsCreatureIsNoLongerUnhappy()
     {
-        var (db, world, goblin, state) = Goblin();
+        (GameDatabase? db, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         var sim = new GameSimulation(db, world, seed: 1, []);
         CreatureAngerRules.Apply(world, goblin, state, AngerBucket.Lair,
             CreatureAngerRules.UnhappyAt(goblin), AngerComplaint.NoLair);
@@ -196,7 +196,7 @@ public class MoodMessageTests
     [Fact]
     public void TheSweepFreesAn18WhoseCreatureFellBackToUnhappy()
     {
-        var (db, world, goblin, state) = Goblin();
+        (GameDatabase? db, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         var sim = new GameSimulation(db, world, seed: 1, []);
         CreatureAngerRules.Apply(world, goblin, state, AngerBucket.Lair, 40000, AngerComplaint.NoLair);
         Assert.Equal(PlayerMessageKind.CreatureAngry, Assert.Single(world.Messages.Entries).Kind);
@@ -210,7 +210,7 @@ public class MoodMessageTests
     [Fact]
     public void A17WhoseCreatureIsGoneLastsItsFiftySeconds()
     {
-        var (db, world, goblin, state) = Goblin();
+        (GameDatabase? db, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         var sim = new GameSimulation(db, world, seed: 1, []);
         CreatureAngerRules.Apply(world, goblin, state, AngerBucket.Lair,
             CreatureAngerRules.UnhappyAt(goblin), AngerComplaint.NoLair);

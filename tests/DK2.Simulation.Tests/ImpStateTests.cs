@@ -28,7 +28,7 @@ public class ImpStateTests
                 database.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.ImpCreatureId
                     ? c with { TurnRate = turnRate } : c), database.Variables, objects: database.Objects.Values,
                 keeperSpells: database.KeeperSpells.Values);
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt);
 

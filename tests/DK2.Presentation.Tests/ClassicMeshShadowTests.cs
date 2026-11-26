@@ -13,7 +13,7 @@ public class ClassicMeshShadowTests
     public void ReceiverIsOnTheGroundAndExtendsAwayFromTheLight()
     {
         Assert.True(ClassicMeshShadow.TryProject(new(new(0, 1.5f, 0), .5f, 1.01f),
-            new(new(-1, 2, 0), 2.5f), out var shadow));
+            new(new(-1, 2, 0), 2.5f), out ClassicShadowProjection shadow));
         Assert.Equal(1.01f, shadow.Centre.Y);
         Assert.Equal(Vector3.UnitX, shadow.AlongAxis);
         Assert.InRange(shadow.Centre.X, .24966f, .24968f);
@@ -29,7 +29,7 @@ public class ClassicMeshShadowTests
     public void StrengthUsesNativeDistanceFadeAndCap(float distance, float expected)
     {
         Assert.True(ClassicMeshShadow.TryProject(new(new(0, 1, 0), .25f, 1),
-            new(new(-distance, 1, 0), 2.5f), out var shadow));
+            new(new(-distance, 1, 0), 2.5f), out ClassicShadowProjection shadow));
         Assert.InRange(shadow.Strength, expected - .00001f, expected + .00001f);
     }
 
@@ -39,7 +39,7 @@ public class ClassicMeshShadowTests
         var caster = new ClassicShadowCaster(new(0, 1, 0), .25f, 1);
         Assert.False(ClassicMeshShadow.TryProject(caster, new(new(0, 3.5f, 0), 2.5f), out _));
         Assert.False(ClassicMeshShadow.TryProject(caster, new(new(-1, 1, 0), 1f), out _));
-        Assert.True(ClassicMeshShadow.TryProject(caster, new(new(-1, 1, 0), 1.2f), out var shadow));
+        Assert.True(ClassicMeshShadow.TryProject(caster, new(new(-1, 1, 0), 1.2f), out ClassicShadowProjection shadow));
         Assert.InRange(shadow.Strength, .24999f, .25001f);
     }
 
@@ -47,7 +47,7 @@ public class ClassicMeshShadowTests
     public void ALightDirectlyAboveProducesFiniteUnstretchedGeometry()
     {
         Assert.True(ClassicMeshShadow.TryProject(new(new(0, 1.5f, 0), .3f, 1),
-            new(new(0, 2, 0), 2.5f), out var shadow));
+            new(new(0, 2, 0), 2.5f), out ClassicShadowProjection shadow));
         Assert.Equal(new Vector3(0, 1, 0), shadow.Centre);
         Assert.Equal(.3f, shadow.HalfLength);
         Assert.Equal(0, shadow.AngleRadians);

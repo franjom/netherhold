@@ -39,7 +39,7 @@ public class TaskStealingTests
     private static Run Start(int pathEndX = 4)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int x = 4; x <= pathEndX; x++)
         {

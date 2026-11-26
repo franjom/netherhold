@@ -16,7 +16,7 @@ public sealed class PartyArrivalTests
     [Fact]
     public void RetainedCorpseDoesNotPreventAPartyFromReusingItsFreedSlot()
     {
-        var (db, world, _) = Spawn();
+        (GameDatabase? db, WorldState? world, CreatureState _) = Spawn();
         CreatureState? last = null;
         for (int i = 1; i < 448; i++) last = world.SpawnCreature(db, Type, Keeper, new TilePos(7, 7));
         CreatureDeathRules.BecomeCorpse(world, db, last!);
@@ -38,7 +38,7 @@ public sealed class PartyArrivalTests
                 KnockdownAnimation = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 26, FramesPerSecond = 30 },
                 GetUpAnimation = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 43, FramesPerSecond = 30 },
             } : c), basis.Variables, objects: basis.Objects.Values, shots: basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < 19; y++)
             for (int x = 1; x < 19; x++) world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
@@ -71,7 +71,7 @@ public sealed class PartyArrivalTests
     [InlineData(Dk2TerrainFixture.HeroGateTileTerrain, 269)]
     public void OriginalSpawnTerrainSelectsArrival_TheTwoLargeGatesBypassIt(byte terrain, int expected)
     {
-        var (_, _, hero) = Spawn(terrain);
+        (GameDatabase _, WorldState _, CreatureState? hero) = Spawn(terrain);
         Assert.Equal(expected, hero.Dk2StateId);
         Assert.Equal(expected == 269, hero.ReaperHidden);
         Assert.Equal(0u, hero.ReaperStateAgeTicks);
@@ -85,7 +85,7 @@ public sealed class PartyArrivalTests
     [InlineData(8u, 269)]
     public void ArrivalUsesExactCounterEightAndOneHandlerPerUpdate(uint age, int expected)
     {
-        var (db, world, hero) = Spawn();
+        (GameDatabase? db, WorldState? world, CreatureState? hero) = Spawn();
         hero.Dk2StateId = 269;
         hero.ReaperHidden = true;
         hero.ReaperStateAgeTicks = age;
@@ -101,7 +101,7 @@ public sealed class PartyArrivalTests
     [Fact]
     public void ArrivalWaitPreventsScanningTargetingAndSteering_RecoveryIsTargetable()
     {
-        var (db, world, hero) = Spawn();
+        (GameDatabase? db, WorldState? world, CreatureState? hero) = Spawn();
         var sim = new GameSimulation(db, world, 1,
             [new TremorCreatureSystem(), new HeroSystem(), new CreatureMovementSystem()]);
         int x = hero.PosX, y = hero.PosY;
@@ -130,7 +130,7 @@ public sealed class PartyArrivalTests
     [Fact]
     public void NonGatePartyRunsTheFullActionDrivenSequenceBeforeItsHeroJob()
     {
-        var (db, world, hero) = Spawn();
+        (GameDatabase? db, WorldState? world, CreatureState? hero) = Spawn();
         var sim = new GameSimulation(db, world, 1, [new TremorCreatureSystem(), new HeroSystem()]);
         sim.Run(8);
         Assert.Equal(210, hero.Dk2StateId);
@@ -152,7 +152,7 @@ public sealed class PartyArrivalTests
     [Fact]
     public void StartingKnockdownEndsTheOldSwingAndTunnelAction()
     {
-        var (db, world, hero) = Spawn();
+        (GameDatabase? db, WorldState? world, CreatureState? hero) = Spawn();
         hero.Dk2StateId = 210;
         hero.SwingInProgress = true;
         hero.Tunnel.Digging = true;
@@ -169,11 +169,11 @@ public sealed class PartyArrivalTests
     [InlineData(8)]
     public void SaveAtHiddenWaitOrFirstAirborneStepContinuesIdentically(int ticks)
     {
-        var (db, world, hero) = Spawn();
+        (GameDatabase? db, WorldState? world, CreatureState? hero) = Spawn();
         ISimulationSystem[] systems = [new TremorCreatureSystem(), new CreatureMovementSystem()];
         var sim = new GameSimulation(db, world, 1, systems);
         sim.Run(ticks);
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db,
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db,
             [new TremorCreatureSystem(), new CreatureMovementSystem()]);
         Assert.Equal(ticks == 7 ? 269 : 210, hero.Dk2StateId);
         Assert.Equal(ticks == 7 ? 0 : 0x100, hero.PosZ);

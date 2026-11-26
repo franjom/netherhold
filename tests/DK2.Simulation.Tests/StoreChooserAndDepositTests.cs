@@ -19,7 +19,7 @@ public class StoreChooserAndDepositTests
     private static (GameDatabase Db, WorldState World) World()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         return (database, world);
     }
@@ -196,7 +196,7 @@ public class StoreChooserAndDepositTests
         int FourDraws(bool aimed)
         {
             GameDatabase db = Dk2TerrainFixture.Database();
-            WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+            var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
             CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
             imp.LastTaskKind = ImpTaskKind.Claim;
             imp.DroppedTask = aimed ? ImpTaskKind.Claim : ImpTaskKind.None;

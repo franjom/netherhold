@@ -13,12 +13,12 @@ public sealed class FootprintTests
     [Fact]
     public void LeavingWaterProducesFortyRequestsIncludingWhileStationary()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         world.Tile(2, 2).TerrainId = Dk2TerrainFixture.Water;
         world.Tile(3, 2).TerrainId = Dk2TerrainFixture.ClaimedPath;
-        var creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId,
+        CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId,
             PlayerIds.FirstKeeper, new TilePos(2, 2));
         var sim = new GameSimulation(db, world, 1, [new FootprintSystem()]);
         var events = new ListEventSink();
@@ -33,7 +33,7 @@ public sealed class FootprintTests
     [Fact]
     public void DefaultPipelineIncludesFootprintsBeforeMovement()
     {
-        var systems = SimulationSystems.Default();
+        ISimulationSystem[] systems = SimulationSystems.Default();
         Assert.True(Array.FindIndex(systems, s => s is FootprintSystem)
             < Array.FindIndex(systems, s => s is CreatureUpdateSystem update && update.Steps.Any(step => step is CreatureMovementSystem)));
         Assert.Single(systems.OfType<FootprintSystem>());
@@ -42,8 +42,8 @@ public sealed class FootprintTests
     [Fact]
     public void CorpseSuppliesBloodOnItsWholeTileAndWaterWashesItOff()
     {
-        var (sim, creature, events) = Model();
-        var corpse = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId,
+        (GameSimulation? sim, CreatureState? creature, ListEventSink? events) = Model();
+        CreatureState corpse = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId,
             PlayerIds.Neutral, creature.Tile);
         CreatureDeathRules.BecomeCorpse(sim.World, sim.Database, corpse);
         corpse.PosX += 1700;
@@ -70,8 +70,8 @@ public sealed class FootprintTests
     [InlineData(false, true)]
     public void HeldAndCarriedCorpsesDoNotSupplyBlood(bool held, bool carried)
     {
-        var (sim, creature, events) = Model();
-        var corpse = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId,
+        (GameSimulation? sim, CreatureState? creature, ListEventSink? events) = Model();
+        CreatureState corpse = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId,
             PlayerIds.Neutral, creature.Tile);
         CreatureDeathRules.BecomeCorpse(sim.World, sim.Database, corpse);
         corpse.InHand = held;
@@ -85,12 +85,12 @@ public sealed class FootprintTests
     [InlineData(true)]
     public void RaisedOrFlyingCreatureLosesBothTrails(bool flying)
     {
-        var (sim, creature, events) = Model();
+        (GameSimulation? sim, CreatureState? creature, ListEventSink? events) = Model();
         creature.BloodFootprintTicks = 12;
         creature.WaterFootprintTicks = 13;
         if (flying)
         {
-            var definition = sim.Database.CreatureById(creature.CreatureTypeId);
+            CreatureDef definition = sim.Database.CreatureById(creature.CreatureTypeId);
             var db = new GameDatabase(sim.Database.Terrain.Values, sim.Database.Rooms.Values,
                 [definition with { Flags = definition.Flags | CreatureFlags.CanFly }], sim.Database.Variables);
             sim = new GameSimulation(db, sim.World, 1, [new FootprintSystem()]);
@@ -106,14 +106,14 @@ public sealed class FootprintTests
     [Fact]
     public void SaveRoundTripPreservesCountersAndTheRemainingRequests()
     {
-        var (sim, creature, events) = Model();
+        (GameSimulation? sim, CreatureState? creature, ListEventSink? events) = Model();
         creature.BloodFootprintTicks = 11;
         creature.WaterFootprintTicks = 7;
         ulong hash = sim.StateHash();
         creature.WaterFootprintTicks++;
         Assert.NotEqual(hash, sim.StateHash());
         creature.WaterFootprintTicks--;
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, [new FootprintSystem()]);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, [new FootprintSystem()]);
         var restoredEvents = new ListEventSink();
         restored.ObserveWith(restoredEvents);
         Assert.Equal(hash, restored.StateHash());
@@ -127,11 +127,11 @@ public sealed class FootprintTests
 
     private static (GameSimulation Simulation, CreatureState Creature, ListEventSink Events) Model()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         foreach (int x in new[] { 2, 3, 4 }) world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ClaimedPath;
-        var creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId,
+        CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId,
             PlayerIds.FirstKeeper, new TilePos(2, 2));
         var events = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new FootprintSystem()]);

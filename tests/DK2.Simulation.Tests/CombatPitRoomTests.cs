@@ -46,7 +46,7 @@ public sealed class CombatPitRoomTests
                 ? r with { RoomEffect421Id = effects ? (ushort)90 : (ushort)0, CreatedObjectEffectId = effects ? (ushort)52 : (ushort)0 } : r),
             basis.Creatures.Values, basis.Variables, basis.KeeperSpells.Values, objects: basis.Objects.Values, shots: basis.Shots.Values,
             level: tickRate is { } rate ? Level(rate) : null);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(16, 16), [PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(16, 16), [PlayerIds.Neutral, Keeper]);
         for (int y = 4; y <= 8; y++)
         for (int x = 4; x <= 8; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
@@ -107,7 +107,7 @@ public sealed class CombatPitRoomTests
     public void ReloadingBothDisabledEffectsStillConsumesTwoRandomDraws()
     {
         (GameSimulation sim, _, _) = Setup();
-        SimRandom oracle = SimRandom.Restore(sim.Rng.SaveState());
+        var oracle = SimRandom.Restore(sim.Rng.SaveState());
         oracle.NextInt(SimulationTiming.OriginalTicksPerGameSecond * 4);
         oracle.NextInt(SimulationTiming.OriginalTicksPerGameSecond * 32);
         sim.Tick();
@@ -342,7 +342,7 @@ public sealed class CombatPitRoomTests
         int anchor = CombatPitRules.PitAt(sim.World, sim.Database, sim.World.TileIndex(new TilePos(6, 6)))!.TileIndices[0];
         sim.World.TileAtIndex(anchor).PitAmbientShortTicks = 3;
         sim.World.TileAtIndex(anchor).PitAmbientLongTicks = 2;
-        var before = sim.Rng.SaveState();
+        (ulong S0, ulong S1, ulong S2, ulong S3) before = sim.Rng.SaveState();
         sim.Tick();
         Assert.Equal(before, sim.Rng.SaveState());
         Assert.Equal((2, 1), ((int)sim.World.TileAtIndex(anchor).PitAmbientShortTicks, (int)sim.World.TileAtIndex(anchor).PitAmbientLongTicks));

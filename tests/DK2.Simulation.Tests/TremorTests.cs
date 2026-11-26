@@ -36,7 +36,7 @@ public sealed class TremorTests
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values,
             basis.Variables, [spell], objects: basis.Objects.Values,
             shots: basis.Shots.Values.Where(s => s.ShotId != shot.ShotId).Append(shot));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper, (byte)(Keeper + 1)]);
         world.Player(Keeper).Mana = spell.ManaCost * 3;
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, spell.KeeperSpellId, 3));
@@ -52,13 +52,13 @@ public sealed class TremorTests
     [InlineData(true)]
     public void CastPaysOnceAndKeepsTheResearchedDuration_StronglyInferredFromBinary(bool upgraded)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         world.SetUpgraded(Keeper, AvailabilityKind.Spell, 8, upgraded);
         ISimulationSystem[] systems = [new KeeperSpellSystem(), new ShotSystem(), new TremorSystem()];
         var sim = new GameSimulation(db, world, 1, systems);
         sim.Run(3);
         sim.Tick(InputFrame.Of(Cast()));
-        var spell = db.KeeperSpellById(8)!;
+        KeeperSpellDef spell = db.KeeperSpellById(8)!;
         int durationTicks = spell.Shot(upgraded).Data1 * SimulationTiming.OriginalTicksPerGameSecond;
         TremorState active = Assert.Single(world.Tremors, t => t.Radius != 0);
         Assert.Equal((uint)3, active.StartedAt);
@@ -77,7 +77,7 @@ public sealed class TremorTests
     [Fact]
     public void NoFloorConsumesOnlyTheSquareSample_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         world.Tile(At).TerrainId = Dk2TerrainFixture.ReinforcedWall;
         world.Tile(At).OwnerPlayerId = Keeper;
         world.Tile(At).Health = db.TerrainById(Dk2TerrainFixture.ReinforcedWall).StartingHealth;
@@ -94,7 +94,7 @@ public sealed class TremorTests
     [InlineData(Keeper + 1)]
     public void FloorFallbackDamagesOwnedReinforcementWithoutAnOwnerFilter_StronglyInferredFromBinary(byte owner)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         TilePos wall = new(At.X, At.Y - 1);
         world.Tile(wall).TerrainId = Dk2TerrainFixture.ReinforcedWall;
         world.Tile(wall).OwnerPlayerId = owner;
@@ -112,7 +112,7 @@ public sealed class TremorTests
     [Fact]
     public void WallDamageUsesTheTerrainConversionAtZeroHealth_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         TilePos wall = new(At.X, At.Y - 1);
         world.Tile(wall).TerrainId = Dk2TerrainFixture.ReinforcedWall;
         world.Tile(wall).OwnerPlayerId = Keeper;
@@ -131,7 +131,7 @@ public sealed class TremorTests
     [Fact]
     public void AWallBrokenByATremorRequestsF4InTerrainWallAtItsCentreLikeTheApplierItCalls()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         TilePos wall = new(At.X, At.Y - 1);
         world.Tile(wall).TerrainId = Dk2TerrainFixture.ReinforcedWall;
         world.Tile(wall).OwnerPlayerId = Keeper;
@@ -160,7 +160,7 @@ public sealed class TremorTests
         public int NextInt(int exclusiveMax)
         {
             Assert.True(_next < draws.Length, "Unexpected RNG draw.");
-            var draw = draws[_next++];
+            (int Bound, int Value) draw = draws[_next++];
             Assert.Equal(draw.Bound, exclusiveMax);
             return draw.Value;
         }
@@ -170,7 +170,7 @@ public sealed class TremorTests
     [Fact]
     public void SquareSampleUsesRemainderForXAndQuotientForY_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         world.Tile(At).TerrainId = Dk2TerrainFixture.Rock;
         var floor = new TilePos(12, 9);
         var wall = new TilePos(12, 8);
@@ -189,7 +189,7 @@ public sealed class TremorTests
     [Fact]
     public void TileChainReactsNewestFirstAndDoesNotDamageCreatureHealth_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         world.Tile(At).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(At).OwnerPlayerId = Keeper;
         CreatureState older = world.SpawnCreature(db, Dk2TerrainFixture.WarlockCreatureId, Keeper, At);
@@ -213,7 +213,7 @@ public sealed class TremorTests
     [Fact]
     public void FullSlotsEvictTheFirstOldestTieAndNarrowBeforeCapping_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         var sim = new GameSimulation(db, world, 1, [new Probe(context =>
         {
             for (int i = 0; i < 9; i++)
@@ -228,7 +228,7 @@ public sealed class TremorTests
             Assert.Equal((ushort)20, t.DurationTicks);
             Assert.Equal((ushort)0x5000, t.Radius);
         });
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
         Assert.Equal(world.Tremors.ToArray(), restored.World.Tremors.ToArray());
         Assert.Equal(sim.StateHash(), restored.StateHash());
     }
@@ -236,7 +236,7 @@ public sealed class TremorTests
     [Fact]
     public void UnavailableOrUnaffordableCastsHaveNoShotOrWorldEffect_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         world.Player(Keeper).Mana = db.KeeperSpellById(8)!.ManaCost - 1;
         var sim = new GameSimulation(db, world, new SimRandom(new Draws()),
             [new KeeperSpellSystem(), new ShotSystem(), new TremorSystem()]);
@@ -265,7 +265,7 @@ public sealed class TremorTests
     [InlineData(4)]
     public void EveryWorldRecordFieldAffectsHashAndSurvivesSave_StronglyInferredFromBinary(int field)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         var sim = new GameSimulation(db, world, 1, []);
         ulong before = sim.StateHash();
         TremorState record = field switch
@@ -278,7 +278,7 @@ public sealed class TremorTests
         };
         Assert.IsAssignableFrom<IList<TremorState>>(world.Tremors)[0] = record;
         Assert.NotEqual(before, sim.StateHash());
-        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
         Assert.Equal(record, copy.World.Tremors[0]);
         Assert.Equal(sim.StateHash(), copy.StateHash());
     }
@@ -286,18 +286,18 @@ public sealed class TremorTests
     [Fact]
     public void ActiveAndExpiredRecordsSurviveASnapshot_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         ISimulationSystem[] systems = [new KeeperSpellSystem(), new ShotSystem(), new TremorSystem()];
         var sim = new GameSimulation(db, world, 7, systems);
         sim.Run(3);
         sim.Tick(InputFrame.Of(Cast()));
-        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, systems);
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, systems);
         Assert.Equal(sim.StateHash(), copy.StateHash());
         sim.Run(30);
         copy.Run(30);
         Assert.Equal(sim.StateHash(), copy.StateHash());
         Assert.Equal(world.Tremors.ToArray(), copy.World.Tremors.ToArray());
-        var expired = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, systems);
+        GameSimulation expired = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, systems);
         Assert.Equal(sim.StateHash(), expired.StateHash());
     }
 }

@@ -21,7 +21,7 @@ public sealed class HandCursorArtTests
     public void AnchorsAreTheClawTipsOfTheShippedSheet(HandCursorKind kind)
     {
         HandCursorSprite sprite = HandCursor.Sprite(kind);
-        using WadArchive archive = WadArchive.Open(Path.Combine(Dk2InstallGate.Path, "Data", "Sprite.WAD"));
+        using var archive = WadArchive.Open(Path.Combine(Dk2InstallGate.Path, "Data", "Sprite.WAD"));
         (int width, int height, byte[] alpha) = DecodeAlpha(archive.Extract(sprite.FileName));
         int frameHeight = (int)sprite.FrameSize.Y;
         Assert.Equal((int)sprite.FrameSize.X, width);
@@ -71,7 +71,7 @@ public sealed class HandCursorArtTests
         using var raw = new MemoryStream();
         inflate.CopyTo(raw);
         byte[] bytes = raw.ToArray();
-        var alpha = new byte[width * height];
+        byte[] alpha = new byte[width * height];
         int[][] passes = interlace == 0
             ? [[0, 0, 1, 1]]
             : [[0, 0, 8, 8], [4, 0, 8, 8], [0, 4, 4, 8], [2, 0, 4, 4], [0, 2, 2, 4], [1, 0, 2, 2], [0, 1, 1, 2]];
@@ -82,8 +82,8 @@ public sealed class HandCursorArtTests
             int passHeight = (height - pass[1] + pass[3] - 1) / pass[3];
             if (passWidth <= 0 || passHeight <= 0) continue;
             int stride = passWidth * 4;
-            var previous = new byte[stride];
-            var line = new byte[stride];
+            byte[] previous = new byte[stride];
+            byte[] line = new byte[stride];
             for (int row = 0; row < passHeight; row++)
             {
                 byte filter = bytes[offset];

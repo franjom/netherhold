@@ -25,7 +25,7 @@ public sealed class CombatPitPersistenceTests
             default: sim.World.Creatures[0].CombatPitAction = CombatPitActionId.AtLevelCap; break;
         }
         Assert.NotEqual(before, sim.StateHash());
-        WorldState copy = WorldState.CopyOf(sim.World);
+        var copy = WorldState.CopyOf(sim.World);
         GameSimulation saved = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database);
         Assert.Equal(sim.StateHash(), saved.StateHash());
         Assert.Equal(sim.World.TileAtIndex(0).PitAmbientShortTicks, copy.TileAtIndex(0).PitAmbientShortTicks);

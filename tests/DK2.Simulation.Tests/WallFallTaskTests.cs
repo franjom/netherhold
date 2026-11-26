@@ -22,7 +22,7 @@ public sealed class WallFallTaskTests
     private static (GameSimulation Sim, ListEventSink Events, CreatureState Imp) Start(int state, TilePos? at = null)
     {
         GameDatabase db = IdleActionClockTests.WithImpIdleArt(Dk2TerrainFixture.Database());
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         foreach (TilePos own in new TilePos[] { new(3, 2), new(2, 2), new(3, 3), new(3, 1) })
         {
             world.Tile(own).TerrainId = Dk2TerrainFixture.ClaimedPath;

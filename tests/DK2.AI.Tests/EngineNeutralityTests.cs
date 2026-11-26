@@ -17,7 +17,7 @@ public class EngineNeutralityTests
     public void TheKeeperAI_ReferencesNoEngineAssembly()
     {
         string[] engines = ["Unity", "Godot", "UnityEngine", "UnityEditor"];
-        List<string> offenders = Assembly.Load("DK2.AI").GetReferencedAssemblies()
+        var offenders = Assembly.Load("DK2.AI").GetReferencedAssemblies()
             .Where(r => r.Name is not null && engines.Any(e =>
                 r.Name.StartsWith(e, StringComparison.OrdinalIgnoreCase)))
             .Select(r => r.Name!)

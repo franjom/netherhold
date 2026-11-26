@@ -28,14 +28,14 @@ public class ReinforceEligibilityTests
     [InlineData(Dk2TerrainFixture.ImpenetrableRock, 2, 0, false)]
     public void Kind6SelectionUsesExactOwnerHealthAndTerrainGates(byte terrain, byte owner, int health, bool expected)
     {
-        var sim = Start(terrain, owner, health);
+        GameSimulation sim = Start(terrain, owner, health);
         Assert.Equal(expected, ReinforcementRules.CanStart(sim.World, sim.Database, new TilePos(2, 2), 3));
     }
 
     [Fact]
     public void NeutralOwnableWallNeedsTouchingOwnFloorInTheSelectionPredicate()
     {
-        var sim = Start(Dk2TerrainFixture.ReinforcedWall, 2, 100);
+        GameSimulation sim = Start(Dk2TerrainFixture.ReinforcedWall, 2, 100);
         sim.World.Tile(2, 3).OwnerPlayerId = 2;
         Assert.False(ReinforcementRules.CanStart(sim.World, sim.Database, new TilePos(2, 2), 3));
     }
@@ -44,7 +44,7 @@ public class ReinforceEligibilityTests
     public void NeutralFormerKeeperWallHealsPastHalfWithoutBecomingOwned()
     {
         // Inject the post-defeat neutral wall state; this is not a native capture.
-        var sim = Start(Dk2TerrainFixture.ReinforcedWall, 2, 449);
+        GameSimulation sim = Start(Dk2TerrainFixture.ReinforcedWall, 2, 449);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
         sim.Run(350);
@@ -57,7 +57,7 @@ public class ReinforceEligibilityTests
     [Fact]
     public void OwnWallBelowHalfTakesKind6ButTheNeutralOnlyActionDoesNoWork()
     {
-        var sim = Start(Dk2TerrainFixture.ReinforcedWall, 3, 100);
+        GameSimulation sim = Start(Dk2TerrainFixture.ReinforcedWall, 3, 100);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
         sim.Run(60);
@@ -72,7 +72,7 @@ public class ReinforceEligibilityTests
     {
         // 0x0046AEA0 keeps kind 6 and kind 16 in separate pool entries with their own side slots,
         // and runs the kind-16 pass once no kind-6 side starts a walk.
-        var sim = Start(Dk2TerrainFixture.ReinforcedWall, 3, 100);
+        GameSimulation sim = Start(Dk2TerrainFixture.ReinforcedWall, 3, 100);
         sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(2, 3));
         bool together = false;
         for (int i = 0; i < 600; i++)
@@ -90,7 +90,7 @@ public class ReinforceEligibilityTests
     [Fact]
     public void DamagedNeutralRockIsReinforcedAndTaken()
     {
-        var sim = Start(Dk2TerrainFixture.Rock, 2, 600);
+        GameSimulation sim = Start(Dk2TerrainFixture.Rock, 2, 600);
         sim.Run(100);
         Assert.Equal(Dk2TerrainFixture.ReinforcedWall, sim.World.Tile(2, 2).TerrainId);
         Assert.Equal(3, sim.World.Tile(2, 2).OwnerPlayerId);
@@ -99,7 +99,7 @@ public class ReinforceEligibilityTests
     [Fact]
     public void HeldKind6TaskSurvivesCrossingHalfHealthBeforeEntry21()
     {
-        var sim = Start(Dk2TerrainFixture.ReinforcedWall, 2, 449);
+        GameSimulation sim = Start(Dk2TerrainFixture.ReinforcedWall, 2, 449);
         CreatureState imp = sim.World.Creatures[0];
         bool selected = false;
         for (int i = 0; i < 30; i++)
@@ -120,7 +120,7 @@ public class ReinforceEligibilityTests
     [InlineData(4, 100)]
     public void NeutralWallAtHalfAndRivalWallGetNoReinforceJob(byte owner, int health)
     {
-        var sim = Start(Dk2TerrainFixture.ReinforcedWall, owner, health);
+        GameSimulation sim = Start(Dk2TerrainFixture.ReinforcedWall, owner, health);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
         sim.Run(60);
@@ -131,8 +131,8 @@ public class ReinforceEligibilityTests
 
     private static GameSimulation Start(byte terrain, byte owner, int health)
     {
-        var db = Dk2TerrainFixture.Database();
-        var tiles = Enumerable.Repeat(new MapTile(Dk2TerrainFixture.ImpenetrableRock, 2, 0, 0), 25).ToArray();
+        GameDatabase db = Dk2TerrainFixture.Database();
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(Dk2TerrainFixture.ImpenetrableRock, 2, 0, 0), 25).ToArray();
         tiles[17] = new MapTile(Dk2TerrainFixture.ClaimedPath, 3, 0, 0);
         var world = WorldState.FromMap(db, new LevelMap(5, 5, tiles), [(byte)2, (byte)3, (byte)4]);
         ref TileState target = ref world.Tile(2, 2);

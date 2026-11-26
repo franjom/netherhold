@@ -352,14 +352,14 @@ public class CombatNonFighterTests
 
         // The Knight's 37 against the Imp's 2 at three quarters: a deficit of (37 − 1) × 3 / 2 = 54.
         sim.Run(5);
-        var alarm = Assert.Single(sink.Events, e => e.Kind == "raises_alarm");
+        SimEvent alarm = Assert.Single(sink.Events, e => e.Kind == "raises_alarm");
         Assert.Contains("deficit=54", alarm.Detail);
         Assert.Equal(CreatureActivity.RaisingAlarm, imp.Activity);
         Assert.True(imp.Running);
 
         // Two Goblins of 37 cover 54; the third stays at work.
         sim.Run(40);
-        var raised = Assert.Single(sink.Events, e => e.Kind == "alarm_raised");
+        SimEvent raised = Assert.Single(sink.Events, e => e.Kind == "alarm_raised");
         Assert.Contains("sent=2", raised.Detail);
         int reporting = new[] { first, second, third }.Count(g => g.Activity is CreatureActivity.Reporting or CreatureActivity.Fighting);
         Assert.Equal(2, reporting);
@@ -398,7 +398,7 @@ public class CombatNonFighterTests
         sim.ObserveWith(sink);
 
         var responders = new HashSet<int>();
-        var seen = StateTrace.Of(sim, imp, 45, observeTick: () =>
+        List<(int State, int Saved, int Resume)> seen = StateTrace.Of(sim, imp, 45, observeTick: () =>
         {
             foreach (CreatureState g in goblins)
                 if (g.StateBeforeUtilityState == JobRules.StateFor(JobType.Sulk)
@@ -536,7 +536,7 @@ public class CombatNonFighterTests
     private static (GameDatabase, WorldState) OpenWorld()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
         {

@@ -237,7 +237,7 @@ public class OriginalGeometryTests(ITestOutputHelper log)
         IReadOnlyList<Outcome> original, Func<int, string> at, string[] arms)
     {
         var mismatches = new List<string>();
-        var reached = arms.ToDictionary(a => a, _ => 0);
+        Dictionary<string, int> reached = arms.ToDictionary(a => a, _ => 0);
         for (int i = 0; i < count; i++)
         {
             if (original[i].Fault is { } fault)

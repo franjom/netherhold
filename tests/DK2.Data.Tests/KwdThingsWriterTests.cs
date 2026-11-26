@@ -58,7 +58,7 @@ public class KwdThingsWriterTests
     [Fact]
     public void InvalidTemplatesAndVariableLengthPayloadsAreRefused()
     {
-        var obj = KwdThings.Parse(194,new byte[24]);
+        ThingRecord obj = KwdThings.Parse(194,new byte[24]);
         Assert.Throws<InvalidDataException>(() => KwdThings.WriteRecord(obj,Image(195,new byte[16])));
         Assert.Throws<InvalidDataException>(() => KwdThings.WriteRecord((ObjectThing)obj with { Unknown_0008 = new byte[3] },Image(194,new byte[24])));
         var party=(HeroPartyThing)KwdThings.Parse(201,new byte[555]);
@@ -76,7 +76,7 @@ public class KwdThingsWriterTests
             .Where(p=>p.EndsWith(".kwd",StringComparison.OrdinalIgnoreCase)||p.EndsWith(".kld",StringComparison.OrdinalIgnoreCase)))
         foreach(KwdChunk chunk in KwdReader.ReadFile(file).Where(c=>c.Type==KwdRecordType.Things))
         {
-            var rows=KwdThings.Parse([chunk]); var images=KwdRecordRoundTrip.Split(chunk);
+                List<ThingRecord> rows =KwdThings.Parse([chunk]); List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
             for(int i=0;i<rows.Count;i++) Assert.Equal(images[i].ToBytes(),KwdThings.WriteRecord(rows[i],images[i]));
             count+=rows.Count;
         }

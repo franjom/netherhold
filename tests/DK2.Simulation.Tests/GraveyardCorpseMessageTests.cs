@@ -20,7 +20,7 @@ public class GraveyardCorpseMessageTests
 
     private static WorldState World(int availability = RoomNeedRules.Available)
     {
-        WorldState world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         List<AvailabilityState> rows = world.Player(Keeper).Availabilities;
         rows.RemoveAll(a => a.Kind == AvailabilityKind.Room && a.TypeId == (int)RoomTypeId.Graveyard);
         rows.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Graveyard, availability));

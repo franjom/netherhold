@@ -17,7 +17,7 @@ public sealed class FootprintEffectTests
     [InlineData((ushort)100, "waterfoot", 0x100u)]
     public void DirectFlatArtAppearsAtBirthAndExpiresAfterFiftyViewUpdates(ushort id, string art, uint flags)
     {
-        var effect = Definition(id, art, flags);
+        EffectDef effect = Definition(id, art, flags);
         var db = new GameDatabase([], [], [], new GlobalVariables(), effects: [effect]);
         var model = new RoomConstructionParticles(db, 1, () => new EffectTime(0));
         var point = new FpPosition3(new(8192), new(12288), new(0));
@@ -46,8 +46,8 @@ public sealed class FootprintEffectTests
     [InlineData((ushort)100, "waterfoot", 0x100u)]
     public void ShippedFootprintsUseTheResearchedDirectSpriteDefinitions(ushort id, string art, uint flags)
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var effect = db.Effects[id];
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        EffectDef effect = db.Effects[id];
         Assert.Equal(art, effect.ArtResource.Name);
         Assert.Equal(flags, effect.ArtResource.Flags);
         Assert.Equal(0, effect.GenerationType);

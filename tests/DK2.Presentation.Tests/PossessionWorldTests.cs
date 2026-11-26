@@ -65,7 +65,7 @@ public sealed class PossessionWorldTests
     [InstallFact]
     public void AStepIsAllowedOntoOpenGroundAndRefusedIntoRock_StronglyInferredFromBinary()
     {
-        var (_, _, view, _, open, wall) = Level1();
+        (GameDatabase _, WorldState _, PossessionWorld? view, CreatureState _, TilePos open, TilePos wall) = Level1();
 
         Assert.True(view.CanStepTo(open.X - 1, open.Y));
         Assert.False(view.CanStepTo(wall.X, wall.Y));
@@ -77,7 +77,7 @@ public sealed class PossessionWorldTests
     [InstallFact]
     public void ThePossessedSpeedsAreTheDefinitionsWithThePossessionStat_StronglyInferredFromBinary()
     {
-        var (db, _, view, me, _, _) = Level1();
+        (GameDatabase? db, WorldState _, PossessionWorld? view, CreatureState? me, TilePos _, TilePos _) = Level1();
         CreatureDef def = db.CreatureById(me.CreatureTypeId);
         int stat = db.FirstPersonStat(CreatureStatId.Speed) + 100;
 
@@ -93,7 +93,7 @@ public sealed class PossessionWorldTests
     [InstallFact]
     public void AWeakNonWorkerMovesAtAFifth_StronglyInferredFromBinary()
     {
-        var (_, world, view, me, _, _) = Level1();
+        (GameDatabase _, WorldState? world, PossessionWorld? view, CreatureState? me, TilePos _, TilePos _) = Level1();
         int healthy = view.Body().WalkSpeed;
         me.Health = 1;
         view.Bind(world, me);
@@ -106,7 +106,7 @@ public sealed class PossessionWorldTests
     [InstallFact]
     public void AStepIntoAnotherCreatureStopsWhereTheBodiesTouch_StronglyInferredFromBinary()
     {
-        var (db, world, view, me, open, _) = Level1();
+        (GameDatabase? db, WorldState? world, PossessionWorld? view, CreatureState? me, TilePos open, TilePos _) = Level1();
         int startX = me.PosX, y = me.PosY;
         CreatureState other = Spawn(db, world, me.CreatureTypeId, new TilePos(open.X - 1, open.Y));
         other.PosX = startX - 0x800;

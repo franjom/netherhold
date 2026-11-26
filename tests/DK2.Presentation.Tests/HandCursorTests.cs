@@ -199,7 +199,7 @@ public sealed class HandCursorTests
              new(PlayerInputTargetKind.Creature, 2, new TilePos(6, 5))]);
         var hover = new WorldHoverHit(WorldHoverKind.Creature, new TilePos(5, 5), 2);
         var translator = new PlayerInputTranslator();
-        var frame = translator.Translate(new PlayerIntent(PlayerIds.FirstKeeper, PlayerToolMode.Hand,
+        InputFrame frame = translator.Translate(new PlayerIntent(PlayerIds.FirstKeeper, PlayerToolMode.Hand,
             hover.Tile, PointerButtonTransition.Pressed), snapshot.ForHover(hover));
         Assert.Equal(2, Assert.IsType<PickUpCreatureCommand>(Assert.Single(frame.All)).CreatureId);
         Assert.Empty(snapshot.ForHover(new WorldHoverHit(WorldHoverKind.Tile, hover.Tile)).Targets);
@@ -214,7 +214,7 @@ public sealed class HandCursorTests
             rooms: [], creatures: [], variables: new GlobalVariables());
         var map = new LevelMap(5, 1,
             [new MapTile(1, 2, 0, 0), new MapTile(1, 1, 0, 0), new MapTile(3, 0, 0, 0), new MapTile(1, 2, 0, 0), new MapTile(1, 1, 0, 0)]);
-        WorldState world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
         var viewer = new PlayerId(2);
         world.Tile(0, 0).SetExploredBy(viewer);
         world.Tile(2, 0).SetExploredBy(viewer);

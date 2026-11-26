@@ -17,7 +17,7 @@ public class TreasuryCaptureTests
     private static (GameDatabase, WorldState, RoomInstance) Treasury()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 2; y < 4; y++)
             for (int x = 2; x < 4; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Treasury), Keeper);
@@ -49,7 +49,7 @@ public class TreasuryCaptureTests
     {
         // Only the Treasury's slot +0x0D banks (0x004F3C40); a Lair has none of it.
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         RoomRules.Place(db, ref world.Tile(2, 2), db.Room(RoomTypeId.Lair), Keeper);
         FloorGold.Drop(world, db, 2 * world.Width + 2, 50);
 

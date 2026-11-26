@@ -9,6 +9,7 @@ using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
 using DK2.TestSupport;
+using DK2.Art.Kmf;
 namespace DK2.Presentation.Tests;
 public sealed class LightningStagingTests
 {
@@ -58,10 +59,10 @@ public sealed class LightningStagingTests
         LightningStaging stage = Assert.IsType<LightningStaging>(LightningStaging.Prepare(simulation, Viewer, []));
         CreatureState target = simulation.World.CreatureById(stage.Target.Value)!;
         CreatureDef definition = simulation.Database.CreatureById(target.CreatureTypeId);
-        using InstallArtProvider art = InstallArtProvider.Open(Dk2InstallGate.Path, simulation.Database);
-        Assert.True(art.TryResolve(AssetRef.ForCreature(definition.Name, AssetKind.Animation, "stunned"), out var asset));
-        Assert.True(art.TryLoadModel(asset, out var model));
-        RenderMesh mesh = RenderMesh.FromModel(model);
+        using var art = InstallArtProvider.Open(Dk2InstallGate.Path, simulation.Database);
+        Assert.True(art.TryResolve(AssetRef.ForCreature(definition.Name, AssetKind.Animation, "stunned"), out ResolvedAsset asset));
+        Assert.True(art.TryLoadModel(asset, out KmfModel? model));
+        var mesh = RenderMesh.FromModel(model);
         LightningControlPoint[] controls = mesh.TaggedPoints.Select(point =>
             LightningControlPoint.FromRenderWorld(point.Id, mesh.Positions[point.VertexIndex])).ToArray();
         Assert.Equal(17, controls.Count(point => point.Id < 2000));
@@ -84,7 +85,7 @@ public sealed class LightningStagingTests
             {
                 Assert.True(simulation.World.CurrentTick.Value >= 31);
                 Assert.Contains(commands, command => command is CastSpellOnCreatureCommand { SpellId: KeeperSpellRules.Thunderbolt });
-                var command = Assert.Single(commands.OfType<CastSpellOnCreatureCommand>());
+                CastSpellOnCreatureCommand command = Assert.Single(commands.OfType<CastSpellOnCreatureCommand>());
                 Assert.Equal(stage.TargetTile, simulation.World.CreatureById(command.CreatureId)!.Tile);
                 Assert.NotEqual(stage.Focus, stage.TargetTile);
                 Assert.True(simulation.World.Player(Viewer).Mana >= simulation.Database.KeeperSpellById(KeeperSpellRules.Thunderbolt)!.ManaCost);

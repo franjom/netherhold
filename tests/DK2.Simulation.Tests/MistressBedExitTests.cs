@@ -18,7 +18,7 @@ public sealed class MistressBedExitTests
     [InlineData(512, -16)]
     public void AReadyMistressUsesTheInferredBedClipClockBeforeWandering(int heading, int offsetY)
     {
-        var (sim, creature, bed) = Start();
+        (GameSimulation? sim, CreatureState? creature, ObjectState? bed) = Start();
         bed.Heading = heading;
         creature.ActionUntilTick = 999;
         creature.PosZ = 999; bed.PosZ = 1234;
@@ -36,7 +36,7 @@ public sealed class MistressBedExitTests
     [Fact]
     public void TheExitNeitherPaysDebtNorRefreshesTheLastSleepStamp()
     {
-        var (sim, creature, _) = Start();
+        (GameSimulation? sim, CreatureState? creature, ObjectState _) = Start();
         StatePlacement.Place(creature, 84);
         creature.Health = 1;
         creature.SleepDebtTicks = 9;
@@ -52,7 +52,7 @@ public sealed class MistressBedExitTests
     [Fact]
     public void AnExitWithoutABedKeepsItsState()
     {
-        var (sim, creature, _) = Start();
+        (GameSimulation? sim, CreatureState? creature, ObjectState _) = Start();
         LairRules.ReleaseBed(sim.World, sim.Database, creature);
         StatePlacement.Place(creature, 84);
         sim.Run(8);
@@ -62,10 +62,10 @@ public sealed class MistressBedExitTests
     [Fact]
     public void SavingDuringTheInferredExitClockPreservesItsRemainingTime()
     {
-        var (sim, creature, _) = Start();
+        (GameSimulation? sim, CreatureState? creature, ObjectState _) = Start();
         StatePlacement.Place(creature, 83);
         sim.Run(3);
-        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, [new CreatureSleepSystem()]);
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, [new CreatureSleepSystem()]);
         Assert.Equal(84, Assert.Single(copy.World.Creatures).Dk2StateId);
         for (int i = 0; i < 7; i++)
         {
@@ -78,7 +78,7 @@ public sealed class MistressBedExitTests
     [Fact]
     public void TheInferredBedExitLeavesWanderingForTheFollowingTurn()
     {
-        var (original, creature, _) = Start();
+        (GameSimulation? original, CreatureState? creature, ObjectState _) = Start();
         var sim = new GameSimulation(original.Database, original.World, 42,
             [new CreatureUpdateSystem(new CreatureSleepSystem(), new CreatureJobSystem())]);
         StatePlacement.Place(creature, 83);
@@ -89,11 +89,11 @@ public sealed class MistressBedExitTests
     [Fact]
     public void TheCompletionPoseStampIsSavedAndContributesToTheHash()
     {
-        var (sim, creature, _) = Start();
+        (GameSimulation? sim, CreatureState? creature, ObjectState _) = Start();
         ulong before = sim.StateHash();
         creature.LastBedExitTick = new GameTick(5);
         Assert.NotEqual(before, sim.StateHash());
-        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, [new CreatureSleepSystem()]);
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, [new CreatureSleepSystem()]);
         Assert.Equal(new GameTick(5), Assert.Single(copy.World.Creatures).LastBedExitTick);
         Assert.Equal(sim.StateHash(), copy.StateHash());
     }
@@ -107,7 +107,7 @@ public sealed class MistressBedExitTests
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => c.CreatureId == 4 ? c with { LairObjectId = 23 } : c),
             basis.Variables, objects: basis.Objects.Values.Append(bedDef));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper.Value]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper.Value]);
         RoomRules.Place(db, ref world.Tile(Tile), db.Room(RoomTypeId.Lair), Keeper);
         CreatureState creature = world.SpawnCreature(db, 4, Keeper, Tile);
         ObjectState bed = LairRules.PlaceBed(world, db, creature, world.TileIndex(Tile));

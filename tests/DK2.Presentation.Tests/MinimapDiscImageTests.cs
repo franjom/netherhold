@@ -21,7 +21,7 @@ public sealed class MinimapDiscImageTests
 
     private static MinimapDiscImage Disc()
     {
-        var pixels = new byte[128 * 128 * 4];
+        byte[] pixels = new byte[128 * 128 * 4];
         for (int i = 0; i < pixels.Length; i += 4) { pixels[i] = Rock[0]; pixels[i + 1] = Rock[1]; pixels[i + 2] = Rock[2]; pixels[i + 3] = 255; }
         return new MinimapDiscImage(new RgbaImage(128, 128, pixels));
     }
@@ -220,7 +220,7 @@ public sealed class MinimapDiscImageTests
     public void TheBackdropIsReadTopRowFirstAsTheRasterIsIndexed()
     {
         // Texel (x, y) is (y, x, 0); at heading 0 pixel (x, y) samples texel (x, y) exactly.
-        var pixels = new byte[128 * 128 * 4];
+        byte[] pixels = new byte[128 * 128 * 4];
         for (int y = 0; y < 128; y++)
             for (int x = 0; x < 128; x++) { int p = (y * 128 + x) * 4; pixels[p] = (byte)y; pixels[p + 1] = (byte)x; pixels[p + 3] = 255; }
         var disc = new MinimapDiscImage(new RgbaImage(128, 128, pixels));

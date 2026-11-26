@@ -29,7 +29,7 @@ public class SimMatrixTests
             if (system is RoomTickSystem rooms) expected.AddRange(rooms.Steps.Select(Name));
         }
 
-        var rows = Repository.Value.Rows.Select(r => r.Row.Type.ToDisplayString()).ToArray();
+        string[] rows = Repository.Value.Rows.Select(r => r.Row.Type.ToDisplayString()).ToArray();
 
         Assert.Equal(expected, rows);
         Assert.All(Repository.Value.Rows.Where(r => r.Row.Parent > 0),
@@ -48,9 +48,9 @@ public class SimMatrixTests
     [Fact]
     public void BothHubsAreReachedAndTheCoreViewStopsAtThem()
     {
-        var result = Repository.Value;
+        SimMatrixResult result = Repository.Value;
         Assert.All(result.Hubs, h => Assert.NotEmpty(h.Rows));
-        var triggers = result.Rows.Single(r => r.Row.Name == "ActionPointTriggerSystem");
+        RowResult triggers = result.Rows.Single(r => r.Row.Name == "ActionPointTriggerSystem");
         Assert.Contains("TriggerExecutor", triggers.Full.Hubs);
         Assert.Empty(triggers.Core.Hubs);
         Assert.All(result.Rows, r => Assert.True(r.Core.Methods <= r.Full.Methods, r.Row.Name));
@@ -59,7 +59,7 @@ public class SimMatrixTests
     [Fact]
     public void TwoRunsWriteTheSameBytes()
     {
-        var second = SimMatrixAnalysis.Run(Root);
+        SimMatrixResult second = SimMatrixAnalysis.Run(Root);
         Assert.Equal(SimMatrixReport.Markdown(Repository.Value), SimMatrixReport.Markdown(second));
         Assert.Equal(SimMatrixReport.Json(Repository.Value), SimMatrixReport.Json(second));
         Assert.DoesNotContain('\r', SimMatrixReport.Markdown(second));
@@ -111,7 +111,7 @@ public class SimMatrixTests
 
     static MethodSummary Summary(SourceIndex index, string type, string method)
     {
-        var symbol = index.Compilation.GetTypeByMetadataName(type)!.GetMembers(method).OfType<IMethodSymbol>().Single();
+        IMethodSymbol symbol = index.Compilation.GetTypeByMetadataName(type)!.GetMembers(method).OfType<IMethodSymbol>().Single();
         return MethodWalker.Summarise(symbol, index, _ => false, _ => null);
     }
 
@@ -136,18 +136,18 @@ public class SimMatrixTests
     [InlineData("Reassigned", "Holder.Count")]
     public void WritesFollowTheRules(string method, string written)
     {
-        var index = Compile();
-        var summary = Summary(index, "S.Holder", method);
+        SourceIndex index = Compile();
+        MethodSummary summary = Summary(index, "S.Holder", method);
         Assert.Equal(written.Length == 0 ? [] : written.Split(','), Names(summary.Writes));
     }
 
     [Fact]
     public void AConstructorWritingItsOwnInstanceIsNotAWrite()
     {
-        var index = Compile();
-        var constructors = index.Compilation.GetTypeByMetadataName("S.Holder")!.InstanceConstructors;
-        var own = constructors.Single(c => c.Parameters.Length == 0);
-        var other = constructors.Single(c => c.Parameters.Length == 1);
+        SourceIndex index = Compile();
+        System.Collections.Immutable.ImmutableArray<IMethodSymbol> constructors = index.Compilation.GetTypeByMetadataName("S.Holder")!.InstanceConstructors;
+        IMethodSymbol own = constructors.Single(c => c.Parameters.Length == 0);
+        IMethodSymbol other = constructors.Single(c => c.Parameters.Length == 1);
         Assert.Empty(MethodWalker.Summarise(own, index, _ => false, _ => null).Writes);
         Assert.Equal(["Holder.Count", "Holder.Items"], Names(MethodWalker.Summarise(other, index, _ => false, _ => null).Writes));
     }
@@ -155,7 +155,7 @@ public class SimMatrixTests
     [Fact]
     public void RaisingIsRecordedApartFromWrites()
     {
-        var index = Compile();
+        SourceIndex index = Compile();
         Assert.Equal(["Holder.Changed"], Names(Summary(index, "S.Holder", "Raise").Raises));
         Assert.Equal(["Holder.Callback"], Names(Summary(index, "S.Holder", "CallBack").Raises));
     }
@@ -163,7 +163,7 @@ public class SimMatrixTests
     [Fact]
     public void PhasesAndLabelsAreTheSource()
     {
-        var rows = Repository.Value.Rows.Select(r => r.Row).ToArray();
+        SimRow[] rows = Repository.Value.Rows.Select(r => r.Row).ToArray();
         Assert.Equal(["Commands", "RoomLifecycle", "KeeperActions", "ThingPass", "Work", "RoomTicks", "PlayerFrame", "Needs", "Verdict"],
             rows.Select(r => r.Phase).Distinct());
         Assert.Contains(rows, r => r.Name == "HatcherySystem(lays: false, stepObjects: false)");
@@ -175,8 +175,8 @@ public class SimMatrixTests
     public void ReadingARoomInstanceIsReadingRoomsAndRebuildingItIsNot()
     {
         // RoomTickSystem walks every RoomInstance and keeps no room state of its own.
-        var rooms = Array.IndexOf(StateModel.Columns, "Rooms");
-        var walk = Repository.Value.Rows.Single(r => r.Row.Name == "RoomTickSystem");
+        int rooms = Array.IndexOf(StateModel.Columns, "Rooms");
+        RowResult walk = Repository.Value.Rows.Single(r => r.Row.Name == "RoomTickSystem");
         Assert.Equal("R", walk.Core.Cells[rooms]);
         Assert.All(Repository.Value.Rows.Where(r => r.Core.Writes.All(w => !w.StartsWith("TileState.", StringComparison.Ordinal)
                                                                          && !w.StartsWith("WorldState.", StringComparison.Ordinal)
@@ -194,13 +194,13 @@ public class SimMatrixTests
         // TerrainId, OwnerPlayerId, SecretDoor and RoomRuined are properties whose setters count the change, so a write
         // reaches the private field behind them and the counter. The report keeps naming the property, puts the ruin bit
         // (declared among the room fields) in Rooms and the others in Tiles, and leaves the counter out as bookkeeping.
-        var tiles = Array.IndexOf(StateModel.Columns, "Tiles");
-        var rooms = Array.IndexOf(StateModel.Columns, "Rooms");
-        var rows = Repository.Value.Rows;
+        int tiles = Array.IndexOf(StateModel.Columns, "Tiles");
+        int rooms = Array.IndexOf(StateModel.Columns, "Rooms");
+        IReadOnlyList<RowResult> rows = Repository.Value.Rows;
         Assert.DoesNotContain(rows, r => r.Core.Writes.Concat(r.Core.Reads).Any(w => w.StartsWith("TileState._", StringComparison.Ordinal)
                                                                                   || w.StartsWith("TileState.s_", StringComparison.Ordinal)));
-        var ruin = rows.Where(r => r.Core.Writes.Contains("TileState.RoomRuined")).ToArray();
-        var terrain = rows.Where(r => r.Core.Writes.Contains("TileState.TerrainId")).ToArray();
+        RowResult[] ruin = rows.Where(r => r.Core.Writes.Contains("TileState.RoomRuined")).ToArray();
+        RowResult[] terrain = rows.Where(r => r.Core.Writes.Contains("TileState.TerrainId")).ToArray();
         Assert.NotEmpty(ruin);
         Assert.NotEmpty(terrain);
         Assert.All(ruin, r => Assert.Equal("W", r.Core.Cells[rooms]));
@@ -211,24 +211,24 @@ public class SimMatrixTests
     public void AWorldAccessorReturningAListCarriesItsWrites()
     {
         // TempleSacrificeRules removes through WorldState.RawTempleSacrifices => _templeSacrifices.
-        var temple = Repository.Value.Rows.Single(r => r.Row.Name == "TempleSacrificeSystem");
+        RowResult temple = Repository.Value.Rows.Single(r => r.Row.Name == "TempleSacrificeSystem");
         Assert.Contains("WorldState._templeSacrifices", temple.Core.Writes);
     }
 
     [Fact]
     public void AnInterfaceCallReachesEveryImplementation()
     {
-        var index = Compile();
-        var call = Assert.Single(Summary(index, "S.Caller", "Call").Calls);
-        var targets = index.Targets(call).Select(t => t.ContainingType.Name).Order(StringComparer.Ordinal);
+        SourceIndex index = Compile();
+        IMethodSymbol call = Assert.Single(Summary(index, "S.Caller", "Call").Calls);
+        IOrderedEnumerable<string> targets = index.Targets(call).Select(t => t.ContainingType.Name).Order(StringComparer.Ordinal);
         Assert.Equal(["A", "B"], targets);
     }
 
     [Fact]
     public void ADelegateCallIsCountedNotFollowed()
     {
-        var index = Compile();
-        var summary = Summary(index, "S.Holder", "Raise");
+        SourceIndex index = Compile();
+        MethodSummary summary = Summary(index, "S.Holder", "Raise");
         Assert.Equal(1, summary.DelegateCalls);
         Assert.Empty(summary.Calls);
     }

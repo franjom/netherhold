@@ -21,7 +21,7 @@ public sealed class PossessionControlsTests
     public void PickLockRequiresBothTheCameraPointAndCreatureTileToBePrison(bool cameraInPrison, bool creatureInPrison, bool opens)
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [1, 3, 4], fogOfWarEnabled: false);
         byte prison = db.Rooms.Values.Single(r => r.TypeId == RoomTypeId.Prison).TerrainId;
         byte ordinary = db.Terrain.Values.First(t => db.RoomByTerrain(t.TerrainId) == null).TerrainId;

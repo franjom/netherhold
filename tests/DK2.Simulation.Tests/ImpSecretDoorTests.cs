@@ -33,7 +33,7 @@ public sealed class ImpSecretDoorTests
                 ? c with { ArtSlots = art } : c), fixture.Variables, objects: fixture.Objects.Values,
             doors: [new DoorDef { DoorId = 5, Name = "test secret door", Flags = DoorFlags.Secret,
                 Health = 400, GoldCost = 0, ManufactureRequired = 0 }]);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper, Rival]);
         ref TileState tile = ref world.Tile(DoorTile);
         tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
         tile.OwnerPlayerId = Rival;
@@ -51,7 +51,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void MarkingASecretDoorOnFloorFilesWorkAndKeepsTheDigLastKind()
     {
-        var (sim, imp, _, events) = Start();
+        (GameSimulation? sim, CreatureState? imp, DoorState _, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, DoorTile)));
         for (int i = 0; i < 4 && !events.Events.Any(e => e.Kind == "job_taken"); i++) sim.Tick();
         Assert.Contains(events.Events, e => e.Kind == "job_taken" && e.Detail.Contains("SecretDoor"));
@@ -63,7 +63,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void WorkCompletesByClearingConcealmentWithoutDamagingTheDoorOrItsFloor()
     {
-        var (sim, imp, door, events) = Start();
+        (GameSimulation? sim, CreatureState? imp, DoorState? door, ListEventSink? events) = Start();
         int health = sim.World.Tile(DoorTile).Health;
         sim.World.Tile(DoorTile).SecretDoorTasks = PlayerMask.None.With(Rival);
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, DoorTile)));
@@ -81,7 +81,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void RectangleUntagDoesNotRemoveKind11AndItIsNotAnOrdinaryDigTag()
     {
-        var (sim, _, _, _) = Start();
+        (GameSimulation? sim, CreatureState _, DoorState _, ListEventSink _) = Start();
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, DoorTile)));
         sim.Tick(InputFrame.Of(TagTilesCommand.Untag(Keeper, DoorTile)));
         Assert.True(sim.World.Tile(DoorTile).SecretDoorTasks.Contains(Keeper));
@@ -91,14 +91,14 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void SecretFlagAndEachKeepersTaskSurviveSnapshotAndChangeTheHash()
     {
-        var (sim, _, _, _) = Start();
+        (GameSimulation? sim, CreatureState _, DoorState _, ListEventSink _) = Start();
         ulong before = sim.StateHash();
         sim.World.Tile(DoorTile).SecretDoorTasks = PlayerMask.None.With(Keeper).With(Rival);
         Assert.NotEqual(before, sim.StateHash());
         ulong tasksOnly = sim.StateHash();
         sim.World.Creatures[0].SecretDoorTask = true;
         Assert.NotEqual(tasksOnly, sim.StateHash());
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database);
         Assert.Equal(sim.StateHash(), restored.StateHash());
         Assert.True(restored.World.Tile(DoorTile).SecretDoor);
         Assert.Equal(sim.World.Tile(DoorTile).SecretDoorTasks, restored.World.Tile(DoorTile).SecretDoorTasks);
@@ -110,7 +110,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void ExplicitKind11RetryRunsItsWholeMapScannerBeforeTheOrdinaryTiers()
     {
-        var (sim, imp, _, events) = Start();
+        (GameSimulation? sim, CreatureState? imp, DoorState _, ListEventSink? events) = Start();
         sim.World.Tile(DoorTile).SecretDoorTasks = PlayerMask.None.With(Keeper);
         sim.World.Tile(4, 1).TerrainId = Dk2TerrainFixture.Rock;
         sim.World.Tile(4, 1).SetTaggedBy(Keeper, true);
@@ -125,7 +125,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void ASecretFlagUnderTheImpRefusesTheActionAndFallsToIdleWithoutCompletingTheTask()
     {
-        var (sim, imp, _, events) = Start();
+        (GameSimulation? sim, CreatureState? imp, DoorState _, ListEventSink? events) = Start();
         sim.World.Tile(DoorTile).SecretDoorTasks = PlayerMask.None.With(Keeper);
         sim.World.Tile(imp.Tile).SecretDoor = true;
         imp.TargetTileIndex = DoorTile.Y * sim.World.Width + DoorTile.X;
@@ -142,7 +142,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void ARunningSecretDoorActionIsKeptUntilTheStoredAnimationFinishes()
     {
-        var (sim, imp, _, events) = Start(timed: true);
+        (GameSimulation? sim, CreatureState? imp, DoorState _, ListEventSink? events) = Start(timed: true);
         sim.World.Tile(DoorTile).SecretDoorTasks = PlayerMask.None.With(Keeper);
         imp.TargetTileIndex = DoorTile.Y * sim.World.Width + DoorTile.X;
         imp.SecretDoorTask = true;
@@ -163,7 +163,7 @@ public sealed class ImpSecretDoorTests
     [InlineData(true)]
     public void DropScanCanTakeANearSecretDoorBeforeAFartherDigWhileOrdinaryTierADigsFirst(bool dropped)
     {
-        var (sim, imp, _, events) = Start();
+        (GameSimulation? sim, CreatureState? imp, DoorState _, ListEventSink? events) = Start();
         sim.World.Tile(DoorTile).SecretDoorTasks = PlayerMask.None.With(Keeper);
         sim.World.Tile(5, 2).TerrainId = Dk2TerrainFixture.Rock;
         sim.World.Tile(5, 2).SetTaggedBy(Keeper, true);
@@ -181,7 +181,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void AKind11EntryOwnsItsMiddleFaceSlotAndANearerImpCanStealIt()
     {
-        var (sim, holder, _, events) = Start();
+        (GameSimulation? sim, CreatureState? holder, DoorState _, ListEventSink? events) = Start();
         holder.TargetTileIndex = DoorTile.Y * sim.World.Width + DoorTile.X;
         holder.SecretDoorTask = true;
         holder.WorkSlot = 7;
@@ -190,7 +190,7 @@ public sealed class ImpSecretDoorTests
         sim.World.SecretDoorEntries[(Keeper, DoorTile)] = heldEntry;
         holder.Dk2StateId = ImpStates.SecretDoorApproach;
         holder.PosX = CreatureState.CentreOf(1);
-        var taker = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
+        CreatureState taker = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
         taker.Dk2StateId = ImpStates.TaskSelection;
         sim.World.Tile(DoorTile).SecretDoorTasks = PlayerMask.None.With(Keeper);
         sim.Tick();
@@ -203,7 +203,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void ClosedDoorNavigationUsesTheSecretFlagRatherThanOrdinaryDigTags()
     {
-        var (sim, _, _, _) = Start();
+        (GameSimulation? sim, CreatureState _, DoorState _, ListEventSink _) = Start();
         var navigation = new WorldSteering(sim.Database, sim.World);
         navigation.Refresh();
         Assert.Equal((byte)((Rival << 4) | 2), navigation.NavByte(DoorTile.X, DoorTile.Y));
@@ -216,7 +216,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void ARemovedDoorClearsTheFlagAndTheNextHandlerDiscardsTheStaleEntry()
     {
-        var (sim, imp, door, events) = Start();
+        (GameSimulation? sim, CreatureState? imp, DoorState? door, ListEventSink? events) = Start();
         var removing = new GameSimulation(sim.Database, sim.World, 99,
             [new DoorRemovalSystem(), new ImpTaskSystem()]);
         removing.ObserveWith(events);
@@ -235,7 +235,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void AnUnstealableFirstSideRetriesFourTimesRatherThanAdvancingToAFreeSide()
     {
-        var (sim, holder, _, _) = Start();
+        (GameSimulation? sim, CreatureState? holder, DoorState _, ListEventSink _) = Start();
         holder.SecretDoorTask = true;
         holder.TargetTileIndex = DoorTile.Y * sim.World.Width + DoorTile.X;
         holder.WorkSlot = 7;
@@ -258,8 +258,8 @@ public sealed class ImpSecretDoorTests
     [InlineData(453, false)]
     public void PerTileStealingUsesStrictNativeSquaredDistanceWithFiftySlack(int offset, bool stolen)
     {
-        var (sim, holder, _, _) = Start();
-        var stance = MiningSlots.StancePoint(new TilePos(3, 2), 7);
+        (GameSimulation? sim, CreatureState? holder, DoorState _, ListEventSink _) = Start();
+        (long X, long Y) stance = MiningSlots.StancePoint(new TilePos(3, 2), 7);
         holder.PosX = (int)stance.X;
         holder.PosY = (int)stance.Y;
         holder.SecretDoorTask = true;
@@ -282,7 +282,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void CompletingASecretDoorBlueprintSetsTheGlobalConcealmentFlag()
     {
-        var (sim, _, door, _) = Start();
+        (GameSimulation? sim, CreatureState _, DoorState? door, ListEventSink _) = Start();
         door.UnderConstruction = true;
         sim.World.Tile(DoorTile).SecretDoor = false;
         ObjectState crate = FloorGold.Drop(sim.World, sim.Database, 2 * sim.World.Width + 2, 100)!;
@@ -295,7 +295,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void TheSingleDigActionStillStrikesWhenTheFlaggedTileIsADiggableWall()
     {
-        var (sim, imp, _, events) = Start(timed: true);
+        (GameSimulation? sim, CreatureState? imp, DoorState _, ListEventSink? events) = Start(timed: true);
         sim.World.Tile(DoorTile).TerrainId = Dk2TerrainFixture.Rock;
         sim.World.Tile(DoorTile).Health = 30000;
         sim.World.Tile(DoorTile).SecretDoorTasks = PlayerMask.None.With(Keeper);
@@ -315,7 +315,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void CombatCancelsWorkWithoutRevealingTheDoorRemotelyAfterReturningToIdle()
     {
-        var (sim, imp, _, events) = Start();
+        (GameSimulation? sim, CreatureState? imp, DoorState _, ListEventSink? events) = Start();
         sim.World.Tile(DoorTile).SecretDoorTasks = PlayerMask.None.With(Keeper);
         imp.Dk2StateId = ImpStates.TaskSelection;
         sim.Tick();
@@ -344,7 +344,7 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void AnotherKeepersTagCannotReorderThisKeepersEquidistantSecretDoorEntries()
     {
-        var (sim, imp, _, _) = Start();
+        (GameSimulation? sim, CreatureState? imp, DoorState _, ListEventSink _) = Start();
         var other = new TilePos(2, 4);
         sim.World.Tile(other).SecretDoor = true;
         var tagging = new GameSimulation(sim.Database, sim.World, 99, [new TileTagSystem()]);
@@ -364,14 +364,14 @@ public sealed class ImpSecretDoorTests
     [Fact]
     public void EachKeepersEntryOrderAndRetainedHoldersAreHashedAndSaved()
     {
-        var (sim, _, _, _) = Start();
+        (GameSimulation? sim, CreatureState _, DoorState _, ListEventSink _) = Start();
         var tagging = new GameSimulation(sim.Database, sim.World, 99, [new TileTagSystem()]);
         tagging.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, DoorTile), TagTilesCommand.Tag(Rival, DoorTile)));
         SecretDoorTaskEntry entry = sim.World.SecretDoorEntries[(Keeper, DoorTile)];
         ulong before = sim.StateHash();
         entry.Holders[3] = 17;
         Assert.NotEqual(before, sim.StateHash());
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database);
         Assert.Equal(sim.StateHash(), restored.StateHash());
         Assert.Equal(entry.Order, restored.World.SecretDoorEntries[(Keeper, DoorTile)].Order);
         Assert.Equal(17, restored.World.SecretDoorEntries[(Keeper, DoorTile)].Holders[3]);

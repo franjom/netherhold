@@ -79,7 +79,7 @@ public class WikiTests
     [InlineData("  - id: audio\n    title: Audio\n", "needs a title and a scope")]
     public void TheSystemListRejectsADuplicateABadIdAndAMissingField(string extra, string message)
     {
-        var e = Assert.Throws<InvalidDataException>(() => SystemCatalog.Parse(Catalog + "\n" + extra));
+        InvalidDataException e = Assert.Throws<InvalidDataException>(() => SystemCatalog.Parse(Catalog + "\n" + extra));
         Assert.Contains(message, e.Message, StringComparison.Ordinal);
     }
 
@@ -105,7 +105,7 @@ public class WikiTests
     [Fact]
     public void AnUntaggedNoteAndAnUnknownSystemFailTheGate()
     {
-        var context = Context();
+        DocsContext context = Context();
         Assert.Single(Check("docs/research/fear.md", ["# Fear", "text"], context), f => f.Contains("names no systems"));
         Assert.Single(Check("docs/research/fear.md", ["---", "systems: [magic]", "---", "# Fear"], context),
             f => f.Contains("'magic' is not in docs/systems.yaml"));
@@ -158,7 +158,7 @@ public class WikiTests
     [Fact]
     public void AdrsAreParsedFromBothHeaderFormatsAndAnAmendmentStaysWithItsAdr()
     {
-        var adrs = ParseDecisions(Decisions, "fear");
+        IReadOnlyList<Adr> adrs = ParseDecisions(Decisions, "fear");
         Assert.Equal([1, 2, 3], adrs.Select(a => a.Number));
         Assert.Equal(["Integer maths", "a newer header", "an old one"], adrs.Select(a => a.Title));
         Assert.Equal(["accepted", "amended", "superseded"], adrs.Select(a => a.Status));
@@ -172,8 +172,8 @@ public class WikiTests
     [Fact]
     public void AnAdrInheritsItsNotesSystemsUnlessItNamesItsOwn()
     {
-        var context = Context(("fear", ["combat", "rooms"]));
-        var adrs = AdrIndex.Parse(Decisions.Split('\n'), context.NoteNames);
+        DocsContext context = Context(("fear", ["combat", "rooms"]));
+        IReadOnlyList<Adr> adrs = AdrIndex.Parse(Decisions.Split('\n'), context.NoteNames);
         Assert.Equal(["combat", "rooms"], AdrIndex.Systems(adrs[0], context.NoteSystems, context.Catalog));
         Assert.Equal(["rooms"], AdrIndex.Systems(adrs[1], context.NoteSystems, context.Catalog));
         Assert.Empty(AdrIndex.Systems(adrs[2], context.NoteSystems, context.Catalog));
@@ -182,9 +182,9 @@ public class WikiTests
     [Fact]
     public void AReusedAdrNumberAndAnAdrWithNoSystemFailTheGate()
     {
-        var context = Context(("fear", ["combat"]));
+        DocsContext context = Context(("fear", ["combat"]));
         string reused = Decisions + "\n## ADR-0002 — reused\n**Status:** accepted · **Systems:** combat\n";
-        var findings = Check("docs/DECISIONS.md", reused.Split('\n'), context);
+        List<string> findings = Check("docs/DECISIONS.md", reused.Split('\n'), context);
         Assert.Contains(findings, f => f.Contains("ADR-0002 is used by more than one ADR"));
         Assert.Contains(findings, f => f.Contains("ADR-0003 has no system"));
         Assert.DoesNotContain(findings, f => f.Contains("ADR-0001 has no system"));
@@ -198,7 +198,7 @@ public class WikiTests
     public void EveryRealResearchNoteNamesKnownSystems()
     {
         var catalog = SystemCatalog.Load(Root);
-        var notes = ResearchNotes.Load(Root);
+        IReadOnlyList<ResearchNote> notes = ResearchNotes.Load(Root);
         Assert.True(notes.Count > 250);
         Assert.All(notes, n => Assert.True(n.Systems.Count > 0 && n.Systems.All(catalog.Contains), n.Name));
     }
@@ -206,7 +206,7 @@ public class WikiTests
     [Fact]
     public void EveryRealAdrResolvesToAStatusAndASystemAndNoNumberIsReused()
     {
-        var inputs = WikiCommand.Load(Root);
+        WikiInputs inputs = WikiCommand.Load(Root);
         var noteSystems = inputs.Notes.ToDictionary(n => n.Name, n => n.Systems, StringComparer.Ordinal);
         Assert.True(inputs.Adrs.Count > 600);
         Assert.Empty(AdrIndex.Duplicates(inputs.Adrs));
@@ -220,8 +220,8 @@ public class WikiTests
     [Fact]
     public void TheGeneratedPagesAreByteStable()
     {
-        var first = WikiPages.All(WikiCommand.Load(Root));
-        var second = WikiPages.All(WikiCommand.Load(Root));
+        IReadOnlyList<(string File, string Content)> first = WikiPages.All(WikiCommand.Load(Root));
+        IReadOnlyList<(string File, string Content)> second = WikiPages.All(WikiCommand.Load(Root));
         Assert.Equal(first.Select(p => p.File), second.Select(p => p.File));
         for (int i = 0; i < first.Count; i++)
         {
@@ -239,7 +239,7 @@ public class WikiTests
             "| Q8 | Done? | STRONGLY INFERRED (binary) | — |",
             "| Q9 | Done again? | ANSWERED, see unknown-note.md | — |",
         ];
-        var rows = WikiPages.ParseQuestions(lines, new HashSet<string>(StringComparer.Ordinal) { "fear" });
+        IReadOnlyList<QuestionRow> rows = WikiPages.ParseQuestions(lines, new HashSet<string>(StringComparer.Ordinal) { "fear" });
         Assert.Equal(["PARTLY ANSWERED", "STRONGLY INFERRED", "ANSWERED"], rows.Select(r => r.State));
         Assert.Equal([true, false, false], rows.Select(r => r.IsOpen));
         Assert.Equal(["fear"], rows[0].CitedNotes);

@@ -18,7 +18,7 @@ public class ShotTrailTests
             PosX = 9000, PosY = 8000, PosZ = 7000,
             LastPosX = 1000, LastPosY = 2000, LastPosZ = 300,
         };
-        EffectAttachment attachment = EffectAttachment.AtPreviousBody(creature, new Fp32(4096));
+        var attachment = EffectAttachment.AtPreviousBody(creature, new Fp32(4096));
         Assert.True(attachment.CreatureExists);
         Assert.Equal(new FpPosition3(new Fp32(1000), new Fp32(2000), new Fp32(4396)), attachment.Point);
         Assert.Equal(EffectAttachment.Gone, EffectAttachment.AtPreviousBody(null, new Fp32(4096)));

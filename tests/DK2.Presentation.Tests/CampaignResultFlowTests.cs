@@ -113,7 +113,7 @@ public sealed class CampaignResultFlowTests : IDisposable
     [InstallFact]
     public void AFreshStartBringsTheStoredCreatureInBeforeTheFirstTurnFromTheWorldStream()
     {
-        CampaignLevelData level = CampaignLevelData.Load(Dk2InstallGate.Path, "Level1");
+        var level = CampaignLevelData.Load(Dk2InstallGate.Path, "Level1");
         GameSimulation expected = level.CreateSimulation(1, fogOfWarEnabled: true);
         GameSimulation actual = level.CreateSimulation(1, fogOfWarEnabled: true);
         byte goblin = (byte)actual.Database.CreatureByName("Goblin")!.CreatureId;

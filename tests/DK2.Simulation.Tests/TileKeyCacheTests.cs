@@ -156,7 +156,7 @@ public sealed class TileKeyCacheTests
         WorldState world = World(db);
         for (int y = 5; y <= 9; y++)
             for (int x = 5; x <= 9; x++) RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Keeper);
-        StructureBlocks standing = StructureBlocks.For(world, db);
+        var standing = StructureBlocks.For(world, db);
         Assert.NotEqual(0, standing.Count);
         Assert.Same(standing, StructureBlocks.For(world, db));
 
@@ -175,7 +175,7 @@ public sealed class TileKeyCacheTests
     {
         GameSimulation simulation = TestWorld.Simulation();
         WorldState world = simulation.World;
-        var steering = simulation.Navigation;
+        WorldSteering steering = simulation.Navigation;
         steering.Refresh();
         int rebuilds = steering.Rebuilds;
         steering.Refresh();

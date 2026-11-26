@@ -25,7 +25,7 @@ public class StateFlagAttackabilityTests
     public void ACreatureIsAttackableUnlessItsStateCarriesTheFlag(int state, int resume, bool attackable)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 10), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 10), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
         StatePlacement.Place(goblin, state);
         goblin.UtilityNewState = resume;

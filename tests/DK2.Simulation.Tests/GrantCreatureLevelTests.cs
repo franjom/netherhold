@@ -19,7 +19,7 @@ public class GrantCreatureLevelTests
     private static (GameDatabase Db, WorldState World, CreatureState Goblin) Setup()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 8; y <= 12; y++)
             for (int x = 8; x <= 12; x++)
             {

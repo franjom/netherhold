@@ -37,7 +37,7 @@ public sealed class SecretDoorSeenTests
                 new DoorDef { DoorId = PlainDoorId, Name = "test plain door",
                     Health = 400, GoldCost = 0, ManufactureRequired = 0 },
             ]);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper, Rival]);
         // The door, and a corridor running east from it for the cases that need distance.
         for (int x = DoorTile.X; x <= CorridorEnd.X; x++)
         {
@@ -64,7 +64,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void AnEnemyBesideAnOpenSecretDoorSeesItAndIsForcedOntoIt()
     {
-        var (sim, world, door, events) = Start();
+        (GameSimulation? sim, WorldState? world, DoorState? door, ListEventSink? events) = Start();
         Goblin(sim, Rival, DoorTile); // the owner's creature on the tile holds the door open
         CreatureState enemy = Goblin(sim, Keeper, Beside);
         Assert.True(world.Tile(DoorTile).SecretDoor);
@@ -81,7 +81,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void AShutSecretDoorStaysHidden()
     {
-        var (sim, world, door, events) = Start();
+        (GameSimulation? sim, WorldState? world, DoorState? door, ListEventSink? events) = Start();
         CreatureState enemy = Goblin(sim, Keeper, Beside);
 
         sim.Tick();
@@ -95,7 +95,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void TheOwnersOwnCreatureRevealsNothingAndTakesNoTarget()
     {
-        var (sim, world, door, _) = Start();
+        (GameSimulation? sim, WorldState? world, DoorState? door, ListEventSink _) = Start();
         CreatureState own = Goblin(sim, Rival, DoorTile);
 
         sim.Tick();
@@ -110,7 +110,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void AnEnemyThatMayNotLookForAFightSeesNothing()
     {
-        var (sim, world, _, _) = Start();
+        (GameSimulation? sim, WorldState? world, DoorState _, ListEventSink _) = Start();
         Goblin(sim, Rival, DoorTile);
         CreatureState enemy = Goblin(sim, Keeper, Beside);
         enemy.InHand = true;
@@ -126,7 +126,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void AnEnemyBodyBesideTheDoorSeesNothing()
     {
-        var (sim, world, _, _) = Start();
+        (GameSimulation? sim, WorldState? world, DoorState _, ListEventSink _) = Start();
         Goblin(sim, Rival, DoorTile);
         CreatureState body = Goblin(sim, Keeper, Beside);
         CreatureDeathRules.BecomeCorpse(world, sim.Database, body);
@@ -142,7 +142,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void AnEnemyAlreadyInCombatIsLeftToItsFight()
     {
-        var (sim, world, _, _) = Start();
+        (GameSimulation? sim, WorldState? world, DoorState _, ListEventSink _) = Start();
         Goblin(sim, Rival, DoorTile);
         CreatureState enemy = Goblin(sim, Keeper, Beside);
         enemy.Dk2StateId = CreatureStateTable.InCategory(CreatureStateCategory.Combat).First();
@@ -160,7 +160,7 @@ public sealed class SecretDoorSeenTests
     [InlineData(1, true)]
     public void TheDoorIsSeenStrictlyInsideFourTiles(int unitsInsideTheRange, bool seen)
     {
-        var (sim, world, _, _) = Start();
+        (GameSimulation? sim, WorldState? world, DoorState _, ListEventSink _) = Start();
         Goblin(sim, Rival, DoorTile);
         var fourTilesEast = new TilePos(DoorTile.X + SeeingRangeTiles, DoorTile.Y);
         CreatureState enemy = Goblin(sim, Keeper, fourTilesEast);
@@ -177,7 +177,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void AShutDoorInBetweenDoesNotHideTheSecretDoor()
     {
-        var (sim, world, secret, _) = Start();
+        (GameSimulation? sim, WorldState? world, DoorState? secret, ListEventSink _) = Start();
         var between = new TilePos(DoorTile.X + 2, DoorTile.Y);
         var beyond = new TilePos(DoorTile.X + 3, DoorTile.Y);
         PlaceDoor(world, sim.Database, between, PlainDoorId);
@@ -207,7 +207,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void ASeenDoorReadsAsShutInTheNavigationBytesWhileItStandsOpen()
     {
-        var (sim, _, door, _) = Start();
+        (GameSimulation? sim, WorldState _, DoorState? door, ListEventSink _) = Start();
         Goblin(sim, Rival, DoorTile);
         sim.Tick();
         Assert.True(door.Open);
@@ -225,7 +225,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void ASeenDoorIsFloorAgainOnceItHasShutAndOpened()
     {
-        var (sim, world, door, _) = Start();
+        (GameSimulation? sim, WorldState? world, DoorState? door, ListEventSink _) = Start();
         CreatureState owner = Goblin(sim, Rival, DoorTile);
         CreatureState enemy = Goblin(sim, Keeper, Beside);
         sim.Tick();
@@ -251,7 +251,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void ASeenOpenDoorStopsOrdinarySight()
     {
-        var (sim, world, door, _) = Start();
+        (GameSimulation? sim, WorldState? world, DoorState? door, ListEventSink _) = Start();
         Goblin(sim, Rival, DoorTile);
         var navigation = new WorldSteering(sim.Database, world);
         var sight = new WorldSight(navigation, world, sim.Database);
@@ -273,7 +273,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void ASeenDoorStaysSeenAfterTheEnemyLeavesWhileItStandsOpen()
     {
-        var (sim, _, door, _) = Start();
+        (GameSimulation? sim, WorldState _, DoorState? door, ListEventSink _) = Start();
         Goblin(sim, Rival, DoorTile);
         CreatureState enemy = Goblin(sim, Keeper, Beside);
         sim.Tick();
@@ -289,7 +289,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void TheSeenMarkSurvivesASnapshot()
     {
-        var (sim, _, door, _) = Start();
+        (GameSimulation? sim, WorldState _, DoorState? door, ListEventSink _) = Start();
         Goblin(sim, Rival, DoorTile);
         Goblin(sim, Keeper, Beside);
         sim.Tick();
@@ -306,7 +306,7 @@ public sealed class SecretDoorSeenTests
     [Fact]
     public void ADoorAlreadySeenStillForcesALaterEnemy()
     {
-        var (sim, world, door, events) = Start();
+        (GameSimulation? sim, WorldState? world, DoorState? door, ListEventSink? events) = Start();
         Goblin(sim, Rival, DoorTile);
         world.Tile(DoorTile).SecretDoor = false;
         CreatureState enemy = Goblin(sim, Keeper, Beside);

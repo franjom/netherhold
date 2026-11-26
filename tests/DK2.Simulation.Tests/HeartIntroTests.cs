@@ -27,7 +27,7 @@ public class HeartIntroTests
 
         sim.Run(HeartIntroRules.SequenceSeconds * SimulationTiming.TicksPerSecond + 4);
 
-        var requests = events.Events.Where(e => e.EffectRequest.HasValue)
+        (long Turn, ushort Value, byte Owner)[] requests = events.Events.Where(e => e.EffectRequest.HasValue)
             .Select(e => (Turn: e.Tick.Value, e.EffectRequest!.Value.EffectId.Value, Owner: e.EffectRequest.Value.Owner.Value))
             .OrderBy(r => r.Turn).ThenBy(r => r.Owner).ToArray();
         Assert.Equal(new[]
@@ -37,7 +37,7 @@ public class HeartIntroTests
             (28L, HeartIntroRules.ArchesFadeInEffectId, Keeper), (28L, HeartIntroRules.ArchesFadeInEffectId, Rival),
         }, requests);
         // The room walk takes the newer Heart (the Rival's) first, so the Keeper's request is picked by owner.
-        var first = events.Events.First(e => e.EffectRequest.HasValue && e.EffectRequest.Value.Owner.Value == Keeper).EffectRequest!.Value;
+        ViewEffectRequest first = events.Events.First(e => e.EffectRequest.HasValue && e.EffectRequest.Value.Owner.Value == Keeper).EffectRequest!.Value;
         // At the Heart's tile centre, one tile up: (x * 0x1000 + 0x800, y * 0x1000 + 0x800, 0x1000).
         Assert.Equal(new FpPosition3(new Fp32(5 * Fp32.One + Fp32.One / 2), new Fp32(5 * Fp32.One + Fp32.One / 2),
             new Fp32(Fp32.One)), first.Position);

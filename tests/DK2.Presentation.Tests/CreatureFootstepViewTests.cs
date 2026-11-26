@@ -19,7 +19,7 @@ public sealed class CreatureFootstepViewTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
-        WorldState world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [2, 3]);
+        var world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [2, 3]);
         for (int y = 0; y < 3; y++)
             for (int x = 0; x < 3; x++)
                 world.Tile(x, y).TerrainId = water ? database.WaterTerrain!.TerrainId
@@ -37,7 +37,7 @@ public sealed class CreatureFootstepViewTests
     [InstallFact]
     public void AWalkingCreatureCarriesItsDefinitionsSlotOneMarksAndItsCategory()
     {
-        var (database, world, creature, view) = Walker("Imp");
+        (GameDatabase? database, WorldState? world, CreatureState? creature, WorldView? view) = Walker("Imp");
         CreatureView walking = view.Creatures(world).Single(c => c.Id == creature.Id);
         CreatureDef imp = database.CreatureByName("Imp")!;
         Assert.Equal(new FootstepMarkPair(2, 8), imp.FootstepMarksOf(1));
@@ -49,7 +49,7 @@ public sealed class CreatureFootstepViewTests
     [InstallFact]
     public void ARunningCreatureCarriesItsSlotTwoMarks()
     {
-        var (database, world, creature, view) = Walker("Knight");
+        (GameDatabase? database, WorldState? world, CreatureState? creature, WorldView? view) = Walker("Knight");
         creature.Running = true;
         CreatureView running = view.Creatures(world).Single(c => c.Id == creature.Id);
         CreatureDef knight = database.CreatureByName("Knight")!;
@@ -60,7 +60,7 @@ public sealed class CreatureFootstepViewTests
     [InstallFact]
     public void AStandingCreatureCarriesNoMarks()
     {
-        var (_, world, creature, view) = Walker("Imp");
+        (GameDatabase _, WorldState? world, CreatureState? creature, WorldView? view) = Walker("Imp");
         creature.Body.Vel = default;
         CreatureView standing = view.Creatures(world).Single(c => c.Id == creature.Id);
         Assert.Equal(default, standing.FootstepMarks);
@@ -69,7 +69,7 @@ public sealed class CreatureFootstepViewTests
     [InstallFact]
     public void AGroundedCreatureOnWaterWadesAndAFlyingOneDoesNot()
     {
-        var (database, world, dwarf, view) = Walker("Dwarf", water: true);
+        (GameDatabase? database, WorldState? world, CreatureState? dwarf, WorldView? view) = Walker("Dwarf", water: true);
         Assert.True(view.Creatures(world).Single(c => c.Id == dwarf.Id).Wading);
         CreatureDef flyer = database.Creatures.Values.First(c => c.Flags.HasFlag(CreatureFlags.CanFly)
             && !c.Flags.HasFlag(CreatureFlags.IsWorker));

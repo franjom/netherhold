@@ -290,7 +290,7 @@ public class HeroPartyTests
     private static (WorldState World, GameDatabase Database) World(params CreatureDef[] extra)
     {
         GameDatabase database = Dk2TerrainFixture.Database(extra);
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         ThingProjection.Place(world, database,
         [

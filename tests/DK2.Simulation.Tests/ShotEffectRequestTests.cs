@@ -14,7 +14,7 @@ public class ShotEffectRequestTests
     [Fact]
     public void AShotAlreadyDeadAtEntryDoesNotRequestADeathEffect()
     {
-        var (sim, shot, events) = Setup();
+        (GameSimulation? sim, ShotState? shot, ListEventSink? events) = Setup();
         shot.Health = 0;
         sim.Tick();
         Assert.DoesNotContain(events.Events, e => e.EffectRequest?.EffectId == new EffectId(13));
@@ -26,7 +26,7 @@ public class ShotEffectRequestTests
     [InlineData(251)]
     public void ATimedIdOfZeroSkipsTheDivision(byte delay)
     {
-        var (sim, _, events) = Setup(timedId: 0, timedDelay: delay);
+        (GameSimulation? sim, ShotState _, ListEventSink? events) = Setup(timedId: 0, timedDelay: delay);
         sim.Run(2);
         Assert.DoesNotContain(events.Events, e => e.EffectRequest?.EffectId == new EffectId(12));
     }
@@ -34,7 +34,7 @@ public class ShotEffectRequestTests
     [Fact]
     public void CreationFlag7AddsVelocityWithoutTyingTheCreationEffectToTheShot()
     {
-        var (sim, _, events) = Setup(flags: 0x84);
+        (GameSimulation? sim, ShotState _, ListEventSink? events) = Setup(flags: 0x84);
         sim.Tick();
         ViewEffectRequest creation = Request(events, 11);
         Assert.Equal(new FpPosition3(new Fp32(13107), default, default), creation.CarriedVelocity);
@@ -45,7 +45,7 @@ public class ShotEffectRequestTests
     [Fact]
     public void LifetimeDeathUsesThePositionAfterTheFinalMove()
     {
-        var (sim, shot, events) = Setup();
+        (GameSimulation? sim, ShotState? shot, ListEventSink? events) = Setup();
         shot.Health = 1;
         sim.Tick();
         Assert.Equal(CreatureState.CentreOf(5), Request(events, 13).Position.X.Raw);
@@ -54,7 +54,7 @@ public class ShotEffectRequestTests
     [Fact]
     public void AReturningOneInstantKillStillRequestsStandingHitDeathAndTimedEffects()
     {
-        var (sim, shot, events) = Setup(timedDelay: 1, processType: 34);
+        (GameSimulation? sim, ShotState? shot, ListEventSink? events) = Setup(timedDelay: 1, processType: 34);
         shot.TargetKind = FightTargetKind.Creature;
         shot.TargetId = 999;
         shot.VelX = shot.VelY = 0;
@@ -68,7 +68,7 @@ public class ShotEffectRequestTests
     [Fact]
     public void ARestoredShotUsesTheDefinedFloorAndVelocityHeadingFallbackInsteadOfAZeroPose()
     {
-        var (sim, _, _) = Setup(timedDelay: 1);
+        (GameSimulation? sim, ShotState _, ListEventSink _) = Setup(timedDelay: 1);
         sim.Tick();
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database,
             [new PrepareNavigation(), new ShotSystem()]);
@@ -84,7 +84,7 @@ public class ShotEffectRequestTests
     [Fact]
     public void TrailUsesTheInitialHeadingAndLaunchVelocityWhileCreationUsesTheLaunchedHeading()
     {
-        var (sim, shot, events) = Setup();
+        (GameSimulation? sim, ShotState? shot, ListEventSink? events) = Setup();
         sim.Tick();
         ViewEffectRequest trail = Request(events, 10);
         Assert.Equal(new Dk2Angle(256), trail.Heading);
@@ -99,7 +99,7 @@ public class ShotEffectRequestTests
     [Fact]
     public void TimedRequestsUseThePostMovePositionAndAimAtTheAuthoredCadence()
     {
-        var (sim, shot, events) = Setup();
+        (GameSimulation? sim, ShotState? shot, ListEventSink? events) = Setup();
         sim.Run(3);
         ViewEffectRequest timed = Request(events, 12);
         Assert.Equal(CreatureState.CentreOf(6), timed.Position.X.Raw);
@@ -109,7 +109,7 @@ public class ShotEffectRequestTests
     [Fact]
     public void AStandingShotRequestsHitSolidWithoutUsingDeadLiquidFields()
     {
-        var (sim, shot, events) = Setup();
+        (GameSimulation? sim, ShotState? shot, ListEventSink? events) = Setup();
         shot.VelX = shot.VelY = 0;
         sim.Tick();
         Assert.Equal(shot.PosX, Request(events, 14).Position.X.Raw);
@@ -119,7 +119,7 @@ public class ShotEffectRequestTests
     [Fact]
     public void SolidKillsRequestTheStartOfTickHitAndSkipDeath()
     {
-        var (sim, shot, events) = Setup(flags: 1);
+        (GameSimulation? sim, ShotState? shot, ListEventSink? events) = Setup(flags: 1);
         sim.World.Tile(5, 4).TerrainId = Dk2TerrainFixture.Rock;
         sim.Tick();
         Assert.Equal(CreatureState.CentreOf(4), Request(events, 14).Position.X.Raw);
@@ -130,7 +130,7 @@ public class ShotEffectRequestTests
     [Fact]
     public void ACreatureHitAttachesTheHitEffectAndStillShowsDeath()
     {
-        var (sim, shot, events) = Setup(flags: 2);
+        (GameSimulation? sim, ShotState? shot, ListEventSink? events) = Setup(flags: 2);
         CreatureState target = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId, 4, new TilePos(4, 4));
         shot.TargetKind = FightTargetKind.Creature;
         shot.TargetId = target.Id;
@@ -145,8 +145,8 @@ public class ShotEffectRequestTests
     [Fact]
     public void ObservationDoesNotChangeTheHashOrSimulationRandomState()
     {
-        var (a, _, _) = Setup();
-        var (b, _, _) = Setup(requestTrail: false);
+        (GameSimulation? a, ShotState _, ListEventSink _) = Setup();
+        (GameSimulation? b, ShotState _, ListEventSink _) = Setup(requestTrail: false);
         b.ObserveWith(NullEventSink.Instance);
         for (int tick = 0; tick < 4; tick++)
         {
@@ -172,7 +172,7 @@ public class ShotEffectRequestTests
         };
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values,
             basis.Variables, shots: [definition]);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, (byte)1, (byte)2, (byte)3, (byte)4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, (byte)1, (byte)2, (byte)3, (byte)4]);
         for (int y = 1; y < 11; y++)
             for (int x = 1; x < 19; x++) world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
         ShotState shot = ShotRules.Spawn(world, definition, 3, CreatureState.CentreOf(4), CreatureState.CentreOf(4), 0, 0,

@@ -23,7 +23,7 @@ public class HatcheryPillarSteeringTests
         ObjectDef substitute = pillar with { ObjectId = 200, Flags = ObjectFlags.Pillar };
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values,
             basis.Variables, objects: basis.Objects.Values.Append(pillar).Append(substitute));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y <= 3; y++)
         for (int x = 1; x <= roomWidth; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), PlayerIds.FirstKeeper);
@@ -45,7 +45,7 @@ public class HatcheryPillarSteeringTests
     [InlineData(3, 3, 13312, 13312)]
     public void CornerObstaclesUseTheNativeInwardPositionAndHalfWidth(int x, int y, int px, int py)
     {
-        var (_, world, steering) = Setup();
+        (GameDatabase _, WorldState? world, WorldSteering? steering) = Setup();
         SteeringObstacle obstacle = Assert.Single(Query(steering, x, y));
         Assert.Equal(new Fixed16Vector(px << 4, py << 4), obstacle.Pos);
         Assert.Equal(13072, obstacle.Size);
@@ -60,7 +60,7 @@ public class HatcheryPillarSteeringTests
     [InlineData(true, 1634, 2)]
     public void AbsentObstacleWidthOrCornerSupportContributesNothing(bool obstacle, int width, int roomWidth)
     {
-        var (_, _, steering) = Setup(obstacle, width, roomWidth);
+        (GameDatabase _, WorldState _, WorldSteering? steering) = Setup(obstacle, width, roomWidth);
         Assert.Empty(Query(steering, 1, 1));
     }
 
@@ -70,7 +70,7 @@ public class HatcheryPillarSteeringTests
     [InlineData(false, true, true)]
     public void OnlyAnActivePhysicalPillarSuppressesTheVirtualOne(bool held, bool carried, bool expected)
     {
-        var (db, world, steering) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? steering) = Setup();
         ObjectState substitute = world.SpawnObject(db, 200, PlayerIds.FirstKeeper, world.Width + 1);
         substitute.InHand = held;
         if (carried) substitute.CarriedByCreatureId = 17;
@@ -80,7 +80,7 @@ public class HatcheryPillarSteeringTests
     [Fact]
     public void APhysicalHatcheryPillarContributesOnceAtItsStoredPosition()
     {
-        var (db, world, steering) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? steering) = Setup();
         ObjectState pillar = world.SpawnObject(db, HatcheryRules.PillarObjectId,
             PlayerIds.FirstKeeper, world.Width + 1);
         pillar.PosX = 7167; pillar.PosY = 7167;
@@ -90,13 +90,13 @@ public class HatcheryPillarSteeringTests
     [Fact]
     public void InteriorTileHasNoVirtualPillar()
     {
-        var (_, _, steering) = Setup();
+        (GameDatabase _, WorldState _, WorldSteering? steering) = Setup();
         Assert.Empty(Query(steering, 2, 2));
     }
     [Fact]
     public void HypothesisVirtualPillarIsOldestAmongSameTileStoredObstacles()
     {
-        var (basis, world, _) = Setup();
+        (GameDatabase? basis, WorldState? world, WorldSteering _) = Setup();
         ObjectDef obstacle = basis.ObjectById(200)! with { Flags = ObjectFlags.Obstacle };
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values,
             basis.Variables, objects: basis.Objects.Values.Select(o => o.ObjectId == 200 ? obstacle : o));

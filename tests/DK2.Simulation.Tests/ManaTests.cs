@@ -37,7 +37,7 @@ public class ManaTests
     private static Run Start(ulong seed = 7)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
 
         // Without the imp supply, deliberately: these tests measure what land and

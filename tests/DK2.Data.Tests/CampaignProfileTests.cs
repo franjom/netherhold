@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using DK2.Data.Campaign;
 using DK2.Data.Model;
 using DK2.TestSupport;
+using Microsoft.Win32;
 
 namespace DK2.Data.Tests;
 
@@ -91,7 +92,7 @@ public class CampaignProfileTests
     public void InstalledRegistryImportMatchesManagedReadAndLeavesTheKeyUntouched()
     {
         if (!OperatingSystem.IsWindows()) return;
-        using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(InstalledCampaignRegistry.PlayerKeyPath, writable: false);
+        using RegistryKey? key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(InstalledCampaignRegistry.PlayerKeyPath, writable: false);
         if (key is null) return;
         var before = new Dictionary<string, object>();
         foreach (string name in key.GetValueNames()) before.Add(name, key.GetValue(name)!);
@@ -115,13 +116,13 @@ public class CampaignProfileTests
             if (before[name] is byte[] bytes) Assert.Equal(bytes, Assert.IsType<byte[]>(after));
             else Assert.Equal(before[name], after);
         }
-        foreach (var pair in rawValues) Assert.Equal(pair.Value, RawRegistryValue(pair.Key));
+        foreach (KeyValuePair<string, byte[]> pair in rawValues) Assert.Equal(pair.Value, RawRegistryValue(pair.Key));
     }
 
     private static byte[] RawRegistryValue(string name)
     {
         uint size = 0;
-        var root = new IntPtr(unchecked((int)0x80000001));
+        nint root = new IntPtr(unchecked((int)0x80000001));
         int error = RegGetValue(root, InstalledCampaignRegistry.PlayerKeyPath, name, 0xffff, out _, null, ref size);
         if (error != 0) throw new Win32Exception(error);
         byte[] bytes = new byte[size];

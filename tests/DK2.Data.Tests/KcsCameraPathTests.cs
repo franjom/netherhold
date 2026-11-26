@@ -73,7 +73,7 @@ public class KcsCameraPathTests
 
     private static byte[] File(float[] frame)
     {
-        var data = new byte[16 + 56];
+        byte[] data = new byte[16 + 56];
         BinaryPrimitives.WriteUInt32LittleEndian(data, 1);
         for (int i = 0; i < 14; i++)
             BinaryPrimitives.WriteSingleLittleEndian(data.AsSpan(16 + i * 4), frame[i]);

@@ -25,7 +25,7 @@ public class TravelArrivalTests
     private static (GameSimulation Sim, CreatureState Walker) Walk(bool withStep)
     {
         GameDatabase db = Dk2TerrainFixture.Database(Small());
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int x = 1; x <= 12; x++) world.Tile(x, 3).TerrainId = Dk2TerrainFixture.DirtPath;
         CreatureState walker = world.SpawnCreature(db, SmallId, Keeper, new TilePos(2, 3));
         var send = new Send();
@@ -58,7 +58,7 @@ public class TravelArrivalTests
     public void OnlyANonImpOutsideTheApproachIsStoppedByTheStep(byte typeId, int state, bool keepsItsRoute)
     {
         GameDatabase db = Dk2TerrainFixture.Database(Small());
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int x = 1; x <= 12; x++) world.Tile(x, 3).TerrainId = Dk2TerrainFixture.DirtPath;
         CreatureState walker = world.SpawnCreature(db, typeId, Keeper, new TilePos(2, 3));
         var place = new Place(state);

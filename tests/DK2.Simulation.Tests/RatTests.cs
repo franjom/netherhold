@@ -30,7 +30,7 @@ public class RatTests
     [Fact]
     public void EmptyPrisonGeneratesOneRatAndStopsAtThePlayerPopulationLimit()
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         var simulation = new GameSimulation(db, world, 42, [new RatSpawnSystem()]);
         for (int i = 0; i < 1000; i++) simulation.Tick();
         ObjectState rat = Assert.Single(world.Objects, o => o.ObjectTypeId == 11);
@@ -45,7 +45,7 @@ public class RatTests
     [InlineData(PlayerStatus.Lost)]
     public void StampedHeartDeathAndDefeatDoNotGateAmbientRatGeneration(byte status)
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         ref PlayerState player = ref world.PlayerAtIndex(2);
         player.KilledByPlayerId = PlayerIds.Neutral;
         player.HeartHealth = 0;
@@ -58,7 +58,7 @@ public class RatTests
     [Fact]
     public void TortureTilesIncreaseThePrisonSpawnPopulation()
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         for (int y = 1; y <= 3; y++)
             for (int x = 5; x <= 10; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), PlayerIds.FirstKeeper);
@@ -71,7 +71,7 @@ public class RatTests
     [Fact]
     public void TortureWithoutAnyPrisonConsumesOnlyTheChanceRoll()
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         for (int y = 1; y <= 3; y++)
             for (int x = 1; x <= 3; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), PlayerIds.FirstKeeper);
@@ -86,7 +86,7 @@ public class RatTests
     [Fact]
     public void LargePrisonStillStopsAtSixteenRats()
     {
-        var (db, _) = Prison();
+        (GameDatabase? db, WorldState _) = Prison();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y <= 18; y++)
             for (int x = 1; x <= 18; x++)
@@ -99,7 +99,7 @@ public class RatTests
     [Fact]
     public void KeeperSpawnRunsAfterTheRatObjectPass()
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         var simulation = new GameSimulation(db, world, 42, [new RatSystem(), new RatSpawnSystem()]);
         for (int i = 0; i < 1000 && world.Objects.Count == 0; i++) simulation.Tick();
         ObjectState rat = Assert.Single(world.Objects);
@@ -111,10 +111,10 @@ public class RatTests
     [Fact]
     public void APrisonSmallerThanNineTilesCannotGenerateRats()
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         world.Tile(1, 1).TerrainId = Dk2TerrainFixture.ClaimedPath;
         var simulation = new GameSimulation(db, world, 42, [new RatSpawnSystem()]);
-        var expected = simulation.Rng.SaveState();
+        (ulong S0, ulong S1, ulong S2, ulong S3) expected = simulation.Rng.SaveState();
         for (int i = 0; i < 1000; i++) simulation.Tick();
         Assert.DoesNotContain(world.Objects, o => o.ObjectTypeId == 11);
         Assert.Equal(expected, simulation.Rng.SaveState());
@@ -123,7 +123,7 @@ public class RatTests
     [Fact]
     public void MovingRatSaveRestoreContinuesWithIdenticalStateAndRandomness()
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         ObjectState rat = world.SpawnObject(db, RatRules.RatObjectId, PlayerIds.FirstKeeper, world.Width + 1);
         rat.Heading = 512;
         rat.Health = 117;
@@ -156,7 +156,7 @@ public class RatTests
     [InlineData(false)]
     public void MixedAnimalPassUsesNewestFirstSharedRandomDraws(bool ratNewest)
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         ObjectState chicken;
         ObjectState rat;
         if (ratNewest)
@@ -189,7 +189,7 @@ public class RatTests
         public int Remaining => draws.Length - _index;
         public int NextInt(int exclusiveMax)
         {
-            var draw = draws[_index++];
+            (int Bound, int Value) draw = draws[_index++];
             Assert.Equal(draw.Bound, exclusiveMax);
             return draw.Value;
         }
@@ -199,7 +199,7 @@ public class RatTests
     [Fact]
     public void RatMovesThroughOwnedLandOutsideItsPrison()
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         for (int y = 3; y <= 6; y++)
             for (int x = 3; x <= 6; x++)
             {
@@ -221,7 +221,7 @@ public class RatTests
     [Fact]
     public void RatCannotChooseADoubleQuadInteriorTile()
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         ObjectState rat = world.SpawnObject(db, 11, PlayerIds.FirstKeeper, world.Width + 2);
         rat.PosX = CreatureState.CentreOf(2); rat.PosY = CreatureState.CentreOf(1); rat.ProcessState = 11;
         var simulation = new GameSimulation(db, world, 42, [new RatSystem()]);
@@ -233,7 +233,7 @@ public class RatTests
     [Fact]
     public void RatDisappearsWhenItsCurrentTileHasAnotherOwner()
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         ObjectState rat = world.SpawnObject(db, 11, PlayerIds.FirstKeeper, world.Width + 1);
         rat.PosX = rat.PosY = CreatureState.CentreOf(1); rat.ProcessState = 11;
         world.Tile(1, 1).OwnerPlayerId = PlayerIds.Neutral;
@@ -245,7 +245,7 @@ public class RatTests
     [Fact]
     public void RatLosesOneHealthEachTickAndExpiresAfterThreeHundredTicks()
     {
-        var (db, world) = Prison();
+        (GameDatabase? db, WorldState? world) = Prison();
         ObjectState rat = world.SpawnObject(db, 11, PlayerIds.FirstKeeper, world.Width + 1);
         rat.PosX = rat.PosY = CreatureState.CentreOf(1); rat.ProcessState = 11;
         var simulation = new GameSimulation(db, world, 42, [new RatSystem()]);

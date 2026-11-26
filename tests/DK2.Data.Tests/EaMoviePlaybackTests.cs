@@ -62,7 +62,7 @@ public class EaMoviePlaybackTests
     {
         var stream = new EaAudioStream(Interleaved());
         stream.Seek(3);
-        var samples = new float[2 * 3];
+        float[] samples = new float[2 * 3];
 
         Assert.Equal(3, stream.Read(samples));
         Assert.Equal(new[] { 400, 400, 500, 500, 600, 600 }, samples.Select(s => (int)Math.Round(s * 32768)));
@@ -83,7 +83,7 @@ public class EaMoviePlaybackTests
         Assert.InRange(timeline.ShowableFrames(5 * oneSecond), 118, 132);
 
         var stream = new EaAudioStream(timeline);
-        var buffer = new float[2 * 1000];
+        float[] buffer = new float[2 * 1000];
         long read = 0;
         int got;
         while ((got = stream.Read(buffer)) > 0) read += got;
@@ -92,7 +92,7 @@ public class EaMoviePlaybackTests
 
     private static byte[] Pcm(params short[] samples)
     {
-        var payload = new byte[4 + 2 * samples.Length];
+        byte[] payload = new byte[4 + 2 * samples.Length];
         BinaryPrimitives.WriteInt32LittleEndian(payload, samples.Length);
         for (int i = 0; i < samples.Length; i++)
             BinaryPrimitives.WriteInt16LittleEndian(payload.AsSpan(4 + 2 * i), samples[i]);
@@ -102,7 +102,7 @@ public class EaMoviePlaybackTests
     private static void Chunk(List<byte> file, string tag, byte[] payload)
     {
         file.AddRange(Encoding.ASCII.GetBytes(tag));
-        var size = new byte[4];
+        byte[] size = new byte[4];
         BinaryPrimitives.WriteInt32LittleEndian(size, payload.Length + 8);
         file.AddRange(size);
         file.AddRange(payload);

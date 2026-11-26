@@ -43,7 +43,7 @@ public sealed class ObjectSoundTests
             [Dk2TerrainFixture.HealAllSpecialObjectId] = "OBJECT_SPECIAL",
             [BoulderRules.ObjectId] = "TRAP_BOULDER", [FloorGold.FloorGoldObjectId] = "OBJECT_GOLD",
         });
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         var sim = new GameSimulation(db, world, seed: 42, systems);
         var events = new ListEventSink();
         sim.ObserveWith(events);
@@ -53,7 +53,7 @@ public sealed class ObjectSoundTests
     [Fact]
     public void AnObjectMadeInPlayRequestsF1ThenF2AtItsPositionWithItsVoice()
     {
-        var (db, world, _, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation _, ListEventSink? events) = Setup();
         ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, Tile);
 
         ThingSoundRequest[] heard = Sounds(events);   // Object_Init asks both, whatever the category holds
@@ -72,7 +72,7 @@ public sealed class ObjectSoundTests
     [Fact]
     public void ABedARatAndABatEachAskBothInTheirOwnCategories()
     {
-        var (db, world, _, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation _, ListEventSink? events) = Setup();
         ObjectState bed = world.SpawnObject(db, Dk2TerrainFixture.GoblinBedObjectId, Keeper, Tile);
         ObjectState rat = world.SpawnObject(db, RatObjectId, Keeper, Tile + 1);
         ObjectState bat = world.SpawnObject(db, BatObjectId, Keeper, Tile + 2);
@@ -91,7 +91,7 @@ public sealed class ObjectSoundTests
     [Fact]
     public void AnObjectWithNoSoundCategoryRequestsNothing()
     {
-        var (db, world, _, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation _, ListEventSink? events) = Setup();
         ObjectState bag = world.SpawnObject(db, 2, PlayerIds.Neutral, Tile);   // Gold Bag: no category
         world.RemoveObject(bag.Id);
 
@@ -101,7 +101,7 @@ public sealed class ObjectSoundTests
     [Fact]
     public void ARemovedChickenRequestsF4AtWhereItStoodWithItsVoice()
     {
-        var (db, world, _, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation _, ListEventSink? events) = Setup();
         ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, Tile);
         chicken.PosX = (3 << 12) + 321;
         chicken.PosY = (2 << 12) + 654;
@@ -121,7 +121,7 @@ public sealed class ObjectSoundTests
     [Fact]
     public void ARemovedBoulderRequestsF4InTheBoulderCategoryAndAnIdThatIsNotThereIsSilent()
     {
-        var (db, world, _, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation _, ListEventSink? events) = Setup();
         ObjectState boulder = world.SpawnObject(db, BoulderRules.ObjectId, Keeper, Tile);
         events.Clear();
 
@@ -138,7 +138,7 @@ public sealed class ObjectSoundTests
         static GameSimulation Run(ListEventSink? sink)
         {
             GameDatabase db = SoundFixture.Database(objects: new Dictionary<byte, string> { [HatcheryRules.ChickenObjectId] = "OBJECT_CHICKEN" });
-            WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+            var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
             var sim = new GameSimulation(db, world, seed: 42, []);
             if (sink is not null) sim.ObserveWith(sink);
             ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, Tile);
@@ -157,7 +157,7 @@ public sealed class ObjectSoundTests
 
     private static (ObjectState Chicken, GameSimulation Sim, ListEventSink Events) Stepping(ushort ticks, ObjectMoveFlags flags = ObjectMoveFlags.None)
     {
-        var (db, world, sim, events) = Setup(new ObjectMovementSystem());
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(new ObjectMovementSystem());
         ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, Tile);
         chicken.ProcessState = (byte)ChickenProcess.Moving;
         chicken.ProcessAgeTicks = 1;
@@ -177,7 +177,7 @@ public sealed class ObjectSoundTests
     [Fact]
     public void AChickenOffers110OnTheCallWhereItsStepCountIsOneAtItsPositionBeforeItMoves()
     {
-        var (chicken, sim, events) = Stepping(3);
+        (ObjectState? chicken, GameSimulation? sim, ListEventSink? events) = Stepping(3);
         var before = new FpPosition3(new Fp32(chicken.PosX), new Fp32(chicken.PosY), new Fp32(0x1000));
 
         sim.Run(2);
@@ -197,7 +197,7 @@ public sealed class ObjectSoundTests
     [Fact]
     public void ATurningChickenWhoseCountStaysOneOffersItOnEveryCallItTurns()
     {
-        var (chicken, sim, events) = Stepping(1, ObjectMoveFlags.Turning);
+        (ObjectState? chicken, GameSimulation? sim, ListEventSink? events) = Stepping(1, ObjectMoveFlags.Turning);
         chicken.Heading = 0x600;   // the destination lies east, 0x200: a turn of more than one call at 0x100 a call
 
         sim.Run(3);
@@ -213,7 +213,7 @@ public sealed class ObjectSoundTests
     [Fact]
     public void AStruckTrainingDummyRequests311OnceOnTheFirstUpdateOfItsSpinAndNoOtherObjectDoes()
     {
-        var (db, world, sim, events) = Setup(new ObjectMovementSystem());
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(new ObjectMovementSystem());
         ObjectState dummy = world.SpawnObject(db, Dk2TerrainFixture.TrainingDummyObjectId, Keeper, Tile);
         ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, Tile + 1);
         events.Clear();
@@ -247,7 +247,7 @@ public sealed class ObjectSoundTests
 
     private static ThingSoundRequest Activate(byte objectTypeId, out ObjectState special)
     {
-        var (db, world, sim, events) = Setup(new SpecialSystem());
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(new SpecialSystem());
         special = world.SpawnObject(db, objectTypeId, PlayerIds.Neutral, Tile);
         events.Clear();
         sim.Tick(InputFrame.Of(new ActivateSpecialCommand(Keeper, special.Id)));

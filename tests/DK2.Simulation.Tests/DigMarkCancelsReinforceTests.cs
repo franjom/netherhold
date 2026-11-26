@@ -23,7 +23,7 @@ public class DigMarkCancelsReinforceTests
     private static (GameSimulation Sim, ListEventSink Events) StartReinforcing()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         var at = new TilePos(8, 5);
         ref TileState floor = ref world.Tile(at);

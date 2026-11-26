@@ -22,7 +22,7 @@ public sealed class HandSoundTests
     private static (GameDatabase Db, WorldState World, GameSimulation Sim, ListEventSink Events) Setup()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         var sim = new GameSimulation(db, world, seed: 42, [new HandSystem()]);
         var events = new ListEventSink();
         sim.ObserveWith(events);
@@ -42,7 +42,7 @@ public sealed class HandSoundTests
     [Fact]
     public void LiftingACreatureRequestsC3InItsCategoryAtItsPositionWithoutAVoice()
     {
-        var (db, world, sim, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup();
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
 
@@ -58,7 +58,7 @@ public sealed class HandSoundTests
     [Fact]
     public void ARefusedLiftIsSilentButAFullHandStillSoundsBecausePreparationComesFirst()
     {
-        var (db, world, sim, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup();
         CreatureState theirs = world.SpawnCreature(db, ImpId, PlayerIds.Neutral, Floor);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, theirs.Id)));
         Assert.Empty(Sounds(events));
@@ -74,7 +74,7 @@ public sealed class HandSoundTests
     [Fact]
     public void DroppingACreatureRequestsC4AtThePointerXYAndTheDropsHeightLikeTheHumanDropPathAndARefusedDropDoesNot()
     {
-        var (db, world, sim, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup();
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         int lifted = Sounds(events).Length;
@@ -95,7 +95,7 @@ public sealed class HandSoundTests
     [Fact]
     public void LiftingAndDroppingLooseGoldRequestC3AndC4InObjectGoldWithTheObjectsVoice()
     {
-        var (db, world, sim, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup();
         ObjectState gold = FloorGold.Drop(world, db, (Floor.Y * world.Width) + Floor.X, 100)!;
         sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, gold.Id)));
         Assert.True(gold.InHand);
@@ -120,7 +120,7 @@ public sealed class HandSoundTests
     [Fact]
     public void ADropOntoALiveCreatureSoundsAtThatCreaturesPointAtTheDropsHeight()
     {
-        var (db, world, sim, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup();
         ObjectState gold = FloorGold.Drop(world, db, (Floor.Y * world.Width) + Floor.X, 100)!;
         CreatureState under = world.SpawnCreature(db, ImpId, Keeper, Elsewhere);
         under.PosZ = 777;
@@ -134,7 +134,7 @@ public sealed class HandSoundTests
     [Fact]
     public void AnObjectWithNoSoundCategoryRequestsNothing()
     {
-        var (db, world, sim, events) = Setup();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup();
         ObjectState bag = world.SpawnObject(db, 2, PlayerIds.Neutral, (Floor.Y * world.Width) + Floor.X);   // Gold Bag
         bag.GoldHeld = 50;
         sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, bag.Id)));
@@ -149,7 +149,7 @@ public sealed class HandSoundTests
         static GameSimulation Run(ListEventSink? sink)
         {
             GameDatabase db = Dk2TerrainFixture.Database();
-            WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+            var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
             CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
             ObjectState gold = FloorGold.Drop(world, db, (Floor.Y * world.Width) + Floor.X, 100)!;
             var sim = new GameSimulation(db, world, seed: 42, [new HandSystem()]);

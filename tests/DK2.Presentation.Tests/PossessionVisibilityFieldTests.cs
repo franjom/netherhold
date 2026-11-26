@@ -13,7 +13,7 @@ public sealed class PossessionVisibilityFieldTests
     [Fact]
     public void TheScaledViewPolygonSuppliesTheWalkAndTheWallHidesTheTilesBehindIt()
     {
-        var solid = new bool[40 * 40];
+        bool[] solid = new bool[40 * 40];
         for (int x = 0; x < 40; x++) solid[(17 * 40) + x] = true;
         var field = new PossessionVisibilityField(40, 40);
         field.Build(North, Screen, 12f, solid);
@@ -27,7 +27,7 @@ public sealed class PossessionVisibilityFieldTests
     public void OffMapEntriesAreSkippedAndZeroDistanceClearsTheLastPicture()
     {
         var field = new PossessionVisibilityField(40, 40);
-        var solid = new bool[40 * 40];
+        bool[] solid = new bool[40 * 40];
         field.Build(North with { Position = new Vector3(0.5f, 1.5f, -0.5f) }, Screen, 12f, solid);
         Assert.True(field.Contains(new TilePos(0, 0)));
         Assert.False(field.Contains(new TilePos(-1, 0)));
@@ -40,7 +40,7 @@ public sealed class PossessionVisibilityFieldTests
     public void MovingTheCameraRebuildsItsVisibleTilesWithoutAllocatingAfterWarmup()
     {
         var field = new PossessionVisibilityField(40, 40);
-        var solid = new bool[40 * 40];
+        bool[] solid = new bool[40 * 40];
         ClassicCameraPose south = North with { Forward = -Vector3.UnitZ };
         field.Build(North, Screen, 12f, solid);
         Assert.True(field.Contains(new TilePos(20, 12)));

@@ -26,7 +26,7 @@ public sealed class CreatureQueryViewTests
     public void TargetShowsTheCreaturesOwnNameAndDropsWhenItIsGone()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         CreatureState imp = world.SpawnCreature(db, db.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper, new(8, 8));
         imp.NameIndex = 0; imp.BloodGroupIndex = 0; imp.GoldHeld = 17;

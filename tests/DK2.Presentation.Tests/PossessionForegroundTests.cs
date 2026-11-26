@@ -17,8 +17,8 @@ public sealed class PossessionForegroundTests
     [InstallFact]
     public void MeleeAlternationStartsWithTheSecondResourceAndReadinessRejectsARestart()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var definition = database.CreatureById(8) with
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        CreatureDef definition = database.CreatureById(8) with
         { FirstPersonMelee1 = PossessionForegroundKind.LeftPunch, FirstPersonMelee2 = PossessionForegroundKind.RightPunch };
         var creature = new CreatureState { CreatureTypeId = 8, TimeLastUsedMelee = CreatureState.NeverUsed };
         var controls = new PossessionControls();
@@ -39,7 +39,7 @@ public sealed class PossessionForegroundTests
     [InstallFact]
     public void MeshFadeUsesRgbOnceRatherThanSquaringItThroughCanvasAlpha()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         using var art = InstallArtProvider.Open(Dk2InstallGate.Path, database);
         var foreground = new PossessionForeground();
         foreground.Begin(PossessionForegroundKind.SwordSlash, 22, 0);
@@ -53,12 +53,12 @@ public sealed class PossessionForegroundTests
     [InstallFact]
     public void ShippedCreatureResourcesMatchTheObservedClawAndBladeFamilies()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        foreach (var (name, kind) in new[] { ("Vampire", PossessionForegroundKind.ClawSlash),
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        foreach ((string? name, PossessionForegroundKind kind) in new[] { ("Vampire", PossessionForegroundKind.ClawSlash),
             ("Skeleton", PossessionForegroundKind.SwordSlash), ("Mistress", PossessionForegroundKind.MistressSlash),
             ("Black Knight", PossessionForegroundKind.SwordSlash) })
         {
-            var definition = database.Creatures.Values.First(c => c.Name == name);
+            CreatureDef definition = database.Creatures.Values.First(c => c.Name == name);
             Assert.Equal(kind, definition.FirstPersonMelee1);
             Assert.True(definition.FirstPersonFramesPerSecond > 0);
         }
@@ -70,7 +70,7 @@ public sealed class PossessionForegroundTests
         var frame = new HudFrame();
         new PossessionHud().Build(new HudScreen(1600, 1200),
             new PossessionHudSnapshot("portrait", 100, new(0), [], []) { Overlays = ["GUI\\Filters\\F-Black_Knight"] }, frame);
-        var draws = frame.Draws.ToArray();
+        HudDraw[] draws = frame.Draws.ToArray();
         Assert.True(Array.FindIndex(draws, d => d.Image.Path == "GUI\\Filters\\F-Black_Knight")
             < Array.FindIndex(draws, d => d.Image.Path == "portrait"));
     }

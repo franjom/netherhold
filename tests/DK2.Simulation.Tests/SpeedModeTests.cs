@@ -13,7 +13,7 @@ public sealed class SpeedModeTests
     private static (GameDatabase Db, WorldState World, CreatureState Goblin) Open()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -24,7 +24,7 @@ public sealed class SpeedModeTests
     [Fact]
     public void EachModeCapsTheBodyAtItsOwnDefinitionSpeed()
     {
-        var (db, world, goblin) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? goblin) = Open();
         CreatureDef definition = db.CreatureById(goblin.CreatureTypeId);
         CreatureDef paced = definition with { Speed = new Fp32(2000), RunSpeed = new Fp32(3000), ShuffleSpeed = new Fp32(1000) };
         Assert.Equal(SimulationTiming.LoaderRatePerTick(2000) << 4, CreatureMovementSystem.MaxSpeedOf(paced, CreatureSpeedMode.Walk));
@@ -43,7 +43,7 @@ public sealed class SpeedModeTests
     [Fact]
     public void RunningIsTheRunModeAndClearingItIsTheWalk()
     {
-        var (_, _, goblin) = Open();
+        (GameDatabase _, WorldState _, CreatureState? goblin) = Open();
         goblin.SpeedMode = CreatureSpeedMode.Shuffle;
         Assert.False(goblin.Running);
         goblin.Running = true;
@@ -58,7 +58,7 @@ public sealed class SpeedModeTests
     [Fact]
     public void ASpeedSetByAHandlerIsNotHalvedByWaterUntilTheNextTurn()
     {
-        var (db, world, goblin) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? goblin) = Open();
         world.Tile(10, 10).TerrainId = Dk2TerrainFixture.Water;
         CreatureDef definition = db.CreatureById(goblin.CreatureTypeId);
         int run = CreatureMovementSystem.MaxSpeedOf(definition, CreatureSpeedMode.Run);
@@ -87,7 +87,7 @@ public sealed class SpeedModeTests
     [Fact]
     public void AFightEnteredInWaterRunsItsFirstTurnUnhalved_ConfirmedInCapture()
     {
-        var (db, world, goblin) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? goblin) = Open();
         world.Tile(10, 10).TerrainId = Dk2TerrainFixture.Water;
         world.SpawnCreature(db, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, new TilePos(13, 10));
         int run = CreatureMovementSystem.MaxSpeedOf(db.CreatureById(goblin.CreatureTypeId), CreatureSpeedMode.Run);
@@ -103,7 +103,7 @@ public sealed class SpeedModeTests
     [Fact]
     public void TheSpeedSetTurnIsHashedSavedAndCopied()
     {
-        var (db, world, goblin) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? goblin) = Open();
         var sim = new GameSimulation(db, world, 1, []);
         ulong before = sim.StateHash();
         goblin.SetSpeedMode(CreatureSpeedMode.Walk, 7);
@@ -111,7 +111,7 @@ public sealed class SpeedModeTests
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db);
         Assert.Equal(7, restored.World.CreatureById(goblin.Id)!.SpeedSetTick);
         Assert.Equal(sim.StateHash(), restored.StateHash());
-        var (_, copy, _) = Open();
+        (GameDatabase _, WorldState? copy, CreatureState _) = Open();
         copy.CopyFrom(world);
         Assert.Equal(7, copy.CreatureById(goblin.Id)!.SpeedSetTick);
     }
@@ -121,7 +121,7 @@ public sealed class SpeedModeTests
     [InlineData(CreatureSpeedMode.Shuffle)]
     public void TheModeIsHashedSavedAndCopied(CreatureSpeedMode mode)
     {
-        var (db, world, goblin) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? goblin) = Open();
         var sim = new GameSimulation(db, world, 1, []);
         ulong before = sim.StateHash();
         goblin.SpeedMode = mode;
@@ -129,7 +129,7 @@ public sealed class SpeedModeTests
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db);
         Assert.Equal(mode, restored.World.CreatureById(goblin.Id)!.SpeedMode);
         Assert.Equal(sim.StateHash(), restored.StateHash());
-        var (_, copy, _) = Open();
+        (GameDatabase _, WorldState? copy, CreatureState _) = Open();
         copy.CopyFrom(world);
         Assert.Equal(mode, copy.CreatureById(goblin.Id)!.SpeedMode);
     }

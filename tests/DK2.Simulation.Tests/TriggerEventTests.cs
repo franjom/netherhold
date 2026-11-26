@@ -209,7 +209,7 @@ public class TriggerEventTests
     public void ANewEngagementFiresAttackedOnTheTarget_ThroughTheSimulation()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, (byte)(Keeper + 1)]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -229,7 +229,7 @@ public class TriggerEventTests
     private static (WorldState World, GameDatabase Database, CreatureState Creature) CreatureWorld(ushort root)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         CreatureState creature = world.SpawnArrived(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
         creature.TriggerId = root;

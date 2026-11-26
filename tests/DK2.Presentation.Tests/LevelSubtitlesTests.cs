@@ -11,7 +11,7 @@ public sealed class LevelSubtitlesTests
     [Fact]
     public void AnIdThatNamesNoTableHasNoLines()
     {
-        LevelSubtitles subtitles = LevelSubtitles.Open(Path.GetTempPath(), 0, _ => Assert.Fail("no table, no warning"));
+        var subtitles = LevelSubtitles.Open(Path.GetTempPath(), 0, _ => Assert.Fail("no table, no warning"));
         Assert.Null(subtitles.Line(0));
     }
 
@@ -34,7 +34,7 @@ public sealed class LevelSubtitlesTests
     [InstallFact]
     public void Level1sTableGivesItsLinesByIndex()
     {
-        LevelSubtitles subtitles = LevelSubtitles.Open(Dk2InstallGate.Path, 1);
+        var subtitles = LevelSubtitles.Open(Dk2InstallGate.Path, 1);
         Assert.NotNull(subtitles.Line(0));
         Assert.Null(subtitles.Line(-1));
         Assert.Null(subtitles.Line(int.MaxValue));

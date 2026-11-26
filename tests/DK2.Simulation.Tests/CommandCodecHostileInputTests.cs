@@ -55,7 +55,7 @@ public class CommandCodecHostileInputTests
         var random = new Random(724);
         for (int i = 0; i < 20_000; i++)
         {
-            var input = new byte[random.Next(0, 64)];
+            byte[] input = new byte[random.Next(0, 64)];
             random.NextBytes(input);
             // Most random tags are unknown; aim half the cases at real ones.
             if (input.Length >= 2 && i % 2 == 0) input[0] = (byte)random.Next(0, 40);

@@ -21,7 +21,7 @@ public class PlayerObservationPrisonerTests
     [Fact]
     public void ARivalHeldInTheViewersPrisonIsSeenInTheWorldNeverInTheCreaturePanel()
     {
-        var (database, world) = PlayerObservationTests.World();
+        (GameDatabase? database, WorldState? world) = PlayerObservationTests.World();
         CreatureState captive = world.SpawnCreature(database, PlayerObservationTests.Fighter, PlayerObservationTests.Rival, PlayerObservationTests.OwnFloor);
         captive.PrisonOwnerPlayerId = PlayerObservationTests.Viewer.Value;
         captive.Dk2StateId = PrisonRules.ReturningState;   // a captive's state (category 14 or 126)
@@ -54,7 +54,7 @@ public class PlayerObservationPrisonerTests
         // Two portals, apart: 15 for the first and 5 for the second.
         tiles[0] = new MapTile(PortalTerrain, 3, 0, 0);
         tiles[2] = new MapTile(PortalTerrain, 3, 0, 0);
-        WorldState world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [3, 4], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [3, 4], fogOfWarEnabled: true);
         for (int y = 0; y < height; y++)
             for (int x = 0; x < PlayerObservationTests.Seen; x++)
                 world.Tile(x, y).SetExploredBy(3);
@@ -69,7 +69,7 @@ public class PlayerObservationPrisonerTests
     [Fact]
     public void ARivalCreatureInViewShowsItsFlowersLevelAndPetals()
     {
-        var (database, world) = PlayerObservationTests.World();
+        (GameDatabase? database, WorldState? world) = PlayerObservationTests.World();
         CreatureState rival = world.SpawnCreature(database, PlayerObservationTests.Fighter, PlayerObservationTests.Rival, PlayerObservationTests.OwnFloor);
         rival.Level = 6;
         rival.Health = Math.Max(1, CreatureHealthRules.MaxHealth(database, database.CreatureById(PlayerObservationTests.Fighter), rival) / 2);

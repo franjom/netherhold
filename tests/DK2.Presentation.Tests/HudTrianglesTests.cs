@@ -99,7 +99,7 @@ public sealed class HudTrianglesTests
         var a = new HudFrame();
         var b = new HudFrame();
         a.AddTriangles("art", Square, HudColor.White);
-        HudVertex[] moved = (HudVertex[])Square.Clone();
+        var moved = (HudVertex[])Square.Clone();
         moved[2] = moved[2] with { X = 11 };
         moved[4] = moved[4] with { X = 11 };
         b.AddTriangles("art", moved, HudColor.White);

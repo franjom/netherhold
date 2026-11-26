@@ -102,7 +102,7 @@ public class SnapshotTests
         byte[] bytes = WorldSnapshot.ToBytes(TestWorld.Simulation());
         bytes[16] = 0xFF; // magic (4) + format version (4) + tick (8), then the tag
 
-        var ex = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
+        SaveIncompatibleException ex = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
         Assert.Contains("random generator 255", ex.Message);
     }
 

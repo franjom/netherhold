@@ -18,7 +18,7 @@ public sealed class ClassicTorchFlameTests
     {
         var torch = new TorchView(0, new TilePos(0, 0), 4096, 8192, 6144, yaw,
             255, 255, 255, 128, 6144, default);
-        var position = ClassicTorchFlame.Position(torch);
+        FpPosition3 position = ClassicTorchFlame.Position(torch);
         Assert.Equal(x, position.X.Raw);
         Assert.Equal(y, position.Y.Raw);
         Assert.Equal(7344, position.Z.Raw);

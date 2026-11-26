@@ -33,7 +33,7 @@ public sealed class LightningTargetDrawTests
             foreach (LightningPath path in originalBolts.Build(Transform(Render(start), view),
                 Transform(Render(end), view), amplitude))
             {
-                LightningRibbon ribbon = LightningRibbon.Build(path.Nodes);
+                var ribbon = LightningRibbon.Build(path.Nodes);
                 int offset = expectedVertices.Count;
                 foreach (Vector3 vertex in ribbon.Vertices) expectedVertices.Add(Transform(vertex, camera));
                 expectedUvs.AddRange(ribbon.Uvs);
@@ -43,7 +43,7 @@ public sealed class LightningTargetDrawTests
         foreach (LightningSegment pair in originalPairs.Choose(controls))
             Append(pair.Start, pair.End, LightningAmplitude.Creature, viewA, cameraA);
         Assert.NotEmpty(expectedVertices);
-        var draws = f.Draws(seed);
+        LightningDrawList draws = f.Draws(seed);
         draws.BeginFrame(viewA, cameraA);
         draws.DrawCrackle(controls);
         Vector3[] prefix = draws.Vertices.ToArray();
@@ -90,7 +90,7 @@ public sealed class LightningTargetDrawTests
         foreach (float fraction in new[] { -.5f, 0, .25f, .75f, 1, 2 })
         for (uint seed = 0; seed < 32; seed++)
         {
-            var draws = f.Draws(seed);
+                LightningDrawList draws = f.Draws(seed);
             draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
             draws.DrawShots(f.World, f.Database, f.View, fraction);
             float clamped = Math.Clamp(fraction, 0, 1);
@@ -112,7 +112,7 @@ public sealed class LightningTargetDrawTests
     public void MissingAndUnsupportedTargetsPermanentlyBreakTheLink(FightTargetKind kind)
     {
         var f = new Fixture();
-        var draws = f.Draws(1);
+        LightningDrawList draws = f.Draws(1);
         f.Shot.TargetKind = kind;
         f.Shot.TargetId = -1;
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
@@ -129,7 +129,7 @@ public sealed class LightningTargetDrawTests
         var f = new Fixture();
         FpPosition3 end = f.Target(FightTargetKind.Creature);
         f.Victim.Dk2StateId = CreatureStateMachine.NoState;
-        var draws = f.Draws(3);
+        LightningDrawList draws = f.Draws(3);
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
         draws.DrawShots(f.World, f.Database, f.View, .5f);
         Assert.Empty(draws.Vertices);
@@ -153,7 +153,7 @@ public sealed class LightningTargetDrawTests
         f.Shot.PosY -= 1347;
         foreach (float fraction in new[] { -.1f, 0, .333f, 1, 1.5f })
         {
-            var draws = f.Draws(12);
+            LightningDrawList draws = f.Draws(12);
             draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
             draws.DrawShots(f.World, f.Database, f.View, fraction);
             float clamped = Math.Clamp(fraction, 0, 1);
@@ -170,7 +170,7 @@ public sealed class LightningTargetDrawTests
     {
         var f = new Fixture(fog: hidden);
         FpPosition3 end = f.Target(FightTargetKind.Creature);
-        var draws = f.Draws(31);
+        LightningDrawList draws = f.Draws(31);
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity, hasCamera: hidden);
         draws.DrawShots(f.World, f.Database, f.View, 1);
         Assert.Empty(draws.Vertices);
@@ -183,7 +183,7 @@ public sealed class LightningTargetDrawTests
     public void RemovedShotLinksAreResetBeforeTheirStorageIsReused()
     {
         var f = new Fixture();
-        var draws = f.Draws(71);
+        LightningDrawList draws = f.Draws(71);
         f.Shot.TargetKind = FightTargetKind.None;
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
         draws.DrawShots(f.World, f.Database, f.View, 1);
@@ -215,7 +215,7 @@ public sealed class LightningTargetDrawTests
         var f = new Fixture();
         var at = new FpPosition3(new(12345), new(23456), new(14567));
         f.Effects.Request(new ViewEffectRequest(new EffectId(kind), PressFixture.Keeper, at));
-        var draws = f.Draws(42);
+        LightningDrawList draws = f.Draws(42);
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
         draws.DrawEffects();
         EqualOriginal(draws, 42, at, at with { Z = new(Fp32.One) }, bolts);
@@ -228,7 +228,7 @@ public sealed class LightningTargetDrawTests
         var f = new Fixture();
         FpPosition3 end = f.Target(FightTargetKind.Creature);
         f.Shot.ShotTypeId = kind;
-        var draws = f.Draws(21);
+        LightningDrawList draws = f.Draws(21);
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
         draws.DrawShots(f.World, f.Database, f.View, 1);
         EqualOriginal(draws, 21, kind == 3 ? f.Shot.ViewPosition : f.CasterStart,
@@ -243,7 +243,7 @@ public sealed class LightningTargetDrawTests
         var f = new Fixture();
         f.Target(FightTargetKind.Creature);
         f.Shot.ShotTypeId = kind;
-        var draws = f.Draws(11);
+        LightningDrawList draws = f.Draws(11);
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
         draws.DrawShots(f.World, f.Database, f.View, 1);
         Assert.Empty(draws.Vertices);
@@ -274,7 +274,7 @@ public sealed class LightningTargetDrawTests
                 f.Shot.TargetKind = FightTargetKind.Heart;
                 f.Shot.TargetId = id;
                 f.Shot.TargetPlayerId = PressFixture.Keeper.Value;
-                var draws = f.Draws(19);
+                LightningDrawList draws = f.Draws(19);
                 draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
                 draws.DrawShots(f.World, f.Database, f.View, 1);
                 bool valid = HeartPillarRules.TryResolve(f.World, f.Database, PressFixture.Keeper,
@@ -317,7 +317,7 @@ public sealed class LightningTargetDrawTests
         }
         Assert.False(HeartPillarRules.TryResolve(f.World, f.Database, new(f.Shot.TargetPlayerId),
             new(f.Shot.TargetId), out _));
-        var draws = f.Draws(7);
+        LightningDrawList draws = f.Draws(7);
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
         draws.DrawShots(f.World, f.Database, f.View, 1);
         Assert.Empty(draws.Vertices);
@@ -328,7 +328,7 @@ public sealed class LightningTargetDrawTests
     {
         var f = new Fixture();
         f.Target(FightTargetKind.Heart);
-        var draws = f.Draws(83);
+        LightningDrawList draws = f.Draws(83);
         void Frame()
         {
             draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
@@ -352,7 +352,7 @@ public sealed class LightningTargetDrawTests
         for (int b = 0; b < boltCount; b++)
         foreach (LightningPath path in bolts.Build(Render(start), Render(end)))
         {
-            LightningRibbon ribbon = LightningRibbon.Build(path.Nodes);
+            var ribbon = LightningRibbon.Build(path.Nodes);
             int offset = vertices.Count;
             vertices.AddRange(ribbon.Vertices); uvs.AddRange(ribbon.Uvs);
             foreach (int index in ribbon.Triangles) triangles.Add(offset + index);

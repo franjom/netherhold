@@ -13,8 +13,8 @@ public class ClassicLightClassificationTests
     public void TerrainAndTorchModesPreserveNativeClassificationWithoutChangingInputs()
     {
         var torch = new TorchView(0, new TilePos(1, 2), 4096, 8192, 6144, 0, 300, 200, 100, 128, 6144, default);
-        ClassicPointLight normal = ClassicPointLight.FromTorch(torch, ClassicLightFlags.NormalTorch);
-        ClassicPointLight cheap = ClassicPointLight.FromTorch(torch, ClassicLightFlags.CheapTorch);
+        var normal = ClassicPointLight.FromTorch(torch, ClassicLightFlags.NormalTorch);
+        var cheap = ClassicPointLight.FromTorch(torch, ClassicLightFlags.CheapTorch);
         Assert.Equal((ClassicLightFlags)0x1B2, normal.Flags);
         Assert.Equal((ClassicLightFlags)0x74, cheap.Flags);
         Assert.Equal(normal.Position, cheap.Position);

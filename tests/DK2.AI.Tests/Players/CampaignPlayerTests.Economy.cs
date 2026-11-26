@@ -55,7 +55,7 @@ public partial class CampaignPlayerTests
     public void WithNothingLeftToDigTheShortestSpanToNewGroundIsBridged()
     {
         PlayerDecision decision = Player().Decide(Observe(map: Moat, rooms: BridgeOffer, gold: 5000));
-        var build = Assert.Single(decision.Actions.OfType<PlayerAction.BuildRoom>());
+        PlayerAction.BuildRoom build = Assert.Single(decision.Actions.OfType<PlayerAction.BuildRoom>());
         Assert.Equal((RoomTypeId.WoodenBridge, new TilePos(8, 1), new TilePos(10, 1)), (build.Room, build.From, build.To));
         // Not while the budget would not stand after it (300 for three tiles, a 1000 wage bill).
         Assert.DoesNotContain(Player().Decide(Observe(map: Moat, rooms: BridgeOffer, gold: 1400, wageBill: 1000)).Actions,
@@ -78,7 +78,7 @@ public partial class CampaignPlayerTests
         PlayerDecision lift = player.Decide(Observe(map: Developed, rooms: CoreOffers, owned: owned, things: [kept, pile], gold: 5000, wageBill: 1000, tick: 100));
         Assert.Contains(new PlayerAction.PickUp(Handle(0)), lift.Actions);
         Assert.DoesNotContain(new PlayerAction.PickUp(Handle(1)), lift.Actions);
-        var drop = Assert.Single(player.Decide(Observe(2, map: Developed, rooms: CoreOffers, owned: owned, hand: 1, gold: 5000, wageBill: 1000, tick: 104))
+        PlayerAction.DropAt drop = Assert.Single(player.Decide(Observe(2, map: Developed, rooms: CoreOffers, owned: owned, hand: 1, gold: 5000, wageBill: 1000, tick: 104))
             .Actions.OfType<PlayerAction.DropAt>());
         Assert.Equal(RoomTypeId.Treasury, Map(Developed)[drop.Tile].Room);
         // A Treasury holding the budget is left alone.

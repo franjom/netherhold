@@ -45,7 +45,7 @@ public class ClassicCameraControlsTests
     {
         var controls = new ClassicCameraControls(new ClassicCamera(Profile()), bounds:
             new CameraFocusBounds(Vector3.Zero, new Vector3(4095 / 4096f, 0, 0)));
-        var result = controls.Advance(new Vector3(startRaw / 4096f, 0, 0), key,
+        Vector3 result = controls.Advance(new Vector3(startRaw / 4096f, 0, 0), key,
             TimeSpan.FromMilliseconds(20), edge);
         Assert.Equal(expectedRaw / 4096f, result.X);
     }

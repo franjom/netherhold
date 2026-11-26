@@ -344,7 +344,7 @@ public class DropLandingTests
     private static (GameDatabase, WorldState) World()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Keeper + 1]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Keeper + 1]);
         return (db, world);
     }
 

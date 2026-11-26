@@ -25,7 +25,7 @@ public class DungeonHeartTests
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = NewWorld(database);
         GiveHeart(world, database, Keeper, new TilePos(5, 5));
-        var sim = Simulation(database, world);
+        GameSimulation sim = Simulation(database, world);
         var events = new ListEventSink();
         sim.ObserveWith(events);
         world.DamageHeart(Keeper, world.Player(Keeper).HeartHealth, attacker);
@@ -59,7 +59,7 @@ public class DungeonHeartTests
             HeartRuin.Set(world, Keeper, true);
         }
         else world.DamageHeart(Keeper, 10, Rival);
-        var sim = Simulation(database, world);
+        GameSimulation sim = Simulation(database, world);
         var events = new ListEventSink();
         sim.ObserveWith(events);
         sim.Run(3);
@@ -224,7 +224,7 @@ public class DungeonHeartTests
     {
         const byte A = 3, B = 4, C = 5;
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, A, B, C], gameMode: GameMode.Skirmish);
         world.SetAllied(A, B, allied: true);
         world.DamageHeart(A, world.Player(A).HeartHealth, PlayerIds.Good);
@@ -273,7 +273,7 @@ public class DungeonHeartTests
     public void WithNoRivalNobodyIsAwardedTheWin()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         world.DamageHeart(Keeper, world.Player(Keeper).HeartHealth, PlayerIds.Good);
         GameSimulation sim = Simulation(database, world);

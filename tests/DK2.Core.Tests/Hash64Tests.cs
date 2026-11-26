@@ -22,8 +22,8 @@ public class Hash64Tests
     [Fact]
     public void OrderMatters()
     {
-        Hash64 a = Hash64.Start(); a.Add(1); a.Add(2);
-        Hash64 b = Hash64.Start(); b.Add(2); b.Add(1);
+        var a = Hash64.Start(); a.Add(1); a.Add(2);
+        var b = Hash64.Start(); b.Add(2); b.Add(1);
         Assert.NotEqual(a.Value, b.Value);
     }
 
@@ -32,16 +32,16 @@ public class Hash64Tests
     [Fact]
     public void TheLengthOfARunOfZeros_Matters()
     {
-        Hash64 two = Hash64.Start(); two.Add(0UL); two.Add(0UL);
-        Hash64 three = Hash64.Start(); three.Add(0UL); three.Add(0UL); three.Add(0UL);
+        var two = Hash64.Start(); two.Add(0UL); two.Add(0UL);
+        var three = Hash64.Start(); three.Add(0UL); three.Add(0UL); three.Add(0UL);
         Assert.NotEqual(two.Value, three.Value);
     }
 
     [Fact]
     public void NullString_DiffersFromEmptyString()
     {
-        Hash64 a = Hash64.Start(); a.Add((string?)null);
-        Hash64 b = Hash64.Start(); b.Add(string.Empty);
+        var a = Hash64.Start(); a.Add((string?)null);
+        var b = Hash64.Start(); b.Add(string.Empty);
         Assert.NotEqual(a.Value, b.Value);
     }
 
@@ -50,7 +50,7 @@ public class Hash64Tests
     [Fact]
     public void KnownVector_IsPinned()
     {
-        Hash64 h = Hash64.Start();
+        var h = Hash64.Start();
         h.Add(0x0123456789ABCDEFUL);
         h.Add((byte)'a');
         Assert.Equal(0x66DCD29D88BC18A6UL, h.Value);
@@ -58,7 +58,7 @@ public class Hash64Tests
 
     private static ulong HashOf(string s, int n)
     {
-        Hash64 h = Hash64.Start(); h.Add(s); h.Add(n);
+        var h = Hash64.Start(); h.Add(s); h.Add(n);
         return h.Value;
     }
 }

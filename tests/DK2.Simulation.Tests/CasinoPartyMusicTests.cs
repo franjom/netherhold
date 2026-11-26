@@ -28,7 +28,7 @@ public sealed class CasinoPartyMusicTests
 
     private static (WorldState World, RoomInstance Room, CreatureState Dancer) Setup(GameDatabase db, bool dancer = true)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
             for (int x = 1; x <= 3; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);
@@ -62,7 +62,7 @@ public sealed class CasinoPartyMusicTests
     {
         GameDatabase db = Db();
         (WorldState world, RoomInstance room, _) = Setup(db);
-        var (sim, events) = Simulate(db, world);
+        (GameSimulation? sim, ListEventSink? events) = Simulate(db, world);
 
         sim.Run(5);
 
@@ -85,7 +85,7 @@ public sealed class CasinoPartyMusicTests
     {
         GameDatabase db = Db();
         (WorldState world, _, _) = Setup(db, dancer: false);
-        var (sim, events) = Simulate(db, world);
+        (GameSimulation? sim, ListEventSink? events) = Simulate(db, world);
 
         sim.Run(5);
 
@@ -97,7 +97,7 @@ public sealed class CasinoPartyMusicTests
     {
         GameDatabase db = Db();
         (WorldState world, RoomInstance room, CreatureState dancer) = Setup(db);
-        var (sim, events) = Simulate(db, world);
+        (GameSimulation? sim, ListEventSink? events) = Simulate(db, world);
         sim.Run(2);   // the music is on
         int before = events.Events.Count;
         ref TileState first = ref world.TileAtIndex(room.TileIndices[0]);

@@ -199,7 +199,7 @@ public class CombatTests
         demon.SwingTargetKind = FightTargetKind.None;
         demon.ActionUntilTick = sim.CurrentTick.Value + 1;
         demon.FightProcessCounter = 0;   // the update's own scan is not due in these two turns
-        var attack = demon.AttackType;
+        CombatRules.AttackMode attack = demon.AttackType;
         int reach = demon.AttackRangeSquared;
         demon.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(123, 0);
         sim.Run(1);
@@ -388,7 +388,7 @@ public class CombatTests
             Name = "Caster", CreatureId = 61, FightStyle = FightStyle.Blitzer, Spells = Dk2TerrainFixture.Warlock().Spells,
         };
         GameDatabase db = Dk2TerrainFixture.Database(caster);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
@@ -418,7 +418,7 @@ public class CombatTests
             Name = "Caster", CreatureId = 61, FightStyle = FightStyle.Blitzer, Spells = Dk2TerrainFixture.Warlock().Spells,
         };
         GameDatabase db = Dk2TerrainFixture.Database(caster);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
@@ -521,7 +521,7 @@ public class CombatTests
     private static (GameDatabase, WorldState) OpenWorld()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
         {

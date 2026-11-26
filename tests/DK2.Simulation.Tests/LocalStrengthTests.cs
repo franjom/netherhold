@@ -19,7 +19,7 @@ public class LocalStrengthTests
     public void ACollapsedCreatureCounts_AHeldOneAndACorpseDoNot()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 10), [PlayerIds.Good, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 10), [PlayerIds.Good, PlayerIds.FirstKeeper]);
         var good = new PlayerId(PlayerIds.Good);
         CreatureState standing = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, good, new TilePos(5, 5));
         CreatureState collapsed = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, good, new TilePos(5, 6));

@@ -24,11 +24,11 @@ public class Fnv1a64Tests
     [Fact]
     public void OrderMatters()
     {
-        Fnv1a64 a = Fnv1a64.Start();
+        var a = Fnv1a64.Start();
         a.Add(1);
         a.Add(2);
 
-        Fnv1a64 b = Fnv1a64.Start();
+        var b = Fnv1a64.Start();
         b.Add(2);
         b.Add(1);
 
@@ -41,7 +41,7 @@ public class Fnv1a64Tests
         // FNV-1a over the ASCII bytes of "a". Pinning it proves this is the
         // published algorithm rather than something that merely looks stable
         // in one process. https://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function
-        Fnv1a64 h = Fnv1a64.Start();
+        var h = Fnv1a64.Start();
         h.Add((byte)'a');
         Assert.Equal(0xaf63dc4c8601ec8cUL, h.Value);
     }
@@ -55,10 +55,10 @@ public class Fnv1a64Tests
     [Fact]
     public void NullString_DiffersFromEmptyString()
     {
-        Fnv1a64 a = Fnv1a64.Start();
+        var a = Fnv1a64.Start();
         a.Add((string?)null);
 
-        Fnv1a64 b = Fnv1a64.Start();
+        var b = Fnv1a64.Start();
         b.Add(string.Empty);
 
         Assert.NotEqual(a.Value, b.Value);
@@ -66,7 +66,7 @@ public class Fnv1a64Tests
 
     private static ulong HashOf(string s, int n)
     {
-        Fnv1a64 h = Fnv1a64.Start();
+        var h = Fnv1a64.Start();
         h.Add(s);
         h.Add(n);
         return h.Value;

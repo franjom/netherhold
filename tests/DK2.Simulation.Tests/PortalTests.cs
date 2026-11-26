@@ -503,7 +503,7 @@ public class PortalTests
         sim.ObserveWith(sink);
         sim.Run(LongEnough);
 
-        List<SimEvent> arrivals =
+        var arrivals =
             sink.Events.Where(e => e.Kind == "creature_entered").ToList();
 
         Assert.NotEmpty(arrivals);
@@ -789,7 +789,7 @@ public class PortalTests
 
         // The Goblin's own slot has no minimum, so demanding one is the way to
         // test the size clause on the fixture. Nine tiles wanted, four given.
-        var demanding = goblin with
+        CreatureDef demanding = goblin with
         {
             Attractions = [new CreatureAttraction(1, (byte)RoomTypeId.Lair, 9)],
         };
@@ -806,7 +806,7 @@ public class PortalTests
     public void ACreaturesMinimumIsTheKeepersTotalSlabsOfThatRoomType()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        var demanding = db.CreatureById(GoblinId) with
+        CreatureDef demanding = db.CreatureById(GoblinId) with
         {
             Attractions = [new CreatureAttraction(1, (byte)RoomTypeId.Lair, 9)],
         };
@@ -830,7 +830,7 @@ public class PortalTests
     public void ACreatureThatWantsTwoRoomsNeedsBoth()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        var fussy = db.CreatureById(GoblinId) with
+        CreatureDef fussy = db.CreatureById(GoblinId) with
         {
             Attractions =
             [
@@ -881,7 +881,7 @@ public class PortalTests
     public void ATempleAdmitsTwoOfItsTypeAndThenStops()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        var angel = db.CreatureById(GoblinId) with
+        CreatureDef angel = db.CreatureById(GoblinId) with
         {
             Attractions = [new CreatureAttraction(1, (byte)RoomTypeId.Temple, 0)],
         };
@@ -939,7 +939,7 @@ public class PortalTests
     public void AGuardRoomContributesItsTilesAndAdmitsThatManyOfItsType()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        var elf = db.CreatureById(GoblinId) with
+        CreatureDef elf = db.CreatureById(GoblinId) with
         {
             Attractions = [new CreatureAttraction(1, (byte)RoomTypeId.GuardRoom, 0)],
         };

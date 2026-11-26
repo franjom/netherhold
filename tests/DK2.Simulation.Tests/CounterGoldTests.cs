@@ -16,7 +16,7 @@ public sealed class CounterGoldTests
     [InlineData(1000, 350)]
     public void CounterWithdrawalTransfersOnlyAvailableStoredGoldIntoANeutralTreasuryPile(int requested, int expected)
     {
-        var database = Dk2TerrainFixture.Database();
+        GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [PlayerIds.FirstKeeper, PlayerIds.Neutral]);
         world.Tile(2, 2).TerrainId = Dk2TerrainFixture.TreasuryTerrain;
         world.Tile(2, 2).OwnerPlayerId = PlayerIds.FirstKeeper;
@@ -36,12 +36,12 @@ public sealed class CounterGoldTests
     [Fact]
     public void FullHandRefusesWithdrawalBeforeAnyGoldLeavesTheStore()
     {
-        var database = Dk2TerrainFixture.Database();
+        GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [PlayerIds.FirstKeeper, PlayerIds.Neutral]);
         world.Tile(2, 2).TerrainId = Dk2TerrainFixture.TreasuryTerrain;
         world.Tile(2, 2).OwnerPlayerId = PlayerIds.FirstKeeper;
         world.Tile(2, 2).GoldHeld = 350;
-        var pile = world.SpawnObject(database, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, 0);
+        ObjectState pile = world.SpawnObject(database, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, 0);
         for (int i = 0; i < HandRules.Capacity(database); i++)
             world.Player(PlayerIds.FirstKeeper).Hand.Add(HandItem.Of(pile));
         int before = GoldStore.Total(world, PlayerIds.FirstKeeper), objects = world.Objects.Count;

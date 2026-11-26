@@ -328,7 +328,7 @@ public class InputLogTests
     public void ALogTagsTheTileTheCaptureSaysWasTagged()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, (byte)3]);
         TilePos target = Rock(database, world);
         var sim = new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems());

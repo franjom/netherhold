@@ -44,7 +44,7 @@ public class ManaUpkeepTests
     private static Run World(int mana = 0, bool heart = true)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         Dk2TerrainFixture.HeartRoom(world, database, Keeper, heart);

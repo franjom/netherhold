@@ -25,7 +25,7 @@ public sealed class HiddenSecretDoorViewTests
     {
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level8")!;
-        WorldState world = WorldState.FromMap(database, map, [0, 1, 2, 3, 4], fogOfWarEnabled: false);
+        var world = WorldState.FromMap(database, map, [0, 1, 2, 3, 4], fogOfWarEnabled: false);
 
         byte secretDoorId = database.Doors.Values.First(door => (door.Flags & DoorFlags.Secret) == DoorFlags.Secret).DoorId;
         DoorThing shipped = GameDatabaseLoader.LoadCampaignThings(Dk2InstallGate.Path, "Level8")!.OfType<DoorThing>().First();
@@ -42,7 +42,7 @@ public sealed class HiddenSecretDoorViewTests
     [InstallFact]
     public void TheOwnerSeesItsHiddenDoorAsADoor()
     {
-        var (database, world, door) = Level8WithASecretDoor();
+        (GameDatabase? database, WorldState? world, DoorState? door) = Level8WithASecretDoor();
         Assert.True(world.Tile(door.X, door.Y).SecretDoor);
         var view = new WorldView(database, DoorOwner);
 
@@ -55,7 +55,7 @@ public sealed class HiddenSecretDoorViewTests
     [InstallFact]
     public void AnotherPlayerSeesAWallWhereTheHiddenDoorStands()
     {
-        var (database, world, door) = Level8WithASecretDoor();
+        (GameDatabase? database, WorldState? world, DoorState? door) = Level8WithASecretDoor();
         var view = new WorldView(database, Stranger);
 
         Assert.False(DrawsTheDoor(view, world, door));
@@ -74,7 +74,7 @@ public sealed class HiddenSecretDoorViewTests
     [InstallFact]
     public void OnceUncoveredTheDoorIsDrawnForEveryone()
     {
-        var (database, world, door) = Level8WithASecretDoor();
+        (GameDatabase? database, WorldState? world, DoorState? door) = Level8WithASecretDoor();
         var view = new WorldView(database, Stranger);
         world.Tile(door.X, door.Y).SecretDoor = false;
 
@@ -89,7 +89,7 @@ public sealed class HiddenSecretDoorViewTests
     [InstallFact]
     public void TheTilesBesideAHiddenDoorAreDrawnAsBesideAWall()
     {
-        var (database, world, door) = Level8WithASecretDoor();
+        (GameDatabase? database, WorldState? world, DoorState? door) = Level8WithASecretDoor();
         WorldState walled = WallInsteadOfTheDoor(database, door);
         var view = new WorldView(database, Stranger);
         var walledView = new WorldView(database, Stranger);
@@ -107,7 +107,7 @@ public sealed class HiddenSecretDoorViewTests
     private static WorldState WallInsteadOfTheDoor(GameDatabase database, DoorState door)
     {
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level8")!;
-        WorldState world = WorldState.FromMap(database, map, [0, 1, 2, 3, 4], fogOfWarEnabled: false);
+        var world = WorldState.FromMap(database, map, [0, 1, 2, 3, 4], fogOfWarEnabled: false);
         ref TileState tile = ref world.Tile(door.X, door.Y);
         tile.TerrainId = 9;
         return world;

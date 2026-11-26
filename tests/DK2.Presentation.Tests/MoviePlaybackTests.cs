@@ -40,7 +40,7 @@ public class MoviePlaybackTests
         // Frame 0, a 100-frame block, frame 1, a 100-frame block: frame 1 is due when the second block starts.
         using var movie = new MoviePlayback(EaMovie.Read(Interleaved()), "audio");
         int delay = (int)Math.Round(MoviePlayback.StartDelaySeconds * Rate);
-        var samples = new float[2 * (delay + 150)];
+        float[] samples = new float[2 * (delay + 150)];
 
         movie.ReadAudio(samples);
 
@@ -94,7 +94,7 @@ public class MoviePlaybackTests
     public void SteadyPlaybackAllocatesNothingOnTheFrameThread()
     {
         using var movie = new MoviePlayback(EaMovie.Read(Silent(40)), "silent");
-        var samples = new float[2 * 512];
+        float[] samples = new float[2 * 512];
         movie.Update(MoviePlayback.StartDelaySeconds, 0);
         movie.ReadAudio(samples);
 
@@ -121,11 +121,11 @@ public class MoviePlaybackTests
     public void BullfrogIntroPlaysToItsEndByTheAudioClockAndShowsTheDecodersFrames()
     {
         using MoviePlayback movie = MoviePlayback.TryOpen(Dk2InstallGate.Path, "Data/Movies/BullfrogIntro.tgq", out _)!;
-        var samples = new float[2 * 735];
+        float[] samples = new float[2 * 735];
         var decoder = new TqiDecoder();
-        EaMovie file = EaMovie.Open(Path.Combine(Dk2InstallGate.Path, "Data", "Movies", "BullfrogIntro.tgq"));
+        var file = EaMovie.Open(Path.Combine(Dk2InstallGate.Path, "Data", "Movies", "BullfrogIntro.tgq"));
         EaMovieChunk[] frames = file.Chunks.Where(c => c.Kind == EaMovieChunkKind.Video).ToArray();
-        var expected = new byte[movie.Width * movie.Height * 4];
+        byte[] expected = new byte[movie.Width * movie.Height * 4];
         long played = 0;
 
         while (!movie.Finished && played < 60L * Rate)
@@ -173,7 +173,7 @@ public class MoviePlaybackTests
         for (int i = 0; i < 3; i++) bits.Append("100").Append("10");
         for (int i = 0; i < 2; i++) bits.Append("11111110").Append("10000000").Append("10");
         string all = bits.ToString().PadRight((bits.Length + 31) / 32 * 32, '0');
-        var frame = new byte[8 + all.Length / 8];
+        byte[] frame = new byte[8 + all.Length / 8];
         BinaryPrimitives.WriteUInt16LittleEndian(frame, 16);
         BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(2), 16);
         frame[4] = 100;
@@ -185,7 +185,7 @@ public class MoviePlaybackTests
 
     private static byte[] Pcm(int count, short value)
     {
-        var payload = new byte[4 + 2 * count];
+        byte[] payload = new byte[4 + 2 * count];
         BinaryPrimitives.WriteInt32LittleEndian(payload, count);
         for (int i = 0; i < count; i++) BinaryPrimitives.WriteInt16LittleEndian(payload.AsSpan(4 + 2 * i), value);
         return payload;
@@ -194,7 +194,7 @@ public class MoviePlaybackTests
     private static void Chunk(List<byte> file, string tag, byte[] payload)
     {
         file.AddRange(Encoding.ASCII.GetBytes(tag));
-        var size = new byte[4];
+        byte[] size = new byte[4];
         BinaryPrimitives.WriteInt32LittleEndian(size, payload.Length + 8);
         file.AddRange(size);
         file.AddRange(payload);

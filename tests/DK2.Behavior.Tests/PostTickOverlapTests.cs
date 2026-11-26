@@ -51,7 +51,7 @@ public class PostTickOverlapTests
 
     private static ulong Fingerprint(PlayerCommand command)
     {
-        Hash64 hash = Hash64.Start();
+        var hash = Hash64.Start();
         command.HashInto(ref hash);
         return hash.Value;
     }

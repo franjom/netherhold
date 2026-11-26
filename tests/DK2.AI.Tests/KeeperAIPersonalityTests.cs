@@ -115,13 +115,13 @@ public class KeeperAIPersonalityTests
         {
             string Run()
             {
-                var world = KeeperWorld.World(Db);
+                WorldState world = KeeperWorld.World(Db);
                 var keeper = new KeeperAI(KeeperWorld.Keeper, KeeperAIPersonality.Parameters(p, "Anywhere", Db, world.Width, world.Height),
                     new SimRandom(11));
                 var log = new List<string>();
                 for (int t = 0; t < 30; t++)
                 {
-                    foreach (var c in keeper.Think(Db, world)) log.Add(c.ToString());
+                    foreach (PlayerCommand c in keeper.Think(Db, world)) log.Add(c.ToString());
                     KeeperWorld.DigWhatIsTagged(world, Db, KeeperWorld.Keeper);
                 }
                 return string.Join("\n", log);

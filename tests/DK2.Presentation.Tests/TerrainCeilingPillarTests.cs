@@ -44,7 +44,7 @@ public sealed class TerrainCeilingPillarTests
     {
         (WorldState world, GameDatabase database) = Room(type);
         Assert.Empty(world.Objects);
-        var closed = new bool[Size * Size];
+        bool[] closed = new bool[Size * Size];
         TerrainCeiling.MarkClosed(world, database, closed);
         Assert.Equal(4, closed.Count(value => value));
         foreach ((int x, int y) in new[] { (4, 4), (6, 4), (4, 6), (6, 6) })
@@ -65,7 +65,7 @@ public sealed class TerrainCeilingPillarTests
     public void RoomsWithoutTheCommonPillarPassKeepTheirCornerRoofs(RoomTypeId type)
     {
         (WorldState world, GameDatabase database) = Room(type);
-        var closed = new bool[Size * Size];
+        bool[] closed = new bool[Size * Size];
         TerrainCeiling.MarkClosed(world, database, closed);
         Assert.DoesNotContain(true, closed);
     }
@@ -73,7 +73,7 @@ public sealed class TerrainCeilingPillarTests
     public void ARoomNarrowerThanThreeTilesHasNoVirtualPillars()
     {
         (WorldState world, GameDatabase database) = Room(RoomTypeId.Hatchery, width: 2);
-        var closed = new bool[Size * Size];
+        bool[] closed = new bool[Size * Size];
         TerrainCeiling.MarkClosed(world, database, closed);
         Assert.DoesNotContain(true, closed);
     }

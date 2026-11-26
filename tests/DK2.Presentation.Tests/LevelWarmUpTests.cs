@@ -21,7 +21,7 @@ public sealed class LevelWarmUpTests
     [InlineData("Level6a")]
     public void ARealSimulationAfterAWarmUpHasTheStateOfOneWithout(string name)
     {
-        CampaignLevelData level = CampaignLevelData.Load(Dk2InstallGate.Path, name);
+        var level = CampaignLevelData.Load(Dk2InstallGate.Path, name);
         ulong without = Hash(level, 120);
 
         ulong warmed = LevelWarmUp.Run(level, seed: 1, fogOfWarEnabled: true);

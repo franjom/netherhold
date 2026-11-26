@@ -28,7 +28,7 @@ public class HeartPillarSteeringTests
         };
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values,
             basis.Variables, objects: basis.Objects.Values.Append(pillar));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Owner]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Owner]);
         for (int y = 3; y <= 7; y++)
         for (int x = 10; x <= 14; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Owner);
@@ -55,7 +55,7 @@ public class HeartPillarSteeringTests
     [InlineData(HeartPillar.Third)]
     public void ALiveHeartsPillarTileHasAnObstacleAtThePillarPositionWithHalfTheWidth(HeartPillar ordinal)
     {
-        var (db, world, steering) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? steering) = Setup();
         HeartPillarTarget pillar = Pillars(db, world)[(int)ordinal];
 
         SteeringObstacle obstacle = Assert.Single(Query(steering, pillar.Tile));
@@ -70,7 +70,7 @@ public class HeartPillarSteeringTests
     [Fact]
     public void AHeartTileWithoutAPillarContributesNothing()
     {
-        var (db, world, steering) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? steering) = Setup();
         HeartPillarTarget[] pillars = Pillars(db, world);
         Assert.Equal(3, pillars.Length);
         int heartTiles = 0;
@@ -88,7 +88,7 @@ public class HeartPillarSteeringTests
     [Fact]
     public void ARuinedHeartContributesNoPillars()
     {
-        var (db, world, steering) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? steering) = Setup();
         HeartPillarTarget[] pillars = Pillars(db, world);
         Assert.All(pillars, p => Assert.Single(Query(steering, p.Tile)));
 
@@ -102,7 +102,7 @@ public class HeartPillarSteeringTests
     [InlineData(true, 0)]
     public void AnArchPillarWithoutTheObstacleFlagOrAWidthContributesNothing(bool obstacle, int width)
     {
-        var (db, world, steering) = Setup(obstacle, width);
+        (GameDatabase? db, WorldState? world, WorldSteering? steering) = Setup(obstacle, width);
         Assert.All(Pillars(db, world), p => Assert.Empty(Query(steering, p.Tile)));
     }
 }

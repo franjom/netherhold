@@ -20,7 +20,7 @@ public class WorldResyncTests
     private static GameSimulation StartWithRival()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Neutral, Keeper, (byte)4]);
         return new GameSimulation(db, world, 42, []);
     }
@@ -251,7 +251,7 @@ public class WorldResyncTests
     private static GameSimulation Start(int imps)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int i = 0; i < imps; i++)
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
         return new GameSimulation(database, world, new SimRandom(new Dk2Lcg(7)), Dk2TerrainFixture.DefaultSystems());
@@ -260,7 +260,7 @@ public class WorldResyncTests
     /// <summary>Our world's tiles in the capture's three-ints-a-tile shape.</summary>
     private static int[] TilesOf(WorldState world)
     {
-        var tiles = new int[3 * world.Width * world.Height];
+        int[] tiles = new int[3 * world.Width * world.Height];
         for (int y = 0; y < world.Height; y++)
         for (int x = 0; x < world.Width; x++)
         {
@@ -297,7 +297,7 @@ public class WorldResyncTests
         tiles[i] = Dk2TerrainFixture.DirtPath;
         tiles[i + 1] = 0;
         int ourTerrain = world.Tile(2, 4).TerrainId, ourMana = world.Player(Keeper).Mana;
-        var native = Imp(401, new TilePos(3, 3), 10, Job(0, gold: 545)) with { Level = 3 };
+        ResyncCreature native = Imp(401, new TilePos(3, 3), 10, Job(0, gold: 545)) with { Level = 3 };
         var state = new ResyncState(10, world.Width, world.Height, [new ResyncPlayer(Keeper, 1234, 56)], tiles, null,
             [native], null, 4242);
 
@@ -323,7 +323,7 @@ public class WorldResyncTests
         GameSimulation sim = Start(1);
         WorldState world = sim.World;
         CreatureState imp = world.Creatures[0];
-        var state = State(world, [Imp(401, new TilePos(3, 3), 10, Job(0, gold: 545, lastKind: 2, taskX: 5, taskY: 5))]);
+        ResyncState state = State(world, [Imp(401, new TilePos(3, 3), 10, Job(0, gold: 545, lastKind: 2, taskX: 5, taskY: 5))]);
 
         ResyncReport report = WorldResync.Apply(sim, state, slot => slot == 401 ? imp.Id : null,
             ResyncParts.All & ~ResyncParts.Jobs);
@@ -394,7 +394,7 @@ public class WorldResyncTests
     public void DoorsTrapsCratesAndTheManufactureListAreTheCaptures_AndCrateTripsAreReissued()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
         for (int x = 1; x <= 3; x++)
             RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.Workshop), Keeper);
@@ -523,9 +523,9 @@ public class WorldResyncTests
         GameSimulation sim = Start(0);
         TriggerState triggers = sim.World.Triggers;
         triggers.StartTimer(5, 2058);   // Level 4 seed 1: ours took the Portal at 2059, DK2 at 2030 (stamp 2029)
-        var flags = new int[TriggerState.FlagCount];
+        int[] flags = new int[TriggerState.FlagCount];
         flags[11] = 1;
-        var timers = new int[TriggerState.TimerCount];
+        int[] timers = new int[TriggerState.TimerCount];
         timers[5] = 2029;
         ResyncState state = State(sim.World, []) with { Flags = flags, Timers = timers };
 

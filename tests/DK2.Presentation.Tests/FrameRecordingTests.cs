@@ -59,7 +59,7 @@ public sealed class FrameRecordingTests
         FrameRecording recording = Recorded((10, false), (12, true));
         string json = recording.Json([new("gpu", "A \"quoted\" \\ name\n")], ["--level", "Level1"],
             [new("lighting.stillMeanMs", 0.25), new("bad", double.NaN)], warmUpFrames: 120);
-        using JsonDocument document = JsonDocument.Parse(json);
+        using var document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;
         Assert.Equal("dk2-godot-perf/1", root.GetProperty("schema").GetString());
         Assert.Equal("A \"quoted\" \\ name\n", root.GetProperty("info").GetProperty("gpu").GetString());
@@ -118,7 +118,7 @@ public sealed class FrameRecordingTests
             Assert.Equal("10,25", 10.25.ToString(CultureInfo.CurrentCulture));
             FrameRecording recording = Recorded((10.25, false), (12.5, true), (11.75, true));
             string json = recording.Json([], [], [new("x", 0.5)], warmUpFrames: 1);
-            using JsonDocument document = JsonDocument.Parse(json);
+            using var document = JsonDocument.Parse(json);
             JsonElement frame = document.RootElement.GetProperty("phases").GetProperty("all").GetProperty("frameMs");
             foreach (string stat in new[] { "mean", "p50", "p95", "p99", "max" })
                 Assert.True(double.IsFinite(frame.GetProperty(stat).GetDouble()));

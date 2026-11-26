@@ -24,7 +24,7 @@ public sealed class CreatureHoverSoundTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
-        WorldState world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!, [0, 1]);
+        var world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!, [0, 1]);
         CreatureState goblin = world.SpawnCreature(database, database.CreatureByName("Goblin")!.CreatureId, owner, new TilePos(3, 3));
         typeof(WorldState).GetProperty(nameof(WorldState.CurrentTick))!.SetValue(world, new GameTick(tick));
         return (database, world, goblin);
@@ -35,7 +35,7 @@ public sealed class CreatureHoverSoundTests
     [InstallFact]
     public void AnOwnContentCreatureOnATurnThatIsAMultipleOfTwelveAsksCAInItsCategoryWithItsHandleAtItsPosition()
     {
-        var (database, world, goblin) = Setup(tick: 24);
+        (GameDatabase? database, WorldState? world, CreatureState? goblin) = Setup(tick: 24);
         SoundRequest request = CreatureHoverSound.For(world, database, Hit(goblin), Viewer)!.Value;
         Assert.Equal(new DK2.Data.Media.SoundCategory("creature_goblin"), request.Category);
         Assert.Equal(new DK2.Data.Media.SoundId(0xCA), request.Id);
@@ -47,7 +47,7 @@ public sealed class CreatureHoverSoundTests
     [InlineData(1)] [InlineData(11)] [InlineData(13)] [InlineData(23)]
     public void OnAnyOtherTurnItAsksNothing(long tick)
     {
-        var (database, world, goblin) = Setup(tick);
+        (GameDatabase? database, WorldState? world, CreatureState? goblin) = Setup(tick);
         Assert.Null(CreatureHoverSound.For(world, database, Hit(goblin), Viewer));
     }
 
@@ -55,7 +55,7 @@ public sealed class CreatureHoverSoundTests
     [InlineData(0, 0xCAu)] [InlineData(1, 0xCBu)] [InlineData(2, 0xCCu)]
     public void TheMoodBandChoosesTheSound(int band, uint expected)
     {
-        var (database, world, goblin) = Setup();
+        (GameDatabase? database, WorldState? world, CreatureState? goblin) = Setup();
         CreatureDef def = database.CreatureById(goblin.CreatureTypeId);
         goblin.Anger.Hunger = band switch { 0 => 0, 1 => CreatureAngerRules.UnhappyAt(def), _ => CreatureAngerRules.AngryAt(def) + 1 };
         Assert.Equal((CreatureMood)band, CreatureAngerRules.MoodOf(def, goblin));
@@ -65,9 +65,9 @@ public sealed class CreatureHoverSoundTests
     [InstallFact]
     public void AnotherKeepersCreatureAndAnythingButACreatureAreSilent()
     {
-        var (database, world, rival) = Setup(owner: PlayerIds.FirstKeeper + 1);
+        (GameDatabase? database, WorldState? world, CreatureState? rival) = Setup(owner: PlayerIds.FirstKeeper + 1);
         Assert.Null(CreatureHoverSound.For(world, database, Hit(rival), Viewer));
-        var (_, _, own) = Setup();
+        (GameDatabase _, WorldState _, CreatureState? own) = Setup();
         Assert.Null(CreatureHoverSound.For(world, database, new WorldHoverHit(WorldHoverKind.Tile, own.Tile), Viewer));
         Assert.Null(CreatureHoverSound.For(world, database, new WorldHoverHit(WorldHoverKind.Creature, rival.Tile, 99999), Viewer));
     }
@@ -75,7 +75,7 @@ public sealed class CreatureHoverSoundTests
     [InstallFact]
     public void ACreatureInTheHandOrHoldingARoomPlaceAsksNothingFromTheMoodArm()
     {
-        var (database, world, goblin) = Setup();
+        (GameDatabase? database, WorldState? world, CreatureState? goblin) = Setup();
         goblin.HeldPlace = new RoomPlace(5, 1);
         Assert.Null(CreatureHoverSound.For(world, database, Hit(goblin), Viewer));
         goblin.HeldPlace = RoomPlace.None;
@@ -86,7 +86,7 @@ public sealed class CreatureHoverSoundTests
     [InstallFact]
     public void ARunningActionWithAWordAsksItsWordEvenInARoom_StandInsNameOnlyTheModelledActions()
     {
-        var (database, world, goblin) = Setup();
+        (GameDatabase? database, WorldState? world, CreatureState? goblin) = Setup();
         goblin.HeldPlace = new RoomPlace(5, 1);
         goblin.TrainingActionId = (byte)TrainingActionKind.Melee;
         Assert.Equal(new DK2.Data.Media.SoundId(0xD3), CreatureHoverSound.For(world, database, Hit(goblin), Viewer)!.Value.Id);
@@ -98,7 +98,7 @@ public sealed class CreatureHoverSoundTests
     [InstallFact]
     public void AnImpsDigAsksItsWordAndWithoutTheActionTheMoodSoundReturns()
     {
-        var (database, world, goblin) = Setup();
+        (GameDatabase? database, WorldState? world, CreatureState? goblin) = Setup();
         goblin.TrainingActionId = (byte)TrainingActionKind.Melee;
         goblin.SwingInProgress = false;
         // Action 30's word is 0xD3; a spell trainee is 31, also 0xD3. An imp's dig (1) carries 0x334: in the Imp's category.

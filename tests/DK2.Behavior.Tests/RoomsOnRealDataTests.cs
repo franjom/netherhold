@@ -179,7 +179,7 @@ public class RoomsOnRealDataTests
         // only answers a question if the mapping is one-to-one.
         GameDatabase db = RealDatabase();
 
-        List<byte> terrainIds = db.Rooms.Values.Select(r => r.TerrainId).ToList();
+        var terrainIds = db.Rooms.Values.Select(r => r.TerrainId).ToList();
 
         Assert.Equal(terrainIds.Count, terrainIds.Distinct().Count());
         Assert.Equal(db.Rooms.Count, db.RoomsByTerrain.Count);
@@ -293,7 +293,7 @@ public class RoomsOnRealDataTests
         LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, "level1");
         Assert.NotNull(map);
 
-        WorldState world = WorldState.FromMap(db, map, map.Tiles.Select(t => t.PlayerId).Distinct());
+        var world = WorldState.FromMap(db, map, map.Tiles.Select(t => t.PlayerId).Distinct());
         RoomDef lair = db.Room(RoomTypeId.Lair);
 
         (int index, byte owner) = FindClaimedFloor(db, world);

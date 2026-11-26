@@ -19,7 +19,7 @@ public class CostNumberEffectTests
     [Fact]
     public void EachDigitIsAnElementUnitsFirstSpacedOneDigitWidthLeftward()
     {
-        var model = Model();
+        RoomConstructionParticles model = Model();
         model.Request(Amount(4800));
         model.AdvanceTo(new(51));
         ConstructionParticle[] digits = [.. model.Particles];
@@ -33,7 +33,7 @@ public class CostNumberEffectTests
     [Fact]
     public void TheDigitsAreBlackTintedAndTakeLight()
     {
-        var model = Model();
+        RoomConstructionParticles model = Model();
         model.Request(Amount(42));
         model.AdvanceTo(new(51));
         Assert.All(model.Particles, d =>
@@ -46,7 +46,7 @@ public class CostNumberEffectTests
     [Fact]
     public void ALitSpriteIsItsTintPlusEachLightsRadialTermCappedPerChannel()
     {
-        ClassicPointLight torch = ClassicPointLight.FromTerrain(new TilePos(2, 3), new Fp32(4096),
+        var torch = ClassicPointLight.FromTerrain(new TilePos(2, 3), new Fp32(4096),
             new TerrainLightColour(200, 120, 40));
         Assert.Equal(((byte)200, (byte)120, (byte)40),
             SpriteLighting.Lit(0, 0, 0, [torch], torch.Position));
@@ -86,7 +86,7 @@ public class CostNumberEffectTests
     [Fact]
     public void AnAmountOffCameraIsNotShown()
     {
-        var model = Model(cameraVisible: _ => false);
+        RoomConstructionParticles model = Model(cameraVisible: _ => false);
         model.Request(Amount(300));
         model.AdvanceTo(new(51));
         Assert.Empty(model.Particles);
@@ -95,7 +95,7 @@ public class CostNumberEffectTests
     [Fact]
     public void WithoutAViewerEveryPlayersAmountIsShown()
     {
-        var model = Model(viewer: null);
+        RoomConstructionParticles model = Model(viewer: null);
         model.Request(Amount(300) with { Owner = new PlayerId(4) });
         model.AdvanceTo(new(51));
         Assert.Equal(3, model.Particles.Count);
@@ -108,7 +108,7 @@ public class CostNumberEffectTests
     [InlineData(18750, 5, 2 * DigitWidth)]
     public void ZeroHasOneDigitAndTheUnitsDigitSitsHalfTheCountRight(int amount, int count, int unitsOffset)
     {
-        var model = Model();
+        RoomConstructionParticles model = Model();
         model.Request(Amount(amount));
         model.AdvanceTo(new(51));
         Assert.Equal(count, model.Particles.Count);
@@ -118,7 +118,7 @@ public class CostNumberEffectTests
     [Fact]
     public void AnotherPlayersAmountIsNotShownToTheViewer()
     {
-        var model = Model();
+        RoomConstructionParticles model = Model();
         model.Request(Amount(300) with { Owner = new PlayerId(4) });
         model.AdvanceTo(new(51));
         Assert.Empty(model.Particles);
@@ -127,7 +127,7 @@ public class CostNumberEffectTests
     [Fact]
     public void TheDigitsRiseAndVanishWholeAfterFortyEightUpdates()
     {
-        var model = Model();
+        RoomConstructionParticles model = Model();
         model.Request(Amount(5));
         model.AdvanceTo(new(51));
         ConstructionParticle digit = Assert.Single(model.Particles);

@@ -16,11 +16,11 @@ public sealed class FrontEndMovieGalleryTests
     {
         using var archive = WadArchive.Open(Path.Combine(Dk2InstallGate.Path, "Data", "FrontEnd.WAD"));
         var index = new WadDirectoryIndex(archive.Entries);
-        var won = Enumerable.Repeat(CampaignLevelStatus.Won, 40).ToArray();
-        foreach (var profile in new[] { new CampaignProfile(), new CampaignProfile { PlayerLevelStatus = won } })
+        CampaignLevelStatus[] won = Enumerable.Repeat(CampaignLevelStatus.Won, 40).ToArray();
+        foreach (CampaignProfile? profile in new[] { new CampaignProfile(), new CampaignProfile { PlayerLevelStatus = won } })
         {
             var gallery = new FrontEndMovieGallery(profile, _ => true);
-            foreach (var row in gallery.Entries)
+            foreach (MovieGalleryEntry row in gallery.Entries)
                 Assert.InRange(index.Find(row.Thumbnail + ".png"), 0, archive.Entries.Count - 1);
         }
         Assert.InRange(index.Find("Mov_Shots/M-Hilight.png"), 0, archive.Entries.Count - 1);

@@ -121,7 +121,7 @@ public class DeterminismTests
     private static GameSimulation DiggingImp()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
         foreach (TilePos wall in new[] { new TilePos(4, 2), new TilePos(5, 2), new TilePos(1, 4) })

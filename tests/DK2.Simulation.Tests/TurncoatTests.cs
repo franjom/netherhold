@@ -31,11 +31,11 @@ public sealed class TurncoatTests
             Speed = 2048, Radius = 819, Health = 1, Flags = 6,
             ShotProcessFlags = 4, CollideType = 2, ProcessType = 13, AttackCategory = 9,
         };
-        var creatures = basis.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.GoblinCreatureId
+        IEnumerable<CreatureDef> creatures = basis.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.GoblinCreatureId
             ? c with { Flags = c.Flags | additionalFlags } : c);
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, creatures,
             basis.Variables, [spell], objects: basis.Objects.Values, shots: basis.Shots.Values.Append(shot));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -54,7 +54,7 @@ public sealed class TurncoatTests
     [InlineData(true, 160)]
     public void CastUsesTheEnemyCreaturePathAndPaysOnce_StronglyInferredFromBinary(bool upgraded, ushort ticks)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         world.SetUpgraded(Keeper, AvailabilityKind.Spell, SpellId, upgraded);
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         sim.Run(7);
@@ -72,7 +72,7 @@ public sealed class TurncoatTests
     [Fact]
     public void ExpiryRestoresSelectionSideButKeepsTheTagAndCurrentFight_AcrossSnapshot()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         CreatureState keeper = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
         target.TurncoatTicks = 3;
         target.TurncoatPlayerId = Keeper;
@@ -99,7 +99,7 @@ public sealed class TurncoatTests
     [Fact]
     public void AWorkingTargetKeepsItsJobRoomClaimPartyAndOwnerRoster()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Dk2StateId = JobRules.StateFor(JobType.Train)!.Value;
         target.CurrentJob = JobType.Train;
         target.HeldPlace = new RoomPlace(210, 1);
@@ -123,7 +123,7 @@ public sealed class TurncoatTests
     [InlineData(-1, 65532)]
     public void DurationStoreNarrowsToAWordAndRecastsOverwriteIt(int seconds, ushort expected)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.TurncoatTicks = 9;
         target.TurncoatPlayerId = Rival;
         var sim = new GameSimulation(db, world, 1, [new Probe(context =>
@@ -140,7 +140,7 @@ public sealed class TurncoatTests
     [Fact]
     public void EnemyShotPredicateAcceptsAnActiveTurncoatOfItsOwnActualOwner()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.TurncoatTicks = 1;
         target.TurncoatPlayerId = Keeper;
         ShotState shot = ShotRules.Spawn(world, db.Shots[31], Rival, target.PosX, target.PosY,
@@ -153,7 +153,7 @@ public sealed class TurncoatTests
     [Fact]
     public void ImmunityRefusesTheEffectAfterTheCastHasPaid()
     {
-        var (db, world, target) = Setup(CreatureFlags.IsImmuneToTurncoat);
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup(CreatureFlags.IsImmuneToTurncoat);
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, SpellId, target.Id)));
         Assert.Equal(25000, world.Player(Keeper).Mana);
@@ -164,7 +164,7 @@ public sealed class TurncoatTests
     [Fact]
     public void HornySkipsTheWholeTimedUpdate()
     {
-        var (db, world, target) = Setup(CreatureFlags.IsHorny);
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup(CreatureFlags.IsHorny);
         target.TurncoatTicks = 1;
         target.TurncoatPlayerId = Keeper;
         var sim = new GameSimulation(db, world, 1, [new CreatureStatusSystem()]);
@@ -175,7 +175,7 @@ public sealed class TurncoatTests
     [Fact]
     public void BothCombatSidesAndAlliancesAreResolvedThroughTheTimer()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         CreatureState keeper = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
         keeper.TurncoatTicks = 1;
         keeper.TurncoatPlayerId = Rival;
@@ -195,7 +195,7 @@ public sealed class TurncoatTests
     [InlineData(2, false)]
     public void CombatSelectionUsesTheSideAfterThisTurnsCountdown(ushort ticks, bool choosesKeeper)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         CreatureState rival = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
         CreatureState keeper = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(12, 10));
         target.TurncoatTicks = ticks;
@@ -209,7 +209,7 @@ public sealed class TurncoatTests
     [Fact]
     public void ACombatCastLeavesTheFightThroughItsStateHook()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         CreatureState enemy = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
         target.Dk2StateId = EngagingState;
         target.FightTargetKind = FightTargetKind.Creature;
@@ -225,7 +225,7 @@ public sealed class TurncoatTests
     [Fact]
     public void AWalkResumingCombatStopsAfterTheAcceptedIdleRequest()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Dk2StateId = 6;
         target.StateBeforeUtilityState = EngagingState;
         target.UtilityNewState = EngagingState;
@@ -245,7 +245,7 @@ public sealed class TurncoatTests
     [Fact]
     public void SuccessfulDeathEntryClearsBothWords()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.TurncoatTicks = 2;
         target.TurncoatPlayerId = Keeper;
         var sim = new GameSimulation(db, world, 1, [new Probe(context => CreatureDeathRules.Collapse(context.Hooks, target))]);
@@ -260,7 +260,7 @@ public sealed class TurncoatTests
     [InlineData(false)]
     public void EachTurncoatWordChangesTheStateHash(bool timer)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         var sim = new GameSimulation(db, world, 1, []);
         ulong before = sim.StateHash();
         if (timer) target.TurncoatTicks = 1;
@@ -271,7 +271,7 @@ public sealed class TurncoatTests
     [Fact]
     public void ActualOwnerCannotPickUpAnActiveTurncoat_ExceptTheOwnedPitArm()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         Assert.True(HandRules.HasPickupPermission(world, db, target, Rival));
         target.TurncoatTicks = 1;
         target.TurncoatPlayerId = Keeper;

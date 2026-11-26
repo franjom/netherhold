@@ -19,7 +19,7 @@ public sealed class CreatureFootstepMarksTests
 
     private static byte[] Record(Action<byte[]>? edit = null)
     {
-        var record = new byte[5449];
+        byte[] record = new byte[5449];
         edit?.Invoke(record);
         return record;
     }

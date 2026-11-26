@@ -26,7 +26,7 @@ public class CampaignLoadTests
         GameDatabase database = GameDatabaseLoader.Load(install);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;
 
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
 
         Assert.Equal(map.Width, world.Width);
@@ -62,7 +62,7 @@ public class CampaignLoadTests
             if (map is null) continue;
 
             // Throws if any tile references a terrain type the database lacks.
-            WorldState world = WorldState.FromMap(database, map, [(byte)0]);
+            var world = WorldState.FromMap(database, map, [(byte)0]);
             Assert.Equal(map.Width * map.Height, world.TileCount);
             built++;
         }
@@ -77,7 +77,7 @@ public class CampaignLoadTests
 
         GameDatabase database = GameDatabaseLoader.Load(install);
         var runner = new ScenarioRunner(database, install);
-        Scenario scenario = Scenario.Load(Path.Combine(
+        var scenario = Scenario.Load(Path.Combine(
             RepositoryRoot(), "scenarios", "smoke", "campaign_level1_load.yaml"));
 
         Assert.Equal(runner.Run(scenario).HashPerTick, runner.Run(scenario).HashPerTick);

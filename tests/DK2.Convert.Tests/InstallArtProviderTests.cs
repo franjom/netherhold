@@ -22,11 +22,11 @@ public sealed class InstallArtProviderTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
-        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        using var provider = InstallArtProvider.Open(install, database);
         foreach (ushort id in new ushort[] { 7, 8, 9, 10, 11 })
         {
             EffectElementDef element = database.EffectElements[id];
-            AssetRef key = AssetRef.ForEffectElement(element.Name);
+            var key = AssetRef.ForEffectElement(element.Name);
             Assert.Contains(key, AssetCatalogue.ForDatabase(database));
             Assert.True(provider.TryResolve(key, out ResolvedAsset asset), element.Name);
             Assert.Equal(element.ArtResource.Name + ".kmf", asset.InstallEntry, ignoreCase: true);
@@ -53,7 +53,7 @@ public sealed class InstallArtProviderTests
         // Effect 215's group art: the nine pieces the plug breaks into (heart-intro.md section 2).
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
-        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        using var provider = InstallArtProvider.Open(install, database);
         Assert.True(provider.TryLoadGroup("Group_plugbroke", out KmfGroup group));
         Assert.Equal(9, group.Elements.Count);
         foreach (KmfGroupElement member in group.Elements)
@@ -76,7 +76,7 @@ public sealed class InstallArtProviderTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
-        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        using var provider = InstallArtProvider.Open(install, database);
         AssetRef[] keys = AssetCatalogue.ForDatabase(database).Where(key => provider.TryResolve(key, out _)).Take(80).ToArray();
 
         provider.Prefetch(keys, workers: 4);
@@ -100,7 +100,7 @@ public sealed class InstallArtProviderTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
-        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        using var provider = InstallArtProvider.Open(install, database);
         ResolvedAsset[] assets = AssetCatalogue.ForDatabase(database)
             .Select(key => provider.TryResolve(key, out ResolvedAsset asset) ? asset : default)
             .Where(asset => asset.InstallEntry is not null).Take(20).ToArray();
@@ -114,7 +114,7 @@ public sealed class InstallArtProviderTests
                 Assert.Same(loaded[i], loaded[i + (copy * assets.Length)]);
 
         // The locked reads keep each decode whole: the same as one thread's, model and texture.
-        using InstallArtProvider serial = InstallArtProvider.Open(install, database);
+        using var serial = InstallArtProvider.Open(install, database);
         string[] textures = loaded.Take(assets.Length).OfType<KmfModel>()
             .SelectMany(model => model.Materials).SelectMany(material => material.TextureNames).Distinct().ToArray();
         var images = new RgbaImage[textures.Length];
@@ -135,9 +135,9 @@ public sealed class InstallArtProviderTests
     public void TheDungeonHeartResourceContainsMovingVertices()
     {
         string install = Dk2InstallGate.Path;
-        var database = GameDatabaseLoader.Load(install);
-        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
-        AssetRef key = AssetRef.ForObject(database.ObjectById(13)!.Name, AssetKind.Mesh);
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        using var provider = InstallArtProvider.Open(install, database);
+        var key = AssetRef.ForObject(database.ObjectById(13)!.Name, AssetKind.Mesh);
         Assert.True(provider.TryResolve(key, out ResolvedAsset asset));
         Assert.True(provider.TryGetResource(asset, out Dk2ArtResource resource));
         Assert.Equal(6, resource.Type);
@@ -159,19 +159,19 @@ public sealed class InstallArtProviderTests
             AnimationFlags = CreatureAnimationFlags.StartSegment | CreatureAnimationFlags.EndSegment,
             StartSegmentFrames = 2, EndSegmentFrames = 2,
         };
-        AssetRef key = AssetRef.ForCreature("Imp", AssetKind.Animation, "idle");
+        var key = AssetRef.ForCreature("Imp", AssetKind.Animation, "idle");
         using var provider = new InstallArtProvider([new ArtEntry(key, ArtUse.Model, resource, "test")],
             new FakeMeshes(("clip.kmf", AnimatedKmfFixture.TwoFrames()),
                 ("clipStart.kmf", AnimatedKmfFixture.TwoFrames()),
                 ("clipEnd.kmf", AnimatedKmfFixture.TwoFrames())), new FakeTextures());
-        Assert.True(provider.TryResolve(key, out var asset));
-        Assert.True(provider.TryResolveSegment(asset, AnimationSegment.Start, out var start));
+        Assert.True(provider.TryResolve(key, out ResolvedAsset asset));
+        Assert.True(provider.TryResolveSegment(asset, AnimationSegment.Start, out ResolvedAsset start));
         Assert.Equal("clipStart.kmf", start.InstallEntry);
-        Assert.True(provider.TryResolveSegment(asset, AnimationSegment.End, out var end));
+        Assert.True(provider.TryResolveSegment(asset, AnimationSegment.End, out ResolvedAsset end));
         Assert.Equal("clipEnd.kmf", end.InstallEntry);
         Assert.True(provider.TryLoadModel(start, out _));
         Assert.True(provider.TryLoadModel(end, out _));
-        Assert.True(provider.TryResolveSegment(asset, AnimationSegment.Main, out var main));
+        Assert.True(provider.TryResolveSegment(asset, AnimationSegment.Main, out ResolvedAsset main));
         Assert.Equal(asset.InstallEntry, main.InstallEntry);
     }
 
@@ -182,10 +182,10 @@ public sealed class InstallArtProviderTests
         {
             AnimationFlags = CreatureAnimationFlags.StartSegment, StartSegmentFrames = 2,
         };
-        AssetRef key = AssetRef.ForCreature("Imp", AssetKind.Animation, "idle");
+        var key = AssetRef.ForCreature("Imp", AssetKind.Animation, "idle");
         using var provider = new InstallArtProvider([new ArtEntry(key, ArtUse.Model, resource, "test")],
             new FakeMeshes(("clip.kmf", AnimatedKmfFixture.TwoFrames())), new FakeTextures());
-        Assert.True(provider.TryResolve(key, out var asset));
+        Assert.True(provider.TryResolve(key, out ResolvedAsset asset));
         Assert.False(provider.TryResolveSegment(asset, AnimationSegment.Start, out _));
         Assert.False(provider.TryResolveSegment(asset, AnimationSegment.End, out _));
     }
@@ -194,13 +194,13 @@ public sealed class InstallArtProviderTests
     public void PlaybackUsesTheDescriptorCountInsteadOfTheDecodedMeshCount()
     {
         var resource = new Dk2ArtResource("clip", 6) { FrameCount = 7, FramesPerSecond = 12 };
-        AssetRef key = AssetRef.ForCreature("Imp", AssetKind.Animation, "idle");
+        var key = AssetRef.ForCreature("Imp", AssetKind.Animation, "idle");
         using var provider = new InstallArtProvider([new ArtEntry(key, ArtUse.Model, resource, "test")],
             new FakeMeshes(("clip.kmf", AnimatedKmfFixture.TwoFrames())), new FakeTextures());
-        Assert.True(provider.TryResolve(key, out var asset));
-        Assert.True(provider.TryLoadModel(asset, out var model));
+        Assert.True(provider.TryResolve(key, out ResolvedAsset asset));
+        Assert.True(provider.TryLoadModel(asset, out KmfModel? model));
         Assert.Equal(2u, model.Animation!.FrameCount);
-        Assert.True(provider.TryGetResource(asset, out var descriptor));
+        Assert.True(provider.TryGetResource(asset, out Dk2ArtResource? descriptor));
         Assert.Equal((ushort)7, descriptor.FrameCount);
         Assert.Equal((ushort)12, descriptor.FramesPerSecond);
         Assert.False(provider.TryGetResource(default, out _));
@@ -269,7 +269,7 @@ public sealed class InstallArtProviderTests
         var provider = new InstallArtProvider(
             ArtSourceMap.ForDatabase(Database(objects: [Object(1, "Gold Pile"), Object(3, "Barrel")]), art),
             meshes, new FakeTextures());
-        AssetProviderChain chain = AssetProviderChain.Standard(install: provider);
+        var chain = AssetProviderChain.Standard(install: provider);
 
         Assert.Equal(AssetSource.InstallEntry, chain.Resolve(AssetRef.ForObject("Gold Pile", AssetKind.Mesh)).Source);
         Assert.True(chain.Resolve(AssetRef.ForObject("Barrel", AssetKind.Mesh)).IsPlaceholder);
@@ -293,7 +293,7 @@ public sealed class InstallArtProviderTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
-        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        using var provider = InstallArtProvider.Open(install, database);
 
         for (int piece = AssetCatalogue.FirstWallPiece; piece <= AssetCatalogue.LastWallPiece; piece++)
         {
@@ -317,7 +317,7 @@ public sealed class InstallArtProviderTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
-        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        using var provider = InstallArtProvider.Open(install, database);
 
         string[] terrains = ["Impenetrable Rock", "Rock", "Dirt Path", "Gold", "Gems", "Claimed Path", "Reinforced Wall",
             "Hero Lair"];
@@ -370,7 +370,7 @@ public sealed class InstallArtProviderTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
-        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        using var provider = InstallArtProvider.Open(install, database);
 
         AssetRef[] keys =
         [

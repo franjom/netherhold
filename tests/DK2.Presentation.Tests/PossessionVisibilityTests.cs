@@ -14,7 +14,7 @@ public sealed class PossessionVisibilityTests
 
     private static bool[] Map(params (int X, int Y)[] solid)
     {
-        var map = new bool[Size * Size];
+        bool[] map = new bool[Size * Size];
         foreach ((int x, int y) in solid) map[(y * Size) + x] = true;
         return map;
     }

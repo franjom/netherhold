@@ -19,7 +19,7 @@ public sealed class WorldSoundTests
         var events = new ListEventSink();
         var director = new WorldSoundDirector(events);
         director.Emit(Sound(SoundSourceId.Of(new CreatureId(42)), "CREATURE_GOBLIN", (ThingSoundEvent)group));
-        Assert.True(director.TryTake(out var sound));
+        Assert.True(director.TryTake(out SoundRequest sound));
         Assert.Equal("creature_goblin", sound.Category.Name);
         Assert.Equal((uint)group, sound.Id.Value);
         Assert.Equal(new Vector3(2, 1, -3), sound.World);   // where DungeonScene.Ground draws (2, 3) at height 1
@@ -41,17 +41,17 @@ public sealed class WorldSoundTests
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.ShotSecond, 7), "SPELL_FIREBALL", ThingSoundEvent.ShotMadeSecond));   // a shot's second handle
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Tremor, 7), "KEEPER_SPELL_TREMOR", ThingSoundEvent.TremorStarted));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Corpse, 7), "OBJECT_FLIES", ThingSoundEvent.CorpseDestroyed));
-        Assert.True(director.TryTake(out var creature));
-        Assert.True(director.TryTake(out var gold));
-        Assert.True(director.TryTake(out var door));
-        Assert.True(director.TryTake(out var room));
-        Assert.True(director.TryTake(out var player));
-        Assert.True(director.TryTake(out var shot));
-        Assert.True(director.TryTake(out var shotSecond));
-        Assert.True(director.TryTake(out var tremor));
-        Assert.True(director.TryTake(out var corpse));
+        Assert.True(director.TryTake(out SoundRequest creature));
+        Assert.True(director.TryTake(out SoundRequest gold));
+        Assert.True(director.TryTake(out SoundRequest door));
+        Assert.True(director.TryTake(out SoundRequest room));
+        Assert.True(director.TryTake(out SoundRequest player));
+        Assert.True(director.TryTake(out SoundRequest shot));
+        Assert.True(director.TryTake(out SoundRequest shotSecond));
+        Assert.True(director.TryTake(out SoundRequest tremor));
+        Assert.True(director.TryTake(out SoundRequest corpse));
         Assert.Equal("object_gold", gold.Category.Name);
-        var voices = new[] { creature.Voice, gold.Voice, door.Voice, room.Voice, player.Voice, shot.Voice, shotSecond.Voice, tremor.Voice, corpse.Voice };
+        SoundVoiceId[] voices = new[] { creature.Voice, gold.Voice, door.Voice, room.Voice, player.Voice, shot.Voice, shotSecond.Voice, tremor.Voice, corpse.Voice };
         Assert.Equal(9, voices.Distinct().Count());   // the room's handle and the player's, a shot's two, a tremor slot's and a body's are different voices
         Assert.DoesNotContain(SoundVoiceId.None, voices);
     }
@@ -63,7 +63,7 @@ public sealed class WorldSoundTests
         var request = new ThingSoundRequest(SoundSourceId.Of(new CreatureId(5)), "CREATURE_IMP", (ThingSoundEvent)0xC3,
             new(new Fp32(4096), new Fp32(8192), new Fp32(4096)), Voiced: false);
         director.Emit(new SimEvent(default, "test", "thing_sound", "") { ThingSound = request });
-        Assert.True(director.TryTake(out var sound));
+        Assert.True(director.TryTake(out SoundRequest sound));
         Assert.Equal(SoundVoiceId.None, sound.Voice);
         Assert.Equal(new Vector3(1, 1, -2), sound.World);
     }
@@ -77,7 +77,7 @@ public sealed class WorldSoundTests
             ThingSound = new(new SoundSourceId(SoundSourceKind.Terrain, 91), "TERRAIN_ROCK", ThingSoundEvent.TileBroken,
                 new(new Fp32(0x1800), new Fp32(0x2800), new Fp32(0)), Voiced: false),
         });
-        Assert.True(director.TryTake(out var sound));
+        Assert.True(director.TryTake(out SoundRequest sound));
         Assert.Equal("terrain_rock", sound.Category.Name);
         Assert.Equal(0xF4u, sound.Id.Value);
         Assert.Equal(new Vector3(1.5f, 0, -2.5f), sound.World);

@@ -15,7 +15,7 @@ public sealed class AllocationBudgetTests
     {
         GameSimulation simulation = TestWorld.Simulation();
         simulation.Run(100);
-        WorldState copy = WorldState.CopyOf(simulation.World);
+        var copy = WorldState.CopyOf(simulation.World);
         for (int i = 0; i < 100; i++) copy.CopyFrom(simulation.World);
 
         long before = GC.GetAllocatedBytesForCurrentThread();
@@ -47,7 +47,7 @@ public sealed class AllocationBudgetTests
     public void RepeatedRoomQueries_ReuseTheSweepWithoutAllocating()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [PlayerIds.FirstKeeper]);
         RoomDef treasury = database.Room(RoomTypeId.Treasury);
         RoomRules.Place(database, ref world.Tile(2, 2), treasury, PlayerIds.FirstKeeper);
         int tileIndex = 2 * world.Width + 2;

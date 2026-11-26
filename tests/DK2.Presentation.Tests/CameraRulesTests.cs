@@ -281,7 +281,7 @@ public class CameraRulesTests
     public void TheSetupStartsAtTheViewersCameraTileWithTheReferenceWidthAndStartYaw()
     {
         var players = new List<PlayerDef> { Player(1, 2, 2), Player(3, 12, 20) };
-        ClassicCameraSetup setup = ClassicCameraSetup.Create(Profile(), 1.2f, 4, 10, players, new PlayerId(3), 30, 38);
+        var setup = ClassicCameraSetup.Create(Profile(), 1.2f, 4, 10, players, new PlayerId(3), 30, 38);
         Assert.Equal(new Vector3(12.5f, 1, -20.5f), setup.StartFocus);
         Assert.Equal(1600, setup.Camera.ReferenceScreenWidth);
         Assert.Equal(ClassicCamera.LevelStartYaw, setup.Camera.Yaw);
@@ -389,7 +389,7 @@ public class CameraRulesTests
     {
         Assert.Equal(TileHeights.Solid, TileTopPlane.Height(solid: true));
         Assert.Equal(TileHeights.Open, TileTopPlane.Height(solid: false));
-        Vector3 ray = Vector3.Normalize(new Vector3(1, -1, 0));
+        var ray = Vector3.Normalize(new Vector3(1, -1, 0));
         Vector2 onSolid = TileTopPlane.HandLightPoint(new Vector3(0, 4, -0.5f), ray, new TilePos(2, 0), solid: true);
         Vector2 onOpen = TileTopPlane.HandLightPoint(new Vector3(0, 4, -0.5f), ray, new TilePos(2, 0), solid: false);
         Assert.Equal(4 - TileHeights.Solid, onSolid.X, 4);

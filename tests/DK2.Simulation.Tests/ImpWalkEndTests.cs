@@ -18,7 +18,7 @@ public class ImpWalkEndTests
     private static (GameSimulation Sim, CreatureState Imp) Start(int pathEndX, TilePos impAt)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int x = 4; x <= pathEndX; x++)
         {

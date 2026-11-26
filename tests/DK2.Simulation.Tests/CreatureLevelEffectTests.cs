@@ -17,16 +17,16 @@ public class CreatureLevelEffectTests
     [InlineData(false, 1, 0, true)]
     public void OnlySuccessfulPromotionsRequestTheNativeEffect(bool earned, int level, int expected, bool dead = false)
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(7, 7), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
-        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
         imp.Level = level;
         imp.PosX += 137; imp.PosY -= 219; imp.PosZ = 321; imp.Heading = 627;
         if (dead) imp.Health = 0;
         var sim = new GameSimulation(db, world, 1, [new Promote(imp, earned)]);
         var sink = new ListEventSink(); sim.ObserveWith(sink);
         sim.Tick();
-        var requests = sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value).ToArray();
+        ViewEffectRequest[] requests = sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value).ToArray();
         Assert.Equal(expected, requests.Length);
         if (expected != 0)
             Assert.Equal(new ViewEffectRequest(new EffectId(339), imp.OwnerPlayerId,
@@ -39,7 +39,7 @@ public class CreatureLevelEffectTests
         public string Name => nameof(Promote);
         public void Execute(SimulationContext context)
         {
-            var definition = context.Database.CreatureById(imp.CreatureTypeId);
+            CreatureDef definition = context.Database.CreatureById(imp.CreatureTypeId);
             if (earned) CreatureLevelRules.Grant(context.Hooks, definition, imp,
                 CreatureLevelRules.ExperienceForNextLevel(context.Database, definition, imp.Level));
             else CreatureLevelRules.LevelUp(context.Hooks, definition, imp);

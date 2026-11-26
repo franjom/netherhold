@@ -71,7 +71,7 @@ public class JournalReplayTests
         Runner().Run(scenario.Load(), [], stream);
         File.AppendAllText(scenario.Path, "\n# edited\n");
 
-        var thrown = Assert.Throws<InvalidOperationException>(() => Runner().Replay(scenario.Load(), Read(stream)));
+        InvalidOperationException thrown = Assert.Throws<InvalidOperationException>(() => Runner().Replay(scenario.Load(), Read(stream)));
         Assert.Contains("SHA-256", thrown.Message, StringComparison.Ordinal);
     }
 

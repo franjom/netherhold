@@ -79,16 +79,16 @@ public sealed class SeedOverrideTests : IDisposable
     [Fact]
     public void AReplayRefusesAJournalWhoseSeedIsNotTheOneItWouldRun()
     {
-        Scenario recorded = Scenario.Load(_scenarioPath);
+        var recorded = Scenario.Load(_scenarioPath);
         recorded.Seed = 12;
         var stream = new MemoryStream();
         using (var writer = new InputJournalWriter(stream, JournalHeader.For(recorded, [])))
             writer.WriteEnd(10, "completed");
         stream.Position = 0;
-        InputJournal journal = InputJournal.Read(stream);
+        var journal = InputJournal.Read(stream);
 
-        Scenario fromFile = Scenario.Load(_scenarioPath);
-        var refused = Assert.Throws<InvalidOperationException>(() => JournalHeader.CheckReplayable(fromFile, journal));
+        var fromFile = Scenario.Load(_scenarioPath);
+        InvalidOperationException refused = Assert.Throws<InvalidOperationException>(() => JournalHeader.CheckReplayable(fromFile, journal));
         Assert.Contains("seed 12", refused.Message, StringComparison.Ordinal);
         Assert.Contains("--seed 12", refused.Message, StringComparison.Ordinal);
 
@@ -100,13 +100,13 @@ public sealed class SeedOverrideTests : IDisposable
     public void TheManifestRecordsTheSeedRunAndBlocksAnother()
     {
         string evidence = Path.Combine(_root, "evidence");
-        Scenario overridden = Scenario.Load(_scenarioPath);
+        var overridden = Scenario.Load(_scenarioPath);
         overridden.Seed = 12;
         Assert.Equal(12UL, PlayerRunManifest.Compute(overridden, null, Run).Seed);
         PlayerRunManifest.Write(evidence, overridden, null, Run);
         Assert.True(PlayerRunManifest.Verify(evidence, overridden, null, Run).MayReplay);
 
-        Scenario fromFile = Scenario.Load(_scenarioPath);
+        var fromFile = Scenario.Load(_scenarioPath);
         Assert.Contains("seed differs: recorded 12, now 7", PlayerRunManifest.Verify(evidence, fromFile, null, Run).Blocking);
     }
 
@@ -114,12 +114,12 @@ public sealed class SeedOverrideTests : IDisposable
     public void ARunOnAnOverriddenSeedRecordsItAndReplaysOnIt()
     {
         var runner = new ScenarioRunner(ScenarioTests.SyntheticDatabase(), null);
-        Scenario scenario = Scenario.Load(_scenarioPath);
+        var scenario = Scenario.Load(_scenarioPath);
         scenario.OverrideSeed(12);
         var stream = new MemoryStream();
         ScenarioResult run = runner.Run(scenario, new RunOptions { Journal = stream });
         stream.Position = 0;
-        InputJournal journal = InputJournal.Read(stream);
+        var journal = InputJournal.Read(stream);
         Assert.Equal("12", journal.Header["seed"]);
 
         ScenarioResult replay = runner.Replay(scenario, journal);
@@ -131,7 +131,7 @@ public sealed class SeedOverrideTests : IDisposable
     [Fact]
     public void AJournalWithNoSeedRecordStillReplays()
     {
-        Scenario scenario = Scenario.Load(_scenarioPath);
+        var scenario = Scenario.Load(_scenarioPath);
         var header = new Dictionary<string, string>(JournalHeader.For(scenario, []), StringComparer.Ordinal);
         header.Remove("seed");
         var stream = new MemoryStream();
@@ -146,13 +146,13 @@ public sealed class SeedOverrideTests : IDisposable
     {
         string dk2 = Path.Combine(_root, "dk2.yaml");
         File.WriteAllText(dk2, "id: dk2-probe\nmap: chamber_9x9\nseed: 7\nrandom: dk2\nduration_ticks: 10\n");
-        Scenario scenario = Scenario.Load(dk2);
+        var scenario = Scenario.Load(dk2);
         Assert.Throws<InvalidDataException>(() => scenario.OverrideSeed((ulong)uint.MaxValue + 1));
         Assert.Equal(7UL, scenario.Seed);
         scenario.OverrideSeed(uint.MaxValue);
         Assert.Equal((ulong)uint.MaxValue, scenario.Seed);
 
-        Scenario modern = Scenario.Load(_scenarioPath);
+        var modern = Scenario.Load(_scenarioPath);
         modern.OverrideSeed(ulong.MaxValue);
         Assert.Equal(ulong.MaxValue, modern.Seed);
     }
@@ -170,7 +170,7 @@ public sealed class SeedOverrideTests : IDisposable
     [Fact]
     public void AFailureReportReproducesOnTheJournalsSeed()
     {
-        Scenario scenario = Scenario.Load(_scenarioPath);
+        var scenario = Scenario.Load(_scenarioPath);
         scenario.OverrideSeed(12);
         var stream = new MemoryStream();
         using (var writer = new InputJournalWriter(stream, JournalHeader.For(scenario, [])))
@@ -185,11 +185,11 @@ public sealed class SeedOverrideTests : IDisposable
     public void ASchemaOneManifestStillVerifiesOnTheFilesOwnSeed()
     {
         string evidence = Path.Combine(_root, "evidence-v1");
-        Scenario scenario = Scenario.Load(_scenarioPath);
+        var scenario = Scenario.Load(_scenarioPath);
         PlayerRunManifest.Write(evidence, scenario, null, Run);
         string path = Path.Combine(evidence, PlayerRunManifest.FileName);
         // A schema-1 manifest, as stored evidence has it: no seed field.
-        var v1 = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(File.ReadAllText(path))!;
+        Dictionary<string, JsonElement> v1 = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(File.ReadAllText(path))!;
         v1.Remove("Seed");
         v1["Schema"] = JsonSerializer.SerializeToElement(1);
         File.WriteAllText(path, JsonSerializer.Serialize(v1));

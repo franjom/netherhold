@@ -23,7 +23,7 @@ public class CombatAttackerScanTests
     [InlineData(6, 5, true)]
     public void ARegisteredAttackerInterruptsImpWorkBeyondItsOrdinaryDecisionRadius(int state, int distance, bool ranged)
     {
-        var (db, world) = OpenWorld();
+        (GameDatabase? db, WorldState? world) = OpenWorld();
         CreatureState giant = Spawn(db, world, GiantType, PlayerIds.Good, 8 + distance, 8);
         CreatureState imp = WorkingImp(db, world, state);
         Assert.True(CombatRules.Register(imp, giant.Id, ranged));
@@ -39,7 +39,7 @@ public class CombatAttackerScanTests
     [Fact]
     public void AnUnregisteredDistantHeroDoesNotInterruptTheOrdinaryImpScan()
     {
-        var (db, world) = OpenWorld();
+        (GameDatabase? db, WorldState? world) = OpenWorld();
         Spawn(db, world, GiantType, PlayerIds.Good, 13, 8);
         CreatureState imp = WorkingImp(db, world, 16);
 
@@ -54,7 +54,7 @@ public class CombatAttackerScanTests
     [InlineData(Dk2TerrainFixture.Lava)]
     public void ARegisteredAttackerAcrossAnObstructedRouteIsRejected(byte barrierTerrain)
     {
-        var (db, world) = OpenWorld();
+        (GameDatabase? db, WorldState? world) = OpenWorld();
         for (int y = 1; y < world.Height - 1; y++)
             world.Tile(new TilePos(10, y)).TerrainId = barrierTerrain;
         CreatureState giant = Spawn(db, world, GiantType, PlayerIds.Good, 13, 8);
@@ -72,7 +72,7 @@ public class CombatAttackerScanTests
     [InlineData(false)]
     public void ADeadOrMissingRegisteredAttackerIsIgnored(bool dead)
     {
-        var (db, world) = OpenWorld();
+        (GameDatabase? db, WorldState? world) = OpenWorld();
         CreatureState giant = Spawn(db, world, GiantType, PlayerIds.Good, 13, 8);
         CreatureState imp = WorkingImp(db, world, 16);
         if (dead) giant.Health = 0;
@@ -88,7 +88,7 @@ public class CombatAttackerScanTests
     [Fact]
     public void EquallyDistantRegisteredAttackersUseSlotOrder()
     {
-        var (db, world) = OpenWorld();
+        (GameDatabase? db, WorldState? world) = OpenWorld();
         CreatureState firstSpawned = Spawn(db, world, GiantType, PlayerIds.Good, 13, 8);
         CreatureState secondSpawned = Spawn(db, world, GiantType, PlayerIds.Good, 13, 8);
         CreatureState imp = WorkingImp(db, world, 16);
@@ -103,7 +103,7 @@ public class CombatAttackerScanTests
     [Fact]
     public void RegisteredAttackersAreInterleavedMeleeThenRangedPerSlot()
     {
-        var (db, world) = OpenWorld();
+        (GameDatabase? db, WorldState? world) = OpenWorld();
         CreatureState melee = Spawn(db, world, GiantType, PlayerIds.Good, 13, 8);
         CreatureState ranged = Spawn(db, world, GiantType, PlayerIds.Good, 13, 8);
         CreatureState imp = WorkingImp(db, world, 16);
@@ -120,7 +120,7 @@ public class CombatAttackerScanTests
     [InlineData(6)]
     public void ARegisteredGiantMakesTheImpFleeBeforeReachingMeleeRange(int state)
     {
-        var (db, world) = OpenWorld();
+        (GameDatabase? db, WorldState? world) = OpenWorld();
         CreatureState giant = Spawn(db, world, GiantType, PlayerIds.Good, 13, 8);
         CreatureState imp = WorkingImp(db, world, state);
         Assert.True(CombatRules.Register(imp, giant.Id, ranged: false));
@@ -153,7 +153,7 @@ public class CombatAttackerScanTests
             Name = "Giant",
             Threat = 160,
         });
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)

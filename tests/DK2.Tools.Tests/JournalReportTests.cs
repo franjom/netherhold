@@ -103,7 +103,7 @@ public class JournalReportTests
     public void CommandContextIsLimitedToTheDivergenceWindow()
     {
         var fixture = new Fixture();
-        using (var stream = File.Create(fixture.JournalPath))
+        using (FileStream stream = File.Create(fixture.JournalPath))
         using (var writer = new InputJournalWriter(stream, new Dictionary<string, string>()))
         {
             for (int tick = 0; tick <= 100; tick++)
@@ -149,7 +149,7 @@ public class JournalReportTests
     public void AnUnrepresentableJournalTickIsRefused()
     {
         var fixture = new Fixture();
-        using (var stream = File.Create(fixture.JournalPath))
+        using (FileStream stream = File.Create(fixture.JournalPath))
         using (var writer = new InputJournalWriter(stream, new Dictionary<string, string>()))
             writer.WriteHash(long.MaxValue, 0xa0);
         fixture.Hashes($"{long.MaxValue}\ta0\n");
@@ -178,7 +178,7 @@ public class JournalReportTests
     public void ConflictingOrImpossibleJournalEvidenceIsRefused(string fault)
     {
         var fixture = new Fixture();
-        using (var stream = File.Create(fixture.JournalPath))
+        using (FileStream stream = File.Create(fixture.JournalPath))
         using (var writer = new InputJournalWriter(stream, new Dictionary<string, string>()))
         {
             writer.WriteHash(0, 0xa0);
@@ -204,7 +204,7 @@ public class JournalReportTests
     public void AFailedTicksInputIsKeptAndLabeledAsAttempted()
     {
         var fixture = new Fixture();
-        using (var stream = File.Create(fixture.JournalPath))
+        using (FileStream stream = File.Create(fixture.JournalPath))
         using (var writer = new InputJournalWriter(stream, new Dictionary<string, string>()))
         {
             writer.WriteHash(0, 0xa0);
@@ -277,7 +277,7 @@ public class JournalReportTests
 
         public void Journal(bool end = true, bool hashes = true, int? omittedHash = null)
         {
-            using var stream = File.Create(JournalPath);
+            using FileStream stream = File.Create(JournalPath);
             using var writer = new InputJournalWriter(stream, new Dictionary<string, string>
             {
                 ["scenario"] = "<script>bad()</script>",

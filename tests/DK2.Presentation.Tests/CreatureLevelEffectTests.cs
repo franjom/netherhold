@@ -17,16 +17,16 @@ public class CreatureLevelEffectTests
     [InstallFact]
     public void AnImpPromotionProducesTheFourAuthoredSparklesThenExpires()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db,
             new LevelMap(7, 7, Enumerable.Repeat(new MapTile(3, PlayerIds.FirstKeeper, 0, 0), 49).ToArray()),
             [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
-        var imp = world.SpawnCreature(db, db.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
+        CreatureState imp = world.SpawnCreature(db, db.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
         var sim = new GameSimulation(db, world, 42, [new KeeperSpellSystem()]);
         var sink = new ListEventSink(); sim.ObserveWith(sink);
         sim.Tick(InputFrame.Of(new GrantCreatureLevelCommand(PlayerIds.FirstKeeper, imp.Id)));
         var model = new RoomConstructionParticles(db, 42, () => new EffectTime(0));
-        foreach (var emission in sink.Events) model.Emit(emission);
+        foreach (SimEvent emission in sink.Events) model.Emit(emission);
         model.AdvanceTo(new EffectTime(51));
         Assert.Equal(3, model.Particles.Count);
         Assert.All(model.Particles, p =>

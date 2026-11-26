@@ -140,7 +140,7 @@ public class CameraPathTests
     {
         (GameSimulation sim, ListEventSink events) = Simulation(
             Action(24, new Dictionary<string, long> { ["SpeechId"] = 4, ["SpeakOnly"] = speakOnly }));
-        var disable = Action(45, new Dictionary<string, long> { ["Available"] = 0 });
+        TriggerRecord disable = Action(45, new Dictionary<string, long> { ["Available"] = 0 });
         new TriggerExecutor(new TriggerTree([disable], disable.TriggerId), sim.World.Triggers, sim.World).Run(1);
 
         sim.Tick();

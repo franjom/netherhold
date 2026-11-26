@@ -52,7 +52,7 @@ public class ImpHasteTests
     {
         CreatureDef hasty = Dk2TerrainFixture.Imp() with { CreatureId = HastyImpId, Name = "Hasty Imp", Spells = spells };
         GameDatabase db = Dk2TerrainFixture.Database(hasty);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         CreatureState imp = world.SpawnCreature(db, HastyImpId, Keeper, new TilePos(1, 2));
         imp.Level = level;
         var sim = new GameSimulation(db, world, 99, Dk2TerrainFixture.DefaultSystems());

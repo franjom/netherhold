@@ -23,7 +23,7 @@ public sealed class TriangleDepthOrderTests
         var buffer = new TriangleDepthOrderBuffer();
         foreach (Vector3 forward in new[] { Vector3.UnitZ, -Vector3.UnitZ, Vector3.Zero, Vector3.UnitX })
         {
-            var expected = triangles.Select((t, i) => (t, i, depth: Vector3.Dot(positions[t.A] + positions[t.B] + positions[t.C], forward)))
+            RenderTriangle[] expected = triangles.Select((t, i) => (t, i, depth: Vector3.Dot(positions[t.A] + positions[t.B] + positions[t.C], forward)))
                 .OrderByDescending(e => e.depth).ThenBy(e => e.i).Select(e => e.t).ToArray();
             Assert.Equal(expected, buffer.Sort(positions, triangles, forward).SelectMany(r => r.Triangles));
             AssertRuns(triangles, forward);
@@ -35,8 +35,8 @@ public sealed class TriangleDepthOrderTests
 
         void AssertRuns(RenderTriangle[] source, Vector3 forward)
         {
-            var expected = TriangleDepthOrder.Sort(positions, source, forward);
-            var actual = buffer.Sort(positions, source, forward);
+            IReadOnlyList<RenderTriangleRun> expected = TriangleDepthOrder.Sort(positions, source, forward);
+            IReadOnlyList<TriangleDepthOrderBuffer.Run> actual = buffer.Sort(positions, source, forward);
             Assert.Equal(expected.Count, actual.Count);
             for (int i = 0; i < expected.Count; i++)
             {
@@ -54,7 +54,7 @@ public sealed class TriangleDepthOrderTests
         Vector3[] positions = [new(0, 0, 4), new(0, 0, 2), new(0, 0, 0), new(0, 0, -1)];
         RenderTriangle[] triangles = [new(2, 2, 2, 0), new(0, 0, 0, 0), new(1, 1, 1, 1), new(3, 3, 3, 0)];
         var buffer = new TriangleDepthOrderBuffer();
-        var runs = buffer.Sort(positions, triangles, Vector3.UnitZ);
+        IReadOnlyList<TriangleDepthOrderBuffer.Run> runs = buffer.Sort(positions, triangles, Vector3.UnitZ);
         Assert.Equal([4f, 2f, -1f], runs.Select(r => r.NearestDepth));
         Assert.Equal(0, buffer.RunsBehind(5f));
         Assert.Equal(1, buffer.RunsBehind(3f));
@@ -74,7 +74,7 @@ public sealed class TriangleDepthOrderTests
         RenderTriangle[] triangles = [new(0, 0, 0, 0), new(1, 1, 1, 0), new(2, 2, 2, 0)];
         var buffer = new TriangleDepthOrderBuffer();
         Assert.Single(buffer.Sort(positions, triangles, Vector3.UnitZ));
-        var runs = buffer.Split([0f]);
+        IReadOnlyList<TriangleDepthOrderBuffer.Run> runs = buffer.Split([0f]);
         Assert.Equal([1f, -1f], runs.Select(r => r.NearestDepth));
         Assert.Equal([2, 1], runs.Select(r => r.Triangles.Count));
         Assert.Equal(1, buffer.RunsBehind(0f));
@@ -107,10 +107,10 @@ public sealed class TriangleDepthOrderTests
     {
         Vector3[] positions = [new(0, 0, 1), new(0, 0, 3), new(0, 0, 2)];
         RenderTriangle[] triangles = [new(0, 0, 0, 0), new(1, 1, 1, 0), new(2, 2, 2, 1)];
-        var front = TriangleDepthOrder.Sort(positions, triangles, Vector3.UnitZ);
+        IReadOnlyList<RenderTriangleRun> front = TriangleDepthOrder.Sort(positions, triangles, Vector3.UnitZ);
         Assert.Equal([1, 2, 0], front.SelectMany(r => r.Triangles).Select(t => t.A));
         Assert.Equal([0, 1, 0], front.Select(r => r.MaterialIndex));
-        var back = TriangleDepthOrder.Sort(positions, triangles, -Vector3.UnitZ);
+        IReadOnlyList<RenderTriangleRun> back = TriangleDepthOrder.Sort(positions, triangles, -Vector3.UnitZ);
         Assert.Equal([0, 2, 1], back.SelectMany(r => r.Triangles).Select(t => t.A));
     }
 
@@ -119,7 +119,7 @@ public sealed class TriangleDepthOrderTests
     {
         Vector3[] positions = [new(0, 0, 9), Vector3.Zero, new(0, 0, 4), new(1, 0, 4)];
         RenderTriangle[] triangles = [new(0, 1, 1, 0), new(2, 2, 2, 1), new(3, 3, 3, 0)];
-        var sorted = TriangleDepthOrder.Sort(positions, triangles, Vector3.UnitZ);
+        IReadOnlyList<RenderTriangleRun> sorted = TriangleDepthOrder.Sort(positions, triangles, Vector3.UnitZ);
         Assert.Equal([2, 3, 0], sorted.SelectMany(r => r.Triangles).Select(t => t.A));
     }
 
@@ -143,14 +143,14 @@ public sealed class TriangleDepthOrderTests
                 int start = positions.Count;
                 positions.AddRange(primitive.Vertices.Select(v => RenderMesh.ToRenderFrame(
                     v.Position + new Vector3(tile % 3 + 0.5f, tile / 3 + 0.5f, 0))));
-                var indices = primitive.IndicesByDetailLevel[0];
+                IReadOnlyList<byte> indices = primitive.IndicesByDetailLevel[0];
                 for (int i = 0; i < indices.Count; i += 3)
                     triangles.Add(new(start + indices[i], start + indices[i + 1], start + indices[i + 2], slot));
             }
         }
         Assert.Equal(2, materials.Count);
-        Vector3 forward = Vector3.Normalize(new Vector3(1, -1, 1));
-        var runs = TriangleDepthOrder.Sort(positions, triangles, forward);
+        var forward = Vector3.Normalize(new Vector3(1, -1, 1));
+        IReadOnlyList<RenderTriangleRun> runs = TriangleDepthOrder.Sort(positions, triangles, forward);
         RenderTriangle[] sorted = runs.SelectMany(r => r.Triangles).ToArray();
         Assert.Equal(triangles.Count, sorted.Length);
         Assert.True(runs.Count > 2, "The crystal and chasm materials must interleave.");

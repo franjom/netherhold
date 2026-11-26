@@ -42,9 +42,9 @@ public partial class CampaignPlayerTests
     private static CampaignPlayer Besieged(TilePos enemy, string[] map)
     {
         CampaignPlayer player = Player();
-        var (start, startCreatures) = Army(12, enemy, 1);
+        (PlayerVisibleThing[]? start, PlayerCreatureSummary[]? startCreatures) = Army(12, enemy, 1);
         player.Decide(Observe(1, map: map, things: start, creatures: startCreatures, gold: 0, tick: 100));
-        var (later, laterCreatures) = Army(7, enemy, 2);
+        (PlayerVisibleThing[]? later, PlayerCreatureSummary[]? laterCreatures) = Army(7, enemy, 2);
         player.Decide(Observe(2, map: map, things: later, creatures: laterCreatures, gold: 0, tick: 1400));
         return player;
     }
@@ -55,7 +55,7 @@ public partial class CampaignPlayerTests
         var enemy = new TilePos(32, 2);
         CampaignPlayer player = Besieged(enemy, LongStrip);
         // Three fit fighters left: fewer than a party of four, so nobody is sent.
-        var (few, fewCreatures) = Army(3, enemy, 3);
+        (PlayerVisibleThing[]? few, PlayerCreatureSummary[]? fewCreatures) = Army(3, enemy, 3);
         PlayerDecision wait = player.Decide(Observe(3, map: LongStrip, things: few, creatures: fewCreatures, gold: 0, tick: 1500));
         Assert.DoesNotContain(wait.Actions, a => a is PlayerAction.PickUp);
         Assert.Contains("none goes alone", wait.Thoughts.Single(t => t.Routine == "hand").Note);
@@ -66,7 +66,7 @@ public partial class CampaignPlayerTests
     {
         var enemy = new TilePos(32, 2);
         CampaignPlayer player = Besieged(enemy, LongStrip);
-        var (army, armyCreatures) = Army(7, enemy, 3);
+        (PlayerVisibleThing[]? army, PlayerCreatureSummary[]? armyCreatures) = Army(7, enemy, 3);
         PlayerDecision lift = player.Decide(Observe(3, map: LongStrip, things: army, creatures: armyCreatures, gold: 0, tick: 1500));
         Assert.Equal(4, lift.Actions.OfType<PlayerAction.PickUp>().Count());   // the party: max(4, 2/3 of 7)
         // Four in hand: the party is whole, so all go down together and no more are lifted.
@@ -83,10 +83,10 @@ public partial class CampaignPlayerTests
         CampaignPlayer player = Besieged(enemy, LongStrip);
         player.Apply(player.Strategy with { RallyParty = 6 });
         // Nine fighters: a party of six, lifted four and then two.
-        var (army, armyCreatures) = Army(9, enemy, 3);
+        (PlayerVisibleThing[]? army, PlayerCreatureSummary[]? armyCreatures) = Army(9, enemy, 3);
         Assert.Equal(4, player.Decide(Observe(3, map: LongStrip, things: army, creatures: armyCreatures, gold: 0, tick: 1500)).Actions
             .OfType<PlayerAction.PickUp>().Count());
-        var (rest, restCreatures) = Army(9, enemy, 4);
+        (PlayerVisibleThing[]? rest, PlayerCreatureSummary[]? restCreatures) = Army(9, enemy, 4);
         Assert.Equal(2, player.Decide(Observe(4, map: LongStrip, things: [rest[0], .. rest[5..]], creatures: restCreatures, hand: 4, gold: 0, tick: 1504))
             .Actions.OfType<PlayerAction.PickUp>().Count());
         // Six in hand: four go down, then the other two, and nobody is lifted in between.
@@ -102,11 +102,11 @@ public partial class CampaignPlayerTests
     {
         var enemy = new TilePos(32, 2);
         CampaignPlayer player = Besieged(enemy, LongStrip);
-        var (army, armyCreatures) = Army(7, enemy, 3);
+        (PlayerVisibleThing[]? army, PlayerCreatureSummary[]? armyCreatures) = Army(7, enemy, 3);
         player.Decide(Observe(3, map: LongStrip, things: army, creatures: armyCreatures, gold: 0, tick: 1500));
         player.Decide(Observe(4, map: LongStrip, things: army[..1], creatures: armyCreatures, hand: 4, gold: 0, tick: 1504));
         // The hand is empty again and seven fit fighters stand about: the party fights before another is gathered.
-        var (after, afterCreatures) = Army(7, enemy, 5);
+        (PlayerVisibleThing[]? after, PlayerCreatureSummary[]? afterCreatures) = Army(7, enemy, 5);
         PlayerDecision next = player.Decide(Observe(5, map: LongStrip, things: after, creatures: afterCreatures, gold: 0, tick: 1508));
         Assert.DoesNotContain(next.Actions, a => a is PlayerAction.PickUp);
     }
@@ -116,7 +116,7 @@ public partial class CampaignPlayerTests
     {
         var enemy = new TilePos(32, 2);
         CampaignPlayer player = Besieged(enemy, LongStrip);
-        var (few, fewCreatures) = Army(3, enemy, 3);
+        (PlayerVisibleThing[]? few, PlayerCreatureSummary[]? fewCreatures) = Army(3, enemy, 3);
         var hurtAt = new TilePos(30, 2);
         PlayerVisibleThing hurt = new(Handle(9, 3), PlayerThingKind.Creature, hurtAt, Me, PlayerThingActions.PickUp, Goblin);
         PlayerCreatureSummary hurtFlower = new(Goblin, hurtAt, false, Handle(9, 3), Level: 2, Petals: 2, Mood: PlayerCreatureMood.Happy);
@@ -134,10 +134,10 @@ public partial class CampaignPlayerTests
         int[] path = [32, 29, 26, 29, 32];
         for (int i = 0; i < path.Length; i++)
         {
-            var (army, armyCreatures) = Army(i < path.Length - 1 ? 12 : 7, new TilePos(path[i], 2), i + 1);
+            (PlayerVisibleThing[]? army, PlayerCreatureSummary[]? armyCreatures) = Army(i < path.Length - 1 ? 12 : 7, new TilePos(path[i], 2), i + 1);
             player.Decide(Observe(i + 1, map: LongStrip, things: army, creatures: armyCreatures, gold: 0, tick: 100 + 350L * i));
         }
-        var (few, fewCreatures) = Army(3, new TilePos(32, 2), 9);
+        (PlayerVisibleThing[]? few, PlayerCreatureSummary[]? fewCreatures) = Army(3, new TilePos(32, 2), 9);
         Assert.Contains("none goes alone", player.Decide(Observe(9, map: LongStrip, things: few, creatures: fewCreatures, gold: 0, tick: 1600))
             .Thoughts.Single(t => t.Routine == "hand").Note);
     }
@@ -147,7 +147,7 @@ public partial class CampaignPlayerTests
     {
         var enemy = new TilePos(11, 2);   // nine tiles from home: within twice the home guard, beyond the fighters' reach
         CampaignPlayer player = Besieged(enemy, LongStrip);
-        var (few, fewCreatures) = Army(3, enemy, 3);
+        (PlayerVisibleThing[]? few, PlayerCreatureSummary[]? fewCreatures) = Army(3, enemy, 3);
         PlayerDecision answer = player.Decide(Observe(3, map: LongStrip, things: few, creatures: fewCreatures, gold: 0, tick: 1500));
         Assert.Contains(answer.Actions, a => a is PlayerAction.PickUp);
     }
@@ -158,9 +158,9 @@ public partial class CampaignPlayerTests
         var enemy = new TilePos(32, 2);
         CampaignPlayer player = Player();
         player.Apply(player.Strategy with { RallyParty = 0 });
-        var (start, startCreatures) = Army(12, enemy, 1);
+        (PlayerVisibleThing[]? start, PlayerCreatureSummary[]? startCreatures) = Army(12, enemy, 1);
         player.Decide(Observe(1, map: LongStrip, things: start, creatures: startCreatures, gold: 0, tick: 100));
-        var (few, fewCreatures) = Army(3, enemy, 2);
+        (PlayerVisibleThing[]? few, PlayerCreatureSummary[]? fewCreatures) = Army(3, enemy, 2);
         Assert.Contains(player.Decide(Observe(2, map: LongStrip, things: few, creatures: fewCreatures, gold: 0, tick: 1500)).Actions,
             a => a is PlayerAction.PickUp);
     }

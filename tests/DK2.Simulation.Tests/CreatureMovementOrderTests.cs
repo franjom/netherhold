@@ -18,7 +18,7 @@ public class CreatureMovementOrderTests
     public void CrowdQueryIncludesATileCrossingOnlyWhenTheOtherWalkerIsNewer(
         bool crossingWalkerIsNewer, int expectedVelocity, int expectedPosition)
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)

@@ -22,7 +22,7 @@ public sealed class GuardPostTests
     private static (GameDatabase, WorldState) World()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 8; y++)
             for (int x = 1; x <= 12; x++)
             {
@@ -79,7 +79,7 @@ public sealed class GuardPostTests
     public void APostWithNoGuardRoomOfItsOwnerHasNone_AndMatchesOnlyAGuardHoldingNoPlace()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         world.Tile(4, 4).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(4, 4).OwnerPlayerId = Keeper;
         TrapState post = Post(db, world, 4, 4);
@@ -100,7 +100,7 @@ public sealed class GuardPostTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
-        var seen = StateTrace.Of(sim, goblin, 400, () => sink.Events.Any(e => e.Kind == "guard_from_guard_post"));
+        List<(int State, int Saved, int Resume)> seen = StateTrace.Of(sim, goblin, 400, () => sink.Events.Any(e => e.Kind == "guard_from_guard_post"));
 
         Assert.Contains(sink.Events, e => e.Kind == "guard_to_guard_post" && e.Detail.Contains($"trap={post.Id} at=(9,4)"));
         Assert.Contains((TravelToPoint, GuardRules.PatrolState, GuardRules.AtThePostState), seen);
@@ -146,7 +146,7 @@ public sealed class GuardPostTests
 
         sim.Run(17);
 
-        var report = Assert.Single(sink.Events, e => e.Kind == "guard_post_reported");
+        SimEvent report = Assert.Single(sink.Events, e => e.Kind == "guard_post_reported");
         Assert.Contains($"trap={post.Id} player={Keeper} enemy={enemy.Id} sent=1", report.Detail);
         Assert.NotEqual(0, (report.Tick.Value + 1 + post.Id) & 8);
         Assert.True(goblin.Running);
@@ -178,7 +178,7 @@ public sealed class GuardPostTests
         (GameDatabase db, WorldState world) = World();
         TrapState post = Post(db, world, 9, 4);
         Guard(db, world, new TilePos(6, 4));
-        var sim = Simulation(db, world, new ListEventSink(), new TrapSystem());
+        GameSimulation sim = Simulation(db, world, new ListEventSink(), new TrapSystem());
         sim.Run(3);
 
         GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db,

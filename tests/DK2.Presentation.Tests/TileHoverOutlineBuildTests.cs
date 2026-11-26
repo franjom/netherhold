@@ -41,7 +41,7 @@ public sealed class TileHoverOutlineBuildTests
         string dir = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.Load(dir);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!;
-        WorldState world = WorldState.FromMap(db, map, [0, 1]);
+        var world = WorldState.FromMap(db, map, [0, 1]);
         var lattice = new TerrainLattice(db, world, PlayerIds.FirstKeeper) { HighWalls = true };
         var ribbon = new TileHoverRibbon();
         var legacy = new LegacyOutline(lattice);

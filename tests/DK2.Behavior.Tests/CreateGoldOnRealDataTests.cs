@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data;
+using DK2.Data.Model;
 using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;
@@ -12,8 +13,8 @@ public sealed class CreateGoldOnRealDataTests
     [InstallFact]
     public void ShippedCreateGoldMatchesTheIsolatedSimulationFixture()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var spell = db.KeeperSpellById(13)!;
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        KeeperSpellDef spell = db.KeeperSpellById(13)!;
         Assert.Equal("Create Gold", spell.Name);
         Assert.Equal((15000, 0, 0), (spell.ManaCost, spell.ManaUpkeepPerSecond, spell.CooldownRaw));
         Assert.Equal(((byte)1, (byte)4), (spell.LocationSelector, spell.TargetSelector));

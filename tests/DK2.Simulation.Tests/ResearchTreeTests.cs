@@ -41,7 +41,7 @@ public sealed class ResearchTreeTests
     private static WorldState World(GameDatabase db, int createImp = Researchable, int door = Researchable,
         bool library = true)
     {
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(SpellKind, CreateImp, createImp));
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(DoorKind, WoodenDoor, door));
@@ -301,7 +301,7 @@ public sealed class ResearchTreeTests
     public void AnUpgradedCreateImpMakesALevelFourImp()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         ref TileState heart = ref world.Tile(2, 2);
         heart.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
@@ -331,7 +331,7 @@ public sealed class ResearchTreeTests
     public void WithoutTheUpgradeCreateImpMakesALevelOneImp()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         ref TileState heart = ref world.Tile(2, 2);
         heart.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;

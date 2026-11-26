@@ -14,7 +14,7 @@ public class CasinoWinnerSlapTests
     private static (GameSimulation Sim, CreatureState Winner) Start(int winnings = 4000, int held = 10000)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3, (byte)4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3, (byte)4]);
         CreatureState winner = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 3, new TilePos(3, 3));
         winner.JackpotDeadlineTicks = 100;
         winner.JackpotWinnings = winnings;
@@ -35,7 +35,7 @@ public class CasinoWinnerSlapTests
     [InlineData(12000, 3, 1000)]
     public void FirstSlapDebitsQuarterSplitsGoldAndUsesTwoSimulationDrawsPerPile(int winnings, int count, int each)
     {
-        var (sim, winner) = Start(winnings);
+        (GameSimulation? sim, CreatureState? winner) = Start(winnings);
         var expected = SimRandom.Restore(sim.Rng.SaveState());
         Slap(sim, winner);
         ObjectState[] piles = sim.World.Objects.Where(o => o.ObjectTypeId == 1).ToArray();
@@ -66,8 +66,8 @@ public class CasinoWinnerSlapTests
     [InlineData(2500, 1500, 1000)]
     public void SpawnAmountIsCappedAgainAfterPurseDebit(int held, int remaining, int spawned)
     {
-        var (sim, winner) = Start(held: held);
-        var before = sim.Rng.SaveState();
+        (GameSimulation? sim, CreatureState? winner) = Start(held: held);
+        (ulong S0, ulong S1, ulong S2, ulong S3) before = sim.Rng.SaveState();
         Slap(sim, winner);
         Assert.Equal(remaining, winner.GoldHeld);
         Assert.Equal(spawned, sim.World.Objects.Sum(o => o.GoldHeld));
@@ -77,7 +77,7 @@ public class CasinoWinnerSlapTests
     [Fact]
     public void SecondSlapMessagesAndChargesEveryOtherCreatureOfTheWinnerOwner()
     {
-        var (sim, winner) = Start();
+        (GameSimulation? sim, CreatureState? winner) = Start();
         CreatureState other = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId, 3, new TilePos(4, 3));
         CreatureState rival = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId, 4, new TilePos(5, 3));
         Slap(sim, winner);
@@ -98,7 +98,7 @@ public class CasinoWinnerSlapTests
     [Fact]
     public void CounterWrapsAndIsHashedAndSaved()
     {
-        var (sim, winner) = Start();
+        (GameSimulation? sim, CreatureState? winner) = Start();
         winner.CasinoBigWinnerSlappedCount = 255;
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, [new HandSystem()]);
         Assert.Equal(sim.StateHash(), restored.StateHash());
@@ -113,7 +113,7 @@ public class CasinoWinnerSlapTests
     [Fact]
     public void NoOutstandingDeadlineUsesOrdinarySlapEvenWithWinningsAndCounter()
     {
-        var (sim, winner) = Start();
+        (GameSimulation? sim, CreatureState? winner) = Start();
         winner.JackpotDeadlineTicks = 0;
         winner.CasinoBigWinnerSlappedCount = 1;
         Slap(sim, winner);
@@ -128,7 +128,7 @@ public class CasinoWinnerSlapTests
     [InlineData(255)]
     public void EarlyReturnAndShortSlapArmsDoNotReachWinnerRoutine(int state)
     {
-        var (sim, winner) = Start();
+        (GameSimulation? sim, CreatureState? winner) = Start();
         StatePlacement.Place(winner, state);
         Slap(sim, winner);
         Assert.Equal(10000, winner.GoldHeld);
@@ -140,7 +140,7 @@ public class CasinoWinnerSlapTests
     [Fact]
     public void LandingUsesScatteredCandidatePositionInsteadOfTileCentre()
     {
-        var (sim, winner) = Start(winnings: 3996);
+        (GameSimulation? sim, CreatureState? winner) = Start(winnings: 3996);
         Slap(sim, winner);
         ObjectState scattered = Assert.Single(sim.World.Objects);
         // Strict landing bounds reject the exact edge; a cell-centre approximation would merge.

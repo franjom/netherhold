@@ -37,7 +37,7 @@ public sealed class MessageTextTablesTests
     [InstallFact]
     public void AReferencePicksSpeechTheLevelTableOrTextStrByItsRange()
     {
-        CampaignLevelData level = CampaignLevelData.Load(Dk2InstallGate.Path, "Level1");
+        var level = CampaignLevelData.Load(Dk2InstallGate.Path, "Level1");
         using var sources = new InstallHudSources(Dk2InstallGate.Path);
         var warnings = new List<string>();
         var tables = new MessageTextTables(sources, level.Database.Level!.TextTableId, warnings.Add);
@@ -59,7 +59,7 @@ public sealed class MessageTextTablesTests
     [InstallFact]
     public void TheBriefingLinesAreTheLevelsBriefingTable()
     {
-        CampaignLevelData level = CampaignLevelData.Load(Dk2InstallGate.Path, "Level1");
+        var level = CampaignLevelData.Load(Dk2InstallGate.Path, "Level1");
         using var sources = new InstallHudSources(Dk2InstallGate.Path);
         var tables = new MessageTextTables(sources, level.Database.Level!.TextTableId);
 
@@ -85,7 +85,7 @@ public sealed class MessageTextTablesTests
         var file = Dk2StringTable.Open(path);
         Assert.True(file.TryResolve(2, out string? mainObjective) && mainObjective.Length > 0, briefingFile);
 
-        CampaignLevelData level = CampaignLevelData.Load(Dk2InstallGate.Path, levelName);
+        var level = CampaignLevelData.Load(Dk2InstallGate.Path, levelName);
         using var sources = new InstallHudSources(Dk2InstallGate.Path);
         var warnings = new List<string>();
         var tables = new MessageTextTables(sources, level.Database.Level!.TextTableId, warnings.Add);

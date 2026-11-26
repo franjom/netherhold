@@ -24,7 +24,7 @@ public class SpellPlaceInRoomTests
             GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, level);
             LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, level)!;
             byte[] owners = map.Tiles.Select(t => t.PlayerId).Distinct().OrderBy(p => p).ToArray();
-            WorldState world = WorldState.FromMap(database, map, owners);
+            var world = WorldState.FromMap(database, map, owners);
             int compared = 0, refused = 0;
             foreach (byte owner in owners.Where(PlayerIds.IsKeeper))
             {

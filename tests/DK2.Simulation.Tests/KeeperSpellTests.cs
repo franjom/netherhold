@@ -19,7 +19,7 @@ public sealed class KeeperSpellTests
     [InlineData(true, 200)]
     public void CastCreatesTheSelectedShotPaysAndStampsBothClocksButReturnsZero(bool upgraded, int damage)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         world.SetUpgraded(Keeper, AvailabilityKind.Spell, 6, upgraded);
         var boundary = new Boundary();
         var sim = new GameSimulation(db, world, 9, [boundary, new ShotSystem()]);
@@ -31,7 +31,7 @@ public sealed class KeeperSpellTests
         Assert.Equal(255, target.Dk2StateId);
         Assert.Equal(6000, world.Player(Keeper).Mana);
         Assert.Equal(6000, world.Player(Keeper).OneShotManaSpent);
-        var row = Assert.Single(world.Player(Keeper).Availabilities);
+        AvailabilityState row = Assert.Single(world.Player(Keeper).Availabilities);
         Assert.Equal((7L, 7L), (row.LastCastTick, row.LastCheckedTick));
         Assert.Equal(damage, Assert.Single(world.Shots).Data1);
         sim.Run(10);
@@ -44,7 +44,7 @@ public sealed class KeeperSpellTests
         // World_UpdateTurn dispatches packet actions (0x005119C0, HYPOTHESIS) before 0x004B7830 walks list 1,
         // so a player's cast moves the turn it is made; the computer keeper casts in the player frame,
         // after the sweep, and its commands reach ours at the head of the next tick (ADR-0551).
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         var sim = new GameSimulation(db, world, 9, [new KeeperSpellSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
         Assert.Equal(1, Assert.Single(world.Shots).Age);
@@ -63,7 +63,7 @@ public sealed class KeeperSpellTests
     [InlineData(9, KeeperSpellRefusal.UnsupportedFlags)]
     public void RefusalChangesNeitherManaClocksNorShots(int change, KeeperSpellRefusal expected)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         byte spell = 6; int id = target.Id; ushort flags = 0;
         switch (change)
         {
@@ -78,7 +78,7 @@ public sealed class KeeperSpellTests
             case 9: flags = 4; break;
         }
         int mana = world.Player(Keeper).Mana;
-        var row = Assert.Single(world.Player(Keeper).Availabilities);
+        AvailabilityState row = Assert.Single(world.Player(Keeper).Availabilities);
         var boundary = new Boundary();
         new GameSimulation(db, world, 1, [boundary]).Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, spell, id, flags)));
         Assert.Equal(expected, boundary.Refusal);
@@ -97,7 +97,7 @@ public sealed class KeeperSpellTests
     [InlineData(2)]
     public void AThunderboltNotYetAvailableStillCasts_ForTheInterfaceGatesAvailability(int value)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         world.SetAvailability(Keeper, AvailabilityKind.Spell, 6, value);
         var boundary = new Boundary();
         new GameSimulation(db, world, 1, [boundary]).Tick(
@@ -111,7 +111,7 @@ public sealed class KeeperSpellTests
     [Fact]
     public void ASpellWithNoEntryInThePlayersTableIsRefused_OursNotARead()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         world.Player(Keeper).Availabilities.Clear();
         var boundary = new Boundary();
         new GameSimulation(db, world, 1, [boundary]).Tick(
@@ -127,7 +127,7 @@ public sealed class KeeperSpellTests
     [InlineData(1, 150)]
     public void BinaryPrediction_StunStatesDoubleDamageIncludingGettingUp(int state, int damage)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Dk2StateId = state;
         new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()])
             .Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
@@ -137,7 +137,7 @@ public sealed class KeeperSpellTests
     [Fact]
     public void BinaryPrediction_State209AlsoContributesTheStunnedMultiplier()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Dk2StateId = 209;
         Assert.Equal(256, StatusEffectRules.DamageMultiplier(world, db, target));
     }
@@ -145,7 +145,7 @@ public sealed class KeeperSpellTests
     [Fact]
     public void WaterDoublesArmourHalvesAndInvulnerabilityDoesNotBlockLightning()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         world.Tile(target.Tile).TerrainId = Dk2TerrainFixture.Water;
         target.ArmourTicks = 5;
         target.InvulnerableTicks = 9;
@@ -157,7 +157,7 @@ public sealed class KeeperSpellTests
     [Fact]
     public void BinaryPrediction_DyingTargetConsumesManaButCannotBeFinished()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Dk2StateId = CreatureDeathRules.DyingState;
         target.Health = 0;
         target.DyingTicks = 19;
@@ -170,7 +170,7 @@ public sealed class KeeperSpellTests
     [Fact]
     public void AlliedCreatureOnAlliedLandIsAValidForeignTargetWithoutFogOrRangeGate()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         world.SetAllied(Keeper, Rival, true);
         world.Tile(target.Tile).OwnerPlayerId = Rival;
         world.Tile(target.Tile).DiscoveredBy = PlayerMask.None;
@@ -182,7 +182,7 @@ public sealed class KeeperSpellTests
     [Fact]
     public void SyntheticCooldownConvertsRawSecondsAndEqualityIsReady()
     {
-        var (db, world, target) = Setup(Spell() with { CooldownRaw = Fp32.One });
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup(Spell() with { CooldownRaw = Fp32.One });
         var boundary = new Boundary();
         var sim = new GameSimulation(db, world, 1, [boundary]);
         var command = InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id));
@@ -201,14 +201,14 @@ public sealed class KeeperSpellTests
     {
         foreach (KeeperSpellDef spell in new[] { Spell() with { LocationSelector = 9 }, Spell() with { TargetSelector = 9 } })
         {
-            var (db, world, target) = Setup(spell);
+            (GameDatabase? db, WorldState? world, CreatureState? target) = Setup(spell);
             var boundary = new Boundary();
             new GameSimulation(db, world, 1, [boundary]).Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
             Assert.Equal(spell.LocationSelector == 9 ? KeeperSpellRefusal.UnsupportedLocationSelector
                 : KeeperSpellRefusal.UnsupportedTargetSelector, boundary.Refusal);
             Assert.Empty(world.Shots);
         }
-        var (bonusDb, bonusWorld, bonusTarget) = Setup(Spell() with { BonusShotTypeId = 71 });
+        (GameDatabase? bonusDb, WorldState? bonusWorld, CreatureState? bonusTarget) = Setup(Spell() with { BonusShotTypeId = 71 });
         bonusWorld.SetUpgraded(Keeper, AvailabilityKind.Spell, 6, true);
         new GameSimulation(bonusDb, bonusWorld, 1, [new KeeperSpellSystem()])
             .Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, bonusTarget.Id)));
@@ -218,16 +218,16 @@ public sealed class KeeperSpellTests
     [Fact]
     public void PendingCastAndBothClocksSurviveSaveLoadAndAffectTheHash()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem()]);
         sim.Run(3);
         sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
-        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, [new ShotSystem()]);
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, [new ShotSystem()]);
         Assert.Equal(sim.StateHash(), copy.StateHash());
         Assert.Equal((6000, 6000), (copy.World.Player(Keeper).Mana, copy.World.Player(Keeper).OneShotManaSpent));
-        var row = Assert.Single(copy.World.Player(Keeper).Availabilities);
+        AvailabilityState row = Assert.Single(copy.World.Player(Keeper).Availabilities);
         Assert.Equal((3L, 3L), (row.LastCastTick, row.LastCheckedTick));
-        foreach (var changed in new[] { row with { LastCastTick = 2 }, row with { LastCheckedTick = 2 } })
+        foreach (AvailabilityState changed in new[] { row with { LastCastTick = 2 }, row with { LastCheckedTick = 2 } })
         {
             copy.World.Player(Keeper).Availabilities[0] = changed;
             Assert.NotEqual(sim.StateHash(), copy.StateHash());
@@ -249,7 +249,7 @@ public sealed class KeeperSpellTests
     [InlineData(RoomTypeId.Prison, true)]
     public void LocationOneExcludesSpecialRoomInteriorsButAllowsTheirRims(RoomTypeId kind, bool rim)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         byte terrain = db.Rooms.Values.Single(r => r.TypeId == kind).TerrainId;
         for (int y = 1; y < 19; y++)
             for (int x = 1; x < 19; x++)
@@ -271,7 +271,7 @@ public sealed class KeeperSpellTests
     [InlineData(RoomTypeId.CombatPit, KeeperSpellRefusal.None)]
     public void MissingDiagonalIsNotPoolInteriorButStillHasPortalCodeFour(RoomTypeId kind, KeeperSpellRefusal expected)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         byte terrain = db.Rooms.Values.Single(r => r.TypeId == kind).TerrainId;
         for (int y = 9; y <= 11; y++)
             for (int x = 9; x <= 11; x++)
@@ -287,7 +287,7 @@ public sealed class KeeperSpellTests
     [Fact]
     public void TargetedLightningFollowsTheTagAndDamageDoesNotScaleWithLevel()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Level = 5;
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem()]);
         sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
@@ -300,7 +300,7 @@ public sealed class KeeperSpellTests
     [Fact]
     public void SyntheticCooldownLastCastZeroRemainsTheNeverCastSentinel()
     {
-        var (db, world, target) = Setup(Spell() with { CooldownRaw = 10 * Fp32.One });
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup(Spell() with { CooldownRaw = 10 * Fp32.One });
         var boundary = new Boundary();
         var sim = new GameSimulation(db, world, 1, [boundary]);
         var command = InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id));
@@ -318,7 +318,7 @@ public sealed class KeeperSpellTests
         public KeeperSpellRefusal Refusal;
         public void Execute(SimulationContext context)
         {
-            foreach (var command in context.Input.All.OfType<CastSpellOnCreatureCommand>())
+            foreach (CastSpellOnCreatureCommand command in context.Input.All.OfType<CastSpellOnCreatureCommand>())
                 Result = KeeperSpellRules.CastOnCreature(context, command, out Refusal);
         }
     }
@@ -342,7 +342,7 @@ public sealed class KeeperSpellTests
         GameDatabase basis = Dk2TerrainFixture.Database();
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values,
             basis.Variables, [spell ?? Spell()], objects: basis.Objects.Values, shots: [Shot(21), Shot(71)]);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         world.Player(Keeper).Mana = 12000;
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, 6, 3));
         world.Tile(10, 10).TerrainId = Dk2TerrainFixture.ClaimedPath;

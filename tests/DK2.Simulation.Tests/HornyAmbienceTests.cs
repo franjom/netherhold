@@ -42,7 +42,7 @@ public sealed class HornyAmbienceTests
             CreatureId = 100, Flags = horny ? CreatureFlags.IsHorny : Dk2TerrainFixture.Goblin().Flags,
         };
         GameDatabase db = Dk2TerrainFixture.Database([reaper]);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         CreatureState c = world.SpawnCreature(db, 100, Keeper, new TilePos(4, 4));
         Dk2TerrainFixture.SetKnownIdentities(world);
         c.Dk2StateId = state;

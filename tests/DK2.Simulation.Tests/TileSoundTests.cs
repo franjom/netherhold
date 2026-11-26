@@ -23,7 +23,7 @@ public sealed class TileSoundTests
         int health, byte owner = PlayerIds.Neutral)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         ref TileState tile = ref world.Tile(At);
         tile.TerrainId = terrain;
         tile.OwnerPlayerId = owner;
@@ -55,7 +55,7 @@ public sealed class TileSoundTests
     [Fact]
     public void DiggingRockOutRequestsF4InTerrainRockAtTheTileCentreWithoutAVoice()
     {
-        var (db, world, sim, events) = Setup(Dk2TerrainFixture.Rock, 1);
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(Dk2TerrainFixture.Rock, 1);
         Work(world, TileWorkKind.Dig);
         sim.Tick(InputFrame.Empty);
 
@@ -67,7 +67,7 @@ public sealed class TileSoundTests
     [Fact]
     public void WorkThatLeavesTheTileItsTerrainOrDoesNotApplyIsSilent()
     {
-        var (db, world, sim, events) = Setup(Dk2TerrainFixture.Rock, 5000);
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(Dk2TerrainFixture.Rock, 5000);
         Work(world, TileWorkKind.Dig);                // health falls, rock stays: no event
         Work(world, TileWorkKind.Claim);              // rejected: rock is solid
         sim.Tick(InputFrame.Empty);
@@ -79,7 +79,7 @@ public sealed class TileSoundTests
     [Fact]
     public void ReinforcingRockToItsMaximumRequests10CInTerrainRockAtTheTileCentre()
     {
-        var (db, world, sim, events) = Setup(Dk2TerrainFixture.Rock, 659);
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(Dk2TerrainFixture.Rock, 659);
         Work(world, TileWorkKind.Reinforce);
         sim.Tick(InputFrame.Empty);
 
@@ -91,7 +91,7 @@ public sealed class TileSoundTests
     [Fact]
     public void ReinforcingShortOfTheMaximumIsSilent()
     {
-        var (db, world, sim, events) = Setup(Dk2TerrainFixture.Rock, 165);
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(Dk2TerrainFixture.Rock, 165);
         Work(world, TileWorkKind.Reinforce);
         sim.Tick(InputFrame.Empty);
 
@@ -102,7 +102,7 @@ public sealed class TileSoundTests
     [Fact]
     public void AClaimThatConvertsTheTileSoundsTheTerrainsConversionThenTheImps10AWithItsOwnVoice()
     {
-        var (db, world, sim, events) = Setup(Dk2TerrainFixture.DirtPath, 659);
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(Dk2TerrainFixture.DirtPath, 659);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(4, 5));
         Work(world, TileWorkKind.Claim, imp.Id);
         sim.Tick(InputFrame.Empty);
@@ -123,7 +123,7 @@ public sealed class TileSoundTests
     [Fact]
     public void AClaimStillInProgressOrWithNoImpBehindItMakesNoImpSound()
     {
-        var (db, world, sim, events) = Setup(Dk2TerrainFixture.DirtPath, 1);
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(Dk2TerrainFixture.DirtPath, 1);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(4, 5));
         Work(world, TileWorkKind.Claim, imp.Id);
         sim.Tick(InputFrame.Empty);
@@ -140,7 +140,7 @@ public sealed class TileSoundTests
     [Fact]
     public void ARoomTileWorkedDownRequestsF4InItsRoomTerrainsCategory()
     {
-        var (db, world, sim, events) = Setup(Dk2TerrainFixture.TreasuryTerrain, 1, Keeper);
+        (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup(Dk2TerrainFixture.TreasuryTerrain, 1, Keeper);
         Work(world, TileWorkKind.AttackRoom);
         sim.Tick(InputFrame.Empty);
 
@@ -153,7 +153,7 @@ public sealed class TileSoundTests
     public void ACornerFillRequests10CInTerrainRockAtTheFilledTile()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)2, (byte)3, (byte)4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)2, (byte)3, (byte)4]);
         void Set(int x, int y, byte terrain, byte owner, int health)
         {
             ref TileState tile = ref world.Tile(x, y);
@@ -190,7 +190,7 @@ public sealed class TileSoundTests
         static GameSimulation Run(ListEventSink? sink)
         {
             GameDatabase db = Dk2TerrainFixture.Database();
-            WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+            var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
             world.Tile(At).TerrainId = Dk2TerrainFixture.DirtPath;
             world.Tile(At).Health = 659;
             world.Tile(4, 5).TerrainId = Dk2TerrainFixture.Rock;

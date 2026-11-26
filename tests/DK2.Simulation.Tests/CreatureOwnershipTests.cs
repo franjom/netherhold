@@ -13,7 +13,7 @@ public class CreatureOwnershipTests
 {
     private static (GameDatabase Db, WorldState World) Setup()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         return (db, WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)1, (byte)3, (byte)4]));
     }
 
@@ -26,10 +26,10 @@ public class CreatureOwnershipTests
     [Fact]
     public void AcquisitionPrependsAndTransferDoesNotSortById()
     {
-        var (db, world) = Setup();
-        var first = Spawn(db, world);
-        var second = Spawn(db, world);
-        var rival = Spawn(db, world, 4);
+        (GameDatabase? db, WorldState? world) = Setup();
+        CreatureState first = Spawn(db, world);
+        CreatureState second = Spawn(db, world);
+        CreatureState rival = Spawn(db, world, 4);
         Assert.Equal(new[] { second.Id, first.Id }, Order(world));
         world.ChangeCreatureOwner(first, 4);
         Assert.Equal(new[] { first.Id, rival.Id }, Order(world, 4));
@@ -42,10 +42,10 @@ public class CreatureOwnershipTests
     [Fact]
     public void SameOwnerDoesNotReinsertAndRemovalPreservesOtherLinks()
     {
-        var (db, world) = Setup();
-        var first = Spawn(db, world);
-        var second = Spawn(db, world);
-        var third = Spawn(db, world);
+        (GameDatabase? db, WorldState? world) = Setup();
+        CreatureState first = Spawn(db, world);
+        CreatureState second = Spawn(db, world);
+        CreatureState third = Spawn(db, world);
         world.ChangeCreatureOwner(first, 3);
         Assert.Equal(new[] { third.Id, second.Id, first.Id }, Order(world));
         Assert.True(world.RemoveCreature(second.Id));
@@ -59,9 +59,9 @@ public class CreatureOwnershipTests
     [Fact]
     public void ActualHandPickupKeepsMembershipAndOrder()
     {
-        var (db, world) = Setup();
-        var first = Spawn(db, world);
-        var second = Spawn(db, world);
+        (GameDatabase? db, WorldState? world) = Setup();
+        CreatureState first = Spawn(db, world);
+        CreatureState second = Spawn(db, world);
         var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(3, first.Id)));
         sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
@@ -72,8 +72,8 @@ public class CreatureOwnershipTests
     [Fact]
     public void DyingCreaturesRemainButCorpseRepresentationIsExcluded()
     {
-        var (db, world) = Setup();
-        var creature = Spawn(db, world);
+        (GameDatabase? db, WorldState? world) = Setup();
+        CreatureState creature = Spawn(db, world);
         creature.Health = 0;
         Assert.Equal(new[] { creature.Id }, Order(world));
         creature.Dk2StateId = CreatureStateMachine.NoState;
@@ -84,13 +84,13 @@ public class CreatureOwnershipTests
     [Fact]
     public void SaveRestorePreservesTransferHistoryAndSubsequentAcquisition()
     {
-        var (db, world) = Setup();
-        var first = Spawn(db, world);
+        (GameDatabase? db, WorldState? world) = Setup();
+        CreatureState first = Spawn(db, world);
         Spawn(db, world);
         world.ChangeCreatureOwner(first, 4);
         world.ChangeCreatureOwner(first, 3);
         var sim = new GameSimulation(db, world, 42, []);
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
         Assert.Equal(Order(world), Order(restored.World));
         Assert.Equal(sim.StateHash(), restored.StateHash());
         Spawn(db, world);
@@ -104,8 +104,8 @@ public class CreatureOwnershipTests
     [Fact]
     public void HashDistinguishesOrderWithIdenticalCreatureValues()
     {
-        var (db, world) = Setup();
-        var first = Spawn(db, world);
+        (GameDatabase? db, WorldState? world) = Setup();
+        CreatureState first = Spawn(db, world);
         Spawn(db, world);
         var sim = new GameSimulation(db, world, 42, []);
         ulong before = sim.StateHash();
@@ -117,10 +117,10 @@ public class CreatureOwnershipTests
     [Fact]
     public void TransferRejectsCreatureFromAnotherWorldEvenWithMatchingId()
     {
-        var (db, world) = Setup();
-        var (_, other) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
+        (GameDatabase _, WorldState? other) = Setup();
         Spawn(db, world);
-        var foreign = Spawn(db, other);
+        CreatureState foreign = Spawn(db, other);
         Assert.Throws<ArgumentException>(() => world.ChangeCreatureOwner(foreign, 4));
         Assert.Equal((byte)3, foreign.OwnerPlayerId);
     }

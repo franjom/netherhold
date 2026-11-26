@@ -19,7 +19,7 @@ public class TransferCreatureArrivalTests
     private static (GameSimulation Sim, WorldState World) Start(uint seed)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
         Dk2TerrainFixture.HeartRoom(world, db, Keeper);
         return (new GameSimulation(db, world, new SimRandom(new Dk2Lcg(seed)), []), world);
     }
@@ -29,8 +29,8 @@ public class TransferCreatureArrivalTests
     [Fact]
     public void TheArrivalDrawsOneFacingAfterTheCreatureIsMade()
     {
-        var (arrived, _) = Start(9);
-        var (spawned, spawnedWorld) = Start(9);
+        (GameSimulation? arrived, WorldState _) = Start(9);
+        (GameSimulation? spawned, WorldState? spawnedWorld) = Start(9);
         spawnedWorld.TrySpawnCreature(spawned.Database, GoblinId, new PlayerId(Keeper), new TilePos(3, 1));
         var lcg = new Dk2Lcg(Seed(spawned));
         int facing = lcg.NextInt(4);
@@ -45,8 +45,8 @@ public class TransferCreatureArrivalTests
     [Fact]
     public void ALevelledArrivalDrawsItsFacingBeforeTheLevelUps()
     {
-        var (levelOne, _) = Start(9);
-        var (levelThree, _) = Start(9);
+        (GameSimulation? levelOne, WorldState _) = Start(9);
+        (GameSimulation? levelThree, WorldState _) = Start(9);
         CreatureState one = TransferCreatureRules.Arrive(levelOne, new PlayerId(Keeper), GoblinId, 1)!;
         CreatureState three = TransferCreatureRules.Arrive(levelThree, new PlayerId(Keeper), GoblinId, 3)!;
         Assert.Equal(one.Heading, three.Heading);
@@ -56,7 +56,7 @@ public class TransferCreatureArrivalTests
     [Fact]
     public void NoStoredCreatureDrawsNothing()
     {
-        var (sim, _) = Start(9);
+        (GameSimulation? sim, WorldState _) = Start(9);
         uint before = Seed(sim);
         Assert.Null(TransferCreatureRules.Arrive(sim, new PlayerId(Keeper), 0, 4));
         Assert.Equal(before, Seed(sim));

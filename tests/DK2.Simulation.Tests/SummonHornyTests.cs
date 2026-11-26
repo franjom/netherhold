@@ -45,7 +45,7 @@ public sealed class SummonHornyTests
             basis.KeeperSpells.Values.Where(s => s.KeeperSpellId != SpellId).Append(spell),
             objects: basis.Objects.Values,
             shots: basis.Shots.Values.Where(s => s.ShotId != 46).Append(shot));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         var at = new TilePos(10, 10);
         world.Tile(at).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -58,7 +58,7 @@ public sealed class SummonHornyTests
     [Fact]
     public void CastCreatesTheDataSelectedLevelTenReaperForTheCaster_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(new CastSpellAtPlaceCommand(Keeper, SpellId,
             CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y))));
@@ -79,7 +79,7 @@ public sealed class SummonHornyTests
     [Fact]
     public void AuthoredReaperCanAcquireFightBeforeAnySummonGreeting_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         Assert.True(CombatRules.MayLookForAFight(world, db, reaper, force: false));
         Assert.True(reaper.ReaperCanAcquireFight);
@@ -92,7 +92,7 @@ public sealed class SummonHornyTests
     [Fact]
     public void UpkeepStartsStrictlyAfterTheFiftySecondGrace_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         reaper.Dk2StateId = 238;
         reaper.HornyTick = 201;
@@ -129,7 +129,7 @@ public sealed class SummonHornyTests
     [Fact]
     public void ArrivalWaitsForTheShippedFirstCycleBeforeEnablingCombat_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         var cast = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         cast.Tick(InputFrame.Of(new CastSpellAtPlaceCommand(Keeper, SpellId,
             CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y))));
@@ -158,7 +158,7 @@ public sealed class SummonHornyTests
     [InlineData(2000, false)]
     public void RemainingManaBelowOneMorePaymentTriggersDeparture_ConfirmedFromBinary(int mana, bool leaves)
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         reaper.Dk2StateId = 238;
         reaper.ReaperCanAcquireFight = reaper.ReaperIsAttackable = true;
@@ -174,7 +174,7 @@ public sealed class SummonHornyTests
     [Fact]
     public void DepartureFadesAtAgeTwentyFourAndRemovesAtThirtyOne_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         reaper.Dk2StateId = 238;
         var departure = new GameSimulation(db, world, 1, [new CallbackSystem(context => ReaperRules.Depart(context, reaper))]);
@@ -196,7 +196,7 @@ public sealed class SummonHornyTests
     [InlineData(242)]
     public void ArrivalAndDepartureStayExcludedFromUpkeep_ConfirmedFromBinary(int state)
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         reaper.Dk2StateId = state;
         Assert.Equal(0, ManaRules.UpkeepPerSecondByPlayerIndex(world, db).Sum());
@@ -210,7 +210,7 @@ public sealed class SummonHornyTests
     [InlineData(242)]
     public void OwnedReaperRefusesAnotherCastEvenWhileArrivingOrLeaving_ConfirmedFromBinary(int state)
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         reaper.Dk2StateId = state;
         var sim = new GameSimulation(db, world, 1, [new CallbackSystem(context =>
@@ -223,7 +223,7 @@ public sealed class SummonHornyTests
     [Fact]
     public void OneShotAndEndedPlayerAreExcludedFromNormalHornyUpkeep_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         reaper.Dk2StateId = 238;
         reaper.IsOneShotReaper = true;
@@ -236,7 +236,7 @@ public sealed class SummonHornyTests
     [Fact]
     public void ArrivalRemainsUnattackableEvenWhenThePhysicalBitIsSet_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         reaper.Dk2StateId = 236;
         reaper.ReaperCanAcquireFight = reaper.ReaperIsAttackable = true;
@@ -250,7 +250,7 @@ public sealed class SummonHornyTests
     [InlineData(19)]
     public void SnapshotContinuesArrivalAndItsActionClock(int turns)
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         reaper.Dk2StateId = 235;
         reaper.HornyTick = 201;
@@ -268,7 +268,7 @@ public sealed class SummonHornyTests
     [Fact]
     public void SnapshotContinuesDepartureWithoutRestartingTheFade()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         reaper.Dk2StateId = 242;
         var sim = new GameSimulation(db, world, 1, [new ReaperSystem(), new ReaperRemovalSystem()]);
@@ -293,7 +293,7 @@ public sealed class SummonHornyTests
     [InlineData(nameof(CreatureState.ReaperIsAttackable))]
     public void EveryReaperLifecycleFieldAffectsTheStateHash(string fieldName)
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         var sim = new GameSimulation(db, world, 1);
         ulong before = sim.StateHash();
@@ -319,7 +319,7 @@ public sealed class SummonHornyTests
     [InlineData(448, 448)]
     public void CreationRespectsTheCreaturePoolCapacityAfterChargingTheCast_ConfirmedFromBinary(int existing, int expected)
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         for (int i = 0; i < existing; i++)
             world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, at);
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
@@ -333,7 +333,7 @@ public sealed class SummonHornyTests
     [Fact]
     public void CategoryHealthRequestDoesNotDrainTheImmuneReaper_ConfirmedFromBinary()
     {
-        var (db, world, at) = Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         CreatureState reaper = world.SpawnCreature(db, HornyType, Keeper, at);
         reaper.Dk2StateId = 238;
         var sim = new GameSimulation(db, world, 1, [new ReaperSystem()]);

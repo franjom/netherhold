@@ -15,7 +15,7 @@ public class KwdEditingOwnershipTests
     [Fact]
     public void DecodedRawSlicesCannotMutateTheOwnedFile()
     {
-        var editor=LevelSet(); byte[] original=editor.ToBytes("level.kwd");
+        KwdLevelFileSet editor =LevelSet(); byte[] original=editor.ToBytes("level.kwd");
         LevelDef row=editor.ReadRecord<LevelDef>(new("level.kwd",0,0));
         Assert.True(MemoryMarshal.TryGetArray(row.Unknown_1184,out ArraySegment<byte> segment));
         segment.Array![segment.Offset]=13;
@@ -25,7 +25,7 @@ public class KwdEditingOwnershipTests
     [Fact]
     public void AThrowingCallbackCannotLeaveRawMutationsBehind()
     {
-        var editor=LevelSet(); byte[] original=editor.ToBytes("level.kwd");
+        KwdLevelFileSet editor =LevelSet(); byte[] original=editor.ToBytes("level.kwd");
         Assert.Throws<InvalidOperationException>(()=>editor.EditRecord<LevelDef>(new("level.kwd",0,0),row=>
         {
             Assert.True(MemoryMarshal.TryGetArray(row.Unknown_1184,out ArraySegment<byte> segment));
@@ -38,10 +38,10 @@ public class KwdEditingOwnershipTests
     [Fact]
     public void MutatingACallbackPathListCannotBypassManifestRefusal()
     {
-        var editor=LevelSet(); byte[] original=editor.ToBytes("level.kwd");
+        KwdLevelFileSet editor =LevelSet(); byte[] original=editor.ToBytes("level.kwd");
         Assert.Throws<InvalidDataException>(()=>editor.EditRecord<LevelDef>(new("level.kwd",0,0),row=>
         {
-            var paths=Assert.IsAssignableFrom<IList<KwdLevelFilePath>>(row.Paths);
+            IList<KwdLevelFilePath> paths =Assert.IsAssignableFrom<IList<KwdLevelFilePath>>(row.Paths);
             paths[0]=paths[0] with { Path="other.kwd" };
             return row;
         }));
@@ -56,7 +56,7 @@ public class KwdEditingOwnershipTests
         byte[] original=editor.ToBytes("things.kld");
         Assert.Throws<InvalidDataException>(()=>editor.EditRecord<HeroPartyThing>(new("things.kld",0,0),row=>
         {
-            var members=Assert.IsAssignableFrom<IList<GoodCreatureThing>>(row.Members);
+            IList<GoodCreatureThing> members =Assert.IsAssignableFrom<IList<GoodCreatureThing>>(row.Members);
             members[0]=members[0] with { TriggerId=13 };
             return row;
         }));

@@ -17,7 +17,7 @@ public sealed class PresentedWorldOnRealDataTests
 {
     private static ulong WorldHash(WorldState world)
     {
-        Hash64 hash = Hash64.Start();
+        var hash = Hash64.Start();
         world.HashInto(ref hash);
         return hash.Value;
     }
@@ -35,7 +35,7 @@ public sealed class PresentedWorldOnRealDataTests
         GameSimulation live = CampaignSimulationFactory.Create(database,
             GameDatabaseLoader.LoadCampaignMap(install, name)!, level, players, things, triggers, seed: 1);
 
-        WorldState presented = WorldState.CopyOf(live.World);
+        var presented = WorldState.CopyOf(live.World);
         foreach (int ticks in new[] { 0, 300, 1200 })
         {
             live.Run(ticks);
@@ -44,7 +44,7 @@ public sealed class PresentedWorldOnRealDataTests
             Assert.Equal(WorldHash(live.World), WorldHash(presented));
         }
 
-        GameSimulation twin = GameSimulation.Resume(database, WorldState.CopyOf(live.World),
+        var twin = GameSimulation.Resume(database, WorldState.CopyOf(live.World),
             SimRandom.Restore(live.Rng.SaveState()), SimulationSystems.Default(),
             CampaignSimulationFactory.Triggers(level, players, things, triggers));
         using (var stream = new MemoryStream())

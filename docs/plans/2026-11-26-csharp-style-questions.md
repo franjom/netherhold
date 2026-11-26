@@ -8,7 +8,11 @@ The owner approved the choices below on 2026-11-26. The remaining recommendation
 2. Brace every control body, including single-line guards.
 3. Put `using` directives at file scope. Import ordering remains open.
 4. Use `_camelCase` for instance fields, `s_camelCase` for mutable statics, and PascalCase for constants and static readonly fields.
-5. Prefer collection expressions when the concrete type is preserved.
+5. Require `when_types_exactly_match` for collection expressions. Review every IL difference because lowering can change construction or capacity.
+
+Land each rule in six commits, one per area. Simulation covers DK2.Simulation, DK2.AI, DK2.Pathfinding and DK2.Core. Data covers DK2.Data, DK2.Data.Model, DK2.Assets, DK2.Art and DK2.Convert. Presentation, Tools and Harness together, the Godot adapter, and tests are the other four areas. Enable each rule in scoped `.editorconfig` sections as its area lands. The final commit for the rule moves it to `[*.cs]` and removes its scoped sections.
+
+For pure-format rules (`var`, braces, field naming and collection expressions), compare the Release assemblies of every changed project before and after. Use `ildasm` or metadata to compare IL, ignoring only MVID, PDB identity and timestamp differences. Build, run `dotnet format --verify-no-changes`, and run the test suite for every area commit. If IL differs, list each changed method and explain the difference or revert it. Run the turn-400 hashes for Level1, Level6a and Level7 for any commit with an IL difference, plus frame captures if the difference is in presentation or Godot code. Run the same hash triple after each rule's final commit.
 
 The original recommendations below retain the survey context. For braces, the approved policy uses `csharp_prefer_braces = true` (IDE0011), with 1,589 files in the sampled pool before analyzer exclusions.
 

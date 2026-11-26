@@ -91,11 +91,11 @@ public class AssetArchitectureTests
     [Fact]
     public void TheStandardChainCoversEveryAssetKind()
     {
-        AssetProviderChain chain = AssetProviderChain.Standard();
+        var chain = AssetProviderChain.Standard();
 
         foreach (AssetKind kind in Enum.GetValues<AssetKind>())
         {
-            AssetRef reference = AssetRef.ForTerrain("Rock", kind);
+            var reference = AssetRef.ForTerrain("Rock", kind);
             Assert.True(chain.TryResolve(reference, out ResolvedAsset asset), $"no answer for {kind}.");
             Assert.True(asset.IsPlaceholder);
         }

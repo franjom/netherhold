@@ -648,7 +648,7 @@ public class HeroWalkTests
     private static (GameDatabase, WorldState) OpenWorld(params CreatureDef[] extra)
     {
         GameDatabase db = Dk2TerrainFixture.Database(extra);
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)

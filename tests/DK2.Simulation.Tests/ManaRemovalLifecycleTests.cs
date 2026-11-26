@@ -27,7 +27,7 @@ public class ManaRemovalLifecycleTests
         int imps = 5, int claimedTiles = 9, byte owner = Keeper)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         int claimed = 9;
         for (int y = 1; y < world.Height - 1 && claimed < claimedTiles; y++)
@@ -67,8 +67,8 @@ public class ManaRemovalLifecycleTests
     [Fact]
     public void FiveImpsOnNineTilesLoseOneAfterFourWarningsAndFiveMoreSeconds()
     {
-        var (db, world, imps) = Setup();
-        var (sim, events) = Run(db, world);
+        (GameDatabase? db, WorldState? world, List<CreatureState>? imps) = Setup();
+        (GameSimulation? sim, ListEventSink? events) = Run(db, world);
         sim.Run(183);
         Assert.Equal(5, world.Creatures.Count);
         sim.Tick();
@@ -97,8 +97,8 @@ public class ManaRemovalLifecycleTests
     [Fact]
     public void OnlyAKeeperIsWarnedOrScanned()
     {
-        var (db, world, _) = Setup(owner: PlayerIds.Good);
-        var (sim, events) = Run(db, world);
+        (GameDatabase? db, WorldState? world, List<CreatureState> _) = Setup(owner: PlayerIds.Good);
+        (GameSimulation? sim, ListEventSink? events) = Run(db, world);
         sim.Run(220);
         Assert.Empty(Of(events, "mana_warning"));
         Assert.Empty(Of(events, "mana_removal_scan"));
@@ -110,11 +110,11 @@ public class ManaRemovalLifecycleTests
     [Fact]
     public void LevelTieTakesTheNewestIdleImpElseTheFarthestFromTheHeartPositionAndStampsIt()
     {
-        var (db, world, imps) = Setup();
+        (GameDatabase? db, WorldState? world, List<CreatureState>? imps) = Setup();
         world.Player(Keeper).ManaPressure = Ready;
         imps[1].WorkerIdle = true;
         imps[3].WorkerIdle = true;
-        var (sim, events) = Run(db, world, new ManaRemovalSystem(), new ManaSystem());
+        (GameSimulation? sim, ListEventSink? events) = Run(db, world, new ManaRemovalSystem(), new ManaSystem());
         sim.Run(4);
 
         // Acquisition order is newest first, so the fourth-spawned idle imp beats the second.
@@ -128,9 +128,9 @@ public class ManaRemovalLifecycleTests
 
         // No idle imp and no heart: the farthest from the initialiser's (1, 1), which is the
         // one on (3, 1), two tiles off, ahead of the diagonal neighbour at root two.
-        var (db2, world2, imps2) = Setup();
+        (GameDatabase? db2, WorldState? world2, List<CreatureState>? imps2) = Setup();
         world2.Player(Keeper).ManaPressure = Ready;
-        var (sim2, events2) = Run(db2, world2, new ManaRemovalSystem(), new ManaSystem());
+        (GameSimulation? sim2, ListEventSink? events2) = Run(db2, world2, new ManaRemovalSystem(), new ManaSystem());
         sim2.Run(4);
         Assert.Equal(imps2[2].Id, Field(Assert.Single(Of(events2, "mana_removal_scan")), "chosen"));
         Assert.Equal((3, 1), (imps2[2].Tile.X, imps2[2].Tile.Y));
@@ -139,9 +139,9 @@ public class ManaRemovalLifecycleTests
     [Fact]
     public void AHeldWorkerCountsTowardTheFloorButIsNeverChosen()
     {
-        var (db, world, imps) = Setup();
+        (GameDatabase? db, WorldState? world, List<CreatureState>? imps) = Setup();
         imps[4].WorkerIdle = true;
-        var (sim, events) = Run(db, world, new HandSystem(), new ManaRemovalSystem(), new ManaSystem());
+        (GameSimulation? sim, ListEventSink? events) = Run(db, world, new HandSystem(), new ManaRemovalSystem(), new ManaSystem());
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imps[4].Id)));
         sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(imps[4].InHand);
@@ -151,8 +151,8 @@ public class ManaRemovalLifecycleTests
         Assert.NotEqual(imps[4].Id, chosen);
         Assert.NotEqual(-1, chosen);
 
-        var (db2, world2, imps2) = Setup(imps: 4);
-        var (sim2, events2) = Run(db2, world2, new HandSystem(), new ManaRemovalSystem(), new ManaSystem());
+        (GameDatabase? db2, WorldState? world2, List<CreatureState>? imps2) = Setup(imps: 4);
+        (GameSimulation? sim2, ListEventSink? events2) = Run(db2, world2, new HandSystem(), new ManaRemovalSystem(), new ManaSystem());
         sim2.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imps2[0].Id)));
         sim2.Run(2);
         world2.Player(Keeper).ManaPressure = Ready;
@@ -163,12 +163,12 @@ public class ManaRemovalLifecycleTests
     [Fact]
     public void AUniqueLowestLevelNonImpIsStampedNeverExpiresAndLeavesNoCorpseWhenItDies()
     {
-        var (db, world, imps) = Setup();
+        (GameDatabase? db, WorldState? world, List<CreatureState>? imps) = Setup();
         foreach (CreatureState imp in imps) imp.Level = 2;
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 3));
         Assert.True(CreatureDeathRules.LeavesBody(db.CreatureById(goblin.CreatureTypeId)));
         world.Player(Keeper).ManaPressure = Ready;
-        var (sim, _) = Run(db, world, new ManaRemovalSystem(), new ManaSystem(), new CreatureHealthSystem());
+        (GameSimulation? sim, ListEventSink _) = Run(db, world, new ManaRemovalSystem(), new ManaSystem(), new CreatureHealthSystem());
         sim.Run(4);
         Assert.Equal(4u, goblin.ManaRemovalStamp);
         Assert.True(goblin.CorpseSuppressed);
@@ -190,9 +190,9 @@ public class ManaRemovalLifecycleTests
         Assert.Null(world.CreatureById(goblin.Id));
 
         // Control: the same Goblin never selected leaves a corpse.
-        var (dbC, worldC, _) = Setup();
+        (GameDatabase? dbC, WorldState? worldC, List<CreatureState> _) = Setup();
         CreatureState control = worldC.SpawnCreature(dbC, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 3));
-        var (simC, _) = Run(dbC, worldC, new CreatureHealthSystem());
+        (GameSimulation? simC, ListEventSink _) = Run(dbC, worldC, new CreatureHealthSystem());
         control.Health = 0;
         simC.Run(CreatureDeathRules.DyingWindowTicks(dbC) + 8);
         Assert.True(CreatureDeathRules.IsCorpse(worldC.CreatureById(control.Id)!));
@@ -203,11 +203,11 @@ public class ManaRemovalLifecycleTests
     [Fact]
     public void AStampRefusesPickupUntilTheKeeperCanAffordExactlyOneUpkeep()
     {
-        var (db, world, imps) = Setup(imps: 1);
+        (GameDatabase? db, WorldState? world, List<CreatureState>? imps) = Setup(imps: 1);
         CreatureState imp = imps[0];
         imp.ManaRemovalStamp = 1;
         world.Player(Keeper).Mana = 6;
-        var (sim, events) = Run(db, world, new HandSystem(), new ManaRemovalSystem());
+        (GameSimulation? sim, ListEventSink? events) = Run(db, world, new HandSystem(), new ManaRemovalSystem());
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         Assert.False(imp.InHand);
         Assert.Single(Of(events, "pickup_refused"));
@@ -226,14 +226,14 @@ public class ManaRemovalLifecycleTests
     public void ExpiryRunsTheDeathBookkeepingBeforeThePaymentAndSpillsWhatWasCarried()
     {
         // Six mana and nine a second against two imps' fourteen: 1, then 0, never seven.
-        var (db, world, imps) = Setup(imps: 2);
+        (GameDatabase? db, WorldState? world, List<CreatureState>? imps) = Setup(imps: 2);
         world.Player(Keeper).Mana = 6;
         CreatureState imp = imps[0];
         imp.ManaRemovalStamp = 4;
         imp.GoldHeld = 1001;
         ObjectState crate = world.SpawnObject(db, Dk2TerrainFixture.AlarmCrateObjectId, Keeper, 0);
         ObjectCarryRules.PickUp(imp, crate);
-        var (sim, events) = Run(db, world, new ManaRemovalSystem(), new ManaSystem());
+        (GameSimulation? sim, ListEventSink? events) = Run(db, world, new ManaRemovalSystem(), new ManaSystem());
 
         // Turns 1–23 leave it alone: 4 + 20 <= turn first holds at 24, which is tick 23.
         sim.Run(23);
@@ -258,12 +258,12 @@ public class ManaRemovalLifecycleTests
     [Fact]
     public void PossessionSkipsBothRecoveryAndExpiry()
     {
-        var (db, world, imps) = Setup(imps: 1);
+        (GameDatabase? db, WorldState? world, List<CreatureState>? imps) = Setup(imps: 1);
         CreatureState imp = imps[0];
         imp.ManaRemovalStamp = 1;
         world.Player(Keeper).Mana = 100;
         world.Player(Keeper).PossessedCreatureId = imp.Id;
-        var (sim, _) = Run(db, world, new ManaRemovalSystem());
+        (GameSimulation? sim, ListEventSink _) = Run(db, world, new ManaRemovalSystem());
         sim.Run(40);
         Assert.Equal(1u, imp.ManaRemovalStamp);
         Assert.NotNull(world.CreatureById(imp.Id));
@@ -277,9 +277,9 @@ public class ManaRemovalLifecycleTests
     {
         // 37 claimed tiles against five imps: two mana a second, so the first stamp is
         // reprieved once the keeper reaches seven, and every later scan finds it affordable.
-        var (db, world, imps) = Setup(claimedTiles: 37);
+        (GameDatabase? db, WorldState? world, List<CreatureState>? imps) = Setup(claimedTiles: 37);
         world.Player(Keeper).ManaPressure = Ready;
-        var (sim, events) = Run(db, world, new ManaRemovalSystem(), new ManaSystem());
+        (GameSimulation? sim, ListEventSink? events) = Run(db, world, new ManaRemovalSystem(), new ManaSystem());
         sim.Run(4);
         SimEvent first = Assert.Single(Of(events, "mana_removal_scan"));
         CreatureState chosen = world.CreatureById(Field(first, "chosen"))!;
@@ -312,8 +312,8 @@ public class ManaRemovalLifecycleTests
     [Fact]
     public void SaveAndLoadContinueTheClocksTheStampAndTheExpiry()
     {
-        var (db, world, _) = Setup();
-        var (sim, _) = Run(db, world);
+        (GameDatabase? db, WorldState? world, List<CreatureState> _) = Setup();
+        (GameSimulation? sim, ListEventSink _) = Run(db, world);
         sim.Run(170);
         Assert.Contains(world.Creatures, c => c.ManaRemovalStamp == 164 && c.CorpseSuppressed);
         Assert.Equal(5, world.Player(Keeper).ManaPressure.WarningStage);
@@ -335,7 +335,7 @@ public class ManaRemovalLifecycleTests
     {
         ulong Hash(Action<WorldState> mutate)
         {
-            var (db, world, _) = Setup(imps: 1);
+            (GameDatabase? db, WorldState? world, List<CreatureState> _) = Setup(imps: 1);
             mutate(world);
             return new GameSimulation(db, world, 1, []).StateHash();
         }
@@ -352,7 +352,7 @@ public class ManaRemovalLifecycleTests
     [Fact]
     public void WarningSubtypesAreSeparateRecordsOfTwentySecondsAndStageZeroIsDiscarded()
     {
-        var (db, world, _) = Setup();
+        (GameDatabase? db, WorldState? world, List<CreatureState> _) = Setup();
         var sim = new GameSimulation(db, world, 1, []);
         Assert.Null(world.Messages.Post(world, Keeper, PlayerMessageKind.LowManaWarning, 0, 0));
         PlayerMessage one = world.Messages.Post(world, Keeper, PlayerMessageKind.LowManaWarning, 1, 0)!.Value;
@@ -378,7 +378,7 @@ public class ManaRemovalLifecycleTests
     public void ThePrisonSkeletonCapRestoresTheCorpseBitSelectionCleared(bool suppressed)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)1, (byte)2, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)1, (byte)2, Keeper]);
         for (int y = 3; y <= 5; y++)
             for (int x = 4; x <= 6; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);

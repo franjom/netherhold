@@ -22,7 +22,7 @@ public class RoomHealthOnRealDataTests
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level8")!;
         Assert.NotNull(map);
-        WorldState world = WorldState.FromMap(db, map,
+        var world = WorldState.FromMap(db, map,
             [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         TilePos at = new(35, 38);
         RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(at))!;

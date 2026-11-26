@@ -214,7 +214,7 @@ public sealed class HudPressRouterTests
     [InstallFact]
     public void AnOverviewPickupIsPostedAndARefusedOneStillTakesThePress()
     {
-        var (db, world, goblin) = PressFixture.Goblin();
+        (GameDatabase? db, WorldState? world, CreatureState? goblin) = PressFixture.Goblin();
         var rig = new Rig(db, world);
         rig.Host.OverviewTakes = true;
         rig.Host.Request = new CreatureOverviewRequest(new CreatureOverviewType(goblin.CreatureTypeId),

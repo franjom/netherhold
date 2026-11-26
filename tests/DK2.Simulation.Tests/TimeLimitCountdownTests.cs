@@ -119,7 +119,7 @@ public sealed class TimeLimitCountdownTests
         int timeLeftTicks, GameMode gameMode = GameMode.Campaign, byte? action51 = null, byte[]? players = null)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), players ?? [Keeper], gameMode: gameMode);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), players ?? [Keeper], gameMode: gameMode);
         world.Triggers.LevelTimeLimit = timeLeftTicks;
         TriggerTree? tree = null;
         if (action51 is byte available)

@@ -360,7 +360,7 @@ public class SnapshotDiffTests
         private (GameSimulation, CreatureState) Make(int width, int height)
         {
             var map = new LevelMap(width, height, Enumerable.Repeat(new MapTile(1, 3, 0, 0), width * height).ToArray());
-            WorldState world = WorldState.FromMap(Database, map, [3]);
+            var world = WorldState.FromMap(Database, map, [3]);
             CreatureState creature = world.SpawnCreature(Database, 1, new PlayerId(3), new TilePos(1, 1));
             creature.NameIndex = 0;
             creature.LastAteTick = 0;

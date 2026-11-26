@@ -19,7 +19,7 @@ public sealed class TrapUpkeepAndDamageTests
     private static (GameDatabase db, WorldState world) Open()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 ManaRules.SetTerrain(world, db, ref world.Tile(x, y), Dk2TerrainFixture.DirtPath);
@@ -145,7 +145,7 @@ public sealed class TrapUpkeepAndDamageTests
         sim.Run(4);
 
         long tick = sink.Events.First(e => e.Kind == "shot_area_hit").Tick.Value;
-        List<int> damages = sink.Events.Where(e => e.Kind == "shot_area_hit" && e.Tick.Value == tick)
+        var damages = sink.Events.Where(e => e.Kind == "shot_area_hit" && e.Tick.Value == tick)
             .Select(e => int.Parse(e.Detail.Split(' ').First(f => f.StartsWith("damage=", StringComparison.Ordinal))[7..])).ToList();
         Assert.Equal(2, damages.Count);
         ShotState burst = Assert.Single(world.Shots);

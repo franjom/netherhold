@@ -131,7 +131,7 @@ public sealed class BlendedTerrainStreamTests
         {
             if (random.Next(3) == 0) continue;
             int triangles = random.Next(0, 12);
-            var indices = new int[triangles * 3];
+            int[] indices = new int[triangles * 3];
             for (int i = 0; i < indices.Length; i++) indices[i] = random.Next(count);
             groups.Add((material, indices));
         }
@@ -163,7 +163,7 @@ public sealed class BlendedTerrainStreamTests
             (List<Vector3> positions, List<(TestMaterial, int[])> groups) = RandomChunk(random, chunk);
             pair.SetChunk(chunk, positions, groups);
         }
-        Camera camera = Camera.At(focus, 0f);
+        var camera = Camera.At(focus, 0f);
         pair.Refresh(camera);
         pair.Refresh(camera);
         for (int step = 0; step < 30; step++)
@@ -192,7 +192,7 @@ public sealed class BlendedTerrainStreamTests
                 {
                     Vector3[] quad = [new(0, 0, 0), new(1, 0, 0), new(1, 1, 0), new(0, 1, 0)];
                     int[] indices = [0, 1, 2, 0, 2, 3];
-                    Matrix4x4 at = Matrix4x4.Transpose(Matrix4x4.CreateTranslation(focus + new Vector3(random.Next(-4, 5), 1, random.Next(-4, 5))));
+                    var at = Matrix4x4.Transpose(Matrix4x4.CreateTranslation(focus + new Vector3(random.Next(-4, 5), 1, random.Next(-4, 5))));
                     if (random.Next(2) == 0) pair.Effects((quad, indices, Glass, at), (quad, indices, Water, Matrix4x4.Identity));
                     else pair.Effects((quad, indices, Glass, at));
                     break;
@@ -239,7 +239,7 @@ public sealed class BlendedTerrainStreamTests
             (List<Vector3> positions, List<(TestMaterial, int[])> groups) = RandomChunk(random, chunk);
             pair.SetChunk(chunk, positions, groups);
         }
-        Camera camera = Camera.At(new Vector3(12, 0, 6), 30f);
+        var camera = Camera.At(new Vector3(12, 0, 6), 30f);
         pair.Refresh(camera);
         pair.MoveStream(Matrix4x4.Transpose(Matrix4x4.CreateTranslation(1.5f, 0, -2f) * Matrix4x4.CreateRotationY(.3f)));
         pair.Refresh(camera);
@@ -259,7 +259,7 @@ public sealed class BlendedTerrainStreamTests
         pair.SetChunk(1, positions, groups);
         Vector3[] quad = [new(8, 1, 0), new(9, 1, 0), new(9, 2, 0)];
         pair.Effects((quad, [0, 1, 2], Glass, Matrix4x4.Identity));
-        Camera camera = Camera.At(new Vector3(10, 0, 4), 0f);
+        var camera = Camera.At(new Vector3(10, 0, 4), 0f);
         pair.Refresh(camera);
         pair.MoveStream(Matrix4x4.Transpose(Matrix4x4.CreateTranslation(0, 0, 1f)));
         // Unity's adapter places the effect again with the moved transform's inverse before the render.
@@ -285,7 +285,7 @@ public sealed class BlendedTerrainStreamTests
     public void A_new_forward_alone_or_a_new_view_alone_sorts_again()
     {
         BlendedTerrainStream<TestMaterial> stream = OneTriangle(out ClassicCameraPose pose);
-        ViewFrustum frustum = ViewFrustum.FromPose(pose, 1f, .3f);
+        var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         Assert.False(stream.Refresh(Vector3.UnitZ, Matrix4x4.Identity, frustum));
         // Unity's Vector3 ==: a change under 1e-5 in each axis is the same forward, one above is not.
         Assert.False(stream.Refresh(new Vector3(5e-6f, 0, 1f), Matrix4x4.Identity, frustum));
@@ -293,7 +293,7 @@ public sealed class BlendedTerrainStreamTests
         Assert.True(stream.Refresh(new Vector3(5e-6f + 3e-5f, 0, 1f), Matrix4x4.Identity, frustum));
         Assert.True(stream.Refresh(Vector3.Normalize(new Vector3(.01f, 0, 1f)), Matrix4x4.Identity, frustum));
         // A pan keeps the forward and moves the view.
-        ViewFrustum panned = ViewFrustum.FromPose(pose with { Position = pose.Position + Vector3.UnitX }, 1f, .3f);
+        var panned = ViewFrustum.FromPose(pose with { Position = pose.Position + Vector3.UnitX }, 1f, .3f);
         Assert.True(stream.Refresh(Vector3.Normalize(new Vector3(.01f, 0, 1f)), Matrix4x4.Identity, panned));
     }
 
@@ -301,7 +301,7 @@ public sealed class BlendedTerrainStreamTests
     public void The_geometry_revision_counts_every_collection_the_upload_must_follow()
     {
         BlendedTerrainStream<TestMaterial> stream = OneTriangle(out ClassicCameraPose pose);
-        ViewFrustum frustum = ViewFrustum.FromPose(pose, 1f, .3f);
+        var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         long first = stream.GeometryRevision;
         Assert.True(first > 0);
         // A chunk change with the same triangles in other places.
@@ -337,7 +337,7 @@ public sealed class BlendedTerrainStreamTests
             new(new Vector3(1, 0, 5), Vector3.UnitY, default, default, VertexColour.White),
             new(new Vector3(1, 1, 5), Vector3.UnitY, default, default, VertexColour.White)];
         var pose = new ClassicCameraPose(new Vector3(.5f, .5f, 0f), Vector3.UnitZ, Vector3.UnitY, 60f, 50f, 0f, 0f);
-        ViewFrustum frustum = ViewFrustum.FromPose(pose, 1f, .3f);
+        var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         stream.BeginEffectFrame();
         stream.AddEffect(Glass, triangle, [0, 1, 2]);
         stream.EndEffectFrame();
@@ -361,9 +361,9 @@ public sealed class BlendedTerrainStreamTests
     public void Needs_refresh_answers_what_refresh_would_do()
     {
         BlendedTerrainStream<TestMaterial> stream = OneTriangle(out ClassicCameraPose pose);
-        ViewFrustum frustum = ViewFrustum.FromPose(pose, 1f, .3f);
+        var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         Assert.False(stream.NeedsRefresh(Vector3.UnitZ, Matrix4x4.Identity, frustum.ViewProjection));
-        ViewFrustum panned = ViewFrustum.FromPose(pose with { Position = pose.Position + Vector3.UnitX }, 1f, .3f);
+        var panned = ViewFrustum.FromPose(pose with { Position = pose.Position + Vector3.UnitX }, 1f, .3f);
         Assert.True(stream.NeedsRefresh(Vector3.UnitZ, Matrix4x4.Identity, panned.ViewProjection));
         Assert.True(stream.NeedsRefresh(Vector3.UnitZ, Matrix4x4.Transpose(Matrix4x4.CreateTranslation(0, 1, 0)), frustum.ViewProjection));
         Assert.True(stream.NeedsRefresh(Vector3.Normalize(new Vector3(.01f, 0, 1f)), Matrix4x4.Identity, frustum.ViewProjection));
@@ -385,7 +385,7 @@ public sealed class BlendedTerrainStreamTests
             new(new Vector3(1, 0, 5), Vector3.UnitY, default, default, VertexColour.White),
             new(new Vector3(1, 1, 5), Vector3.UnitY, default, default, VertexColour.White)];
         var pose = new ClassicCameraPose(new Vector3(.5f, .5f, 0f), Vector3.UnitZ, Vector3.UnitY, 60f, 50f, 0f, 0f);
-        ViewFrustum frustum = ViewFrustum.FromPose(pose, 1f, .3f);
+        var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         stream.BeginEffectFrame();
         stream.AddEffect(Glass, quad, [0, 1, 2]);
         stream.EndEffectFrame();
@@ -459,7 +459,7 @@ public sealed class BlendedTerrainStreamTests
         stream.AddChunkTriangles(Water, [0, 1, 2, 3, 4, 5]);
         stream.EndChunk();
         var pose = new ClassicCameraPose(new Vector3(.5f, .5f, -2f), Vector3.UnitZ, Vector3.UnitY, 60f, 50f, 0f, 0f);
-        ViewFrustum frustum = ViewFrustum.FromPose(pose, 1f, .3f);
+        var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         var orders = new List<int>();
         Assert.True(stream.PlaceItems(Vector3.UnitZ, Matrix4x4.Identity, frustum, [], orders));
         Assert.Single(stream.Runs);
@@ -480,7 +480,7 @@ public sealed class BlendedTerrainStreamTests
             new(Vector3.UnitX, Vector3.UnitY, default, default, VertexColour.White),
             new(Vector3.One, Vector3.UnitY, default, default, VertexColour.White)];
         var pose = new ClassicCameraPose(new Vector3(.5f, .5f, -2f), Vector3.UnitZ, Vector3.UnitY, 60f, 50f, 0f, 0f);
-        ViewFrustum frustum = ViewFrustum.FromPose(pose, 1f, .3f);
+        var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         stream.BeginEffectFrame();
         stream.AddEffect(Glass, quad, [0, 1, 2]);
         stream.EndEffectFrame();

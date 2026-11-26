@@ -13,7 +13,7 @@ public sealed class ClassicFullMapTests
     {
         Assert.False(ClassicFullMapMarkers.TryRoom(RoomTypeId.Treasury, new TilePos(7, 9), false, out _));
         Assert.False(ClassicFullMapMarkers.TryRoom(RoomTypeId.HeroGate3By1, new TilePos(7, 9), true, out _));
-        Assert.True(ClassicFullMapMarkers.TryRoom(RoomTypeId.HeroStoneBridge, new TilePos(7, 9), true, out var marker));
+        Assert.True(ClassicFullMapMarkers.TryRoom(RoomTypeId.HeroStoneBridge, new TilePos(7, 9), true, out MinimapMarker marker));
         Assert.Equal(MinimapMarkerKind.FullMapRoom, marker.Kind);
         Assert.Equal("gui\\rooms\\Bridge_Wooden", ClassicFullMapMarkers.RoomArt(marker.RoomType));
         Assert.Equal(new FpPosition3(new Fp32(7 * 4096), new Fp32(9 * 4096), default), marker.Position);
@@ -27,26 +27,26 @@ public sealed class ClassicFullMapTests
         int width, int height, int x, int y, int previewWidth, int previewHeight)
     {
         var layout = ClassicFullMapLayout.Fit(width, height, 100, 80);
-        var preview = layout.Preview(width, height, layout.Origin + layout.Size * .125f);
+        FullMapPreview preview = layout.Preview(width, height, layout.Origin + layout.Size * .125f);
         Assert.Equal(new Vector2(x, y), preview.Origin);
         Assert.Equal(new Vector2(previewWidth, previewHeight), preview.Size);
         Assert.Equal(new Vector3(12.5f, 8, -10), preview.Pose.Position);
         Assert.Equal(-Vector3.UnitY, preview.Pose.Forward);
         Assert.Equal(Vector3.UnitZ, preview.Pose.Up);
         Assert.Equal(10, preview.Pose.FarClipDistance);
-        var outside = layout.Preview(width, height, layout.Origin - layout.Size / 10);
+        FullMapPreview outside = layout.Preview(width, height, layout.Origin - layout.Size / 10);
         Assert.True(Vector3.Distance(new Vector3(-10, 8, 8), outside.Pose.Position) < .00001f);
     }
 
     [Fact]
     public void CreatureSquaresRequireExplorationEvenForTheViewingKeepersCreature()
     {
-        var colours = Enumerable.Range(0, 37).Select(i => 0xff000000u | (uint)i).ToArray();
+        uint[] colours = Enumerable.Range(0, 37).Select(i => 0xff000000u | (uint)i).ToArray();
         var palette = new MinimapPalette(colours);
         var owner = new PlayerId(3);
         Assert.False(ClassicFullMapMarkers.TryCreature(default, owner, inHand: false, explored: false, palette, out _));
         Assert.False(ClassicFullMapMarkers.TryCreature(default, owner, inHand: true, explored: true, palette, out _));
-        Assert.True(ClassicFullMapMarkers.TryCreature(default, owner, inHand: false, explored: true, palette, out var marker));
+        Assert.True(ClassicFullMapMarkers.TryCreature(default, owner, inHand: false, explored: true, palette, out MinimapMarker marker));
         Assert.Equal(palette.Colours[20], marker.ColourArgb);
         Assert.Equal(MinimapMarkerKind.FullMapCreature, marker.Kind);
     }

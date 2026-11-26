@@ -24,7 +24,7 @@ public sealed class PossessionModifierTests
     {
         GameDatabase basis = Dk2TerrainFixture.Database();
         var variables = new GlobalVariables();
-        foreach (var entry in basis.Variables.Misc) variables.Misc[entry.Key] = entry.Value;
+        foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in basis.Variables.Misc) variables.Misc[entry.Key] = entry.Value;
         variables.Misc[VariableTypeId.FirstPersonRechargeModifyPercentage] =
             new(VariableTypeId.FirstPersonRechargeModifyPercentage, rechargePercent, 0, 0);
         variables.CreatureStats.AddRange(basis.Variables.CreatureStats);

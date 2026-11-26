@@ -21,7 +21,7 @@ public class TerrainLatticeTests
         string dir = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.Load(dir);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!;
-        WorldState world = WorldState.FromMap(db, map, [0, 1]);
+        var world = WorldState.FromMap(db, map, [0, 1]);
         byte rock = db.Terrain.Values.Single(t => t.Name == "Rock").TerrainId;
         byte dirt = db.Terrain.Values.Single(t => t.Name == "Dirt Path").TerrainId;
         for (int y = Y0; y < Y0 + 9; y++)

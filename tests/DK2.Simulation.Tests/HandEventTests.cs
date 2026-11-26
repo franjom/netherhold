@@ -57,7 +57,7 @@ public sealed class HandEventTests
         byte playerEvent, byte creatureEvent, int state, bool slapCountTest = true)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, Keeper]);
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 3));
         StatePlacement.Place(goblin, state);
         goblin.TriggerId = CreatureRoot;

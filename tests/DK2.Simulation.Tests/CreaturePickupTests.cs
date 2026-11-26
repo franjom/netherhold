@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
 
@@ -22,9 +23,9 @@ public class CreaturePickupTests
     [InlineData(1, false, true)]
     public void CommonStateRefusalsPrecedeThePitException(int state, bool pit, bool expected)
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3]);
-        var creature = world.SpawnCreature(db, 7, 3, new TilePos(2, 2));
+        CreatureState creature = world.SpawnCreature(db, 7, 3, new TilePos(2, 2));
         creature.Dk2StateId = state;
         creature.CombatPitFighter = pit;
         Assert.Equal(expected, HandRules.HasPickupPermission(world, db, creature, 3));
@@ -33,9 +34,9 @@ public class CreaturePickupTests
     [Fact]
     public void AnOwnCreatureInAnotherKeepersPrisonIsRefusedToItsOwnerAndPermittedToTheJailer()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3, (byte)4]);
-        var captive = world.SpawnCreature(db, 7, 3, new TilePos(2, 2));
+        CreatureState captive = world.SpawnCreature(db, 7, 3, new TilePos(2, 2));
         Assert.True(HandRules.HasPickupPermission(world, db, captive, 3));
         // The Prison writes the room membership 0x0048E6A0 reads (0x0047B740 calls 0x004E5A70).
         Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, 4, (2 * world.Width) + 2));
@@ -51,9 +52,9 @@ public class CreaturePickupTests
     [InlineData(6, false)]
     public void WorkerPermissionTestsEitherBitRatherThanBoth(byte flags, bool expected)
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3]);
-        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(2, 2));
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(2, 2));
         Assert.Equal((byte)9, imp.Flags);
         imp.Flags = flags;
         Assert.Equal(expected, HandRules.CanPickUp(world, db, imp, 3));
@@ -68,9 +69,9 @@ public class CreaturePickupTests
     [Fact]
     public void ForeignToolBypassesOwnedTeleportGateButNotCommonGates()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)1, (byte)3]);
-        var creature = world.SpawnCreature(db, 7, 1, new TilePos(2, 2));
+        CreatureState creature = world.SpawnCreature(db, 7, 1, new TilePos(2, 2));
         Assert.False(HandRules.CanPickUp(world, db, creature, 3));
         creature.IsTool = true;
         creature.Dk2StateId = 51;
@@ -88,9 +89,9 @@ public class CreaturePickupTests
     [Fact]
     public void AStoredPickUpLiftsAnotherOwnersCreatureThatPlayRefuses()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3, (byte)4]);
-        var rivals = world.SpawnCreature(db, 7, 4, new TilePos(2, 2));
+        CreatureState rivals = world.SpawnCreature(db, 7, 4, new TilePos(2, 2));
         Assert.False(HandRules.HasPickupPermission(world, db, rivals, 3));
 
         new GameSimulation(db, world, 42, [new HandSystem()]).Tick(InputFrame.Of(new PickUpCreatureCommand(3, rivals.Id)));
@@ -113,9 +114,9 @@ public class CreaturePickupTests
     [InlineData(1, 0, false)]
     public void AStoredPickUpStillRefusesTheDeadAndStates51And52(int state, int health, bool expected)
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3, (byte)4]);
-        var rivals = world.SpawnCreature(db, 7, 4, new TilePos(2, 2));
+        CreatureState rivals = world.SpawnCreature(db, 7, 4, new TilePos(2, 2));
         rivals.Dk2StateId = state;
         rivals.Health = health;
         Assert.Equal(expected, HandRules.StoredPickupAccepts(rivals));
@@ -124,12 +125,12 @@ public class CreaturePickupTests
     [Fact]
     public void FullHandRefusesCommandWithoutRevokingCreaturePermission()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3]);
-        var creature = world.SpawnCreature(db, 7, 3, new TilePos(2, 2));
+        CreatureState creature = world.SpawnCreature(db, 7, 3, new TilePos(2, 2));
         for (int i = 0; i < HandRules.Capacity(db); i++)
         {
-            var held = world.SpawnCreature(db, 7, 3, new TilePos(2, 2));
+            CreatureState held = world.SpawnCreature(db, 7, 3, new TilePos(2, 2));
             held.InHand = true;
             world.Player(3).Hand.Add(HandItem.Of(held));
         }
@@ -143,9 +144,9 @@ public class CreaturePickupTests
     [Fact]
     public void TravelResumeDoesNotActAsTheCurrentPickupState()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3]);
-        var creature = world.SpawnCreature(db, 7, 3, new TilePos(2, 2));
+        CreatureState creature = world.SpawnCreature(db, 7, 3, new TilePos(2, 2));
         creature.Dk2StateId = 6;
         creature.UtilityNewState = 193;
         Assert.True(HandRules.CanPickUp(world, db, creature, 3));

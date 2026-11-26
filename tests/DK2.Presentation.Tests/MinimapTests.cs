@@ -181,7 +181,7 @@ public sealed class MinimapTests
     public void ThePaletteIsReadFromTheStripsTopRowAsRgbIgnoringAlpha()
     {
         uint[] source = SourcePixels();
-        var row = new byte[40 * 4];
+        byte[] row = new byte[40 * 4];
         for (int i = 0; i < source.Length; i++)
         {
             row[i * 4] = (byte)(source[i] >> 16); row[i * 4 + 1] = (byte)(source[i] >> 8); row[i * 4 + 2] = (byte)source[i];

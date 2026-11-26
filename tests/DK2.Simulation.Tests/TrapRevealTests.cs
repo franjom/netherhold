@@ -26,7 +26,7 @@ public class TrapRevealTests
     private static (GameDatabase db, WorldState world, TrapState spike) Open(byte trapOwner)
     {
         GameDatabase db = Dk2TerrainFixture.Database(Revealer());
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;

@@ -14,7 +14,7 @@ public sealed class PossessionTargetPreviewTests
     private static (GameDatabase Db, WorldState World, CreatureState Me) Open()
     {
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Possessor());
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [1, 2, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [1, 2, Keeper, Rival]);
         CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.PossessorCreatureId, Keeper, new(10, 10));
         me.Possessed = true;
         me.Heading = 0x200;
@@ -29,7 +29,7 @@ public sealed class PossessionTargetPreviewTests
     [Fact]
     public void MeleeHighlightsOneTrainingDummyInReach()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         ObjectState dummy = world.SpawnObject(db, 14, Keeper, 10 * world.Width + 10);
         dummy.PosX = me.PosX + 1024;
         dummy.PosY = me.PosY;
@@ -38,7 +38,7 @@ public sealed class PossessionTargetPreviewTests
     [Fact]
     public void MeleeHighlightsOneEnemyDoor()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         ThingProjection.Place(world, db, [new DoorThing(new byte[20])
             { X = 11, Y = 10, PlayerId = Rival, DoorId = 1, Unknown_0011 = new byte[3] }]);
         DoorState door = Assert.Single(world.Doors);
@@ -47,7 +47,7 @@ public sealed class PossessionTargetPreviewTests
     [Fact]
     public void MeleeNamesOnlyOneEnemyFromSeveralAndChangesWithTheAim()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         CreatureState east = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new(11, 10));
         CreatureState north = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new(10, 9));
         Assert.Equal(east.Id, Preview(db, world, me).Id);
@@ -58,7 +58,7 @@ public sealed class PossessionTargetPreviewTests
     [Fact]
     public void GroupHighlightsOneFriendlyCreatureAndNoneWhenNobodyQualifies()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         Assert.Equal(PossessionTarget.None, Preview(db, world, me, false, 3));
         CreatureState friendly = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new(11, 10));
         Assert.Equal(new PossessionTarget(FightTargetKind.Creature, friendly.Id, friendly.Tile), Preview(db, world, me, false, 3));
@@ -68,7 +68,7 @@ public sealed class PossessionTargetPreviewTests
     [Fact]
     public void PreviewDoesNotStampAttackRecruitOrChangeTheWorldHash()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         CreatureState friendly = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new(11, 10));
         var simulation = new GameSimulation(db, world, 1, []);
         ulong before = simulation.StateHash();

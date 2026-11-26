@@ -168,7 +168,7 @@ public class HeroesDestroyedTests
     private static (GameDatabase, WorldState) OpenWorld()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         return (db, world);
     }

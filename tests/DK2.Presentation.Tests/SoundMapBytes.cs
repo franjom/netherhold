@@ -46,7 +46,7 @@ internal static class SoundMapBytes
                 {
                     writer.Write((uint)item.Samples.Length);
                     writer.Write((uint)(item.Links?.Length ?? 0));
-                    var unknown = new byte[34];
+                    byte[] unknown = new byte[34];
                     unknown[4] = item.Volume;
                     BitConverter.GetBytes(item.Maximum).CopyTo(unknown, 0x22 - 8);
                     writer.Write(unknown);

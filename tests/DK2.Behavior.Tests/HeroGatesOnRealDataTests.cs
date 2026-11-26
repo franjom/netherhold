@@ -42,8 +42,8 @@ public class HeroGatesOnRealDataTests(ITestOutputHelper output)
                 if (!map.Contains(x, y) || db.RoomByTerrain(map[x, y].TerrainId) is not { } room) continue;
                 if ((RoomTypeId)room.RoomId is not (RoomTypeId.HeroGate2By2 or RoomTypeId.HeroGate3By1)) continue;
                 // Action 14's own 2x2 adjustment, then the step-off: does it move the spawn?
-                WorldState world = WorldState.FromMap(db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral]);
-                var spawn = (RoomTypeId)room.RoomId == RoomTypeId.HeroGate2By2 ? new TilePos(x + 1, y + 1) : new TilePos(x, y);
+                var world = WorldState.FromMap(db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral]);
+                TilePos spawn = (RoomTypeId)room.RoomId == RoomTypeId.HeroGate2By2 ? new TilePos(x + 1, y + 1) : new TilePos(x, y);
                 TilePos stepped = spawn;
                 Assert.Equal(HeroPartyRules.StepOffResult.Moved, HeroPartyRules.StepOff(world, db, null, PlayerIds.Good, ref stepped, out _));
                 string key = $"{level} {room.Name}{(stepped == spawn ? "" : $" moved {spawn}->{stepped}")}";
@@ -51,7 +51,7 @@ public class HeroGatesOnRealDataTests(ITestOutputHelper output)
                 gateLevels.Add(level);
             }
         }
-        foreach (var pair in onGate) output.WriteLine($"{pair.Key}: {pair.Value}");
+        foreach (KeyValuePair<string, int> pair in onGate) output.WriteLine($"{pair.Key}: {pair.Value}");
         Assert.Equal(35, gateLevels.Count);
         Assert.DoesNotContain(onGate.Keys, k => k.Contains(" moved "));
     }
@@ -72,7 +72,7 @@ public class HeroGatesOnRealDataTests(ITestOutputHelper output)
             List<TriggerRecord>? triggers = GameDatabaseLoader.LoadCampaignTriggers(install, level);
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             if (triggers is null || map is null) continue;
-            WorldState world = WorldState.FromMap(db, map,
+            var world = WorldState.FromMap(db, map,
                 [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper, (byte)(PlayerIds.FirstKeeper + 1)]);
             foreach (ActionTriggerRecord action in triggers.OfType<ActionTriggerRecord>().Where(a => a.Type == 32))
             {
@@ -104,7 +104,7 @@ public class HeroGatesOnRealDataTests(ITestOutputHelper output)
 
         output.WriteLine($"{hits.Count} records on {levels.Count} levels");
         foreach (string hit in hits) output.WriteLine(hit);
-        List<string> tiles = hits.Distinct().ToList();
+        var tiles = hits.Distinct().ToList();
         output.WriteLine($"distinct {tiles.Count} gate2x2 {tiles.Count(t => t.EndsWith("20 Hero Gate [ 2x2 ]"))} gate3x1 {tiles.Count(t => t.EndsWith("23 Hero Gate [ 3x1 ]"))} other {string.Join("; ", tiles.Where(t => t.Contains("terrain") || t.Contains("off-map")))}");
         Assert.Equal(67, hits.Count);
         Assert.Equal(66, gatesRuined); // every record but Level 7's reaches a gate through the arm's own lookup

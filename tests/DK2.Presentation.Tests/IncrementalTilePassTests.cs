@@ -65,7 +65,7 @@ public class IncrementalTilePassTests
         int pushed = 0;
         for (int t = 0; t < 400; t++)
         {
-            var input = t == 2
+            InputFrame input = t == 2
                 ? new InputFrame([new TagTilesCommand(keeper, tagged, true)])
                 : InputFrame.Empty;
             simulation.Tick(input);

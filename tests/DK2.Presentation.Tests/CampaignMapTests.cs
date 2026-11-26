@@ -19,7 +19,7 @@ public class CampaignMapTests
     [Fact]
     public void PickingCannotBypassLocksAndTheStationFinishesBeforeBriefing()
     {
-        var session = Session();
+        FrontEndSession session = Session();
         var map = new CampaignMapController(session, new CampaignProfile(), false,
             slot => new CampaignBriefing(slot, "A realm", "A description", "Keep the Heart alive.", Array.Empty<string>()));
         int saves = 0; map.ProfileChanged += _ => saves++;
@@ -52,8 +52,8 @@ public class CampaignMapTests
     [Fact]
     public void SecretFiveUsesTheStartupGateAndClosedBranchCannotBeHovered()
     {
-        var session = Session();
-        var p = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(6));
+        FrontEndSession session = Session();
+        CampaignProfile p = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(6));
         var map = new CampaignMapController(session, p, false,
             slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()));
         map.Continue(); session.Update(TimeSpan.FromSeconds(2));
@@ -69,8 +69,8 @@ public class CampaignMapTests
     [Fact]
     public void MenuResetConfirmationCancelsWithoutChangingProgressAndYesStartsANewMap()
     {
-        var session = Session();
-        var profile = CampaignProgression.CompleteMap(
+        FrontEndSession session = Session();
+        CampaignProfile profile = CampaignProgression.CompleteMap(
             CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(1)), new CampaignSlot(5));
         using var map = new CampaignMapController(session, profile, false,
             slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()));
@@ -95,7 +95,7 @@ public class CampaignMapTests
     [Fact]
     public void OpenMarkersBlinkAfterTheRouteIntroAndHoldOtherMarkersWhileHovering()
     {
-        var session = Session();
+        FrontEndSession session = Session();
         var states = new CampaignLevelStatus[40]; states[0] = states[1] = CampaignLevelStatus.Open;
         using var map = new CampaignMapController(session, new CampaignProfile { PlayerLevelStatus = states }, false,
             slot => new(slot, "", "", "", Array.Empty<string>()));
@@ -114,7 +114,7 @@ public class CampaignMapTests
     [Fact]
     public void HoverRiseUsesTheUnclampedCreationHeightAndStopsSeventyTwoUnitsAboveFloorThenLowersAtTheRiseSpeedByOwnersChoice()
     {
-        var session = Session();
+        FrontEndSession session = Session();
         using var map = new CampaignMapController(session, new CampaignProfile(), false,
             slot => new(slot, "", "", "", Array.Empty<string>()));
         map.Continue(); session.Update(TimeSpan.FromSeconds(2)); map.Hover(new CampaignSlot(1));
@@ -131,7 +131,7 @@ public class CampaignMapTests
     [Fact]
     public void LeavingTheMapKeepsReturningTheRaisedLandDuringTheCameraFlightAndBriefing()
     {
-        var session = Session();
+        FrontEndSession session = Session();
         using var map = new CampaignMapController(session, new CampaignProfile(), false,
             slot => new(slot, "", "", "", Array.Empty<string>()));
         map.Continue(); session.Update(TimeSpan.FromSeconds(2)); map.Hover(new CampaignSlot(1));
@@ -150,9 +150,9 @@ public class CampaignMapTests
     public void TheStatisticsPageShowsThePlayedBriefingAndAcceptFliesBackToTheMap()
     {
         var frame = new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000);
-        var frames = new[] { frame, frame, frame };
+        KcsFrame[] frames = new[] { frame, frame, frame };
         var session = new FrontEndSession(_ => frames, FrontEndPage.CampaignResults);
-        var profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 6, PlayerLevelStatus =
+        CampaignProfile profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 6, PlayerLevelStatus =
             CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(5)).PlayerLevelStatus }, new CampaignSlot(6), won: true);
         using var map = new CampaignMapController(session, profile, false,
             slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()));

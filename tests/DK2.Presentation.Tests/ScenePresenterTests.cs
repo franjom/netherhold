@@ -45,11 +45,11 @@ public class ScenePresenterTests
     {
         const string level = "Level1";
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, level);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, level)!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, level)!,
             Enumerable.Range(0, 8).Select(i => (byte)i));
         ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(Dk2InstallGate.Path, level)!
             .OfType<ActionPointThing>().Select(point => point with { TriggerId = 0 }));
-        var records = GameDatabaseLoader.LoadCampaignTriggers(Dk2InstallGate.Path, level)!.OfType<ActionTriggerRecord>().ToArray();
+        ActionTriggerRecord[] records = GameDatabaseLoader.LoadCampaignTriggers(Dk2InstallGate.Path, level)!.OfType<ActionTriggerRecord>().ToArray();
         var view = new WorldView(db, new PlayerId(PlayerIds.FirstKeeper));
         var target = new RecordingTarget();
         var presenter = new ScenePresenter(view, AssetProviderChain.Standard(), target);
@@ -223,7 +223,7 @@ public class ScenePresenterTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
-        WorldState world = WorldState.FromMap(db,
+        var world = WorldState.FromMap(db,
             GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [0, 1, 2, 3, 4]);
         var target = new RecordingTarget();
         var presenter = new ScenePresenter(new WorldView(db), AssetProviderChain.Standard(), target);
@@ -249,7 +249,7 @@ public class ScenePresenterTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
-        WorldState world = WorldState.FromMap(db,
+        var world = WorldState.FromMap(db,
             GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [0, 1, 2, 3, 4]);
         var target = new RecordingTarget();
         var presenter = new ScenePresenter(new WorldView(db), AssetProviderChain.Standard(), target);
@@ -293,8 +293,8 @@ public class ScenePresenterTests
             target, new TorchLayout(rig.Database));
 
         presenter.Present(rig.Simulation.World);
-        List<string> torches = target.Calls.Where(c => c.StartsWith("create-torch", StringComparison.Ordinal)).ToList();
-        List<int> floors = torches.Select(c => int.Parse(c.Split(' ')[1])).ToList();
+        var torches = target.Calls.Where(c => c.StartsWith("create-torch", StringComparison.Ordinal)).ToList();
+        var floors = torches.Select(c => int.Parse(c.Split(' ')[1])).ToList();
         Assert.NotEmpty(floors);
         Assert.Equal(floors.OrderBy(i => i), floors);
         Assert.True(target.Calls.FindLastIndex(c => c.StartsWith("create-tile", StringComparison.Ordinal))
@@ -654,7 +654,7 @@ public class ScenePresenterTests
         if (BuildRig() is not { } rig) return;
 
         var view = new WorldView(rig.Database);
-        AssetProviderChain chain = AssetProviderChain.Standard();
+        var chain = AssetProviderChain.Standard();
 
         Assert.Throws<ArgumentNullException>(() => new ScenePresenter(null!, chain, rig.Target));
         Assert.Throws<ArgumentNullException>(() => new ScenePresenter(view, null!, rig.Target));

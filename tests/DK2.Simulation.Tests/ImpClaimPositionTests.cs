@@ -43,7 +43,7 @@ public class ImpClaimPositionTests
 
     private static GameSimulation Start(byte terrain, byte owner, TilePos at)
     {
-        var database = Dk2TerrainFixture.Database();
+        GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Neutral, PlayerIds.FirstKeeper, (byte)(PlayerIds.FirstKeeper + 1)]);
         ref TileState target = ref world.Tile(4, 2);

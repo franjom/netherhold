@@ -68,8 +68,8 @@ public class NavigationBytesOnRealDataTests
     /// <summary>Unoptimized per-tile/full-room fill with the current navigation writers.</summary>
     private static byte[] OldPath(GameDatabase database, WorldState world)
     {
-        var bytes = new byte[world.TileCount];
-        StructureBlocks structures = StructureBlocks.For(world, database);
+        byte[] bytes = new byte[world.TileCount];
+        var structures = StructureBlocks.For(world, database);
         for (int y = 0; y < world.Height; y++)
             for (int x = 0; x < world.Width; x++)
             {

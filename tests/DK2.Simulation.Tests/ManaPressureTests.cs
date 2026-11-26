@@ -13,7 +13,7 @@ public class ManaPressureTests
     [Fact]
     public void FourthWarningEnablesRemovalOnTheSamePayment()
     {
-        var result = Step(default, 4);
+        ManaPressureResult result = Step(default, 4);
         Assert.Equal(0, result.Warning);
         Assert.Equal(44u, result.State.WarningDeadline);
         for (int warning = 1; warning <= 4; warning++)
@@ -32,7 +32,7 @@ public class ManaPressureTests
     public void FloorRepeatsWarningThreeAndHeldWorkersStillCount()
     {
         var ready = new ManaPressureState(40, 4);
-        var result = Step(ready, 40, count: 4);
+        ManaPressureResult result = Step(ready, 40, count: 4);
         Assert.Equal(3, result.Warning);
         Assert.False(result.ScanForRemoval);
         Assert.Equal(4, result.State.WarningStage);
@@ -43,7 +43,7 @@ public class ManaPressureTests
     [Fact]
     public void LateWarningsAdvanceOldDeadlineOnlyOnce()
     {
-        var result = Step(new(40, 1), 200);
+        ManaPressureResult result = Step(new(40, 1), 200);
         Assert.Equal(1, result.Warning);
         Assert.Equal(80u, result.State.WarningDeadline);
         Assert.False(result.ScanForRemoval);
@@ -61,7 +61,7 @@ public class ManaPressureTests
     [Fact]
     public void RecoveryKeepsStageAndScanDeadlineButResetsWarningCycle()
     {
-        var result = Step(new(164, 5, true, true, 204), 180, mana: 100);
+        ManaPressureResult result = Step(new(164, 5, true, true, 204), 180, mana: 100);
         Assert.False(result.State.RemovalEnabled);
         Assert.False(result.State.WarningsSuppressed);
         Assert.Equal(5, result.State.WarningStage);
@@ -74,7 +74,7 @@ public class ManaPressureTests
     [Fact]
     public void PositiveNetDoesNotStopAnAlreadyEnabledScanBelowThreshold()
     {
-        var result = Step(new(44, 5, true, true, 100), 104, mana: 7, net: 1);
+        ManaPressureResult result = Step(new(44, 5, true, true, 100), 104, mana: 7, net: 1);
         Assert.True(result.ScanForRemoval);
         Assert.Equal(0, result.Warning);
         Assert.Equal(144u, result.State.ScanDeadline);

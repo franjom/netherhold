@@ -19,7 +19,7 @@ public class CombatAttackerVisibilityTests
     [InlineData(true)]
     public void HearingOnlyRegisteredAttackersMustBeWithinRouteDistance(bool detour)
     {
-        var (db, world) = OpenWorld();
+        (GameDatabase? db, WorldState? world) = OpenWorld();
         if (detour)
             for (int y = 1; y <= 15; y++)
                 world.Tile(new TilePos(10, y)).TerrainId = Dk2TerrainFixture.Lava;
@@ -49,7 +49,7 @@ public class CombatAttackerVisibilityTests
     [InlineData(true)]
     public void AnImpRequiresSightOfARegisteredAttackerEvenWhenItCanRouteAroundTheWall(bool wall)
     {
-        var (db, world) = OpenWorld();
+        (GameDatabase? db, WorldState? world) = OpenWorld();
         if (wall) world.Tile(new TilePos(10, 8)).TerrainId = Dk2TerrainFixture.Rock;
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 8));
         CreatureState attacker = world.SpawnCreature(db, AttackerType, PlayerIds.Good, new TilePos(13, 8));
@@ -80,7 +80,7 @@ public class CombatAttackerVisibilityTests
                 DistanceCanHear = new Fp32(16384),
             },
             Dk2TerrainFixture.Knight() with { CreatureId = AttackerType });
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)

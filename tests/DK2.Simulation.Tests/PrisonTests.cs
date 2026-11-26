@@ -1642,7 +1642,7 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        var seen = ImpStateTrace.Seen(sim, captive, 20 * Second);
+        List<(int State, int Saved, int Resume)> seen = ImpStateTrace.Seen(sim, captive, 20 * Second);
 
         Assert.Contains((PrisonRules.InTheCellState, PrisonRules.DecidingState, PrisonRules.InTheCellState), seen);
         Assert.True(sink.Events.Count(e => e.Kind == "prisoner_stepped" && e.Detail.Contains($"creature={captive.Id} ")) >= 2);
@@ -1669,7 +1669,7 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        var seen = ImpStateTrace.Seen(sim, captive, 10 * Second,
+        List<(int State, int Saved, int Resume)> seen = ImpStateTrace.Seen(sim, captive, 10 * Second,
             () => sink.Events.Any(e => e.Kind == "prisoner_ate"));
 
         Assert.Contains((Walk, PrisonRules.SeekingFoodState, PrisonRules.EatingState), seen);
@@ -1795,7 +1795,7 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        var seen = ImpStateTrace.Seen(sim, captive, 5 * Second,
+        List<(int State, int Saved, int Resume)> seen = ImpStateTrace.Seen(sim, captive, 5 * Second,
             () => sink.Events.Any(e => e.Kind == "prisoner_no_food"));
 
         Assert.Equal(PrisonRules.InTheCellState, captive.Dk2StateId);

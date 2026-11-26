@@ -15,7 +15,7 @@ public class TempleSacrificeTests
     [Fact]
     public void FullPoolConsumesTheMatchedRecipeWithoutRewardOrSpeech()
     {
-        var (db, world, _) = Pools(Floor);
+        (GameDatabase? db, WorldState? world, GameSimulation _) = Pools(Floor);
         db.Variables.Sacrifices.Add(new SacrificeEntry(
             TempleSacrificeRules.KeeperSpellIngredient, 4, 0, 0, 0, 0,
             1, 20, Dk2TerrainFixture.GoblinCreatureId));
@@ -245,7 +245,7 @@ public class TempleSacrificeTests
         params TilePos[] temples)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         foreach (TilePos temple in temples) Paint(db, world, temple);
         return (db, world, new GameSimulation(

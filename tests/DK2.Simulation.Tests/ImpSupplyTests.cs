@@ -42,7 +42,7 @@ public class ImpSupplyTests
     private static Run WithAHeart(int mana = 0, bool heart = true)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         Dk2TerrainFixture.HeartRoom(world, database, Keeper, heart);
@@ -60,7 +60,7 @@ public class ImpSupplyTests
     public void ANewKeepersFreeSupplyWaitsForTheHeartOpeningAndTheFollowingTurn()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         Dk2TerrainFixture.HeartRoom(world, database, Keeper);
         var simulation = new GameSimulation(database, world, 5,
             [new DungeonHeartSystem(), new ShotSystem(), new ImpSupplySystem()]);
@@ -83,7 +83,7 @@ public class ImpSupplyTests
     public void ARuinedAtLoadHeartNeverArmsItsFreeSupply()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         Dk2TerrainFixture.HeartRoom(world, database, Keeper);
         HeartRuin.Set(world, Keeper, true);
         var simulation = new GameSimulation(database, world, 5,
@@ -99,7 +99,7 @@ public class ImpSupplyTests
     public void FreeSupplyUsesTheNativeActivePlayerOrder()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper, (byte)4]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper, (byte)4]);
         Dk2TerrainFixture.HeartRoom(world, database, Keeper);
         for (int y = 4; y <= 8; y++)
             for (int x = 8; x <= 12; x++)
@@ -116,7 +116,7 @@ public class ImpSupplyTests
 
         simulation.Tick();
 
-        var births = events.Events.Where(e => e.Kind == "imp_generated").ToArray();
+        SimEvent[] births = events.Events.Where(e => e.Kind == "imp_generated").ToArray();
         Assert.Equal(2, births.Length);
         Assert.StartsWith("player=4 ", births[0].Detail);
         Assert.StartsWith("player=3 ", births[1].Detail);
@@ -174,7 +174,7 @@ public class ImpSupplyTests
     public void TwoKeepersFreeCastsMakeTheirImpsTheNextTurnNewestShotFirst()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper, (byte)4]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper, (byte)4]);
         Dk2TerrainFixture.HeartRoom(world, database, Keeper);
         for (int y = 4; y <= 8; y++)
             for (int x = 8; x <= 12; x++)
@@ -320,7 +320,7 @@ public class ImpSupplyTests
     private static (WorldState, GameSimulation, ListEventSink) FreeSupplyOnly(ulong seed)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         Dk2TerrainFixture.HeartRoom(world, database, Keeper);
         world.Player(Keeper).NextFreeImpTick = GameTick.Zero;
         var sim = new GameSimulation(database, world, seed, [new ShotSystem(), new ImpSupplySystem()]);
@@ -352,7 +352,7 @@ public class ImpSupplyTests
 
         run.Ticks(interval * 4 + 1);
 
-        List<long> at = run.Of("imp_generated").Select(e => e.Tick.Value).ToList();
+        var at = run.Of("imp_generated").Select(e => e.Tick.Value).ToList();
         Assert.Equal(4, at.Count);
         for (int i = 1; i < at.Count; i++)
             Assert.Equal(interval + 1, (int)(at[i] - at[i - 1]));
@@ -428,7 +428,7 @@ public class ImpSupplyTests
         long from = run.Sim.CurrentTick.Value;
         run.Ticks(interval * 3);
 
-        List<long> at = run.Of("imp_generated")
+        var at = run.Of("imp_generated")
             .Where(e => e.Tick.Value >= from)
             .Select(e => e.Tick.Value - from)
             .ToList();
@@ -471,7 +471,7 @@ public class ImpSupplyTests
         // Only the Heart's opening arms the free-imp deadline (0x004D9ECD), so a keeper
         // without a Heart never casts; losing one is defeat (Q40).
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         Dk2TerrainFixture.HeartRoom(world, database, Keeper, heart: false);
         var simulation = new GameSimulation(database, world, 5,
             [new DungeonHeartSystem(), new ShotSystem(), new ImpSupplySystem()]);
@@ -778,7 +778,7 @@ public class ImpSupplyTests
     private static Run WithAHeartFor(byte owner, int mana = 0)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [PlayerIds.Unowned, PlayerIds.Good,
                                                 PlayerIds.Neutral, Keeper]);
 

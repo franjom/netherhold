@@ -57,7 +57,7 @@ public sealed class MinimapMarkerTests
     private static readonly FpPosition3 Position = new(new(0x1800), new(0x2800), new(0));
     private static MinimapPalette Palette()
     {
-        var pixels = new uint[37];
+        uint[] pixels = new uint[37];
         pixels[18] = 0xABCDEF;
         pixels[19] = 0x123456;
         return new MinimapPalette(pixels);
@@ -72,7 +72,7 @@ public sealed class MinimapMarkerTests
     {
         var own = new MinimapMarkerFacts(kind, Position, PlayerIds.FirstKeeper, 0);
         Assert.True(MinimapMarkerRules.TryCreate(own, PlayerIds.FirstKeeper, new(1), Palette(), out _));
-        var enemy = own with { Owner = new PlayerId(4) };
+        MinimapMarkerFacts enemy = own with { Owner = new PlayerId(4) };
         Assert.False(MinimapMarkerRules.TryCreate(enemy, PlayerIds.FirstKeeper, new(1), Palette(), out _));
         Assert.True(MinimapMarkerRules.TryCreate(enemy with { Flags = MinimapMarkerFlags.Explored },
             PlayerIds.FirstKeeper, new(1), Palette(), out _));
@@ -107,7 +107,7 @@ public sealed class MinimapMarkerTests
     public void MarkerKindsUseTheirNativeBlinkPhase(MinimapMarkerKind kind, long tick, uint expected)
     {
         var facts = new MinimapMarkerFacts(kind, Position, PlayerIds.FirstKeeper, 0);
-        Assert.True(MinimapMarkerRules.TryCreate(facts, PlayerIds.FirstKeeper, new(tick), Palette(), out var marker));
+        Assert.True(MinimapMarkerRules.TryCreate(facts, PlayerIds.FirstKeeper, new(tick), Palette(), out MinimapMarker marker));
         Assert.Equal(expected, marker.ColourArgb);
         Assert.Equal(Position, marker.Position);
     }

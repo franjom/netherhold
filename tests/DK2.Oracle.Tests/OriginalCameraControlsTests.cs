@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Numerics;
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Presentation;
@@ -16,14 +17,14 @@ public class OriginalCameraControlsTests
         const uint argument = OriginalCpu.Scratch + 0x1000;
         foreach (int height in new[] { 1200, 900 })
         {
-            var values = new float[21];
+            float[] values = new float[21];
             values[3] = values[7] = values[11] = 1;
             values[12] = 640;
             values[17] = 1600;
             values[18] = height;
             values[19] = 20;
-            var writes = values.Select((v, i) => (argument + (uint)(i * 4), BitConverter.SingleToUInt32Bits(v))).ToArray();
-            var result = OriginalCpu.Run(new OriginalCpu.Request[]
+            (uint, uint)[] writes = values.Select((v, i) => (argument + (uint)(i * 4), BitConverter.SingleToUInt32Bits(v))).ToArray();
+            OriginalCpu.Outcome result = OriginalCpu.Run(new OriginalCpu.Request[]
             {
                 new(0x0058A6F0, [argument], writes, [0x0077F4BC, 0x0077939C]),
             })[0];
@@ -33,7 +34,7 @@ public class OriginalCameraControlsTests
                 CameraId = 3, Zoom = 40960, MinZoom = 16384, MaxZoom = 53248,
                 Lens = 8192, AnglePitch = 220, Flags = 0x26,
             }) { ReferenceScreenWidth = 1600 };
-            var pose = camera.Pose(System.Numerics.Vector3.Zero, new CameraViewport(1600, 1600, height));
+            ClassicCameraPose pose = camera.Pose(System.Numerics.Vector3.Zero, new CameraViewport(1600, 1600, height));
             double focal = height / (2 * Math.Tan(pose.VerticalFieldOfView * Math.PI / 360));
             Assert.Equal(BitConverter.UInt32BitsToSingle(result.Reads[0]), focal / 1600, 6);
             Assert.Equal(BitConverter.UInt32BitsToSingle(result.Reads[1]), focal / height, 6);
@@ -61,12 +62,12 @@ public class OriginalCameraControlsTests
                 (0x006F2590, 4), (0x0079570C, 0), (0x00795710, 20),
                 (argument, unchecked((uint)first)), (argument + 4, 0), (argument + 8, 0),
             };
-            var results = OriginalCpu.Run(new OriginalCpu.Request[]
+            IReadOnlyList<OriginalCpu.Outcome> results = OriginalCpu.Run(new OriginalCpu.Request[]
             {
                 new(0x00442140, [argument], setup.ToArray(), Ecx: bridge),
                 new(0x00442140, [argument], [(argument, unchecked((uint)-first))], [focusX], Ecx: bridge),
             });
-            foreach (var result in results) Assert.Null(result.Fault);
+            foreach (OriginalCpu.Outcome result in results) Assert.Null(result.Fault);
             var camera = new ClassicCamera(new CameraThing(new byte[84])
             {
                 CameraId = 3, Zoom = 40960, MinZoom = 16384, MaxZoom = 53248,
@@ -74,7 +75,7 @@ public class OriginalCameraControlsTests
             });
             var controls = new ClassicCameraControls(camera, bounds: new CameraFocusBounds(
                 System.Numerics.Vector3.Zero, new System.Numerics.Vector3(4095 / 4096f, 0, 0)));
-            var focus = controls.Advance(new System.Numerics.Vector3(start / 4096f, 0, 0),
+            Vector3 focus = controls.Advance(new System.Numerics.Vector3(start / 4096f, 0, 0),
                 maximumEdge ? ClassicCameraKeys.Left : ClassicCameraKeys.Right, TimeSpan.FromMilliseconds(20),
                 maximumEdge ? ClassicCameraKeys.Right : ClassicCameraKeys.Left);
             Assert.Equal(results[1].Reads[0] / 4096f, focus.X);
@@ -95,7 +96,7 @@ public class OriginalCameraControlsTests
             foreach (int zoom in new[] { 16384, 40960, 53247 })
                 foreach (int milliseconds in new[] { 16, 33, 2500 })
                     foreach (bool fast in new[] { false, true })
-                        foreach (var directions in new[] { ClassicCameraKeys.Right, ClassicCameraKeys.Left,
+                        foreach (ClassicCameraKeys directions in new[] { ClassicCameraKeys.Right, ClassicCameraKeys.Left,
                             ClassicCameraKeys.Up, ClassicCameraKeys.Down, ClassicCameraKeys.Right | ClassicCameraKeys.Up })
                         {
                             var camera = new ClassicCamera(new CameraThing(new byte[84])
@@ -104,7 +105,7 @@ public class OriginalCameraControlsTests
                                 Lens = 8192, AnglePitch = 220, Flags = 0x26,
                             }, new Dk2Angle(yaw));
                             var controls = new ClassicCameraControls(camera);
-                            var expected = controls.Advance(System.Numerics.Vector3.Zero, directions | (fast ? ClassicCameraKeys.Fast : 0),
+                            Vector3 expected = controls.Advance(System.Numerics.Vector3.Zero, directions | (fast ? ClassicCameraKeys.Fast : 0),
                                 TimeSpan.FromMilliseconds(milliseconds));
                             var setup = new List<(uint, uint)>
                             {
@@ -143,11 +144,11 @@ public class OriginalCameraControlsTests
                                 [focusX, focusY, cameraAddress + 0xD70], Ecx: bridge));
                             cases.Add((requests.Count - 1, expected, $"yaw={yaw}, zoom={zoom}, ms={milliseconds}, fast={fast}, keys={directions}"));
                         }
-        var results = OriginalCpu.Run(requests);
+        IReadOnlyList<OriginalCpu.Outcome> results = OriginalCpu.Run(requests);
         for (int i = 0; i < results.Count; i++) Assert.True(results[i].Fault is null, $"call{i}: {results[i].Fault}");
-        foreach (var sample in cases)
+        foreach ((int Result, Vector3 Expected, string Label) sample in cases)
         {
-            var actual = results[sample.Result].Reads;
+            uint[] actual = results[sample.Result].Reads;
             Assert.True(sample.Expected.X == unchecked((int)actual[0]) / 4096f, sample.Label + " x");
             Assert.True(sample.Expected.Z == -unchecked((int)actual[1]) / 4096f, sample.Label + " z");
             Assert.Equal(4095u, actual[2]);

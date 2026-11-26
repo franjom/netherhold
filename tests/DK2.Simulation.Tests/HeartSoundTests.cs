@@ -23,7 +23,7 @@ public sealed class HeartSoundTests
     private static (GameDatabase Db, WorldState World) NewWorld()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
             for (int x = 3; x < 8; x++)
@@ -51,7 +51,7 @@ public sealed class HeartSoundTests
     [Fact]
     public void EveryHeartRequestsF1WhenItOpensMarkedForItsOwnerAtItsCentreAtHeightOneWithoutAVoice()
     {
-        var (db, world) = NewWorld();
+        (GameDatabase? db, WorldState? world) = NewWorld();
         var sim = new GameSimulation(db, world, 1, [new DungeonHeartSystem()]);
         var events = new ListEventSink();
         sim.ObserveWith(events);
@@ -77,7 +77,7 @@ public sealed class HeartSoundTests
     [Fact]
     public void ABlowRequests329WithTheRoomsVoiceAtTheHeartAndAKillingBlowAlsoRequestsDA()
     {
-        var (db, world) = NewWorld();
+        (GameDatabase? db, WorldState? world) = NewWorld();
         var events = new ListEventSink();
         bool killed = false;
         var sim = new GameSimulation(db, world, 1, [new Act(c =>
@@ -111,7 +111,7 @@ public sealed class HeartSoundTests
     [Fact]
     public void ADeadHeartAndAHealingMakeNoHeartSound()
     {
-        var (db, world) = NewWorld();
+        (GameDatabase? db, WorldState? world) = NewWorld();
         world.Player(Rival).HeartHealth = 0;
         var events = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new Act(c =>
@@ -127,7 +127,7 @@ public sealed class HeartSoundTests
     [Fact]
     public void TheDeathTurnOfAFallenKeepersDungeonRequestsF4AtTheHeartTileHeightZero_TheTileIsStronglyInferred()
     {
-        var (db, world) = NewWorld();
+        (GameDatabase? db, WorldState? world) = NewWorld();
         var events = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new Act(c => DefeatRules.OnDeathTurn(c, Rival))]);
         sim.ObserveWith(events);
@@ -145,7 +145,7 @@ public sealed class HeartSoundTests
     [Fact]
     public void ABlowOnAHeartWithNoTilesIsStillTakenButMakesNoHeartSound()
     {
-        var (db, world) = NewWorld();
+        (GameDatabase? db, WorldState? world) = NewWorld();
         for (int y = 10; y < 15; y++)
             for (int x = 10; x < 15; x++)
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
@@ -164,7 +164,7 @@ public sealed class HeartSoundTests
     {
         static GameSimulation Run(ListEventSink? sink)
         {
-            var (db, world) = NewWorld();
+            (GameDatabase? db, WorldState? world) = NewWorld();
             var sim = new GameSimulation(db, world, 1, [new DungeonHeartSystem(), new Act(c =>
             {
                 if (c.Tick.Value == 40) HeartSoundRules.Damage(c, "Act", Rival, 1_000_000, Keeper);

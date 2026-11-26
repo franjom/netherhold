@@ -25,18 +25,18 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog packet = PacketLog.Read(path, 1, 69);
+            var packet = PacketLog.Read(path, 1, 69);
             Assert.Contains((1L, 71u, PacketEntityKind.Creature), packet.EntityReferences);
             Assert.Contains((1L, 72u, PacketEntityKind.Creature), packet.EntityReferences);
             var map = new PacketEntityMap();
             map.Add(71, 1, 171, PacketEntityKind.Creature);
             Assert.Throws<InvalidDataException>(() => packet.At(1, map));
             map.Add(72, 1, 172, PacketEntityKind.Creature);
-            var commands = packet.At(1, map).All;
+            IReadOnlyList<PlayerCommand> commands = packet.At(1, map).All;
             Assert.IsType<TogglePossessionFormCommand>(commands[0]);
             Assert.IsType<TogglePossessionPrayerCommand>(commands[1]);
             Assert.True(Assert.IsType<SetSniperModeCommand>(commands[2]).On);
-            var fear = Assert.IsType<FrightenPossessedCreatureCommand>(commands[3]);
+            FrightenPossessedCreatureCommand fear = Assert.IsType<FrightenPossessedCreatureCommand>(commands[3]);
             Assert.Equal((new CreatureId(171), new CreatureId(172), new FearAmount(2000)),
                 (fear.Target, fear.Source, fear.Amount));
             Assert.Equal((5, 6), (Assert.IsType<ToggleSneakCommand>(commands[4]).TileX,
@@ -61,9 +61,9 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            var commands = PacketLog.Read(path, 1, 69).At(1, new PacketEntityMap()).All;
-            var first = Assert.IsType<CreateImpCommand>(commands[0]);
-            var second = Assert.IsType<CreateImpCommand>(commands[1]);
+            IReadOnlyList<PlayerCommand> commands = PacketLog.Read(path, 1, 69).At(1, new PacketEntityMap()).All;
+            CreateImpCommand first = Assert.IsType<CreateImpCommand>(commands[0]);
+            CreateImpCommand second = Assert.IsType<CreateImpCommand>(commands[1]);
             Assert.Equal(first.At, second.At);
             Assert.NotEqual(first, second);
             Assert.Equal(new FpPosition2(new Fp32((int)x), new Fp32((int)y)), first.Position);
@@ -88,7 +88,7 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            var press = Assert.IsType<GuiButtonCommand>(Assert.Single(
+            GuiButtonCommand press = Assert.IsType<GuiButtonCommand>(Assert.Single(
                 PacketLog.Read(path, 1, 69).At(1, new PacketEntityMap()).All));
             Assert.Equal(GuiButtonTarget.Door(6), press.Target);
         }
@@ -105,7 +105,7 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            var cast = Assert.IsType<CreateImpCommand>(Assert.Single(
+            CreateImpCommand cast = Assert.IsType<CreateImpCommand>(Assert.Single(
                 PacketLog.Read(path, 1, 69).At(1, new PacketEntityMap()).All));
             Assert.Equal(new FpPosition2(new Fp32(-1), new Fp32(1337)), cast.Position);
             Assert.Equal(new TilePos(-1, 0), cast.At);
@@ -124,7 +124,7 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog packet = PacketLog.Read(path, 2, 69);
+            var packet = PacketLog.Read(path, 2, 69);
             Assert.Equal(4, packet.ActionCount);
 
             var map = new PacketEntityMap();
@@ -132,14 +132,14 @@ public sealed class PacketLogTests
             map.Add(453, 1, 8, PacketEntityKind.Creature);
             map.Add(453, 2, 9, PacketEntityKind.Creature);
 
-            var early = packet.At(1, map).All;
-            var tag = Assert.IsType<TagTilesCommand>(early[0]);
+            IReadOnlyList<PlayerCommand> early = packet.At(1, map).All;
+            TagTilesCommand tag = Assert.IsType<TagTilesCommand>(early[0]);
             Assert.Equal(4, tag.Tiles.Count);
             Assert.Equal(8, Assert.IsType<PickUpCreatureCommand>(early[1]).CreatureId);
 
-            var hand = packet.At(2, map).All;
+            IReadOnlyList<PlayerCommand> hand = packet.At(2, map).All;
             Assert.Equal(9, Assert.IsType<PickUpCreatureCommand>(hand[0]).CreatureId);
-            var drop = Assert.IsType<DropCommand>(hand[1]);
+            DropCommand drop = Assert.IsType<DropCommand>(hand[1]);
             Assert.Equal((7, 9), (drop.Tile.X, drop.Tile.Y));
         }
         finally
@@ -158,7 +158,7 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog packet = PacketLog.Read(path, 1, 69);
+            var packet = PacketLog.Read(path, 1, 69);
             Assert.Contains(packet.EntityReferences, reference =>
                 reference == (1L, 1128u, PacketEntityKind.Object));
             var map = new PacketEntityMap();
@@ -166,7 +166,7 @@ public sealed class PacketLogTests
             map.Add(1128, 1, 1, PacketEntityKind.Creature);
             Assert.Throws<InvalidDataException>(() => packet.At(1, map));
             map.Set(1128, 1, 1, PacketEntityKind.Object);
-            var command = Assert.IsType<ActivateSpecialCommand>(Assert.Single(packet.At(1, map).All));
+            ActivateSpecialCommand command = Assert.IsType<ActivateSpecialCommand>(Assert.Single(packet.At(1, map).All));
             Assert.Equal((new PlayerId(3), 1, 0), (command.PlayerId, command.ObjectId, command.TargetId));
         }
         finally
@@ -199,14 +199,14 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog packet = PacketLog.Read(path, 1, 69);
+            var packet = PacketLog.Read(path, 1, 69);
             Assert.Contains(packet.EntityReferences, reference =>
                 reference == (1L, 447u, PacketEntityKind.Creature));
             var map = new PacketEntityMap();
             map.Set(1128, 1, 1, PacketEntityKind.Object);
             Assert.Throws<InvalidDataException>(() => packet.At(1, map));
             map.Add(447, 1, 12, PacketEntityKind.Creature);
-            var command = Assert.IsType<ActivateSpecialCommand>(Assert.Single(packet.At(1, map).All));
+            ActivateSpecialCommand command = Assert.IsType<ActivateSpecialCommand>(Assert.Single(packet.At(1, map).All));
             Assert.Equal((1, 12), (command.ObjectId, command.TargetId));
         }
         finally
@@ -240,7 +240,7 @@ public sealed class PacketLogTests
             File.WriteAllText(path, "original,from_turn,ours\n450,2,1\n");
             Assert.Throws<InvalidDataException>(() => PacketEntityMap.Read(path));
             File.WriteAllText(path, "original,from_turn,ours,kind\n450,2,1,Creature\n450,10,1,Object\n");
-            PacketEntityMap map = PacketEntityMap.Read(path);
+            var map = PacketEntityMap.Read(path);
             Assert.True(map.TryResolve(450, 9, PacketEntityKind.Creature, out int creature));
             Assert.Equal(1, creature);
             Assert.False(map.TryResolve(450, 10, PacketEntityKind.Creature, out _));
@@ -261,7 +261,7 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog packet = PacketLog.Read(path, 2, 69);
+            var packet = PacketLog.Read(path, 2, 69);
             Assert.Equal(new[] { (1L, 442u, PacketEntityKind.Creature), (2L, 442u, PacketEntityKind.Creature) }, packet.EntityReferences);
             var map = new PacketEntityMap();
             Assert.Throws<InvalidDataException>(() => packet.At(1, map));
@@ -289,7 +289,7 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog packet = PacketLog.Read(path, 2, 69);
+            var packet = PacketLog.Read(path, 2, 69);
             Assert.Empty(packet.EntityReferences);
             var map = new PacketEntityMap();
             Assert.Equal(new CreateImpCommand(3, new FpPosition2(new Fp32(97305), new Fp32(173923))),
@@ -312,7 +312,7 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog packet = PacketLog.Read(path, 1, 69);
+            var packet = PacketLog.Read(path, 1, 69);
             Assert.Equal(new[] { (1L, 1176u, PacketEntityKind.GoldTile) }, packet.EntityReferences);
             var map = new PacketEntityMap();
             map.Add(1176, 1, 33 * 40 + 19, PacketEntityKind.GoldTile);
@@ -338,7 +338,7 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog packet = PacketLog.Read(path, 2, 69);
+            var packet = PacketLog.Read(path, 2, 69);
             Assert.Equal(new[] { (1L, 1982u, PacketEntityKind.DoorTile), (2L, 1982u, PacketEntityKind.DoorTile) },
                 packet.EntityReferences);
             var map = new PacketEntityMap();
@@ -365,20 +365,20 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog packet = PacketLog.Read(path, 2, 69);
+            var packet = PacketLog.Read(path, 2, 69);
             Assert.Empty(packet.EntityReferences);
             var map = new PacketEntityMap();
 
-            var first = packet.At(1, map).All;
+            IReadOnlyList<PlayerCommand> first = packet.At(1, map).All;
             Assert.Equal(new MovePossessedCreatureCommand(3, new PossessionPose(
                 new FpPosition3(new(51187), new(41704), new(0xA3D)), new Dk2Angle(0x400))), first[0]);
-            var act = Assert.IsType<ActPossessedCreatureCommand>(first[1]);
+            ActPossessedCreatureCommand act = Assert.IsType<ActPossessedCreatureCommand>(first[1]);
             Assert.Equal((0xDDC3, 0xB974, 0x1A3D), act.Aim.PacketOrigin);
             Assert.Equal((0x216, 0x1C4), (act.Aim.Yaw.Value, act.Aim.Pitch.Value));
             Assert.Equal((false, 3), (act.Melee, (int)act.Slot.Value));
 
-            var second = packet.At(2, map).All;
-            var melee = Assert.IsType<ActPossessedCreatureCommand>(second[0]);
+            IReadOnlyList<PlayerCommand> second = packet.At(2, map).All;
+            ActPossessedCreatureCommand melee = Assert.IsType<ActPossessedCreatureCommand>(second[0]);
             Assert.Equal((true, 3, 0x17D0), (melee.Melee, (int)melee.Slot.Value, melee.Aim.PacketOrigin.Z));
             Assert.Equal(new LeavePossessionCommand(3), second[1]);
         }
@@ -395,7 +395,7 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            var act = Assert.IsType<ActPossessedCreatureCommand>(
+            ActPossessedCreatureCommand act = Assert.IsType<ActPossessedCreatureCommand>(
                 Assert.Single(PacketLog.Read(path, 1, 69).At(1, new PacketEntityMap()).All));
             Assert.Equal(-1, act.Slot.Value);
         }
@@ -413,7 +413,7 @@ public sealed class PacketLogTests
         try
         {
             File.WriteAllBytes(path, [.. bytes]);
-            PacketLog log = PacketLog.Read(path, 3, 83);
+            var log = PacketLog.Read(path, 3, 83);
             Assert.Equal(new[]
             {
                 new PacketLog.PacketRecordStamp(new GameTick(1), 4013, 83),
@@ -450,14 +450,14 @@ public sealed class PacketLogTests
         params (uint First, uint Second, uint Third, uint Kind)[] actions)
     {
         bytes[^1] = checked((byte)actions.Length);
-        var header = new byte[16];
+        byte[] header = new byte[16];
         BinaryPrimitives.WriteUInt32LittleEndian(header, turn);
         header[12] = 1;
         header[13] = 1;
         bytes.AddRange(header);
-        foreach (var action in actions)
+        foreach ((uint First, uint Second, uint Third, uint Kind) action in actions)
         {
-            var body = new byte[18];
+            byte[] body = new byte[18];
             BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(0, 4), action.First);
             BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(4, 4), action.Second);
             BinaryPrimitives.WriteUInt32LittleEndian(body.AsSpan(8, 4), action.Third);

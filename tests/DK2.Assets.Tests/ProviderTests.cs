@@ -29,7 +29,7 @@ public class ProviderTests
     {
         foreach (AssetKind kind in Enum.GetValues<AssetKind>())
         {
-            AssetRef reference = AssetRef.ForCreature("Imp", kind);
+            var reference = AssetRef.ForCreature("Imp", kind);
             Assert.True(PlaceholderProvider.Instance.TryResolve(reference, out ResolvedAsset asset));
             Assert.True(asset.IsPlaceholder);
             Assert.Null(asset.FilePath);
@@ -51,7 +51,7 @@ public class ProviderTests
     [Fact]
     public void APlaceholdersLookIsDerivedFromItsKeyAndNeverVaries()
     {
-        AssetRef rock = AssetRef.ForTerrain("Rock", AssetKind.Mesh);
+        var rock = AssetRef.ForTerrain("Rock", AssetKind.Mesh);
 
         PlaceholderLook first = PlaceholderProvider.LookFor(rock);
         PlaceholderLook second = PlaceholderProvider.LookFor(rock);
@@ -87,7 +87,7 @@ public class ProviderTests
     public void APlaceholdersShapeFollowsWhatTheAssetIs(
         AssetKind kind, string category, PlaceholderShape expected)
     {
-        AssetRef reference = AssetRef.Create(category, "thing", kind);
+        var reference = AssetRef.Create(category, "thing", kind);
         Assert.Equal(expected, PlaceholderProvider.ShapeFor(reference));
     }
 
@@ -113,7 +113,7 @@ public class ProviderTests
     [Fact]
     public void AKeyBecomesAPathByReplacingDotsWithSeparators()
     {
-        AssetRef reference = AssetRef.ForCreature("Imp", AssetKind.Mesh);
+        var reference = AssetRef.ForCreature("Imp", AssetKind.Mesh);
 
         Assert.Equal(
             Path.Combine("creature", "imp", "mesh"),
@@ -123,8 +123,8 @@ public class ProviderTests
     [Fact]
     public void AFileProviderAnswersOnlyForFilesThatExist()
     {
-        AssetRef imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
-        AssetRef dwarf = AssetRef.ForCreature("Dwarf", AssetKind.Mesh);
+        var imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
+        var dwarf = AssetRef.ForCreature("Dwarf", AssetKind.Mesh);
         string root = Path.Combine("build", "converted");
 
         var provider = FileAssetProvider.Converted(root, new FakeFiles(PathFor(root, imp, ".glb")));
@@ -140,7 +140,7 @@ public class ProviderTests
     [Fact]
     public void ExtensionsAreTriedInPreferenceOrder()
     {
-        AssetRef imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
+        var imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
         string root = "art";
 
         // Both present: the first in the preference list wins.
@@ -155,8 +155,8 @@ public class ProviderTests
     [Fact]
     public void AFileProviderChecksTheDiskOncePerKey()
     {
-        AssetRef imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
-        AssetRef dwarf = AssetRef.ForCreature("Dwarf", AssetKind.Mesh);
+        var imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
+        var dwarf = AssetRef.ForCreature("Dwarf", AssetKind.Mesh);
         string root = "art";
         var files = new CountingFiles(PathFor(root, imp, ".glb"));
         var provider = FileAssetProvider.Converted(root, files);
@@ -207,7 +207,7 @@ public class ProviderTests
     [Fact]
     public void AReplacementPackWinsOverConvertedArtWhichWinsOverABox()
     {
-        AssetRef imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
+        var imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
 
         var chain = new AssetProviderChain(
             FileAssetProvider.Replacement("pack", probe: new FakeFiles(PathFor("pack", imp, ".glb"))),
@@ -220,7 +220,7 @@ public class ProviderTests
     [Fact]
     public void ConvertedArtIsUsedWhenNoReplacementExists()
     {
-        AssetRef imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
+        var imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
 
         var chain = new AssetProviderChain(
             FileAssetProvider.Replacement("pack", probe: new FakeFiles()),
@@ -237,7 +237,7 @@ public class ProviderTests
     [Fact]
     public void TheStandardChainWithNoRootsAtAllStillAnswersEverything()
     {
-        AssetProviderChain chain = AssetProviderChain.Standard();
+        var chain = AssetProviderChain.Standard();
 
         Assert.Single(chain.Providers);
         foreach (AssetKind kind in Enum.GetValues<AssetKind>())
@@ -250,7 +250,7 @@ public class ProviderTests
         var chain = new AssetProviderChain(
             FileAssetProvider.Converted("converted", new FakeFiles()));
 
-        AssetRef imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
+        var imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
 
         Assert.False(chain.TryResolve(imp, out _));
         Assert.Throws<InvalidOperationException>(() => chain.Resolve(imp));
@@ -269,8 +269,8 @@ public class ProviderTests
     [Fact]
     public void TheChainCountsWhatEachProviderAnswered()
     {
-        AssetRef imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
-        AssetRef dwarf = AssetRef.ForCreature("Dwarf", AssetKind.Mesh);
+        var imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
+        var dwarf = AssetRef.ForCreature("Dwarf", AssetKind.Mesh);
 
         var chain = new AssetProviderChain(
             FileAssetProvider.Converted("converted", new FakeFiles(PathFor("converted", imp, ".glb"))),

@@ -23,7 +23,7 @@ public sealed class LauncherTests
     [Fact]
     public void UnknownKeysAndMalformedValuesKeepTheDefaults()
     {
-        LauncherSettings parsed = LauncherSettings.Parse(
+        var parsed = LauncherSettings.Parse(
             "# comment\r\nfuture=1\r\nscreen=sideways\r\nwindow=99x99\r\nstart_directly=yes\r\ninstall=\r\nmenu_font = \r\n" +
             "noequals\r\n=1\r\n");
         Assert.Equal(LauncherSettings.Default, parsed);
@@ -72,7 +72,7 @@ public sealed class LauncherTests
     [Fact]
     public void ASavedSizeIsKeptWhileItFits()
     {
-        var (sizes, selected) = LauncherWindowSizes.Options(new LauncherWindowSize(1280, 720), 1920, 1032);
+        (IReadOnlyList<LauncherWindowSize>? sizes, int selected) = LauncherWindowSizes.Options(new LauncherWindowSize(1280, 720), 1920, 1032);
         Assert.Equal(new LauncherWindowSize(1280, 720), sizes[selected]);
         (sizes, selected) = LauncherWindowSizes.Options(new LauncherWindowSize(2560, 1440), 1920, 1032);
         Assert.Equal(new LauncherWindowSize(1600, 900), sizes[selected]);

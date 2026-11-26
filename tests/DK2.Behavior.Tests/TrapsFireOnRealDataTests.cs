@@ -35,7 +35,7 @@ public class TrapsFireOnRealDataTests(ITestOutputHelper output)
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
             if (map is null || things is null || !things.OfType<TrapThing>().Any()) continue;
 
-            WorldState world = WorldState.FromMap(
+            var world = WorldState.FromMap(
                 db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper,
                     (byte)(PlayerIds.FirstKeeper + 1), (byte)(PlayerIds.FirstKeeper + 2), (byte)(PlayerIds.FirstKeeper + 3), (byte)(PlayerIds.FirstKeeper + 4)]);
             ThingProjection.Place(world, db, things);
@@ -69,7 +69,7 @@ public class TrapsFireOnRealDataTests(ITestOutputHelper output)
         }
 
         output.WriteLine($"levels {levels}, traps {traps}, firing built {built}, completed {completed}");
-        foreach (var pair in byType) output.WriteLine($"  {pair.Key}: {pair.Value}");
+        foreach (KeyValuePair<string, int> pair in byType) output.WriteLine($"  {pair.Key}: {pair.Value}");
         output.WriteLine($"beside a Trigger {triggerNeighbours.Count}: {string.Join("; ", triggerNeighbours.Take(40))}");
         output.WriteLine($"guard posts: {string.Join("; ", guardPosts)}");
         output.WriteLine($"owner kills {ownerKills.Count}: {string.Join("; ", ownerKills.Take(40))}");

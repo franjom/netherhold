@@ -34,7 +34,7 @@ public class LightningDrawListTests
                     Vector3 a = Transform(Render(segment.Start), view), b = Transform(Render(segment.End), view);
                     foreach (LightningPath path in bolts.Build(a, b, LightningAmplitude.Creature))
                     {
-                        LightningRibbon ribbon = LightningRibbon.Build(path.Nodes);
+                        var ribbon = LightningRibbon.Build(path.Nodes);
                         int offset = vertices.Count;
                         foreach (Vector3 vertex in ribbon.Vertices) vertices.Add(Transform(vertex, camera));
                         uvs.AddRange(ribbon.Uvs);
@@ -57,7 +57,7 @@ public class LightningDrawListTests
     [Fact]
     public void ClipRevisionIsObservedEvenBeforeTheCreatureIsElectrified()
     {
-        var effects = Effects();
+        RoomConstructionParticles effects = Effects();
         var draws = new LightningDrawList(effects, 1);
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
         Assert.False(draws.NeedsCreatureCrackle(new(5), new(10), 2));

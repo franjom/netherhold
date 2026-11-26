@@ -22,9 +22,9 @@ public sealed class InstallEffectSpriteProviderTests
                 && int.TryParse(name.AsSpan(6), out int frame) && frame < 20
                 ? Image : throw new FileNotFoundException());
         var key = AssetRef.ForObject("wall_torch", AssetKind.Effect, "flame");
-        Assert.True(provider.TryResolve(key, out var asset));
+        Assert.True(provider.TryResolve(key, out ResolvedAsset asset));
         Assert.Equal("KTorch", asset.InstallEntry);
-        Assert.True(provider.TryGetSprite(asset, out var sprite));
+        Assert.True(provider.TryGetSprite(asset, out EffectSpriteResource? sprite));
         Assert.Equal(20, sprite.DeclaredFrameCount);
         Assert.Equal(20, sprite.StoredFrameCount);
         Assert.Equal(4096, sprite.WidthRaw);
@@ -38,16 +38,16 @@ public sealed class InstallEffectSpriteProviderTests
     [Fact]
     public void DeclaredDurationAndAvailableImageCountRemainSeparate()
     {
-        var element = Element("Cloud", "cloud", 3, 0x24, 16);
+        EffectElementDef element = Element("Cloud", "cloud", 3, 0x24, 16);
         var provider = new InstallEffectSpriteProvider(Database(element), name =>
             name is "cloud0" or "cloud1" ? Image : throw new FileNotFoundException());
-        Assert.True(provider.TryResolve(AssetRef.ForEffectElement("Cloud"), out var asset));
-        Assert.True(provider.TryGetSprite(asset, out var sprite));
+        Assert.True(provider.TryResolve(AssetRef.ForEffectElement("Cloud"), out ResolvedAsset asset));
+        Assert.True(provider.TryGetSprite(asset, out EffectSpriteResource? sprite));
         Assert.Equal(16, sprite.DeclaredFrameCount);
         Assert.Equal(2, sprite.StoredFrameCount);
         Assert.Equal(EffectSpriteBlend.Additive, sprite.Blend);
         Assert.Equal(4096, sprite.WidthRaw);
-        Assert.True(provider.TryLoadFrame(asset, 1, out var image));
+        Assert.True(provider.TryLoadFrame(asset, 1, out RgbaImage? image));
         Assert.Same(Image, image);
         Assert.False(provider.TryLoadFrame(asset, 2, out _));
     }
@@ -57,9 +57,9 @@ public sealed class InstallEffectSpriteProviderTests
     {
         var provider = new InstallEffectSpriteProvider(Database(Element("Chip", "chip", 2, 1, 0)),
             name => name == "chip" ? Image : throw new FileNotFoundException());
-        Assert.True(provider.TryResolve(AssetRef.ForEffectElement("Chip"), out var asset));
+        Assert.True(provider.TryResolve(AssetRef.ForEffectElement("Chip"), out ResolvedAsset asset));
         Assert.Equal("chip", asset.InstallEntry);
-        Assert.True(provider.TryGetSprite(asset, out var sprite));
+        Assert.True(provider.TryGetSprite(asset, out EffectSpriteResource? sprite));
         Assert.Equal(EffectSpriteBlend.Alpha, sprite.Blend);
         Assert.Equal(1, sprite.StoredFrameCount);
         var foreign = new ResolvedAsset(asset.Reference, AssetSource.InstallEntry, null, default, "other", "chip");
@@ -78,32 +78,32 @@ public sealed class InstallEffectSpriteProviderTests
     [InstallFact]
     public void ShippedConstructionSpritesDecodeTheirActualImages()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         using var art = InstallArtProvider.Open(Dk2InstallGate.Path, database);
         var provider = new InstallEffectSpriteProvider(database, art.LoadTexture);
-        Assert.True(provider.TryResolve(AssetRef.ForEffectElement(database.EffectElements[204].Name), out var mist));
-        Assert.True(provider.TryGetSprite(mist, out var sprite));
+        Assert.True(provider.TryResolve(AssetRef.ForEffectElement(database.EffectElements[204].Name), out ResolvedAsset mist));
+        Assert.True(provider.TryGetSprite(mist, out EffectSpriteResource? sprite));
         Assert.Equal(16, sprite.DeclaredFrameCount);
         Assert.Equal(8, sprite.StoredFrameCount);
         for (int frame = 0; frame < sprite.StoredFrameCount; frame++)
         {
-            Assert.True(provider.TryLoadFrame(mist, frame, out var image));
+            Assert.True(provider.TryLoadFrame(mist, frame, out RgbaImage? image));
             Assert.Contains(image.Pixels.Where((_, index) => index % 4 == 3), alpha => alpha > 0);
         }
-        Assert.True(provider.TryResolve(AssetRef.ForEffectElement(database.EffectElements[144].Name), out var chip));
+        Assert.True(provider.TryResolve(AssetRef.ForEffectElement(database.EffectElements[144].Name), out ResolvedAsset chip));
         Assert.True(provider.TryLoadFrame(chip, 0, out _));
-        Assert.True(provider.TryResolve(AssetRef.ForObject("wall_torch", AssetKind.Effect, "flame"), out var flame));
-        Assert.True(provider.TryGetSprite(flame, out var flameSprite));
+        Assert.True(provider.TryResolve(AssetRef.ForObject("wall_torch", AssetKind.Effect, "flame"), out ResolvedAsset flame));
+        Assert.True(provider.TryGetSprite(flame, out EffectSpriteResource? flameSprite));
         Assert.Equal(20, flameSprite.DeclaredFrameCount);
         Assert.True(flameSprite.StoredFrameCount > 0);
-        Assert.True(provider.TryLoadFrame(flame, 0, out var flameImage));
+        Assert.True(provider.TryLoadFrame(flame, 0, out RgbaImage? flameImage));
         Assert.Contains(flameImage.Pixels.Where((_, index) => index % 4 == 3), alpha => alpha > 0);
     }
 
     [Fact]
     public void AmbiguousShippedNamesDoNotSelectAnArbitraryResource()
     {
-        var second = Element("Same", "second", 3, 1, 0) with { EffectElementId = 2 };
+        EffectElementDef second = Element("Same", "second", 3, 1, 0) with { EffectElementId = 2 };
         var provider = new InstallEffectSpriteProvider(Database(Element("Same", "first", 3, 1, 0), second),
             _ => Image);
         Assert.False(provider.TryResolve(AssetRef.ForEffectElement("Same"), out _));
@@ -114,17 +114,17 @@ public sealed class InstallEffectSpriteProviderTests
     [InlineData((ushort)100, "waterfoot")]
     public void FootprintsResolveTheirOwnAlphaTextureThroughTheEffectAssetKey(ushort id, string texture)
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         using var art = InstallArtProvider.Open(Dk2InstallGate.Path, db);
         var provider = new InstallEffectSpriteProvider(db, art.LoadTexture);
         var key = AssetRef.ForEffect(db.Effects[id].Name);
-        Assert.True(provider.TryResolve(key, out var asset));
+        Assert.True(provider.TryResolve(key, out ResolvedAsset asset));
         Assert.Equal(texture, asset.InstallEntry);
-        Assert.True(provider.TryGetSprite(asset, out var sprite));
+        Assert.True(provider.TryGetSprite(asset, out EffectSpriteResource? sprite));
         Assert.Equal(EffectSpriteBlend.Alpha, sprite.Blend);
         Assert.Equal(1, sprite.StoredFrameCount);
         Assert.True((sprite.ArtFlags & 0x100) != 0);
-        Assert.True(provider.TryLoadFrame(asset, 0, out var image));
+        Assert.True(provider.TryLoadFrame(asset, 0, out RgbaImage? image));
         Assert.Contains(image.Pixels.Where((_, index) => index % 4 == 3), alpha => alpha > 0);
     }
 
@@ -133,7 +133,7 @@ public sealed class InstallEffectSpriteProviderTests
     [Fact]
     public void ParentAndElementWithTheSameNameResolveDifferentTextures()
     {
-        var child = Element("Same", "child", 2, 0x100, 0);
+        EffectElementDef child = Element("Same", "child", 2, 0x100, 0);
         var parent = new EffectDef([])
         {
             EffectId = 1, Name = "Same", ArtResource = child.ArtResource with { Name = "parent" },
@@ -141,8 +141,8 @@ public sealed class InstallEffectSpriteProviderTests
         };
         var db = new GameDatabase([], [], [], new GlobalVariables(), effects: [parent], effectElements: [child]);
         var provider = new InstallEffectSpriteProvider(db, _ => Image);
-        Assert.True(provider.TryResolve(AssetRef.ForEffect("Same"), out var effect));
-        Assert.True(provider.TryResolve(AssetRef.ForEffectElement("Same"), out var element));
+        Assert.True(provider.TryResolve(AssetRef.ForEffect("Same"), out ResolvedAsset effect));
+        Assert.True(provider.TryResolve(AssetRef.ForEffectElement("Same"), out ResolvedAsset element));
         Assert.Equal("parent", effect.InstallEntry);
         Assert.Equal("child", element.InstallEntry);
         Assert.NotEqual(effect.Reference, element.Reference);

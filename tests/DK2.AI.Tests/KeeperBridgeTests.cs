@@ -181,7 +181,7 @@ public class KeeperBridgeTests
             WorldState world = Corridor(KeeperWorld.Lava, 4);
             GameSimulation sim = Sim(world);
             KeeperAI keeper = Walking(Shore, North(7), speed: 2, seed: seed);
-            Hash64 hash = Hash64.Start();
+            var hash = Hash64.Start();
             for (int tick = 0; tick < 30; tick++)
             {
                 var frame = new InputFrame(keeper.Think(Db, world));

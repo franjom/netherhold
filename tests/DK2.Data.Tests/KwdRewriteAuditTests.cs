@@ -22,8 +22,8 @@ public class KwdRewriteAuditTests
             byte[] bytes=KwdWriter.ToBytes([DoorChunk()]);
             File.WriteAllBytes(Path.Combine(input,"nested","doors.KWD"),bytes);
             File.WriteAllText(Path.Combine(input,"ignored.txt"),"not a game file");
-            var result=KwdRewriteAudit.Run(input,output);
-            var file=Assert.Single(result.Files);
+            KwdRewriteAudit.Result result =KwdRewriteAudit.Run(input,output);
+            KwdRewriteAudit.FileResult file =Assert.Single(result.Files);
             Assert.Null(file.Difference); Assert.Equal(1,file.Chunks); Assert.Equal(2,file.Records);
             Assert.Equal(bytes,File.ReadAllBytes(Path.Combine(output,"nested","doors.KWD")));
             Assert.False(File.Exists(Path.Combine(output,"ignored.txt")));
@@ -48,7 +48,7 @@ public class KwdRewriteAuditTests
     {
         KwdChunk chunk=DoorChunk(); byte[] source=KwdWriter.ToBytes([chunk]),actual=(byte[])source.Clone();
         actual[offset]^=1;
-        var diff=KwdRewriteAudit.DescribeDifference(source,actual,[chunk])!;
+        KwdRewriteAudit.Difference diff =KwdRewriteAudit.DescribeDifference(source,actual,[chunk])!;
         Assert.Equal(offset,diff.Offset); Assert.Equal(0,diff.ChunkIndex);
         Assert.Equal(KwdRecordType.Doors,diff.ChunkType); Assert.Equal(record,diff.RecordIndex);
         Assert.Contains(field,diff.Field); Assert.Equal(source[offset],diff.Expected); Assert.Equal(actual[offset],diff.Actual);
@@ -62,7 +62,7 @@ public class KwdRewriteAuditTests
         KwdChunk first=DoorChunk(); byte[] source=KwdWriter.ToBytes([first,chunk]),actual=(byte[])source.Clone();
         int offset=KwdWriter.ToBytes([first]).Length+56+32;
         actual[offset]^=1;
-        var diff=KwdRewriteAudit.DescribeDifference(source,actual,[first,chunk])!;
+        KwdRewriteAudit.Difference diff =KwdRewriteAudit.DescribeDifference(source,actual,[first,chunk])!;
         Assert.Equal(1,diff.ChunkIndex); Assert.Equal(1,diff.RecordIndex); Assert.Equal("tag",diff.Field);
     }
 
@@ -71,7 +71,7 @@ public class KwdRewriteAuditTests
     {
         KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Creatures,new byte[5537],1);
         byte[] source=KwdWriter.ToBytes([chunk]),actual=(byte[])source.Clone(); actual[56+5449]=1;
-        var diff=KwdRewriteAudit.DescribeDifference(source,actual,[chunk])!;
+        KwdRewriteAudit.Difference diff =KwdRewriteAudit.DescribeDifference(source,actual,[chunk])!;
         Assert.Equal(0,diff.RecordIndex); Assert.StartsWith("raw",diff.Field);
         diff=KwdRewriteAudit.DescribeDifference(source,source[..^1],[chunk])!;
         Assert.Equal(source.Length-1,diff.Offset); Assert.Null(diff.Actual);
@@ -87,11 +87,11 @@ public class KwdRewriteAuditTests
         try
         {
             string input=Path.Combine(Dk2InstallGate.Path,"Data","editor");
-            var result=KwdRewriteAudit.Run(input,output);
+            KwdRewriteAudit.Result result =KwdRewriteAudit.Run(input,output);
             Assert.Equal(408,result.Files.Count); Assert.Equal(409,result.Files.Sum(f=>f.Chunks));
             Assert.Equal(371126,result.Files.Sum(f=>f.Records));
             Assert.Equal(17,result.RecordCounts.Count);
-            foreach(var file in result.Files)
+            foreach(KwdRewriteAudit.FileResult file in result.Files)
             {
                 Assert.Null(file.Difference);
                 Assert.Equal(File.ReadAllBytes(Path.Combine(input,file.RelativePath)),File.ReadAllBytes(Path.Combine(output,file.RelativePath)));
@@ -166,7 +166,7 @@ public class KwdRewriteAuditTests
         System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(body,(int)VariableTypeId.CreaturePool);
         KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Variables,body,1);
         byte[] source=KwdWriter.ToBytes([chunk]),actual=(byte[])source.Clone(); actual[56+idByte]^=0x80;
-        var difference=KwdRewriteAudit.DescribeDifference(source,actual,[chunk])!;
+        KwdRewriteAudit.Difference difference =KwdRewriteAudit.DescribeDifference(source,actual,[chunk])!;
         Assert.Equal("Id",difference.Field); Assert.Equal(0,difference.RecordIndex); Assert.Equal(56+idByte,difference.Offset);
     }
 
@@ -176,7 +176,7 @@ public class KwdRewriteAuditTests
         var start=new ProcessStartInfo("powershell") { UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true };
         start.ArgumentList.Add("-NoProfile"); start.ArgumentList.Add("-NonInteractive"); start.ArgumentList.Add("-Command");
         start.ArgumentList.Add($"New-Item -ItemType Junction -Path '{alias.Replace("'","''")}' -Target '{target.Replace("'","''")}' -ErrorAction Stop | Out-Null");
-        using var process=Process.Start(start)!; string error=process.StandardError.ReadToEnd();
+        using Process process =Process.Start(start)!; string error=process.StandardError.ReadToEnd();
         process.WaitForExit(); Assert.True(process.ExitCode==0,error);
     }
 

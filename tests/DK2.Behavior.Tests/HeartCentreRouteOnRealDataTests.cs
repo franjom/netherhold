@@ -25,7 +25,7 @@ public class HeartCentreRouteOnRealDataTests
         string install = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "level5");
         List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, "level5")!;
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "level5")!, players.Select(p => p.PlayerId));
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "level5")!, players.Select(p => p.PlayerId));
         ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(install, "level5")!);
         NavStamp centre = Assert.Single(world.NavStamps, s => s.Byte == 3);
         int cx = centre.Tile % world.Width, cy = centre.Tile / world.Width;

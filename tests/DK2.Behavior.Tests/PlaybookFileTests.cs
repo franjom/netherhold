@@ -54,7 +54,7 @@ public class PlaybookFileTests
         string path = Temp("level: campaign:level2\n" + section + "plan:\n  rooms: [Lair, Treasury]\n");
         try
         {
-            var refused = Assert.Throws<InvalidDataException>(() => PlaybookFile.Load(path, Hash));
+            InvalidDataException refused = Assert.Throws<InvalidDataException>(() => PlaybookFile.Load(path, Hash));
             Assert.Contains("room:Treasury is planned but the level neither offers it at the start nor may make it available", refused.Message, StringComparison.Ordinal);
             File.WriteAllText(path, "level: campaign:level2\n" + section + "plan:\n  rooms: [Lair, Hatchery]\n");
             Assert.Equal([RoomTypeId.Lair, RoomTypeId.Hatchery], PlaybookFile.Load(path, Hash).Playbook.Rooms);
@@ -127,7 +127,7 @@ public class PlaybookFileTests
     public void CapsStandInOnlyForLimitsTheCommandLineDidNotGive()
     {
         var caps = new PlaybookCaps(MaxTicks: 57600, MaxActions: 8192, WallSeconds: 2400, OutputMiB: 256);
-        CampaignPlayerSpec given = new CampaignPlayerSpec(Keeper, MaxTicks: 1000) { GivenLimits = PlayerLimitFlags.MaxTicks };
+        var given = new CampaignPlayerSpec(Keeper, MaxTicks: 1000) { GivenLimits = PlayerLimitFlags.MaxTicks };
         CampaignPlayerSpec capped = PlayerRunCommand.WithCaps(given, caps);
         Assert.Equal((1000, 8192, 2400, 256), (capped.MaxTicks, capped.MaxActions, capped.WallSeconds, capped.OutputMiB));
         Assert.Equal(new CampaignPlayerSpec(Keeper).MaxTicks, PlayerRunCommand.WithCaps(new CampaignPlayerSpec(Keeper), new PlaybookCaps()).MaxTicks);

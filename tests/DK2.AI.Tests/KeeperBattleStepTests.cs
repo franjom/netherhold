@@ -346,7 +346,7 @@ public class KeeperBattleStepTests
 
         // Preference 4 makes every roll succeed and the arm takes the first offensive spell, 6;
         // the far hero is outside five tiles and the near one stands on the keeper's land.
-        var cast = Assert.Single(commands.OfType<CastSpellOnCreatureCommand>());
+        CastSpellOnCreatureCommand cast = Assert.Single(commands.OfType<CastSpellOnCreatureCommand>());
         Assert.Equal((KeeperSpellRules.Thunderbolt, near.Id), (cast.SpellId, cast.CreatureId));
         Assert.Equal(KeeperTask.Decide, keeper.State.Task);
         Assert.Equal(0, keeper.State.UnbuiltSpellChoices);
@@ -427,7 +427,7 @@ public class KeeperBattleStepTests
         // random(4) < 4 always takes the supportive arm; Heal, the last eligible supportive spell,
         // stays selected whatever its roll, the scan finds the fighter itself, and the captured
         // validators pass: one cast through action 55, one allowance (ADR-0287).
-        var cast = Assert.Single(commands.OfType<CastSpellOnCreatureCommand>());
+        CastSpellOnCreatureCommand cast = Assert.Single(commands.OfType<CastSpellOnCreatureCommand>());
         Assert.Equal((KeeperSpellRules.Heal, own.Id), (cast.SpellId, cast.CreatureId));
         Assert.Equal((KeeperTask.Decide, 0), (keeper.State.Task, keeper.State.UnbuiltSpellChoices));
 
@@ -450,7 +450,7 @@ public class KeeperBattleStepTests
 
         // Location selector 4 asks no ownership of the tile, only that it is not solid.
         Assert.True(Assert.Single(new KeeperView(Db, world, Keeper).Creatures, c => c.Id == own.Id).HealTargetAllowed);
-        var cast = Assert.Single(keeper.Think(Db, world).OfType<CastSpellOnCreatureCommand>());
+        CastSpellOnCreatureCommand cast = Assert.Single(keeper.Think(Db, world).OfType<CastSpellOnCreatureCommand>());
         Assert.Equal((KeeperSpellRules.Heal, own.Id), (cast.SpellId, cast.CreatureId));
     }
 
@@ -545,7 +545,7 @@ public class KeeperBattleStepTests
         IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
 
         // 0x004BB8A0 then 0x004BBD30 at the target's x and y; a passed pair spends the allowance.
-        var cast = Assert.Single(commands.OfType<CastSpellAtPlaceCommand>());
+        CastSpellAtPlaceCommand cast = Assert.Single(commands.OfType<CastSpellAtPlaceCommand>());
         Assert.Equal((KeeperSpellRules.Inferno, near.PosX, near.PosY), (cast.SpellId, cast.X, cast.Y));
         Assert.Equal((KeeperTask.Decide, 0), (keeper.State.Task, keeper.State.UnbuiltSpellChoices));
         int ownBefore = own.Health;
@@ -590,7 +590,7 @@ public class KeeperBattleStepTests
 
         IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
 
-        var cast = Assert.Single(commands.OfType<CastSpellOnCreatureCommand>());
+        CastSpellOnCreatureCommand cast = Assert.Single(commands.OfType<CastSpellOnCreatureCommand>());
         Assert.Equal((KeeperSpellRules.Chicken, near.Id), (cast.SpellId, cast.CreatureId));
         Assert.Equal(KeeperTask.Decide, keeper.State.Task);
         new GameSimulation(Db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]).Tick(InputFrame.Of(cast));

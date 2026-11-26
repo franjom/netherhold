@@ -46,7 +46,7 @@ public sealed class PossessionUpkeepTests
                 ? c with { PossessionManaCost = cost } : c), vars,
             basis.KeeperSpells.Values.Where(k => k.KeeperSpellId != SpellId).Append(spell),
             objects: basis.Objects.Values, shots: basis.Shots.Values).ForLevel(null, Level(levelFlags));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, SpellId, 3, Upgraded: upgraded));
         CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
@@ -69,14 +69,14 @@ public sealed class PossessionUpkeepTests
     [Fact]
     public void LevelOneChargesTheCreaturesUnsignedCost_FromBinary()
     {
-        var (db, world, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState _) = Setup();
         Assert.Equal(GoblinCost, Charge(db, world));
     }
 
     [Fact]
     public void ClearLevelFlagChargesNothingAndNeverEndsPossession_FromBinary()
     {
-        var (db, world, me) = Setup(levelFlags: 0);
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Setup(levelFlags: 0);
         Assert.Equal(0, Charge(db, world));
         world.Player(Keeper).Mana = 0;
         new GameSimulation(db, world, 1, [new ManaSystem()]).Run(SimulationTiming.TicksPerSecond);
@@ -86,7 +86,7 @@ public sealed class PossessionUpkeepTests
     [Fact]
     public void NothingPossessedChargesNothing()
     {
-        var (db, world, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState _) = Setup();
         world.Player(Keeper).PossessedCreatureId = 0;
         Assert.Equal(0, Charge(db, world));
     }
@@ -99,21 +99,21 @@ public sealed class PossessionUpkeepTests
     [InlineData(10, 3000, 0xFFFE)]          // 900000 clamped to 0xFFFE
     public void HigherLevelsScaleByStat27WithASignedDivideAndClamp_FromBinary(int level, short cost, int expected)
     {
-        var (db, world, _) = Setup(level: level, cost: cost);
+        (GameDatabase? db, WorldState? world, CreatureState _) = Setup(level: level, cost: cost);
         Assert.Equal(expected, Charge(db, world));
     }
 
     [Fact]
     public void UpgradedPercentageAppliesAfterTheLevelScale_FromBinary()
     {
-        var (db, world, _) = Setup(upgraded: true, level: 3);
+        (GameDatabase? db, WorldState? world, CreatureState _) = Setup(upgraded: true, level: 3);
         Assert.Equal(70 * 199 / 100, Charge(db, world));
     }
 
     [Fact]
     public void UpgradedSpellTakesItsPercentageAfterTheLevelScale_FromBinary()
     {
-        var (db, world, _) = Setup(upgraded: true);
+        (GameDatabase? db, WorldState? world, CreatureState _) = Setup(upgraded: true);
         int percent = (byte)db[VariableTypeId.UpgradedPossessionCostPercentage];
         Assert.Equal(percent * GoblinCost / 100, Charge(db, world));
     }
@@ -121,7 +121,7 @@ public sealed class PossessionUpkeepTests
     [Fact]
     public void ChargeJoinsTheSecondsDrain_FromBinary()
     {
-        var (db, world, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState _) = Setup();
         int withPossession = ManaRules.UpkeepPerSecondByPlayerIndex(world, db)[IndexOf(world)];
         world.Player(Keeper).PossessedCreatureId = 0;
         int without = ManaRules.UpkeepPerSecondByPlayerIndex(world, db)[IndexOf(world)];
@@ -147,7 +147,7 @@ public sealed class PossessionUpkeepTests
     [Fact]
     public void ManaLeftEqualToTheChargeKeepsPossession_FromBinary()
     {
-        var (db, world, me) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Setup();
         PayWithMarginAfterPayment(db, world, 0);
         Assert.Equal(me.Id, world.Player(Keeper).PossessedCreatureId);
         Assert.True(me.Possessed);
@@ -156,7 +156,7 @@ public sealed class PossessionUpkeepTests
     [Fact]
     public void ManaLeftOneBelowTheChargeEndsPossessionThroughLeave_FromBinary()
     {
-        var (db, world, me) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Setup();
         PayWithMarginAfterPayment(db, world, -1);
         Assert.Equal(0, world.Player(Keeper).PossessedCreatureId);
         Assert.False(me.Possessed);
@@ -167,7 +167,7 @@ public sealed class PossessionUpkeepTests
     [Fact]
     public void ZeroChargeStillEndsPossessionWhenManaIsBelowTheImpUpkeep_FromBinary()
     {
-        var (db, world, _) = Setup(cost: 0);
+        (GameDatabase? db, WorldState? world, CreatureState _) = Setup(cost: 0);
         world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(11, 10));
         Assert.Equal(0, Charge(db, world));
         Assert.True(ManaRules.ImpAndTrapUpkeepPerSecondByPlayerIndex(world, db)[IndexOf(world)] > 0);
@@ -178,7 +178,7 @@ public sealed class PossessionUpkeepTests
     [Fact]
     public void NegativeAuthoredCostIsReadUnsigned_FromBinary()
     {
-        var (db, world, _) = Setup(cost: -2);
+        (GameDatabase? db, WorldState? world, CreatureState _) = Setup(cost: -2);
         Assert.Equal(0xFFFE, Charge(db, world));
     }
 }

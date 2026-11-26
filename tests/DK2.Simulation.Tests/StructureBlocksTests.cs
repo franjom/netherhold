@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Commands;
+using DK2.Simulation.Steering;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -99,7 +100,7 @@ public sealed class StructureBlocksTests
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.HeroPortal, 5, 5, 7, 7, owner: PlayerIds.Neutral);
 
-        StructureBlocks blocks = StructureBlocks.For(world, db);
+        var blocks = StructureBlocks.For(world, db);
 
         int centre = (6 * world.Width) + 6;
         Assert.True(blocks.IsPortalCentre(centre));
@@ -540,7 +541,7 @@ public sealed class StructureBlocksTests
     [Fact]
     public void DestroyingAHeartReopensItsPlatformAndRemovesItsObstacles()
     {
-        var (world, steering, goblin, sim) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
+        (WorldState? world, Navigation.WorldSteering? steering, CreatureState? goblin, GameSimulation? sim) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
         Assert.False(Grid(Db, world).IsWalkable(6, 6));
         HeartRuin.Set(world, Keeper, true);
         steering.Refresh();
@@ -565,9 +566,9 @@ public sealed class StructureBlocksTests
     public void ALoadedBodyInsideTheCoreMayEscapeWithoutMovingDeeper(
         double x0, double y0, double x1, double y1, bool allowed)
     {
-        var (world, steering, _, _) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
-        var from = HeartRelativePoint(x0, y0);
-        var to = HeartRelativePoint(x1, y1);
+        (WorldState? world, Navigation.WorldSteering? steering, CreatureState _, GameSimulation _) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
+        Fixed16Vector from = HeartRelativePoint(x0, y0);
+        Fixed16Vector to = HeartRelativePoint(x1, y1);
         Assert.Equal(allowed, steering.CanMove(from, to));
         HeartRuin.Set(world, Keeper, true);
         steering.Refresh();
@@ -577,8 +578,8 @@ public sealed class StructureBlocksTests
     [Fact]
     public void TheCoreGuardIncludesThePositionRoundingUsedWhenMovementCommits()
     {
-        var (_, steering, _, _) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
-        var centre = HeartRelativePoint(0, 0);
+        (WorldState _, Navigation.WorldSteering? steering, CreatureState _, GameSimulation _) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
+        Fixed16Vector centre = HeartRelativePoint(0, 0);
         Assert.False(steering.CanMove(centre + new DK2.Simulation.Steering.Fixed16Vector(40000, 10000),
             centre + new DK2.Simulation.Steering.Fixed16Vector(23171, 23171)));
     }
@@ -586,7 +587,7 @@ public sealed class StructureBlocksTests
     [Fact]
     public void ARouteToTheCoreFinishesAtASafeEdge_AndRuinsKeepTheOriginalTarget()
     {
-        var (world, steering, goblin, sim) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
+        (WorldState? world, Navigation.WorldSteering? steering, CreatureState? goblin, GameSimulation? sim) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.ExactSpot));
         (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         Assert.True((goblin.Body.PathTargetPos - HeartRelativePoint(0, 0)).Length() > 1 << 15);
@@ -605,7 +606,7 @@ public sealed class StructureBlocksTests
     [InlineData(true)]
     public void NeitherASingleStepNorAnArrivalSnapCanEnterTheLiveCore(bool snap)
     {
-        var (_, steering, goblin, _) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
+        (WorldState _, Navigation.WorldSteering? steering, CreatureState? goblin, GameSimulation _) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
         var body = new DK2.Simulation.Steering.SteeringBody
         {
             Pos = HeartRelativePoint(snap ? -0.55 : -0.65, 0),
@@ -615,7 +616,7 @@ public sealed class StructureBlocksTests
             EscapeStuckMode = !snap,
         };
         body.Subpath[0] = HeartRelativePoint(-0.45, 0);
-        var before = body.Pos;
+        Fixed16Vector before = body.Pos;
         DK2.Simulation.Steering.SteeringIntegrator.Step(body, DK2.Simulation.Steering.Fixed16Vector.Zero,
             Navigation.WorldSteering.ProfileOf(Db.CreatureById(GoblinId), Keeper, Navigation.MoveOptions.Loose), steering);
         Assert.True(steering.CanMove(before, body.Pos));

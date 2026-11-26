@@ -23,7 +23,7 @@ public class RoomObstructionTests
 
     private static WorldState World(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         Claim(db, world, Floor);
         return world;
     }
@@ -137,7 +137,7 @@ public class RoomObstructionTests
 
     private static (GameSimulation Sim, ListEventSink Events) Shore(GameDatabase db, TilePos a, TilePos b)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         foreach (TilePos at in new[] { a, b })
         {
             ref TileState water = ref world.Tile(at);
@@ -160,7 +160,7 @@ public class RoomObstructionTests
     {
         GameDatabase db = Db;
         TilePos near = new(6, 6), far = new(7, 6);
-        var (sim, events) = Shore(db, near, far);
+        (GameSimulation? sim, ListEventSink? events) = Shore(db, near, far);
         sim.World.SpawnCreature(db, GoblinId, Rival, near);
 
         sim.Tick(InputFrame.Of(BuildRoomCommand.At(Keeper, RoomTypeId.WoodenBridge, near)));
@@ -176,7 +176,7 @@ public class RoomObstructionTests
     {
         GameDatabase db = Db;
         TilePos near = new(6, 6), far = new(7, 6);
-        var (sim, _) = Shore(db, near, far);
+        (GameSimulation? sim, ListEventSink _) = Shore(db, near, far);
         sim.World.SpawnCreature(db, GoblinId, Rival, far);
 
         sim.Tick(InputFrame.Of(BuildRoomCommand.At(Keeper, RoomTypeId.WoodenBridge, near, far)));
@@ -192,7 +192,7 @@ public class RoomObstructionTests
     {
         GameDatabase db = Db;
         TilePos near = new(6, 6), far = new(7, 6);
-        var (sim, _) = Shore(db, near, far);
+        (GameSimulation? sim, ListEventSink _) = Shore(db, near, far);
         sim.World.SpawnCreature(db, GoblinId, Rival, near);
 
         sim.Tick(InputFrame.Of(BuildRoomCommand.At(Keeper, RoomTypeId.WoodenBridge, near, far)));

@@ -27,7 +27,7 @@ public sealed class CreateGoldTests
         GameDatabase basis = Dk2TerrainFixture.Database();
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values,
             basis.Variables, [spell ?? Spell()], objects: basis.Objects.Values, shots: basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         world.Player(Keeper).Mana = 45000;
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, SpellId, 3));
@@ -49,7 +49,7 @@ public sealed class CreateGoldTests
     [InlineData(true, 2000)]
     public void CastCreatesNeutralFloorGoldAtThePositionPaysOnceAndStampsBothClocks_StronglyInferredFromBinary(bool upgraded, int amount)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         world.SetUpgraded(Keeper, AvailabilityKind.Spell, SpellId, upgraded);
         var sim = new GameSimulation(db, world, 1, Systems());
         sim.Run(7);
@@ -61,7 +61,7 @@ public sealed class CreateGoldTests
         Assert.Equal(amount, pile.GoldHeld);
         Assert.Equal(30000, world.Player(Keeper).Mana);
         Assert.Equal(15000, world.Player(Keeper).OneShotManaSpent);
-        var row = Assert.Single(world.Player(Keeper).Availabilities);
+        AvailabilityState row = Assert.Single(world.Player(Keeper).Availabilities);
         Assert.Equal((7L, 7L), (row.LastCastTick, row.LastCheckedTick));
         Assert.Equal(0, GoldStore.Total(world, Keeper));
         sim.Run(20);
@@ -79,7 +79,7 @@ public sealed class CreateGoldTests
     [InlineData(6, KeeperSpellRefusal.Location)]
     public void RefusalDoesNotCreateGoldPayOrStamp_StronglyInferredFromBinary(int change, KeeperSpellRefusal reason)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CastSpellAtPlaceCommand cast = Cast();
         switch (change)
         {
@@ -109,7 +109,7 @@ public sealed class CreateGoldTests
     [InlineData(RoomTypeId.Portal)]
     public void OwnSpecialRoomInteriorIsRefused_StronglyInferredFromBinary(RoomTypeId kind)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         byte terrain = db.Rooms.Values.Single(r => r.TypeId == kind).TerrainId;
         for (int y = 8; y <= 12; y++)
             for (int x = 8; x <= 12; x++)
@@ -132,7 +132,7 @@ public sealed class CreateGoldTests
     public void AFullTreasuryDoesNotRefuseTheCastAndStoresWhatFitsOnLanding_StronglyInferredFromBinary(int space)
     {
         // State 5 (0x0049F730) deposits on landing; the rest is one new pile (0x004F3C60).
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         world.Tile(At).TerrainId = db.Rooms.Values.Single(r => r.TypeId == RoomTypeId.Treasury).TerrainId;
         int capacity = GoldStore.Capacity(db, world.Tile(At));
         world.Tile(At).GoldHeld = capacity - space;
@@ -146,7 +146,7 @@ public sealed class CreateGoldTests
     [Fact]
     public void AlliedLandAndExactManaCostAreEnoughWithoutStoredGold_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         world.SetAllied(Keeper, Rival, true);
         world.Tile(At).OwnerPlayerId = Rival;
         world.Player(Keeper).Mana = db.KeeperSpellById(SpellId)!.ManaCost;
@@ -159,7 +159,7 @@ public sealed class CreateGoldTests
     [Fact]
     public void RepeatedCastsMergeWithoutAPileSizeCap_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         var sim = new GameSimulation(db, world, 1, Systems());
         sim.Tick(InputFrame.Of(Cast()));
         int first = Assert.Single(world.Objects).Id;
@@ -177,7 +177,7 @@ public sealed class CreateGoldTests
     [Fact]
     public void NineBandsStaySeparateAndAnInteriorRecastMerges_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         var sim = new GameSimulation(db, world, 1, Systems());
         world.Player(Keeper).Mana = db.KeeperSpellById(SpellId)!.ManaCost * 10;
         int[] centres = [0x2AA, 0x7FF, 0xD54];
@@ -207,9 +207,9 @@ public sealed class CreateGoldTests
     [InlineData(0xFFF, true)]
     public void CandidateExactlyOnABandEdgeIsNotMerged_StronglyInferredFromBinary(int boundary, bool vertical)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         var sim = new GameSimulation(db, world, 1, Systems());
-        var cast = CastAtOffsets(new Fp32(vertical ? 0x800 : boundary), new Fp32(vertical ? boundary : 0x800));
+        CastSpellAtPlaceCommand cast = CastAtOffsets(new Fp32(vertical ? 0x800 : boundary), new Fp32(vertical ? boundary : 0x800));
         sim.Tick(InputFrame.Of(cast));
         sim.Tick(InputFrame.Of(cast));
         Assert.Equal(2, world.Objects.Count);
@@ -225,7 +225,7 @@ public sealed class CreateGoldTests
     [InlineData(0xFFF, 0xD54)]
     public void IncomingBandEdgeCanMergeAnInteriorCandidate_StronglyInferredFromBinary(int boundary, int interior)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         var sim = new GameSimulation(db, world, 1, Systems());
         sim.Tick(InputFrame.Of(CastAtOffsets(new Fp32(interior), new Fp32(0x800))));
         int first = Assert.Single(world.Objects).Id;
@@ -243,7 +243,7 @@ public sealed class CreateGoldTests
     [InlineData(5)]
     public void DeadHeldCarriedOtherTypesAndOtherTilesAreNotCandidates_StronglyInferredFromBinary(int change)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         byte kind = change switch
         {
             1 => db.Objects.Values.Single(o => o.Name == "Gold Bag").ObjectId,
@@ -267,7 +267,7 @@ public sealed class CreateGoldTests
     [Fact]
     public void APreexistingForeignPileMergesAndBecomesNeutral_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         ObjectState existing = FloorGold.Drop(world, db, At.Y * world.Width + At.X,
             db.KeeperSpellById(SpellId)!.ShotData2, Rival)!;
         new GameSimulation(db, world, 1, Systems()).Tick(InputFrame.Of(Cast()));
@@ -279,7 +279,7 @@ public sealed class CreateGoldTests
     [Fact]
     public void ARoomSweepUsesTheRemainingCapacityAcrossItsTiles_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         byte terrain = db.Rooms.Values.Single(r => r.TypeId == RoomTypeId.Treasury).TerrainId;
         world.Tile(At).TerrainId = terrain;
         world.Tile(At.X + 1, At.Y).TerrainId = terrain;
@@ -301,7 +301,7 @@ public sealed class CreateGoldTests
     [Fact]
     public void AHandDropUpdatesTheLandingPositionBeforeMerging_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         ISimulationSystem[] systems = [new KeeperSpellSystem(), new ShotSystem(), new HandSystem()];
         var sim = new GameSimulation(db, world, 1, systems);
         sim.Tick(InputFrame.Of(CastAtOffsets(new Fp32(0x2AA), new Fp32(0x2AA))));
@@ -324,13 +324,13 @@ public sealed class CreateGoldTests
     [Fact]
     public void PendingCastSurvivesASnapshotAndUsesTheDescriptorRatherThanFixedAmounts_StronglyInferredFromBinary()
     {
-        var (db, world) = Setup(Spell() with { ManaCost = 321, ShotData2 = 4321 });
+        (GameDatabase? db, WorldState? world) = Setup(Spell() with { ManaCost = 321, ShotData2 = 4321 });
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem()]);
         sim.Tick(InputFrame.Of(Cast()));
         Assert.Equal(4321, Assert.Single(world.Shots).Data2);
         Assert.Equal(45000 - 321, world.Player(Keeper).Mana);
-        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, Systems());
-        var original = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, Systems());
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, Systems());
+        GameSimulation original = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, Systems());
         Assert.Equal(sim.StateHash(), copy.StateHash());
         copy.Run(20);
         original.Run(20);

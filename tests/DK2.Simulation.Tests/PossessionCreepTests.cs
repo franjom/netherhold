@@ -26,7 +26,7 @@ public sealed class PossessionCreepTests
     private static (GameDatabase Db, WorldState World, CreatureState Me) Open(int percent = 50)
     {
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Possessor(), Creeper(percent));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(30, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(30, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -47,7 +47,7 @@ public sealed class PossessionCreepTests
     [Fact]
     public void TheCreepCommandSetsAndClearsTheBit_StronglyInferredFromBinary()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         GameSimulation sim = Sim(db, world);
 
         sim.Tick(InputFrame.Of(new SetCreepingCommand(Keeper, true)));
@@ -59,7 +59,7 @@ public sealed class PossessionCreepTests
     [Fact]
     public void LeavingPossessionEndsCreeping_StronglyInferredFromBinary()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         GameSimulation sim = Sim(db, world);
         sim.Tick(InputFrame.Of(new SetCreepingCommand(Keeper, true)));
 
@@ -77,7 +77,7 @@ public sealed class PossessionCreepTests
     [InlineData(true, 50, 100_000_000, 7_050_327)]    // and it keeps only its low 32 bits
     public void ACreepersDistanceIsItsPerCentOfTheTrueOne_StronglyInferredFromBinary(bool creeping, int percent, int distance, int expected)
     {
-        var (db, _, me) = Open(percent);
+        (GameDatabase? db, WorldState _, CreatureState? me) = Open(percent);
         me.Creeping = creeping;
 
         Assert.Equal(expected, PossessionRules.CreepingDistance(db, me, distance));
@@ -90,7 +90,7 @@ public sealed class PossessionCreepTests
     [InlineData(true, 0)]
     public void ACreepingSneakerIsJudgedCloserByAWatcher_StronglyInferredFromBinary(bool creeping, byte disguise)
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
         world.Tile(20, 15).OwnerPlayerId = Rival;
         GameSimulation sim = Sim(db, world);
@@ -104,7 +104,7 @@ public sealed class PossessionCreepTests
     [Fact]
     public void CreepingSurvivesASnapshot()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         me.Creeping = true;
 
         var sim = new GameSimulation(db, world, 1, []);

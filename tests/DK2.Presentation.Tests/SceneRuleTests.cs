@@ -115,7 +115,7 @@ public sealed class SceneRuleTests
         var heads = new CreatureHeadTable();
         var imp = new CreatureId(7);
         heads.Add(imp);
-        var deadline = DateTime.UtcNow.AddMilliseconds(300);
+        DateTime deadline = DateTime.UtcNow.AddMilliseconds(300);
         int torn = 0, reads = 0;
         var writer = new Thread(() =>
         {

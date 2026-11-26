@@ -29,11 +29,11 @@ public class WorldViewTests
         (GameDatabase database, _) = RealLevel()!.Value;
         byte guard = database.Rooms.Values.First(r => r.TypeId == RoomTypeId.GuardRoom).TerrainId;
         byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
-        var tiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray();
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray();
         tiles[3 + 3 * 8] = new(guard, PlayerIds.FirstKeeper, 0, 0);
         tiles[4 + 3 * 8] = new(guard, PlayerIds.FirstKeeper, 0, 0);
         tiles[5 + 5 * 8] = new(guard, PlayerIds.Good, 0, 0);
-        WorldState world = WorldState.FromMap(database, new LevelMap(8, 8, tiles),
+        var world = WorldState.FromMap(database, new LevelMap(8, 8, tiles),
             [PlayerIds.FirstKeeper, PlayerIds.Good], fogOfWarEnabled: true);
         var view = new WorldView(database, PlayerIds.FirstKeeper);
         var palette = new MinimapPalette(new uint[37]);
@@ -50,10 +50,10 @@ public class WorldViewTests
         int distance = unchecked((byte)database[VariableTypeId.GuardRoomReportingDistanceTiles]);
         int size = 2 * distance + 12;
         int roomX = distance + 3;
-        var unclampedTiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), size * size).ToArray();
+        MapTile[] unclampedTiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), size * size).ToArray();
         unclampedTiles[roomX + roomX * size] = new(guard, PlayerIds.FirstKeeper, 0, 0);
         unclampedTiles[roomX + 1 + roomX * size] = new(guard, PlayerIds.FirstKeeper, 0, 0);
-        WorldState unclampedWorld = WorldState.FromMap(database, new LevelMap(size, size, unclampedTiles),
+        var unclampedWorld = WorldState.FromMap(database, new LevelMap(size, size, unclampedTiles),
             [PlayerIds.FirstKeeper], fogOfWarEnabled: true);
         view.CaptureMinimapMarkers(unclampedWorld, palette, markers);
         outline = Assert.Single(markers, m => m.Kind == MinimapMarkerKind.Rectangle);
@@ -72,7 +72,7 @@ public class WorldViewTests
         var database = new GameDatabase(source.Terrain.Values, source.Rooms.Values, source.Creatures.Values,
             source.Variables, objects: source.Objects.Values, traps: [alarm, guard]);
         byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
-        WorldState world = WorldState.FromMap(database,
+        var world = WorldState.FromMap(database,
             new LevelMap(8, 8, Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray()),
             [PlayerIds.FirstKeeper, PlayerIds.Good]);
         ThingProjection.Place(world, database,
@@ -112,10 +112,10 @@ public class WorldViewTests
         (GameDatabase database, _) = RealLevel()!.Value;
         byte heart = database.Rooms.Values.First(r => r.TypeId == RoomTypeId.DungeonHeart).TerrainId;
         byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
-        var tiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray();
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray();
         for (int y = 3; y <= 4; y++)
             for (int x = 3; x <= 4; x++) tiles[x + y * 8] = new(heart, PlayerIds.FirstKeeper, 0, 0);
-        WorldState world = WorldState.FromMap(database, new LevelMap(8, 8, tiles), [PlayerIds.FirstKeeper], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(database, new LevelMap(8, 8, tiles), [PlayerIds.FirstKeeper], fogOfWarEnabled: true);
         var view = new WorldView(database, PlayerIds.FirstKeeper);
         var palette = new MinimapPalette(new uint[37]);
         var markers = new List<MinimapMarker>();
@@ -138,7 +138,7 @@ public class WorldViewTests
     {
         (GameDatabase database, _) = RealLevel()!.Value;
         byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
-        WorldState world = WorldState.FromMap(database,
+        var world = WorldState.FromMap(database,
             new LevelMap(8, 8, Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray()),
             [PlayerIds.FirstKeeper, PlayerIds.Good], fogOfWarEnabled: true);
         CreatureDef definition = database.Creatures.Values.Single(c => c.Name == "Imp");
@@ -184,7 +184,7 @@ public class WorldViewTests
         CreatureState creature = world.SpawnCreature(database, definition.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
         var view = new WorldView(database);
         for (int i = 0; i < 100; i++) view.AnimationFor(creature, world.CurrentTick);
-        AssetRef expected = AssetRef.ForCreature(definition.Name, AssetKind.Animation, "idle");
+        var expected = AssetRef.ForCreature(definition.Name, AssetKind.Animation, "idle");
         long before = GC.GetAllocatedBytesForCurrentThread();
         AssetRef actual = default;
         for (int i = 0; i < 1000; i++) actual = view.AnimationFor(creature, world.CurrentTick);
@@ -455,7 +455,7 @@ public class WorldViewTests
         simulation.Tick();
         Assert.False(caster.SwingInProgress);
         var view = new WorldView(database);
-        AssetRef casting = AssetRef.ForCreature("Wizard", AssetKind.Animation, "casting");
+        var casting = AssetRef.ForCreature("Wizard", AssetKind.Animation, "casting");
         Assert.Equal(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
         caster.Possessed = true;
         Assert.NotEqual(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
@@ -644,7 +644,7 @@ public class WorldViewTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
-        WorldState world = WorldState.FromMap(database,
+        var world = WorldState.FromMap(database,
             GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [1, 3]);
         TilePos water = Enumerable.Range(0, world.Width * world.Height)
             .Select(i => new TilePos(i % world.Width, i / world.Width))
@@ -660,7 +660,7 @@ public class WorldViewTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
-        WorldState world = WorldState.FromMap(database,
+        var world = WorldState.FromMap(database,
             GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [1, 3]);
         TilePos water = Enumerable.Range(0, world.Width * world.Height)
             .Select(i => new TilePos(i % world.Width, i / world.Width))
@@ -678,7 +678,7 @@ public class WorldViewTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
-        WorldState world = WorldState.FromMap(database,
+        var world = WorldState.FromMap(database,
             GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [1, 3]);
         TilePos bridge = Enumerable.Range(0, world.Width * world.Height)
             .Select(i => new TilePos(i % world.Width, i / world.Width))
@@ -1131,7 +1131,7 @@ public class WorldViewTests
             TerrainDef terrain = database.Terrain.Values.Single(t => t.Name.Trim() == name);
             Assert.True(terrain.IsSolid, $"{name} is not solid, so it has no wall symbol.");
 
-            AssetRef reference = AssetRef.ForTerrain(terrain.Name, AssetKind.Mesh);
+            var reference = AssetRef.ForTerrain(terrain.Name, AssetKind.Mesh);
             glyphs[name] = TextRenderer.WallAlphabet[
                 PlaceholderProvider.SymbolIndex(reference, TextRenderer.WallAlphabet.Length)];
         }
@@ -1161,8 +1161,8 @@ public class WorldViewTests
     {
         GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte heart = database.Rooms.Values.Single(r => r.TypeId == RoomTypeId.DungeonHeart).TerrainId;
-        var tiles = Enumerable.Repeat(new MapTile(heart, PlayerIds.Good, 0, 0), 25).ToArray();
-        WorldState world = WorldState.FromMap(database, new LevelMap(5, 5, tiles), [PlayerIds.Good]);
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(heart, PlayerIds.Good, 0, 0), 25).ToArray();
+        var world = WorldState.FromMap(database, new LevelMap(5, 5, tiles), [PlayerIds.Good]);
         Assert.Equal(0, world.Player(PlayerIds.Good).HeartHealth);
         ObjectView[] furniture = new WorldView(database).Decorations(world).ToArray();
         Assert.Contains(furniture, o => o.ObjectTypeId == 13);
@@ -1174,7 +1174,7 @@ public class WorldViewTests
     {
         GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level7")!;
-        WorldState world = WorldState.FromMap(database, map, [PlayerIds.Good, PlayerIds.FirstKeeper, (byte)4]);
+        var world = WorldState.FromMap(database, map, [PlayerIds.Good, PlayerIds.FirstKeeper, (byte)4]);
         var view = new WorldView(database);
         Assert.Contains(view.Decorations(world).Where(o => o.OwnerPlayerId == 4 || o.ObjectTypeId == 100), o => o.ObjectTypeId == 13);
         Assert.Contains(view.Decorations(world).Where(o => o.OwnerPlayerId == 4 || o.ObjectTypeId == 100), o => o.ObjectTypeId == 94);

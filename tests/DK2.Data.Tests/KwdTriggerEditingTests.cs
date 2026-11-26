@@ -19,7 +19,7 @@ public class KwdTriggerEditingTests
     {
         KwdChunk source=TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(KwdThingEditingTests.Trigger(214,14)).ToArray());
         Array.Fill(source.HeaderBlock,(byte)0x5A,8,24);
-        var editor=Set(source); byte[] before=editor.ToBytes("triggers.kld");
+        KwdLevelFileSet editor =Set(source); byte[] before=editor.ToBytes("triggers.kld");
         byte[] bytes=KwdThingEditingTests.Trigger(tag,15); TriggerRecord row=Read(bytes);
         editor.InsertTrigger(new("triggers.kld",0,1),row,new KwdRecordImage(KwdRecordType.Triggers,bytes,tag));
         KwdChunk result=KwdThingEditingTests.Reload(editor.ToBytes("triggers.kld"));
@@ -63,7 +63,7 @@ public class KwdTriggerEditingTests
     [Fact]
     public void DuplicateReservedLinkedAndPreviouslyReferencedNewIdsAreRefused()
     {
-        var editor=Set(TriggerChunk(KwdThingEditingTests.Trigger(213,13,next:14)));
+        KwdLevelFileSet editor =Set(TriggerChunk(KwdThingEditingTests.Trigger(213,13,next:14)));
         byte[] original=editor.ToBytes("triggers.kld");
         foreach(byte[] bytes in new[]{KwdThingEditingTests.Trigger(213,13),KwdThingEditingTests.Trigger(213,0),
             KwdThingEditingTests.Trigger(213,14),KwdThingEditingTests.Trigger(214,15,next:13),KwdThingEditingTests.Trigger(213,15,child:13)})
@@ -73,14 +73,14 @@ public class KwdTriggerEditingTests
         Assert.Equal(original,editor.ToBytes("triggers.kld"));
         var incomplete=KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> { ["triggers.kld"]=[TriggerChunk(KwdThingEditingTests.Trigger(213,13))] });
         Assert.Throws<InvalidDataException>(()=>incomplete.RemoveTrigger(new("triggers.kld",0,0)));
-        var duplicate=Set(TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(KwdThingEditingTests.Trigger(214,13)).ToArray()));
+        KwdLevelFileSet duplicate =Set(TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(KwdThingEditingTests.Trigger(214,13)).ToArray()));
         Assert.Throws<InvalidDataException>(()=>duplicate.RemoveTrigger(new("triggers.kld",0,0)));
     }
 
     [Fact]
     public void LinkTriggerSetsLinksOnlyToNodesThatExistOnceAndAreUnreferenced()
     {
-        var editor=Set(TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(KwdThingEditingTests.Trigger(214,14))
+        KwdLevelFileSet editor =Set(TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(KwdThingEditingTests.Trigger(214,14))
             .Concat(KwdThingEditingTests.Trigger(214,15)).ToArray()));
         byte[] original=editor.ToBytes("triggers.kld");
         foreach((ushort next,ushort child) in new (ushort,ushort)[]{(99,0),(0,99),(13,0),(14,14)})
@@ -90,7 +90,7 @@ public class KwdTriggerEditingTests
         editor.LinkTrigger(new("triggers.kld",0,0),0,14);
         editor.LinkTrigger(new("triggers.kld",0,1),15,0);
         Assert.Throws<InvalidDataException>(()=>editor.LinkTrigger(new("triggers.kld",0,2),0,14));
-        var rows=KwdTriggers.Parse([KwdThingEditingTests.Reload(editor.ToBytes("triggers.kld"))]);
+        List<TriggerRecord> rows =KwdTriggers.Parse([KwdThingEditingTests.Reload(editor.ToBytes("triggers.kld"))]);
         Assert.Equal([(0,14),(15,0),(0,0)],rows.Select(r=>((int)r.NextTriggerId,(int)r.ChildTriggerId)).ToArray());
     }
 
@@ -102,9 +102,9 @@ public class KwdTriggerEditingTests
             var editor=KwdLevelFileSet.Load(level,Dk2InstallGate.Path);
             string file=editor.Files.Single(f=>f.EndsWith("Triggers.kld",StringComparison.OrdinalIgnoreCase));
             KwdChunk chunk=editor.Chunks(file).Single(c=>c.Type==KwdRecordType.Triggers);
-            var rows=KwdTriggers.Parse([chunk]);
+            List<TriggerRecord> rows =KwdTriggers.Parse([chunk]);
             byte[] fallback=KwdThingEditingTests.Trigger(213,1);
-            var image=rows.Count==0 ? new KwdRecordImage(KwdRecordType.Triggers,fallback,213) : KwdRecordRoundTrip.Split(chunk)[0];
+            KwdRecordImage image =rows.Count==0 ? new KwdRecordImage(KwdRecordType.Triggers,fallback,213) : KwdRecordRoundTrip.Split(chunk)[0];
             TriggerRecord prototype=rows.Count==0 ? Read(fallback) : rows[0];
             byte[] original=editor.ToBytes(file);
             var used=editor.Files.SelectMany(f=>editor.Chunks(f))
@@ -124,7 +124,7 @@ public class KwdTriggerEditingTests
     private static KwdChunk TriggerChunk(byte[] content)
     {
         KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Triggers,content,content.Length/24);
-        var records=KwdTaggedRecords.Split(chunk);
+        List<KwdTaggedRecords.TaggedRecord> records =KwdTaggedRecords.Split(chunk);
         BinaryPrimitives.WriteInt32LittleEndian(chunk.HeaderBlock,records.Count(r=>r.Tag==213));
         BinaryPrimitives.WriteInt32LittleEndian(chunk.HeaderBlock.AsSpan(4),records.Count(r=>r.Tag==214));
         return chunk;

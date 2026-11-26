@@ -46,7 +46,7 @@ public sealed class SpellSoundTests
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
             [thunderbolt, tremor], objects: basis.Objects.Values,
             shots: [Shot(21, 9, shotCategory, 0x40), Shot(24, 27, shotCategory, 0x40, 10)]);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         world.Player(Keeper).Mana = 90000;
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, 6, 3));
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, 8, 3));

@@ -53,7 +53,7 @@ public class WallsBlockMovementTests
     public void NoCreatureIsEverStandingOnASolidTile()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < 4; i++)
@@ -94,7 +94,7 @@ public class WallsBlockMovementTests
     public void NoRouteACreatureIsWalkingCrossesASolidTile()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < 4; i++)
@@ -134,7 +134,7 @@ public class WallsBlockMovementTests
     public void GroundThatStopsBeingWalkableUnderAWalkStopsTheWalk()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         // A corridor of claimed floor from the starting room out along row 2.
@@ -186,7 +186,7 @@ public class WallsBlockMovementTests
     public void TheGridRefusesEverySolidTerrainAndAcceptsEveryOpenOne()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         CreatureDef walker = Dk2TerrainFixture.Imp() with

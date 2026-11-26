@@ -416,7 +416,7 @@ public class TriggerExecutorOnRealDataTests
         byte[] players = GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!
             .Select(p => p.PlayerId).ToArray();
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "level1")!;
-        WorldState world = WorldState.FromMap(database, map, players);
+        var world = WorldState.FromMap(database, map, players);
         if (withThings) ThingProjection.Place(world, database, things);
         var tree = new TriggerTree(
             records, level.TriggerId, things.OfType<HeroPartyThing>(),

@@ -24,7 +24,7 @@ public sealed class HandDropFeedbackTests
     [InlineData(true, true)]
     public void OnlyAnAcceptedDropRequestsHandFeedback(bool gold, bool refused)
     {
-        var (sim, item) = World(gold);
+        (GameSimulation? sim, HandItem item) = World(gold);
         sim.World.Player(Keeper).Hand.Add(item);
         if (item.IsObject) sim.World.ObjectById(item.Id)!.InHand = true;
         else sim.World.CreatureById(item.Id)!.InHand = true;
@@ -51,14 +51,14 @@ public sealed class HandDropFeedbackTests
     [InlineData(true, true)]
     public void APendingPickupCanQueueADropButFeedbackWaitsForItsAcceptance(bool gold, bool refused)
     {
-        var (sim, item) = World(gold);
+        (GameSimulation? sim, HandItem item) = World(gold);
         PlayerCommand pickup = item.IsObject
             ? new PickUpObjectCommand(Keeper, item.Id) : new PickUpCreatureCommand(Keeper, item.Id);
         var feedback = new HandCursorFeedback();
         var observer = new HandCursorEventSink(feedback, Keeper);
         sim.ObserveWith(observer);
         TilePos tile = refused ? Wall : Floor;
-        PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(new WorldView(sim.Database, Keeper),
+        var snapshot = PlayerInputSnapshot.Capture(new WorldView(sim.Database, Keeper),
             sim.World, Keeper, sim.Database, tile, [pickup]);
         var intent = new PlayerIntent(Keeper, PlayerToolMode.Hand, tile, PointerButtonTransition.None,
             SecondaryButton: PointerButtonTransition.Pressed);
@@ -97,8 +97,8 @@ public sealed class HandDropFeedbackTests
     [InstallFact]
     public void TwoDropsInOneTickAnimateTheActualStackTopRatherThanTheOldGoldTop()
     {
-        var (sim, gold) = World(gold: true);
-        var creature = sim.World.SpawnCreature(sim.Database, sim.Database.CreatureByName("Goblin")!.CreatureId, Keeper, Start);
+        (GameSimulation? sim, HandItem gold) = World(gold: true);
+        CreatureState creature = sim.World.SpawnCreature(sim.Database, sim.Database.CreatureByName("Goblin")!.CreatureId, Keeper, Start);
         creature.InHand = true;
         sim.World.ObjectById(gold.Id)!.InHand = true;
         sim.World.Player(Keeper).Hand.Add(HandItem.Of(creature));
@@ -131,12 +131,12 @@ public sealed class HandDropFeedbackTests
     [InstallFact]
     public void AFailedPendingPickupDoesNotAnimateOrDropAnything()
     {
-        var (sim, _) = World(gold: false);
+        (GameSimulation? sim, HandItem _) = World(gold: false);
         var pickup = new PickUpCreatureCommand(Keeper, int.MaxValue);
         var feedback = new HandCursorFeedback();
         var observer = new HandCursorEventSink(feedback, Keeper);
         sim.ObserveWith(observer);
-        PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(new WorldView(sim.Database, Keeper),
+        var snapshot = PlayerInputSnapshot.Capture(new WorldView(sim.Database, Keeper),
             sim.World, Keeper, sim.Database, Floor, [pickup]);
         var intent = new PlayerIntent(Keeper, PlayerToolMode.Hand, Floor, PointerButtonTransition.None,
             SecondaryButton: PointerButtonTransition.Pressed);
@@ -154,7 +154,7 @@ public sealed class HandDropFeedbackTests
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte floor = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
         var map = new LevelMap(5, 5, Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 25).ToArray());
-        WorldState world = WorldState.FromMap(db, map, [PlayerIds.Neutral, Keeper.Value]);
+        var world = WorldState.FromMap(db, map, [PlayerIds.Neutral, Keeper.Value]);
         world.Tile(Wall).TerrainId = db.Terrain.Values.First(t => t.IsSolid).TerrainId;
         HandItem item;
         if (gold)

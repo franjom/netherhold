@@ -16,7 +16,7 @@ public class FrontEndSceneryTests
     [InstallFact]
     public void ShippedRoomUsesAllSixteenWholePiecesIncludingTheEntrance()
     {
-        var (database, world) = Load();
+        (GameDatabase? database, WorldState? world) = Load();
         var view = new WorldView(database);
         var pieces = new List<int>();
         for (int y = 7; y < 12; y++)
@@ -39,20 +39,20 @@ public class FrontEndSceneryTests
     [InstallFact]
     public void NativeSlabIndicesPlaceChainsBannersHolderAndBothTables()
     {
-        var (database, world) = Load();
-        var scenery = FrontEndScenery.Create(world, database, new CampaignProfile(), new SimRandom(1));
+        (GameDatabase? database, WorldState? world) = Load();
+        IReadOnlyList<FrontEndProp> scenery = FrontEndScenery.Create(world, database, new CampaignProfile(), new SimRandom(1));
         Assert.Equal(8, scenery.Count(p => p.View.ObjectTypeId == 132));
         Assert.Equal(8, scenery.Count(p => p.View.ObjectTypeId is 89 or 134 or 135 or 136));
-        var holder = Assert.Single(scenery, p => p.View.ObjectTypeId == 131);
+        FrontEndProp holder = Assert.Single(scenery, p => p.View.ObjectTypeId == 131);
         Assert.Equal(new TilePos(3, 7), holder.View.Tile);
         Assert.Equal(0x400, holder.View.Heading);
-        var land = scenery.Where(p => p.MapPiece.HasValue).ToArray();
+        FrontEndProp[] land = scenery.Where(p => p.MapPiece.HasValue).ToArray();
         Assert.Equal(30, land.Length);
         Assert.All(land, p => { Assert.Equal(new TilePos(3, 10), p.View.Tile); Assert.Equal(0x400, p.View.Heading); });
         Assert.Equal(FrontEndMapPiece.Level21, land[24].MapPiece);
         Assert.Equal(FrontEndMapPiece.Secret5, land[29].MapPiece);
         Assert.All(land.Skip(25), p => Assert.False(p.Visible));
-        var mpd = scenery.Where(p => p.PetDungeonPiece.HasValue).ToArray();
+        FrontEndProp[] mpd = scenery.Where(p => p.PetDungeonPiece.HasValue).ToArray();
         Assert.Equal(7, mpd.Length);
         Assert.All(mpd, p => { Assert.Equal(2 * 4096 + 0x19a, p.View.PosX); Assert.Equal(0x600, p.View.Heading); });
         Assert.Equal(54, scenery.Count);
@@ -68,19 +68,19 @@ public class FrontEndSceneryTests
     [InstallFact]
     public void CampaignMarkersUseTheNativeFactoryAndMapTexturePhaseChangesReachTheView()
     {
-        var (database, world) = Load();
-        var markers = FrontEndScenery.CreateCampaignMarkers(database);
+        (GameDatabase? database, WorldState? world) = Load();
+        IReadOnlyList<FrontEndProp> markers = FrontEndScenery.CreateCampaignMarkers(database);
         Assert.Equal(24, markers.Count);
         Assert.All(markers, p => { Assert.Equal(115, p.View.ObjectTypeId); Assert.Equal(0x3800, p.View.PosX);
             Assert.Equal(0xa800, p.View.PosY); Assert.Equal(0x400, p.View.Heading); Assert.False(p.Visible); });
         Assert.Equal(new CampaignSlot(6), markers[5].MarkerSlot);
-        var p = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(6));
+        CampaignProfile p = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(6));
         var session = new FrontEndSession(_ => new[] { new KcsFrame(0, 0, -3, new KcsRotation(1,0,0,0,1,0,0,0,1), 1, 20000) });
         using var map = new CampaignMapController(session, p, false, slot => new(slot, "", "", "", Array.Empty<string>()));
         session.Update(TimeSpan.Zero); session.Update(TimeSpan.Zero); map.Continue(); session.Update(TimeSpan.FromSeconds(1));
-        var original = FrontEndScenery.Create(world, database, p, new SimRandom(1)).Concat(markers).ToArray();
-        var projected = FrontEndScenery.ApplyCampaignMap(original, map);
-        var won = projected.Single(s => s.MapPiece == FrontEndMapPiece.Level6a);
+        FrontEndProp[] original = FrontEndScenery.Create(world, database, p, new SimRandom(1)).Concat(markers).ToArray();
+        IReadOnlyList<FrontEndProp> projected = FrontEndScenery.ApplyCampaignMap(original, map);
+        FrontEndProp won = projected.Single(s => s.MapPiece == FrontEndMapPiece.Level6a);
         Assert.Equal(0x55a, won.View.TexturePhase!.Value.Raw);
         Assert.False(projected.Single(s => s.MarkerSlot == new CampaignSlot(7)).Visible);
         Assert.True(projected.Single(s => s.MarkerSlot == new CampaignSlot(8)).Visible);

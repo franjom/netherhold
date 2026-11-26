@@ -54,7 +54,7 @@ public sealed class WorkshopTimerTests
 
     private static WorldState World(GameDatabase db, int x0 = 3, int y0 = 3, int size = 5, bool furnish = true)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(24, 24), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(24, 24), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = y0; y < y0 + size; y++)
         for (int x = x0; x < x0 + size; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
@@ -438,7 +438,7 @@ public sealed class WorkshopTimerTests
         MapTile[] tiles = [.. basis.Tiles];
         foreach ((int x, int y) in new[] { (10, 10), (12, 10), (10, 11), (11, 11), (12, 11) })
             tiles[(y * 24) + x] = new MapTile(Dk2TerrainFixture.WorkshopTerrain, Keeper, 0, 0);
-        WorldState world = WorldState.FromMap(db, new LevelMap(24, 24, tiles), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, new LevelMap(24, 24, tiles), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         GameSimulation sim = Sim(db, world);
 

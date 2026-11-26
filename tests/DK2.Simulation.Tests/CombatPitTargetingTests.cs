@@ -26,7 +26,7 @@ public sealed class CombatPitTargetingTests
             DistanceCanHear = new Fp32(8 * Fp32.One),
             Spells = [],
         });
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(20, 16),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(20, 16),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
         for (int x = 1; x < world.Width - 1; x++) world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
@@ -65,7 +65,7 @@ public sealed class CombatPitTargetingTests
     [InlineData(true)]
     public void AMissingForcedTagFindsTheNearestAttackableCreatureEvenWhenItIsAnAlly(bool hearingOnly)
     {
-        var (database, world) = Open();
+        (GameDatabase? database, WorldState? world) = Open();
         CreatureState me = world.SpawnArrived(database, SeekerType, Keeper, new TilePos(5, 5));
         CreatureState ally = world.SpawnArrived(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(7, 5));
         world.SpawnArrived(database, Dk2TerrainFixture.KnightCreatureId, Rival, new TilePos(8, 5));
@@ -82,7 +82,7 @@ public sealed class CombatPitTargetingTests
     [Fact]
     public void AnImpDoesNotHearAnOwnCreatureBeyondItsOneTileSightInTheMissingTagScan()
     {
-        var (database, world) = Open();
+        (GameDatabase? database, WorldState? world) = Open();
         CreatureState me = world.SpawnArrived(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(5, 5));
         world.SpawnArrived(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(7, 5));
         Force(me, int.MaxValue);
@@ -97,7 +97,7 @@ public sealed class CombatPitTargetingTests
     [Fact]
     public void AMissingForcedDoorTagAlsoUsesTheNearestAttackableCreatureScan()
     {
-        var (database, world) = Open();
+        (GameDatabase? database, WorldState? world) = Open();
         CreatureState me = world.SpawnArrived(database, SeekerType, Keeper, new TilePos(5, 5));
         CreatureState ally = world.SpawnArrived(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(7, 5));
         Force(me, int.MaxValue);
@@ -114,7 +114,7 @@ public sealed class CombatPitTargetingTests
     [Fact]
     public void AnUnreachableForcedCreatureFallsThroughToARevealedTrap()
     {
-        var (database, world) = Open();
+        (GameDatabase? database, WorldState? world) = Open();
         CreatureState me = world.SpawnArrived(database, SeekerType, Keeper, new TilePos(5, 5));
         CreatureState target = world.SpawnArrived(database, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 5));
         for (int y = 1; y < world.Height - 1; y++) world.Tile(9, y).TerrainId = Dk2TerrainFixture.Rock;
@@ -136,7 +136,7 @@ public sealed class CombatPitTargetingTests
     [Fact]
     public void AForcedWorkerStillAllowsTheHeartScanUsingTheUnboundedRunningDistance()
     {
-        var (database, world) = Open();
+        (GameDatabase? database, WorldState? world) = Open();
         for (int y = 3; y <= 7; y++)
         for (int x = 8; x <= 12; x++)
             RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.DungeonHeart), Rival);
@@ -156,7 +156,7 @@ public sealed class CombatPitTargetingTests
     [InlineData(true)]
     public void AFriendlySpellOutranksAForcedCreatureAndAnUnreachableAllyRefusesTheWholeAcquisition(bool unreachable)
     {
-        var (database, world) = Open();
+        (GameDatabase? database, WorldState? world) = Open();
         CreatureState priest = world.SpawnArrived(database, Dk2TerrainFixture.PriestCreatureId, Keeper, new TilePos(5, 5));
         CreatureState target = world.SpawnArrived(database, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 6));
         CreatureState ally = world.SpawnArrived(database, Dk2TerrainFixture.KnightCreatureId, Keeper, new TilePos(7, 5));

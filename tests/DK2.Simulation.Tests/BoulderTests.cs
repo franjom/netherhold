@@ -20,7 +20,7 @@ public class BoulderTests
     private static (GameDatabase db, WorldState world) Open(bool corridor = true)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = corridor && y != Row ? Dk2TerrainFixture.Rock : Dk2TerrainFixture.DirtPath;
@@ -103,7 +103,7 @@ public class BoulderTests
         for (int i = 0; i < 10 && !sink.Events.Any(e => e.Kind == "boulder_struck_creature"); i++) sim.Run(1);
         // The goblin's level-scaled Hp halved, over BoulderToCreatureDamagePercentage 50: its whole Hp.
         int damage = (CreatureLevelRules.MaxHealth(db, goblinDef, goblin.Level) >> 1) * 100 / 50;
-        var struck = Assert.Single(sink.Events, e => e.Kind == "boulder_struck_creature");
+        SimEvent struck = Assert.Single(sink.Events, e => e.Kind == "boulder_struck_creature");
         Assert.Contains($"creature={goblin.Id} damage={damage}", struck.Detail);
         Assert.True(CreatureDeathRules.IsDown(goblin) || goblin.Dk2StateId == BoulderRules.StunnedState);
     }

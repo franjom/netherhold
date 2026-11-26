@@ -21,14 +21,14 @@ public class PortalCrystalArrivalTests
     [InlineData(3, 5)]
     public void AnArrivingGoblinCanLeaveAfterItsAuthoredEntranceOffset(int x, int y)
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db,
             new LevelMap(12, 12, Enumerable.Repeat(new MapTile(8, PlayerIds.FirstKeeper, 0, 0), 144).ToArray()),
             [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int py = 4; py <= 6; py++) for (int px = 4; px <= 6; px++)
             RoomRules.Place(db, ref world.Tile(px, py), db.Room(RoomTypeId.Portal), PlayerIds.FirstKeeper);
-        var definition = db.CreatureByName("Goblin")!;
-        var creature = world.SpawnCreature(db, definition.CreatureId, PlayerIds.FirstKeeper, new TilePos(5, 5));
+        CreatureDef definition = db.CreatureByName("Goblin")!;
+        CreatureState creature = world.SpawnCreature(db, definition.CreatureId, PlayerIds.FirstKeeper, new TilePos(5, 5));
         new GameSimulation(db, world, 42, []).Run(PortalRules.JoiningTicks(definition) + 1);
         Assert.False(PortalRules.StillJoining(world, creature, definition));
         var navigation = new WorldSteering(db, world);

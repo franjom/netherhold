@@ -27,7 +27,7 @@ public class CameraPathPlaybackTests
     [Fact]
     public void PathSuppressesRenderJitterWithoutLeavingAnOffsetAfterItEnds()
     {
-        var viewer = PlayerIds.FirstKeeper;
+        byte viewer = PlayerIds.FirstKeeper;
         var director = new ScriptedViewDirector(viewer, _ => Frames(399), _ => null);
         director.Emit(View(ScriptedViewKind.CameraPath, viewer, 1));
         director.Emit(View(ScriptedViewKind.CameraJitter, viewer, 1));
@@ -197,9 +197,9 @@ public class CameraPathPlaybackTests
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "level1");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;
         LevelDef level = GameDatabaseLoader.LoadCampaignLevel(install, "level1")!;
-        var players = GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!;
+        List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!;
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "level1")!;
-        WorldState world = WorldState.FromMap(database, map, [.. players.Select(p => p.PlayerId)]);
+        var world = WorldState.FromMap(database, map, [.. players.Select(p => p.PlayerId)]);
         ThingProjection.Place(world, database, things);
         var tree = new TriggerTree(GameDatabaseLoader.LoadCampaignTriggers(install, "level1")!, level.TriggerId,
             things.OfType<HeroPartyThing>(), players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));

@@ -19,7 +19,7 @@ public class ClassicLightTableTests
     [Fact]
     public void TerrainSourceUsesAuthoredHeightBoostedColourAndNativeDefaults()
     {
-        ClassicPointLight light = ClassicPointLight.FromTerrain(new TilePos(2, 3), new Fp32(-2048), new(510, 128, 0));
+        var light = ClassicPointLight.FromTerrain(new TilePos(2, 3), new Fp32(-2048), new(510, 128, 0));
         Assert.Equal(new Vector3(2.5f, -.5f, -3.5f), light.Position);
         Assert.Equal(new Vector3(2, 128f / 255f, 0), light.Colour);
         Assert.Equal(1, light.Intensity);

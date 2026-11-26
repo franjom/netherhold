@@ -18,7 +18,7 @@ public sealed class StateCopyTests
         GameDatabase database = TestWorld.Database();
         WorldState live = TestWorld.World(database);
         CreatureState creature = live.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, 1, new TilePos(3, 3));
-        WorldState presented = WorldState.CopyOf(live);
+        var presented = WorldState.CopyOf(live);
         creature.PossessionFlightForm = true;
         creature.PossessionPraying = true;
         creature.PossessionPrayerAction = true;
@@ -34,7 +34,7 @@ public sealed class StateCopyTests
 
     private static ulong WorldHash(WorldState world)
     {
-        Hash64 hash = Hash64.Start();
+        var hash = Hash64.Start();
         world.HashInto(ref hash);
         return hash.Value;
     }
@@ -49,7 +49,7 @@ public sealed class StateCopyTests
     public void CopyFrom_MatchesTheLiveWorld_AtEveryCheckpoint()
     {
         GameSimulation simulation = TestWorld.Simulation();
-        WorldState presented = WorldState.CopyOf(simulation.World);
+        var presented = WorldState.CopyOf(simulation.World);
         AssertCopied(simulation.World, presented);
         foreach (int ticks in new[] { 1, 50, 200, 600 })
         {
@@ -65,7 +65,7 @@ public sealed class StateCopyTests
     {
         GameSimulation simulation = TestWorld.Simulation();
         simulation.Run(100);
-        WorldState presented = WorldState.CopyOf(simulation.World);
+        var presented = WorldState.CopyOf(simulation.World);
         ulong frozen = WorldHash(presented);
 
         simulation.Run(300);
@@ -81,7 +81,7 @@ public sealed class StateCopyTests
     {
         GameSimulation live = TestWorld.Simulation();
         live.Run(100);
-        GameSimulation twin = GameSimulation.Resume(live.Database, WorldState.CopyOf(live.World),
+        var twin = GameSimulation.Resume(live.Database, WorldState.CopyOf(live.World),
             SimRandom.Restore(live.Rng.SaveState()), [new ChaosSystem()]);
         using (var stream = new MemoryStream())
         {
@@ -107,7 +107,7 @@ public sealed class StateCopyTests
         WorldState live = TestWorld.World(database);
         CreatureState first = live.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, ownerPlayerId: 1, new TilePos(3, 3));
         CreatureState second = live.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, ownerPlayerId: 2, new TilePos(5, 4));
-        WorldState presented = WorldState.CopyOf(live);
+        var presented = WorldState.CopyOf(live);
         CreatureState? kept = presented.CreatureById(second.Id);
         Assert.NotNull(kept);
 

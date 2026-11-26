@@ -137,7 +137,7 @@ public class KeeperKnowledgeTests(Xunit.Abstractions.ITestOutputHelper output)
         try
         {
             // No research count is given, yet the second shelves rule for one room is still refused.
-            var refused = Assert.Throws<InvalidDataException>(() => KeeperKnowledgeFile.Load(dir));
+            InvalidDataException refused = Assert.Throws<InvalidDataException>(() => KeeperKnowledgeFile.Load(dir));
             Assert.Contains("A names no known room", refused.Message, StringComparison.Ordinal);
             Assert.Contains("B targets Temple", refused.Message, StringComparison.Ordinal);
             Assert.Contains("C names no known room", refused.Message, StringComparison.Ordinal);   // a comma list ORs to a defined value
@@ -166,7 +166,7 @@ public class KeeperKnowledgeTests(Xunit.Abstractions.ITestOutputHelper output)
                   - { id: A, rule: "x", source: owner, status: maybe, applies: always, form: { kind: attraction-target, room: Library, value: 5 } }
                   - { id: A, rule: "y", source: owner, status: proposed, applies: always, form: { kind: tile-target, room: Nowhere, tiles: 3 } }
                 """);
-            var refused = Assert.Throws<InvalidDataException>(() => KeeperKnowledgeFile.Load(dir));
+            InvalidDataException refused = Assert.Throws<InvalidDataException>(() => KeeperKnowledgeFile.Load(dir));
             Assert.Contains("hash 1", refused.Message, StringComparison.Ordinal);
             Assert.Contains("status 'maybe'", refused.Message, StringComparison.Ordinal);
             Assert.Contains("'A' is missing or repeated", refused.Message, StringComparison.Ordinal);

@@ -4,6 +4,7 @@
 
 using DK2.Simulation.Systems;
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation.Tests;
 
@@ -15,7 +16,7 @@ public class ObjectReactionTests
     [InlineData(13)]
     public void SimultaneousStruckObjectsTakeTheirRandomDirectionsNewestFirst(int seed)
     {
-        var database = Dk2TerrainFixture.Database();
+        GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [0, 1, 3]);
         ObjectState older = world.SpawnObject(database, 35, 3, 40);
         ObjectState newer = world.SpawnObject(database, 35, 3, 41);
@@ -37,7 +38,7 @@ public class ObjectReactionTests
     [InlineData(13)]
     public void AStruckObjectDrawsInThingOrderAmongTheBirds(int seed)
     {
-        var database = Dk2TerrainFixture.Database();
+        GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [0, 1, 3]);
         ObjectState bird = world.SpawnObject(database, HatcheryRules.ChickenObjectId, 3, 41);
         bird.ProcessState = (byte)ChickenProcess.Reaction;
@@ -56,7 +57,7 @@ public class ObjectReactionTests
     [Fact]
     public void StruckObjectUsesOriginalDecayingSpinAndEndsAtTheThreshold()
     {
-        var database = Dk2TerrainFixture.Database();
+        GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [0, 1, 3]);
         ObjectState target = world.SpawnObject(database, 35, 3, 40);
         target.ProcessState = ObjectReactionRules.StruckProcess;

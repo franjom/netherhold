@@ -31,7 +31,7 @@ public sealed class CombatPitSpectatorTests
         { CreatureId = Watcher, Name = "Watching Goblin", HappyJobs = [new(JobType.CombatPitSpectate, 0, 0, 100)], ArtSlots = art };
         GameDatabase db = Dk2TerrainFixture.Database(watcher,
             watcher with { CreatureId = SlowTurner, Name = "Slow Goblin", TurnRate = 256 });
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 8; y++)
         for (int x = 1; x <= 12; x++)
         {
@@ -100,7 +100,7 @@ public sealed class CombatPitSpectatorTests
     {
         CreatureDef watcherDef = Dk2TerrainFixture.Goblin() with { CreatureId = Watcher, Name = "Watching Goblin", HappyJobs = [new(JobType.CombatPitSpectate, 0, 0, 100)] };
         GameDatabase db = Dk2TerrainFixture.Database(watcherDef);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 10; y++)
         for (int x = 1; x <= 14; x++)
         {

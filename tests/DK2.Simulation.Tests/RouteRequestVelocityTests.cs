@@ -19,7 +19,7 @@ public class RouteRequestVelocityTests
     [Fact]
     public void AFoundRouteStartsFromZeroVelocityAtTheEntityPosition()
     {
-        var (db, world, imp) = MovingImp();
+        (GameDatabase? db, WorldState? world, CreatureState? imp) = MovingImp();
         Assert.True(new WorldSteering(db, world).TryRouteTo(
             imp, CreatureState.CentreOf(10), CreatureState.CentreOf(6), MoveOptions.Plain));
         Assert.Equal(Fixed16Vector.Zero, imp.Body.Vel);
@@ -29,7 +29,7 @@ public class RouteRequestVelocityTests
     [Fact]
     public void ARequestOnTheSameTileAndAStanceRequestAlsoZeroIt()
     {
-        var (db, world, imp) = MovingImp();
+        (GameDatabase? db, WorldState? world, CreatureState? imp) = MovingImp();
         var navigation = new WorldSteering(db, world);
         Assert.True(navigation.TryRouteTo(imp, imp.PosX, imp.PosY, MoveOptions.Plain));
         Assert.Equal(Fixed16Vector.Zero, imp.Body.Vel);
@@ -43,7 +43,7 @@ public class RouteRequestVelocityTests
     public void AOneTrianglePointComesBackOnTheQueryGridWhileTheTargetStaysExact()
     {
         // 0x004D5100 queries >> 8 and loads the points << 8 (ADR-0719); the target is kept raw.
-        var (db, world, imp) = MovingImp();
+        (GameDatabase? db, WorldState? world, CreatureState? imp) = MovingImp();
         int x = imp.PosX + 17, y = imp.PosY + 9;
         Assert.True(new WorldSteering(db, world).TryRouteToStance(imp, x, y, MoveOptions.ExactSpot));
         Assert.Equal(new Fixed16Vector(x << 4, y << 4), imp.Body.PathTargetPos);
@@ -53,9 +53,9 @@ public class RouteRequestVelocityTests
     [Fact]
     public void StopMovingDropsTheRouteAndStopsTheBodyWhereTheCreatureStands()
     {
-        var (_, _, imp) = MovingImp();
+        (GameDatabase _, WorldState _, CreatureState? imp) = MovingImp();
         imp.Body.Pos = new Fixed16Vector((imp.PosX << 4) + 7, (imp.PosY << 4) + 15);
-        var target = imp.Body.Pos + new Fixed16Vector(1024, 0);
+        Fixed16Vector target = imp.Body.Pos + new Fixed16Vector(1024, 0);
         RouteWindow.Load(imp.Body, [target], target, 0);
         imp.RouteOptions = MoveOptions.Loose;
 
@@ -70,7 +70,7 @@ public class RouteRequestVelocityTests
     private static (GameDatabase, WorldState, CreatureState) MovingImp()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)

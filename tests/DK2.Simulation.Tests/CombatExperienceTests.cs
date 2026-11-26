@@ -46,7 +46,7 @@ public class CombatExperienceTests
             Flags = (Dk2TerrainFixture.Goblin().Flags & ~(CreatureFlags.IsWorker | CreatureFlags.IsGood)) | (CreatureFlags)flags,
         };
         GameDatabase db = Dk2TerrainFixture.Database(fighter);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         CreatureState me = world.SpawnCreature(db, 61, Keeper, new TilePos(2, 2));
         CreatureState them = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.Good, new TilePos(3, 2));
         me.Dk2StateId = state;

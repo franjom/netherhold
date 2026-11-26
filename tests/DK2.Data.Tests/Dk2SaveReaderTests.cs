@@ -41,7 +41,7 @@ public class Dk2SaveReaderTests
     public void GridSearchPreservesBothEndRecordsAndAdjacentRoomIds()
     {
         const int offset = 337;
-        var bytes = new byte[offset + 640 + 20];
+        byte[] bytes = new byte[offset + 640 + 20];
         var tiles = new MapTile[64];
         for (int i = 0; i < tiles.Length; i++)
         {

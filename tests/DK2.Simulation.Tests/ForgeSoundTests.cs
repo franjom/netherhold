@@ -36,7 +36,7 @@ public sealed class ForgeSoundTests
 
     private static (WorldState World, CreatureState Maker, ObjectState Machine) Setup(GameDatabase db, byte machineType)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 5; y++)
             for (int x = 1; x <= 5; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
@@ -79,7 +79,7 @@ public sealed class ForgeSoundTests
     {
         GameDatabase db = Db();
         (WorldState world, CreatureState it, ObjectState anvil) = Setup(db, WorkshopStep.Anvil);
-        var (events, began) = Run(db, world, it);
+        (ListEventSink? events, long began) = Run(db, world, it);
 
         Assert.True(began >= 0);
         SimEvent[] heard = Forge(events);
@@ -101,7 +101,7 @@ public sealed class ForgeSoundTests
     {
         GameDatabase db = Db();
         (WorldState world, CreatureState it, _) = Setup(db, WorkshopStep.Machine16);
-        var (events, began) = Run(db, world, it);
+        (ListEventSink? events, long began) = Run(db, world, it);
 
         Assert.True(began >= 0);
         Assert.Empty(Forge(events));

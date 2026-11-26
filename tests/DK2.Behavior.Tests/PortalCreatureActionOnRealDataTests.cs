@@ -55,7 +55,7 @@ public class PortalCreatureActionOnRealDataTests
         CreatureDef warlock = db.CreatureById(5);
         Assert.Equal(new CreatureAttraction(1, 6, 0), warlock.Attractions[0]);
         Assert.Equal(new CreatureAttraction(0, 0, 0), warlock.Attractions[1]);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "level2")!, [0, 1, 2, 3]);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "level2")!, [0, 1, 2, 3]);
         RoomDef library = db.Room(RoomTypeId.Library);
         for (int y = 5; y < 9; y++)
             for (int x = 5; x < 9; x++)

@@ -23,7 +23,7 @@ public sealed class CombatRouteQueryTests
                 DistanceCanSee = new Fp32(Fp32.One), DistanceCanHear = new Fp32(hearingTiles * Fp32.One),
             },
             Dk2TerrainFixture.Knight() with { CreatureId = targetType });
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 7),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(10, 7),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         string[] rows = ["##########", "#........#", "#........#", "#####....#", "#........#", "#........#", "##########"];
         for (int y = 0; y < rows.Length; y++)

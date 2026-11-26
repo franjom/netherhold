@@ -38,7 +38,7 @@ public sealed class HoverEntityMeasureTests
     [Fact]
     public void ABoxAroundPointsTakesEachAxisLowAndHigh()
     {
-        PickBox box = PickBox.Around([new(1, 5, -2), new(-3, 2, 4), new(2, -1, 0)]);
+        var box = PickBox.Around([new(1, 5, -2), new(-3, 2, 4), new(2, -1, 0)]);
         Assert.Equal(new Vector3(-3, -1, -2), box.Min);
         Assert.Equal(new Vector3(2, 5, 4), box.Max);
         Assert.Equal(new Vector3(-.5f, 2, 1), box.Centre);
@@ -55,11 +55,11 @@ public sealed class HoverEntityMeasureTests
         {
             var local = new PickBox(new Vector3(Next(random), Next(random), Next(random)),
                 new Vector3(Next(random) + 3, Next(random) + 3, Next(random) + 3));
-            Quaternion turn = Quaternion.Normalize(new Quaternion(Next(random), Next(random), Next(random), Next(random)));
+            var turn = Quaternion.Normalize(new Quaternion(Next(random), Next(random), Next(random), Next(random)));
             var position = new Vector3(Next(random) * 10, Next(random), Next(random) * 10);
             var scale = new Vector3(Next(random) + 2, -(Next(random) + 2), Next(random) + 2);
             PickBox placed = local.Placed(position, turn, scale);
-            PickBox corners = PickBox.Around(Corners(local, position, turn, scale));
+            var corners = PickBox.Around(Corners(local, position, turn, scale));
             AssertClose(corners.Min, placed.Min);
             AssertClose(corners.Max, placed.Max);
         }
@@ -121,7 +121,7 @@ public sealed class HoverEntityMeasureTests
         for (int run = 0; run < 200; run++)
         {
             var sphere = new PickSphere(new Vector3(Next(random), Next(random), Next(random)), Next(random) + 1);
-            Quaternion turn = Quaternion.Normalize(new Quaternion(Next(random), Next(random), Next(random), Next(random)));
+            var turn = Quaternion.Normalize(new Quaternion(Next(random), Next(random), Next(random), Next(random)));
             var position = new Vector3(Next(random) * 10, Next(random), Next(random) * 10);
             var scale = new Vector3(Next(random) * 3, Next(random) * 3, Next(random) * 3);
             PickSphere placed = sphere.Placed(position, turn, scale);
@@ -144,7 +144,7 @@ public sealed class HoverEntityMeasureTests
             for (int i = 0; i < positions.Length; i++) positions[i] = new Vector3(Next(random), Next(random), Next(random));
             int[] triangles = Enumerable.Range(0, 3 * 8 + random.Next(3)).Select(_ => random.Next(positions.Length)).ToArray();
             var origin = new Vector3(Next(random) * 3, 4, Next(random) * 3);
-            Vector3 direction = Vector3.Normalize(new Vector3(Next(random), -1, Next(random)));
+            var direction = Vector3.Normalize(new Vector3(Next(random), -1, Next(random)));
             float limit = 3 + Next(random) * 4;
             float best = limit;
             bool found = PickTriangles.TryNearest(positions, triangles, origin, direction, ref best);
@@ -177,7 +177,7 @@ public sealed class HoverEntityMeasureTests
     public void ARayInAModelsSpaceKeepsItsDistances()
     {
         Vector3[] local = [new(-1, 0, -1), new(1, 0, -1), new(0, 0, 1)];
-        Quaternion turn = Quaternion.CreateFromYawPitchRoll(.7f, .3f, -.4f);
+        var turn = Quaternion.CreateFromYawPitchRoll(.7f, .3f, -.4f);
         var position = new Vector3(5, 1, -3);
         var scale = new Vector3(2, 1.5f, .5f);
         Vector3[] world = local.Select(p => LegacyTransformPoint(p, position, turn, scale)).ToArray();
@@ -212,7 +212,7 @@ public sealed class HoverEntityMeasureTests
     public void ABoxIsCulledWhenAllEightCornersLieOutsideOnePlane()
     {
         // System.Numerics multiplies row vectors; the frustum takes Unity's column layout.
-        ViewFrustum view = ViewFrustum.FromViewProjection(Matrix4x4.Transpose(
+        var view = ViewFrustum.FromViewProjection(Matrix4x4.Transpose(
             Matrix4x4.CreateLookAt(new(0, 8, 8), Vector3.Zero, Vector3.UnitY) * Matrix4x4.CreatePerspectiveFieldOfView(1f, 1.5f, .3f, 50f)));
         var random = new Random(5);
         int culled = 0;
@@ -309,7 +309,7 @@ public sealed class HoverEntityMeasureTests
     [Fact]
     public void TheRedPassIsRedTexturesAdditiveColour()
     {
-        ObjectMaterialLook red = ObjectMaterialLook.HoverOverlay();
+        var red = ObjectMaterialLook.HoverOverlay();
         Assert.Equal(KmfBlend.Additive, red.Blend);
         Assert.False(red.WritesDepth);
         Assert.True(red.FullLight);

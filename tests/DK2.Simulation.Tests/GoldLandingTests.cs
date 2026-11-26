@@ -21,7 +21,7 @@ public class GoldLandingTests
     public void APointerDropMergesIntoAnOffCentreMiningPileAndSurvivesRestoration(bool restore)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, Keeper.Value]);
         int index = Destination.Y * world.Width + Destination.X;
         ObjectState target = FloorGold.PutDown(world, database, index, 2, 1800)!;
@@ -55,7 +55,7 @@ public class GoldLandingTests
     public void FloorLandingMergesOnlyWithinItsCellAndMakesTheGoldNeutral(int offsetX, int offsetY, bool merges)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, Keeper.Value]);
         int tile = world.TileIndex(Destination);
         ObjectState existing = FloorGold.Drop(world, database, tile, 1800)!;
@@ -94,7 +94,7 @@ public class GoldLandingTests
     public void APointOutsideTheCommandTileCannotReleaseTheHeldPile()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, Keeper.Value]);
         ObjectState pile = FloorGold.Drop(world, database, 0, 500)!;
         var simulation = new GameSimulation(database, world, 42, [new HandSystem()]);
@@ -110,8 +110,8 @@ public class GoldLandingTests
     {
         var first = new DropCommand(Keeper, Destination,
             Position: new FpPosition2(new Fp32(9000), new Fp32(9500)));
-        var second = first with { Position = new FpPosition2(new Fp32(9500), new Fp32(9000)) };
-        var absent = first with { Position = null };
+        DropCommand second = first with { Position = new FpPosition2(new Fp32(9500), new Fp32(9000)) };
+        DropCommand absent = first with { Position = null };
         foreach (DropCommand command in new[] { first, second, absent })
             Assert.Equal(command, JsonSerializer.Deserialize<DropCommand>(JsonSerializer.Serialize(command)));
         var a = Hash64.Start(); first.HashInto(ref a);
@@ -128,7 +128,7 @@ public class GoldLandingTests
     public void LegacyGoldFromTheHandMergesIntoTheFloorPile_StronglyInferredFromBinary(byte kind)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, Keeper.Value]);
         int destination = Destination.Y * world.Width + Destination.X;
         ObjectState existing = FloorGold.Drop(world, database, destination, 1800)!;
@@ -153,7 +153,7 @@ public class GoldLandingTests
     public void AFirstHandDroppedPileReceivesLaterDrops_StronglyInferredFromBinary()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, Keeper.Value]);
         int destination = Destination.Y * world.Width + Destination.X;
         ObjectState first = FloorGold.Drop(world, database, destination + 1, 100)!;

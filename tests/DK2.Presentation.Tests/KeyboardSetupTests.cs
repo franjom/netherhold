@@ -50,7 +50,7 @@ public class KeyboardSetupTests
         options.BeginKeyCapture(GameAction.Heart); options.CaptureKey(0x19, KeyModifiers.None);
         options.Accept();
         Assert.Equal(0, options.Current.Binding(GameAction.Portal).ScanCode);
-        var restored = GameSettingsFile.Read(GameSettingsFile.Write(options.Current));
+        GameSettings restored = GameSettingsFile.Read(GameSettingsFile.Write(options.Current));
         Assert.Equal(0, restored.Binding(GameAction.Portal).ScanCode);
         Assert.Equal(0x19, restored.Binding(GameAction.Heart).ScanCode);
     }

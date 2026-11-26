@@ -23,7 +23,7 @@ public sealed class PossessionSoundTests
     {
         GameDatabase db = SoundFixture.Database(new Dictionary<byte, string> { [HatcheryRules.ChickenObjectId] = "OBJECT_CHICKEN" },
             Dk2TerrainFixture.Possessor() with { SoundCategory = "CREATURE_GOBLIN" });
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Keeper + 1]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -49,7 +49,7 @@ public sealed class PossessionSoundTests
     [Fact]
     public void AHungryPossessedCreatureEatingAChickenAsksItsOwnCdThenTheChickensAndThenTheDeletionsF4()
     {
-        var (_, world, me, chicken, _, events) = Setup(hunger: 3);
+        (GameDatabase _, WorldState? world, CreatureState? me, ObjectState? chicken, GameSimulation _, ListEventSink? events) = Setup(hunger: 3);
 
         Assert.Null(world.ObjectById(chicken.Id));
         ThingSoundRequest[] heard = Sounds(events);
@@ -69,7 +69,7 @@ public sealed class PossessionSoundTests
     [Fact]
     public void ACreatureOwingNoFoodKillsTheChickenWithoutAMealSound()
     {
-        var (_, world, _, chicken, _, events) = Setup(hunger: 0);
+        (GameDatabase _, WorldState? world, CreatureState _, ObjectState? chicken, GameSimulation _, ListEventSink? events) = Setup(hunger: 0);
 
         Assert.Null(world.ObjectById(chicken.Id));
         Assert.Equal([ThingSoundEvent.ObjectRemoved], Sounds(events).Select(s => s.Event));
@@ -82,7 +82,7 @@ public sealed class PossessionSoundTests
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables, basis.KeeperSpells.Values,
             basis.Objects.Values.Select(o => o.ObjectId == 15 ? o with { ImpactKind = 3 } : o), basis.Doors.Values, basis.Traps.Values,
             basis.CreatureSpells.Values, basis.Shots.Values, basis.Effects.Values, basis.EffectElements.Values, basis.Level, basis.CameraPathFrames);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Keeper + 1]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Keeper + 1]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
@@ -116,7 +116,7 @@ public sealed class PossessionSoundTests
     public void AnImpActingAtRockItCannotDigAsks335WithItsOwnHandleAtTheActsOrigin()
     {
         GameDatabase db = SoundFixture.Database(null);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Keeper + 1]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Keeper + 1]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;

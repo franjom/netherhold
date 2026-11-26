@@ -16,7 +16,7 @@ public class TerrainPointLightViewTests
     [Fact]
     public void TorchAdmissionTracksExplorationScanningAndPossessionWithoutChangingLayout()
     {
-        var (world, view, layout, target, presenter) = TorchRig();
+        (WorldState? world, WorldView? view, TorchLayout? layout, Target? target, ScenePresenter? presenter) = TorchRig();
         TorchView? authored = layout.At(4);
         Assert.NotNull(authored);
         Assert.DoesNotContain(4, target.Torches);
@@ -45,7 +45,7 @@ public class TerrainPointLightViewTests
     [Fact]
     public void SightOpeningAndExpiryRefreshTorchesAndTilesWithoutChangingTerrainOrRegionVersion()
     {
-        var (world, view, layout, target, presenter) = TorchRig();
+        (WorldState? world, WorldView? view, TorchLayout? layout, Target? target, ScenePresenter? presenter) = TorchRig();
         var simulation = new GameSimulation(TorchDatabase(), world, 1, []);
         TorchView? authored = layout.At(4);
         view.SetSightRegion(new SightRegion(GameTick.Zero, new TilePos(1, 1), 64, 5, 3, 3));
@@ -93,7 +93,7 @@ public class TerrainPointLightViewTests
     [InlineData(TileConstruction.DoubleQuad)]
     public void RoomSourceRequiresAllTerrainAndOwnerNeighbours(TileConstruction construction)
     {
-        var database = Database([Terrain(1)], [Room(construction)]);
+        GameDatabase database = Database([Terrain(1)], [Room(construction)]);
         WorldState world = World(database);
         var view = new WorldView(database, 1);
         Assert.NotNull(view.TileAt(world, 1, 1).PointLight);
@@ -111,7 +111,7 @@ public class TerrainPointLightViewTests
     [InlineData(TileConstruction.FiveByFiveRotated)]
     public void PositionCodedRoomConstructorsDoNotBecomeMaskInteriors(TileConstruction construction)
     {
-        var database = Database([Terrain(1)], [Room(construction)]);
+        GameDatabase database = Database([Terrain(1)], [Room(construction)]);
         Assert.Null(new WorldView(database, 1).TileAt(World(database), 1, 1).PointLight);
     }
 
@@ -119,7 +119,7 @@ public class TerrainPointLightViewTests
     public void PlainSourcePreservesBoostedWordsAndRequiresAuthoredHeightAndFlag()
     {
         TerrainDef terrain = Terrain(1) with { Flags = TerrainFlags.TerrainLight | TerrainFlags.TerrainColorRed };
-        var database = Database([terrain]);
+        GameDatabase database = Database([terrain]);
         ClassicPointLight light = Assert.IsType<ClassicPointLight>(new WorldView(database, 1).TileAt(World(database), 1, 1).PointLight);
         Assert.Equal(new Vector3(1.5f, 2, -1.5f), light.Position);
         Assert.Equal(275 / 255f, light.Colour.X);
@@ -134,7 +134,7 @@ public class TerrainPointLightViewTests
     [Fact]
     public void DoorSuppressesPlainTerrainSource()
     {
-        var database = Database([Terrain(1)]);
+        GameDatabase database = Database([Terrain(1)]);
         WorldState world = World(database);
         ThingProjection.Place(world, database,
             [new DoorThing(new byte[20]) { X = 1, Y = 1, DoorId = 1, PlayerId = 1, Unknown_0011 = new byte[3] }]);
@@ -148,7 +148,7 @@ public class TerrainPointLightViewTests
     [InlineData(true, true, 5, 20)]
     public void FogUsesSelectedTerrainAndNativeScanOverride(bool scanned, bool reveal, ushort gold, int red)
     {
-        var database = Database([
+        GameDatabase database = Database([
             Terrain(1) with { GoldValue = gold, Flags = TerrainFlags.TerrainLight | (reveal ? TerrainFlags.RevealThroughFogOfWar : 0) },
             Terrain(27, "Fog Of War", 7), Terrain(38, "Claim Scan", 9)]);
         WorldState world = World(database, fog: true);
@@ -168,7 +168,7 @@ public class TerrainPointLightViewTests
     [Fact]
     public void PossessionExemptionKeepsNativeBitsForScanColour()
     {
-        var database = Database([Terrain(1), Terrain(38, "Claim Scan", red: 9)]);
+        GameDatabase database = Database([Terrain(1), Terrain(38, "Claim Scan", red: 9)]);
         WorldState world = World(database, fog: true);
         world.Tile(1, 1).SetDiscoveredBy(1);
         var view = new WorldView(database, 1);
@@ -180,7 +180,7 @@ public class TerrainPointLightViewTests
     [Fact]
     public void ScannedRoomUsesItsActualInteriorBeforePlainTerrainFogSelection()
     {
-        var database = Database([Terrain(1) with { GoldValue = 5 },
+        GameDatabase database = Database([Terrain(1) with { GoldValue = 5 },
             Terrain(27, "Fog Of War", red: 7),
             Terrain(38, "Claim Scan", red: 9) with { Flags = TerrainFlags.Solid | TerrainFlags.TerrainLight }],
             [Room(TileConstruction.Normal)]);
@@ -198,7 +198,7 @@ public class TerrainPointLightViewTests
     [InlineData(true)]
     public void ScanSelectionRetainsProxyHeightAndSkipsDoorGuardEvenWhenPossessed(bool possession)
     {
-        var database = Database([Terrain(1) with { TerrainLightHeight = new Fp32(8192) },
+        GameDatabase database = Database([Terrain(1) with { TerrainLightHeight = new Fp32(8192) },
             Terrain(27, "Fog Of War"),
             Terrain(38, "Claim Scan") with { TerrainLightHeight = new Fp32(12288) }]);
         WorldState world = World(database, fog: true);
@@ -215,7 +215,7 @@ public class TerrainPointLightViewTests
     [Fact]
     public void PresenterPushesChangedPointLightWithoutOtherVisualChanges()
     {
-        var database = Database([Terrain(1), Terrain(2, red: 50)]);
+        GameDatabase database = Database([Terrain(1), Terrain(2, red: 50)]);
         WorldState world = World(database);
         var target = new Target();
         var view = new WorldView(database, 1);
@@ -232,7 +232,7 @@ public class TerrainPointLightViewTests
     [Fact]
     public void PresenterPushesLightAndScanChangesWithoutOtherVisualChanges()
     {
-        var database = Database([Terrain(1)]);
+        GameDatabase database = Database([Terrain(1)]);
         WorldState world = World(database);
         var target = new Target();
         var presenter = new ScenePresenter(new WorldView(database, 1), AssetProviderChain.Standard(), target);
@@ -270,7 +270,7 @@ public class TerrainPointLightViewTests
 
     private static WorldState World(GameDatabase database, bool fog = false)
     {
-        WorldState world = WorldState.FromMap(database, new LevelMap(3, 3,
+        var world = WorldState.FromMap(database, new LevelMap(3, 3,
             Enumerable.Repeat(new MapTile(1, 1, 0, 0), 9).ToArray()), [1, 2], fogOfWarEnabled: fog);
         for (int y = 0; y < 3; y++)
             for (int x = 0; x < 3; x++) world.Tile(x, y).OwnerPlayerId = 1;

@@ -16,7 +16,7 @@ public sealed class MiningStrikeVisibilityTests
     public void TheStrikeResultPrecedesTheFullHandsDecision(int seamHealth, bool delivers)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         var seam = new TilePos(4, 2);
         ref TileState tile = ref world.Tile(seam);

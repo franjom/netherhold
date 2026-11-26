@@ -135,7 +135,7 @@ public partial class CampaignPlayerTests
         PlayerDecision decision = Player().Decide(Observe());
 
         Assert.Equal(new PlayerAction.SelectPanel(GuiButtonTarget.Room(RoomTypeId.Treasury)), decision.Actions[0]);
-        var build = Assert.IsType<PlayerAction.BuildRoom>(decision.Actions[1]);
+        PlayerAction.BuildRoom build = Assert.IsType<PlayerAction.BuildRoom>(decision.Actions[1]);
         // Free 3x3 squares avoid the heart (5,5): nearest centre to it, then Y, then X.
         Assert.Equal((RoomTypeId.Treasury, new TilePos(4, 2), new TilePos(6, 4)), (build.Room, build.From, build.To));
     }
@@ -167,7 +167,7 @@ public partial class CampaignPlayerTests
 
         // Actions 1 and 2 were the press and the build; the build (id 2) was refused.
         PlayerReceipt refused = new(new PlayerActionId(2), PlayerReceiptStatus.Refused, PlayerRefusalReason.NotOffered);
-        var retried = Assert.Single(player.Decide(Observe(3, receipts: [refused])).Actions.OfType<PlayerAction.BuildRoom>());
+        PlayerAction.BuildRoom retried = Assert.Single(player.Decide(Observe(3, receipts: [refused])).Actions.OfType<PlayerAction.BuildRoom>());
         Assert.NotEqual(first.From, retried.From);
     }
 
@@ -316,10 +316,10 @@ public partial class CampaignPlayerTests
     {
         CampaignPlayer player = Player();
         PlayerAction first = player.Decide(Observe(1, hand: 1, gold: 0)).Actions[0];
-        var drop = Assert.IsType<PlayerAction.DropAt>(first);
+        PlayerAction.DropAt drop = Assert.IsType<PlayerAction.DropAt>(first);
         Assert.True(PlayerActionRoutines.DistanceSquared(drop.Tile, new TilePos(5, 5)) <= 2);
         // The hand still holds it a decision later: the engine refused that tile.
-        var next = Assert.IsType<PlayerAction.DropAt>(player.Decide(Observe(2, hand: 1, gold: 0)).Actions[0]);
+        PlayerAction.DropAt next = Assert.IsType<PlayerAction.DropAt>(player.Decide(Observe(2, hand: 1, gold: 0)).Actions[0]);
         Assert.NotEqual(drop.Tile, next.Tile);
     }
 
@@ -329,7 +329,7 @@ public partial class CampaignPlayerTests
         CampaignPlayer player = Player(o => o with { PendingRoomTicks = 100 });
         var first = (PlayerAction.BuildRoom)player.Decide(Observe(1, tick: 0)).Actions[1];
         Assert.DoesNotContain(player.Decide(Observe(2, tick: 50)).Actions, a => a is PlayerAction.BuildRoom);
-        var expired = Assert.Single(player.Decide(Observe(3, tick: 100)).Actions.OfType<PlayerAction.BuildRoom>());
+        PlayerAction.BuildRoom expired = Assert.Single(player.Decide(Observe(3, tick: 100)).Actions.OfType<PlayerAction.BuildRoom>());
         Assert.NotEqual(first.From, expired.From);
 
         CampaignPlayer other = Player();
@@ -543,7 +543,7 @@ public partial class CampaignPlayerTests
         player.Apply(player.Strategy with { UseSpecials = false });
         Assert.DoesNotContain(player.Decide(Observe(things: [special], gold: 0)).Actions, a => a is PlayerAction.ActivateSpecial);
 
-        var refused = Assert.Throws<ArgumentException>(() => player.Apply(player.Strategy with { RoomSide = 0, AdvanceTicks = 0 }));
+        ArgumentException refused = Assert.Throws<ArgumentException>(() => player.Apply(player.Strategy with { RoomSide = 0, AdvanceTicks = 0 }));
         Assert.Contains("RoomSide", refused.Message, StringComparison.Ordinal);
         Assert.Contains("AdvanceTicks", refused.Message, StringComparison.Ordinal);
         Assert.False(player.Strategy.UseSpecials); // the refused strategy left the current one in place

@@ -34,7 +34,7 @@ public class KwdShotWriterTests
     public void EveryShippedShotTypedOverlayIsByteIdentical()
     {
         KwdChunk chunk = KwdReader.ReadFile(Path.Combine(Dk2InstallGate.Path, "Data", "editor", "Shots.kwd")).Single();
-        var rows = KwdAdditionalRecords.ParseShots([chunk]); var images = KwdRecordRoundTrip.Split(chunk);
+        List<ShotDef> rows = KwdAdditionalRecords.ParseShots([chunk]); List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(65, rows.Count);
         for (int i = 0; i < rows.Count; i++) Assert.Equal(images[i].ToBytes(), KwdAdditionalRecords.WriteShotRecord(rows[i], images[i]));
     }

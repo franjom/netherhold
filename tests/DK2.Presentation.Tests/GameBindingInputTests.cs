@@ -67,7 +67,7 @@ public class GameBindingInputTests
     [Fact]
     public void DirectCameraAndObjectActionsRejectExtraModifiersButScrollCombinesWithCameraModifier()
     {
-        var input = Input(modifiers: KeyModifiers.Control, scans: new[] { 0x1d, 0xcb, 0xc7, 0xd3, 0xc9 });
+        GameBindingInput input = Input(modifiers: KeyModifiers.Control, scans: new[] { 0x1d, 0xcb, 0xc7, 0xd3, 0xc9 });
         Assert.False(input.Held(GameAction.ZoomIn, exactModifiers: true));
         Assert.False(input.Held(GameAction.RotateLeft, exactModifiers: true));
         Assert.False(input.Held(GameAction.ObjectsOnly, exactModifiers: true));
@@ -84,7 +84,7 @@ public class GameBindingInputTests
     [Fact]
     public void ModalPrecedenceAllowsOnlyFullMapCloseAndRejectsEditingKeys()
     {
-        var all = Input(scans: new[] { 1, 0x22, 0x23, 0x32, 0x19, 0x21 });
+        GameBindingInput all = Input(scans: new[] { 1, 0x22, 0x23, 0x32, 0x19, 0x21 });
         Assert.Equal(ClassicHudAction.ToggleFullMap, all.HudShortcut(new() { FullMapVisible = true }));
         Assert.Equal(ClassicHudAction.None, all.HudShortcut(new() { CapturingKey = true }));
         Assert.Equal(ClassicHudAction.None, all.HudShortcut(new() { EditingText = true, OptionsVisible = true }));
@@ -97,7 +97,7 @@ public class GameBindingInputTests
     [Fact]
     public void ModifierRolesAcceptEitherPhysicalSideWithoutWeakeningDirectActions()
     {
-        var input = Input(modifiers: KeyModifiers.Control | KeyModifiers.Shift, scans: 0xcd);
+        GameBindingInput input = Input(modifiers: KeyModifiers.Control | KeyModifiers.Shift, scans: 0xcd);
         Assert.True(input.Held(GameAction.CameraModifier));
         Assert.True(input.Held(GameAction.FastScroll));
         Assert.Equal(ClassicCameraKeys.TurnRight | ClassicCameraKeys.Fast, input.CameraKeys);
@@ -113,7 +113,7 @@ public class GameBindingInputTests
     [Fact]
     public void IntegratedHudActionValuesAreUniqueAndRetainExistingFirstNine()
     {
-        var values = Enum.GetValues<ClassicHudAction>();
+        ClassicHudAction[] values = Enum.GetValues<ClassicHudAction>();
         Assert.Equal(values.Length, values.Distinct().Count());
         Assert.Equal(8, (int)ClassicHudAction.ZoomOut);
         Assert.NotEqual(ClassicHudAction.ShowObjective, ClassicHudAction.NavigatePortal);

@@ -55,7 +55,7 @@ public sealed class Level6aTortureSpeechTests
     [InlineData("Level6a", (ushort)24, (byte)16)]
     public void OtherDeathsKeepTheGenericSpeech(string level, ushort root, byte kind)
     {
-        var (db, world) = Fixture(level);
+        (GameDatabase? db, WorldState? world) = Fixture(level);
         var messages = new MessageTabsView(Keeper, db);
         var events = new ListEventSink();
         var sink = new Level6aTortureSpeech(db, messages, events);
@@ -68,7 +68,7 @@ public sealed class Level6aTortureSpeechTests
     [InstallFact]
     public void ExistingNotificationsAreNotReattributedToTheOpeningGuard()
     {
-        var (db, world) = Fixture("Level6a");
+        (GameDatabase? db, WorldState? world) = Fixture("Level6a");
         var messages = new MessageTabsView(Keeper, db);
         var events = new ListEventSink();
         var sink = new Level6aTortureSpeech(db, messages, events);
@@ -82,7 +82,7 @@ public sealed class Level6aTortureSpeechTests
     [InstallFact]
     public void AnotherKeeperWithoutThisTutorialKeepsTheGenericSpeech()
     {
-        var (db, world) = Fixture("Level6a");
+        (GameDatabase? db, WorldState? world) = Fixture("Level6a");
         var other = new PlayerId(4);
         var messages = new MessageTabsView(other, db);
         var sink = new Level6aTortureSpeech(db, messages, NullEventSink.Instance);

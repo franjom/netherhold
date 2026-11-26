@@ -193,7 +193,7 @@ public sealed class PlacementCursorTests
         var simulation = new GameSimulation(db, world, 1);
         simulation.Navigation.Refresh();
         TilePos own = Claimed(world, db, keeper, 0);
-        var rows = world.Player(keeper).Availabilities;
+        List<AvailabilityState> rows = world.Player(keeper).Availabilities;
         int row = rows.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == 4);
         if (row < 0) { rows.Add(default); row = rows.Count - 1; }
         rows[row] = new AvailabilityState(AvailabilityKind.Spell, 4, ResearchTreeRules.Available);

@@ -55,7 +55,7 @@ public class TerrainMaterialLookTests
     [Fact]
     public void ThePlainLookIsTheRecipesOwn()
     {
-        TerrainMaterialLook look = TerrainMaterialLook.For(new TerrainMaterialKey(Opaque, TerrainMaterialVariant.Plain));
+        var look = TerrainMaterialLook.For(new TerrainMaterialKey(Opaque, TerrainMaterialVariant.Plain));
         Assert.Equal(new TerrainMaterialLook("Brick", KmfBlend.Opaque, true, false, Vector4.One, new Vector3(0.25f)), look);
         Assert.Equal(new TerrainMaterialLook("Glass", KmfBlend.AlphaBlend, false, false, Vector4.One, Vector3.Zero),
             TerrainMaterialLook.For(new TerrainMaterialKey(Alpha, TerrainMaterialVariant.Plain)));
@@ -84,7 +84,7 @@ public class TerrainMaterialLookTests
     [Fact]
     public void TheTaggedRedAndTintedTwinsChangeOnlyTheAddedLight()
     {
-        TerrainMaterialLook plain = TerrainMaterialLook.For(new TerrainMaterialKey(Opaque, TerrainMaterialVariant.Plain));
+        var plain = TerrainMaterialLook.For(new TerrainMaterialKey(Opaque, TerrainMaterialVariant.Plain));
         var tint = new TerrainLightColour(40, 50, 60);
         Assert.Equal(plain with { AddedLight = TerrainMaterialLook.TagTint + new Vector3(0.25f) },
             TerrainMaterialLook.For(new TerrainMaterialKey(Opaque, TerrainMaterialVariant.Tagged)));
@@ -99,7 +99,7 @@ public class TerrainMaterialLookTests
     [Fact]
     public void AnAdditiveRecipeAndAZeroTintKeepThePlainLook()
     {
-        TerrainMaterialLook additive = TerrainMaterialLook.For(new TerrainMaterialKey(Additive, TerrainMaterialVariant.Plain));
+        var additive = TerrainMaterialLook.For(new TerrainMaterialKey(Additive, TerrainMaterialVariant.Plain));
         foreach (TerrainMaterialVariant variant in new[] { TerrainMaterialVariant.Tagged, TerrainMaterialVariant.Red, TerrainMaterialVariant.Tinted })
             Assert.Equal(additive, TerrainMaterialLook.For(new TerrainMaterialKey(Additive, variant, new TerrainLightColour(9, 9, 9))));
         Assert.Equal(TerrainMaterialLook.For(new TerrainMaterialKey(Opaque, TerrainMaterialVariant.Plain)),

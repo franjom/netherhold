@@ -21,7 +21,7 @@ public sealed class KeeperResourceViewTests
             WageBill: new(100), Tick: new(100), LastPaydayTick: new(0), NextPaydayTick: new(110),
             PaydayCutoffTicks: 20);
         Assert.Equal(50, animation.Evaluate(snapshot, 499).GoldNumber.Value);
-        var bill = animation.Evaluate(snapshot, 500);
+        KeeperResourceFrame bill = animation.Evaluate(snapshot, 500);
         Assert.Equal(-100, bill.GoldNumber.Value);
         Assert.Equal(KeeperGoldColour.UnaffordableBill, bill.GoldColour);
         snapshot = snapshot with { Tick = new(111), LastPaydayTick = new(110), NextPaydayTick = new(10000) };
@@ -87,7 +87,7 @@ public sealed class KeeperResourceViewTests
         };
         var snapshot = new KeeperResourceSnapshot(default, default, default, default,
             HeartHealth: new(2, 3), WageBill: new(547), HeartTile: new(1, 1));
-        var heart = KeeperResourceInteraction.ResourceHover(snapshot, KeeperResourceKind.Heart, Resolve);
+        HoverTextSnapshot heart = KeeperResourceInteraction.ResourceHover(snapshot, KeeperResourceKind.Heart, Resolve);
         Assert.Equal("66% health", heart.TopStatus);
         Assert.Equal("heart", heart.TooltipName);
         Assert.Equal(WorldHoverKind.Widget, heart.Hit.Kind);
@@ -122,8 +122,8 @@ public sealed class KeeperResourceViewTests
     [InstallFact]
     public void FirstAndRestoredPaydayGaugesUseTheSavedIntervalStart()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
         var world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         var simulation = new GameSimulation(database, world, seed: 7, []);
         simulation.Run(20);
@@ -131,17 +131,17 @@ public sealed class KeeperResourceViewTests
         world.Player(PlayerIds.FirstKeeper).NextPaydayTick = new(220);
         simulation.Run(50);
         var view = new KeeperResourceView(database, PlayerIds.FirstKeeper);
-        var first = view.Capture(world);
+        KeeperResourceSnapshot first = view.Capture(world);
         Assert.Equal(new HudGaugeFraction(150, 200), first.Payday);
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(simulation), database, []);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(simulation), database, []);
         Assert.Equal(first.Payday, new KeeperResourceView(database, PlayerIds.FirstKeeper).Capture(restored.World).Payday);
     }
 
     [InstallFact]
     public void HeartAlarmObservesDisplayedHealthRatherThanIntermediateDamageEvents()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
         var world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         var simulation = new GameSimulation(database, world, seed: 7, []);
         var view = new KeeperResourceView(database, PlayerIds.FirstKeeper);
@@ -153,7 +153,7 @@ public sealed class KeeperResourceViewTests
         Assert.Equal(default, view.Capture(world).HeartAlarmUntil);
         world.DamageHeart(PlayerIds.FirstKeeper, 1, PlayerIds.Good);
         simulation.Tick();
-        var damaged = view.Capture(world);
+        KeeperResourceSnapshot damaged = view.Capture(world);
         Assert.Equal(health - 1, damaged.HeartHealth.Value);
         Assert.Equal(world.CurrentTick.Value + 3 * SimulationTiming.TicksPerSecond, damaged.HeartAlarmUntil.Value);
     }
@@ -161,8 +161,8 @@ public sealed class KeeperResourceViewTests
     [InstallFact]
     public void RestoringTheHudObservesDamageWithAFreshAlarmWindowEvenOnTheSameSettledTick()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
         var world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         var simulation = new GameSimulation(database, world, seed: 7, []);
         var view = new KeeperResourceView(database, PlayerIds.FirstKeeper);
@@ -173,7 +173,7 @@ public sealed class KeeperResourceViewTests
             simulation.Tick();
             Assert.Equal(default, view.Capture(world, displayHealth: false).HeartAlarmUntil);
         }
-        var restored = view.Capture(world, displayHealth: true);
+        KeeperResourceSnapshot restored = view.Capture(world, displayHealth: true);
         Assert.Equal(world.CurrentTick.Value + 3 * SimulationTiming.TicksPerSecond, restored.HeartAlarmUntil.Value);
         Assert.Equal(restored, view.Capture(world));
     }
@@ -181,8 +181,8 @@ public sealed class KeeperResourceViewTests
     public void CapturesSpendableGoldAndGrossManaRatesWithoutChangingSimulation()
     {
         string install = Dk2InstallGate.Path;
-        var database = GameDatabaseLoader.Load(install);
-        var map = GameDatabaseLoader.LoadCampaignMap(install, "Level1")!;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "Level1")!;
         var world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         ref PlayerState player = ref world.Player(PlayerIds.FirstKeeper);
         player.Mana = 259;
@@ -212,8 +212,8 @@ public sealed class KeeperResourceViewTests
     [InstallFact]
     public void MissingViewerDoesNotReadAnotherKeepersResources()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
         var world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         Assert.Equal(default, new KeeperResourceView(database, new PlayerId(99)).Capture(world));
     }
@@ -221,8 +221,8 @@ public sealed class KeeperResourceViewTests
     [InstallFact]
     public void KeeperWithoutAHeartDoesNotShowItsInitializedHealthAsAFullGauge()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
         var world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         for (int i = 0; i < world.TileCount; i++) world.TileAtIndex(i).OwnerPlayerId = PlayerIds.Neutral;
         Assert.True(world.Player(PlayerIds.FirstKeeper).HeartHealth > 0);
@@ -232,8 +232,8 @@ public sealed class KeeperResourceViewTests
     [InstallFact]
     public void PrepaidCallToArmsDoesNotShowNextTurnsUpkeepEarly()
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
         var world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         ref PlayerState player = ref world.Player(PlayerIds.FirstKeeper);
         ObjectState flag = world.SpawnObject(database, CallToArmsRules.ObjectTypeId, PlayerIds.FirstKeeper, 1);

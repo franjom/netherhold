@@ -14,7 +14,7 @@ public class ClassicLightInvalidationTests
     [Fact]
     public void FreshWindowRefreshesOnlyForStrictlyNewerSourceStamp()
     {
-        var table = Seed(First, frame: 4);
+        ClassicLightTable table = Seed(First, frame: 4);
         var cache = new Cache();
         var window = new ClassicLightWindow();
         cache.Cells[First] = Cell(1, First, stamp: 4);
@@ -30,7 +30,7 @@ public class ClassicLightInvalidationTests
     [Fact]
     public void DynamicRefreshDoesNotRestampStaticAndNewEmptyCellRemovesOldStatic()
     {
-        var table = Seed(First, frame: 4);
+        ClassicLightTable table = Seed(First, frame: 4);
         var cache = new Cache();
         var window = new ClassicLightWindow();
         cache.Cells[First] = new(new[] { Source(1, First) }, new[] { Source(2, First) }, new(4));
@@ -50,7 +50,7 @@ public class ClassicLightInvalidationTests
         cache.Cells[new TilePos(8, 7)] = Cell(1, First, stamp: 1);
         var window = new ClassicLightWindow();
         window.Gather(new ClassicLightTable(First), cache, new ClassicLightFrame(2));
-        var next = Seed(Next, frame: 100);
+        ClassicLightTable next = Seed(Next, frame: 100);
         window.Gather(next, cache, new ClassicLightFrame(101));
         Assert.Equal(new[] { 1 }, Ids(next));
         Assert.Equal(new ClassicLightFrame(101), next.StaticFrame);
@@ -63,7 +63,7 @@ public class ClassicLightInvalidationTests
         cache.Cells[new TilePos(8, 7)] = Cell(1, First, stamp: 5);
         var window = new ClassicLightWindow();
         window.Gather(Seed(First, frame: 10), cache, new ClassicLightFrame(11));
-        var next = Seed(Next, frame: 1);
+        ClassicLightTable next = Seed(Next, frame: 1);
         window.Gather(next, cache, new ClassicLightFrame(12));
         Assert.Equal(new[] { 9 }, Ids(next));
         Assert.Equal(new ClassicLightFrame(1), next.StaticFrame);
@@ -76,7 +76,7 @@ public class ClassicLightInvalidationTests
         cache.Cells[new TilePos(7, 7)] = Cell(1, First, stamp: 1);
         var window = new ClassicLightWindow();
         window.Gather(new ClassicLightTable(First), cache, new ClassicLightFrame(2));
-        var next = Seed(Next, frame: 100);
+        ClassicLightTable next = Seed(Next, frame: 100);
         window.Gather(next, cache, new ClassicLightFrame(101));
         Assert.Equal(new[] { 9 }, Ids(next));
         Assert.Equal(new ClassicLightFrame(100), next.StaticFrame);
@@ -111,7 +111,7 @@ public class ClassicLightInvalidationTests
     {
         var cache = new Cache();
         cache.Cells[First] = Cell(1, First, sourceFrame);
-        var table = Seed(First, targetFrame);
+        ClassicLightTable table = Seed(First, targetFrame);
         new ClassicLightWindow().Gather(table, cache, new ClassicLightFrame(17));
         Assert.Equal(new[] { refresh ? 1 : 9 }, Ids(table));
         Assert.Equal(new ClassicLightFrame(refresh ? 17u : targetFrame), table.StaticFrame);
@@ -120,7 +120,7 @@ public class ClassicLightInvalidationTests
     [Fact]
     public void ManuallyReplacingStaticSourcesInvalidatesTheGatheredStamp()
     {
-        var table = Seed(First, frame: 10);
+        ClassicLightTable table = Seed(First, frame: 10);
         table.RebuildStatic(new[] { Source(3, First) });
         Assert.Equal(default, table.StaticFrame);
         var cache = new Cache();

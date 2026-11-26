@@ -42,8 +42,8 @@ public class AssetRefTests
     [Fact]
     public void TheKindIsPartOfTheKeyAndPartOfTheIdentity()
     {
-        AssetRef mesh = AssetRef.ForCreature("Imp", AssetKind.Mesh);
-        AssetRef texture = AssetRef.ForCreature("Imp", AssetKind.Texture);
+        var mesh = AssetRef.ForCreature("Imp", AssetKind.Mesh);
+        var texture = AssetRef.ForCreature("Imp", AssetKind.Texture);
 
         Assert.Equal("creature.imp.mesh", mesh.Key);
         Assert.Equal("creature.imp.texture", texture.Key);
@@ -122,8 +122,8 @@ public class AssetRefTests
     [Fact]
     public void TwoKeysBuiltTheSameWayAreEqualAndHashAlike()
     {
-        AssetRef a = AssetRef.ForCreature("Imp", AssetKind.Mesh);
-        AssetRef b = AssetRef.ForCreature("imp", AssetKind.Mesh);
+        var a = AssetRef.ForCreature("Imp", AssetKind.Mesh);
+        var b = AssetRef.ForCreature("imp", AssetKind.Mesh);
 
         Assert.Equal(a, b);
         Assert.Equal(a.StableHash(), b.StableHash());

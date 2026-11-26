@@ -9,8 +9,8 @@ public class SnapshotFieldsTests
     [Fact]
     public void NullAndTheLiteralWordNullAreDifferentValues()
     {
-        var absent = SnapshotFields.Capture(new TextField(null), "item");
-        var literal = SnapshotFields.Capture(new TextField("null"), "item");
+        SortedDictionary<string, string?> absent = SnapshotFields.Capture(new TextField(null), "item");
+        SortedDictionary<string, string?> literal = SnapshotFields.Capture(new TextField("null"), "item");
 
         Assert.Null(absent["item.Text"]);
         Assert.Equal("null", literal["item.Text"]);
@@ -28,7 +28,7 @@ public class SnapshotFieldsTests
     [Fact]
     public void AComputedGetterIsNeverEvaluated()
     {
-        var fields = SnapshotFields.Capture(new ThrowingGetter(), "item");
+        SortedDictionary<string, string?> fields = SnapshotFields.Capture(new ThrowingGetter(), "item");
 
         Assert.Equal("7", fields["item.Stored"]);
         Assert.DoesNotContain("item.Computed", fields.Keys);

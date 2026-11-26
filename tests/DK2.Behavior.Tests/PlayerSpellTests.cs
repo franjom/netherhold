@@ -28,7 +28,7 @@ public class PlayerSpellTests
     {
         GameDatabase database = ScenarioCorpus.Database;
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "level1")!;
-        WorldState world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Append(Keeper.Value).Distinct());
+        var world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Append(Keeper.Value).Distinct());
         foreach (byte spell in (byte[])[KeeperSpellRules.Heal, KeeperSpellRules.Thunderbolt, CallToArmsRules.SpellId, BottomPanelView.CreateImpSpellId])
             world.SetAvailability(Keeper.Value, AvailabilityKind.Spell, spell, 3);
         world.Player(Keeper).Mana = mana;

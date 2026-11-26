@@ -21,7 +21,7 @@ public sealed class NeutralStopRouteTests
         };
         if (zeroSpeed) definition = definition with { Speed = new Fp32(0) };
         GameDatabase db = Dk2TerrainFixture.Database(definition);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int x = 1; x <= 12; x++) world.Tile(x, 3).TerrainId = Dk2TerrainFixture.DirtPath;
         CreatureState walker = world.SpawnCreature(db, WalkerType, PlayerIds.Neutral, new TilePos(5, 3));
@@ -32,7 +32,7 @@ public sealed class NeutralStopRouteTests
     [Fact]
     public void StoppingANeutralLeavesOneUnfinishedPointWithWholeProgress()
     {
-        var (_, _, walker) = Walker();
+        (GameDatabase _, WorldState _, CreatureState? walker) = Walker();
         walker.Body.Vel = new Fixed16Vector(3000, -1000);
 
         walker.StopMoving();
@@ -50,7 +50,7 @@ public sealed class NeutralStopRouteTests
     [Fact]
     public void NeutralIdleReturnResumesBeforeItsSingleStationaryFacingStep()
     {
-        var (db, world, walker) = Walker();
+        (GameDatabase? db, WorldState? world, CreatureState? walker) = Walker();
         walker.Heading = 1617;
         StatePlacement.Place(walker, 6);
         walker.UtilityNewState = CreatureStateMachine.Idle;
@@ -78,7 +78,7 @@ public sealed class NeutralStopRouteTests
     [Fact]
     public void NeutralImpKeepsTheExistingWorkerStopAdapter()
     {
-        var (db, world, _) = Walker();
+        (GameDatabase? db, WorldState? world, CreatureState _) = Walker();
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId,
             PlayerIds.Neutral, new TilePos(5, 3));
 
@@ -93,7 +93,7 @@ public sealed class NeutralStopRouteTests
     [InlineData(false)]
     public void AStoppedNeutralOnlyRunsItsFacingStepWithNonzeroSpeed(bool zeroSpeed)
     {
-        var (db, world, walker) = Walker(zeroSpeed);
+        (GameDatabase? db, WorldState? world, CreatureState? walker) = Walker(zeroSpeed);
         StatePlacement.Place(walker, CreatureJobSystem.NeutralIdleState);
         walker.Heading = 1617;
         walker.StopMoving();
@@ -110,7 +110,7 @@ public sealed class NeutralStopRouteTests
     [InlineData(CreatureJobSystem.NeutralIdleState, true)]
     public void NeutralSteeringUsesTheCurrentStatesMovementFlag(int state, bool moves)
     {
-        var (db, world, walker) = Walker();
+        (GameDatabase? db, WorldState? world, CreatureState? walker) = Walker();
         StatePlacement.Place(walker, state);
         walker.Heading = 512;
         int beforeX = walker.PosX;

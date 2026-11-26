@@ -16,7 +16,7 @@ public class RoomConstructionEffectTests
     [InlineData(true)]
     public void EachSuccessfullyPlacedTileRequestsTheConstructionEffect(bool rectangle)
     {
-        var (simulation, events) = Start();
+        (GameSimulation? simulation, ListEventSink? events) = Start();
         BuildRoomCommand command = rectangle
             ? BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 2, 2)
             : BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 1, 1);
@@ -40,7 +40,7 @@ public class RoomConstructionEffectTests
     [InlineData(true)]
     public void RefusedOrAlreadyBuiltTilesDoNotRequestEffects(bool alreadyBuilt)
     {
-        var (simulation, events) = Start();
+        (GameSimulation? simulation, ListEventSink? events) = Start();
         if (alreadyBuilt)
             RoomRules.Place(simulation.Database, ref simulation.World.Tile(new TilePos(1, 1)),
                 simulation.Database.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
@@ -55,7 +55,7 @@ public class RoomConstructionEffectTests
     private static (GameSimulation, ListEventSink) Start()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         RoomRules.Place(db, ref world.Tile(new TilePos(3, 3)), db.Room(RoomTypeId.DungeonHeart), PlayerIds.FirstKeeper);
         RoomRules.Place(db, ref world.Tile(new TilePos(3, 1)), db.Room(RoomTypeId.Treasury), PlayerIds.FirstKeeper);

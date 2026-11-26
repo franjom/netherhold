@@ -440,9 +440,9 @@ public class ThingProjectionTests
             { X = 5, Y = 6, TrapId = 7, NumberOfShots = 8 },
         ]);
 
-        Hash64 emptyHash = Hash64.Start();
+        var emptyHash = Hash64.Start();
         empty.HashInto(ref emptyHash);
-        Hash64 populatedHash = Hash64.Start();
+        var populatedHash = Hash64.Start();
         populated.HashInto(ref populatedHash);
 
         Assert.NotEqual(emptyHash.Value, populatedHash.Value);
@@ -484,14 +484,14 @@ public class ThingProjectionTests
 
         static ulong DoorHash(DoorState state)
         {
-            Hash64 hash = Hash64.Start();
+            var hash = Hash64.Start();
             state.HashInto(ref hash);
             return hash.Value;
         }
 
         static ulong TrapHash(TrapState state)
         {
-            Hash64 hash = Hash64.Start();
+            var hash = Hash64.Start();
             state.HashInto(ref hash);
             return hash.Value;
         }
@@ -612,8 +612,8 @@ public class ThingProjectionTests
             new[] { GeneratorHash(u8: 1), GeneratorHash(uc: 1), GeneratorHash(tail: [1, 0, 0, 0, 0, 0]) },
             h => Assert.Equal(GeneratorHash(), h));
 
-        static ulong MemberHash(HeroPartyMemberState state) { Hash64 h = Hash64.Start(); state.HashInto(ref h); return h.Value; }
-        static ulong PartyHash(HeroPartyState state) { Hash64 h = Hash64.Start(); state.HashInto(ref h); return h.Value; }
+        static ulong MemberHash(HeroPartyMemberState state) { var h = Hash64.Start(); state.HashInto(ref h); return h.Value; }
+        static ulong PartyHash(HeroPartyState state) { var h = Hash64.Start(); state.HashInto(ref h); return h.Value; }
         static ulong GeneratorHash(int x = 0, int y = 0, int u8 = 0, int uc = 0,
             ushort u10 = 0, ushort u12 = 0, ushort[]? ids = null, byte frequency = 0,
             byte id = 0, byte[]? tail = null)
@@ -624,7 +624,7 @@ public class ThingProjectionTests
                 Unknown_0010 = u10, Unknown_0012 = u12, EffectIds = ids ?? [],
                 Frequency = frequency, GeneratorId = id, Unknown_001E = tail ?? new byte[6],
             };
-            Hash64 h = Hash64.Start(); state.HashInto(ref h); return h.Value;
+            var h = Hash64.Start(); state.HashInto(ref h); return h.Value;
         }
     }
 
@@ -693,10 +693,10 @@ public class ThingProjectionTests
         ThingProjection.Place(one, database, [thing]);
         ThingProjection.Place(two, database, [thing]);
 
-        Hash64 before = Hash64.Start();
+        var before = Hash64.Start();
         one.HashInto(ref before);
         two.ActionPoints[0].WaitTimerTicks--;
-        Hash64 after = Hash64.Start();
+        var after = Hash64.Start();
         two.HashInto(ref after);
 
         Assert.NotEqual(before.Value, after.Value);

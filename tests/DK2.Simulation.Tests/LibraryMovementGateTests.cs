@@ -21,10 +21,10 @@ public sealed class LibraryMovementGateTests
     [InlineData(ResearchStep.ReturningState, true)]
     public void AKeepersResearcherSteersOnlyInAMovementEnabledState(int state, bool moves)
     {
-        var (db, world, reader) = Reader();
+        (GameDatabase? db, WorldState? world, CreatureState? reader) = Reader();
         StatePlacement.Place(reader, state);
-        var position = reader.Body.Pos;
-        var velocity = reader.Body.Vel;
+        Fixed16Vector position = reader.Body.Pos;
+        Fixed16Vector velocity = reader.Body.Vel;
         var sim = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
 
         sim.Tick();
@@ -43,12 +43,12 @@ public sealed class LibraryMovementGateTests
     [Fact]
     public void ReturningToTheChooserDoesNotStepAlongTheRetainedRoute()
     {
-        var (db, world, reader) = Reader();
+        (GameDatabase? db, WorldState? world, CreatureState? reader) = Reader();
         new GameSimulation(db, world, 1, [new AutoFurnitureSystem()]).Tick();
         StatePlacement.Place(reader, ResearchStep.ReturningState);
         reader.StateEnteredTick = -2;
-        var position = reader.Body.Pos;
-        var velocity = reader.Body.Vel;
+        Fixed16Vector position = reader.Body.Pos;
+        Fixed16Vector velocity = reader.Body.Vel;
         var sim = new GameSimulation(db, world, 1,
             [new CreatureUpdateSystem(new ResearchTurn(), new CreatureMovementSystem())]);
 
@@ -72,7 +72,7 @@ public sealed class LibraryMovementGateTests
     private static (GameDatabase Db, WorldState World, CreatureState Reader) Reader()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 4; y++)
         for (int x = 3; x <= 7; x++)
@@ -83,7 +83,7 @@ public sealed class LibraryMovementGateTests
         reader.CurrentJob = JobType.Research;
         reader.Heading = 512;
         reader.Body.Pos = new Fixed16Vector(reader.PosX << 4, reader.PosY << 4);
-        var end = reader.Body.Pos + new Fixed16Vector(2 * Fixed16.One, 0);
+        Fixed16Vector end = reader.Body.Pos + new Fixed16Vector(2 * Fixed16.One, 0);
         RouteWindow.Load(reader.Body, [end], end, 0);
         reader.Body.Vel = new Fixed16Vector(3000, -1000);
         return (db, world, reader);

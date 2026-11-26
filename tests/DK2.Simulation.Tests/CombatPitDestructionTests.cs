@@ -18,7 +18,7 @@ public sealed class CombatPitDestructionTests
         var db = new GameDatabase(basis.Terrain.Values,
             basis.Rooms.Values.Select(r => r.TypeId == RoomTypeId.CombatPit ? r with { CreatedObjectEffectId = 52 } : r),
             basis.Creatures.Values, basis.Variables);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 3; y <= 7; y++)
         for (int x = 3; x <= 7; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), PlayerIds.FirstKeeper);

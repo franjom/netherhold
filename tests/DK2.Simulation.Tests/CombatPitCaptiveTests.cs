@@ -57,7 +57,7 @@ public sealed class CombatPitCaptiveTests
     [InlineData(Rival)]
     public void APlacedFighterBindsToThePitsKeeperWithoutBeingFreedByThePrisonStep(byte owner)
     {
-        var (database, world) = Setup();
+        (GameDatabase? database, WorldState? world) = Setup();
         CreatureState fighter = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, owner, Floor);
         fighter.CombatPitFighter = true;
         StatePlacement.Place(fighter, CombatPitRules.PlacingState);
@@ -75,7 +75,7 @@ public sealed class CombatPitCaptiveTests
     [Fact]
     public void ThePrisonStepDoesNotReleaseAnEnemyFighterOrCountItAsACellOccupant()
     {
-        var (database, world) = Setup();
+        (GameDatabase? database, WorldState? world) = Setup();
         CreatureState fighter = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Rival, Floor);
         fighter.PrisonOwnerPlayerId = Keeper;
         fighter.CombatPitFighter = true;
@@ -92,7 +92,7 @@ public sealed class CombatPitCaptiveTests
     [Fact]
     public void AnOwnBoundPitFighterStillRegeneratesOnItsOwnLand()
     {
-        var (database, world) = Setup();
+        (GameDatabase? database, WorldState? world) = Setup();
         database = new GameDatabase(database.Terrain.Values, database.Rooms.Values,
             database.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.GoblinCreatureId
                 ? c with { OwnLandHealthIncreasePerSecond = 67 } : c), database.Variables,
@@ -115,7 +115,7 @@ public sealed class CombatPitCaptiveTests
     [InlineData(217)]
     public void ThePrisonStepPreservesTheBindingWhileHeldStunnedOrDyingOutsideACell(int state)
     {
-        var (database, world) = Setup();
+        (GameDatabase? database, WorldState? world) = Setup();
         CreatureState captive = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Rival, Outside);
         captive.PrisonOwnerPlayerId = Keeper;
         captive.InHand = state == 78;
@@ -133,7 +133,7 @@ public sealed class CombatPitCaptiveTests
     [InlineData(Rival)]
     public void AKnockedOutFighterWithAKeeperBindingCanStillBeCarried(byte owner)
     {
-        var (database, world) = Setup();
+        (GameDatabase? database, WorldState? world) = Setup();
         CreatureState fighter = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, owner, Floor);
         fighter.PrisonOwnerPlayerId = Keeper;
         StatePlacement.Place(fighter, CreatureDeathRules.DyingState);
@@ -144,7 +144,7 @@ public sealed class CombatPitCaptiveTests
     [Fact]
     public void AWalkFromIdleResumingPrisonEscapeStillCountsAsAPrisonInmate()
     {
-        var (database, world) = Setup();
+        (GameDatabase? database, WorldState? world) = Setup();
         CreatureState captive = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Rival, Outside);
         captive.PrisonOwnerPlayerId = Keeper;
         StatePlacement.Place(captive, 6);
@@ -159,7 +159,7 @@ public sealed class CombatPitCaptiveTests
     [InlineData(true)]
     public void AnEnemyCaptiveDroppedOnTheFloorEnters137BeforeTheWorkerSplit(bool worker)
     {
-        var (database, world) = Setup();
+        (GameDatabase? database, WorldState? world) = Setup();
         CreatureState captive = world.SpawnCreature(database,
             worker ? Dk2TerrainFixture.ImpCreatureId : Dk2TerrainFixture.GoblinCreatureId, Rival, Outside);
         captive.PrisonOwnerPlayerId = Keeper;
@@ -178,7 +178,7 @@ public sealed class CombatPitCaptiveTests
     [InlineData((byte)1, true)]
     public void OnlyAWorkerWhosePlayerNumberIsBelowThreeUsesTheOrdinaryPitDrop(byte owner, bool entersPit)
     {
-        var (database, world) = Setup();
+        (GameDatabase? database, WorldState? world) = Setup();
         if (owner == 1)
             for (int y = 2; y <= 6; y++)
             for (int x = 4; x <= 8; x++) world.Tile(x, y).OwnerPlayerId = PlayerIds.Neutral;
@@ -197,7 +197,7 @@ public sealed class CombatPitCaptiveTests
     [InlineData(Rival)]
     public void AnOwnFighterRetainingAKeeperBindingCanStillBeDroppedIntoItsPortal(byte binding)
     {
-        var (database, world) = Setup();
+        (GameDatabase? database, WorldState? world) = Setup();
         var centre = new TilePos(10, 4);
         for (int y = 3; y <= 5; y++)
         for (int x = 9; x <= 11; x++)

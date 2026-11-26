@@ -19,7 +19,7 @@ public sealed class TargetedCastHoldTests
     [InlineData(true)]
     public void ReleasedShotKeepsTheFighterBusyThroughTheClipAndSnapshot(bool fallback)
     {
-        var (db, world, caster, target, sim) = Setup(fallback);
+        (GameDatabase? db, WorldState? world, CreatureState? caster, CreatureState? target, GameSimulation? sim) = Setup(fallback);
         CreatureDef definition = db.CreatureById(caster.CreatureTypeId);
         int hold = AnimationTimingRules.CountedHoldTicks(definition, 6, 1);
         int fire = SpellRules.DelayTicks(definition, 0) + 1;
@@ -50,7 +50,7 @@ public sealed class TargetedCastHoldTests
     [Fact]
     public void ATravelRequestCancelsTheReleasedCastHold()
     {
-        var (db, world, caster, _, sim) = Setup(false);
+        (GameDatabase? db, WorldState? world, CreatureState? caster, CreatureState _, GameSimulation? sim) = Setup(false);
         int fire = SpellRules.DelayTicks(db.CreatureById(caster.CreatureTypeId), 0) + 1;
         sim.Run(fire + 1);
         CreatureStateMachine.BeginTravel(new StateHookContext(world, db), caster, 6, 1);
@@ -62,7 +62,7 @@ public sealed class TargetedCastHoldTests
     [Fact]
     public void ALongShotDelayStillWaitsAfterTheClipCompletes()
     {
-        var (db, world, caster, _, sim) = Setup(false, shortClip: true);
+        (GameDatabase? db, WorldState? world, CreatureState? caster, CreatureState _, GameSimulation? sim) = Setup(false, shortClip: true);
         CreatureDef definition = db.CreatureById(caster.CreatureTypeId);
         int hold = AnimationTimingRules.CountedHoldTicks(definition, 6, 1);
         int fire = SpellRules.DelayTicks(definition, 0) + 1;
@@ -79,7 +79,7 @@ public sealed class TargetedCastHoldTests
     [Fact]
     public void AnUnattackableTargetIsDroppedBeforeTheBusyGate()
     {
-        var (_, world, caster, target, sim) = Setup(false);
+        (GameDatabase _, WorldState? world, CreatureState? caster, CreatureState? target, GameSimulation? sim) = Setup(false);
         sim.Run(14);
         Assert.False(caster.SwingInProgress);
         Assert.Single(world.Shots);
@@ -100,7 +100,7 @@ public sealed class TargetedCastHoldTests
     [InlineData(2)]
     public void ReplacementActionsDiscardThePreviousCastDeadline(int replacement)
     {
-        var (db, world, caster, target, sim) = Setup(false);
+        (GameDatabase? db, WorldState? world, CreatureState? caster, CreatureState? target, GameSimulation? sim) = Setup(false);
         sim.Run(14);
         Assert.True(caster.ActionUntilTick > world.CurrentTick.Value);
         new GameSimulation(db, world, 1, [new RunRule(context =>
@@ -150,7 +150,7 @@ public sealed class TargetedCastHoldTests
             basis.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.WarlockCreatureId
                 ? c with { ArtSlots = slots } : c), basis.Variables,
             creatureSpells: basis.CreatureSpells.Values, shots: basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(40, 40),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(40, 40),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper, (byte)(PlayerIds.FirstKeeper + 1)]);
         foreach (int y in Enumerable.Range(0, world.Height))
         foreach (int x in Enumerable.Range(0, world.Width))

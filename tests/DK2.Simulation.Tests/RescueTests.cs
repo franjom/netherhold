@@ -28,7 +28,7 @@ public class RescueTests
     /// at (8, 3) with a hero's Goblin captive on it.</summary>
     private static (WorldState World, CreatureState Victim) World(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, Hero, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
         for (int x = 1; x <= 12; x++)

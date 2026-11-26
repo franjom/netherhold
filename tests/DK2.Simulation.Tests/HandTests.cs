@@ -378,7 +378,7 @@ public class HandTests
     {
         const byte Rival = PlayerIds.FirstKeeper + 1;
         GameDatabase db = Db;
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         RoomTypeId type = arm.StartsWith("torture") ? RoomTypeId.TortureChamber : RoomTypeId.Lair;
         byte roomOwner = arm.StartsWith("torture") ? Keeper : Rival;
         for (int y = 5; y < 8; y++)

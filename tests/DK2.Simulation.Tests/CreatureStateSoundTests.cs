@@ -39,7 +39,7 @@ public sealed class CreatureStateSoundTests
             EntranceFrames = 147, EntranceFramesPerSecond = 30,
         };
         GameDatabase db = Dk2TerrainFixture.Database(joiner);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, 3, 4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, 3, 4]);
         for (int dy = 0; dy < 3; dy++)
             for (int dx = 0; dx < 3; dx++)
                 RoomRules.Place(db, ref world.Tile(5 + dx, 5 + dy), db.Room(RoomTypeId.Portal), 3);
@@ -78,7 +78,7 @@ public sealed class CreatureStateSoundTests
     public void TheTremorKnockdownStarterRequestsC7OnceAtTheCreatureWithItsVoice()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, Keeper]);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         goblin.Dk2StateId = TremorRules.KnockdownState;
         var sim = new GameSimulation(db, world, 1, [new TremorCreatureSystem()]);
@@ -108,7 +108,7 @@ public sealed class CreatureStateSoundTests
     public void AGuardWhoseNextLegCannotBeRoutedRequestsDdAndWaitsInNinetyNine()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         // A corridor one tile wide in solid rock, so the door is the only way along the room.
         for (int y = 1; y <= 8; y++)
         for (int x = 1; x <= 12; x++)
@@ -149,7 +149,7 @@ public sealed class CreatureStateSoundTests
     public void EatingAChickenRequests111InTheChickensCategoryThenCdInTheEatersWithTheirOwnVoices()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, 4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, 4]);
         for (int y = 1; y < 11; y++)
         for (int x = 1; x < 11; x++)
         {

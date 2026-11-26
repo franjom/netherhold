@@ -27,7 +27,7 @@ public sealed class DoorTrapSoundTests
         byte doorId = 1, bool underConstruction = false)
     {
         GameDatabase db = SoundFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         foreach (int x in new[] { 4, 5, 6, 7 })
             world.Tile(new TilePos(x, 2)).TerrainId = Dk2TerrainFixture.DirtPath;
         world.Tile(new TilePos(5, 2)).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -46,7 +46,7 @@ public sealed class DoorTrapSoundTests
     [Fact]
     public void ADoorOpeningForAnAlliedCreatureAsksE7AndShuttingAsksE8InItsCategoryAtItsTileWithItsVoice()
     {
-        var (db, world, door, sim, events) = DoorSetup();
+        (GameDatabase? db, WorldState? world, DoorState? door, GameSimulation? sim, ListEventSink? events) = DoorSetup();
         world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 2));
 
         sim.Tick(InputFrame.Empty);
@@ -75,17 +75,17 @@ public sealed class DoorTrapSoundTests
     [Fact]
     public void ABarricadeAndADoorUnderConstructionAskNothingAndADeadDoorIsPassedOver()
     {
-        var (db, world, _, sim, events) = DoorSetup(doorId: 6);   // the Barricade
+        (GameDatabase? db, WorldState? world, DoorState _, GameSimulation? sim, ListEventSink? events) = DoorSetup(doorId: 6);   // the Barricade
         world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 2));
         sim.Tick(InputFrame.Empty);
         Assert.Empty(Sounds(events));
 
-        var (db2, world2, _, sim2, events2) = DoorSetup(underConstruction: true);
+        (GameDatabase? db2, WorldState? world2, DoorState _, GameSimulation? sim2, ListEventSink? events2) = DoorSetup(underConstruction: true);
         world2.SpawnCreature(db2, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 2));
         sim2.Tick(InputFrame.Empty);
         Assert.Empty(Sounds(events2));
 
-        var (db3, world3, dead, sim3, events3) = DoorSetup();
+        (GameDatabase? db3, WorldState? world3, DoorState? dead, GameSimulation? sim3, ListEventSink? events3) = DoorSetup();
         world3.SpawnCreature(db3, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 2));
         dead.Health = 0;   // 0x004A55F0 returns before the open state for a door that is dead
         sim3.Tick(InputFrame.Empty);
@@ -95,7 +95,7 @@ public sealed class DoorTrapSoundTests
     [Fact]
     public void TheLockCommandAsksE9WhenItLocksAndEaWhenItUnlocksAndNothingForADoorUnderConstruction()
     {
-        var (_, world, door, sim, events) = DoorSetup();
+        (GameDatabase _, WorldState? world, DoorState? door, GameSimulation? sim, ListEventSink? events) = DoorSetup();
         Assert.Equal(0, door.LockMode);
         sim.Tick(InputFrame.Of(new LockDoorCommand(Keeper, new TilePos(5, 2))));
         Assert.Equal(3, door.LockMode);
@@ -111,7 +111,7 @@ public sealed class DoorTrapSoundTests
         Assert.Equal((ThingSoundEvent.DoorUnlocked, "DOOR_WOOD", locked.Source), (unlocked.Event, unlocked.Category, unlocked.Source));
         Assert.Equal((ushort)0xEA, (ushort)unlocked.Event);
 
-        var (_, _, _, sim2, events2) = DoorSetup(underConstruction: true);
+        (GameDatabase _, WorldState _, DoorState _, GameSimulation? sim2, ListEventSink? events2) = DoorSetup(underConstruction: true);
         sim2.Tick(InputFrame.Of(new LockDoorCommand(Keeper, new TilePos(5, 2))));
         Assert.Empty(Sounds(events2));
     }
@@ -120,7 +120,7 @@ public sealed class DoorTrapSoundTests
     public void ADoorOfADefinitionWithNoCategoryAsksNothing()
     {
         GameDatabase db = SoundFixture.Database(objects: null, doors: false, traps: false);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         world.Tile(new TilePos(5, 2)).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(new TilePos(5, 2)).OwnerPlayerId = Keeper;
         ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = 5, Y = 2, PlayerId = Keeper, Flags = 0, DoorId = 1, Unknown_0011 = new byte[3] }]);
@@ -136,7 +136,7 @@ public sealed class DoorTrapSoundTests
     private static (GameDatabase Db, WorldState World) Open()
     {
         GameDatabase db = SoundFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;

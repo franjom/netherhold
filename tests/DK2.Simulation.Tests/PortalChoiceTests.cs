@@ -25,7 +25,7 @@ public class PortalChoiceTests
     private static WorldState World(long tick)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, Keeper]);
         AdvanceTo(db, world, tick);
         return world;
     }

@@ -28,7 +28,7 @@ public class JackInTheBoxTests
     [Fact]
     public void FullPoolKeepsTheVictimDamageButLeavesTheTrapIntact()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         ThingProjection.Place(world, db, [new TrapThing(new byte[16])
             { X = 5, Y = 5, TrapId = Dk2TerrainFixture.JackInTheBoxTrapId, PlayerId = Keeper, NumberOfShots = 1 }]);
         CreatureState victim = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
@@ -65,7 +65,7 @@ public class JackInTheBoxTests
     private static (GameDatabase db, WorldState world) Open()
     {
         GameDatabase db = Dk2TerrainFixture.Database(Jack());
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
@@ -103,7 +103,7 @@ public class JackInTheBoxTests
 
         sim.Run(2);
         Assert.Contains(sink.Events, e => e.Kind == "trap_fired");
-        var sprung = Assert.Single(sink.Events, e => e.Kind == "jack_sprung");
+        SimEvent sprung = Assert.Single(sink.Events, e => e.Kind == "jack_sprung");
         Assert.Contains($"victim={imp.Id} ", sprung.Detail);
         Assert.True(CreatureDeathRules.IsDown(imp));
         CreatureState jack = Assert.Single(world.Creatures, c => JackInTheBoxRules.IsJack(c));

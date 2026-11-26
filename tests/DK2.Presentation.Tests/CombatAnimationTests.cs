@@ -23,7 +23,7 @@ public class CombatAnimationTests
     [InlineData("Salamander")]
     public void ABlowDoesNotReleaseTheMeleeActionBeforeItsAuthoredAnimationEnds(string name)
     {
-        var (database, world, attacker, target) = Fighters(name);
+        (GameDatabase? database, WorldState? world, CreatureState? attacker, CreatureState? target) = Fighters(name);
         CreatureDef definition = database.CreatureById(attacker.CreatureTypeId);
         var simulation = new GameSimulation(database, world, 7, [new CombatSystem()]);
         var view = new WorldView(database);
@@ -64,7 +64,7 @@ public class CombatAnimationTests
     [InlineData("Salamander")]
     public void AStationaryFighterTurnsToItsTargetBeforeStartingMelee(string name)
     {
-        var (database, world, attacker, _) = Fighters(name);
+        (GameDatabase? database, WorldState? world, CreatureState? attacker, CreatureState _) = Fighters(name);
         CreatureDef definition = database.CreatureById(attacker.CreatureTypeId);
         attacker.Heading = 0x600;
         var simulation = new GameSimulation(database, world, 7, [new CombatSystem()]);
@@ -92,7 +92,7 @@ public class CombatAnimationTests
     [InlineData("Dwarf", 341, 4)]
     public void AFighterFacingAwayTurnsItsCapturedRateATick_AndSwingsOnceItFaces(string name, int perTick, int turns)
     {
-        var (database, world, attacker, _) = Fighters(name, "Imp");
+        (GameDatabase? database, WorldState? world, CreatureState? attacker, CreatureState _) = Fighters(name, "Imp");
         attacker.Heading = 0x600;   // the target lies at 0x200, half a circle round
         var simulation = new GameSimulation(database, world, 7, [new CombatSystem()]);
         var sink = new ListEventSink();
@@ -116,7 +116,7 @@ public class CombatAnimationTests
     public void ConsecutiveSwingsAreTheRechargeOrTheClipApart_AsDk2sRecordingsShow(string name, string targetName, int interval)
     {
         // A low-threat Imp keeps the Dwarf and Thief from backing off in fear; any target serves the clock.
-        var (database, world, attacker, _) = Fighters(name, targetName);
+        (GameDatabase? database, WorldState? world, CreatureState? attacker, CreatureState _) = Fighters(name, targetName);
         var simulation = new GameSimulation(database, world, 7, [new CombatSystem()]);
         var sink = new ListEventSink();
         simulation.ObserveWith(sink);
@@ -133,7 +133,7 @@ public class CombatAnimationTests
         GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte path = database.Terrain.Values.Single(t => t.Name.Trim() == "Dirt Path").TerrainId;
         var map = new LevelMap(12, 12, Enumerable.Repeat(new MapTile(path, 1, 0, 0), 144).ToArray());
-        WorldState world = WorldState.FromMap(database, map, [0, 1]);
+        var world = WorldState.FromMap(database, map, [0, 1]);
         new GameSimulation(database, world, 7, []).Tick();
         CreatureState attacker = world.SpawnCreature(database, database.CreatureByName(name)!.CreatureId,
             1, new TilePos(5, 5));

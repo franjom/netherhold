@@ -16,7 +16,7 @@ public class WallSupportTests
 
     private static GameSimulation Simulation()
     {
-        WorldState world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper.Value, Rival.Value]);
+        var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper.Value, Rival.Value]);
         for (int y = 0; y < world.Height; y++)
             for (int x = 0; x < world.Width; x++)
                 Put(world, new TilePos(x, y), Dk2TerrainFixture.Rock, PlayerIds.Neutral);

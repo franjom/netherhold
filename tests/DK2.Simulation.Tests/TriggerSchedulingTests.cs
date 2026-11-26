@@ -22,11 +22,11 @@ public class TriggerSchedulingTests
         {
             ActionPointId = 1, TriggerId = 1, StartX = 5, EndX = 5, StartY = 5, EndY = 5, Name = "fixture",
         }]);
-        var area = Condition(1, 42, 65535, new()
+        TriggerRecord area = Condition(1, 42, 65535, new()
         {
             ["Comparison"] = 5, ["PlayerId"] = 1, ["TerrainId"] = 0, ["Value"] = 1,
         }) with { RepeatCount = 255 };
-        var player = Condition(2, 1, 65533, new()
+        TriggerRecord player = Condition(2, 1, 65533, new()
         {
             ["Comparison"] = 3, ["FlagId"] = 8, ["Flag"] = 1, ["Value"] = 1,
         }) with { RepeatCount = 255 };
@@ -125,7 +125,7 @@ public class TriggerSchedulingTests
         CreatureState older = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 1, new TilePos(5, 5));
         CreatureState newer = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 1, new TilePos(5, 5));
         newer.TriggerId = 1;
-        var condition = Condition(1, 36, 65535, new() { ["Comparison"] = 3, ["Value"] = 0 });
+        TriggerRecord condition = Condition(1, 36, 65535, new() { ["Comparison"] = 3, ["Value"] = 0 });
         var step = new HealthStep(newer.Id, older.Id);
         var tree = new TriggerTree([condition, Timer(65535, 3)], 0);
         var sim = new GameSimulation(db, world, 1, Scheduled(step), tree);
@@ -148,7 +148,7 @@ public class TriggerSchedulingTests
         WorldState world = TestWorld.World(db);
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 1, new TilePos(5, 5));
         creature.TriggerId = 1;
-        var condition = Condition(1, 34, 65535, new() { ["Comparison"] = 5, ["Value"] = 0 })
+        TriggerRecord condition = Condition(1, 34, 65535, new() { ["Comparison"] = 5, ["Value"] = 0 })
             with { RepeatCount = 255 };
         var increment = new ActionTriggerRecord(new byte[16])
         {

@@ -23,7 +23,7 @@ public class RepairWallPoolTests
 
     private static GameSimulation Start(out ListEventSink sink, TilePos firstImp)
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var tiles = new MapTile[49];
         for (int y = 0; y < 7; y++)
         for (int x = 0; x < 7; x++)
@@ -160,7 +160,7 @@ public class RepairWallPoolTests
         ulong before = sim.StateHash();
         sim.World.RepairTaskEntries[(Keeper, Wall)].Holders[2] = 17;
         Assert.NotEqual(before, sim.StateHash());
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database);
 
         Assert.Equal(sim.StateHash(), restored.StateHash());
         Assert.Equal(a.Id, restored.World.RepairTaskEntries[(Keeper, Wall)].Holders[North]);
@@ -192,7 +192,7 @@ public class RepairWallPoolTests
     [Fact]
     public void ARepairerMovedOffTheWallAfterTheActionPollHasStillStruckThatTurn_BinaryInferred()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         GameSimulation probe = Start(out _, new TilePos(3, 2));
         var knock = new KnockOffAfterThePoll();
         ISimulationSystem[] systems = Dk2TerrainFixture.DefaultSystems();

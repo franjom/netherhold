@@ -127,7 +127,7 @@ public class ClassicRoomInitializationTests
         string install = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "Level8")!;
-        WorldState world = WorldState.FromMap(db, map, [0, 1, 2, 3, 4]);
+        var world = WorldState.FromMap(db, map, [0, 1, 2, 3, 4]);
         ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(install, "Level8")!);
         return (db, world);
     }

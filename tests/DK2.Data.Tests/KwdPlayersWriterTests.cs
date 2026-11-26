@@ -62,8 +62,8 @@ public class KwdPlayersWriterTests
         foreach (string file in Directory.GetFiles(maps, "*Players.kld"))
         {
             KwdChunk chunk = KwdReader.ReadFile(file).Single();
-            var players = KwdPlayers.Parse([chunk]);
-            var images = KwdRecordRoundTrip.Split(chunk);
+            List<PlayerDef> players = KwdPlayers.Parse([chunk]);
+            List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
             for (int i = 0; i < players.Count; i++)
                 Assert.Equal(images[i].ToBytes(), KwdPlayers.WriteRecord(players[i], images[i]));
             count += players.Count;
@@ -98,7 +98,7 @@ public class KwdPlayersWriterTests
             if (value is IEnumerable<byte> bytes) Assert.Equal(bytes, Assert.IsAssignableFrom<IEnumerable<byte>>(reread));
             else Assert.Equal(value, reread);
             Assert.False(source.SequenceEqual(written));
-            var field = fields[property.Name];
+            (int Offset, int Width) field = fields[property.Name];
             for (int i = 0; i < source.Length; i++)
                 if (i < field.Offset || i >= field.Offset + field.Width) Assert.Equal(source[i], written[i]);
             if (property.PropertyType == typeof(bool))

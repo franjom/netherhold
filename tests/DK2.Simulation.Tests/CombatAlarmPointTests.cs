@@ -21,7 +21,7 @@ public class CombatAlarmPointTests
     [InlineData(Dk2TerrainFixture.LairTerrain)]
     public void OnlyAGuardRoomReceivesTheAlarm(byte terrain)
     {
-        var (db, world, _, imp) = Fixture(terrain);
+        (GameDatabase? db, WorldState? world, RoomInstance _, CreatureState? imp) = Fixture(terrain);
         var random = new FixedDraw(0);
 
         Assert.False(Raise(db, world, imp, random));
@@ -32,7 +32,7 @@ public class CombatAlarmPointTests
     [Fact]
     public void ANearerPortalIsSkippedForTheGuardRoom()
     {
-        var (db, world, _, imp) = Fixture(Dk2TerrainFixture.PortalTerrain);
+        (GameDatabase? db, WorldState? world, RoomInstance _, CreatureState? imp) = Fixture(Dk2TerrainFixture.PortalTerrain);
         PlaceRoom(world, Dk2TerrainFixture.GuardRoomTerrain, 15, 15);
         var random = new FixedDraw(0);
 
@@ -46,7 +46,7 @@ public class CombatAlarmPointTests
     [Fact]
     public void ABlockedRouteDoesNotChooseAnotherPointOrAnotherRoom()
     {
-        var (db, world, room, imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
+        (GameDatabase? db, WorldState? world, RoomInstance? room, CreatureState? imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
         PlaceRoom(world, Dk2TerrainFixture.GuardRoomTerrain, 15, 15);
         for (int y = 7; y <= 9; y++)
             for (int x = 7; x <= 9; x++)
@@ -63,7 +63,7 @@ public class CombatAlarmPointTests
     [InlineData(true)]
     public void AnInteriorDrawAdvancesAlongTheSlabChainAndWrapsWithoutAnotherDraw(bool wrap)
     {
-        var (db, world, room, imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
+        (GameDatabase? db, WorldState? world, RoomInstance? room, CreatureState? imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
         int centre = 11 * world.Width + 11;
         if (wrap) world.TileAtIndex(centre).SlabOrder = 99;
         int[] chain = SlabChain.Order(world, room);
@@ -84,7 +84,7 @@ public class CombatAlarmPointTests
     [InlineData(Dk2TerrainFixture.WoodenBridgeTerrain)]
     public void SpecialRoomInteriorsAreNotFloorSlots(byte terrain)
     {
-        var (_, world, room, _) = Fixture(terrain);
+        (GameDatabase _, WorldState? world, RoomInstance? room, CreatureState _) = Fixture(terrain);
         Assert.False(AutoFurnitureRules.IsFloorSlot(world, room, 11 * world.Width + 11));
     }
 
@@ -112,7 +112,7 @@ public class CombatAlarmPointTests
     [InlineData(251, 7, false)]
     public void OnlyARaiserOrReporterOnItsWayOrThereRefusesAnotherAlarm(int state, int walk, bool refuses)
     {
-        var (db, world, _, imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
+        (GameDatabase? db, WorldState? world, RoomInstance _, CreatureState? imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
         CreatureState other = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(9, 8));
         other.AlarmX = imp.PosX;
         other.AlarmY = imp.PosY;
@@ -132,7 +132,7 @@ public class CombatAlarmPointTests
     [Fact]
     public void ARaiserIsJudgedByItsThreatAndAWalkerByWhereItIs()
     {
-        var (db, world, _, imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
+        (GameDatabase? db, WorldState? world, RoomInstance _, CreatureState? imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
         CreatureState raiser = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(17, 17));
         StatePlacement.Place(raiser, 251);
         raiser.AlarmX = imp.PosX;
@@ -153,7 +153,7 @@ public class CombatAlarmPointTests
     private static (GameDatabase Db, WorldState World, RoomInstance Room, CreatureState Imp) Fixture(byte terrain)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)

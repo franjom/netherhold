@@ -108,7 +108,7 @@ public class CombatAcquisitionTests
         // An L of three floor tiles: the diagonal line of sight brushes the rock at the corner,
         // and the walk round it is well under four tiles.
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         foreach ((int x, int y) in new[] { (5, 5), (5, 4), (6, 4) })
             world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
@@ -338,7 +338,7 @@ public class CombatAcquisitionTests
     private static (GameDatabase, WorldState) OpenWorld()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
         {

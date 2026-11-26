@@ -34,7 +34,7 @@ public sealed class CombatPitSpectatorCompletionTests
             art[8] = art[20] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 100, FramesPerSecond = 20 };
         CreatureDef watcher = Dk2TerrainFixture.Goblin() with { CreatureId = 54, ArtSlots = art };
         GameDatabase db = Dk2TerrainFixture.Database(watcher);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 6; y++)
         for (int x = 4; x <= 8; x++)
             if (!irregular || x < 6 || y > 4)
@@ -56,7 +56,7 @@ public sealed class CombatPitSpectatorCompletionTests
     [Fact]
     public void MissingResolvedCheerArtConsumesNoChoiceDrawAndStartsNoAction()
     {
-        var (sim, c, db, rng, _) = Start(artPresent: false);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db, Dk2Lcg? rng, RoomInstance _) = Start(artPresent: false);
         sim.Tick();
         Assert.Equal(144, c.Dk2StateId);
         Assert.Equal(3U, rng.Seed);
@@ -70,7 +70,7 @@ public sealed class CombatPitSpectatorCompletionTests
     [InlineData(2U, 69, 3, 8)]
     public void CheerStartsItsNativeCountedAction(uint seed, int action, byte storedCount, byte artSlot)
     {
-        var (sim, c, db, _, _) = Start(seed);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db, Dk2Lcg _, RoomInstance _) = Start(seed);
         sim.Tick();
         Assert.Equal(144, c.Dk2StateId);
         Assert.Equal(action, CreatureCurrentAction.IndexOf(c, db.CreatureById(c.CreatureTypeId), sim.CurrentTick));
@@ -82,7 +82,7 @@ public sealed class CombatPitSpectatorCompletionTests
     [Fact]
     public void CheerWaitsForTheAuthoredClipBeyondEightTicks()
     {
-        var (sim, c, db, _, _) = Start();
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db, Dk2Lcg _, RoomInstance _) = Start();
         for (int i = 0; i < 11; i++) sim.Tick();
         Assert.Equal(144, c.Dk2StateId);
         Assert.Equal(70, CreatureCurrentAction.IndexOf(c, db.CreatureById(c.CreatureTypeId), sim.CurrentTick));
@@ -91,7 +91,7 @@ public sealed class CombatPitSpectatorCompletionTests
     [Fact]
     public void FacingUsesTheNativeRoomCentreForAnIrregularPit()
     {
-        var (sim, c, _, _, _) = Start(irregular: true);
+        (GameSimulation? sim, CreatureState? c, GameDatabase _, Dk2Lcg _, RoomInstance _) = Start(irregular: true);
         int heading = c.Heading;
         sim.Tick();
         Assert.Equal(heading, c.Heading);
@@ -100,7 +100,7 @@ public sealed class CombatPitSpectatorCompletionTests
     [Fact]
     public void QuietAgeUsesTheNativeUnsignedTurnDifference()
     {
-        var (sim, c, _, _, room) = Start(artPresent: false);
+        (GameSimulation? sim, CreatureState? c, GameDatabase _, Dk2Lcg _, RoomInstance? room) = Start(artPresent: false);
         StatePlacement.Place(c, CombatPitSpectatorRules.CheeringState);
         sim.World.TileAtIndex(room.TileIndices[0]).PitFightSeenTick = -((1L << 32) + 16);
         sim.Tick();
@@ -110,7 +110,7 @@ public sealed class CombatPitSpectatorCompletionTests
     [Fact]
     public void JobRefusesAtTheConfiguredQuietBoundary()
     {
-        var (basis, c, db, _, room) = Start(artPresent: false);
+        (GameSimulation? basis, CreatureState? c, GameDatabase? db, Dk2Lcg _, RoomInstance? room) = Start(artPresent: false);
         db.Variables.Misc[VariableTypeId.TicksPerSecond] = new MiscVariable(VariableTypeId.TicksPerSecond, 1, 0, 0);
         StatePlacement.Place(c, CreatureStateMachine.Idle);
         basis.World.TileAtIndex(room.TileIndices[0]).PitFightSeenTick = -4;
@@ -123,7 +123,7 @@ public sealed class CombatPitSpectatorCompletionTests
     [Fact]
     public void FinishedCheerLeavesAfterTheConfiguredQuietLimit()
     {
-        var (sim, c, db, _, room) = Start(artPresent: false);
+        (GameSimulation? sim, CreatureState? c, GameDatabase? db, Dk2Lcg _, RoomInstance? room) = Start(artPresent: false);
         db.Variables.Misc[VariableTypeId.TicksPerSecond] = new MiscVariable(VariableTypeId.TicksPerSecond, 1, 0, 0);
         StatePlacement.Place(c, CombatPitSpectatorRules.CheeringState);
         sim.World.TileAtIndex(room.TileIndices[0]).PitFightSeenTick = -5;
@@ -135,7 +135,7 @@ public sealed class CombatPitSpectatorCompletionTests
     public void FinderProbesTheFirstSlabChainPointEvenWhenAnotherRimTileIsReachable()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 0; y < world.Height; y++)
         for (int x = 0; x < world.Width; x++)
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;

@@ -34,7 +34,7 @@ public class CasinoStateTests
     /// <summary>A square Casino of the keeper's from (1,1), and a Treasury tile at <see cref="Vault"/>.</summary>
     private static WorldState World(GameDatabase db, int size)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= size; y++)
         for (int x = 1; x <= size; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);

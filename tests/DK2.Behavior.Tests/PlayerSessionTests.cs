@@ -51,7 +51,7 @@ public class PlayerSessionTests
 
     private static ulong HashOf(IReadOnlyList<PlayerCommand> commands)
     {
-        Hash64 hash = Hash64.Start();
+        var hash = Hash64.Start();
         new InputFrame(commands).HashInto(ref hash);
         return hash.Value;
     }
@@ -222,7 +222,7 @@ public class PlayerSessionTests
         var h = new Harness((_, world) =>
             world.Player(Viewer).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Treasury, 3)));
         h.Observe();
-        GuiButtonTarget treasury = GuiButtonTarget.Room(RoomTypeId.Treasury);
+        var treasury = GuiButtonTarget.Room(RoomTypeId.Treasury);
 
         h.Submit(1, new PlayerAction.SelectPanel(treasury));
 
@@ -240,7 +240,7 @@ public class PlayerSessionTests
         });
         PlayerObservationCapture capture = h.Observe();
         var human = new PlayerInputTranslator { RubberBandLimit = PlacementCursor.RubberBandLimit(h.Database) };
-        PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(new WorldView(h.Database, Viewer), h.World, Viewer, h.Database);
+        var snapshot = PlayerInputSnapshot.Capture(new WorldView(h.Database, Viewer), h.World, Viewer, h.Database);
         InputFrame Gesture(PlayerToolMode tool, TilePos from, TilePos to, RoomTypeId room = default)
         {
             human.Translate(new PlayerIntent(Viewer, tool, from, PointerButtonTransition.Pressed, room), snapshot);
@@ -268,7 +268,7 @@ public class PlayerSessionTests
     {
         var h = new Harness(Equipped);
         h.Observe();
-        PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(new WorldView(h.Database, Viewer), h.World, Viewer, h.Database);
+        var snapshot = PlayerInputSnapshot.Capture(new WorldView(h.Database, Viewer), h.World, Viewer, h.Database);
         var human = new PlayerInputTranslator();
         PlayerCommand Click(TilePos tile) => Assert.Single(human.Translate(new PlayerIntent(Viewer, PlayerToolMode.Hand, tile,
             PointerButtonTransition.None, SecondaryButton: PointerButtonTransition.Pressed), snapshot).All);
@@ -356,8 +356,8 @@ public class PlayerSessionTests
             return (receipts, HashOf(h.Session.Drain(new GameTick(1))));
         }
 
-        var plain = Probe(Equipped);
-        var hidden = Probe((db, world) => { Equipped(db, world); AddHiddenDifferences(db, world); });
+        (PlayerReceipt[] Receipts, ulong Commands) plain = Probe(Equipped);
+        (PlayerReceipt[] Receipts, ulong Commands) hidden = Probe((db, world) => { Equipped(db, world); AddHiddenDifferences(db, world); });
 
         Assert.Equal(plain.Receipts, hidden.Receipts);
         Assert.Equal(plain.Commands, hidden.Commands);
@@ -372,7 +372,7 @@ public class PlayerSessionTests
         var h = new Harness();
         PlayerObservationCapture capture = h.Observe();
         Assert.Throws<ArgumentException>(() => h.Session.Observe(capture));
-        var otherRun = new PlayerObservationBuilder(h.Database, Viewer)
+        PlayerObservationCapture otherRun = new PlayerObservationBuilder(h.Database, Viewer)
             .Capture(h.World, new PlayerStamp(new PlayerRunId("other"), Viewer, h.World.CurrentTick, new PlayerRevision(5)), []);
         Assert.Throws<ArgumentException>(() => h.Session.Observe(otherRun));
     }

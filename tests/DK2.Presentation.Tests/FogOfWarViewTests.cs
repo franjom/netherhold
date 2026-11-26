@@ -16,8 +16,8 @@ public sealed class FogOfWarViewTests
     public void SightAddsTheOriginalFogSideMeshOnlyOnUnexploredOpenGround()
     {
         GameDatabase database = Database();
-        var tiles = Enumerable.Repeat(new MapTile(1, 2, 0, 0), 400).ToArray();
-        WorldState world = WorldState.FromMap(database, new LevelMap(20, 20, tiles), [1, 2], true);
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(1, 2, 0, 0), 400).ToArray();
+        var world = WorldState.FromMap(database, new LevelMap(20, 20, tiles), [1, 2], true);
         var simulation = new GameSimulation(database, world, 1, []);
         simulation.Run(24);
         var view = new WorldView(database, 1);
@@ -54,7 +54,7 @@ public sealed class FogOfWarViewTests
             new MapTile(1, 3, 0, 0),
             new MapTile(3, 2, 0, 0),
         ]);
-        WorldState world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
         world.Tile(0, 0).GoldHeld = 900;
         world.Tile(0, 0).SetExploredBy(1);
         world.Tile(0, 0).SetTaggedBy(2, true);
@@ -78,7 +78,7 @@ public sealed class FogOfWarViewTests
     {
         GameDatabase database = Database();
         var map = new LevelMap(1, 1, [new MapTile(3, 0, 0, 0)]);
-        WorldState world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
 
         var view = new WorldView(database, 1);
         Assert.Equal("terrain.fog_of_war.mesh", view.TileAt(world, 0, 0).Ground.Key);
@@ -94,7 +94,7 @@ public sealed class FogOfWarViewTests
     {
         GameDatabase database = Database();
         var map = new LevelMap(1, 1, [new MapTile(1, 2, 0, 0)]);
-        WorldState world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
         world.Tile(0, 0).SetDiscoveredBy(1);
         world.Tile(0, 0).GoldHeld = 900;
 
@@ -119,7 +119,7 @@ public sealed class FogOfWarViewTests
     {
         GameDatabase database = Database();
         var map = new LevelMap(1, 1, [new MapTile(terrainId, 2, 0, 0)]);
-        WorldState world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
         if (scanned) world.Tile(0, 0).SetDiscoveredBy(1);
         if (explored) world.Tile(0, 0).SetExploredBy(1);
 
@@ -148,7 +148,7 @@ public sealed class FogOfWarViewTests
     {
         GameDatabase database = Database();
         var map = new LevelMap(2, 1, [new MapTile(1, 2, 0, 0), new MapTile(1, 1, 0, 0)]);
-        WorldState world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
         if (scanned) world.Tile(0, 0).SetDiscoveredBy(1);
         world.Tile(1, 0).SetExploredBy(1);
 
@@ -169,7 +169,7 @@ public sealed class FogOfWarViewTests
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level2");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "Level2")!;
-        WorldState world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
         var view = new WorldView(database, 1);
         int checkedTiles = 0;
         for (int y = 0; y < world.Height; y++)
@@ -204,9 +204,9 @@ public sealed class FogOfWarViewTests
     public void FaceAdmission0043F2A0IncludesScannedLiquids(int neighbourTerrain, bool sourceExplored)
     {
         GameDatabase database = Database();
-        var tiles = Enumerable.Repeat(new MapTile(3, 2, 0, 0), 9).ToArray();
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(3, 2, 0, 0), 9).ToArray();
         tiles[5] = new MapTile((byte)neighbourTerrain, 2, 0, 0);
-        WorldState world = WorldState.FromMap(database, new LevelMap(3, 3, tiles), [1, 2], true);
+        var world = WorldState.FromMap(database, new LevelMap(3, 3, tiles), [1, 2], true);
         if (sourceExplored) world.Tile(1, 1).SetExploredBy(1);
         var view = new WorldView(database, 1);
 

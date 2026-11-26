@@ -30,7 +30,7 @@ public sealed class PossessionEntryHoverTests
     {
         GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var viewer = new PlayerId(PlayerIds.FirstKeeper);
-        WorldState world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [1, 3, 4], fogOfWarEnabled: false);
         CreatureState skeleton = world.SpawnCreature(database, 9, viewer, new TilePos(4, 4));
         skeleton.Flags |= 8;

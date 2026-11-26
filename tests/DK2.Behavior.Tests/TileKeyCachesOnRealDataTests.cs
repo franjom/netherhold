@@ -45,8 +45,8 @@ public sealed class TileKeyCachesOnRealDataTests
                 Assert.Equal(fresh[r].TileIndices, cached[r].TileIndices);
             }
 
-            StructureBlocks live = StructureBlocks.For(world, database);
-            StructureBlocks scratch = StructureBlocks.For(WorldState.CopyOf(world), database);
+            var live = StructureBlocks.For(world, database);
+            var scratch = StructureBlocks.For(WorldState.CopyOf(world), database);
             Assert.Equal(scratch.Count, live.Count);
             Assert.Equal(scratch.HeartCentres, live.HeartCentres);
             Assert.Equal(scratch.PortalCentres.OrderBy(c => c), live.PortalCentres.OrderBy(c => c));

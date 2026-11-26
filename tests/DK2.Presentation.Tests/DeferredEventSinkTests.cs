@@ -15,7 +15,7 @@ public sealed class DeferredEventSinkTests
         var received = new List<(SimEvent Event, int Thread)>();
         var sink = new DeferredEventSink(new RecordingSink(received));
         int frameThread = Environment.CurrentManagedThreadId;
-        var events = Enumerable.Range(0, 1000)
+        SimEvent[] events = Enumerable.Range(0, 1000)
             .Select(i => new SimEvent(new GameTick(i), "test", "event", i.ToString())).ToArray();
         Exception? workerFailure = null;
         var worker = new Thread(() =>

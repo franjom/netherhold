@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Reflection;
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
@@ -551,7 +552,7 @@ public class ObjectsOnRealDataTests
 
         Assert.NotSame(db, forLevel);
 
-        var collections = typeof(GameDatabase).GetProperties()
+        PropertyInfo[] collections = typeof(GameDatabase).GetProperties()
             .Where(p => p.PropertyType.IsGenericType
                 && p.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>))
             .ToArray();

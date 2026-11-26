@@ -59,7 +59,7 @@ public sealed class PickupFlowTests
     [InstallFact]
     public void AnOverviewPickupPlaysTheHeldCursorPostsAndPreviewsOnTheMinimapAndTheOverview()
     {
-        var (db, world, goblin) = PressFixture.Goblin();
+        (GameDatabase? db, WorldState? world, CreatureState? goblin) = PressFixture.Goblin();
         var view = new WorldView(db, Keeper);
         var cursor = new HandCursorFeedback();
         var overview = new CreatureOverview(db, Keeper, (_, name) => name);
@@ -81,7 +81,7 @@ public sealed class PickupFlowTests
     [InstallFact]
     public void AWorldPickupIsPostedOnceAndDefersTheFrameDropUntilTheCreatureIsHeld()
     {
-        var (db, world, goblin) = PressFixture.Goblin();
+        (GameDatabase? db, WorldState? world, CreatureState? goblin) = PressFixture.Goblin();
         var view = new WorldView(db, Keeper);
         var cursor = new HandCursorFeedback();
         var flow = new PickupFlow(view, cursor);

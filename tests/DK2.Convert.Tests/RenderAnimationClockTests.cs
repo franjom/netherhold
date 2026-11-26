@@ -50,7 +50,7 @@ public class RenderAnimationClockTests
     [Fact]
     public void AStartToMainTransitionDrawsTheCorrectSeparateMesh()
     {
-        var timing = Timing() with { Flags = CreatureAnimationFlags.StartSegment, StartSegmentFrames = 2 };
+        CreatureAnimationTiming timing = Timing() with { Flags = CreatureAnimationFlags.StartSegment, StartSegmentFrames = 2 };
         var clock = new RenderAnimationClock(timing, loop: true);
         clock.Advance();
         clock.Advance();
@@ -62,7 +62,7 @@ public class RenderAnimationClockTests
     [Fact]
     public void AOneShotReachesItsEndMeshWhileALoopKeepsItsMainMesh()
     {
-        var timing = Timing() with { Flags = CreatureAnimationFlags.EndSegment, EndSegmentFrames = 2 };
+        CreatureAnimationTiming timing = Timing() with { Flags = CreatureAnimationFlags.EndSegment, EndSegmentFrames = 2 };
         var once = new RenderAnimationClock(timing, loop: false);
         var loop = new RenderAnimationClock(timing, loop: true);
         for (int i = 0; i < 4; i++) { once.Advance(); loop.Advance(); }
@@ -149,7 +149,7 @@ public class RenderAnimationClockTests
     [Fact]
     public void AQueuedReplacementPlaysTheOutgoingEndBeforeInstallingWithoutAnAdvance()
     {
-        var outgoing = Timing() with { Flags = CreatureAnimationFlags.EndSegment, EndSegmentFrames = 2 };
+        CreatureAnimationTiming outgoing = Timing() with { Flags = CreatureAnimationFlags.EndSegment, EndSegmentFrames = 2 };
         var clock = new RenderAnimationClock(outgoing, loop: true);
         clock.Advance();
         clock.Replace(Timing(frames: 16), loop: true, AnimationReplacement.Deferred);

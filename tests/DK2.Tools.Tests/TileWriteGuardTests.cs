@@ -51,17 +51,17 @@ public class TileWriteGuardTests
     public void NoSourceWritesAWholeTileIntoALiveWorld()
     {
         string root = Root;
-        var found = Scan(Directory.EnumerateFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
+        List<Violation> found = Scan(Directory.EnumerateFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
             .Where(path => !IsBuildOutput(Path.GetRelativePath(root, path)))
             .Select(path => (Relative(root, path), File.ReadAllText(path))));
 
-        var unexpected = found.Where(v => !AllowList.Any(a => Matches(a, v))).Select(v => v.ToString()).ToArray();
+        string[] unexpected = found.Where(v => !AllowList.Any(a => Matches(a, v))).Select(v => v.ToString()).ToArray();
         Assert.True(unexpected.Length == 0,
             "A whole TileState is written without TileState's setters, so the caches keyed on KeyWriteCount stay stale. "
             + "Assign the fields (TerrainId, OwnerPlayerId, RoomRuined, SecretDoor go through counted setters) or call "
             + "TileState.NoteBulkKeyWrite after a bulk copy:\n" + string.Join("\n", unexpected));
 
-        var unused = AllowList.Where(a => !found.Any(v => Matches(a, v))).Select(a => $"{a.File} {a.Member}").ToArray();
+        string[] unused = AllowList.Where(a => !found.Any(v => Matches(a, v))).Select(a => $"{a.File} {a.Member}").ToArray();
         Assert.True(unused.Length == 0, "AllowList entries that match no whole-tile write any more; remove them:\n" + string.Join("\n", unused));
     }
 
@@ -101,7 +101,7 @@ public class TileWriteGuardTests
         ];
         foreach (string line in violations)
         {
-            var found = Scan([("Case.cs", Wrap(Model, line))]);
+            List<Violation> found = Scan([("Case.cs", Wrap(Model, line))]);
             Assert.True(found.Count > 0, $"not caught: {line}");
             Assert.All(found, v => Assert.Equal("Case.cs", v.File));
         }
@@ -128,7 +128,7 @@ public class TileWriteGuardTests
         Assert.Contains(Count, copy);
         Assert.Empty(Scan([(State, state), (Copy, copy)]));
 
-        var uncounted = Scan([(State, state), (Copy, copy.Replace(Count, ""))]);
+        List<Violation> uncounted = Scan([(State, state), (Copy, copy.Replace(Count, ""))]);
         Assert.Contains(uncounted, v => v.File == Copy && v.Member == "CopyFrom");
 
         const string Anchor = "    public ref TileState TileAtIndex(int index) => ref _tiles[index];";
@@ -136,7 +136,7 @@ public class TileWriteGuardTests
         foreach (string body in new[] { "_tiles[0] = other;", "TileAtIndex(0) = other;", "Tile(0, 0) = default;" })
         {
             string broken = state.Replace(Anchor, Anchor + $"\n    internal void Oops(TileState other) {{ {body} }}");
-            var found = Scan([(State, broken), (Copy, copy)]);
+            List<Violation> found = Scan([(State, broken), (Copy, copy)]);
             Assert.Contains(found, v => v.File == State && v.Member == "Oops");
         }
     }
@@ -203,11 +203,11 @@ public class TileWriteGuardTests
         switch (left)
         {
             case ParenthesizedExpressionSyntax p:
-                foreach (var t in Targets(p.Expression)) yield return t;
+                foreach (ExpressionSyntax t in Targets(p.Expression)) yield return t;
                 break;
             case TupleExpressionSyntax tuple:
-                foreach (var argument in tuple.Arguments)
-                    foreach (var t in Targets(argument.Expression)) yield return t;
+                foreach (ArgumentSyntax argument in tuple.Arguments)
+                    foreach (ExpressionSyntax t in Targets(argument.Expression)) yield return t;
                 break;
             default:
                 yield return left;

@@ -16,7 +16,7 @@ public sealed class PossessionActionTests
     private static (GameDatabase Db, WorldState World, CreatureState Me, GameSimulation Sim) Setup()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId,
             Keeper, new TilePos(10, 10));
@@ -32,7 +32,7 @@ public sealed class PossessionActionTests
     [Fact]
     public void MoveInstallsPoseMasksHeadingAndPreservesStateAndJob_StronglyInferredFromBinary()
     {
-        var (_, _, me, sim) = Setup();
+        (GameDatabase _, WorldState _, CreatureState? me, GameSimulation? sim) = Setup();
         me.Dk2StateId = 199;
         me.TargetTileIndex = 123;
         me.SwingInProgress = true;
@@ -49,7 +49,7 @@ public sealed class PossessionActionTests
     [Fact]
     public void ZeroPackedWordCopiesGroundPoseAndPreviousPosition_StronglyInferredFromBinary()
     {
-        var (_, _, me, sim) = Setup();
+        (GameDatabase _, WorldState _, CreatureState? me, GameSimulation? sim) = Setup();
         me.Heading = 17;
         sim.Tick(InputFrame.Of(Move(45000, 46000, 0, 0)));
         Assert.Equal((45000, 46000, 0), (me.PosX, me.PosY, me.PosZ));
@@ -60,7 +60,7 @@ public sealed class PossessionActionTests
     [Fact]
     public void ZeroPackedWordGroundsAnElevatedCreature_FromBinary()
     {
-        var (_, _, me, sim) = Setup();
+        (GameDatabase _, WorldState _, CreatureState? me, GameSimulation? sim) = Setup();
         me.PosZ = 1;
         sim.Tick(InputFrame.Of(Move(45000, 46000, 0, 0)));
         Assert.Equal((45000, 0, 0), (me.PosX, me.PosZ, me.LastPosZ));
@@ -69,7 +69,7 @@ public sealed class PossessionActionTests
     [Fact]
     public void NonzeroRawHeadingStillUsesSetterAfterMaskingToZero_StronglyInferredFromBinary()
     {
-        var (_, _, me, sim) = Setup();
+        (GameDatabase _, WorldState _, CreatureState? me, GameSimulation? sim) = Setup();
         me.PosZ = 100;
         sim.Tick(InputFrame.Of(Move(45000, 46000, 0, 2048)));
         Assert.Equal((45000, 46000, 0, 0), (me.PosX, me.PosY, me.PosZ, me.Heading));
@@ -84,7 +84,7 @@ public sealed class PossessionActionTests
     [InlineData(1596, 0)]
     public void SetterNarrowsHeightCapsItAndRaisesItToTheFloor_StronglyInferredFromBinary(int supplied, int expected)
     {
-        var (_, _, me, sim) = Setup();
+        (GameDatabase _, WorldState _, CreatureState? me, GameSimulation? sim) = Setup();
         sim.Tick(InputFrame.Of(Move(45000, 46000, supplied, 1)));
         Assert.Equal(expected, me.PosZ);
     }
@@ -92,7 +92,7 @@ public sealed class PossessionActionTests
     [Fact]
     public void MovementRelinksOnTileChangeAndKeepsSameTileOrder_StronglyInferredFromBinary()
     {
-        var (_, world, me, sim) = Setup();
+        (GameDatabase _, WorldState? world, CreatureState? me, GameSimulation? sim) = Setup();
         TrapRules.RelinkCreatures(world);
         int before = me.ChainOrder;
         sim.Tick(InputFrame.Of(Move(me.PosX + 1, me.PosY, 1, 1)));
@@ -105,7 +105,7 @@ public sealed class PossessionActionTests
     [Fact]
     public void ANegativeCoordinateChangesTileByArithmeticShift_FromBinary()
     {
-        var (_, world, me, sim) = Setup();
+        (GameDatabase _, WorldState? world, CreatureState? me, GameSimulation? sim) = Setup();
         sim.Tick(InputFrame.Of(Move(100, me.PosY, 1, 1)));
         int before = me.ChainOrder;
         sim.Tick(InputFrame.Of(Move(-100, me.PosY, 1, 1)));
@@ -116,7 +116,7 @@ public sealed class PossessionActionTests
     [Fact]
     public void NoPossessedPointerLeavesPoseAlone()
     {
-        var (_, world, me, sim) = Setup();
+        (GameDatabase _, WorldState? world, CreatureState? me, GameSimulation? sim) = Setup();
         world.Player(Keeper).PossessedCreatureId = 0;
         int x = me.PosX;
         sim.Tick(InputFrame.Of(Move(45000, 46000, 100, 1)));
@@ -126,7 +126,7 @@ public sealed class PossessionActionTests
     [Fact]
     public void PossessedCreatureThatNoLongerExistsIgnoresTheMove()
     {
-        var (_, world, me, sim) = Setup();
+        (GameDatabase _, WorldState? world, CreatureState? me, GameSimulation? sim) = Setup();
         world.Player(Keeper).PossessedCreatureId = me.Id + 1000;
         int x = me.PosX;
         sim.Tick(InputFrame.Of(Move(45000, 46000, 100, 1)));
@@ -136,7 +136,7 @@ public sealed class PossessionActionTests
     [Fact]
     public void PoseHeightAndPreviousHeightSurviveSnapshot()
     {
-        var (db, _, me, sim) = Setup();
+        (GameDatabase? db, WorldState _, CreatureState? me, GameSimulation? sim) = Setup();
         me.PosZ = 123;
         me.LastPosZ = 456;
         GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, [new PossessionSystem()]);

@@ -28,7 +28,7 @@ public sealed class FinaleTests
         };
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
             basis.KeeperSpells.Values, objects: basis.Objects.Values.Append(gemDefinition), doors: doors, shots: basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper], gameMode: mode);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper], gameMode: mode);
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
             for (int x = 3; x < 8; x++)
@@ -300,7 +300,7 @@ public sealed class FinaleTests
             states[tick] = reaper.Dk2StateId;
         }
 
-        var heard = events.Events.Where(e => e.ThingSound.HasValue).ToArray();
+        SimEvent[] heard = events.Events.Where(e => e.ThingSound.HasValue).ToArray();
         SimEvent entrance = Assert.Single(heard, e => e.ThingSound!.Value.Event == ThingSoundEvent.ReaperArrived);
         Assert.Equal((ushort)0x32D, (ushort)ThingSoundEvent.ReaperArrived);
         Assert.Equal("CREATURE_GOBLIN", entrance.ThingSound!.Value.Category);

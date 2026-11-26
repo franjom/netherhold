@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
 
@@ -28,9 +29,9 @@ public class RescuePriorityTests
     [Fact]
     public void CommandsPreserveOtherPlayersAndDoNotCaptureTheLivingTarget()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)1, (byte)3]);
-        var body = world.SpawnCreature(db, 7, 1, new TilePos(3, 3));
+        CreatureState body = world.SpawnCreature(db, 7, 1, new TilePos(3, 3));
         body.RescuePriorityMask = 0x8001;
         int health = body.Health;
         var sim = new GameSimulation(db, world, 42, [new RescuePrioritySystem()]);
@@ -56,9 +57,9 @@ public class RescuePriorityTests
     [InlineData(8, 0)]
     public void MarksUseCompactPlayerIds(byte player, ushort bit)
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)1]);
-        var body = world.SpawnCreature(db, 7, 1, new TilePos(3, 3));
+        CreatureState body = world.SpawnCreature(db, 7, 1, new TilePos(3, 3));
         RescuePriorityRules.Set(body, player, true);
         Assert.Equal(bit, body.RescuePriorityMask);
         RescuePriorityRules.Set(body, player, false);
@@ -68,14 +69,14 @@ public class RescuePriorityTests
     [Fact]
     public void NonzeroMarksAreHashedAndSurviveSaveAndContinuation()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)1, (byte)3]);
-        var body = world.SpawnCreature(db, 7, 1, new TilePos(3, 3));
+        CreatureState body = world.SpawnCreature(db, 7, 1, new TilePos(3, 3));
         var sim = new GameSimulation(db, world, 42, [new RescuePrioritySystem()]);
         ulong before = sim.StateHash();
         body.RescuePriorityMask = 0x8045;
         Assert.NotEqual(before, sim.StateHash());
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db,
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db,
             [new RescuePrioritySystem()]);
         Assert.Equal(sim.StateHash(), restored.StateHash());
         var input = InputFrame.Of(new SetRescuePriorityCommand(3, body.Id, false));

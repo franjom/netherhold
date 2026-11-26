@@ -52,7 +52,7 @@ public class ClassicPointLightTests
     [Fact]
     public void TorchInputsPreserveHdrColourAndNativeScales()
     {
-        ClassicPointLight light = ClassicPointLight.FromTorch(new TorchView(0, new TilePos(0, 0),
+        var light = ClassicPointLight.FromTorch(new TorchView(0, new TilePos(0, 0),
             4096, 8192, 6144, 0, 300, 200, 100, 180, 6144, default));
         Assert.Equal(new Vector3(1, 1.5f, -2), light.Position);
         Assert.Equal(300f / 255f, light.Colour.X);

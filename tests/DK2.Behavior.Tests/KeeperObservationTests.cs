@@ -18,7 +18,7 @@ public class KeeperObservationTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.Load(install);
-        var map = GameDatabaseLoader.LoadCampaignMap(install, "level10")!;
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level10")!;
         var world = WorldState.FromMap(db, map, [1, 2, 3, 4]);
         var at = new TilePos(20, 20);
         byte type = db.Creatures.Values.Single(c => c.Name == "Goblin").CreatureId;
@@ -54,19 +54,19 @@ public class KeeperObservationTests
     public void StockCreaturesSurviveObservationSerializationAndLaterWorldMutation()
     {
         string install = Dk2InstallGate.Path;
-        var db = GameDatabaseLoader.Load(install);
-        var map = GameDatabaseLoader.LoadCampaignMap(install, "level10")!;
-        var players = GameDatabaseLoader.LoadCampaignPlayers(install, "level10")!;
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level10")!;
+        List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, "level10")!;
         var world = WorldState.FromMap(db, map, players.Select(p => p.PlayerId));
         ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(install, "level10")!);
-        var creature = world.Creatures.First(c => c.OwnerPlayerId == 4
+        CreatureState creature = world.Creatures.First(c => c.OwnerPlayerId == 4
             && HandRules.CanPickUp(world, db, c, 4));
         creature.PosX = 12345;
         creature.PosY = 67890;
         creature.CarriedByCreatureId = 321;
         creature.RescuePriorityMask = 0x8045;
         var original = new KeeperView(db, world, 4);
-        var restored = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(original), db);
+        KeeperView restored = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(original), db);
 
         Assert.NotEmpty(original.Creatures);
         Assert.Equal(original.Creatures, restored.Creatures);
@@ -80,11 +80,11 @@ public class KeeperObservationTests
         Assert.True(captured.CanPickUp);
         for (int i = 0; i < HandRules.Capacity(db); i++)
         {
-            var held = world.SpawnCreature(db, creature.CreatureTypeId, 4, new TilePos(1, 1));
+            CreatureState held = world.SpawnCreature(db, creature.CreatureTypeId, 4, new TilePos(1, 1));
             held.InHand = true;
             world.Player(4).Hand.Add(HandItem.Of(held));
         }
-        var fullHand = KeeperViewSnapshot.FromBytes(
+        KeeperCreatureView fullHand = KeeperViewSnapshot.FromBytes(
             KeeperViewSnapshot.ToBytes(new KeeperView(db, world, 4)), db)
             .Creatures.Single(c => c.Id == creature.Id);
         Assert.True(fullHand.PickupPermitted);

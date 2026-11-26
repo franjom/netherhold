@@ -281,7 +281,7 @@ public class DropCombatTests
         CreatureDef definition = Dk2TerrainFixture.Database().CreatureById(Dk2TerrainFixture.GoblinCreatureId)
             with { CreatureId = 99, GetUpStepY = stepY };
         GameDatabase db = Dk2TerrainFixture.Database(definition);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < 19; y++)
             for (int x = 1; x < 19; x++)
@@ -298,7 +298,7 @@ public class DropCombatTests
         CreatureDef? additional = null)
     {
         GameDatabase db = Dk2TerrainFixture.Database(additional is null ? [] : [additional]);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < 19; y++)
             for (int x = 1; x < 19; x++)

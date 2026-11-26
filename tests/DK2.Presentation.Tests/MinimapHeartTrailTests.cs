@@ -64,7 +64,7 @@ public sealed class MinimapHeartTrailTests
         var points = new MinimapRasterPoint[MinimapHeartTrail.MaximumDots];
         int count = MinimapHeartTrail.Build(new(1000, 20), Focus, new(4), new(3), points);
         Assert.InRange(count, 1, MinimapHeartTrail.MaximumDots);
-        foreach (var point in points.AsSpan(0, count))
+        foreach (MinimapRasterPoint point in points.AsSpan(0, count))
         {
             Assert.InRange(point.X, 1, 127);
             Assert.InRange(point.Y, 1, 127);

@@ -37,7 +37,7 @@ public sealed class RenderRotationTests
     public void EachTurnIsAboutItsAxisInItsPlace(float yaw, float roll, float pitch, float x, float y, float z,
         float ex, float ey, float ez)
     {
-        Vector3 turned = Vector3.Transform(new Vector3(x, y, z), RenderRotation.Of(new RenderEuler(yaw, roll, pitch)));
+        var turned = Vector3.Transform(new Vector3(x, y, z), RenderRotation.Of(new RenderEuler(yaw, roll, pitch)));
         Assert.True(Vector3.Distance(new Vector3(ex, ey, ez), turned) < 1e-6f, turned.ToString());
     }
 
@@ -56,7 +56,7 @@ public sealed class RenderRotationTests
         var turn = new RenderEuler(37f, -12f, 64f);
         var point = new Vector3(0.3f, 1.2f, -0.7f);
         Vector3 expected = RightHandedFrame.Point(Vector3.Transform(point, RenderRotation.Of(turn)));
-        Vector3 mirrored = Vector3.Transform(RightHandedFrame.Point(point), RightHandedFrame.Rotation(RenderRotation.Of(turn)));
+        var mirrored = Vector3.Transform(RightHandedFrame.Point(point), RightHandedFrame.Rotation(RenderRotation.Of(turn)));
         Assert.True(Vector3.Distance(expected, mirrored) < 1e-5f);
     }
 

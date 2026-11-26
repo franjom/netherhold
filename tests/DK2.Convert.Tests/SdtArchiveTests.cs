@@ -24,7 +24,7 @@ public class SdtArchiveTests
         byte[] mp2 = [0xff, 0xfd, 0xb0, 0x00, 1, 2, 3, 4];
         byte[] mp1 = [0xff, 0xf7, 0x40, 0xc0, 5, 6, 7, 8];
         byte[] unknown = [9, 8, 7];
-        SdtArchive archive = SdtArchive.Read(Bank(
+        var archive = SdtArchive.Read(Bank(
             new Sample("variant.wav", 22050, 16, 2, 0, pcm),
             new Sample("variant.mp2", 44100, 16, 37, 1152, mp2),
             new Sample("variant.mp1", 22050, 16, 36, 1152, mp1),
@@ -94,7 +94,7 @@ public class SdtArchiveTests
         var codecs = new Dictionary<SdtCodec, int>();
         foreach (string file in files)
         {
-            SdtArchive archive = SdtArchive.Open(file);
+            var archive = SdtArchive.Open(file);
             entries += archive.Entries.Count;
             Assert.All(archive.Entries, entry =>
             {
@@ -139,7 +139,7 @@ public class SdtArchiveTests
         int compressed = 0;
         foreach (string file in Directory.GetFiles(soundRoot, "*.sdt", SearchOption.AllDirectories))
         {
-            SdtArchive archive = SdtArchive.Open(file);
+            var archive = SdtArchive.Open(file);
             foreach (SdtEntry entry in archive.Entries)
             {
                 if (entry.Codec is not (SdtCodec.MpegLayer1 or SdtCodec.MpegLayer2)) continue;

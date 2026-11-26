@@ -13,7 +13,7 @@ public sealed class VisibilityEventSinkTests
     [Fact]
     public void SightAdmitsAnEffectInTheNextTickWithoutAFrameDrain()
     {
-        var (simulation, view) = Fixture();
+        (GameSimulation? simulation, WorldView? view) = Fixture();
         var received = new List<bool>();
         var sink = new VisibilityEventSink(view, simulation.World, new PlayerId(1),
             new VisibilityRecorder(view, simulation.World, new TilePos(10, 10), received));
@@ -28,7 +28,7 @@ public sealed class VisibilityEventSinkTests
     [Fact]
     public void ReplacementRegionIsAppliedBeforeForwardingItsEvent()
     {
-        var (simulation, view) = Fixture();
+        (GameSimulation? simulation, WorldView? view) = Fixture();
         var received = new List<bool>();
         var sink = new VisibilityEventSink(view, simulation.World, new PlayerId(1),
             new VisibilityRecorder(view, simulation.World, new TilePos(10, 10), received));
@@ -44,7 +44,7 @@ public sealed class VisibilityEventSinkTests
     [Fact]
     public void PossessionChangesAreAppliedBeforeFilteringEachEffect()
     {
-        var (simulation, view) = Fixture();
+        (GameSimulation? simulation, WorldView? view) = Fixture();
         var received = new List<bool>();
         var sink = new VisibilityEventSink(view, simulation.World, new PlayerId(1),
             new VisibilityRecorder(view, simulation.World, new TilePos(10, 10), received));
@@ -60,7 +60,7 @@ public sealed class VisibilityEventSinkTests
     [Fact]
     public void AnotherViewersSightCannotReplaceTheLocalRegion()
     {
-        var (simulation, view) = Fixture();
+        (GameSimulation? simulation, WorldView? view) = Fixture();
         var received = new List<bool>();
         var sink = new VisibilityEventSink(view, simulation.World, new PlayerId(1),
             new VisibilityRecorder(view, simulation.World, new TilePos(10, 10), received));
@@ -95,8 +95,8 @@ public sealed class VisibilityEventSinkTests
             Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
         };
         var database = new GameDatabase([terrain], [], [], new GlobalVariables());
-        var tiles = Enumerable.Repeat(new MapTile(0, 0, 0, 0), 900).ToArray();
-        WorldState world = WorldState.FromMap(database, new LevelMap(30, 30, tiles), [1, 2], true);
+        MapTile[] tiles = Enumerable.Repeat(new MapTile(0, 0, 0, 0), 900).ToArray();
+        var world = WorldState.FromMap(database, new LevelMap(30, 30, tiles), [1, 2], true);
         return (new GameSimulation(database, world, 1, []), new WorldView(database, 1));
     }
 }

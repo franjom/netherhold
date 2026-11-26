@@ -19,7 +19,7 @@ public sealed class ImpMineArrivalTests
         (GameSimulation sim, CreatureState imp) = ApproachExhaustedSeam(whole: true);
         imp.Body.PathFinished = pathFinished;
         Assert.Equal(Fixed16.One, FollowPathRules.Progress(imp.Body));
-        var position = (imp.PosX, imp.PosY);
+        (int PosX, int PosY) position = (imp.PosX, imp.PosY);
 
         sim.Tick();
 
@@ -51,7 +51,7 @@ public sealed class ImpMineArrivalTests
     private static (GameSimulation, CreatureState) ApproachExhaustedSeam(bool whole)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         var target = new TilePos(4, 2);
         ref TileState tile = ref world.Tile(target);

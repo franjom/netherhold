@@ -493,7 +493,7 @@ public class KeeperThreatResponseTests
             for (int i = 0; i < 4; i++) Fighter(world, Hero, 16 + (i % 2), 14 + (i / 2));
             GameSimulation sim = Sim(world);
             KeeperAI keeper = NewKeeper(speed: 2, withdraw: true, imprison: 50, seed: seed);
-            Hash64 hash = Hash64.Start();
+            var hash = Hash64.Start();
             for (int tick = 0; tick < 40; tick++)
             {
                 if (tick % 5 == 0) Attack(world, 16, 15, tick % 10 == 0 ? PlayerMessageKind.CombatStarted : PlayerMessageKind.HeartAttacked);

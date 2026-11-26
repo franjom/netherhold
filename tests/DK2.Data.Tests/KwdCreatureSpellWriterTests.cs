@@ -39,7 +39,7 @@ public class KwdCreatureSpellWriterTests
     public void EveryShippedCreatureSpellTypedOverlayIsByteIdentical()
     {
         KwdChunk chunk = KwdReader.ReadFile(Path.Combine(Dk2InstallGate.Path, "Data", "editor", "CreatureSpells.kwd")).Single();
-        var rows = KwdAdditionalRecords.ParseCreatureSpells([chunk]); var images = KwdRecordRoundTrip.Split(chunk);
+        List<CreatureSpellDef> rows = KwdAdditionalRecords.ParseCreatureSpells([chunk]); List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(41, rows.Count);
         for (int i = 0; i < rows.Count; i++) Assert.Equal(images[i].ToBytes(), KwdAdditionalRecords.WriteCreatureSpellRecord(rows[i], images[i]));
     }

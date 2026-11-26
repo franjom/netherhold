@@ -19,7 +19,7 @@ public class HatcheryCoopRebuildTests
     private static (GameDatabase Db, WorldState World) Start()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
             for (int x = 4; x <= 7; x++)
                 (world.Tile(x, y).TerrainId, world.Tile(x, y).OwnerPlayerId) = (Dk2TerrainFixture.ClaimedPath, Keeper);
@@ -60,7 +60,7 @@ public class HatcheryCoopRebuildTests
     [Fact]
     public void TheLevelStartPlacesTheCoopsAndDrawsOnceForEach()
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         Paint(db, world, 1, 7); // 21 tiles, interior (2..6, 2): coops at x 2, 4 and 6
         GameSimulation sim = Simulation(db, world, 9);
         Assert.Equal([2, 4, 6], Coops(world).Select(c => c.TileIndex % world.Width).Order());
@@ -71,7 +71,7 @@ public class HatcheryCoopRebuildTests
     [Fact]
     public void GrowingTheRoomReplacesEveryCoopAndDrawsOnceForEach()
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         Paint(db, world, 1, 6);
         GameSimulation sim = Simulation(db, world, 9);
         int[] before = [.. Coops(world).Select(c => c.Id)];
@@ -88,7 +88,7 @@ public class HatcheryCoopRebuildTests
     [Fact]
     public void ACutRemovesTheCoopsAndEachPiecePlacesItsOwn()
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         Paint(db, world, 1, 7); // 21 tiles: three coops
         GameSimulation sim = Simulation(db, world, 9);
         Assert.Equal(3, Coops(world).Count);
@@ -106,7 +106,7 @@ public class HatcheryCoopRebuildTests
     [Fact]
     public void ACoopTheRoomDidNotPlaceStaysAndItsTileIsSkipped()
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         Paint(db, world, 1, 3);
         ObjectState placed = world.SpawnObject(db, HatcheryRules.CoopObjectId, Keeper, (2 * world.Width) + 2);
         GameSimulation sim = Simulation(db, world, 9);
@@ -125,7 +125,7 @@ public class HatcheryCoopRebuildTests
     [InlineData(TileWorkKind.Claim, 1)]
     public void WorkBesideTheRoomPlacesItsCoopsAgain(TileWorkKind kind, int rebuilds)
     {
-        var (db, world) = Start();
+        (GameDatabase? db, WorldState? world) = Start();
         Paint(db, world, 1, 7);
         ref TileState beside = ref world.Tile(4, 4);
         (beside.TerrainId, beside.OwnerPlayerId) = (kind == TileWorkKind.Dig ? Dk2TerrainFixture.Rock : Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);

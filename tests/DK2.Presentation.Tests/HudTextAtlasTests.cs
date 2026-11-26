@@ -53,7 +53,7 @@ public class HudTextAtlasTests
         var pieces = new List<HudTextPiece>();
         HudTextPixels.Pieces(text, pieces, out int w, out int h);
         Assert.Equal((width, height), (w, h));
-        var drawn = new byte[width * height * 4];
+        byte[] drawn = new byte[width * height * 4];
         foreach (HudTextPiece piece in pieces)
         {
             Assert.InRange(piece.X, 0, width - piece.Width);
@@ -79,9 +79,9 @@ public class HudTextAtlasTests
     public void GaugeRanksLightTheSamePixelsAsTheCpuMask(int width, int height)
     {
         var mask = new HudGaugeMask(width, height);
-        var source = new byte[width * height * 4];
+        byte[] source = new byte[width * height * 4];
         Array.Fill(source, (byte)200);
-        var into = new byte[source.Length];
+        byte[] into = new byte[source.Length];
         foreach (int maximum in new[] { 0, 1, 2, 3, 4, 7, 8, 12, 37, 100, 360, 1000 })
             for (int value = -1; value <= maximum + 1; value++)
             {

@@ -7,6 +7,7 @@ using DK2.Core;
 using DK2.Data.Model;
 using DK2.Presentation;
 using DK2.Simulation;
+using DK2.Simulation.Commands;
 using DK2.Simulation.Players;
 
 namespace DK2.Behavior.Tests;
@@ -74,7 +75,7 @@ public class PlayerObservationTests
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
                 tiles[y * width + x] = new MapTile(DirtPath, x < Seen ? (byte)3 : (byte)4, 0, 0);
-        WorldState world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [3, 4], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [3, 4], fogOfWarEnabled: true);
         for (int y = 0; y < height; y++)
             for (int x = 0; x < Seen; x++)
                 world.Tile(x, y).SetExploredBy(3);
@@ -107,8 +108,8 @@ public class PlayerObservationTests
     [Fact]
     public void HiddenDifferencesDoNotChangeTheObservation()
     {
-        var (database, plain) = World();
-        var (_, hidden) = World();
+        (GameDatabase? database, WorldState? plain) = World();
+        (GameDatabase _, WorldState? hidden) = World();
         AddHiddenDifferences(database, hidden);
         CommonView(plain);
         CommonView(hidden);
@@ -120,8 +121,8 @@ public class PlayerObservationTests
     [Fact]
     public void RevealingTheSameDifferencesChangesTheObservation()
     {
-        var (database, plain) = World();
-        var (_, hidden) = World();
+        (GameDatabase? database, WorldState? plain) = World();
+        (GameDatabase _, WorldState? hidden) = World();
         AddHiddenDifferences(database, hidden);
         foreach (WorldState world in new[] { plain, hidden })
         {
@@ -147,7 +148,7 @@ public class PlayerObservationTests
     [Fact]
     public void TilesShowHiddenScannedAndExploredGroundDifferently()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         world.Tile(5, 0).SetTaggedBy(3, true);
         world.Tile(6, 0).SetTaggedBy(4, true);
         world.Tile(Scanned).TerrainId = Gold;
@@ -182,7 +183,7 @@ public class PlayerObservationTests
     [Fact]
     public void OwnCreaturesInTheHandAndOwnMessagesAreShown()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         CreatureState walking = world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
         CreatureState held = world.SpawnCreature(database, Fighter, Viewer, new TilePos(2, 1));
         world.Player(Viewer).Hand.Add(HandItem.Of(held));
@@ -215,7 +216,7 @@ public class PlayerObservationTests
     [InlineData(0.05, 2)]   // the last quarter: two
     public void OwnCreaturesShowTheirFlowersLevelPetalsAndMood(double share, int petals)
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         CreatureState creature = world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
         creature.Level = 7;                                                            // the maximum grows with the level
         int max = CreatureHealthRules.MaxHealth(database, database.CreatureById(Fighter), creature);
@@ -229,7 +230,7 @@ public class PlayerObservationTests
     [Fact]
     public void AHeldCreaturesFlowerIsUnknownAndAContentOneIsHappy()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         CreatureState walking = world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
         walking.Level = 12;                                                             // shown clamped, as SL-10
         CreatureState held = world.SpawnCreature(database, Fighter, Viewer, new TilePos(2, 1));
@@ -247,7 +248,7 @@ public class PlayerObservationTests
     [Fact]
     public void ADyingCreatureShowsOnePetalAndAnAngryOneItsMood()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         CreatureState creature = world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
         creature.Dk2StateId = CreatureDeathRules.DyingState;
         creature.Mood = CreatureMood.Angry;
@@ -262,7 +263,7 @@ public class PlayerObservationTests
     [InlineData(CreatureMood.Content, 900, 0, false)]      // content: the flower shows no grievance
     public void AHungryCreatureShowsTheChickenOnlyWhenItsFlowerDoes(CreatureMood mood, int hunger, int pay, bool hungry)
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         CreatureState creature = world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
         creature.Mood = mood;
         creature.Anger.Hunger = hunger;
@@ -273,7 +274,7 @@ public class PlayerObservationTests
     [Fact]
     public void TheTreasurysFillThePaydayClockAndTheWageBillAreShown()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         world.Tile(OwnFloor).TerrainId = Treasury;
         world.Tile(OwnFloor).GoldHeld = 300;
         world.Player(Viewer).NextPaydayTick = new GameTick(world.CurrentTick.Value + 640);
@@ -289,7 +290,7 @@ public class PlayerObservationTests
     [Fact]
     public void ObjectsAreOfferedOnlyWhenTheHandCanLiftThem()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         world.SpawnObject(database, Pot, Viewer, OwnFloor.Y * Width + OwnFloor.X);
         world.SpawnObject(database, Torch, Viewer, 2 * Width + 2);
         PlayerObservation observation = Observe(database, world);
@@ -301,7 +302,7 @@ public class PlayerObservationTests
     [Fact]
     public void AnOwnPrisonerInUnseenCellsKeepsItsTileAsTheCreaturePanelFocusShows()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         CreatureState prisoner = world.SpawnCreature(database, Fighter, Viewer, HiddenFloor);
         prisoner.PrisonOwnerPlayerId = 4;
 
@@ -312,7 +313,7 @@ public class PlayerObservationTests
     [Fact]
     public void NoticesKeepTheirFirstSeenTickAndOrdinal()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         var simulation = new GameSimulation(database, world, 1, []);
         var builder = new PlayerObservationBuilder(database, Viewer);
         world.Messages.Post(world, 3, PlayerMessageKind.ScriptedSpeech, 7, 0);
@@ -331,7 +332,7 @@ public class PlayerObservationTests
     [Fact]
     public void ReceiptsPassThroughAsGiven()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         PlayerReceipt[] receipts =
         [
             new(new PlayerActionId(1), PlayerReceiptStatus.Submitted, scheduledTick: new GameTick(1)),
@@ -343,7 +344,7 @@ public class PlayerObservationTests
     [Fact]
     public void EmptyHistoryGivesAnEmptyObservationOfOnesOwnGround()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         PlayerObservation observation = Observe(database, world);
 
         Assert.Empty(observation.Notices);
@@ -358,7 +359,7 @@ public class PlayerObservationTests
     [Fact]
     public void HandlesAreOrdinalsOfTheirRevisionAndResolveOnlyThere()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
         world.SpawnCreature(database, Fighter, Viewer, new TilePos(2, 2));
         PlayerObservationCapture capture = new PlayerObservationBuilder(database, Viewer).Capture(world, Stamp(world, 7), []);
@@ -380,7 +381,7 @@ public class PlayerObservationTests
     [Fact]
     public void CaptureNeitherChangesTheWorldNorLetsLaterChangesIn()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
         world.Messages.Post(world, 3, PlayerMessageKind.ScriptedSpeech, 7, 0);
         var simulation = new GameSimulation(database, world, 1, []);
@@ -402,7 +403,7 @@ public class PlayerObservationTests
     [Fact]
     public void PhasesFollowTheResultAndTheIntroPath()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         var builder = new PlayerObservationBuilder(database, Viewer);
 
         world.Player(Viewer).CameraPathEndTick = world.CurrentTick.Value + 10;
@@ -420,7 +421,7 @@ public class PlayerObservationTests
     [InlineData(5000, true)]
     public void RoomOffersCarryThePanelsPriceAndAffordability(int gold, bool affordable)
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         world.Tile(OwnFloor).TerrainId = Treasury;
         world.Tile(OwnFloor).GoldHeld = gold;
         world.Player(Viewer).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Treasury, 3));
@@ -438,7 +439,7 @@ public class PlayerObservationTests
     [Fact]
     public void AnOfferedCreateImpCarriesThePanelsPrice()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         world.Player(Viewer).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, BottomPanelView.CreateImpSpellId, 3));
         PlayerObservation observation = Observe(database, world);
 
@@ -454,7 +455,7 @@ public class PlayerObservationTests
     [Fact]
     public void SteadyCaptureAllocatesTheTileCopyAndLittleElse()
     {
-        var (database, world) = World(64, 64);
+        (GameDatabase? database, WorldState? world) = World(64, 64);
         world.SpawnCreature(database, Fighter, Viewer, OwnFloor);
         var builder = new PlayerObservationBuilder(database, Viewer);
         builder.Capture(world, Stamp(world), []);
@@ -471,7 +472,7 @@ public class PlayerObservationTests
     [Fact]
     public void CaptureRefusesAStampForAnotherPlayerOrRun()
     {
-        var (database, world) = World();
+        (GameDatabase? database, WorldState? world) = World();
         var builder = new PlayerObservationBuilder(database, Viewer);
         Assert.Throws<ArgumentException>(() => builder.Capture(world, Stamp(world) with { Player = Rival }, []));
         Assert.Throws<ArgumentException>(() => builder.Capture(world, default, []));
@@ -496,7 +497,7 @@ public class PlayerObservationTests
         foreach (PlayerReceipt r in o.Receipts) text.Append(r).Append('\n');
         text.Append(o.Offers.Actions).Append('|').Append(o.Offers.CreateImpCost).Append('\n');
         foreach (PlayerRoomOffer r in o.Offers.Rooms) text.Append(r).Append('\n');
-        foreach (var p in o.Offers.Panels) text.Append(p).Append('\n');
+        foreach (GuiButtonTarget p in o.Offers.Panels) text.Append(p).Append('\n');
         return text.ToString();
     }
 }

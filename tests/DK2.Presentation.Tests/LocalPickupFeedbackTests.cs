@@ -16,7 +16,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void PickupDustIsVisibleBeforeAnySimulationTickAndTheAuthoritativeEchoIsConsumedOnce()
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         var pending = new LocalPickupFeedback();
         long now = 0;
         var effects = new RoomConstructionParticles(db, 1, () => new EffectTime(now));
@@ -26,7 +26,7 @@ public sealed class LocalPickupFeedbackTests
         var sink = new LocalPickupEffectSink(pending, events);
         var simulation = new GameSimulation(db, world, 1, [new HandSystem()]);
         simulation.ObserveWith(sink);
-        var tick = world.CurrentTick;
+        GameTick tick = world.CurrentTick;
         creature.PosX += 321;
         creature.Heading = 0x321;
 
@@ -59,7 +59,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void RejectedOrRepeatedLocalPickupDoesNotEmitDust()
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         var pending = new LocalPickupFeedback();
         var dust = new List<ViewEffectRequest>();
         pending.DustRequested += dust.Add;
@@ -76,7 +76,7 @@ public sealed class LocalPickupFeedbackTests
     [InlineData(true)]
     public void ResetOrTimeoutReleasesTheDustEchoSuppression(bool timeout)
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         var pending = new LocalPickupFeedback();
         ViewEffectRequest dust = default;
         pending.DustRequested += request => dust = request;
@@ -90,7 +90,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void DustFromOtherCreaturesOwnersOrSourcesIsNotConsumed()
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         var pending = new LocalPickupFeedback();
         ViewEffectRequest dust = default;
         pending.DustRequested += request => dust = request;
@@ -110,7 +110,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void DustEchoStillMatchesAfterTheHandAcknowledgesTheLocalPickup()
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         var pending = new LocalPickupFeedback();
         ViewEffectRequest dust = default;
         pending.DustRequested += request => dust = request;
@@ -127,7 +127,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void WithoutADustRendererTheAuthoritativeEffectIsPreserved()
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         var pending = new LocalPickupFeedback();
         var events = new ListEventSink();
         var simulation = new GameSimulation(db, world, 1, [new HandSystem()]);
@@ -139,7 +139,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void RetainedQueuedAndDispatchedHeldEntriesStillConsumePendingCapacity()
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         var pending = new LocalPickupFeedback();
         Assert.True(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 0));
         Assert.True(pending.TryQueueDrop(new DropCommand(Keeper, new TilePos(2, 2))));
@@ -166,7 +166,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void VisiblePendingCreatureTakesPriorityOverActualGoldBeyondPickupTransient()
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         ObjectState gold = world.SpawnObject(db, 1, Keeper, 12);
         gold.InHand = true;
         world.Player(Keeper).Hand.Add(HandItem.Of(gold));
@@ -195,7 +195,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void PendingIconsPrecedeActualHandInReversePickupOrderAndOverflowAtNine()
     {
-        var (db, world, actual) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? actual) = Fixture();
         actual.InHand = true;
         world.Player(Keeper).Hand.Add(HandItem.Of(actual));
         var pending = new LocalPickupFeedback();
@@ -225,10 +225,10 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void SnapshotReplacementRetainsLocalPreviewUntilExplicitSessionReset()
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         var pending = new LocalPickupFeedback();
         Assert.True(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 0));
-        var (_, snapshot, _) = Fixture();
+        (GameDatabase _, WorldState? snapshot, CreatureState _) = Fixture();
         pending.Advance(snapshot, 10);
         Assert.True(pending.Contains(new CreatureId(creature.Id)));
         pending.Reset();
@@ -237,7 +237,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void PendingCapacityPermissionAndDeadEntriesAreValidatedLocally()
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         var pending = new LocalPickupFeedback();
         creature.Health = 0;
         Assert.False(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 0));
@@ -260,7 +260,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void MultipleQuickDropsDispatchEligibleEntriesInOldestPendingOrder()
     {
-        var (db, world, first) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? first) = Fixture();
         CreatureState second = world.SpawnCreature(db, first.CreatureTypeId, Keeper, new TilePos(2, 2));
         var pending = new LocalPickupFeedback();
         Assert.True(pending.TryQueue(world, db, Keeper, new CreatureId(first.Id), 0));
@@ -288,7 +288,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void PendingPickupHidesOnlyLocalWorldAndAddsIconWithoutAdvancingSimulation()
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         var view = new WorldView(db, Keeper);
         var remote = new WorldView(db, Keeper);
         var hand = new HeldItemStack();
@@ -313,7 +313,7 @@ public sealed class LocalPickupFeedbackTests
     [InstallFact]
     public void QuickDropWaitsForActualHandAndAcknowledgementDoesNotDuplicateIcon()
     {
-        var (db, world, creature) = Fixture();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Fixture();
         var pending = new LocalPickupFeedback();
         Assert.True(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 0));
         var drop = new DropCommand(Keeper, new TilePos(2, 2));
@@ -351,7 +351,7 @@ public sealed class LocalPickupFeedbackTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte floor = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
-        WorldState world = WorldState.FromMap(db, new LevelMap(5, 5,
+        var world = WorldState.FromMap(db, new LevelMap(5, 5,
             Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 25).ToArray()), [PlayerIds.Neutral, Keeper.Value]);
         return (db, world, world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, Keeper, new TilePos(2, 2)));
     }

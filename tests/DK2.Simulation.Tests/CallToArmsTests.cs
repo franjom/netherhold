@@ -21,7 +21,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void AnimatedFlagWaitsForAppearanceAndFadeBeforeItsTransitions()
     {
-        var (fixture, _) = Setup();
+        (GameDatabase? fixture, WorldState _) = Setup();
         var slots = new CreatureAnimationTiming[9];
         slots[0] = slots[6] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 30, FramesPerSecond = 30 };
         var db = new GameDatabase(fixture.Terrain.Values, fixture.Rooms.Values, fixture.Creatures.Values,
@@ -47,7 +47,7 @@ public sealed class CallToArmsTests
     private static (GameDatabase Db, WorldState World) Setup(int mana = 20000, bool rivalStrip = false)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < 19; y++)
         {
             for (int x = 1; x < 19; x++)
@@ -81,7 +81,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void ACastPaysMakesTheFlagRaisesTheCallAndRecruitsTheOwnersNonWorkersOnly()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState fighter = Goblin(world, db, 10, 10);
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(11, 10));
         CreatureState foreign = Goblin(world, db, 12, 12, Rival);
@@ -115,7 +115,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void EveryThirdRecallRaisesTheFlagsEffect()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world);
         sim.ObserveWith(sink);
@@ -149,7 +149,7 @@ public sealed class CallToArmsTests
     [InlineData(5, KeeperSpellRefusal.None)]
     public void RefusalsFollowThePositionHelperAndLocationFourIgnoresOwnership(int change, KeeperSpellRefusal expected)
     {
-        var (db, world) = Setup(rivalStrip: true);
+        (GameDatabase? db, WorldState? world) = Setup(rivalStrip: true);
         CastSpellAtPlaceCommand cast = Cast(Flag);
         switch (change)
         {
@@ -186,7 +186,7 @@ public sealed class CallToArmsTests
     [InlineData(RoomTypeId.Portal, true)]
     public void TargetFourRefusesOnlyTheCastersOwnSpecialRoomInteriors(RoomTypeId kind, bool foreign)
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         byte terrain = db.Rooms.Values.Single(r => r.TypeId == kind).TerrainId;
         for (int y = 6; y <= 10; y++)
         {
@@ -208,7 +208,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void TheHeedingCreatureWalksToTheFlagAndMillsWithinTwoTilesOfIt()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState fighter = Goblin(world, db, 14, 14);
         GameSimulation sim = Sim(db, world);
         sim.Tick(InputFrame.Of(Cast(Flag)));
@@ -238,7 +238,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void AnUnreachableFlagIsNotRecruitedForAndIdleReportsMessage84()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         // The flag stands on an island of floor inside rock.
         for (int y = 6; y <= 10; y++)
         {
@@ -270,7 +270,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void RecastingElsewhereFadesTheOldFlagMovesTheCallAndKeepsThePrepaidClock()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState fighter = Goblin(world, db, 10, 10);
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world);
@@ -305,7 +305,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void RecastingWhileTheFlagIsInTheHandSpendsTheManaAndMakesNoFlag()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, new HandSystem());
         sim.ObserveWith(sink);
@@ -325,7 +325,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void ASlapTakesTheFlagDownAndReleasesTheCreaturesToIdle()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState fighter = Goblin(world, db, 10, 10);
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world);
@@ -350,7 +350,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void UpkeepStartsAfterThePrepaidTurnsAndTheUpgradeCutsItToSeventyPercent()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         GameSimulation sim = Sim(db, world);
         sim.Tick(InputFrame.Of(Cast(Flag)));
         int keeper = Enumerable.Range(0, world.PlayerCount).Single(i => world.PlayerAtIndex(i).PlayerId == Keeper);
@@ -368,7 +368,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void AnUpkeepTheManaCannotCoverFadesTheFlagButLeavesTheCallOn()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState fighter = Goblin(world, db, 10, 10);
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, new ManaSystem());
@@ -412,7 +412,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void TheCallGatesJobsNeedsTheFightRadiusAndTheDropLanding()
     {
-        var (db, world) = Setup();
+        (GameDatabase? db, WorldState? world) = Setup();
         CreatureState near = Goblin(world, db, 9, 9);
         CreatureState far = Goblin(world, db, 16, 16);
         GameSimulation sim = Sim(db, world);
@@ -433,7 +433,7 @@ public sealed class CallToArmsTests
     [Fact]
     public void TwoKeepersKeepIndependentCallsAndASaveContinuesThem()
     {
-        var (db, world) = Setup(rivalStrip: true);
+        (GameDatabase? db, WorldState? world) = Setup(rivalStrip: true);
         world.Player(Rival).Mana = 20000;
         world.Player(Rival).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, CallToArmsRules.SpellId, 3));
         CreatureState ours = Goblin(world, db, 10, 10);

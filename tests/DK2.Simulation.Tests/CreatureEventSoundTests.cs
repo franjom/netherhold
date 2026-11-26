@@ -27,7 +27,7 @@ public sealed class CreatureEventSoundTests
     [Fact]
     public void ASummonedReaperRequests32dOnceOnItsFirstUpdateAtItsPositionWithItsVoice()
     {
-        var (db, world, at) = SummonHornyTests.Setup();
+        (GameDatabase? db, WorldState? world, TilePos at) = SummonHornyTests.Setup();
         var cast = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         cast.Tick(InputFrame.Of(new CastSpellAtPlaceCommand(Keeper, SummonSpellId,
             CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y))));
@@ -59,7 +59,7 @@ public sealed class CreatureEventSoundTests
     public void ABurningCreatureRequests340OnEveryTickItBurnsAndItsVoiceStopsAsTheFireEnds()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
         goblin.BurningTicks = 3;
         var sink = new ListEventSink();

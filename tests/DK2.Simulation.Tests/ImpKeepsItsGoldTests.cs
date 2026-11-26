@@ -36,7 +36,7 @@ public class ImpKeepsItsGoldTests
     private static Run Start(TilePos impAt)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt);
         var sim = new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems());

@@ -184,7 +184,7 @@ public class RoomHealthTests
             Db.Rooms.Values.Select(r => r.RoomId == (byte)RoomTypeId.Treasury ? r with { HealthGain = 3000 } : r),
             Db.Creatures.Values,
             Db.Variables);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         RoomRules.Place(db, ref world.Tile(5, 5), db.Room(RoomTypeId.Treasury), Keeper);
         RoomInstance room = RoomIndex.RoomAt(world, db, (5 * world.Width) + 5)!;
         RoomHealthRules.Set(world, db, room, 2000);

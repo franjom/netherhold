@@ -18,7 +18,7 @@ public class InputJournalTests
     [Fact]
     public void AJournal_ReadsBackItsHeaderFramesHashesAndEnd()
     {
-        InputJournal journal = InputJournal.Read(new MemoryStream(Written()));
+        var journal = InputJournal.Read(new MemoryStream(Written()));
 
         Assert.Equal(GameSimulation.CurrentHashVersion, journal.HashVersion);
         Assert.Equal("abc123", journal.Header["commit"]);
@@ -38,7 +38,7 @@ public class InputJournalTests
         int headerEnd = HeaderLength();
         for (int cut = headerEnd; cut < full.Length; cut++)
         {
-            InputJournal journal = InputJournal.Read(new MemoryStream(full[..cut]));
+            var journal = InputJournal.Read(new MemoryStream(full[..cut]));
 
             Assert.True(journal.Truncated, $"cut at {cut} read as complete");
             // The two-command frame at tick 3 is either absent or whole, never half read.
@@ -67,7 +67,7 @@ public class InputJournalTests
             writer.WriteEnd(1, "exception");
         }
 
-        InputJournal journal = InputJournal.Read(new MemoryStream(stream.ToArray()));
+        var journal = InputJournal.Read(new MemoryStream(stream.ToArray()));
         Assert.Empty(journal.FrameTicks);
         Assert.Equal("exception", journal.EndReason);
     }

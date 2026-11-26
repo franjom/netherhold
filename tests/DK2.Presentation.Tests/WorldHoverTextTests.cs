@@ -18,13 +18,13 @@ public sealed class WorldHoverTextTests
     [InlineData(4)]
     public void ConcealedSecretDoorUsesEnemyWallTextWithoutAnOwnershipTest(byte owner)
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         ref TileState tile = ref world.Tile(10, 10);
         tile.TerrainId = 2; tile.OwnerPlayerId = owner; tile.SecretDoor = true;
         var text = new WorldHoverText(db, id => id.ToString(), PlayerIds.FirstKeeper);
-        var snapshot = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(10, 10)));
+        HoverTextSnapshot snapshot = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(10, 10)));
         Assert.Equal("2481", snapshot.TopStatus); Assert.Equal("2480", snapshot.TooltipName);
     }
 
@@ -49,7 +49,7 @@ public sealed class WorldHoverTextTests
     public void LibraryStatusSeparatesResearchersFromBooksAndWorkshopCountsStoredCrates()
     {
         string install = Dk2InstallGate.Path;
-        var db = GameDatabaseLoader.Load(install);
+        GameDatabase db = GameDatabaseLoader.Load(install);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         for (int y = 10; y <= 12; y++)
@@ -80,7 +80,7 @@ public sealed class WorldHoverTextTests
     public void OwnedRoomStatusUsesLiveStorageAndNativeCapacityTemplates()
     {
         string install = Dk2InstallGate.Path;
-        var db = GameDatabaseLoader.Load(install);
+        GameDatabase db = GameDatabaseLoader.Load(install);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         RoomRules.Place(db, ref world.Tile(10, 10), db.Room(RoomTypeId.Treasury), PlayerIds.FirstKeeper);
@@ -105,7 +105,7 @@ public sealed class WorldHoverTextTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
-        Dk2StringTable strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
+        var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
         var capture = new WorldHoverText(database, strings.Resolve, PlayerIds.FirstKeeper);
         CreatureDef firefly = database.Creatures.Values.First(c => c.DescriptionStringId == 2349);
         Assert.Equal(("Firefly.  Scout.  Fighting Style: Flanker.", ""), (capture.CreatureType(firefly).TopStatus, capture.CreatureType(firefly).TooltipName));
@@ -119,8 +119,8 @@ public sealed class WorldHoverTextTests
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "Level1")!;
-        WorldState world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
-        Dk2StringTable strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
+        var world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
         var capture = new WorldHoverText(database, strings.Resolve, PlayerIds.FirstKeeper);
         RoomInstance heart = RoomIndex.Build(world, database).First(r => r.Definition.TypeId == RoomTypeId.DungeonHeart);
         var hit = new WorldHoverHit(WorldHoverKind.Tile, world.TilePosition(heart.TileIndices[0]));
@@ -163,9 +163,9 @@ public sealed class WorldHoverTextTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
-        WorldState world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!,
+        var world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: true);
-        Dk2StringTable strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
+        var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
         RoomInstance portal = RoomIndex.Build(world, database).First(r => r.Definition.TypeId == RoomTypeId.Portal);
         TilePos tile = world.TilePosition(portal.TileIndices[0]);
         world.Tile(tile).ClearExploredBy(PlayerIds.FirstKeeper);

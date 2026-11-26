@@ -166,8 +166,8 @@ public sealed class CreatureJobTests
             return (sim, events);
         }
 
-        var (withHeart, withEvents) = Run(ruined: false);
-        var (without, withoutEvents) = Run(ruined: true);
+        (GameSimulation? withHeart, ListEventSink? withEvents) = Run(ruined: false);
+        (GameSimulation? without, ListEventSink? withoutEvents) = Run(ruined: true);
         for (int tick = 0; tick < Second * 10; tick++)
         {
             withHeart.Tick();

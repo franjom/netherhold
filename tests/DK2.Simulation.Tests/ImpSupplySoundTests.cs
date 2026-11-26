@@ -23,7 +23,7 @@ public sealed class ImpSupplySoundTests
         GameDatabase db = WithSpellAndShotCategories(basis,
             s => s.Name == KeeperSpellName.CreateImp ? s with { SoundCategory = "KEEPER_SPELL_CREATE_IMP" } : s,
             s => s.ShotId is 2 or 60 ? s with { SoundCategory = shotCategory } : s);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         Dk2TerrainFixture.HeartRoom(world, db, Keeper);
         world.Player(Keeper).Mana = 10_000;
         world.Player(Keeper).NextFreeImpTick = bought ? new GameTick(uint.MaxValue) : GameTick.Zero;

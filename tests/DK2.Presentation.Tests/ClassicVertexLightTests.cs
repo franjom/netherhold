@@ -112,8 +112,8 @@ public class ClassicVertexLightTests
         Vector3 local = new(0.1f, 0.3f, 0.05f), normal = Vector3.Normalize(new Vector3(1, 0.2f, 0));
         ClassicLitVertex vertex = Instance(local, normal, m, new Vector4(0, 0.25f, 0, 0.3f), boundsKind: 0);
         Vector3 radial = light.RadialAt(m.Translation);
-        Vector3 centre = Vector3.TransformNormal(new Vector3(0, 0.25f, 0), m);
-        ClassicInstancePointLight sampled = ClassicInstancePointLight.Sample(light, m.Translation + centre, m);
+        var centre = Vector3.TransformNormal(new Vector3(0, 0.25f, 0), m);
+        var sampled = ClassicInstancePointLight.Sample(light, m.Translation + centre, m);
         Vector3 point = sampled.ContributionAt(local - centre, normal);
         Assert.NotEqual(Vector3.Zero, radial);
         Assert.NotEqual(Vector3.Zero, point);
@@ -149,7 +149,7 @@ public class ClassicVertexLightTests
     public void ATileReadsAtMostTwentyFourSourcesAndOnlyItsCount()
     {
         var sources = new ClassicTileLightSource[Width * Height * ClassicLightTable.MaximumSources];
-        var counts = new uint[Width * Height];
+        uint[] counts = new uint[Width * Height];
         ClassicPointLight light = Light(new Vector3(1.5f, 1f, -1.5f), ClassicLightFlags.None);
         int tile = 1 * Width + 1;
         for (int i = 0; i < ClassicLightTable.MaximumSources; i++)
@@ -227,7 +227,7 @@ public class ClassicVertexLightTests
     private static Vector3 One(ClassicTileLightSource source, ClassicLitVertex vertex)
     {
         var sources = new ClassicTileLightSource[Width * Height * ClassicLightTable.MaximumSources];
-        var counts = new uint[Width * Height];
+        uint[] counts = new uint[Width * Height];
         int tile = ClassicVertexLight.TableTile(vertex.TileAnchor, vertex.ObjectToWorld.Translation, Width, Width * Height);
         Assert.True(tile >= 0);
         sources[tile * ClassicLightTable.MaximumSources] = source;
@@ -246,7 +246,7 @@ public class ClassicVertexLightTests
             ClassicPointLight light = Light(new Vector3(Next(random, 0, 6), Next(random, 0, 3), -Next(random, 0, 5)),
                 Flags[random.Next(Flags.Length)], radius: Next(random, 0, 2.4f), intensity: random.Next(0, 256));
             L.TileSource legacy = L.Entry(light);
-            ClassicTileLightSource source = ClassicTileLightSource.Of(light);
+            var source = ClassicTileLightSource.Of(light);
             Assert.Equal(legacy.IntensityFlags, source.IntensityFlags);
             Assert.Equal(new Vector4(legacy.PositionRadiusSquared.X, legacy.PositionRadiusSquared.Y,
                 legacy.PositionRadiusSquared.Z, legacy.PositionRadiusSquared.W), source.PositionRadiusSquared);
@@ -264,7 +264,7 @@ public class ClassicVertexLightTests
     private static Vector3 Sum(ClassicPointLight light, ClassicLightFlags flags, ClassicLitVertex vertex)
     {
         var sources = new ClassicTileLightSource[Width * Height * ClassicLightTable.MaximumSources];
-        var counts = new uint[Width * Height];
+        uint[] counts = new uint[Width * Height];
         int tile = ClassicVertexLight.TableTile(vertex.TileAnchor, vertex.ObjectToWorld.Translation, Width, Width * Height);
         Assert.True(tile >= 0);
         sources[tile * ClassicLightTable.MaximumSources] = ClassicTileLightSource.Of(light) with
@@ -293,7 +293,7 @@ public class ClassicVertexLightTests
     private static (ClassicTileLightSource[], uint[], L.TileSource[]) RandomGrid(Random random)
     {
         var sources = new ClassicTileLightSource[Width * Height * ClassicLightTable.MaximumSources];
-        var counts = new uint[Width * Height];
+        uint[] counts = new uint[Width * Height];
         for (int tile = 0; tile < counts.Length; tile++)
         {
             counts[tile] = (uint)random.Next(0, 30);
@@ -313,7 +313,7 @@ public class ClassicVertexLightTests
     private static ClassicLitVertex RandomVertex(Random random)
     {
         var position = new Vector3(Next(random, -0.6f, 0.6f), Next(random, -0.2f, 1.2f), Next(random, -0.6f, 0.6f));
-        Vector3 normal = Vector3.Normalize(new Vector3(Next(random, -1, 1), Next(random, -1, 1), Next(random, -1, 1)) + new Vector3(0, 0.01f, 0));
+        var normal = Vector3.Normalize(new Vector3(Next(random, -1, 1), Next(random, -1, 1), Next(random, -1, 1)) + new Vector3(0, 0.01f, 0));
         if (random.Next(10) == 0) normal = -normal * 0f;
         float scale = random.Next(3) == 0 ? Next(random, 0.5f, 2f) : 1f;
         Matrix4x4 m = Matrix4x4.CreateScale(scale, random.Next(4) == 0 ? scale * 1.5f : scale, scale)
@@ -324,8 +324,8 @@ public class ClassicVertexLightTests
         var bounds = new Vector4(Next(random, -0.3f, 0.3f), Next(random, 0, 0.6f), Next(random, -0.3f, 0.3f), Next(random, 0, 0.8f));
         var kind = new Vector2(random.Next(3) == 0 ? 0 : 1, random.Next(2) == 0 ? 0 : 1);
         if (random.Next(5) == 0) kind = random.Next(2) == 0 ? new Vector2(0.5f, 2) : new Vector2(2, 1);
-        Vector3 world = Vector3.Transform(position, m);
-        Vector3 worldNormal = Vector3.TransformNormal(normal, m);
+        var world = Vector3.Transform(position, m);
+        var worldNormal = Vector3.TransformNormal(normal, m);
         return new ClassicLitVertex(position, normal, anchor, bounds, kind, m, world, worldNormal);
     }
 

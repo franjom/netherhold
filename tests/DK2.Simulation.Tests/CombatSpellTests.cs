@@ -51,7 +51,7 @@ public class CombatSpellTests
     {
         GameDatabase basis = Dk2TerrainFixture.Database();
         var variables = new GlobalVariables();
-        foreach (var entry in basis.Variables.Misc) variables.Misc[entry.Key] = entry.Value;
+        foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in basis.Variables.Misc) variables.Misc[entry.Key] = entry.Value;
         variables.Misc[VariableTypeId.FirstPersonRechargeModifyPercentage] =
             new(VariableTypeId.FirstPersonRechargeModifyPercentage, 50, 0, 0);
         variables.CreatureStats.Add(new((int)CreatureStatId.MeleeRecharge, 25, 9, true));
@@ -183,13 +183,13 @@ public class CombatSpellTests
 
         sim.Run(40);
         SimEvent cast = sink.Events.First(e => e.Kind == "cast" && e.Detail.Contains("creature=" + warlock.Id) && e.Detail.Contains("slot=0"));
-        var fired = sink.Events.First(e => e.Kind == "shot_fired" && e.Detail.Contains("creature=" + warlock.Id));
+        SimEvent fired = sink.Events.First(e => e.Kind == "shot_fired" && e.Detail.Contains("creature=" + warlock.Id));
         // The wind-up is 11345/4096 s = 11 ticks; the shot leaves on the first tick past it.
         Assert.Equal(cast.Tick.Value + 12, fired.Tick.Value);
         // A Support re-acquires every tick and casts again when the recharge allows: the stamp is the latest cast's.
         Assert.True(warlock.SpellStamps[0] >= cast.Tick.Value);
 
-        var hit = sink.Events.First(e => e.Kind == "shot_hit" && e.Detail.Contains("target=" + goblin.Id));
+        SimEvent hit = sink.Events.First(e => e.Kind == "shot_hit" && e.Detail.Contains("target=" + goblin.Id));
         Assert.Contains("damage=300", hit.Detail);
         Assert.Contains("landed=-300", hit.Detail);
         // A Fireball covers 3686 units a tick: the three tiles take four ticks.
@@ -266,11 +266,11 @@ public class CombatSpellTests
         Assert.Equal(1, warlock.AttackSpellSlot);
 
         sim.Run(40);
-        var hit = sink.Events.First(e => e.Kind == "shot_hit" && e.Detail.Contains("caster=" + warlock.Id));
+        SimEvent hit = sink.Events.First(e => e.Kind == "shot_hit" && e.Detail.Contains("caster=" + warlock.Id));
         Assert.Contains("damage=600", hit.Detail);
         // The explosion chained on the hit carries the Firebomb spell's data words: 600 and 0 —
         // a zero-tile area that hurts nobody (shots.md §7, CONFIRMED from the binary and the owner).
-        var chained = sink.Events.First(e => e.Kind == "shot_chained" && e.Detail.Contains("type=" + Dk2TerrainFixture.FirebombExplosionShotId));
+        SimEvent chained = sink.Events.First(e => e.Kind == "shot_chained" && e.Detail.Contains("type=" + Dk2TerrainFixture.FirebombExplosionShotId));
         Assert.Contains("data1=600 data2=0", chained.Detail);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "shot_area_hit");
         Assert.True(goblin.Health < 1500 || bystander.Health < 1500, "a Goblin took the Firebomb on the nose");
@@ -424,7 +424,7 @@ public class CombatSpellTests
     private static (GameDatabase, WorldState) OpenWorld()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
         {

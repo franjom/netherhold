@@ -232,7 +232,7 @@ public class TunnelTests
 
     private static (GameDatabase, WorldState) Walled(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         world.Tile(3, 6).TerrainId = Dk2TerrainFixture.DirtPath;
         for (int y = 5; y <= 7; y++)

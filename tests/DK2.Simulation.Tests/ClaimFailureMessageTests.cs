@@ -20,7 +20,7 @@ public class ClaimFailureMessageTests
     /// training; rock everywhere else.</summary>
     private static WorldState World(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(width: 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(width: 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
             for (int x = 1; x <= 12; x++)
             {
@@ -62,7 +62,7 @@ public class ClaimFailureMessageTests
     [Fact]
     public void ARefusedClaimWithNoOtherRoomPosts42ForTheRoomsTypeToItsOwner()
     {
-        var (world, _) = Refused(Dk2TerrainFixture.Database(), _ => { });
+        (WorldState? world, CreatureState _) = Refused(Dk2TerrainFixture.Database(), _ => { });
 
         PlayerMessage message = Assert.Single(world.Messages.Entries);
         Assert.Equal((PlayerMessageKind.RoomFull, Keeper, (int)RoomTypeId.TrainingRoom, 0),
@@ -104,7 +104,7 @@ public class ClaimFailureMessageTests
     public void AnotherRoomOfTheTypeWithAPlaceItCanReachRaisesNothing()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        var (world, _) = Refused(db, w => Room(db, w, RoomTypeId.TrainingRoom, 9, 5));
+        (WorldState? world, CreatureState _) = Refused(db, w => Room(db, w, RoomTypeId.TrainingRoom, 9, 5));
 
         Assert.Empty(world.Messages.Entries);
     }
@@ -115,7 +115,7 @@ public class ClaimFailureMessageTests
         // The second room sits in the rock east of the paved ground, reachable by no route (0x004C6AE0's
         // 0x80 route test); the first slab stands in for the room's floor-slot position +0x2B.
         GameDatabase db = Dk2TerrainFixture.Database();
-        var (world, _) = Refused(db, w => Room(db, w, RoomTypeId.TrainingRoom, 16, 1));
+        (WorldState? world, CreatureState _) = Refused(db, w => Room(db, w, RoomTypeId.TrainingRoom, 16, 1));
 
         Assert.Equal(PlayerMessageKind.RoomFull, Assert.Single(world.Messages.Entries).Kind);
     }

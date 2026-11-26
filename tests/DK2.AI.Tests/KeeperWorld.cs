@@ -400,7 +400,7 @@ internal static class KeeperWorld
                 tiles[(y * width) + x] = new MapTile(ClaimedPath, Keeper, 0, 0);
         tiles[(HeartAt.Y * width) + HeartAt.X] = new MapTile(HeartFloor, Keeper, 0, 0);
 
-        WorldState world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [0, 1, 2, Keeper, .. morePlayers ?? []]);
+        var world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [0, 1, 2, Keeper, .. morePlayers ?? []]);
         // Mana enough for the imps the tests ask for: DK2's imp cast tests its cost first.
         world.Player(Keeper).Mana = 100000;
         return world;

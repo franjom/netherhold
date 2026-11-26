@@ -261,7 +261,7 @@ public class PathfindingTests
         // crow flies but 8 through the one gap, so the search must prefer the
         // first even though both look equally close on a map.
         var path = new List<TilePos>();
-        var goals = new[] { new TilePos(4, 0), new TilePos(0, 4) };
+        TilePos[] goals = new[] { new TilePos(4, 0), new TilePos(0, 4) };
 
         Assert.True(new GridPathfinder().TryFindNearest(
             OneDoor, new TilePos(0, 0), p => goals.Contains(p), path));

@@ -31,7 +31,7 @@ public class TorturerTests
     /// wheel in its middle, on paved ground the keeper owns.</summary>
     private static WorldState World(GameDatabase db, bool chair = false, bool coals = true)
     {
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
         for (int x = 1; x <= 12; x++)
@@ -126,7 +126,7 @@ public class TorturerTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
-        var seen = ImpStateTrace.Seen(sim, mistress, 30 * SimulationTiming.TicksPerSecond,
+        List<(int State, int Saved, int Resume)> seen = ImpStateTrace.Seen(sim, mistress, 30 * SimulationTiming.TicksPerSecond,
             () => sink.Events.Count(e => e.Kind == "whipped") >= 3);
 
         Assert.Contains(sink.Events, e => e.Kind == "job_taken" && e.Detail.Contains("job=Torture"));
@@ -201,7 +201,7 @@ public class TorturerTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink, EventCounterTree.For(CreatureTriggerEvent.Tortured));
 
-        var seen = ImpStateTrace.Seen(sim, mistress, 30 * SimulationTiming.TicksPerSecond,
+        List<(int State, int Saved, int Resume)> seen = ImpStateTrace.Seen(sim, mistress, 30 * SimulationTiming.TicksPerSecond,
             () => mistress.Dk2StateId == TortureRules.StrappingState);
         Assert.Contains((Walk, TortureRules.TorturerChoosingState, TortureRules.StrappingState), seen);
         // State 6's arrival sets 130 and returns; 130's handler (0x00484110) straps her on the next turn.

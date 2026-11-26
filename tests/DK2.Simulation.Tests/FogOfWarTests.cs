@@ -70,7 +70,7 @@ public sealed class FogOfWarTests
     public void OwnedTerrainStartsExploredWithoutBeingScanned()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db,
+        var world = WorldState.FromMap(db,
             new LevelMap(1, 1, [new MapTile(Dk2TerrainFixture.ClaimedPath, 3, 0, 0)]), [3], true);
         Assert.True(world.Tile(0, 0).IsExploredBy(3));
         Assert.False(world.Tile(0, 0).IsDiscoveredBy(3));
@@ -291,7 +291,7 @@ public sealed class FogOfWarTests
     {
         CreatureDef imp = Dk2TerrainFixture.Imp();
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(24, 24), [0, 1, 2], fogOfWarEnabled: true);
         CreatureState creature = world.SpawnCreature(
             database, imp.CreatureId, 1, new TilePos(10, 10));

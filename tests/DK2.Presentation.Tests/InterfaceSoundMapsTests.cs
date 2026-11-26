@@ -15,7 +15,7 @@ public sealed class InterfaceSoundMapsTests
 
     private static int Samples(string category, uint id)
     {
-        SfxMap map = SfxMap.Read(File.ReadAllBytes(Path.Combine(Root, category + "SFX.map")));
+        var map = SfxMap.Read(File.ReadAllBytes(Path.Combine(Root, category + "SFX.map")));
         return map.Groups.Where(g => g.Id.Value == id).Sum(g => g.Items.Sum(i => i.Sounds.Count));
     }
 

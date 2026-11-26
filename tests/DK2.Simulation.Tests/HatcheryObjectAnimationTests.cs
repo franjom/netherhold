@@ -42,7 +42,7 @@ public class HatcheryObjectAnimationTests
     public void EggInstallsHatchEndThenBecomesChickenOnTheFollowingTurn()
     {
         GameDatabase fixture = Dk2TerrainFixture.Database();
-        CreatureAnimationTiming[] art = new CreatureAnimationTiming[9];
+        var art = new CreatureAnimationTiming[9];
         art[0] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
         art[5] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 15, FramesPerSecond = 30 };
         var database = new GameDatabase(fixture.Terrain.Values, fixture.Rooms.Values, fixture.Creatures.Values,
@@ -73,7 +73,7 @@ public class HatcheryObjectAnimationTests
     public void AnEggLaidOnTheFloorStartsItsClipOnTheNextTurn()
     {
         GameDatabase fixture = Dk2TerrainFixture.Database();
-        CreatureAnimationTiming[] art = new CreatureAnimationTiming[9];
+        var art = new CreatureAnimationTiming[9];
         art[0] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
         art[5] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 15, FramesPerSecond = 30 };
         var database = new GameDatabase(fixture.Terrain.Values, fixture.Rooms.Values, fixture.Creatures.Values,

@@ -18,7 +18,7 @@ public class PortalRelocationScanTests
             EntranceFrames = 0, EntranceFramesPerSecond = 0,
         };
         GameDatabase database = Dk2TerrainFixture.Database(definition);
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [0, 1, 2, 3, 4]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [0, 1, 2, 3, 4]);
         CreatureState creature = world.SpawnCreature(database, 91, 3, new TilePos(6, 6));
         creature.Dk2StateId = PortalRules.JoiningState;
         creature.StateEnteredTick = 0;
@@ -35,7 +35,7 @@ public class PortalRelocationScanTests
     [InlineData(0, 2929)]
     public void CompletedPortalStepDoesNotForceTheNextStationaryScan(int offsetX, int offsetY)
     {
-        var (world, creature, definition) = Setup(offsetX, offsetY);
+        (WorldState? world, CreatureState? creature, CreatureDef? definition) = Setup(offsetX, offsetY);
         Assert.False(PortalRules.StillJoining(world, creature, definition));
         bool moved = creature.LastFightScanTileIndex != creature.Tile.Y * world.Width + creature.Tile.X;
         Assert.False(CombatRules.ScanIsDue(creature, moved));
@@ -45,7 +45,7 @@ public class PortalRelocationScanTests
     [Fact]
     public void WaitingForEntranceCompletionDoesNotRelocateOrChangeTheReference()
     {
-        var (world, creature, definition) = Setup(0, 2929);
+        (WorldState? world, CreatureState? creature, CreatureDef? definition) = Setup(0, 2929);
         definition = definition with { EntranceFrames = 147, EntranceFramesPerSecond = 30 };
         Assert.True(PortalRules.StillJoining(world, creature, definition));
         Assert.Equal(new TilePos(6, 6), creature.Tile);
@@ -56,7 +56,7 @@ public class PortalRelocationScanTests
     [Fact]
     public void RelocationWithinTheSameTileDoesNotForceAScan()
     {
-        var (world, creature, definition) = Setup(0, 1);
+        (WorldState? world, CreatureState? creature, CreatureDef? definition) = Setup(0, 1);
         Assert.False(PortalRules.StillJoining(world, creature, definition));
         bool moved = creature.LastFightScanTileIndex != creature.Tile.Y * world.Width + creature.Tile.X;
         Assert.False(CombatRules.ScanIsDue(creature, moved));
@@ -66,7 +66,7 @@ public class PortalRelocationScanTests
     [Fact]
     public void SubsequentOrdinaryTileMovementStillForcesAScan()
     {
-        var (world, creature, definition) = Setup(0, 2929);
+        (WorldState? world, CreatureState? creature, CreatureDef? definition) = Setup(0, 2929);
         Assert.False(PortalRules.StillJoining(world, creature, definition));
         creature.PosY += Fp32.One;
         bool moved = creature.LastFightScanTileIndex != creature.Tile.Y * world.Width + creature.Tile.X;

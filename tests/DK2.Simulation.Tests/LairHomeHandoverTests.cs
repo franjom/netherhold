@@ -16,7 +16,7 @@ public sealed class LairHomeHandoverTests
     [InlineData(true)]
     public void ACompletedWalkEntersHomeWithoutRunningItsHandler(bool finished)
     {
-        var (db, world, creature) = Home(7);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Home(7);
         creature.UtilityNewState = LairRules.MakingAHomeState;
         RouteWindow.Load(creature.Body, [creature.Body.Pos], creature.Body.Pos, 0);
         creature.Body.PathFinished = finished;
@@ -35,7 +35,7 @@ public sealed class LairHomeHandoverTests
     [Fact]
     public void HomeTurnsBeforeCreatingTheBedAndTheMoverAlsoTurns()
     {
-        var (db, world, creature) = Home(LairRules.MakingAHomeState);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Home(LairRules.MakingAHomeState);
         creature.Heading = 1452;
         creature.StateEnteredTick = -1;
         var sim = new GameSimulation(db, world, 1, [new CreatureUpdateSystem(
@@ -58,7 +58,7 @@ public sealed class LairHomeHandoverTests
     [Fact]
     public void TheIdleHandoverAlsoSurvivesSeparateSystemSweeps()
     {
-        var (db, world, creature) = Home(LairRules.MakingAHomeState);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Home(LairRules.MakingAHomeState);
         creature.Heading = 0;
         creature.StateEnteredTick = -1;
         var sim = new GameSimulation(db, world, 1, [new CreatureSleepSystem(), new CreatureJobSystem(), new CreatureMovementSystem()]);
@@ -75,7 +75,7 @@ public sealed class LairHomeHandoverTests
     [Fact]
     public void AnIncompleteWalkKeepsTravelling()
     {
-        var (db, world, creature) = Home(7);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Home(7);
         creature.UtilityNewState = LairRules.MakingAHomeState;
         Fixed16Vector target = creature.Body.Pos + new Fixed16Vector(Fixed16.One, 0);
         RouteWindow.Load(creature.Body, [target], target, 0);
@@ -88,7 +88,7 @@ public sealed class LairHomeHandoverTests
     [Fact]
     public void AStopOnTheHomeWalkRetainsTheQuantizedSelfRoute()
     {
-        var (_, _, creature) = Home(7);
+        (GameDatabase _, WorldState _, CreatureState? creature) = Home(7);
         creature.UtilityNewState = LairRules.MakingAHomeState;
         creature.PosX += 11;
         creature.PosY += 5;
@@ -104,7 +104,7 @@ public sealed class LairHomeHandoverTests
     private static (GameDatabase, WorldState, CreatureState) Home(int state)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         RoomRules.Place(db, ref world.Tile(2, 2), db.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.VampireCreatureId,

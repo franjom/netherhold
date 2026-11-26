@@ -44,7 +44,7 @@ public class ImpTests
     private static Run Start(TilePos impAt, ulong seed = 99, int imps = 1)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < imps; i++)
@@ -190,7 +190,7 @@ public class ImpTests
     private static Run StartOnOwnedFloor(bool owned = true)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         var at = new TilePos(8, 5);
@@ -491,7 +491,7 @@ public class ImpTests
         // Only the two marked tiles matter here; once they are gone the imp goes
         // on to claim and reinforce, which is the priority order and not this
         // test's business.
-        List<SimEvent> marked = run.Of("job_taken")
+        var marked = run.Of("job_taken")
             .Where(e => e.Detail.Contains("priority=MarkedExcavation"))
             .ToList();
         Assert.Equal(2, marked.Count);
@@ -560,7 +560,7 @@ public class ImpTests
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
         run.Ticks(SimulationTiming.TicksFromSeconds(10));
 
-        List<long> at = run.Events.Events
+        var at = run.Events.Events
             .Where(e => e.Kind is "gold_mined" or "gold_put_down")
             .Select(e => e.Tick.Value)
             .Distinct()
@@ -632,7 +632,7 @@ public class ImpTests
     public void ReinforcingAdmitsOnlyOneWorkerOnEachFace()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         TilePos face = new(8, 5);
         TilePos wall = new(8, 4);
@@ -657,7 +657,7 @@ public class ImpTests
     public void FourAccessibleFacesCanReinforceTheSameWall()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         TilePos wall = new(8, 4);
         for (int y = 2; y <= 6; y++)
@@ -716,7 +716,7 @@ public class ImpTests
         // longer leaves nothing to be crowded around.
         run.Ticks(1);
 
-        List<CreatureState> onThatFace = run.World.Creatures
+        var onThatFace = run.World.Creatures
             .Where(c => c.TargetTileIndex == marked && ImpCrowding.FaceOf(run.World, c) == face)
             .ToList();
 
@@ -851,7 +851,7 @@ public class ImpTests
         // velocity, and nothing puts it on the centre afterwards unless the request carried the
         // snap flag, which none does yet.
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
         Assert.True(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(2, 1), Navigation.MoveOptions.Plain));
 
@@ -878,7 +878,7 @@ public class ImpTests
     public void TheMeshHasNoRouteBetweenTilesThatTouchOnlyAtACorner_AsTheOriginalRefusesItToo()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
 
         // The fixture's room is (1,1)-(3,3); a chain of tiles on the bias leads out of its corner.
@@ -894,7 +894,7 @@ public class ImpTests
         // tick rate, and an imp reaches that cap on its first tick, so a second on a straight
         // corridor covers the record's 7536: 1.84 tiles a second (Q29).
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
 
         // A long straight route so nothing snaps to a waypoint mid-second, and
@@ -1084,7 +1084,7 @@ public class ImpTests
     {
         const byte Ally = Keeper + 1;
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Ally]);
         world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
         ref TileState theirs = ref world.Tile(4, 2);

@@ -21,7 +21,7 @@ public sealed class PossessionObjectTests
     private static (GameDatabase Db, WorldState World) Open(bool heart = false)
     {
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Possessor());
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -71,7 +71,7 @@ public sealed class PossessionObjectTests
     [Fact]
     public void AChickenEatenPaysOffTheFillHealsAndAddsHungerAngerWithoutRestartingTheClock_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         ObjectState chicken = InFront(db, world, me, HatcheryRules.ChickenObjectId);
         GameSimulation sim = Sim(db, world);
@@ -91,7 +91,7 @@ public sealed class PossessionObjectTests
     [Fact]
     public void ACreatureOwingNoFoodKillsTheChickenAndGainsNothing_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         ObjectState chicken = InFront(db, world, me, HatcheryRules.ChickenObjectId);
         GameSimulation sim = Sim(db, world);
@@ -107,7 +107,7 @@ public sealed class PossessionObjectTests
     [Fact]
     public void TheChickenHealIsCappedAtHpFromChicken_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         InFront(db, world, me, HatcheryRules.ChickenObjectId);
         GameSimulation sim = Sim(db, world);
@@ -122,7 +122,7 @@ public sealed class PossessionObjectTests
     [Fact]
     public void TheTrainingDummyIsSentIntoProcessState18AndTakesNoSwing_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         ObjectState dummy = InFront(db, world, me, Dk2TerrainFixture.TrainingDummyObjectId);
         GameSimulation sim = Sim(db, world);
@@ -137,7 +137,7 @@ public sealed class PossessionObjectTests
     [Fact]
     public void ABookCaseTakesTheSwingAndRefusesItsBlow_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         ObjectState shelf = InFront(db, world, me, Dk2TerrainFixture.BookCaseObjectId);
         GameSimulation sim = Sim(db, world);
@@ -162,7 +162,7 @@ public sealed class PossessionObjectTests
     [Fact]
     public void ASwingAtAnEnemyArchPillarDamagesItsHeart_StronglyInferredFromBinary()
     {
-        var (db, world) = Open(heart: true);
+        (GameDatabase? db, WorldState? world) = Open(heart: true);
         HeartPillarTarget pillar = FirstPillar(db, world);
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, pillar.Tile.X - 1, pillar.Tile.Y);
         me.PosX = pillar.X.Raw - 200;
@@ -179,7 +179,7 @@ public sealed class PossessionObjectTests
     [Fact]
     public void AnOwnArchPillarIsNotAMeleeTarget_StronglyInferredFromBinary()
     {
-        var (db, world) = Open(heart: true);
+        (GameDatabase? db, WorldState? world) = Open(heart: true);
         HeartPillarTarget pillar = FirstPillar(db, world);
         CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(pillar.Tile.X - 1, pillar.Tile.Y));
         me.Possessed = true;
@@ -198,7 +198,7 @@ public sealed class PossessionObjectTests
     [Fact]
     public void ASpellScanAimsAtAnEnemyArchPillarAndTheCastTargetsItsHeart_StronglyInferredFromBinary()
     {
-        var (db, world) = Open(heart: true);
+        (GameDatabase? db, WorldState? world) = Open(heart: true);
         HeartPillarTarget pillar = FirstPillar(db, world);
         CreatureState me = Possess(db, world, Dk2TerrainFixture.PossessorCreatureId, pillar.Tile.X - 4, pillar.Tile.Y);
         me.PosY = pillar.Y.Raw;
@@ -215,7 +215,7 @@ public sealed class PossessionObjectTests
     [Fact]
     public void ASwingAtAShotTakesTheBlowOffItsHealthFlat_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         GameSimulation sim = Sim(db, world, new CombatSystem());
         ShotState shot = world.SpawnShot(Dk2TerrainFixture.FireballShotId, new PlayerId(Rival), me.PosX + 200, me.PosY);
@@ -228,7 +228,7 @@ public sealed class PossessionObjectTests
     [Fact]
     public void ASwingAtABodyShortensItsRotWindow_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         CreatureState body = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
         GameSimulation sim = Sim(db, world, new CombatSystem());
@@ -244,7 +244,7 @@ public sealed class PossessionObjectTests
     public void TheChickensAngerShareAndPayOffUseTheLevelScaledFill_StronglyInferredFromBinary()
     {
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Possessor() with { HungerFill = 2 });
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -266,7 +266,7 @@ public sealed class PossessionObjectTests
     [InlineData(4)]
     public void ABileDemonAlwaysEatsAndNeitherPaysOffNorAngers_StronglyInferredFromBinary(int need)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.BileDemonCreatureId, 10, 10);
         ObjectState chicken = InFront(db, world, me, HatcheryRules.ChickenObjectId);
         GameSimulation sim = Sim(db, world);
@@ -285,7 +285,7 @@ public sealed class PossessionObjectTests
     [Fact]
     public void APillarBlowIsTheFlatSwingWithNoBearingBonus_StronglyInferredFromBinary()
     {
-        var (db, world) = Open(heart: true);
+        (GameDatabase? db, WorldState? world) = Open(heart: true);
         HeartPillarTarget pillar = FirstPillar(db, world);
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, pillar.Tile.X - 1, pillar.Tile.Y);
         me.PosX = pillar.X.Raw - 200;

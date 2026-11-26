@@ -35,7 +35,7 @@ public sealed class PossessionInputTests
     private static (GameDatabase Db, WorldState World) Open()
     {
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Possessor(), Mesmer(), Stubborn());
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(30, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(30, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -68,7 +68,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void SneakDisguisesAsTheTilesOwnerAndASecondPressEndsIt_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         Own(world, 20, 15, Rival);
         GameSimulation sim = Sim(db, world);
@@ -83,7 +83,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void SneakIsRefusedOnItsOwnOrANeutralTile_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         Own(world, 20, 15, Keeper);
         GameSimulation sim = Sim(db, world);
@@ -97,7 +97,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void ARivalWatcherInSightStopsTheDisguise_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 10));
         Own(world, 20, 15, Rival);
@@ -113,7 +113,7 @@ public sealed class PossessionInputTests
     [InlineData(true)]
     public void TheDisguisedAsPlayersCreaturesDoNotPickTheSneaker_ConfirmedFromBinary(bool disguised)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         CreatureState rival = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 10));
         if (disguised) me.SneakingAs = Rival;
@@ -127,7 +127,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void StrikingTheDisguisedAsPlayersCreatureEndsTheDisguise_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 10, 10);
         world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
         GameSimulation sim = Sim(db, world, new CombatSystem());
@@ -141,7 +141,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void AnotherKeepersHandUnmasksTheSneakerAndLetsGo_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState sneaker = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
         sneaker.SneakingAs = Rival;
         Assert.True(HandRules.HasPickupPermission(world, db, sneaker, Rival));
@@ -157,7 +157,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void LeavingPossessionEndsTheDisguiseAndSniperMode_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         GameSimulation sim = Sim(db, world);
         me.SneakingAs = Rival;
@@ -174,7 +174,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void HypnosisTakesTheNearestEnemyInTheConeAndASecondPressReleasesIt_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         CreatureState far = world.SpawnArrived(db, MesmerCreatureId, Rival, new TilePos(12, 10));
         CreatureState near = world.SpawnArrived(db, MesmerCreatureId, Rival, new TilePos(8, 10));
@@ -200,7 +200,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void ACreatureThatCannotBeHypnotisedOrIsImmuneToTurncoatIsNotTaken_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 10));
         CreatureState stubborn = world.SpawnArrived(db, (byte)(MesmerCreatureId + 1), Rival, new TilePos(9, 10));
@@ -216,7 +216,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void LeavingPossessionReleasesTheHypnotisedCreature_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         CreatureState held = world.SpawnArrived(db, MesmerCreatureId, Rival, new TilePos(8, 10));
         GameSimulation sim = Sim(db, world);
@@ -233,7 +233,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void APossessedBlowCommandsTheHypnotisedCreatureUntilItHasAttackedAsOften_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 10, 10);
         CreatureState enemy = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
         CreatureState held = world.SpawnArrived(db, MesmerCreatureId, Keeper, new TilePos(8, 10));
@@ -258,7 +258,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void AHypnotisedCreatureThatIsRemovedClearsItsPossessorsHold_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 10, 10);
         CreatureState held = world.SpawnArrived(db, MesmerCreatureId, Keeper, new TilePos(8, 10));
         held.Hypnotised = true;
@@ -287,7 +287,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void ASniperFreeAimShotDoublesItsContactDamage_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 10, 10, Dk2TerrainFixture.WarlockCreatureId);
         GameSimulation sim = Sim(db, world, new CombatSystem());
         sim.Tick(InputFrame.Of(new SetSniperModeCommand(Keeper, true)));
@@ -305,7 +305,7 @@ public sealed class PossessionInputTests
     [InlineData(true)]
     public void ScanCSkipsARegisteredAttackerDisguisedAsTheSearchersSide_ConfirmedFromBinary(bool disguised)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState sneaker = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         CreatureState searcher = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(6, 10));
         Assert.True(CombatRules.Register(searcher, sneaker.Id, ranged: false));
@@ -319,7 +319,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void CastingAtTheDisguisedAsPlayersCreatureEndsTheDisguise_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10, Dk2TerrainFixture.WarlockCreatureId);
         world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(8, 10));
         GameSimulation sim = Sim(db, world, new CombatSystem());
@@ -333,7 +333,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void AFreedHypnotisedCreatureClearsTheHoldOnlyOnce_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 10, 10);
         CreatureState first = world.SpawnArrived(db, MesmerCreatureId, Keeper, new TilePos(8, 10));
         CreatureState second = world.SpawnArrived(db, MesmerCreatureId, Keeper, new TilePos(7, 10));
@@ -352,7 +352,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void EveryAttackLaunchedInAFightIsCounted_ConfirmedFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState a = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         CreatureState b = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 10));
         b.PosX = a.PosX + 1000;   // touching, inside melee reach
@@ -365,7 +365,7 @@ public sealed class PossessionInputTests
     [Fact]
     public void InputFieldsSurviveASnapshot()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 3, 10);
         me.SneakingAs = 4;
         me.SniperMode = true;

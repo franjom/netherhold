@@ -281,7 +281,7 @@ public class ManaOnRealDataTests
         Assert.NotNull(map);
 
         byte[] players = [.. map.Tiles.Select(t => t.PlayerId).Distinct().OrderBy(id => id)];
-        WorldState world = WorldState.FromMap(db, map, players);
+        var world = WorldState.FromMap(db, map, players);
 
         ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(install, level)!);
         int[] upkeep = ManaRules.UpkeepPerSecondByPlayerIndex(world, db);

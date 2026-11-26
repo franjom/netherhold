@@ -59,7 +59,7 @@ public class TerrainTileBuilderTests
             }
             for (int g = 0; g < old.Groups.Count; g++)
             {
-                var group = old.Groups[g];
+                    TerrainTileBuilder.TriangleGroup group = old.Groups[g];
                 TerrainMaterialKey key = old.Keys[group.Slot];
                 int vertex = old.PieceStarts[group.Piece];
                 Vector2 source = current.StateSources[vertex];
@@ -154,7 +154,7 @@ public class TerrainTileBuilderTests
     {
         string dir = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.Load(dir);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!, [0, 1]);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!, [0, 1]);
         TileView[] tiles = new WorldView(db, PlayerIds.FirstKeeper).Tiles(world).ToArray();
         var lattice = new TerrainLattice(db, world, PlayerIds.FirstKeeper);
         const int x = 10, y = 12;
@@ -176,7 +176,7 @@ public class TerrainTileBuilderTests
         var pieces = new FakePieces();
         var geometry = new TerrainTileGeometry();
         new TerrainTileBuilder(pieces, Width, Height).Prepare(2, 1, tiles, geometry);
-        var keys = tiles[(1 * Width) + 2].PieceKeys!;
+        TerrainPieceKeys keys = tiles[(1 * Width) + 2].PieceKeys!;
         // Side 1's halves: A (piece 4) in quadrant 1 draws hero face 5; B (piece 5) in quadrant 2 draws face 4.
         Assert.Contains(geometry.Pieces, p => p.Piece == pieces.Piece(keys.HeroFace(5)) && p.At == Quadrant(2, 1, 1) && p.Rotation == 1);
         Assert.Contains(geometry.Pieces, p => p.Piece == pieces.Piece(keys.HeroFace(4)) && p.At == Quadrant(2, 1, 2) && p.Rotation == 1);
@@ -242,7 +242,7 @@ public class TerrainTileBuilderTests
         string dir = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.Load(dir);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!;
-        WorldState world = WorldState.FromMap(db, map, [0, 1]);
+        var world = WorldState.FromMap(db, map, [0, 1]);
         TileView[] tiles = new WorldView(db, PlayerIds.FirstKeeper).Tiles(world).ToArray();
         var pieces = new FakePieces();
         var builder = new TerrainTileBuilder(pieces, world.Width, world.Height,

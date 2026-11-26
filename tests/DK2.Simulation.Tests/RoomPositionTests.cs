@@ -18,7 +18,7 @@ public sealed class RoomPositionTests
                             from x in Enumerable.Range(14, 4)
                             where x != 15 || (y != 30 && y != 31)
                             select new TilePos(x, y)).ToArray();
-        var (_, _, room) = Setup(points);
+        (GameDatabase _, WorldState _, RoomInstance? room) = Setup(points);
         Assert.Equal(14, room.TileCount);
         Assert.Equal(new TilePos(16, 30), Position(room));
     }
@@ -26,7 +26,7 @@ public sealed class RoomPositionTests
     [Fact]
     public void AnOwnedSlabCentroidWinsOverTheBoundingBoxMidpoint()
     {
-        var (_, _, room) = Setup([new(5, 5), new(6, 5), new(7, 5), new(5, 6), new(5, 7)]);
+        (GameDatabase _, WorldState _, RoomInstance? room) = Setup([new(5, 5), new(6, 5), new(7, 5), new(5, 6), new(5, 7)]);
         Assert.Equal(new TilePos(5, 5), Position(room));
     }
 
@@ -36,7 +36,7 @@ public sealed class RoomPositionTests
     [InlineData(7, 16)]
     public void ExpandingSpiralFindsTheFirstOwnedSlabRatherThanTheNearest(int side, int expectedX)
     {
-        var (_, _, room) = Setup(Ring(side));
+        (GameDatabase _, WorldState _, RoomInstance? room) = Setup(Ring(side));
         Assert.Equal(new TilePos(expectedX, 11), Position(room));
     }
 
@@ -46,7 +46,7 @@ public sealed class RoomPositionTests
     [InlineData(true)]
     public void ASeparateRoomAtTheCentroidDoesNotCountAsThisRoom(bool otherOwner)
     {
-        var (db, world, _) = Setup(Ring(5));
+        (GameDatabase? db, WorldState? world, RoomInstance _) = Setup(Ring(5));
         Place(world, db.Room(RoomTypeId.TrainingRoom),
             otherOwner ? new PlayerId(4) : new PlayerId(3), [new(12, 12)]);
         RoomInstance room = RoomIndex.Build(world, db).Single(r => r.TileCount == 16);
@@ -56,7 +56,7 @@ public sealed class RoomPositionTests
     [Fact]
     public void SnapshotRebuildsTheSameOwnedRoomPosition()
     {
-        var (db, world, _) = Setup(Ring(5));
+        (GameDatabase? db, WorldState? world, RoomInstance _) = Setup(Ring(5));
         var sim = new GameSimulation(db, world, 1, []);
         GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
         Assert.Equal(new TilePos(14, 11), Position(Assert.Single(RoomIndex.Build(copy.World, db))));
@@ -68,7 +68,7 @@ public sealed class RoomPositionTests
     [InlineData(3, 4, 6, 6)]
     public void SingletonAndRectangularOrdinaryRoomsKeepTheirCentroid(int width, int height, int x, int y)
     {
-        var (_, _, room) = Setup(Rectangle(new TilePos(5, 5), width, height));
+        (GameDatabase _, WorldState _, RoomInstance? room) = Setup(Rectangle(new TilePos(5, 5), width, height));
         Assert.Equal(new TilePos(x, y), Position(room));
     }
 
@@ -78,7 +78,7 @@ public sealed class RoomPositionTests
     [InlineData(RoomTypeId.Portal, 3, 15, 24)]
     public void ExistingRectangularHeartAndPortalAdaptersKeepTheirPosition(RoomTypeId kind, int side, int x, int y)
     {
-        var (_, _, room) = Setup(Rectangle(new TilePos(14, 23), side, side), kind);
+        (GameDatabase _, WorldState _, RoomInstance? room) = Setup(Rectangle(new TilePos(14, 23), side, side), kind);
         Assert.Equal(new TilePos(x, y), Position(room));
     }
 
@@ -108,7 +108,7 @@ public sealed class RoomPositionTests
         TilePos[] points, RoomTypeId kind = RoomTypeId.TrainingRoom)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(40, 40), [(byte)0, (byte)1, (byte)2, (byte)3, (byte)4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(40, 40), [(byte)0, (byte)1, (byte)2, (byte)3, (byte)4]);
         for (int y = 0; y < world.Height; y++)
         for (int x = 0; x < world.Width; x++)
         {

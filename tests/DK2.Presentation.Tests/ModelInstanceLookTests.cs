@@ -59,7 +59,7 @@ public sealed class ModelInstanceLookTests
     {
         for (int alpha = 1; alpha <= 255; alpha++)
         {
-            ModelInstanceLook instance = ModelInstanceLook.Object(default, (byte)alpha);
+            var instance = ModelInstanceLook.Object(default, (byte)alpha);
             Assert.Equal(Environment.Faded((byte)alpha).Colour != Vector4.Zero, instance.EnvironmentDrawn);
             Assert.Equal(alpha < 255, instance.Faded);
         }

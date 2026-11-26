@@ -17,8 +17,8 @@ public class MovementDustTests
     public void ACreatureAsksForFootDustOnTheUpdateAfterItCrossesOntoADirtTile_AndNotWithinATileOrOnClaimedGround()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
-        foreach (var (x, y) in new[] { (2, 2), (3, 2), (4, 2) })
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        foreach ((int x, int y) in new[] { (2, 2), (3, 2), (4, 2) })
         {
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
             world.Tile(x, y).OwnerPlayerId = PlayerIds.Neutral;

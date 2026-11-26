@@ -15,7 +15,7 @@ public class NeutralAmbientEffectTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         byte[] players = neutral ? [PlayerIds.Neutral, PlayerIds.FirstKeeper] : [PlayerIds.FirstKeeper];
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), players);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), players);
         if (lava)
             for (int y = 1; y < world.Height - 1; y++)
                 for (int x = 1; x < world.Width - 1; x++)
@@ -34,7 +34,7 @@ public class NeutralAmbientEffectTests
     [Fact]
     public void AnActiveNeutralDrawsAnInteriorTileEveryTurn()
     {
-        var (sim, sink) = Start(1);
+        (GameSimulation? sim, ListEventSink? sink) = Start(1);
         for (int turn = 0; turn < 3; turn++)
         {
             var expected = new Dk2Lcg(SeedOf(sim));
@@ -49,7 +49,7 @@ public class NeutralAmbientEffectTests
     [Fact]
     public void WithoutAnActiveNeutralNothingIsDrawn()
     {
-        var (sim, _) = Start(1, neutral: false);
+        (GameSimulation? sim, ListEventSink _) = Start(1, neutral: false);
         uint before = SeedOf(sim);
         sim.Tick();
         Assert.Equal(before, SeedOf(sim));
@@ -72,7 +72,7 @@ public class NeutralAmbientEffectTests
             if (probe.NextInt(1000) == wanted) break;
             seed++;
         }
-        var (sim, sink) = Start(seed, lava: true);
+        (GameSimulation? sim, ListEventSink? sink) = Start(seed, lava: true);
         var expected = new Dk2Lcg(seed);
         sim.Tick();
 

@@ -17,7 +17,7 @@ public sealed class HandCursorHudTests
     public void TheGreenKeyIsUnitys()
     {
         var random = new Random(11);
-        var pixels = new byte[4 * 4096];
+        byte[] pixels = new byte[4 * 4096];
         random.NextBytes(pixels);
         // Some pure greens, and near misses on each channel.
         for (int i = 0; i < pixels.Length; i += 4 * 7) { pixels[i] = 0; pixels[i + 1] = 255; pixels[i + 2] = 0; }

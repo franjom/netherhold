@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -14,7 +15,7 @@ public class ReinforcementCornerTests
     [InlineData(true)]
     public void State22FillsAtReleaseUnlessItsDigMarkCancelledTheTask(bool cancelled)
     {
-        var run = Setup(1, 1, false);
+        (GameSimulation Sim, TilePos Fill) run = Setup(1, 1, false);
         var sim = new GameSimulation(run.Sim.Database, run.Sim.World, 1, Dk2TerrainFixture.DefaultSystems());
         CreatureState imp = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(6, 5));
         imp.TargetTileIndex = 5 * sim.World.Width + 5;
@@ -29,7 +30,7 @@ public class ReinforcementCornerTests
     [Fact]
     public void NeutralReinforcedCandidateHealsWithoutOwnershipChange()
     {
-        var run = Setup(1, 1, false);
+        (GameSimulation Sim, TilePos Fill) run = Setup(1, 1, false);
         run.Sim.World.Tile(run.Fill).TerrainId = Dk2TerrainFixture.ReinforcedWall;
         run.Sim.Tick(InputFrame.Empty);
         Assert.Equal(900, run.Sim.World.Tile(run.Fill).Health);
@@ -39,7 +40,7 @@ public class ReinforcementCornerTests
     [Fact]
     public void OwnerZeroFinishedDiagonalIsNotTheNeutralPlayer()
     {
-        var run = Setup(1, 1, false);
+        (GameSimulation Sim, TilePos Fill) run = Setup(1, 1, false);
         run.Sim.World.Tile(6, 6).OwnerPlayerId = 0;
         run.Sim.Tick(InputFrame.Empty);
         Assert.Equal(Dk2TerrainFixture.ReinforcedWall, run.Sim.World.Tile(run.Fill).TerrainId);
@@ -48,7 +49,7 @@ public class ReinforcementCornerTests
     [Fact]
     public void State22AcceptsFullNonOwnableTargetAsFinished()
     {
-        var run = Setup(1, 1, false);
+        (GameSimulation Sim, TilePos Fill) run = Setup(1, 1, false);
         run.Sim.World.Tile(5, 5).TerrainId = Dk2TerrainFixture.Rock;
         run.Sim.World.Tile(5, 5).Health = 660;
         var sim = new GameSimulation(run.Sim.Database, run.Sim.World, 1, Dk2TerrainFixture.DefaultSystems());
@@ -70,7 +71,7 @@ public class ReinforcementCornerTests
     {
         foreach (bool swap in new[] { false, true })
         {
-            var run = Setup(dx, dy, swap);
+            (GameSimulation Sim, TilePos Fill) run = Setup(dx, dy, swap);
             run.Sim.Tick(InputFrame.Empty);
             Assert.Equal(Dk2TerrainFixture.ReinforcedWall, run.Sim.World.Tile(run.Fill).TerrainId);
             Assert.Equal(3, run.Sim.World.Tile(run.Fill).OwnerPlayerId);
@@ -88,7 +89,7 @@ public class ReinforcementCornerTests
     [InlineData(Dk2TerrainFixture.Rock, 2, 165, false, true)]
     public void InvalidCornerDoesNotFill(byte terrain, byte owner, int health, bool blockedSide, bool damagedDiagonal)
     {
-        var run = Setup(1, 1, false);
+        (GameSimulation Sim, TilePos Fill) run = Setup(1, 1, false);
         ref TileState fill = ref run.Sim.World.Tile(run.Fill);
         fill.TerrainId = terrain;
         fill.OwnerPlayerId = owner;
@@ -109,12 +110,12 @@ public class ReinforcementCornerTests
 
     private static (GameSimulation Sim, TilePos Fill) Setup(int dx, int dy, bool swap)
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)2, (byte)3, (byte)4]);
         Set(5, 5, Dk2TerrainFixture.ReinforcedWall, 3, 900);
         Set(5 + dx, 5 + dy, Dk2TerrainFixture.ReinforcedWall, 4, 900);
-        var fill = swap ? new TilePos(5 + dx, 5) : new TilePos(5, 5 + dy);
-        var open = swap ? new TilePos(5, 5 + dy) : new TilePos(5 + dx, 5);
+        TilePos fill = swap ? new TilePos(5 + dx, 5) : new TilePos(5, 5 + dy);
+        TilePos open = swap ? new TilePos(5, 5 + dy) : new TilePos(5 + dx, 5);
         Set(fill.X, fill.Y, Dk2TerrainFixture.Rock, 2, 165);
         Set(open.X, open.Y, Dk2TerrainFixture.DirtPath, 2, 1);
         return (new GameSimulation(db, world, 1, [new FillSystem(new TilePos(5, 5))]), fill);

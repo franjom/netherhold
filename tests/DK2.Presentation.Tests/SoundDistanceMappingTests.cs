@@ -20,7 +20,7 @@ public sealed class SoundDistanceMappingTests
     [InlineData(20f, 20f)]
     public void TheMaximumIsTheItemsFloatFlooredAt2Point1(float stored, float expected)
     {
-        var bytes = new byte[34];
+        byte[] bytes = new byte[34];
         BitConverter.GetBytes(stored).CopyTo(bytes, 0x22 - 8);
         var item = new SoundItem([], [], bytes);
 
@@ -73,7 +73,7 @@ public sealed class SoundDistanceMappingTests
         int headRelative = 0, spatial = 0;
         foreach (string sfx in Directory.GetFiles(root, "*SFX.map"))
         {
-            SfxMap map = SfxMap.Read(File.ReadAllBytes(sfx));
+            var map = SfxMap.Read(File.ReadAllBytes(sfx));
             var resolver = new SoundResolver(BankMap.Empty, map);
             foreach (SoundGroup group in map.Groups.Where(g => g.Items.Count > 0))
             {
@@ -90,7 +90,7 @@ public sealed class SoundDistanceMappingTests
         string root = Path.Combine(Dk2InstallGate.Path, "Data", "Sound", "SFX", "Global");
         var resolver = new SoundResolver(BankMap.Read(File.ReadAllBytes(Path.Combine(root, category + "BANK.map"))),
             SfxMap.Read(File.ReadAllBytes(Path.Combine(root, category + "SFX.map"))));
-        SfxMap map = SfxMap.Read(File.ReadAllBytes(Path.Combine(root, category + "SFX.map")));
+        var map = SfxMap.Read(File.ReadAllBytes(Path.Combine(root, category + "SFX.map")));
         return map.Groups.Select(g => resolver.DistanceMappingOf(g.Id)).OfType<SoundDistanceMapping>()
             .Select(m => m.Maximum).ToArray();
     }

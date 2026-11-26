@@ -198,7 +198,7 @@ public sealed class PlacementCursorHudTests
                     int count = 0;
                     for (long rest = magnitude; count == 0 || rest > 0; rest /= 10) count++;
                     count = Math.Min(count, 7);
-                    var names = new string[count];
+                    string[] names = new string[count];
                     long value = magnitude;
                     for (int i = count - 1; i >= 0; i--, value /= 10) names[i] = family + (char)('0' + (int)(value % 10));
                     HudColor colour = feedback.Price > 0 ? new HudColor(128, 255, 255, 255)

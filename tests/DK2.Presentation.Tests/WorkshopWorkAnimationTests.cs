@@ -35,7 +35,7 @@ public class WorkshopWorkAnimationTests
             c.OwnerPlayerId == Keeper && db.CreatureById(c.CreatureTypeId).Name == "Troll");
         Assert.False(AnimationTimingRules.HasArt(db.CreatureById(troll.CreatureTypeId), WorkshopStep.WorkArtSlot));
         var view = new WorldView(db);
-        AssetRef hammer = AssetRef.ForCreature("Troll", AssetKind.Animation, "working");
+        var hammer = AssetRef.ForCreature("Troll", AssetKind.Animation, "working");
 
         int hammering = 0, standing = 0;
         for (int tick = 0; tick < 400; tick++)

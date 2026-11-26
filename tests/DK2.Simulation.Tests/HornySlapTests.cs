@@ -17,7 +17,7 @@ public sealed class HornySlapTests
 
     private static (GameDatabase Db, WorldState World, CreatureState Horny) Setup()
     {
-        var (basis, world, at) = SummonHornyTests.Setup();
+        (GameDatabase? basis, WorldState? world, TilePos at) = SummonHornyTests.Setup();
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => (c.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny
                 ? c with { Flags = c.Flags | CreatureFlags.CanBeSlapped } : c),
@@ -30,7 +30,7 @@ public sealed class HornySlapTests
     [Fact]
     public void AnIdleHornySlappedDeparts_WithNoDamageAngerBonusOrCount_StronglyInferredFromBinary()
     {
-        var (db, world, horny) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? horny) = Setup();
         int health = horny.Health;
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, seed: 7, [new HandSystem()]);
@@ -54,7 +54,7 @@ public sealed class HornySlapTests
     [Fact]
     public void AHornyWithItsFightBitClearOrInState76_CannotBeSlapped_StronglyInferredFromBinary()
     {
-        var (db, _, horny) = Setup();
+        (GameDatabase? db, WorldState _, CreatureState? horny) = Setup();
         horny.ReaperCanAcquireFight = false;
         Assert.False(HandRules.CanSlap(db, horny, new PlayerId(Keeper)));
         horny.ReaperCanAcquireFight = true;

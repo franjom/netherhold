@@ -39,7 +39,7 @@ public class CreatureStateMachineTests
     private static StateHookContext OnARoom(RoomTypeId type)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral]);
         RoomRules.Place(db, ref world.Tile(0, 0), db.Room(type), 0);
         if (type == RoomTypeId.TortureChamber) world.SpawnObject(db, TortureRules.WheelObjectId, 0, 0).AutoPlaced = true;
         return new StateHookContext(world, db);

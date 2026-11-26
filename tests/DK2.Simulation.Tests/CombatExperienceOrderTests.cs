@@ -17,9 +17,9 @@ public sealed class CombatExperienceOrderTests
     [InlineData(200)]
     public void TheExitHandlerSeesItsFinalCategoryAward(int state)
     {
-        var (db, world, fighter, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? fighter, CreatureState? target) = Setup();
         Fight(fighter, target, state);
-        var sim = WithHandler(db, world, (context, creature) =>
+        GameSimulation sim = WithHandler(db, world, (context, creature) =>
         {
             if (creature != fighter) return;
             Assert.Equal(40, fighter.ExperiencePoints);
@@ -34,9 +34,9 @@ public sealed class CombatExperienceOrderTests
     [Fact]
     public void AcquisitionPaysBeforeTheFirstFightHandler()
     {
-        var (db, world, fighter, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? fighter, CreatureState? target) = Setup();
         fighter.FightProcessCounter = 10;
-        var sim = WithHandler(db, world, (_, creature) =>
+        GameSimulation sim = WithHandler(db, world, (_, creature) =>
         {
             if (creature != fighter) return;
             Assert.Equal(199, fighter.Dk2StateId);
@@ -51,11 +51,11 @@ public sealed class CombatExperienceOrderTests
     [Fact]
     public void AnApproachArrivalDoesNotBackdateItsFirstFightAward()
     {
-        var (db, world, fighter, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? fighter, CreatureState? target) = Setup();
         Fight(fighter, target, 8);
         fighter.StateBeforeUtilityState = 199;
         fighter.UtilityNewState = 199;
-        var sim = WithHandler(db, world, (context, creature) =>
+        GameSimulation sim = WithHandler(db, world, (context, creature) =>
         {
             if (creature != fighter) return;
             Assert.Equal(8, fighter.Dk2StateId);
@@ -71,10 +71,10 @@ public sealed class CombatExperienceOrderTests
     [Fact]
     public void PromotionIsVisibleToTheCurrentHandler()
     {
-        var (db, world, fighter, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? fighter, CreatureState? target) = Setup();
         Fight(fighter, target, 199);
         fighter.ExperiencePoints = CreatureLevelRules.ExperienceForNextLevel(db, db.CreatureById(61), 1) - 40;
-        var sim = WithHandler(db, world, (_, creature) =>
+        GameSimulation sim = WithHandler(db, world, (_, creature) =>
         {
             if (creature != fighter) return;
             Assert.Equal(2, fighter.Level);
@@ -88,11 +88,11 @@ public sealed class CombatExperienceOrderTests
     [Fact]
     public void AnOlderCreaturesHandlerSeesTheNewerCreaturesAward()
     {
-        var (db, world, older, newer) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? older, CreatureState? newer) = Setup();
         Fight(newer, older, 199);
         newer.Possessed = false;
         var visited = new List<int>();
-        var sim = WithHandler(db, world, (_, creature) =>
+        GameSimulation sim = WithHandler(db, world, (_, creature) =>
         {
             visited.Add(creature.Id);
             if (creature == older) Assert.Equal(40, newer.ExperiencePoints);
@@ -104,7 +104,7 @@ public sealed class CombatExperienceOrderTests
     [Fact]
     public void TheCreatureTargetGateIsStillRequired()
     {
-        var (db, world, fighter, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? fighter, CreatureState? target) = Setup();
         Fight(fighter, target, 199);
         fighter.FightTargetKind = FightTargetKind.Heart;
         WithHandler(db, world, (_, _) => { }).Tick();
@@ -114,7 +114,7 @@ public sealed class CombatExperienceOrderTests
     [Fact]
     public void PossessionStillSkipsCategoryExperience()
     {
-        var (db, world, fighter, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? fighter, CreatureState? target) = Setup();
         Fight(fighter, target, 199);
         fighter.Possessed = true;
         WithHandler(db, world, (_, _) => { }).Tick();
@@ -136,7 +136,7 @@ public sealed class CombatExperienceOrderTests
             Flags = CreatureFlags.IsEvil | CreatureFlags.IsFearless,
         };
         GameDatabase db = Dk2TerrainFixture.Database(definition);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, (byte)3]);
         CreatureState fighter = world.SpawnCreature(db, 61, 3, new TilePos(2, 2));
         CreatureState target = world.SpawnCreature(db, 61, PlayerIds.Good, new TilePos(3, 2));
@@ -148,7 +148,7 @@ public sealed class CombatExperienceOrderTests
         Action<SimulationContext, CreatureState> handler)
     {
         ISimulationSystem[] declared = SimulationSystems.Default();
-        var update = declared.OfType<CreatureUpdateSystem>().Single();
+        CreatureUpdateSystem update = declared.OfType<CreatureUpdateSystem>().Single();
         // Keep the actual default pre-dispatch steps and any category award there; replace
         // state handlers with a controlled callback. Retain an old global award if present.
         ICreatureUpdateStep[] prefix = update.Steps.TakeWhile(s => s is not TravelArrivalSystem).ToArray();

@@ -14,7 +14,7 @@ public sealed class TerrainCeilingTests
     /// <summary>An open square map with closed tiles at the given places.</summary>
     private static bool[] Map(params (int X, int Y)[] closed)
     {
-        var map = new bool[Size * Size];
+        bool[] map = new bool[Size * Size];
         foreach ((int x, int y) in closed) map[(y * Size) + x] = true;
         return map;
     }
@@ -60,7 +60,7 @@ public sealed class TerrainCeilingTests
 
     private static float[] Heights(bool[] map, int x, int y)
     {
-        var z = new float[TerrainCeiling.Vertices];
+        float[] z = new float[TerrainCeiling.Vertices];
         TerrainCeiling.Heights(Size, Size, map, x, y, z);
         return z;
     }
@@ -152,7 +152,7 @@ public sealed class TerrainCeilingTests
     private static bool[] Scattered()
     {
         var random = new Random(679);
-        var map = new bool[Size * Size];
+        bool[] map = new bool[Size * Size];
         for (int i = 0; i < map.Length; i++) map[i] = random.Next(5) == 0;
         return map;
     }

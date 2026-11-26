@@ -91,7 +91,7 @@ internal sealed class LegacyTransparentTerrain
         foreach (KeyValuePair<TestMaterial, List<int>> entry in byMaterial)
             if (entry.Value.Count != 0 && entry.Key.Transparent)
             {
-                var kept = new int[entry.Value.Count];
+                int[] kept = new int[entry.Value.Count];
                 for (int i = 0; i < kept.Length; i++)
                 {
                     int vertex = entry.Value[i];

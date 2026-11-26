@@ -17,7 +17,7 @@ public sealed class PossessionAbilityTests
     [InlineData("hand")]
     public void RefusedNativeDamageDoesNotRequestAColourFlash(string refusal)
     {
-        var (db, _, me) = Open();
+        (GameDatabase? db, WorldState _, CreatureState? me) = Open();
         CreatureDef definition = db.CreatureById(me.CreatureTypeId);
         if (refusal == "horny") definition = definition with { Flags = definition.Flags | CreatureFlags.IsHorny };
         if (refusal == "only-horny") definition = definition with { Flags = definition.Flags | CreatureFlags.OnlyAttackableByHorny };
@@ -35,7 +35,7 @@ public sealed class PossessionAbilityTests
     [Fact]
     public void FearRequestsItsInitial239AndTick336Effects()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         CreatureState enemy = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, 4, new TilePos(6, 5));
         var sim = new GameSimulation(db, world, 1, [new PossessionSystem(), new CreatureStatusSystem()]);
         var events = new ListEventSink();
@@ -50,7 +50,7 @@ public sealed class PossessionAbilityTests
     [Fact]
     public void PickLockOnAPrisonOpensItAndReleasesEverySidesPrisoners()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         for (int y = 3; y <= 7; y++)
             for (int x = 3; x <= 7; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), 4);
@@ -70,7 +70,7 @@ public sealed class PossessionAbilityTests
     [Fact]
     public void FearSpecialTicksTwentyTimesAndIncludesTheExpiryTurn()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         CreatureState enemy = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, 4, new TilePos(6, 5));
         var aim = new PossessionAim(new(new(me.PosX), new(me.PosY), new(me.PosZ + Fp32.One)), new(0x200), new(0x200));
         var sim = new GameSimulation(db, world, 1, [new PossessionSystem(), new CreatureStatusSystem()]);
@@ -91,7 +91,7 @@ public sealed class PossessionAbilityTests
     [InlineData(4)]
     public void PrayerPollsEveryTurnCapsAtTheLevelMaximumAndStopsWhenToggledOff(int level)
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         me.Level = level;
         me.PossessionPraying = true;
         int maximum = CreatureHealthRules.MaxHealth(db, db.CreatureById(me.CreatureTypeId), me);
@@ -119,8 +119,8 @@ public sealed class PossessionAbilityTests
     [InlineData(-1, 1500)]
     public void PrayerReadsTheUnsignedLowWordBeforeDividingTheConfiguredRate(int rate, int expectedHealth)
     {
-        var (db, world, me) = Open();
-        var variable = VariableTypeId.ModifyCreatureHealthWhilePrayingPerSecond;
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
+        VariableTypeId variable = VariableTypeId.ModifyCreatureHealthWhilePrayingPerSecond;
         db.Variables.Misc[variable] = new MiscVariable(variable, rate, 0, 0);
         me.Health = 1;
         me.PossessionPraying = true;
@@ -131,7 +131,7 @@ public sealed class PossessionAbilityTests
     [Fact]
     public void FormTogglesFlightAndLeavingClearsBothAbilityBits()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         var sim = new GameSimulation(db, world, 1, [new PossessionSystem()]);
         sim.Tick(InputFrame.Of(new TogglePossessionFormCommand(3)));
         Assert.True(me.PossessionFlightForm);
@@ -145,7 +145,7 @@ public sealed class PossessionAbilityTests
     [Fact]
     public void AbilityBitsSurviveSnapshotAndAffectHash()
     {
-        var (db, world, me) = Open();
+        (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         var sim = new GameSimulation(db, world, 1, []);
         ulong before = sim.StateHash();
         me.PossessionPraying = true;
@@ -154,7 +154,7 @@ public sealed class PossessionAbilityTests
         me.PossessionFearTicks = 5;
         me.PossessionFearAmount = 2000;
         me.PossessionFearSource = new CreatureId(me.Id);
-        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
         Assert.Equal(sim.StateHash(), copy.StateHash());
         Assert.True(copy.World.CreatureById(me.Id)!.PossessionPraying);
         Assert.True(copy.World.CreatureById(me.Id)!.PossessionFlightForm);
@@ -169,7 +169,7 @@ public sealed class PossessionAbilityTests
             PrimaryAbility = PossessionAbilityKind.ToggleFlag11,
         };
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Possessor(), form);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(12, 12), [0, 1, 2, 3, 4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(12, 12), [0, 1, 2, 3, 4]);
         CreatureState me = world.SpawnArrived(db, form.CreatureId, 3, new TilePos(5, 5));
         me.Possessed = true;
         world.Player(3).PossessedCreatureId = me.Id;

@@ -16,7 +16,7 @@ public sealed class SpecialSystemTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         const byte keeper = PlayerIds.FirstKeeper;
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, keeper]);
         CreatureState creature = world.SpawnCreature(db, 7, keeper, new TilePos(1, 1));
         int far = world.TileCount - 1;
         world.TileAtIndex(far).OwnerPlayerId = PlayerIds.Good;
@@ -33,7 +33,7 @@ public sealed class SpecialSystemTests
         GameDatabase db = Dk2TerrainFixture.Database();
         const byte keeper = PlayerIds.FirstKeeper;
         const byte other = 1;
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [(byte)0, other, PlayerIds.Neutral, keeper]);
         CreatureState wounded = world.SpawnCreature(db, 7, keeper, new TilePos(2, 2));
         wounded.Health = 890;
@@ -62,7 +62,7 @@ public sealed class SpecialSystemTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         const byte keeper = PlayerIds.FirstKeeper;
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
             for (int x = 3; x < 8; x++)
@@ -97,7 +97,7 @@ public sealed class SpecialSystemTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         const byte keeper = PlayerIds.FirstKeeper;
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
         ObjectState special = world.SpawnObject(db, Dk2TerrainFixture.LocateHiddenLandSpecialObjectId, PlayerIds.Neutral, 5);
         var sim = new GameSimulation(db, world, 1, [new SpecialSystem()]);
         sim.Tick(InputFrame.Of(new ActivateSpecialCommand(keeper, special.Id)));
@@ -113,7 +113,7 @@ public sealed class SpecialSystemTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         const byte keeper = PlayerIds.FirstKeeper, rival = PlayerIds.FirstKeeper + 1;
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper, rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper, rival]);
         CreatureState theirs = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, rival, new TilePos(2, 2));
         CreatureState mine = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, keeper, new TilePos(3, 2));
         mine.Level = 6;
@@ -139,7 +139,7 @@ public sealed class SpecialSystemTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         const byte keeper = PlayerIds.FirstKeeper;
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper], gameMode: GameMode.Skirmish);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper], gameMode: GameMode.Skirmish);
         CreatureState mine = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, keeper, new TilePos(3, 2));
         ObjectState special = world.SpawnObject(db, Dk2TerrainFixture.TransferCreatureSpecialObjectId, PlayerIds.Neutral, 5);
         new GameSimulation(db, world, 1, [new SpecialSystem()]).Tick(InputFrame.Of(new ActivateSpecialCommand(keeper, special.Id, mine.Id)));
@@ -153,7 +153,7 @@ public sealed class SpecialSystemTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         const byte keeper = PlayerIds.FirstKeeper;
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
             for (int x = 3; x < 8; x++)
@@ -170,7 +170,7 @@ public sealed class SpecialSystemTests
     private static (GameDatabase Db, WorldState World, GameSimulation Sim) World(params byte[] more)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, PlayerIds.FirstKeeper, .. more]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, PlayerIds.FirstKeeper, .. more]);
         return (db, world, new GameSimulation(db, world, 1, [new SpecialSystem()]));
     }
 
@@ -186,7 +186,7 @@ public sealed class SpecialSystemTests
     [Fact]
     public void ManaBoost_004A3FC0_AddsFiftyThousandUpToTheCeiling()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         world.Player(PlayerIds.FirstKeeper).Mana = 1000;
         Use(sim, world, db, Dk2TerrainFixture.ManaBoostSpecialObjectId);
         Assert.Equal(Math.Min(51000, ManaRules.Threshold(db)), world.Player(PlayerIds.FirstKeeper).Mana);
@@ -202,7 +202,7 @@ public sealed class SpecialSystemTests
     [Fact]
     public void MakeHappy_004A4BD0_ZeroesTheKeepersCreaturesAngerOnly()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         CreatureState mine = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
         CreatureState theirs = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(2, 2));
         mine.Anger[AngerBucket.Treatment] = 30000;
@@ -221,7 +221,7 @@ public sealed class SpecialSystemTests
     [Fact]
     public void MakeUnhappy_00486ED0_SaturatesEveryOtherPlayersCreatureButTheNeverAngered()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         CreatureState mine = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
         CreatureState theirs = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(2, 2));
         CreatureState neutral = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.Neutral, new TilePos(2, 2));
@@ -244,7 +244,7 @@ public sealed class SpecialSystemTests
     [Fact]
     public void HealAll_004A4E50_HealsTheKeepersCreaturesToTheirLevelMaximumOnly()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         CreatureState mine = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
         mine.Level = 3;
         mine.Health = 100;
@@ -263,7 +263,7 @@ public sealed class SpecialSystemTests
     [Fact]
     public void IncreaseGold_004A4710_FillsTheStoresAndPutsTheRestDownAtTheBox()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
             for (int x = 3; x < 8; x++)
@@ -288,7 +288,7 @@ public sealed class SpecialSystemTests
     [Fact]
     public void KillCreatures_004A4D80_KillsAnotherKeepersTargetAndARefusalStillUsesTheBox()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         CreatureState mine = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
         CreatureState theirs = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(3, 2));
         ObjectState first = world.SpawnObject(db, Dk2TerrainFixture.KillCreaturesSpecialObjectId, PlayerIds.Neutral, 5);
@@ -308,13 +308,13 @@ public sealed class SpecialSystemTests
     [Fact]
     public void RevealMap_00451EF0_ExploresTheWholeMapForTheLocalPlayerOnly()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         world.LocalPlayerId = new PlayerId(PlayerIds.FirstKeeper);
         Use(sim, world, db, Dk2TerrainFixture.RevealMapSpecialObjectId);
         for (int i = 0; i < world.TileCount; i++)
             Assert.True(world.TileAtIndex(i).IsExploredBy(PlayerIds.FirstKeeper));
 
-        var (db2, world2, sim2) = World();
+        (GameDatabase? db2, WorldState? world2, GameSimulation? sim2) = World();
         world2.LocalPlayerId = new PlayerId(1);
         Use(sim2, world2, db2, Dk2TerrainFixture.RevealMapSpecialObjectId);
         Assert.False(world2.Tile(new TilePos(10, 8)).IsExploredBy(PlayerIds.FirstKeeper));
@@ -325,7 +325,7 @@ public sealed class SpecialSystemTests
     [Fact]
     public void MakeSafe_004A43E0_ReinforcesTheRockBorderingTheKeepersOpenFloor()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         Use(sim, world, db, Dk2TerrainFixture.MakeSafeSpecialObjectId);
 
         TileState east = world.Tile(new TilePos(4, 2)), corner = world.Tile(new TilePos(4, 4));
@@ -341,7 +341,7 @@ public sealed class SpecialSystemTests
     public void DestroyWalls_004A45F0_BreaksOnlyTheEnemysColouredWalls()
     {
         const byte enemy = PlayerIds.FirstKeeper + 1;
-        var (db, world, sim) = World(enemy);
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World(enemy);
         ref TileState theirs = ref world.Tile(new TilePos(8, 6));
         theirs.TerrainId = Dk2TerrainFixture.ReinforcedWall; theirs.OwnerPlayerId = enemy; theirs.Health = 900;
         ref TileState mine = ref world.Tile(new TilePos(4, 2));
@@ -360,7 +360,7 @@ public sealed class SpecialSystemTests
     [Fact]
     public void StunImps_004A4870_StunsOnlyOtherPlayersWorkers()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         CreatureState theirImp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 1, new TilePos(2, 2));
         CreatureState myImp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
         CreatureState theirGoblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(2, 2));
@@ -377,7 +377,7 @@ public sealed class SpecialSystemTests
     [Fact]
     public void Action88_00513760_UsesUpEverySpecialItIsGiven()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         foreach (byte type in new byte[] { 118, 119, 120, 121, 122, 123, 125, 126, 127, 128 })
             Use(sim, world, db, type);
     }
@@ -387,7 +387,7 @@ public sealed class SpecialSystemTests
     [Fact]
     public void StunImps_00476D30_LeavesAnImpInItsKeepersHand()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         CreatureState held = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 1, new TilePos(2, 2));
         held.InHand = true;
         Use(sim, world, db, Dk2TerrainFixture.StunImpsSpecialObjectId);
@@ -399,7 +399,7 @@ public sealed class SpecialSystemTests
     [Fact]
     public void KillCreatures_004B2CE0_CollapsesItsTargetAtOnceAndSparesOneInAHand()
     {
-        var (db, world, sim) = World();
+        (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(3, 2));
         CreatureState held = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(3, 2));
         held.InHand = true;

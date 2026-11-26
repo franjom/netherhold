@@ -18,7 +18,7 @@ public class CasinoPartyRebuildTests
 
     private static WorldState World()
     {
-        WorldState world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, 1, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, 1, PlayerIds.Neutral, Keeper]);
         for (int x = 1; x <= 7; x++)
         {
             world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ClaimedPath;

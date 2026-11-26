@@ -70,7 +70,7 @@ public class FrontEndFlowTests
     {
         var session = new FrontEndSession(path => path == FrontEndPath.Intro ? Frames(1) : null);
         session.Update(TimeSpan.Zero); session.Update(TimeSpan.Zero);
-        var pose = session.Pose;
+        CameraPathPose? pose = session.Pose;
         Assert.False(session.TryTransition(new FrontEndTransition(FrontEndPath.EntryToTable, FrontEndState.CampaignMap)));
         Assert.Equal(FrontEndPage.Main, session.Page);
         Assert.Equal(pose, session.Pose);

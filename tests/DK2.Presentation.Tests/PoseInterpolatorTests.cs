@@ -98,7 +98,7 @@ public class PoseInterpolatorTests
     [Fact]
     public void ACreatureClipIdentityDropsTheClipWhenNoAnimationPlaysAndCarriesTheReplacement()
     {
-        AssetRef walk = AssetRef.ForCreature("Imp", AssetKind.Animation, "walk");
+        var walk = AssetRef.ForCreature("Imp", AssetKind.Animation, "walk");
         var playing = new CreatureView(1, new PlayerId(1), 0, 0, default, walk, 0, playsAnimation: true,
             animationLoops: false, animationStartedAt: new GameTick(3), animationDeferred: true);
         var still = new CreatureView(1, new PlayerId(1), 0, 0, default, walk, 0, animationStartedAt: new GameTick(3));
@@ -115,7 +115,7 @@ public class PoseInterpolatorTests
     [Fact]
     public void AnObjectClipIdentityCarriesEachOfItsFields()
     {
-        AssetRef mesh = AssetRef.ForObject("Gold", AssetKind.Mesh);
+        var mesh = AssetRef.ForObject("Gold", AssetKind.Mesh);
         var light = new TerrainLightColour(10, 20, 30);
         ObjectClipIdentity identity = AnimationClipRequest.Identity(Object(initialPhase: new Fp32(7), startedAt: new GameTick(5),
             loops: false, addedLight: light), mesh);

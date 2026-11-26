@@ -90,7 +90,7 @@ public sealed class LevelStartTests
     [InstallFact]
     public void ACampaignLevelLoadsItsRecordsAndBuildsAFreshSimulationEachTime()
     {
-        CampaignLevelData level = CampaignLevelData.Load(Dk2InstallGate.Path, "Level1");
+        var level = CampaignLevelData.Load(Dk2InstallGate.Path, "Level1");
         Assert.Equal("Level1", level.Name);
         Assert.NotEmpty(level.Players);
         Assert.NotEmpty(level.Things);

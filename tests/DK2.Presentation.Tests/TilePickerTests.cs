@@ -27,7 +27,7 @@ public class TilePickerTests
     private static PickRay LookingAt(float x, float z, float height, float pitchDegrees = 55f)
     {
         double pitch = pitchDegrees * Math.PI / 180.0;
-        var dir = (X: 0f, Y: (float)-Math.Sin(pitch), Z: (float)Math.Cos(pitch));
+        (float X, float Y, float Z) dir = (X: 0f, Y: (float)-Math.Sin(pitch), Z: (float)Math.Cos(pitch));
         // Walk back up the ray from the point being aimed at, so the ray provably passes
         // through it whatever the pitch.
         const float back = 40f;
@@ -118,7 +118,7 @@ public class TilePickerTests
             for (int x = 0; x < Width; x++)
                 tiles[(y * Width) + x] = new MapTile(y >= 8 ? Floor : Wall, 0, 0, 0);
 
-        WorldState world = WorldState.FromMap(database, new LevelMap(Width, Height, tiles), [0, 1]);
+        var world = WorldState.FromMap(database, new LevelMap(Width, Height, tiles), [0, 1]);
         return (new WorldView(database), world);
     }
 

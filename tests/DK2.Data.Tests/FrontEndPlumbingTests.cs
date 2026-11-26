@@ -16,7 +16,7 @@ public class FrontEndPlumbingTests
         string path = Path.GetTempFileName();
         try
         {
-            using (var stream = File.Create(path))
+            using (FileStream stream = File.Create(path))
             using (var writer = new BinaryWriter(stream))
             {
                 writer.Write(new byte[0x58 + 80]);

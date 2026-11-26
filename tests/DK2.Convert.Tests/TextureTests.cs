@@ -42,7 +42,7 @@ public class TextureTests
         using var meshes = WadArchive.Open(Path.Combine(install, "Data", "Meshes.WAD"));
         KmfModel model = KmfReader.Read(meshes.Extract(modelName));
         string textureName = model.Materials.SelectMany(material => material.TextureNames).First();
-        using EngineTextureArchive textures = EngineTextureArchive.OpenInstall(install);
+        using var textures = EngineTextureArchive.OpenInstall(install);
 
         RgbaImage image = textures.Decode(textureName);
         (int width, int height, byte[] decoded) = DecodePng(image.ToPng());
@@ -58,7 +58,7 @@ public class TextureTests
     {
         string install = Dk2InstallGate.Path;
         using var meshes = WadArchive.Open(Path.Combine(install, "Data", "Meshes.WAD"));
-        using EngineTextureArchive textures = EngineTextureArchive.OpenInstall(install);
+        using var textures = EngineTextureArchive.OpenInstall(install);
         var missing = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (WadEntry entry in meshes.Entries.Where(entry =>
             entry.Name.EndsWith(".kmf", StringComparison.OrdinalIgnoreCase)))
@@ -87,7 +87,7 @@ public class TextureTests
     public void EveryEngineTextureCacheEntryDecodes()
     {
         string install = Dk2InstallGate.Path;
-        using EngineTextureArchive textures = EngineTextureArchive.OpenInstall(install);
+        using var textures = EngineTextureArchive.OpenInstall(install);
         Assert.True(textures.Entries.Count > 5_000);
         foreach (EngineTextureEntry entry in textures.Entries)
         {
@@ -100,7 +100,7 @@ public class TextureTests
     public void AlphaTexturePreservesNonOpaquePixels()
     {
         string install = Dk2InstallGate.Path;
-        using EngineTextureArchive textures = EngineTextureArchive.OpenInstall(install);
+        using var textures = EngineTextureArchive.OpenInstall(install);
         EngineTextureEntry entry = textures.Entries.First(entry => entry.HasAlpha);
         RgbaImage image = textures.Decode(entry);
         IEnumerable<byte> alpha = image.Pixels.Where((_, index) => (index & 3) == 3);
@@ -115,7 +115,7 @@ public class TextureTests
     [InlineData("ImpHornMM3", "F9F86665E7875CC6A00E2DFD026359B56FC7E53B7DF12625CAE0195ABE3A1DFF")]
     public void EngineTextureDecodesToTheNativePixels(string name, string sha256)
     {
-        using EngineTextureArchive textures = EngineTextureArchive.OpenInstall(Dk2InstallGate.Path);
+        using var textures = EngineTextureArchive.OpenInstall(Dk2InstallGate.Path);
         Assert.True(textures.TryGetEntry(name, out EngineTextureEntry entry));
         Assert.Equal(sha256, System.Convert.ToHexString(
             System.Security.Cryptography.SHA256.HashData(textures.Decode(entry).Pixels)));
@@ -146,7 +146,7 @@ public class TextureTests
         using var raw = new MemoryStream();
         using (var zlib = new ZLibStream(idat, CompressionMode.Decompress)) zlib.CopyTo(raw);
         byte[] scanlines = raw.ToArray();
-        var pixels = new byte[checked(width * height * 4)];
+        byte[] pixels = new byte[checked(width * height * 4)];
         int rowBytes = width * 4;
         for (int y = 0; y < height; y++)
         {

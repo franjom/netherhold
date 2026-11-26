@@ -26,7 +26,7 @@ public sealed class RenderMeshTests
         {
             ControlPoints = [new(0x10000, 1001), new(0, 1000), new(0, 1001)],
         };
-        RenderMesh rendered = RenderMesh.FromModel(model);
+        var rendered = RenderMesh.FromModel(model);
         Assert.Equal(new uint[] { 1001, 1000, 1001 }, rendered.TaggedPoints.Select(p => p.Id));
         Assert.Equal(new[] { 1, 0, 0 }, rendered.TaggedPoints.Select(p => p.VertexIndex));
         Assert.Equal(1, rendered.ControlPoints[1001]);
@@ -84,7 +84,7 @@ public sealed class RenderMeshTests
                 for (int i = 0; i < list.Length; i += 3)
                 {
                     Vector3 a = mesh.Positions[list[i]], b = mesh.Positions[list[i + 1]], c = mesh.Positions[list[i + 2]];
-                    Vector3 face = Vector3.Cross(b - a, c - a);
+                    var face = Vector3.Cross(b - a, c - a);
                     if (face.LengthSquared() < 1e-12f) continue;
                     Vector3 stored = mesh.Normals[list[i]] + mesh.Normals[list[i + 1]] + mesh.Normals[list[i + 2]];
                     total++;

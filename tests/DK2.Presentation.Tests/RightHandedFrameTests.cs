@@ -31,14 +31,14 @@ public class RightHandedFrameTests
     [Fact]
     public void ARotationIsConjugatedByTheMirror()
     {
-        Quaternion q = Quaternion.Normalize(Quaternion.CreateFromYawPitchRoll(0.7f, -0.4f, 1.1f));
-        Matrix4x4 m = Matrix4x4.CreateFromQuaternion(q);
+        var q = Quaternion.Normalize(Quaternion.CreateFromYawPitchRoll(0.7f, -0.4f, 1.1f));
+        var m = Matrix4x4.CreateFromQuaternion(q);
         var v = new Vector3(0.3f, -1.2f, 2.5f);
         Vector3 expected = RightHandedFrame.Point(Vector3.Transform(v, q));
 
         AssertNear(expected, Vector3.Transform(RightHandedFrame.Point(v), RightHandedFrame.Rotation(q)));
         AssertNear(expected, Vector3.Transform(RightHandedFrame.Point(v), RightHandedFrame.Rotation(m)));
-        Quaternion yaw = Quaternion.CreateFromAxisAngle(Vector3.UnitY, 0.5f);
+        var yaw = Quaternion.CreateFromAxisAngle(Vector3.UnitY, 0.5f);
         AssertNear(Vector3.Transform(Vector3.UnitX, Quaternion.CreateFromAxisAngle(Vector3.UnitY, -0.5f)),
             Vector3.Transform(Vector3.UnitX, RightHandedFrame.Rotation(yaw)));
     }
@@ -49,8 +49,8 @@ public class RightHandedFrameTests
     public void TheCameraLooksDownMinusZAlongTheMirroredForward()
     {
         RightHandedCamera camera = RightHandedFrame.Camera(Pose);
-        Vector3 right = Vector3.Normalize(Vector3.Cross(Pose.Up, Pose.Forward));
-        Vector3 up = Vector3.Cross(Pose.Forward, right);
+        var right = Vector3.Normalize(Vector3.Cross(Pose.Up, Pose.Forward));
+        var up = Vector3.Cross(Pose.Forward, right);
 
         Assert.Equal(RightHandedFrame.Point(Pose.Position), camera.Origin);
         AssertNear(-RightHandedFrame.Direction(Pose.Forward), camera.Z);
@@ -89,7 +89,7 @@ public class RightHandedFrameTests
         Assert.NotEqual(0f, leftArea);
         Assert.Equal(leftArea, rightArea, 4);
 
-        Vector3 leftFront = Vector3.Cross(b - a, c - a);
+        var leftFront = Vector3.Cross(b - a, c - a);
         Vector3 ra = RightHandedFrame.Point(a), rb = RightHandedFrame.Point(b), rc = RightHandedFrame.Point(c);
         AssertNear(RightHandedFrame.Normal(leftFront), Vector3.Cross(rc - ra, rb - ra));
     }
@@ -128,8 +128,8 @@ public class RightHandedFrameTests
 
     private static (float X, float Y, float Depth) LeftView(Vector3 p)
     {
-        Vector3 right = Vector3.Normalize(Vector3.Cross(Pose.Up, Pose.Forward));
-        Vector3 up = Vector3.Cross(Pose.Forward, right);
+        var right = Vector3.Normalize(Vector3.Cross(Pose.Up, Pose.Forward));
+        var up = Vector3.Cross(Pose.Forward, right);
         Vector3 d = p - Pose.Position;
         return (Vector3.Dot(d, right), Vector3.Dot(d, up), Vector3.Dot(d, Pose.Forward));
     }

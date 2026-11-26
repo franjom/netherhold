@@ -33,7 +33,7 @@ public class HiScoresTests
     [Fact]
     public void WritesUnicodeWithATerminatorAndRejectsNamesThatDoNotFit()
     {
-        var entries = Enumerable.Repeat(new HiScoreEntry(uint.MaxValue, "Keeper \u017e", "11c"), 10).ToArray();
+        HiScoreEntry[] entries = Enumerable.Repeat(new HiScoreEntry(uint.MaxValue, "Keeper \u017e", "11c"), 10).ToArray();
         Assert.Equal(entries, HiScoresFile.Read(HiScoresFile.Write(entries)));
         entries[0] = entries[0] with { Name = new string('x', 32) };
         Assert.Throws<ArgumentException>(() => HiScoresFile.Write(entries));
@@ -46,7 +46,7 @@ public class HiScoresTests
     {
         string path = Path.Combine(Dk2InstallGate.Path, "Data", "Settings", "HiScores.dat");
         byte[] before = File.ReadAllBytes(path);
-        var scores = HiScoresFile.Read(before);
+        IReadOnlyList<HiScoreEntry> scores = HiScoresFile.Read(before);
         Assert.Equal(10, scores.Count);
         Assert.Equal(scores, HiScoresFile.Read(HiScoresFile.Write(scores)));
         Assert.Equal(before, File.ReadAllBytes(path));

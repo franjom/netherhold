@@ -71,7 +71,7 @@ internal sealed record CapturedState(
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, levelName)!;
         List<PlayerDef> players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName)!;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, levelName);
-        WorldState world = WorldState.FromMap(database, map, [.. players.Select(p => p.PlayerId)]);
+        var world = WorldState.FromMap(database, map, [.. players.Select(p => p.PlayerId)]);
         ThingProjection.Place(world, database, GameDatabaseLoader.LoadCampaignThings(install, levelName)!);
         return (database, world);
     }
@@ -96,7 +96,7 @@ internal sealed record CapturedState(
     public IReadOnlyList<string> ApplyDoors(WorldState world)
     {
         var unmatched = new List<string>();
-        var theirs = Doors.ToDictionary(d => (d.X, d.Y));
+        Dictionary<(int X, int Y), CapturedDoor> theirs = Doors.ToDictionary(d => (d.X, d.Y));
         foreach (DoorState ours in world.Doors)
         {
             if (!theirs.Remove((ours.X, ours.Y), out CapturedDoor? door))

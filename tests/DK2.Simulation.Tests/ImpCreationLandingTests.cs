@@ -14,7 +14,7 @@ public class ImpCreationLandingTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         db.Variables.Misc[VariableTypeId.GravityConstant] = new(VariableTypeId.GravityConstant, gravity, 0, 0);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Neutral, PlayerIds.Good, PlayerIds.FirstKeeper]);
         ref TileState heart = ref world.Tile(2, 2);
         heart.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
@@ -39,7 +39,7 @@ public class ImpCreationLandingTests
     {
         GameSimulation sim = Staffed();
         CreatureState imp = Cast(sim);
-        var point = (imp.PosX, imp.PosY);
+        (int PosX, int PosY) point = (imp.PosX, imp.PosY);
         Assert.Equal((214, 2048), (imp.Dk2StateId, imp.PosZ));
         Assert.False(imp.JustDropped);
 

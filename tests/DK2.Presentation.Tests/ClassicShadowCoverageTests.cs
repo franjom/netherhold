@@ -15,7 +15,7 @@ public sealed class ClassicShadowCoverageTests
     public void OverlappingTrianglesResolveCoverageOnceAtEitherWinding(bool reverse)
     {
         const int size = ClassicMeshShadow.TextureSize;
-        var samples = new byte[size * size];
+        byte[] samples = new byte[size * size];
         Vector2 a = new(2, 2), b = new(3, 2), c = new(2, 3);
 
         if (reverse) (a, c) = (c, a);
@@ -32,7 +32,7 @@ public sealed class ClassicShadowCoverageTests
     public void AClippedTriangleCanFillTheCornerWithoutWritingOutsideTheMask()
     {
         const int size = ClassicMeshShadow.TextureSize;
-        var samples = new byte[size * size];
+        byte[] samples = new byte[size * size];
         ClassicShadowCoverage.AddTriangle(samples, new(-2, -2), new(4, -2), new(-2, 4));
         ClassicShadowCoverage.Resolve(samples);
         Assert.Equal(255, samples[0]);

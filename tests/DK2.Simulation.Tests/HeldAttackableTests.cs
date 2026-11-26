@@ -20,7 +20,7 @@ public class HeldAttackableTests
 
     private static (GameDatabase Db, WorldState World, CreatureState Victim, CreatureState Hunter) Pair()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [Keeper, (byte)4]);
         CreatureState victim = world.SpawnCreature(db, 7, Keeper, new TilePos(2, 2));
         CreatureState hunter = world.SpawnCreature(db, 7, 4, new TilePos(3, 2));

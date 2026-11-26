@@ -28,7 +28,7 @@ public class PlayerWorkshopTests
     {
         GameDatabase database = ScenarioCorpus.Database;
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "level1")!;
-        WorldState world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Append(Keeper.Value).Distinct());
+        var world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Append(Keeper.Value).Distinct());
         byte door = database.Doors.Values.OrderBy(d => d.DoorId).First().DoorId;
         byte trap = database.Traps.Values.Where(BottomPanelView.IsOnPanel).OrderBy(t => t.TrapId).First().TrapId;
         world.SetAvailability(Keeper.Value, AvailabilityKind.Door, door, 3);

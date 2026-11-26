@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Buffers.Binary;
+using System.Reflection;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
 using DK2.TestSupport;
@@ -26,10 +27,10 @@ public class KwdVariablesWriterTests
         var fields = fieldList.Split(' ').Select(f => f.Split(':')).ToDictionary(f => f[0],
             f => (Offset: Convert.ToInt32(f[1], 16), Width: int.Parse(f[2])));
         KwdVariableEntry original = KwdVariables.ParseRecord(source);
-        var properties = original.GetType().GetProperties().Where(p => p.SetMethod is not null).ToArray();
+        PropertyInfo[] properties = original.GetType().GetProperties().Where(p => p.SetMethod is not null).ToArray();
         Assert.Equal(properties.Length, fields.Count);
         Assert.Equal(source, KwdVariables.WriteRecord(original, image));
-        foreach (var property in properties)
+        foreach (PropertyInfo? property in properties)
         {
             KwdVariableEntry changed = KwdVariables.ParseRecord(source);
             object value = property.PropertyType == typeof(int) ? -12345
@@ -42,7 +43,7 @@ public class KwdVariablesWriterTests
             byte[] written = KwdVariables.WriteRecord(changed, image);
             Assert.Equal(value, property.GetValue(KwdVariables.ParseRecord(written)));
             Assert.False(source.SequenceEqual(written));
-            var field = fields[property.Name];
+            (int Offset, int Width) field = fields[property.Name];
             for (int i = 0; i < source.Length; i++)
                 if (i < field.Offset || i >= field.Offset + field.Width) Assert.Equal(source[i], written[i]);
         }
@@ -56,11 +57,11 @@ public class KwdVariablesWriterTests
         second[4]++;
         var chunk = new KwdChunk { Type = KwdRecordType.Variables, ItemCount = 2,
             HeaderBlock = [], Content = first.Concat(second).ToArray() };
-        var images = KwdRecordRoundTrip.Split(chunk);
-        var rewritten = images.Select(i => new KwdRecordImage(KwdRecordType.Variables,
+        List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
+        KwdRecordImage[] rewritten = images.Select(i => new KwdRecordImage(KwdRecordType.Variables,
             KwdVariables.WriteRecord(KwdVariables.ParseRecord(i.ToBytes()), i))).ToArray();
         Assert.Equal(chunk.Content, KwdRecordRoundTrip.Join(chunk, rewritten));
-        var changed = (MiscVariable)KwdVariables.ParseRecord(first) with { Value = 7 };
+        MiscVariable changed = (MiscVariable)KwdVariables.ParseRecord(first) with { Value = 7 };
         rewritten[0] = new KwdRecordImage(KwdRecordType.Variables, KwdVariables.WriteRecord(changed, images[0]));
         byte[] content = KwdRecordRoundTrip.Join(chunk, rewritten);
         Assert.Equal(7, ((MiscVariable)KwdVariables.ParseRecord(content.AsSpan(0, 16))).Value);

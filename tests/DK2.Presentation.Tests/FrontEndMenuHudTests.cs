@@ -142,7 +142,7 @@ public sealed class FrontEndMenuHudTests
     {
         // 'A' is [3, 15] wide 2 at pen 0; 'B' is [5, 15] reaching back 2 from pen 3, so it starts under A's last pixel.
         var font = new BitmapFont(4, [new BitmapGlyph('A', 2, 1, 0, 0, 3, [15, 3]), new BitmapGlyph('B', 2, 1, -2, 0, 3, [5, 15])]);
-        FrontEndLabelGeometry geometry = FrontEndLabelGeometry.Measure(font, "AB");
+        var geometry = FrontEndLabelGeometry.Measure(font, "AB");
         var label = new HudLabel(font, geometry);
         RgbaImage plain = HudLabelPixels.Render(label);
         Assert.Equal((3, 1), (plain.Width, plain.Height));
@@ -158,7 +158,7 @@ public sealed class FrontEndMenuHudTests
     [Fact]
     public void AGlowFrameIsTheNativeGlowAtItsShareOfFullStrength()
     {
-        FrontEndLabelGeometry geometry = FrontEndLabelGeometry.Measure(Font, "TEST");
+        var geometry = FrontEndLabelGeometry.Measure(Font, "TEST");
         RgbaImage padded = HudLabelPixels.Render(new HudLabel(Font, geometry), HudLabel.GlowPadding);
         RgbaImage full = FrontEndLabelGlow.Create(padded);
         Assert.Equal(full.Pixels, HudLabelPixels.GlowFrame(padded, 4).Pixels);
@@ -179,7 +179,7 @@ public sealed class FrontEndMenuHudTests
     [Fact]
     public void ALabelImageComparesByItsFontAndGeometryReferenceSoAFrameStaysCheapToCompare()
     {
-        FrontEndLabelGeometry geometry = FrontEndLabelGeometry.Measure(Font, "AB");
+        var geometry = FrontEndLabelGeometry.Measure(Font, "AB");
         var label = new HudLabel(Font, geometry);
         Assert.Equal(HudImage.Of(label), HudImage.Of(new HudLabel(Font, geometry)));
         Assert.NotEqual(HudImage.Of(label), HudImage.Of(new HudLabel(Font, FrontEndLabelGeometry.Measure(Font, "AB"))));

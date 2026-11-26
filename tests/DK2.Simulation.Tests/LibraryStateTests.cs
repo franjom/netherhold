@@ -35,7 +35,7 @@ public class LibraryStateTests
     /// something to research.</summary>
     private static WorldState World(GameDatabase db, int size)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int i = 1; i <= size; i++) world.Tile(i, 0).TerrainId = Dk2TerrainFixture.ReinforcedWall;
         for (int y = 1; y <= size; y++)
         for (int x = 1; x <= size; x++)

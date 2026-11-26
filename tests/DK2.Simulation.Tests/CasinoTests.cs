@@ -29,7 +29,7 @@ public class CasinoTests
     /// <summary>A 3×3 Casino over the fixture's claimed square, (1,1) to (3,3).</summary>
     private static WorldState World(GameDatabase db, int width = 3, int height = 3)
     {
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= height; y++)
         for (int x = 1; x <= width; x++)

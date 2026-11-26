@@ -91,7 +91,7 @@ public class KmfMaterialTests(ITestOutputHelper output)
                 output.WriteLine($"{entry} | {material.Name} | flags 0x{material.Flags:X} | brightness {material.Brightness} | {material.Blend} | [{string.Join(", ", material.TextureNames)}]");
                 byName[entry + "|" + material.Name] = material;
             }
-            RenderMesh mesh = RenderMesh.FromModel(model);
+            var mesh = RenderMesh.FromModel(model);
             for (int i = 0; i < model.Materials.Count; i++)
                 Assert.Equal(model.Materials[i].Blend, mesh.Blends[i]);
         }

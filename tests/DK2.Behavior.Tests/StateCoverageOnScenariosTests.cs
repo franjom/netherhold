@@ -41,7 +41,7 @@ public class StateCoverageOnScenariosTests
     public void TheTheftStatesCalledUnreachable_HaveTheirJobInNoShippedCreaturesLists()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var steals = new[] { JobType.StealSpells, JobType.StealManufactureCrates, JobType.StealEnemyGold };
+        JobType[] steals = new[] { JobType.StealSpells, JobType.StealManufactureCrates, JobType.StealEnemyGold };
 
         string[] holders = db.Creatures.Values
             .SelectMany(c => c.HappyJobs.Concat(c.UnhappyJobs).Concat(c.AngryJobs).Select(j => (c, j.Job))

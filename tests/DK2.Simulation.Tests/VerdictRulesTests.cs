@@ -15,7 +15,7 @@ public sealed class VerdictRulesTests
 
     private static WorldState World(GameMode mode, params (byte, byte)[] pacts)
     {
-        WorldState world = WorldState.FromMap(Database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(Database, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, A, B, C, D], gameMode: mode);
         foreach ((byte one, byte other) in pacts) world.SetAllied(one, other, allied: true);
         return world;

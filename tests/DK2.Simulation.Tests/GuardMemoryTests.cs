@@ -16,7 +16,7 @@ public sealed class GuardMemoryTests
     private static (GameDatabase Db, WorldState World, CreatureState Guard, GameSimulation Sim, ListEventSink Events) Setup(bool small = false)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
         for (int x = 1; x <= 12; x++)
         {
@@ -59,7 +59,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void RememberedGuardRunsBeforeFreshHappySelection()
     {
-        var (_, _, guard, sim, events) = Setup();
+        (GameDatabase _, WorldState _, CreatureState? guard, GameSimulation? sim, ListEventSink? events) = Setup();
         Interrupt(guard);
         sim.Tick();
         Assert.Equal(JobType.Guard, guard.CurrentJob);
@@ -70,7 +70,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void DroppedJobStillPrecedesRememberedGuard()
     {
-        var (_, _, guard, sim, events) = Setup();
+        (GameDatabase _, WorldState _, CreatureState? guard, GameSimulation? sim, ListEventSink? events) = Setup();
         Interrupt(guard, JobType.Train);
         sim.Tick();
         Assert.Equal(JobType.Train, guard.CurrentJob);
@@ -80,7 +80,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void SavedGuardRoomWinsOverNearerRoom()
     {
-        var (db, world, guard, sim, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation? sim, ListEventSink _) = Setup();
         for (int y = 3; y <= 5; y++)
         for (int x = 10; x <= 12; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
@@ -95,7 +95,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void FailedRememberedAttemptDoesNotForgetTheJob()
     {
-        var (db, world, guard, sim, events) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation? sim, ListEventSink? events) = Setup();
         for (int y = 3; y <= 5; y++)
         for (int x = 5; x <= 7; x++) world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
         Interrupt(guard);
@@ -111,7 +111,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void RememberedAssignmentConsumesCapacityWhileGuardIsAwayIncludingItsOwnRetry()
     {
-        var (db, world, guard, _, _) = Setup(small: true);
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation _, ListEventSink _) = Setup(small: true);
         Interrupt(guard);
         RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(new TilePos(6, 4)))!;
         Assert.False(RoomCapacityRules.HasRoom(world, db, room, guard.Id));
@@ -122,7 +122,7 @@ public sealed class GuardMemoryTests
     [InlineData(true)]
     public void PickingUpClearsRememberedJobAndRoom(bool stored)
     {
-        var (db, world, guard, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation _, ListEventSink _) = Setup();
         Assert.Equal(JobType.Guard, guard.ReturnToJob);
         var hand = new GameSimulation(db, world, 42, [new HandSystem { StoredCommandPickups = stored }]);
         hand.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, guard.Id)));
@@ -133,7 +133,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void StoredCommandClearsMemoryEvenWhenTheHandStateRefuses()
     {
-        var (db, world, guard, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation _, ListEventSink _) = Setup();
         guard.InHand = true;
         var hand = new GameSimulation(db, world, 42, [new HandSystem { StoredCommandPickups = true }]);
         hand.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, guard.Id)));
@@ -144,7 +144,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void InteractivePermissionRefusalDoesNotClearMemory()
     {
-        var (db, world, guard, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation _, ListEventSink _) = Setup();
         RoomReference room = guard.ReturnRoom;
         guard.OwnerPlayerId = PlayerIds.Neutral;
         var hand = new GameSimulation(db, world, 42, [new HandSystem()]);
@@ -156,7 +156,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void SnapshotRetainsMemoryAndItsContinuation()
     {
-        var (db, world, guard, sim, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation? sim, ListEventSink _) = Setup();
         Interrupt(guard);
         using var bytes = new MemoryStream(WorldSnapshot.ToBytes(sim));
         GameSimulation restored = WorldSnapshot.Read(bytes, db, [new HandSystem(), new CreatureJobSystem()]);
@@ -176,7 +176,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void BothRememberedFieldsParticipateInHash()
     {
-        var (_, _, guard, sim, _) = Setup();
+        (GameDatabase _, WorldState _, CreatureState? guard, GameSimulation? sim, ListEventSink _) = Setup();
         ulong remembered = sim.StateHash();
         guard.ReturnToJob = JobType.None;
         Assert.NotEqual(remembered, sim.StateHash());
@@ -188,7 +188,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void FullSavedRoomFallsBackToAnotherRoom()
     {
-        var (db, world, guard, sim, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation? sim, ListEventSink _) = Setup();
         for (int y = 3; y <= 5; y++)
         for (int x = 10; x <= 12; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
@@ -205,11 +205,11 @@ public sealed class GuardMemoryTests
     [Fact]
     public void TrackedRoomReferenceSurvivesRemovalOfItsOriginalAnchor()
     {
-        var (db, world, _, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState _, GameSimulation _, ListEventSink _) = Setup();
         for (int y = 3; y <= 5; y++)
         for (int x = 5; x <= 7; x++) world.Tile(x, y).RoomListPosition = new RoomListPosition(100);
         RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(new TilePos(6, 4)))!;
-        RoomReference reference = RoomReference.Capture(world, room);
+        var reference = RoomReference.Capture(world, room);
         world.Tile(reference.Tile.X, reference.Tile.Y).TerrainId = Dk2TerrainFixture.ClaimedPath;
         Assert.NotNull(reference.Resolve(world, db, Keeper, RoomTypeId.GuardRoom));
     }
@@ -217,10 +217,10 @@ public sealed class GuardMemoryTests
     [Fact]
     public void TrackedRoomReplacementAtTheSameTileDoesNotReuseAnOldReference()
     {
-        var (db, world, _, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState _, GameSimulation _, ListEventSink _) = Setup();
         RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(new TilePos(6, 4)))!;
         foreach (int tile in room.TileIndices) world.TileAtIndex(tile).RoomListPosition = new RoomListPosition(100);
-        RoomReference reference = RoomReference.Capture(world, room);
+        var reference = RoomReference.Capture(world, room);
         foreach (int tile in room.TileIndices) world.TileAtIndex(tile).RoomListPosition = new RoomListPosition(101);
         Assert.Null(reference.Resolve(world, db, Keeper, RoomTypeId.GuardRoom));
     }
@@ -230,7 +230,7 @@ public sealed class GuardMemoryTests
     [InlineData(true)]
     public void DyingGuardsRemainReservedButCorpsesAreNotInTheOwnerList(bool corpse)
     {
-        var (db, world, guard, _, _) = Setup(small: true);
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation _, ListEventSink _) = Setup(small: true);
         Interrupt(guard);
         if (corpse) CreatureStateMachine.Release(guard);
         else StatePlacement.Place(guard, 217);
@@ -243,7 +243,7 @@ public sealed class GuardMemoryTests
     [InlineData(true)]
     public void DirectKeeperPickupDoesNotExecuteTheCursorCommandsMemoryClear(bool stored)
     {
-        var (db, world, guard, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation _, ListEventSink _) = Setup();
         RoomReference room = guard.ReturnRoom;
         var hand = new GameSimulation(db, world, 42, [new HandSystem { StoredCommandPickups = stored }]);
         hand.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, guard.Id)));
@@ -254,7 +254,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void ReleasedRecordDoesNotPassTheStoredCreatureCommandLookup()
     {
-        var (db, world, guard, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation _, ListEventSink _) = Setup();
         RoomReference room = guard.ReturnRoom;
         CreatureStateMachine.Release(guard);
         var hand = new GameSimulation(db, world, 42, [new HandSystem { StoredCommandPickups = true }]);
@@ -266,9 +266,9 @@ public sealed class GuardMemoryTests
     [Fact]
     public void CopiedWorldContinuesTheRememberedGuardJob()
     {
-        var (db, world, guard, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation _, ListEventSink _) = Setup();
         Interrupt(guard);
-        WorldState copy = WorldState.CopyOf(world);
+        var copy = WorldState.CopyOf(world);
         CreatureState copied = copy.CreatureById(guard.Id)!;
         var simulation = new GameSimulation(db, copy, 42, [new CreatureJobSystem()]);
         simulation.Tick();
@@ -279,8 +279,8 @@ public sealed class GuardMemoryTests
     [Fact]
     public void UpdatingACopiedWorldClearsOldGuardMemoryAfterCursorPickup()
     {
-        var (db, world, guard, sim, _) = Setup();
-        WorldState copy = WorldState.CopyOf(world);
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation? sim, ListEventSink _) = Setup();
+        var copy = WorldState.CopyOf(world);
         CreatureState copied = copy.CreatureById(guard.Id)!;
         Assert.Equal(JobType.Guard, copied.ReturnToJob);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, guard.Id)));
@@ -294,7 +294,7 @@ public sealed class GuardMemoryTests
     [InlineData(true)]
     public void CursorPickupClearsMemoryBeforeAFullHandRefusesTheLift(bool stored)
     {
-        var (db, world, guard, _, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation _, ListEventSink _) = Setup();
         var hand = new GameSimulation(db, world, 42, [new HandSystem { StoredCommandPickups = stored }]);
         for (int i = 0; i < HandRules.Capacity(db); i++)
         {
@@ -312,7 +312,7 @@ public sealed class GuardMemoryTests
     [Fact]
     public void UnreachableSavedRoomFallsBackToAReachableGuardRoom()
     {
-        var (db, world, guard, sim, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation? sim, ListEventSink _) = Setup();
         for (int y = 2; y <= 6; y++)
         for (int x = 4; x <= 8; x++)
             if (x is 4 or 8 || y is 2 or 6) world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;

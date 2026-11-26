@@ -151,7 +151,7 @@ public sealed class PossessionHudTests
         var chrome = new HudFrame();
         var layout = new HudScaleLayout(1920, 1080, 100);
         var hud = new PossessionHud();
-        var facts = Snapshot with { Overlays = ["sniper", "creature", "frozen"] };
+        PossessionHudSnapshot facts = Snapshot with { Overlays = ["sniper", "creature", "frozen"] };
         hud.BuildFilters(layout, facts, filters);
         hud.BuildCreaturePanel(layout, facts, creature);
         hud.BuildChrome(layout, facts, chrome);
@@ -168,7 +168,7 @@ public sealed class PossessionHudTests
         var top = new HudFrame();
         var lower = new HudFrame();
         var hud = new PossessionHud();
-        var facts = Snapshot with { Actions = [new("pick", 100, true), new("GUI\\Icons\\1st-person\\group-mode", 100, true)] };
+        PossessionHudSnapshot facts = Snapshot with { Actions = [new("pick", 100, true), new("GUI\\Icons\\1st-person\\group-mode", 100, true)] };
         hud.BuildCreaturePanel(layout, facts, top);
         hud.BuildChrome(layout, facts, lower);
         HudDraw portrait = Assert.Single(top.Draws.ToArray(), d => d.Image.Path == "portrait");
@@ -192,7 +192,7 @@ public sealed class PossessionHudTests
         var top = new HudFrame();
         var lower = new HudFrame();
         var layout = new HudScaleLayout(1600, 1200, 100);
-        var facts = Snapshot with { Actions = [new("staff", 100, false), new("fire", 100, false, true),
+        PossessionHudSnapshot facts = Snapshot with { Actions = [new("staff", 100, false), new("fire", 100, false, true),
             new("bat", 100, true) { Role = PossessionHudIconRole.PrimaryAbility },
             new("hypnotise", 100, false) { Role = PossessionHudIconRole.SecondaryAbility },
             new("group", 100, true) { Role = PossessionHudIconRole.Group }] };

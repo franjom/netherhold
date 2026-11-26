@@ -90,7 +90,7 @@ public class HeartManaParticleTests
     [Fact]
     public void ExpiredRisingSparkleCreatesFreshFallingElementAtItsFinalPosition()
     {
-        var model = Model(Database(deathElement: true));
+        RoomConstructionParticles model = Model(Database(deathElement: true));
         model.AdvanceTo(new EffectTime(51));
         ConstructionParticle rising = Assert.Single(model.Particles);
         model.AdvanceTo(new EffectTime(101));
@@ -109,7 +109,7 @@ public class HeartManaParticleTests
     [Fact]
     public void CircularMotionContinuesAfterParentEmissionEndsWithoutChangingVelocity()
     {
-        var model = Model(Database(circularRate: 768));
+        RoomConstructionParticles model = Model(Database(circularRate: 768));
         model.AdvanceTo(new EffectTime(51));
         ConstructionParticle particle = Assert.Single(model.Particles);
         int initialX = particle.XRaw, initialY = particle.YRaw;
@@ -126,7 +126,7 @@ public class HeartManaParticleTests
     [Fact]
     public void AirborneStoppingFlakesSwayButRemainStationaryAfterFloorContact()
     {
-        var model = Model(Database(fallingSway: true));
+        RoomConstructionParticles model = Model(Database(fallingSway: true));
         model.AdvanceTo(new EffectTime(51));
         ConstructionParticle particle = Assert.Single(model.Particles);
         model.AdvanceTo(new EffectTime(101));
@@ -224,7 +224,7 @@ public class HeartManaParticleTests
             Flags = fallingSway ? 16u : 0u, Mass = fallingSway ? 819 : 0,
             Red = 10, Green = 255, Blue = 200
         };
-        var falling = rising with
+        EffectElementDef falling = rising with
         {
             Name = "fall", EffectElementId = 99, MinHp = 24, MaxHp = 24,
             MinSpeedYz = -4096, MaxSpeedYz = -4096, DeathElementId = 0

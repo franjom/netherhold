@@ -92,7 +92,7 @@ public class CreatureAnimationPlayerTests
         RenderAnimation?[] clips = [new(KmfReader.Read(AnimatedKmfFixture.TwoFrames())),
             new(KmfReader.Read(AnimatedKmfFixture.KeyedAtFramesZeroAndTwo())),
             new(KmfReader.Read(AnimatedKmfFixture.TwoFramesWithControls((0, 7))))];
-        var timing = Quarter with { Flags = CreatureAnimationFlags.StartSegment | CreatureAnimationFlags.EndSegment,
+        CreatureAnimationTiming timing = Quarter with { Flags = CreatureAnimationFlags.StartSegment | CreatureAnimationFlags.EndSegment,
             StartSegmentFrames = 2, EndSegmentFrames = 2 };
         var cpuSurface = new Surface();
         var gpuSurface = new PoseSurface();

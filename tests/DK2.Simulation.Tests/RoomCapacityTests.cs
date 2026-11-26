@@ -24,7 +24,7 @@ public sealed class RoomCapacityTests
     /// (12, 8) to pay for training.</summary>
     private static WorldState World(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
         for (int x = 1; x <= 12; x++)

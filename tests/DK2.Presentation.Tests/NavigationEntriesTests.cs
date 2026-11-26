@@ -51,13 +51,13 @@ public sealed class NavigationEntriesTests
         MapTile[] tiles = Enumerable.Repeat(new MapTile(path, Keeper.Value, 0, 0), 21).ToArray();
         tiles[7 + 1] = tiles[7 + 2] = new MapTile(lair, Keeper.Value, 0, 0);
         tiles[7 + 5] = new MapTile(lair, 4, 0, 0);
-        WorldState world = WorldState.FromMap(db, new LevelMap(7, 3, tiles), [PlayerIds.Neutral, Keeper.Value, 4]);
+        var world = WorldState.FromMap(db, new LevelMap(7, 3, tiles), [PlayerIds.Neutral, Keeper.Value, 4]);
         IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, db);
         var into = new List<RoomNavigationEntry>();
 
         RoomNavigation.Entries(world, db, into);
 
-        List<RoomNavigationEntry> lairs = into.Where(e => e.Type == RoomTypeId.Lair).ToList();
+        var lairs = into.Where(e => e.Type == RoomTypeId.Lair).ToList();
         Assert.Equal(2, lairs.Count);
         Assert.Equal(new TilePos(1, 1), lairs[0].Identity);
         Assert.Equal(Keeper, lairs[0].Owner);

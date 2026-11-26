@@ -21,8 +21,8 @@ public class ImpWanderTests
     [InlineData(32768, 6)]
     public void WanderResumesAtFullProgressBeforeThePathFinishedFlag(int remaining, int expectedState)
     {
-        var (db, world) = AllClaimed();
-        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        (GameDatabase? db, WorldState? world) = AllClaimed();
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         var target = new Fixed16Vector(8 << 16, 6 << 16);
         imp.Body.Pos = new Fixed16Vector(7 << 16, 6 << 16);
         RouteWindow.Load(imp.Body, [target], target, 0);
@@ -40,11 +40,11 @@ public class ImpWanderTests
     [Fact]
     public void StoppingAtArrivalDiscardsVelocityAndPinsTheBodyToTheEntityPosition()
     {
-        var (db, world) = AllClaimed();
-        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        (GameDatabase? db, WorldState? world) = AllClaimed();
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         imp.Body.Pos = new Fixed16Vector((imp.PosX << 4) + 7, (imp.PosY << 4) + 15);
         imp.Body.Vel = new Fixed16Vector(2134, -7286);
-        var target = imp.Body.Pos + new Fixed16Vector(1024, 0);
+        Fixed16Vector target = imp.Body.Pos + new Fixed16Vector(1024, 0);
         RouteWindow.Load(imp.Body, [target], target, 0);
         CreatureStateMachine.BeginTravel(new StateHookContext(world, db), imp, 6, CreatureStateMachine.Idle);
 
@@ -53,7 +53,7 @@ public class ImpWanderTests
         Assert.Equal(default, imp.Body.Vel);
         Assert.Equal(new Fixed16Vector(imp.PosX << 4, imp.PosY << 4), imp.Body.Pos);
         Assert.False(imp.HasRoute);
-        var stopped = imp.Tile;
+        TilePos stopped = imp.Tile;
         new GameSimulation(db, world, 11, [new CreatureMovementSystem()]).Run(2);
         Assert.Equal(stopped, imp.Tile);
     }
@@ -65,8 +65,8 @@ public class ImpWanderTests
     public void RestWritesIdleBeforeActionWaitAndClearsOnlyOnDeadlineExit(
         long actionUntil, long deadline, int expectedState, bool idle)
     {
-        var (db, world) = AllClaimed();
-        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        (GameDatabase? db, WorldState? world) = AllClaimed();
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         imp.Dk2StateId = ImpStates.Resting;
         imp.ActionUntilTick = actionUntil;
         imp.StateDeadlineTick = deadline;
@@ -78,8 +78,8 @@ public class ImpWanderTests
     [Fact]
     public void SelectionClearsIdleWhenItRunsRatherThanWhenRestIsEntered()
     {
-        var (db, world) = AllClaimed();
-        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        (GameDatabase? db, WorldState? world) = AllClaimed();
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         imp.Dk2StateId = ImpStates.TaskSelection;
         imp.WorkerIdle = true;
         imp.TimerTicks = 2;
@@ -94,8 +94,8 @@ public class ImpWanderTests
     [Fact]
     public void WanderArrivalPreservesIdleUntilTheNextSelection()
     {
-        var (db, world) = AllClaimed();
-        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        (GameDatabase? db, WorldState? world) = AllClaimed();
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         imp.WorkerIdle = true;
         CreatureStateMachine.BeginTravel(new StateHookContext(world, db), imp, 6, CreatureStateMachine.Idle);
         var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem()]);
@@ -114,8 +114,8 @@ public class ImpWanderTests
     [InlineData(Keeper)]
     public void StateElevenClearsIdleAndPreparesTheDropScan(byte owner)
     {
-        var (db, world) = AllClaimed();
-        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, owner, new TilePos(7, 6));
+        (GameDatabase? db, WorldState? world) = AllClaimed();
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, owner, new TilePos(7, 6));
         imp.Dk2StateId = ImpStates.AfterDrop;
         imp.WorkerIdle = true;
         new GameSimulation(db, world, 11, [new ImpTaskSystem()]).Tick();
@@ -127,8 +127,8 @@ public class ImpWanderTests
     [Fact]
     public void HandPreservesIdleOnPickupAndClearsItOnTheCompressedWorkerDrop()
     {
-        var (db, world) = AllClaimed();
-        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        (GameDatabase? db, WorldState? world) = AllClaimed();
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         imp.WorkerIdle = true;
         var sim = new GameSimulation(db, world, 11, [new HandSystem()]);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
@@ -145,8 +145,8 @@ public class ImpWanderTests
     [Fact]
     public void IdleFlagAffectsHashAndSurvivesSaveThenResume()
     {
-        var (db, world) = AllClaimed();
-        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        (GameDatabase? db, WorldState? world) = AllClaimed();
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         imp.Dk2StateId = ImpStates.Resting;
         imp.ActionUntilTick = 3;
         imp.StateDeadlineTick = 5;
@@ -154,7 +154,7 @@ public class ImpWanderTests
         ulong before = sim.StateHash();
         imp.WorkerIdle = true;
         Assert.NotEqual(before, sim.StateHash());
-        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, [new ImpTaskSystem()]);
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, [new ImpTaskSystem()]);
         Assert.True(copy.World.CreatureById(imp.Id)!.WorkerIdle);
         for (int i = 0; i < 12; i++)
         {
@@ -259,7 +259,7 @@ public class ImpWanderTests
     private static (GameDatabase, WorldState) AllClaimed()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)

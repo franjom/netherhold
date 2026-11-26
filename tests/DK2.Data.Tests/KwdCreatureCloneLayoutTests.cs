@@ -37,8 +37,8 @@ public class KwdCreatureCloneLayoutTests
     public void EveryShippedCloneProjectionMatchesItsSourceByteAndBaseCreatureView()
     {
         KwdChunk chunk = KwdReader.ReadFile(Path.Combine(Dk2InstallGate.Path, "Data", "editor", "Creatures.kwd")).Single();
-        var creatures = KwdCreatures.Parse([chunk]);
-        var images = KwdRecordRoundTrip.Split(chunk);
+        List<CreatureDef> creatures = KwdCreatures.Parse([chunk]);
+        List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(46, creatures.Count);
         for (int i = 0; i < creatures.Count; i++)
         {

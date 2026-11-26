@@ -31,7 +31,7 @@ public class KwdDoorWriterTests
             (d => d with { ImpactKind = 5 }, 0x226, 1),
             (d => d with { DeathEffectId = 0xABCD }, 0x232, 2),
         };
-        foreach (var edit in edits)
+        foreach ((Func<DoorDef, DoorDef> Change, int Offset, int Width) edit in edits)
         {
             DoorDef changed = edit.Change(original);
             byte[] written = KwdDoors.WriteRecord(changed, new KwdRecordImage(KwdRecordType.Doors, source));

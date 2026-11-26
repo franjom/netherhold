@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Data.Model;
+
 namespace DK2.Simulation.Tests;
 
 public class WorkerPickupLifecycleTests
@@ -9,16 +11,16 @@ public class WorkerPickupLifecycleTests
     [Fact]
     public void SavingDuringTravelPreservesTheLeaveHookResult()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3]);
-        var creature = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 3, new DK2.Core.TilePos(2, 2));
+        CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 3, new DK2.Core.TilePos(2, 2));
         creature.Dk2StateId = 6;
         creature.StateBeforeUtilityState = 45;
         creature.UtilityNewState = 43;
         creature.Flags = 0xA6;
         var original = new GameSimulation(db, world, 42, []);
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), db, []);
-        var copy = restored.World.CreatureById(creature.Id)!;
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), db, []);
+        CreatureState copy = restored.World.CreatureById(creature.Id)!;
         Assert.Equal(original.StateHash(), restored.StateHash());
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), creature, 1));
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), copy, 1));

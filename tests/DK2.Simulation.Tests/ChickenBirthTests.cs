@@ -30,7 +30,7 @@ public class ChickenBirthTests
                 objects: db.Objects.Values.Select(o => o.ObjectId == HatcheryRules.EggObjectId ? o with { ArtSlots = art } : o),
                 keeperSpells: db.KeeperSpells.Values);
         }
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [Keeper.Value]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [Keeper.Value]);
         return new GameSimulation(db, world, rng, animations ? [new HatcherySystem(lays: false)] : []);
     }
 

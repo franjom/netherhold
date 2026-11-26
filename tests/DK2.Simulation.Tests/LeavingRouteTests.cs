@@ -16,7 +16,7 @@ public class LeavingRouteTests
     public void LeavingSelectionDoesNotAcceptAnUnrelatedWanderRoute(bool hasPortal)
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         TilePos portal = new(3, 3);
         if (hasPortal) RoomRules.Place(database, ref world.Tile(portal), database.Room(RoomTypeId.Portal), PlayerIds.Neutral);
@@ -36,7 +36,7 @@ public class LeavingRouteTests
         else
         {
             Assert.False(creature.HasRoute);
-            var position = (creature.PosX, creature.PosY);
+            (int PosX, int PosY) position = (creature.PosX, creature.PosY);
             simulation.Run(3);
             Assert.Equal(position, (creature.PosX, creature.PosY));
         }

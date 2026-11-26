@@ -90,7 +90,7 @@ public class PortalCentreLightTests
     [InlineData(2, 0)]
     public void MapRequestsDoNotExploreOrLeakOtherRooms(byte roomId, int count)
     {
-        var (db, world) = Map(roomId);
+        (GameDatabase? db, WorldState? world) = Map(roomId);
         var simulation = new GameSimulation(db, world, 1);
         ulong hash = simulation.StateHash();
         var view = new WorldView(db, 3);
@@ -105,15 +105,15 @@ public class PortalCentreLightTests
     [Fact]
     public void TenSlabLoadedEntranceKeepsTheSourceCreatedAtNine()
     {
-        var (db, world) = Map(25, extraTile: true);
+        (GameDatabase? db, WorldState? world) = Map(25, extraTile: true);
         Assert.Equal(new TilePos(3, 3), Assert.Single(new WorldView(db, 3).PortalLightTiles(world)));
     }
 
     [Fact]
     public void RefreshNotificationsKeepMultipleSameTickRequestsAndActualFifthSlab()
     {
-        var (db, world) = Map(25);
-        var (controlDb, control) = Map(25);
+        (GameDatabase? db, WorldState? world) = Map(25);
+        (GameDatabase? controlDb, WorldState? control) = Map(25);
         var view = new WorldView(db, 3);
         Assert.Single(view.PortalLightTiles(world));
         for (int repeat = 0; repeat < 2; repeat++)
@@ -135,12 +135,12 @@ public class PortalCentreLightTests
     [InlineData(true, true)]
     public void CaptureCreatesALightOnlyWhenAnActualMergeReachesNine(bool merge, bool growsPastNine)
     {
-        var (db, world) = Map(25);
+        (GameDatabase? db, WorldState? world) = Map(25);
         for (int y = 2; y <= 4; y++)
             for (int x = 2; x <= 4; x++)
                 if (!merge || x == 2 || y == 2) world.Tile(x, y).OwnerPlayerId = 3;
         if (growsPastNine) world.Tile(5, 2).TerrainId = 12;
-        var (controlDb, control) = Map(25);
+        (GameDatabase? controlDb, WorldState? control) = Map(25);
         for (int i = 0; i < world.TileCount; i++) control.TileAtIndex(i) = world.TileAtIndex(i);
         var view = new WorldView(db, 2);
         int before = view.PortalLightTiles(world).Count;
@@ -179,11 +179,11 @@ public class PortalCentreLightTests
         variables.Misc[VariableTypeId.ConvertRoomHealth] = new(VariableTypeId.ConvertRoomHealth, -100, 0, 0);
         var db = new GameDatabase([Terrain(2, TerrainFlags.Solid), Terrain(12, TerrainFlags.Room | TerrainFlags.Ownable | TerrainFlags.Attackable),
             Terrain(27, TerrainFlags.Solid), Terrain(38, TerrainFlags.Solid)], [room], [], variables);
-        var cells = Enumerable.Repeat(new MapTile(2, 2, 0, 0), 64).ToArray();
+        MapTile[] cells = Enumerable.Repeat(new MapTile(2, 2, 0, 0), 64).ToArray();
         for (int y = 2; y <= 4; y++)
             for (int x = 2; x <= 4; x++) cells[y * 8 + x] = new MapTile(12, 2, 0, 0);
         if (extraTile) cells[4 * 8 + 5] = new MapTile(12, 2, 0, 0);
-        WorldState world = WorldState.FromMap(db, new LevelMap(8, 8, cells), [2, 3], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(db, new LevelMap(8, 8, cells), [2, 3], fogOfWarEnabled: true);
         for (int i = 0; i < world.TileCount; i++) world.TileAtIndex(i).ExploredBy = PlayerMask.None;
         return (db, world);
     }

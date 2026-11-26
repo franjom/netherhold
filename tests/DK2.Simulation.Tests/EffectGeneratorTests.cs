@@ -14,7 +14,7 @@ public class EffectGeneratorTests
     private static (GameSimulation Sim, ListEventSink Sink) Start(uint seed, bool open = true)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         if (open)
             for (int y = 1; y < world.Height - 1; y++)
                 for (int x = 1; x < world.Width - 1; x++)
@@ -40,7 +40,7 @@ public class EffectGeneratorTests
     [Fact]
     public void ALevelStartAddsOneGeneratorOverTheMapsInterior()
     {
-        var (sim, _) = Start(1);
+        (GameSimulation? sim, ListEventSink _) = Start(1);
         EffectGeneratorState generator = Assert.Single(sim.World.EffectGenerators);
         Assert.Equal((0x1800, 0x1800, 0x2000), (generator.PosX, generator.PosY, generator.PosZ));
         Assert.Equal((sim.World.Width - 2, sim.World.Height - 2), (generator.Unknown_0010, generator.Unknown_0012));
@@ -52,7 +52,7 @@ public class EffectGeneratorTests
     [Fact]
     public void ARestoreDoesNotAddASecondGenerator()
     {
-        var (sim, _) = Start(1);
+        (GameSimulation? sim, ListEventSink _) = Start(1);
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, [new EffectGeneratorSystem()]);
         Assert.Single(restored.World.EffectGenerators);
     }
@@ -61,7 +61,7 @@ public class EffectGeneratorTests
     public void AFilledSlotOnOpenFloorDrawsThePointAndHeadingAndIsDueAgainASecondOn()
     {
         uint seed = SeedForSlot(filled: true);
-        var (sim, sink) = Start(seed);
+        (GameSimulation? sim, ListEventSink? sink) = Start(seed);
         var expected = new Dk2Lcg(seed);
         sim.Tick();
 
@@ -84,7 +84,7 @@ public class EffectGeneratorTests
     public void AnEmptySlotDrawsOnlyTheSlotAndStaysDue()
     {
         uint seed = SeedForSlot(filled: false);
-        var (sim, sink) = Start(seed);
+        (GameSimulation? sim, ListEventSink? sink) = Start(seed);
         var expected = new Dk2Lcg(seed);
         sim.Tick();
         expected.NextInt(4);
@@ -105,7 +105,7 @@ public class EffectGeneratorTests
             if (x is >= 1 and <= 3 && y is >= 1 and <= 3) continue;
             if (x == 5 && y == 5 || x == 6 && y == 5) continue; // gold and gems are not rock
 
-            var (sim, sink) = Start(seed, open: false);
+            (GameSimulation? sim, ListEventSink? sink) = Start(seed, open: false);
             sim.Tick();
             Assert.Equal(probe.Seed, SeedOf(sim));
             Assert.Empty(Requests(sink));
@@ -118,7 +118,7 @@ public class EffectGeneratorTests
     public void AnAuthoredGeneratorStartsAtItsTilesCentreAtHeightZero()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         ThingProjection.Place(world, db, [new EffectGeneratorThing(new byte[36]) { X = 5, Y = 7, EffectIds = [1, 2, 3, 4], Unknown_001E = new byte[6] }]);
         EffectGeneratorState generator = Assert.Single(world.EffectGenerators);
         Assert.Equal((CreatureState.CentreOf(5), CreatureState.CentreOf(7), 0), (generator.PosX, generator.PosY, generator.PosZ));
@@ -132,7 +132,7 @@ public class EffectGeneratorTests
     {
         uint seed = SeedForSlot(filled: true);
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -155,7 +155,7 @@ public class EffectGeneratorTests
     public void ADueTurnSurvivesARestore()
     {
         uint seed = SeedForSlot(filled: true);
-        var (sim, _) = Start(seed);
+        (GameSimulation? sim, ListEventSink _) = Start(seed);
         sim.Tick();
         Assert.NotEqual(0u, sim.World.EffectGenerators[0].NextDueTurn);
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, [new EffectGeneratorSystem()]);

@@ -24,7 +24,7 @@ public class KwdObjectWriterTests
     {
         byte[] source = Enumerable.Repeat((byte)0x5A, 894).ToArray();
         ObjectDef original = Read(source);
-        var slots = original.ArtSlots.ToArray();
+        CreatureAnimationTiming[] slots = original.ArtSlots.ToArray();
         slots[5] = new CreatureAnimationTiming { ResourceType = 6, Flags = CreatureAnimationFlags.Present,
             FrameCount = 123, FramesPerSecond = 30, StartSegmentFrames = 4, EndSegmentFrames = 7 };
         byte[] written = KwdObjects.WriteRecord(original with { ArtSlots = slots },

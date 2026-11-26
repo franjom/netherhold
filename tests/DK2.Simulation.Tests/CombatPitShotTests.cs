@@ -16,7 +16,7 @@ public sealed class CombatPitShotTests
     public void ATargetedPitSpellUsesTheGoodPlayersShotOwnership(bool pit, byte expectedOwner)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.Good, PlayerIds.FirstKeeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.Good, PlayerIds.FirstKeeper]);
         CreatureState caster = world.SpawnCreature(db, Dk2TerrainFixture.WarlockCreatureId, PlayerIds.FirstKeeper, new TilePos(4, 4));
         CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new TilePos(5, 4));
         caster.CombatPitFighter = pit;

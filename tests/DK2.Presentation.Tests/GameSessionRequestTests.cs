@@ -23,8 +23,8 @@ public sealed class GameSessionRequestTests
     {
         var save = new SavedGame(new Dk2SaveHeader(220, 0, Dk2SaveReader.SupportedBuildStamp, "Level1", 15),
             new LevelMap(1, 1, new[] { new MapTile(2, 3, 0, 0) }), [], 1, 0x134);
-        GameSessionRequest request = GameSessionRequest.FromDk2Save(save);
-        SessionContext session = SessionContext.Starting(null, request, "Level7", fromMap: true);
+        var request = GameSessionRequest.FromDk2Save(save);
+        var session = SessionContext.Starting(null, request, "Level7", fromMap: true);
 
         Assert.Equal("Level1", session.LevelName);
         Assert.False(session.LaunchedFromFrontEnd);

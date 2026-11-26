@@ -147,9 +147,9 @@ public sealed class BattleTabViewTests
     [InstallFact]
     public void EveryArtTheMenuDrawsIsInTheEngineTextures()
     {
-        using EngineTextureArchive archive = EngineTextureArchive.OpenInstall(Dk2InstallGate.Path);
+        using var archive = EngineTextureArchive.OpenInstall(Dk2InstallGate.Path);
         foreach (string name in BattleTabView.AllArt)
-            { var image = archive.Decode(name); Assert.True(image.Width > 0, $"{name} {image.Width}x{image.Height}"); }
+            { RgbaImage image = archive.Decode(name); Assert.True(image.Width > 0, $"{name} {image.Width}x{image.Height}"); }
     }
 
     private static (GameDatabase, WorldState) Level1()

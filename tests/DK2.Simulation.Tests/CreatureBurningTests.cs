@@ -27,7 +27,7 @@ public class CreatureBurningTests
     public void IgnitionUsesTheTruncatedPreHitPercentAndOnlyWaterSuppressesIt(
         bool contact, int level, int health, byte terrain, int expectedTicks)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Level = level;
         target.Health = health;
         world.Tile(target.Tile).TerrainId = terrain;
@@ -38,7 +38,7 @@ public class CreatureBurningTests
     [Fact]
     public void AHitCrossingTheThresholdDoesNotIgniteUntilTheNextHit()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Health = 315;
         var sim = new GameSimulation(db, world, 1, [new Hit(true)]);
         sim.Tick();
@@ -50,7 +50,7 @@ public class CreatureBurningTests
     [Fact]
     public void EachBurningPassDrawsZXYThreeTimesAndEmitsUnattachedFlamesEvenOnItsLastTick()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         CreatureDef def = db.CreatureById(target.CreatureTypeId);
         int height = def.Height.Raw, width = def.FootprintRadius.Raw;
         var draws = new Draws((height, 11), (width, 12), (width, 13),
@@ -87,7 +87,7 @@ public class CreatureBurningTests
     {
         CreatureDef horny = Dk2TerrainFixture.Goblin() with { CreatureId = 100, Flags = CreatureFlags.IsHorny };
         GameDatabase db = Dk2TerrainFixture.Database([horny]);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)2, (byte)3]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)2, (byte)3]);
         CreatureState target = world.SpawnCreature(db, 100, 3, new TilePos(4, 4));
         Dk2TerrainFixture.SetKnownIdentities(world);
         target.BurningTicks = 2;
@@ -100,7 +100,7 @@ public class CreatureBurningTests
     [Fact]
     public void ACorpseNoLongerRunsTheCreatureBurningPass()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Health = 0;
         StatePlacement.As(target, CreatureActivity.Dead);
         target.BurningTicks = 2;
@@ -114,7 +114,7 @@ public class CreatureBurningTests
     [InlineData(true, 10)]
     public void AFireHitIgnitesADyingCreatureBeforeItsHealthRefusal(bool contact, int expectedTicks)
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         StatePlacement.Place(target, CreatureDeathRules.DyingState);
         target.Health = 200;
         new GameSimulation(db, world, 1, [new Hit(contact)]).Tick();
@@ -126,7 +126,7 @@ public class CreatureBurningTests
     [Fact]
     public void BurningWordsAreIndependentlyHashedAndSurviveASnapshot()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         var sim = new GameSimulation(db, world, 1);
         ulong before = sim.StateHash();
         target.BurningTicks = 7;
@@ -143,7 +143,7 @@ public class CreatureBurningTests
     [Fact]
     public void EveryCreaturesBurningDrawsPrecedeThatCreaturesOtherDrawsInNewestFirstOrder()
     {
-        var (db, world, first) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? first) = Setup();
         CreatureState second = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 3, new TilePos(5, 4));
         Dk2TerrainFixture.SetKnownIdentities(world);
         first.BurningTicks = second.BurningTicks = 1;
@@ -178,7 +178,7 @@ public class CreatureBurningTests
     [Fact]
     public void AWeakCreatureIgnitesBeforeTheContactDamageLands()
     {
-        var (db, world, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target.Health = 300;
         var sim = new GameSimulation(db, world, 1, [new Hit(contact: true)]);
         sim.Tick();
@@ -203,7 +203,7 @@ public class CreatureBurningTests
     private static (GameDatabase, WorldState, CreatureState) Setup()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, (byte)2, (byte)3, (byte)4]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, (byte)2, (byte)3, (byte)4]);
         world.Tile(4, 4).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(4, 4).OwnerPlayerId = 3;
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 3, new TilePos(4, 4));
@@ -217,7 +217,7 @@ public class CreatureBurningTests
         public int Remaining => draws.Length - _index;
         public int NextInt(int exclusiveMax)
         {
-            var draw = draws[_index++];
+            (int Bound, int Value) draw = draws[_index++];
             Assert.Equal(draw.Bound, exclusiveMax);
             return draw.Value;
         }

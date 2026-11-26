@@ -52,7 +52,7 @@ public class ImpWorkVisibilityTests
     private static (GameSimulation Sim, ListEventSink Events, CreatureState Older, CreatureState Newer) Start()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Neutral, Keeper]);
         CreatureState older = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
         CreatureState newer = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));

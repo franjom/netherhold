@@ -32,16 +32,16 @@ public class FrontEndArtTests
         RoomDef room = database.Room(RoomTypeId.HeroGateFrontEnd);
         for (int i = 0; i < 16; i++)
         {
-            Assert.True(provider.TryResolve(AssetCatalogue.RoomPiece(room.Name, i), out var resolved));
+            Assert.True(provider.TryResolve(AssetCatalogue.RoomPiece(room.Name, i), out ResolvedAsset resolved));
             Assert.Equal($"3DFrontend{i + 1}.kmf", resolved.InstallEntry, ignoreCase: true);
             Assert.True(provider.TryLoadModel(resolved, out _));
         }
-        foreach (var entry in FrontEndArt.Entries(database))
+        foreach (ArtEntry entry in FrontEndArt.Entries(database))
         {
-            Assert.True(provider.TryResolve(entry.Reference, out var resolved), entry.Reference.Key);
+            Assert.True(provider.TryResolve(entry.Reference, out ResolvedAsset resolved), entry.Reference.Key);
             Assert.True(provider.TryLoadModel(resolved, out _), resolved.InstallEntry);
         }
-        Assert.True(provider.TryResolve(FrontEndAssets.CampaignPiece(FrontEndMapPiece.Level6b), out var sixth));
+        Assert.True(provider.TryResolve(FrontEndAssets.CampaignPiece(FrontEndMapPiece.Level6b), out ResolvedAsset sixth));
         Assert.Equal("3dmap_level6b.kmf", sixth.InstallEntry, ignoreCase: true);
     }
 }

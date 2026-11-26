@@ -46,7 +46,7 @@ public class KwdSmokeTests
             string path = Path.Combine(dir!, "Data", "editor", file);
             Assert.True(File.Exists(path), $"missing: {path}");
 
-            using var fs = File.OpenRead(path);
+            using FileStream fs = File.OpenRead(path);
             fs.ReadExactly(header);
             int typeId = BitConverter.ToInt32(header);
 

@@ -16,7 +16,7 @@ public sealed class SleepDebtTests
     [Fact]
     public void AHealthyManualSleeperWithNoDebtLeavesOnItsFirstUpdate()
     {
-        var (sim, creature) = Start();
+        (GameSimulation? sim, CreatureState? creature) = Start();
         StatePlacement.Place(creature, LairRules.SleepingState);
 
         sim.Tick();
@@ -27,7 +27,7 @@ public sealed class SleepDebtTests
     [Fact]
     public void InterruptedSleepPaysOnlyTheRemainingDebtAfterReentry()
     {
-        var (sim, creature) = Start();
+        (GameSimulation? sim, CreatureState? creature) = Start();
         MakeOverdue(creature);
         for (int i = 0; i < 16 && creature.Dk2StateId != LairRules.SleepingState; i++) sim.Tick();
         Assert.Equal(LairRules.SleepingState, creature.Dk2StateId);
@@ -49,7 +49,7 @@ public sealed class SleepDebtTests
     [Fact]
     public void CaptivityBlocksTheBedAttemptButStillLoadsOverdueSleepDebt()
     {
-        var (sim, creature) = Start();
+        (GameSimulation? sim, CreatureState? creature) = Start();
         StatePlacement.Place(creature, PrisonRules.InTheCellState);
         creature.PrisonOwnerPlayerId = 4;
 
@@ -67,7 +67,7 @@ public sealed class SleepDebtTests
     [InlineData(187)]
     public void NeedsStatesDeferHungerButAnOverdueHelpingLandsOnTheFirstUpdateAfterLeaving(int state)
     {
-        var (sim, creature) = Start(healthOnly: true);
+        (GameSimulation? sim, CreatureState? creature) = Start(healthOnly: true);
         StatePlacement.Place(creature, state);
         sim.Run(8);
         Assert.Equal(0, creature.HungerNeed);
@@ -81,7 +81,7 @@ public sealed class SleepDebtTests
     [Fact]
     public void ABusyTiredAttemptSpendsItsFourTurnRetryBeforeTheCreatureBecomesFree()
     {
-        var (sim, creature) = Start();
+        (GameSimulation? sim, CreatureState? creature) = Start();
         MakeOverdue(creature);
         creature.DroppedOnARoom = true;
         creature.PickupTick = -15; // The five-second grace expires at turn 5.
@@ -96,14 +96,14 @@ public sealed class SleepDebtTests
     [Fact]
     public void SleepDebtAndItsClockAndRetrySurviveSaveAndContinueIdentically()
     {
-        var (sim, creature) = Start();
+        (GameSimulation? sim, CreatureState? creature) = Start();
         creature.SleepDebtTicks = 9;
         creature.LastSleptTick = new GameTick(3);
         creature.NextSleepTryTick = new GameTick(7);
         StatePlacement.Place(creature, LairRules.SleepingState);
         ulong savedHash = sim.StateHash();
 
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database,
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database,
             [new CreatureSleepSystem()]);
         CreatureState copy = Assert.Single(restored.World.Creatures);
         Assert.Equal(9, copy.SleepDebtTicks);
@@ -126,7 +126,7 @@ public sealed class SleepDebtTests
     [InlineData(187)]
     public void SuppressedSleepUpdatesLeaveTheStampSoDebtLoadsOnLeaving(int state)
     {
-        var (sim, creature) = Start();
+        (GameSimulation? sim, CreatureState? creature) = Start();
         for (int i = 0; i < 9; i++)
         {
             StatePlacement.Place(creature, state);
@@ -145,7 +145,7 @@ public sealed class SleepDebtTests
     [Fact]
     public void ARescuedSleeperPaysDebtWhileStillAtZeroHealth()
     {
-        var (sim, creature) = Start();
+        (GameSimulation? sim, CreatureState? creature) = Start();
         creature.SleepDebtTicks = 9;
         creature.Health = 0;
         StatePlacement.Place(creature, LairRules.SleepingState);
@@ -160,7 +160,7 @@ public sealed class SleepDebtTests
     [Fact]
     public void AWoundedTiredAttemptStillStampsTheRetryBeforeItsBusyRefusal()
     {
-        var (sim, creature) = Start();
+        (GameSimulation? sim, CreatureState? creature) = Start();
         creature.SleepDebtTicks = 12;
         creature.NextSleepTryTick = GameTick.Zero;
         creature.Health = 300;
@@ -180,7 +180,7 @@ public sealed class SleepDebtTests
     [InlineData(2)]
     public void EachPersistentSleepFieldContributesToTheStateHash(int field)
     {
-        var (sim, creature) = Start();
+        (GameSimulation? sim, CreatureState? creature) = Start();
         ulong before = sim.StateHash();
         switch (field)
         {
@@ -207,7 +207,7 @@ public sealed class SleepDebtTests
         CreatureDef definition = Dk2TerrainFixture.Goblin() with
             { CreatureId = 60, Name = "Sleep Test Goblin", TimeAwake = 2, TimeSleep = 3, HungerRate = new Fp32(Fp32.One) };
         GameDatabase database = Dk2TerrainFixture.Database(definition);
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, Keeper.Value]);
         RoomRules.Place(database, ref world.Tile(Bed), database.Room(RoomTypeId.Lair), Keeper);
         CreatureState creature = world.SpawnCreature(database, definition.CreatureId, Keeper, Bed).Unstaggered();

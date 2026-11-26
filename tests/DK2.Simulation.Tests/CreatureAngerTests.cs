@@ -111,7 +111,7 @@ public class CreatureAngerTests
 
         Simulation(db, world, events).Run(Second * 400);
 
-        List<SimEvent> moods = events.Events.Where(e => e.Kind == "creature_mood").ToList();
+        var moods = events.Events.Where(e => e.Kind == "creature_mood").ToList();
         Assert.Equal(2, moods.Count);
 
         long unhappyAt = moods[0].Tick.Value / Second;
@@ -359,7 +359,7 @@ public class CreatureAngerTests
         // Vampire, because its angry table is Rebel outright where a Goblin's is a coin
         // toss re-tossed (ADR-0061) - here the branch under test is the only one.
         GameDatabase db = Db;
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         LairOffer.Offer(world, Keeper);
         CreatureState vampire = world.SpawnCreature(db, VampireId, Keeper, new TilePos(2, 2));
@@ -385,7 +385,7 @@ public class CreatureAngerTests
         sim.Run(Second * 10);
         Assert.Equal(defected, vampire.Anger.Lair);
 
-        List<SimEvent> rolls = events.Events.Where(e => e.Kind == "creature_angry").ToList();
+        var rolls = events.Events.Where(e => e.Kind == "creature_angry").ToList();
         Assert.NotEmpty(rolls);
         Assert.All(rolls, e =>
         {
@@ -406,7 +406,7 @@ public class CreatureAngerTests
     public void AHeroCreatureWithNoBedTakesNoNeedAnger_AndLooksForNoLairOrFood()
     {
         GameDatabase db = Db;
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         CreatureState hero = world.SpawnCreature(db, VampireId, PlayerIds.Good, new TilePos(2, 2));
         var events = new ListEventSink();
@@ -435,7 +435,7 @@ public class CreatureAngerTests
 
         Simulation(db, world, events).Run(Second * 30);
 
-        List<SimEvent> rolls = events.Events
+        var rolls = events.Events
             .Where(e => e.Kind == "creature_angry").ToList();
         Assert.Equal(6, rolls.Count);
 
@@ -471,7 +471,7 @@ public class CreatureAngerTests
 
         // Every roll but the last was the unbuilt half of its own table, and
         // the last one is the one it acted on.
-        List<SimEvent> rolls = events.Events
+        var rolls = events.Events
             .Where(e => e.Kind == "creature_angry").ToList();
         Assert.NotEmpty(rolls);
         Assert.Contains("chose=Leave", rolls[^1].Detail);
@@ -815,7 +815,7 @@ public class CreatureAngerTests
         // The room clause is what keeps a map without Hatcheries quiet: the reason ADR-0074 had
         // left the food charge to the prison, and DK2's own answer to it.
         GameDatabase db = Db;
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, (byte)(Keeper + 1)]);
         CreatureState goblin = HungryGoblin(db, world);
         Assert.Equal(0, HungerChargeOf(db, world, goblin));
@@ -872,7 +872,7 @@ public class CreatureAngerTests
     public void ARivalsLairAngersNobody()
     {
         GameDatabase db = Db;
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, (byte)(Keeper + 1)]);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
 

@@ -24,7 +24,7 @@ public sealed class ClassicCreatureQueryTests
         var strings=Dk2StringTable.Open(Path.Combine(Dk2InstallGate.Path,"Data","Text","Default","Text.str"));
         var query=new ClassicCreatureQuery(db,strings.Resolve,PlayerIds.FirstKeeper);
         var target=new CreatureQueryTarget(creature.Id);
-        var first=query.Capture(world,target,"Delver","A");
+        CreatureQuerySnapshot first =query.Capture(world,target,"Delver","A");
         Assert.Contains("Delver the Imp",first.Text);
         Assert.Contains("Blood Group: A",first.Text);
         Assert.Contains("Gold Held: 17",first.Text);

@@ -27,7 +27,7 @@ public class EggCollisionTests
         int collisionResult, bool defaultSystems = false)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, Keeper]);
         var rng = new CollisionRandom(collisionResult);
         var sim = new GameSimulation(db, world, new SimRandom(rng),
             defaultSystems ? SimulationSystems.Default() : [new HatcherySystem(lays: false)]);
@@ -57,7 +57,7 @@ public class EggCollisionTests
     [InlineData(true)]
     public void AZeroCollisionRollBreaksBeforeReflectionAndRequestsTheEffectAtTheOldPosition(bool defaultSystems)
     {
-        var (sim, egg, events, rng) = Start(0, defaultSystems);
+        (GameSimulation? sim, ObjectState? egg, ListEventSink? events, CollisionRandom? rng) = Start(0, defaultSystems);
         var position = new FpPosition3(new(egg.PosX), new(egg.PosY), new(egg.PosZ));
         sim.Tick();
         Assert.DoesNotContain(egg, sim.World.Objects);
@@ -74,7 +74,7 @@ public class EggCollisionTests
     [Fact]
     public void ANonzeroCollisionRollKeepsTheEggAndReflectsWithoutAnEffect()
     {
-        var (sim, egg, events, rng) = Start(1);
+        (GameSimulation? sim, ObjectState? egg, ListEventSink? events, CollisionRandom? rng) = Start(1);
         sim.Tick();
         Assert.Contains(egg, sim.World.Objects);
         Assert.Equal(-4000, egg.PhysicalVelocityX);
@@ -87,7 +87,7 @@ public class EggCollisionTests
     [InlineData(true)]
     public void HeldOrCarriedEggsDoNotMoveAgeOrDraw(bool carried)
     {
-        var (sim, egg, events, rng) = Start(0, defaultSystems: true);
+        (GameSimulation? sim, ObjectState? egg, ListEventSink? events, CollisionRandom? rng) = Start(0, defaultSystems: true);
         if (carried) egg.CarriedByCreatureId = 123;
         else egg.InHand = true;
         sim.Tick();
@@ -101,7 +101,7 @@ public class EggCollisionTests
     [Fact]
     public void ClearMovementDoesNotDrawAndAgesTheEggOnceInTheDefaultPipeline()
     {
-        var (sim, egg, events, rng) = Start(0, defaultSystems: true);
+        (GameSimulation? sim, ObjectState? egg, ListEventSink? events, CollisionRandom? rng) = Start(0, defaultSystems: true);
         egg.PosX = (2 << 12) + 2048;
         egg.TileIndex = sim.World.TileIndex(new TilePos(2, 2));
         sim.Tick();
@@ -117,7 +117,7 @@ public class EggCollisionTests
     [InlineData(true)]
     public void TheDefaultPipelineInterleavesEggAndChickenDrawsInObjectOrder(bool eggNewer)
     {
-        var (sim, egg, _, rng) = Start(0, defaultSystems: true);
+        (GameSimulation? sim, ObjectState? egg, ListEventSink _, CollisionRandom? rng) = Start(0, defaultSystems: true);
         sim.World.RemoveObject(egg.Id);
         if (!eggNewer) egg = AddEgg(sim);
         ObjectState chicken = sim.World.SpawnObject(sim.Database, HatcheryRules.ChickenObjectId, Keeper,
@@ -135,7 +135,7 @@ public class EggCollisionTests
     [Fact]
     public void AClearDiagonalStepDoesNotCollideWithAnUnusedAxisPoint()
     {
-        var (sim, egg, events, rng) = Start(0);
+        (GameSimulation? sim, ObjectState? egg, ListEventSink? events, CollisionRandom? rng) = Start(0);
         egg.PosY = (3 << 12) - 32;
         egg.PhysicalVelocityY = 8000;
         sim.World.Tile(4, 3).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -149,11 +149,11 @@ public class EggCollisionTests
     [Fact]
     public void ANewlyHatchedChickenWaitsUntilTheNextObjectWalk()
     {
-        var (sim, egg, _, _) = Start(0, defaultSystems: true);
+        (GameSimulation? sim, ObjectState? egg, ListEventSink _, CollisionRandom _) = Start(0, defaultSystems: true);
         egg.ProcessState = 32;
         egg.ProcessCount = 1;
         egg.PhysicalVelocityX = 0;
-        CreatureAnimationTiming[] art = new CreatureAnimationTiming[9];
+        var art = new CreatureAnimationTiming[9];
         art[0] = new() { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
         GameDatabase db = sim.Database;
         db = new GameDatabase(db.Terrain.Values, db.Rooms.Values, db.Creatures.Values, db.Variables,
@@ -170,7 +170,7 @@ public class EggCollisionTests
     [InlineData(true)]
     public void EachCoopOrTransitionedEggIsSteppedOnlyOnceInTheDefaultPipeline(bool coop)
     {
-        var (sim, egg, _, rng) = Start(1, defaultSystems: true);
+        (GameSimulation? sim, ObjectState? egg, ListEventSink _, CollisionRandom? rng) = Start(1, defaultSystems: true);
         ObjectState thing = egg;
         if (coop)
         {
@@ -180,7 +180,7 @@ public class EggCollisionTests
             thing.ProcessState = 29;
         }
         else egg.PhysicalVelocityX = 2000;
-        CreatureAnimationTiming[] art = new CreatureAnimationTiming[9];
+        var art = new CreatureAnimationTiming[9];
         art[0] = art[5] = new() { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
         GameDatabase db = sim.Database;
         db = new GameDatabase(db.Terrain.Values, db.Rooms.Values, db.Creatures.Values, db.Variables,

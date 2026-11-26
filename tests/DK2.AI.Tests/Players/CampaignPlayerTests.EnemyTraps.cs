@@ -33,7 +33,7 @@ public partial class CampaignPlayerTests
     {
         // Nothing to answer: the held creature goes down near home, never on the trap's covered floor.
         PlayerVisibleTrap nearHome = Sentry with { Tile = new TilePos(5, 6), ReachTiles = 2 };
-        var drop = Assert.IsType<PlayerAction.DropAt>(Player().Decide(Observe(hand: 1, gold: 0, enemyTraps: [nearHome])).Actions[0]);
+        PlayerAction.DropAt drop = Assert.IsType<PlayerAction.DropAt>(Player().Decide(Observe(hand: 1, gold: 0, enemyTraps: [nearHome])).Actions[0]);
         long dx = drop.Tile.X - 5, dy = drop.Tile.Y - 6;
         Assert.True(4 * (dx * dx + dy * dy) > 25, $"dropped at {drop.Tile}, inside the trap's reach");
     }

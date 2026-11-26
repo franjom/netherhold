@@ -108,7 +108,7 @@ public class KeeperPayTests
     [Fact]
     public void TheMintedWageDroppedOnTheCreatureIsDeliveredToIt()
     {
-        var (db, world, goblin, sim) = Paying(2000);
+        (GameDatabase? db, WorldState? world, CreatureState? goblin, GameSimulation? sim) = Paying(2000);
         int wage = PaydayRules.Wage(db, db.CreatureById(goblin.CreatureTypeId), goblin.Level);
         goblin.Anger.Pay = 20000;
         int purse = goblin.GoldHeld;
@@ -125,7 +125,7 @@ public class KeeperPayTests
     [Fact]
     public void AShortTreasuryMintsWhatItHas()
     {
-        var (db, world, goblin, sim) = Paying(7);
+        (GameDatabase? db, WorldState? world, CreatureState? goblin, GameSimulation? sim) = Paying(7);
         sim.Tick(InputFrame.Of(new MintWageCommand(Keeper, goblin.Id)));
 
         HandItem held = Assert.Single(world.Player(Keeper).Hand);
@@ -136,7 +136,7 @@ public class KeeperPayTests
     [Fact]
     public void WithoutATreasuryOrGoldTheMintIsRefused()
     {
-        var (db, world, goblin, sim) = Paying(0);
+        (GameDatabase? db, WorldState? world, CreatureState? goblin, GameSimulation? sim) = Paying(0);
         sim.Tick(InputFrame.Of(new MintWageCommand(Keeper, goblin.Id)));
         Assert.Empty(world.Player(Keeper).Hand);
 
@@ -150,7 +150,7 @@ public class KeeperPayTests
     [Fact]
     public void AFullHandLeavesTheMintedPileOnTileZeroAsDK2sFactoryMakesIt()
     {
-        var (db, world, goblin, sim) = Paying(2000);
+        (GameDatabase? db, WorldState? world, CreatureState? goblin, GameSimulation? sim) = Paying(2000);
         ObjectState filler = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, 5);
         for (int i = 0; i < HandRules.Capacity(db); i++) world.Player(Keeper).Hand.Add(HandItem.Of(filler));
 

@@ -20,7 +20,7 @@ public class GlbWriterTests
     {
         KmfModel source = TriangleModel();
         byte[] bytes = GlbWriter.Write(source);
-        using GlbDocument glb = GlbDocument.Load(bytes);
+        using var glb = GlbDocument.Load(bytes);
 
         JsonElement root = glb.Json.RootElement;
         Assert.Equal("2.0", root.GetProperty("asset").GetProperty("version").GetString());
@@ -39,7 +39,7 @@ public class GlbWriterTests
     public void AnimationFramesBecomeDistinctMorphTargetsAndLinearWeightKeys()
     {
         KmfModel source = KmfReader.Read(AnimatedKmfFixture.TwoFrames());
-        using GlbDocument glb = GlbDocument.Load(GlbWriter.Write(source));
+        using var glb = GlbDocument.Load(GlbWriter.Write(source));
 
         JsonElement root = glb.Json.RootElement;
         JsonElement primitive = root.GetProperty("meshes")[0].GetProperty("primitives")[0];
@@ -62,7 +62,7 @@ public class GlbWriterTests
     public void APassTimeSpansTheClipFromItsFirstFrameToItsLast()
     {
         KmfModel source = KmfReader.Read(AnimatedKmfFixture.KeyedAtFramesZeroAndTwo());
-        using GlbDocument glb = GlbDocument.Load(GlbWriter.Write(source, passSeconds: 0.25f));
+        using var glb = GlbDocument.Load(GlbWriter.Write(source, passSeconds: 0.25f));
 
         JsonElement sampler = glb.Json.RootElement.GetProperty("animations")[0].GetProperty("samplers")[0];
         Assert.Equal([0f, 0.125f, 0.25f], glb.Floats(sampler.GetProperty("input").GetInt32()));
@@ -77,7 +77,7 @@ public class GlbWriterTests
         Assert.Single(animation.Frames);
         Assert.NotNull(animation.DecodeFailure);
 
-        using GlbDocument glb = GlbDocument.Load(GlbWriter.Write(source));
+        using var glb = GlbDocument.Load(GlbWriter.Write(source));
 
         Assert.False(glb.Json.RootElement.TryGetProperty("animations", out _));
         JsonElement primitive = glb.Json.RootElement.GetProperty("meshes")[0]
@@ -98,7 +98,7 @@ public class GlbWriterTests
         using var wad = WadArchive.Open(Path.Combine(install, "Data", "Meshes.WAD"));
         KmfModel source = KmfReader.Read(wad.Extract(entryName));
 
-        using GlbDocument glb = GlbDocument.Load(GlbWriter.Write(source));
+        using var glb = GlbDocument.Load(GlbWriter.Write(source));
 
         Assert.Equal(source.Mesh!.Primitives.Count,
             glb.Json.RootElement.GetProperty("meshes")[0].GetProperty("primitives").GetArrayLength());
@@ -114,7 +114,7 @@ public class GlbWriterTests
         {
             KmfModel source = KmfReader.Read(wad.Extract(entry));
             if (source.Mesh is null) continue;
-            using GlbDocument glb = GlbDocument.Load(GlbWriter.Write(source));
+            using var glb = GlbDocument.Load(GlbWriter.Write(source));
             Assert.NotEmpty(glb.Json.RootElement.GetProperty("meshes")[0]
                 .GetProperty("primitives").EnumerateArray());
         }
@@ -160,7 +160,7 @@ public class GlbWriterTests
             int binaryLength = checked((int)U32(bytes, binaryHeader));
             Assert.Equal(0x004e4942u, U32(bytes, binaryHeader + 4));
             Assert.Equal(bytes.Length, binaryHeader + 8 + binaryLength);
-            JsonDocument json = JsonDocument.Parse(bytes.AsMemory(20, jsonLength));
+            var json = JsonDocument.Parse(bytes.AsMemory(20, jsonLength));
             byte[] binary = bytes.AsSpan(binaryHeader + 8, binaryLength).ToArray();
             return new GlbDocument(json, binary);
         }
@@ -186,7 +186,7 @@ public class GlbWriterTests
             Assert.Equal(5126, accessor.GetProperty("componentType").GetInt32());
             Assert.Equal("SCALAR", accessor.GetProperty("type").GetString());
             int count = accessor.GetProperty("count").GetInt32();
-            var result = new float[count];
+            float[] result = new float[count];
             for (int i = 0; i < count; i++) result[i] = F32(_binary, offset + i * 4);
             return result;
         }

@@ -99,7 +99,7 @@ public sealed class EffectDrawListTests
         var list = new EffectDrawList(Empty, 1) { TileLights = Lit };
         var at = new Vector3(3.5f, 1f, -5.5f);
         ClassicLightTable table = Table();
-        var (red, green, blue) = SpriteLighting.Lit(40, 50, 60, table.Lights, at);
+        (byte red, byte green, byte blue) = SpriteLighting.Lit(40, 50, 60, table.Lights, at);
         EffectColour colour = list.SpriteColour(Particle(takesLight: true), at);
         Assert.Equal(new EffectColour(red, green, blue), colour);
         Assert.NotEqual(new EffectColour(40, 50, 60), colour);
@@ -133,7 +133,7 @@ public sealed class EffectDrawListTests
     {
         byte[] block = new byte[12];
         BitConverter.GetBytes(dword).CopyTo(block, 4);
-        var definition = Element(type: 6, unknown: block.AsMemory(0, length));
+        EffectElementDef definition = Element(type: 6, unknown: block.AsMemory(0, length));
         Assert.Equal(rate, EffectDrawList.AuthoredFramesPerSecond(definition));
     }
 
@@ -163,7 +163,7 @@ public sealed class EffectDrawListTests
     [InlineData(0xBFu, false, false)]
     public void Flag0x100IsFlatAndFlag0x40StandsOnItsPoint(uint flags, bool flat, bool standsOnPoint)
     {
-        EffectSpriteShape shape = EffectSpriteShape.Of(Element(1, flags), new EffectSpriteResource(8192, 2048, 1, 1,
+        var shape = EffectSpriteShape.Of(Element(1, flags), new EffectSpriteResource(8192, 2048, 1, 1,
             EffectSpriteBlend.Alpha, 0));
         Assert.Equal(new EffectSpriteShape(flat, standsOnPoint, 2f, .5f), shape);
     }
@@ -322,7 +322,7 @@ public sealed class EffectDrawListTests
         ConstructionParticle source = Particle(takesLight: false);
         Assert.Equal(AssetRef.ForEffectElement("spark"), list.GroupKey(source));
         Assert.Equal(AssetRef.ForEffectElement("spark"), list.GroupKey(source));
-        AssetRef parent = AssetRef.ForEffect("wave");
+        var parent = AssetRef.ForEffect("wave");
         source.SpriteAsset = parent;
         Assert.Equal(parent, list.GroupKey(source));
     }

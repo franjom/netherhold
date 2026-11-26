@@ -16,7 +16,7 @@ public sealed class PngChunksTests
 
     private static byte[] Chunk(string type, byte[] data)
     {
-        var chunk = new byte[12 + data.Length];
+        byte[] chunk = new byte[12 + data.Length];
         BinaryPrimitives.WriteUInt32BigEndian(chunk, (uint)data.Length);
         Encoding.ASCII.GetBytes(type, 0, 4, chunk, 4);
         data.CopyTo(chunk, 8);
@@ -38,7 +38,7 @@ public sealed class PngChunksTests
     /// <summary>A 2x1 RGB image, laid out as MapColours.png is: IHDR, gAMA (0.22727), cHRM, IDAT, IEND.</summary>
     private static (byte[] Png, byte[] Ihdr, byte[] Idat, byte[] Iend) Strip(bool colourSpace = true)
     {
-        var header = new byte[13];
+        byte[] header = new byte[13];
         BinaryPrimitives.WriteUInt32BigEndian(header, 2);
         BinaryPrimitives.WriteUInt32BigEndian(header.AsSpan(4), 1);
         header[8] = 8; header[9] = 2;

@@ -28,9 +28,9 @@ public sealed class MinimapCameraViewTests
     /// Unity's runner gives the camera (<c>projection[1, 2] = -shift</c>), worked out independently of the ray.</summary>
     private static Vector2 Project(in MinimapCameraView view, Vector3 point)
     {
-        Vector3 forward = Vector3.Normalize(view.Forward);
-        Vector3 right = Vector3.Normalize(Vector3.Cross(view.Up, forward));
-        Vector3 up = Vector3.Cross(forward, right);
+        var forward = Vector3.Normalize(view.Forward);
+        var right = Vector3.Normalize(Vector3.Cross(view.Up, forward));
+        var up = Vector3.Cross(forward, right);
         Vector3 d = point - view.Position;
         float depth = Vector3.Dot(d, forward), cot = 1 / MathF.Tan(view.VerticalFieldOfView * MathF.PI / 360);
         float ndcX = Vector3.Dot(d, right) / depth * cot / view.Aspect, ndcY = Vector3.Dot(d, up) / depth * cot + view.ProjectionCentreShift;
@@ -77,7 +77,7 @@ public sealed class MinimapCameraViewTests
         var level = new MinimapCameraView(new Vector3(0, 5, 0), Vector3.UnitZ, Vector3.UnitY, 60, 16 / 9f, 0);
         Assert.False(level.TryFloorCorners(new Vector2[4]));
         Assert.False(level.TryFloorCentre(out _));
-        var upward = level with { Forward = Vector3.Normalize(new Vector3(0, 1, 1)), Up = Vector3.Normalize(new Vector3(0, 1, -1)) };
+        MinimapCameraView upward = level with { Forward = Vector3.Normalize(new Vector3(0, 1, 1)), Up = Vector3.Normalize(new Vector3(0, 1, -1)) };
         Assert.False(upward.TryFloorCentre(out _));
         Assert.Throws<ArgumentException>(() => level.TryFloorCorners(new Vector2[3]));
     }
@@ -158,9 +158,9 @@ public sealed class MinimapCameraViewTests
         Span<Vector2> corners = stackalloc Vector2[4];
         Assert.True(MinimapCameraView.Of(pose, viewport).TryFloorCorners(corners));
         // The pose's raw fields: the axis sits shift half heights above the middle, the field of view is vertical.
-        Vector3 forward = Vector3.Normalize(pose.Forward);
-        Vector3 right = Vector3.Normalize(Vector3.Cross(pose.Up, forward));
-        Vector3 up = Vector3.Cross(forward, right);
+        var forward = Vector3.Normalize(pose.Forward);
+        var right = Vector3.Normalize(Vector3.Cross(pose.Up, forward));
+        var up = Vector3.Cross(forward, right);
         float tangent = MathF.Tan(pose.VerticalFieldOfView * MathF.PI / 360);
         Vector2[] expected = [new(0, 1), new(1, 1), new(1, 0), new(0, 0)];
         for (int i = 0; i < 4; i++)

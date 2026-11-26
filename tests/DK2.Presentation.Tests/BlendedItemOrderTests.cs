@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Numerics;
 using Xunit;
 
 namespace DK2.Presentation.Tests;
@@ -276,7 +277,7 @@ public sealed class BlendedItemOrderTests
         var order = new BlendedItemOrder();
         foreach (float run in runs) order.AddRun(run);
         var random = new Random(7);
-        var distances = new float[500];
+        float[] distances = new float[500];
         for (int i = 0; i < distances.Length; i++)
         {
             distances[i] = (float)(random.NextDouble() * 50);
@@ -302,8 +303,8 @@ public sealed class BlendedItemOrderTests
         var order = new BlendedItemOrder();
         foreach (float run in runs) order.AddRun(run);
         int n = 400;
-        var distances = new float[n];
-        var batches = new int[n];
+        float[] distances = new float[n];
+        int[] batches = new int[n];
         var blends = new BlendedItemBlend[n];
         var rects = new BlendedItemRect[n];
         for (int i = 0; i < n; i++)
@@ -317,8 +318,8 @@ public sealed class BlendedItemOrderTests
         }
         order.Order();
         // Each item's place in the drawing: its draw, then its place in the draw.
-        var drawnAt = new int[n];
-        var segmentOf = new int[n];
+        int[] drawnAt = new int[n];
+        int[] segmentOf = new int[n];
         int at = 0;
         foreach (BlendedItemSegment segment in order.Segments)
             foreach (int item in order.Items.Slice(segment.Start, segment.Count).ToArray()) drawnAt[item] = at++;
@@ -355,14 +356,14 @@ public sealed class BlendedItemOrderTests
             var centre = new System.Numerics.Vector3((float)random.NextDouble() * 12 - 3, (float)random.NextDouble() * 3,
                 (float)random.NextDouble() * 12);
             float radius = (float)random.NextDouble() * 0.8f + 0.01f;
-            BlendedItemRect box = BlendedItemRect.OfSphere(TiltedView, centre, radius);
+            var box = BlendedItemRect.OfSphere(TiltedView, centre, radius);
             if (box == BlendedItemRect.Everywhere) continue;
             boxed++;
             for (int k = 0; k < 64; k++)
             {
-                var d = System.Numerics.Vector3.Normalize(new System.Numerics.Vector3((float)random.NextDouble() - .5f,
+                Vector3 d = System.Numerics.Vector3.Normalize(new System.Numerics.Vector3((float)random.NextDouble() - .5f,
                     (float)random.NextDouble() - .5f, (float)random.NextDouble() - .5f)) * radius;
-                System.Numerics.Vector4 clip = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(centre + d, 1f),
+                var clip = System.Numerics.Vector4.Transform(new System.Numerics.Vector4(centre + d, 1f),
                     System.Numerics.Matrix4x4.Transpose(TiltedView));
                 float x = clip.X / clip.W, y = clip.Y / clip.W;
                 Assert.True(x >= box.MinX - 1e-5f && x <= box.MaxX + 1e-5f && y >= box.MinY - 1e-5f && y <= box.MaxY + 1e-5f,
@@ -454,7 +455,7 @@ public sealed class BlendedItemOrderTests
         var order = new BlendedItemOrder();
         foreach (float run in runs) order.AddRun(run);
         int n = 300, barriers = 40;
-        var distances = new float[n];
+        float[] distances = new float[n];
         var rects = new BlendedItemRect[n];
         var walls = new (float Distance, BlendedItemRect Rect)[barriers];
         for (int i = 0; i < barriers; i++)

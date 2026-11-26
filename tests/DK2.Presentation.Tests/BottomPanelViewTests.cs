@@ -16,7 +16,7 @@ public sealed class BottomPanelViewTests
     [InstallFact]
     public void AVisibleChoicePlaysItsPressAndReleaseOnceAndUnknownChoicesStaySilent()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         var panel = new BottomPanelView(db, PlayerIds.FirstKeeper, (_, name) => name);
@@ -40,7 +40,7 @@ public sealed class BottomPanelViewTests
     [InstallFact]
     public void OwnedTimedReaperBlocksAnotherSummonAndShowsWholeSeconds()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         CreatureDef horny = db.Creatures.Values.First(c => (c.Flags & CreatureFlags.IsHorny) != 0);
@@ -60,8 +60,8 @@ public sealed class BottomPanelViewTests
     public void CampaignTalismanSelectsTheOneShotSpellAndConsumesTheRetainedUse()
     {
         string install = Dk2InstallGate.Path;
-        var level = GameDatabaseLoader.LoadCampaignLevel(install, "Level1")!;
-        var db = GameDatabaseLoader.Load(install).ForLevel(null,
+        LevelDef level = GameDatabaseLoader.LoadCampaignLevel(install, "Level1")!;
+        GameDatabase db = GameDatabaseLoader.Load(install).ForLevel(null,
             level with { Flags = (ushort)(level.Flags | 0x10), TalismanPieces = 4 });
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
@@ -81,7 +81,7 @@ public sealed class BottomPanelViewTests
     [InstallFact]
     public void ReaperUsesItsSeparateNativeControlAndNormalGridExcludesBothReaperSpells()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         var panel = new BottomPanelView(db, PlayerIds.FirstKeeper, (_, name) => name);
@@ -100,7 +100,7 @@ public sealed class BottomPanelViewTests
     [InstallFact]
     public void AnUpgradedSpellIsMarkedForItsSecondIcon()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         world.SetAvailability(PlayerIds.FirstKeeper, AvailabilityKind.Spell, 4, 3);
@@ -117,7 +117,7 @@ public sealed class BottomPanelViewTests
     [InstallFact]
     public void SelectingASpellAnnouncesItInItsGuiButtonCategory()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         KeeperSpellDef imp = db.KeeperSpellById(4)!;
@@ -141,7 +141,7 @@ public sealed class BottomPanelViewTests
     [InstallFact]
     public void SpellsAndWorkshopTabsShowOnlyWhenOneOfTheirChoicesIsPresent()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         PlayerId keeper = PlayerIds.FirstKeeper;
@@ -173,7 +173,7 @@ public sealed class BottomPanelViewTests
     [InstallFact]
     public void StoredSpecialsFollowTheRoomListThenNewestObjectFirstAsAStandInAndOnlyOwnLibraryBoxesCount()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         PlayerId keeper = PlayerIds.FirstKeeper;
@@ -208,7 +208,7 @@ public sealed class BottomPanelViewTests
     [InstallFact]
     public void DoorsAndTrapsNeedAWorkshopRoomsAndSpellsDoNot()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         PlayerId keeper = PlayerIds.FirstKeeper;
@@ -227,7 +227,7 @@ public sealed class BottomPanelViewTests
     [InstallFact]
     public void UnknownAndAbsentRoomsCannotSelectAndHandCancelsTheSelectedRoom()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         var panel = new BottomPanelView(db, PlayerIds.FirstKeeper, (_, name) => name);
@@ -251,7 +251,7 @@ public sealed class BottomPanelViewTests
     [InstallFact]
     public void RoomChoicesUseLocalizedNamesAndRetainUnaffordableSelection()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         var panel = new BottomPanelView(db, PlayerIds.FirstKeeper, (_, name) => "localized " + name);
@@ -270,7 +270,7 @@ public sealed class BottomPanelViewTests
     [InstallFact]
     public void CaptureIsReadOnlyAndAllocatesNothingAfterConstruction()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         var sim = new GameSimulation(db, world, seed: 7);

@@ -30,7 +30,7 @@ public sealed class LightningBufferTests
                     EqualBits(expected[p].SubdivisionMaximumSegmentLength, actual[p].SubdivisionMaximumSegmentLength);
                     Assert.Equal(expected[p].Nodes.Count, actual[p].Nodes.Count);
                     for (int n = 0; n < expected[p].Nodes.Count; n++) EqualBits(expected[p].Nodes[n], actual[p].Nodes[n]);
-                    LightningRibbon ribbon = LightningRibbon.Build(expected[p].Nodes);
+                    var ribbon = LightningRibbon.Build(expected[p].Nodes);
                     int firstVertex = vertices.Count, firstIndex = triangles.Count;
                     LightningRibbon.Append(actual[p].Nodes, vertices, uvs, triangles);
                     Assert.Equal(firstVertex + ribbon.Vertices.Count, vertices.Count);

@@ -130,7 +130,7 @@ public class KeeperRoomRequestTests
         var state = new KeeperAIState();
         (KeeperRoomRequests rooms, List<PlayerCommand> commands) = Arms(world, state, Policy(1), _ => false);
         Assert.True(rooms.RoomFull(Post(world, PlayerMessageKind.RoomFull, RoomTypeId.Lair)));
-        var untag = Assert.IsType<TagTilesCommand>(Assert.Single(commands));
+        TagTilesCommand untag = Assert.IsType<TagTilesCommand>(Assert.Single(commands));
         Assert.Equal((false, new TilePos(15, 11)), (untag.Tagged, Assert.Single(untag.Tiles)));
 
         // A second 42 in the same walk finds no gold dig left to untag.
@@ -443,7 +443,7 @@ public class KeeperRoomRequestTests
         var keeper = new KeeperAI(Keeper, Policy(1), new SimRandom(9));
         Play(world, sim, keeper, 200, InputFrame.Of(new SellRoomCommand(Keeper, [new TilePos(17, 17)])));
 
-        List<RoomInstance> treasuries = RoomIndex.Build(world, Db)
+        var treasuries = RoomIndex.Build(world, Db)
             .Where(r => r.OwnerPlayerId == Keeper && r.Definition.TypeId == RoomTypeId.Treasury).ToList();
         Assert.Equal(2, treasuries.Count);
         Assert.Contains(treasuries, r => r.TileCount == 9 && r.MinX != 10);

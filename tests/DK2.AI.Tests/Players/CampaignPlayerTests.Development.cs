@@ -65,7 +65,7 @@ public partial class CampaignPlayerTests
         PlayerDecision grow = player.Decide(crowded);
 
         Assert.Equal(new PlayerAction.SelectPanel(GuiButtonTarget.Room(RoomTypeId.Lair)), grow.Actions[0]);
-        var build = Assert.IsType<PlayerAction.BuildRoom>(grow.Actions[1]);
+        PlayerAction.BuildRoom build = Assert.IsType<PlayerAction.BuildRoom>(grow.Actions[1]);
         // (5,1) is nearer the heart, but (4,1) touches the Lair, so the Lair grows rather than splits.
         Assert.Equal((RoomTypeId.Lair, new TilePos(4, 1), new TilePos(6, 3)), (build.Room, build.From, build.To));
         Assert.DoesNotContain(player.Decide(Observe(2, map: Developed, rooms: CoreOffers, owned: CoreOwned(), creatures: Goblins(10))).Actions,
@@ -81,7 +81,7 @@ public partial class CampaignPlayerTests
         static CampaignPlayer Banker() => Player(o => o with { GoldPerTreasuryTile = 3000, HeartGold = 16000 });
         // Heart 16000 + nine tiles x 3000 = 43000; 80% is 34400.
         PlayerDecision full = Banker().Decide(Observe(map: Developed, rooms: CoreOffers, owned: CoreOwned(), gold: 34400));
-        var build = Assert.IsType<PlayerAction.BuildRoom>(full.Actions[1]);
+        PlayerAction.BuildRoom build = Assert.IsType<PlayerAction.BuildRoom>(full.Actions[1]);
         Assert.Equal((RoomTypeId.Treasury, new TilePos(6, 1)), (build.Room, build.From));
 
         Assert.DoesNotContain(Banker().Decide(Observe(map: Developed, rooms: CoreOffers, owned: CoreOwned(), gold: 34399)).Actions,
@@ -100,9 +100,9 @@ public partial class CampaignPlayerTests
         ];
         CampaignPlayer player = Player();
 
-        var first = Assert.IsType<PlayerAction.BuildRoom>(player.Decide(Observe(rooms: offers, owned: CoreOwned())).Actions[1]);
+        PlayerAction.BuildRoom first = Assert.IsType<PlayerAction.BuildRoom>(player.Decide(Observe(rooms: offers, owned: CoreOwned())).Actions[1]);
         Assert.Equal(RoomTypeId.TrainingRoom, first.Room);                     // Training Room before Workshop, whatever the panel's order
-        var second = Assert.IsType<PlayerAction.BuildRoom>(player.Decide(Observe(2, rooms: offers,
+        PlayerAction.BuildRoom second = Assert.IsType<PlayerAction.BuildRoom>(player.Decide(Observe(2, rooms: offers,
             owned: CoreOwned(more: new PlayerRoomSummary(RoomTypeId.TrainingRoom, 9)))).Actions[1]);
         Assert.Equal(RoomTypeId.Workshop, second.Room);
         Assert.DoesNotContain(player.Decide(Observe(3, rooms: offers, owned: CoreOwned(more:
@@ -235,7 +235,7 @@ public partial class CampaignPlayerTests
     {
         CampaignPlayer player = Player();
         PlayerDecision grow = player.Decide(Observe(map: Developed, rooms: CoreOffers, owned: CoreOwned(lair: 20), creatures: Goblins(20)));
-        var build = Assert.IsType<PlayerAction.BuildRoom>(grow.Actions[1]);
+        PlayerAction.BuildRoom build = Assert.IsType<PlayerAction.BuildRoom>(grow.Actions[1]);
         Assert.Equal((RoomTypeId.Hatchery, new TilePos(6, 5)), (build.Room, build.From));     // 9 tiles feed 18 of 20
 
         // Two of the nine tiles stand (gold ran short): the build is done, and 11 tiles still feed only 22 of 24.

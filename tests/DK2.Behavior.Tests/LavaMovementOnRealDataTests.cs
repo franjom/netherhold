@@ -69,7 +69,7 @@ public class LavaMovementOnRealDataTests
     public void Level8LavaWalkersEnterLavaAndReachTheirDestination(string name)
     {
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
-        WorldState world = WorldState.FromMap(db,
+        var world = WorldState.FromMap(db,
             GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level8")!, [0, 1, 2, 3, 4]);
         var navigation = new WorldSteering(db, world);
         navigation.Refresh();

@@ -34,7 +34,7 @@ public class ImpsOnRealDataTests
         Assert.Equal(10, db[VariableTypeId.InsufficientManaImpEvaluationPeriodSeconds]);
         Assert.Equal(100, db[VariableTypeId.LowManaWarningThreshold]);
         Assert.Equal(7, db.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaUpkeepPerSecond);
-        var result = ManaPressureRules.Advance(default, 4, 0, -7, 5,
+        ManaPressureResult result = ManaPressureRules.Advance(default, 4, 0, -7, 5,
             (uint)db[VariableTypeId.MinimumImpThreshold],
             (ushort)db[VariableTypeId.LowManaWarningThreshold],
             (byte)db[VariableTypeId.InsufficientManaImpEvaluationPeriodSeconds], 4);
@@ -204,7 +204,7 @@ public class ImpsOnRealDataTests
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, map, map.Tiles.Select(t => t.PlayerId).Distinct());
 
         // Find somewhere an imp could actually stand and work: a floor tile with

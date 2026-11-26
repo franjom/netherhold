@@ -29,7 +29,7 @@ public class TempleStateTests
     /// <summary>A square Temple of the keeper's from (1,1); a 5×5 one has a 3×3 pool.</summary>
     private static WorldState World(GameDatabase db, int size)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= size; y++)
         for (int x = 1; x <= size; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Temple), Keeper);

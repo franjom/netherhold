@@ -18,7 +18,7 @@ public class HandPreparationTests
 
     private static (GameDatabase Db, WorldState World, CreatureState Fighter) Fight()
     {
-        var db = Dk2TerrainFixture.Database();
+        GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [Keeper, (byte)4]);
         CreatureState fighter = world.SpawnCreature(db, 7, Keeper, new TilePos(2, 2));
         CreatureState enemy = world.SpawnCreature(db, 7, 4, new TilePos(3, 2));

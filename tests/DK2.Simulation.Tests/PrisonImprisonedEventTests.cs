@@ -153,7 +153,7 @@ public class PrisonImprisonedEventTests
     private static (GameDatabase Db, WorldState World) PrisonWorld()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
         {
             for (int x = 1; x <= 8; x++)

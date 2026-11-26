@@ -195,8 +195,8 @@ public class TriggerStateTests
         // diverge as soon as that condition is evaluated - late, and far from
         // the cause.
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState a = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)3]);
-        WorldState b = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)3]);
+        var a = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)3]);
+        var b = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)3]);
 
         Assert.Equal(Hash(a), Hash(b));
 

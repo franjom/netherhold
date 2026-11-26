@@ -125,7 +125,7 @@ public sealed class HoverCursorResolverTests
     public void UnderFogAnUnexploredTileIsTheBareTile()
     {
         GameDatabase db = PressFixture.Database();
-        WorldState fogged = WorldState.FromMap(db, new LevelMap(8, 8, Enumerable.Repeat(new MapTile(0, 0, 0, 0), 64).ToArray()),
+        var fogged = WorldState.FromMap(db, new LevelMap(8, 8, Enumerable.Repeat(new MapTile(0, 0, 0, 0), 64).ToArray()),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper.Value], fogOfWarEnabled: true);
         var tile = new TilePos(3, 4);
 
@@ -165,7 +165,7 @@ public sealed class HoverCursorResolverTests
     [InstallFact]
     public void AHeldCreatureShowsTheDropCageInTheWorldAndTheHeldIconsOverTheHud()
     {
-        var (db, world, goblin) = PressFixture.Goblin();
+        (GameDatabase? db, WorldState? world, CreatureState? goblin) = PressFixture.Goblin();
         goblin.InHand = true;
         world.Player(Keeper).Hand.Add(HandItem.Of(goblin));
         Rig rig = Build(db, world);
@@ -190,7 +190,7 @@ public sealed class HoverCursorResolverTests
 
     private static (Rig Rig, CreatureState Goblin) Goblin()
     {
-        var (db, world, goblin) = PressFixture.Goblin();
+        (GameDatabase? db, WorldState? world, CreatureState? goblin) = PressFixture.Goblin();
         world.Tile(Water).TerrainId = db.Terrain.Values.Single(t => t.Name == "Water").TerrainId;
         world.Tile(Water).OwnerPlayerId = PlayerIds.Neutral;
         world.Tile(Dig).TerrainId = db.Terrain.Values.First(t => t.IsTaggable).TerrainId;
@@ -209,7 +209,7 @@ public sealed class HoverCursorResolverTests
     public void TheSpellRefusalIsTakenBeforeTheHeldIconGate()
     {
         // The goblin is in the hand but hidden: its pickup is pending with a deferred drop, so nothing is visibly held.
-        var (rig, goblin) = Goblin();
+        (Rig? rig, CreatureState? goblin) = Goblin();
         Assert.True(rig.View.LocalPickups.TryQueue(rig.World, rig.Database, Keeper, new CreatureId(goblin.Id), 0));
         Assert.True(rig.View.LocalPickups.TryQueueDrop(new DropCommand(Keeper, Floor22)));
         Hold(rig.World, goblin);
@@ -226,7 +226,7 @@ public sealed class HoverCursorResolverTests
     [InstallFact]
     public void AnOwnPickableCreatureIsStampedTintedSoundedAndTakesThePickupHand()
     {
-        var (rig, goblin) = Goblin();
+        (Rig? rig, CreatureState? goblin) = Goblin();
         var hit = new WorldHoverHit(WorldHoverKind.Creature, Floor22, goblin.Id);
         SoundRequest? expected = CreatureHoverSound.For(rig.World, rig.Database, hit, Keeper);
         Assert.NotNull(expected);
@@ -246,7 +246,7 @@ public sealed class HoverCursorResolverTests
     [InstallFact]
     public void AnOwnGoldPileTakesThePickupHandAndASpecialOnlyThePointingOne()
     {
-        var (rig, _) = Goblin();
+        (Rig? rig, CreatureState _) = Goblin();
         ObjectState gold = rig.World.SpawnObject(rig.Database, 1, Keeper, rig.World.TileIndex(new TilePos(1, 1)));
         byte specialType = rig.Database.Objects.Values.First(o => o.IsSpecial).ObjectId;
         ObjectState special = rig.World.SpawnObject(rig.Database, specialType, Keeper, rig.World.TileIndex(new TilePos(3, 1)));
@@ -260,7 +260,7 @@ public sealed class HoverCursorResolverTests
     [InstallFact]
     public void AnOwnStorePileTakesThePickupHandAndAForeignOneDoesNot()
     {
-        var (rig, _) = Goblin();
+        (Rig? rig, CreatureState _) = Goblin();
         var store = new TilePos(3, 2);
         ref TileState tile = ref rig.World.Tile(store);
         tile.TerrainId = rig.Database.Room(RoomTypeId.Treasury).TerrainId;
@@ -276,7 +276,7 @@ public sealed class HoverCursorResolverTests
     [InstallFact]
     public void InRoomModeADiggableTileKeepsTheBlueCageAndDrawsNoIcon()
     {
-        var (rig, _) = Goblin();
+        (Rig? rig, CreatureState _) = Goblin();
         rig.Tools.StartWith(DungeonToolMode.BuildRoom, RoomTypeId.Treasury);
 
         PlacementFeedback onDig = rig.Resolve(TileHit(Dig)).Placement;
@@ -288,7 +288,7 @@ public sealed class HoverCursorResolverTests
     [InstallFact]
     public void TheQueryToolKeepsItsIconAndTheHoverCursorWhileSomethingIsHeld()
     {
-        var (rig, goblin) = Goblin();
+        (Rig? rig, CreatureState? goblin) = Goblin();
         Hold(rig.World, goblin);
         rig.Tools.SelectCorner(ClassicHudAction.SelectQuery, rig.Input, PressFixture.Panel(rig.Database));
 
@@ -302,7 +302,7 @@ public sealed class HoverCursorResolverTests
     [InstallFact]
     public void ADoorChoiceKeepsItsIconOverTheHeldOnes()
     {
-        var (rig, goblin) = Goblin();
+        (Rig? rig, CreatureState? goblin) = Goblin();
         Hold(rig.World, goblin);
         byte door = rig.Database.Doors.Keys.First();
         rig.Tools.SelectPanelChoice(new BottomPanelSelection(new BottomPanelChoiceKey(BottomPanelChoiceKind.Door, door),
@@ -317,7 +317,7 @@ public sealed class HoverCursorResolverTests
     [InstallFact]
     public void TheFullMapHidesTheCageButNotTheHeldIconsWhileOptionsHidesBoth()
     {
-        var (rig, goblin) = Goblin();
+        (Rig? rig, CreatureState? goblin) = Goblin();
         Hold(rig.World, goblin);
         Assert.Equal(new TileRectangle(4, 4, 5, 5), rig.Resolve(TileHit(Water)).Placement.Cage);
 
@@ -334,7 +334,7 @@ public sealed class HoverCursorResolverTests
     [InstallFact]
     public void TheHoverCageShowsOnAnInnerDigTileOnlyWithoutPossessionOrAModalMenu()
     {
-        var (rig, goblin) = Goblin();
+        (Rig? rig, CreatureState? goblin) = Goblin();
         Assert.Equal(new TileRectangle(1, 3, 2, 4), rig.Resolve(TileHit(Dig)).Placement.Cage);
         Assert.True(rig.Resolve(TileHit(Dig)).Placement.Valid);
         // Not over a plain floor with an empty hand.

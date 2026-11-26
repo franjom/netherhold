@@ -13,7 +13,7 @@ public sealed class BedlessSleepNeedTests
     [Fact]
     public void AHealthyUntiredCreatureHandsIdleToTheChooserBeforeAcquiringALair()
     {
-        var (sim, creature, events) = Start(withChooser: true);
+        (GameSimulation? sim, CreatureState? creature, ListEventSink? events) = Start(withChooser: true);
         uint seed = ((Dk2Lcg)sim.Rng.Algorithm).Seed;
         long x = creature.PosX, y = creature.PosY;
 
@@ -35,7 +35,7 @@ public sealed class BedlessSleepNeedTests
     [Fact]
     public void AHealthyUntiredBedlessCreatureDoesNotAskTheSleepNeedForALair()
     {
-        var (sim, creature, events) = Start();
+        (GameSimulation? sim, CreatureState? creature, ListEventSink? events) = Start();
         creature.TimerTicks = 7;
         uint seed = ((Dk2Lcg)sim.Rng.Algorithm).Seed;
 
@@ -50,7 +50,7 @@ public sealed class BedlessSleepNeedTests
     [Fact]
     public void ATiredBedlessCreatureUsesTheSleepRetryRatherThanTheIdleCountdown()
     {
-        var (sim, creature, _) = Start();
+        (GameSimulation? sim, CreatureState? creature, ListEventSink _) = Start();
         creature.SleepDebtTicks = 8;
         creature.NextSleepTryTick = new GameTick(4);
         creature.TimerTicks = 99;
@@ -68,7 +68,7 @@ public sealed class BedlessSleepNeedTests
     [Fact]
     public void ABusyBedlessAttemptSpendsItsRetryBeforeTheCreatureBecomesFree()
     {
-        var (sim, creature, _) = Start();
+        (GameSimulation? sim, CreatureState? creature, ListEventSink _) = Start();
         creature.SleepDebtTicks = 8;
         creature.DroppedOnARoom = true;
         creature.PickupTick = -15;
@@ -85,7 +85,7 @@ public sealed class BedlessSleepNeedTests
     [Fact]
     public void AWoundedBedlessResearcherMaySeekALairWithoutDebtOrARetryWait()
     {
-        var (sim, creature, _) = Start();
+        (GameSimulation? sim, CreatureState? creature, ListEventSink _) = Start();
         StatePlacement.Place(creature, 56);
         creature.Health = 1;
         creature.NextSleepTryTick = new GameTick(100);
@@ -101,7 +101,7 @@ public sealed class BedlessSleepNeedTests
     private static (GameSimulation, CreatureState, ListEventSink) Start(bool withChooser = false)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3]);
         for (int y = 1; y <= 3; y++)
             for (int x = 1; x <= 8; x++)
             {

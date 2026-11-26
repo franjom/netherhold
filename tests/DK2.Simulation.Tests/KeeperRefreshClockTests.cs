@@ -28,7 +28,7 @@ public sealed class KeeperRefreshClockTests
     [Fact]
     public void TheFirstKeeperFrameDrawsARefreshDelay()
     {
-        WorldState world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper]);
         var draws = new Draws();
         var sim = new GameSimulation(Db, world, new SimRandom(draws), [new DungeonHeartSystem(frames: false)]);
         draws.Bounds.Clear();
@@ -39,7 +39,7 @@ public sealed class KeeperRefreshClockTests
     [Fact]
     public void KeeperDelaysPrecedeTheNeutralFrameInActiveOrder()
     {
-        WorldState world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, (byte)(Keeper + 1)]);
+        var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, (byte)(Keeper + 1)]);
         var draws = new Draws(7, 23);
         var sim = new GameSimulation(Db, world, new SimRandom(draws), [new DungeonHeartSystem(frames: false), new NeutralAmbientEffectSystem()]);
         draws.Bounds.Clear();
@@ -52,7 +52,7 @@ public sealed class KeeperRefreshClockTests
     [Fact]
     public void ADefeatedKeeperDoesNotRunTheClock()
     {
-        WorldState world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper]);
         world.Player(Keeper).KilledByPlayerId = PlayerIds.Good;
         var draws = new Draws();
         var sim = new GameSimulation(Db, world, new SimRandom(draws), [new DungeonHeartSystem(frames: false)]);
@@ -94,7 +94,7 @@ public sealed class KeeperRefreshClockTests
     [InlineData(PlayerStatus.Playing, true)]
     public void StatusDoesNotGateTheClockAndBit22KeepsTheKeeperFrameAlive(byte status, bool afterDefeat)
     {
-        WorldState world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper]);
         ref PlayerState player = ref world.Player(Keeper);
         player.Status = status;
         player.KilledByPlayerId = afterDefeat ? PlayerIds.Good : (byte)0;
@@ -110,7 +110,7 @@ public sealed class KeeperRefreshClockTests
     [Fact]
     public void SaveAndCopyRetainThePendingRequestAndContinueTheSameStream()
     {
-        WorldState world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper]);
         var sim = new GameSimulation(Db, world, new SimRandom(new Dk2Lcg(7)), [new DungeonHeartSystem(frames: false)]);
         sim.Run(5);
         ref PlayerState player = ref world.Player(Keeper);
@@ -118,7 +118,7 @@ public sealed class KeeperRefreshClockTests
         player.KeeperFrameAfterDefeat = true;
         player.KilledByPlayerId = PlayerIds.Good;
         GameSimulation loaded = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), Db, [new DungeonHeartSystem(frames: false)]);
-        WorldState copy = WorldState.CopyOf(world);
+        var copy = WorldState.CopyOf(world);
         Assert.Equal(player.KeeperRefresh, loaded.World.Player(Keeper).KeeperRefresh);
         Assert.Equal(player.KeeperRefresh, copy.Player(Keeper).KeeperRefresh);
         Assert.True(loaded.World.Player(Keeper).KeeperFrameAfterDefeat);
@@ -134,7 +134,7 @@ public sealed class KeeperRefreshClockTests
     [Fact]
     public void EachRetainedClockInputChangesTheHash()
     {
-        WorldState world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper]);
+        var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper]);
         var sim = new GameSimulation(Db, world, 7, []);
         ulong original = sim.StateHash();
         foreach (KeeperRefreshClock changed in new[]

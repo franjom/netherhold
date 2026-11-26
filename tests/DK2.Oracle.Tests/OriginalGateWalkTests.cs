@@ -84,7 +84,7 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
 
         string[] arms = ["hit", "written, outside the box", "not written, zero denominator", "not written, past the gate's ends"];
         var mismatches = new List<string>();
-        var reached = arms.ToDictionary(a => a, _ => 0);
+        Dictionary<string, int> reached = arms.ToDictionary(a => a, _ => 0);
         int faults = 0;
         for (int i = 0; i < inputs.Count; i++)
         {
@@ -129,7 +129,7 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
             [.. Enumerable.Range(0, 7).Select(i => Record + 4 * (uint)i)]))]);
 
         var mismatches = new List<string>();
-        var reached = arms.ToDictionary(a => a, _ => 0);
+        Dictionary<string, int> reached = arms.ToDictionary(a => a, _ => 0);
         int faults = 0;
         for (int i = 0; i < inputs.Length; i++)
         {

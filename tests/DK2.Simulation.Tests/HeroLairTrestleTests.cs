@@ -31,7 +31,7 @@ public class HeroLairTrestleTests
     /// <summary>A lair patch of <paramref name="width"/> by <paramref name="height"/> tiles at (8, 2) on the 16 by 12 map.</summary>
     private static WorldState World(GameDatabase db, int width, int height)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
         for (int y = 2; y < 2 + height; y++)
             for (int x = 8; x < 8 + width; x++)
                 world.Tile(x, y).TerrainId = Lair;

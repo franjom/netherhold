@@ -121,7 +121,7 @@ public class PrisonRescueMessageTests
                     ? new MapTile(Db.Room(RoomTypeId.Prison).TerrainId, Keeper, 0, 0)
                     : fixture[x, y];
 
-        WorldState world = WorldState.FromMap(Db, new LevelMap(fixture.Width, fixture.Height, tiles),
+        var world = WorldState.FromMap(Db, new LevelMap(fixture.Width, fixture.Height, tiles),
             [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
         Assert.Equal(JailBreakRules.Activated, JailBreakRules.DoorOf(world, PrisonAt(world, 5, 5)));
     }

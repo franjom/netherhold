@@ -19,7 +19,7 @@ public sealed class CombatPitTransportTests
     private static (GameSimulation Sim, CreatureState Loser) Setup(bool movement = true)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(16, 16), [PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(16, 16), [PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < 15; y++)
         for (int x = 1; x < 15; x++)
         {
@@ -118,7 +118,7 @@ public sealed class CombatPitTransportTests
     {
         (GameSimulation sim, CreatureState loser) = Setup();
         sim.Run(checkpoint);
-        WorldState copy = WorldState.CopyOf(sim.World);
+        var copy = WorldState.CopyOf(sim.World);
         CreatureState copied = copy.CreatureById(loser.Id)!;
         Assert.Equal((loser.PitTransportPhase, loser.PitTransportAfter, loser.PitTransportFloorHeight),
             (copied.PitTransportPhase, copied.PitTransportAfter, copied.PitTransportFloorHeight));
@@ -176,7 +176,7 @@ public sealed class CombatPitTransportTests
         Assert.True(loser.Tile.X is 4 or 8 || loser.Tile.Y is 4 or 8);
         sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 6));
         var events = new ListEventSink();
-        GameSimulation rescue = GameSimulation.Resume(sim.Database, sim.World, sim.Rng,
+        var rescue = GameSimulation.Resume(sim.Database, sim.World, sim.Rng,
             [new CreatureStatusSystem(), new ImpTaskSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]);
         rescue.ObserveWith(events);
         for (int tick = 0; tick < 200 && loser.Dk2StateId != LairRules.SleepingState; tick++) rescue.Tick();

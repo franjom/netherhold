@@ -28,7 +28,7 @@ public class KwdImmutableEditTests
     {
         ThingRecord original = new ObjectThing(new byte[24]) { X = 12, Y = 34, Unknown_0008 = new byte[4] };
         ThingRecord copy = original with { };
-        var typed = Assert.IsType<ObjectThing>(copy);
+        ObjectThing typed = Assert.IsType<ObjectThing>(copy);
         Assert.NotSame(original, copy);
         Assert.Equal(12, typed.X); Assert.Equal(34, typed.Y);
         Assert.Equal(original.ToBytes(), copy.ToBytes());

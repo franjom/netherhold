@@ -28,7 +28,7 @@ public class MusicDirectorTests
         hero.FightTargetKind = keeper.FightTargetKind = FightTargetKind.Creature;
         var observer = new MusicWorldObserver(new PlayerId(3), new MusicDirector());
         observer.Capture(world, db, new GameTick(100));
-        var battle = Assert.Single(observer.Battles, b => b.MemberCount != 0);
+        BattleViewSnapshot battle = Assert.Single(observer.Battles, b => b.MemberCount != 0);
         Assert.Equal(new BattleViewSlot(0), battle.Slot);
         Assert.Equal(new TilePos(11, 10), battle.Centre);
         Assert.True(battle.Owners.Contains(new PlayerId(1)));
@@ -107,7 +107,7 @@ public class MusicDirectorTests
         var stream = new PcmAudioQueue(22050);
         stream.Enqueue(new PcmClip(22050, 1, [100, 200]));
         stream.Enqueue(new PcmClip(22050, 2, [300, 400]));
-        var samples = new float[8]; stream.Read(samples);
+        float[] samples = new float[8]; stream.Read(samples);
         Assert.Equal(new[] { 100, 100, 200, 200, 300, 400, 0, 0 }, samples.Select(s => (int)(s * 32768)));
         Assert.Equal(0, stream.RemainingFrames);
     }

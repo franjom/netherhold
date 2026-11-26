@@ -18,7 +18,7 @@ public sealed class CreatureOverviewHudTests
     private static (CreatureOverviewHud Hud, CreatureOverviewType Goblin) Overview()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         CreatureDef goblin = db.CreatureByName("Goblin")!;
         world.SpawnCreature(db, goblin.CreatureId, PlayerIds.FirstKeeper, new(8, 8));

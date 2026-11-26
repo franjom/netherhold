@@ -14,7 +14,7 @@ public sealed class LibraryStopRouteTests
     [Fact]
     public void AStoppedLibraryReturnStillTakesItsStationaryFacingStep()
     {
-        var (db, world, reader) = Reader();
+        (GameDatabase? db, WorldState? world, CreatureState? reader) = Reader();
         reader.Heading = 1050;
         reader.StopMoving();
         StatePlacement.Place(reader, ResearchStep.ReturningState);
@@ -32,8 +32,8 @@ public sealed class LibraryStopRouteTests
     [InlineData(true)]
     public void TheEntryWalkResumesAtWholeProgressWithEitherFinishedFlag(bool finished)
     {
-        var (db, world, reader) = Walk(entry: true, whole: true, finished);
-        var position = (reader.PosX, reader.PosY);
+        (GameDatabase? db, WorldState? world, CreatureState? reader) = Walk(entry: true, whole: true, finished);
+        (int PosX, int PosY) position = (reader.PosX, reader.PosY);
 
         new GameSimulation(db, world, 1, [new CreatureUpdateSystem(new CreatureJobSystem())]).Tick();
 
@@ -46,8 +46,8 @@ public sealed class LibraryStopRouteTests
     [InlineData(true)]
     public void TheInternalWalkResumesAtWholeProgressWithEitherFinishedFlag(bool finished)
     {
-        var (db, world, reader) = Walk(entry: false, whole: true, finished);
-        var position = (reader.PosX, reader.PosY);
+        (GameDatabase? db, WorldState? world, CreatureState? reader) = Walk(entry: false, whole: true, finished);
+        (int PosX, int PosY) position = (reader.PosX, reader.PosY);
 
         new GameSimulation(db, world, 1, [new CreatureUpdateSystem(new ResearchTurn())]).Tick();
 
@@ -60,7 +60,7 @@ public sealed class LibraryStopRouteTests
     [InlineData(true)]
     public void AnIncompleteWalkKeepsItsResumeState(bool entry)
     {
-        var (db, world, reader) = Walk(entry, whole: false, finished: false);
+        (GameDatabase? db, WorldState? world, CreatureState? reader) = Walk(entry, whole: false, finished: false);
         int state = reader.Dk2StateId, resume = reader.UtilityNewState;
         ICreatureUpdateStep step = entry ? new CreatureJobSystem() : new ResearchTurn();
 
@@ -72,7 +72,7 @@ public sealed class LibraryStopRouteTests
     private static (GameDatabase, WorldState, CreatureState) Reader()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 4; y++)
         for (int x = 3; x <= 7; x++)
@@ -89,7 +89,7 @@ public sealed class LibraryStopRouteTests
 
     private static (GameDatabase, WorldState, CreatureState) Walk(bool entry, bool whole, bool finished)
     {
-        var (db, world, reader) = Reader();
+        (GameDatabase? db, WorldState? world, CreatureState? reader) = Reader();
         StatePlacement.Place(reader, entry ? 7 : 6);
         reader.UtilityNewState = entry ? ResearchStep.ChoosingState : ResearchStep.AtTheShelfState;
         Fixed16Vector point = reader.Body.Pos + new Fixed16Vector(whole ? 0 : Fixed16.One, 0);

@@ -88,7 +88,7 @@ public sealed class KeeperSpellUpgradeTests
     /// in it (one point a tick), as in ResearchTreeTests.</summary>
     private static WorldState World(GameDatabase db, byte spellId)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Neutral, Keeper]);
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(SpellKind, spellId, Available));
         for (int y = 1; y <= 3; y++)

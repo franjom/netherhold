@@ -14,7 +14,7 @@ public sealed class StoreGoldSteeringTests
     [Fact]
     public void TheCapturedStorePilesProduceImp444sNativeStep()
     {
-        var (db, world, nav) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? nav) = Setup();
         Store(db, world, new TilePos(18, 24));
         Store(db, world, new TilePos(18, 25));
         world.Tile(18, 24).GoldHeld = 1000;
@@ -42,7 +42,7 @@ public sealed class StoreGoldSteeringTests
     [InlineData(true)]
     public void StorePilesShareTheObjectsCreationOrder(bool goldFirst)
     {
-        var (db, world, nav) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? nav) = Setup();
         var at = new TilePos(2, 2);
         Store(db, world, at);
         if (goldFirst) Assert.Equal(1000, GoldStore.Deposit(world, db, PlayerIds.FirstKeeper, 1000));
@@ -64,7 +64,7 @@ public sealed class StoreGoldSteeringTests
     [Fact]
     public void ToppingUpKeepsTheLinkButAnEmptiedPileIsRecreatedAtTheHead()
     {
-        var (db, world, nav) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? nav) = Setup();
         var at = new TilePos(2, 2);
         Store(db, world, at);
         GoldStore.Deposit(world, db, PlayerIds.FirstKeeper, 1000);
@@ -85,7 +85,7 @@ public sealed class StoreGoldSteeringTests
     [Fact]
     public void AnEmptyStoreDoesNotContributeAPile()
     {
-        var (db, world, nav) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? nav) = Setup();
         Store(db, world, new TilePos(2, 2));
         nav.Refresh();
         Assert.Empty(Query(nav, new TilePos(2, 2)));
@@ -94,7 +94,7 @@ public sealed class StoreGoldSteeringTests
     [Fact]
     public void APhysicalStorePileIsNotCountedTwice()
     {
-        var (db, world, nav) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? nav) = Setup();
         var at = new TilePos(2, 2);
         Store(db, world, at);
         world.Tile(at).GoldHeld = 1000;
@@ -106,7 +106,7 @@ public sealed class StoreGoldSteeringTests
     [Fact]
     public void ThePileLinkChangesTheHashAndSurvivesSaveAndCopy()
     {
-        var (db, world, nav) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? nav) = Setup();
         var at = new TilePos(2, 2);
         Store(db, world, at);
         GoldStore.Deposit(world, db, PlayerIds.FirstKeeper, 1000);
@@ -121,7 +121,7 @@ public sealed class StoreGoldSteeringTests
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db);
         Assert.Equal(world.Tile(at).StoreGoldLinkOrder, restored.World.Tile(at).StoreGoldLinkOrder);
         Assert.Equal(sim.StateHash(), restored.StateHash());
-        var (_, copy, _) = Setup();
+        (GameDatabase _, WorldState? copy, WorldSteering _) = Setup();
         copy.CopyFrom(world);
         Assert.Equal(world.Tile(at).StoreGoldLinkOrder, copy.Tile(at).StoreGoldLinkOrder);
     }
@@ -129,7 +129,7 @@ public sealed class StoreGoldSteeringTests
     [Fact]
     public void ADirectTileDepositCreatesTheNewestPileLink()
     {
-        var (db, world, nav) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering? nav) = Setup();
         var at = new TilePos(2, 2);
         Store(db, world, at);
         world.SpawnObject(db, 8, PlayerIds.FirstKeeper, world.TileIndex(at));
@@ -141,7 +141,7 @@ public sealed class StoreGoldSteeringTests
     [Fact]
     public void ARefusedDirectDepositDoesNotCreateAPileLink()
     {
-        var (db, world, _) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering _) = Setup();
         var at = new TilePos(2, 2);
         Assert.Equal(0, GoldStore.DepositInto(world, db, tileIndex: world.TileIndex(at), amount: 1000));
         Assert.Equal(0, world.Tile(at).StoreGoldLinkOrder);
@@ -150,11 +150,11 @@ public sealed class StoreGoldSteeringTests
     [Fact]
     public void PaydayClearsTheLinkOfAnEmptiedPile()
     {
-        var (db, world, _) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering _) = Setup();
         var at = new TilePos(2, 2);
         Store(db, world, at);
         GoldStore.Deposit(world, db, PlayerIds.FirstKeeper, 1000);
-        var room = RoomIndex.RoomAt(world, db, world.TileIndex(at))!;
+        RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(at))!;
         Assert.Equal(1000, PaydayRules.TakeFromRoom(world, room, start: world.TileIndex(at), wanted: 1000));
         Assert.Equal(0, world.Tile(at).StoreGoldLinkOrder);
     }
@@ -162,7 +162,7 @@ public sealed class StoreGoldSteeringTests
     [Fact]
     public void RemovingTheRoomClearsTheSpilledPilesLink()
     {
-        var (db, world, _) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering _) = Setup();
         var at = new TilePos(2, 2);
         Store(db, world, at);
         GoldStore.Deposit(world, db, PlayerIds.FirstKeeper, 1000);
@@ -173,7 +173,7 @@ public sealed class StoreGoldSteeringTests
     [Fact]
     public void TerrainDamageClearsTheSpilledPilesLink()
     {
-        var (db, world, _) = Setup();
+        (GameDatabase? db, WorldState? world, WorldSteering _) = Setup();
         var at = new TilePos(2, 2);
         Store(db, world, at);
         GoldStore.Deposit(world, db, PlayerIds.FirstKeeper, 1000);
@@ -196,7 +196,7 @@ public sealed class StoreGoldSteeringTests
     private static (GameDatabase, WorldState, WorldSteering) Setup()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(24, 32),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(24, 32),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
         for (int x = 1; x < world.Width - 1; x++)

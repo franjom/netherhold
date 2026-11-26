@@ -41,7 +41,7 @@ public sealed class TrainingTargetRebuildTests
     private static (GameDatabase Db, WorldState World, Draws Draws, GameSimulation Sim) Setup(bool specialWalls = true, bool targetWall = true)
     {
         GameDatabase db = Database(specialWalls);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
         Paint(db, world, RoomTypeId.TrainingRoom, 4, 4);
         for (int y = 4; y <= 6; y++)
             world.Tile(7, y).TerrainId = targetWall ? Dk2TerrainFixture.ReinforcedWall : Dk2TerrainFixture.Rock;
@@ -62,7 +62,7 @@ public sealed class TrainingTargetRebuildTests
     [Fact]
     public void FinishingAnAdjacentWallReplacesDummiesAndTargetAndDrawsOnce()
     {
-        var (_, world, draws, sim) = Setup();
+        (GameDatabase _, WorldState? world, Draws? draws, GameSimulation? sim) = Setup();
         ObjectState oldTarget = Assert.Single(world.Objects, o => o.ObjectTypeId == Target);
         ObjectState oldDummy = Assert.Single(world.Objects, o => o.ObjectTypeId == Dk2TerrainFixture.TrainingDummyObjectId);
         Reinforce(world, new TilePos(3, 5), 1000);
@@ -85,7 +85,7 @@ public sealed class TrainingTargetRebuildTests
     [InlineData(false, 1000)]
     public void PartialWorkOrRoomWithoutSpecialWallsDoesNotRebuild(bool specialWalls, int multiplier)
     {
-        var (_, world, draws, sim) = Setup(specialWalls);
+        (GameDatabase _, WorldState? world, Draws? draws, GameSimulation? sim) = Setup(specialWalls);
         int[] ids = world.Objects.Select(o => o.Id).ToArray();
         Reinforce(world, new TilePos(3, 5), multiplier);
         sim.Tick();
@@ -96,7 +96,7 @@ public sealed class TrainingTargetRebuildTests
     [Fact]
     public void ARefreshVisitsHatcheryNorthBeforeTrainingEast()
     {
-        var (db, world, draws, _) = Setup();
+        (GameDatabase? db, WorldState? world, Draws? draws, GameSimulation _) = Setup();
         Paint(db, world, RoomTypeId.Hatchery, 2, 1);
         var sim = new GameSimulation(db, world, new SimRandom(draws), [new TileWorkSystem(), new AutoFurnitureSystem()]);
         draws.Bounds.Clear();
@@ -108,7 +108,7 @@ public sealed class TrainingTargetRebuildTests
     [Fact]
     public void ARebuiltRoomWithNoWallTargetReplacesItsDummyWithoutDrawing()
     {
-        var (_, world, draws, sim) = Setup(targetWall: false);
+        (GameDatabase _, WorldState? world, Draws? draws, GameSimulation? sim) = Setup(targetWall: false);
         Assert.DoesNotContain(world.Objects, o => o.ObjectTypeId == Target);
         ObjectState dummy = Assert.Single(world.Objects, o => o.ObjectTypeId == Dk2TerrainFixture.TrainingDummyObjectId);
         Reinforce(world, new TilePos(3, 5), 1000);
@@ -121,7 +121,7 @@ public sealed class TrainingTargetRebuildTests
     [Fact]
     public void FourNeighborsInTheSameRoomCauseFourRebuilds()
     {
-        var (_, world, draws, sim) = Setup();
+        (GameDatabase _, WorldState? world, Draws? draws, GameSimulation? sim) = Setup();
         Reinforce(world, new TilePos(5, 5), 1000);
         sim.Tick();
         Assert.Equal(new[] { 4096, 4096, 4096, 4096 }, draws.Bounds);

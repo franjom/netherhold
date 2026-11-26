@@ -67,7 +67,7 @@ public sealed class RoomBorderFlameEffectTests
     [InstallFact]
     public void ShippedFlameRoundRoomIsTheResearchedGrowingSpriteChainedToItsSparks()
     {
-        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         EffectDef flame = db.Effects[Flame];
         Assert.Equal(("gtorch", 0x67u, 0, 0xA0u), (flame.ArtResource.Name, flame.ArtResource.Flags, flame.GenerationType, flame.Flags));
         Assert.Equal((0, 1228, 20), (flame.MinScale, flame.MaxScale, (int)flame.MinHp));

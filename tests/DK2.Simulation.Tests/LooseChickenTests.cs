@@ -20,7 +20,7 @@ public class LooseChickenTests
     private static (GameSimulation Sim, ObjectState Chicken, ListEventSink Sink) Start(uint seed, Action<GameDatabase, WorldState>? shape = null)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
         shape?.Invoke(db, world);
         ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 2 * world.Width + 2);
         chicken.ChickenCanEscape = true;
@@ -43,7 +43,7 @@ public class LooseChickenTests
     [Fact]
     public void ItWalksToAPointInTheFirstOpenSideFromTheDrawnOne()
     {
-        var (sim, chicken, _) = Start(1);
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(1);
         var expected = new Dk2Lcg(SeedOf(sim));
         sim.Tick();
 
@@ -59,7 +59,7 @@ public class LooseChickenTests
     [Fact]
     public void WithNoSideOpenItDrawsOnlyTheStartAndItsProcessIsCleared()
     {
-        var (sim, chicken, _) = Start(1, (db, world) =>
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(1, (db, world) =>
         {
             foreach (TilePos side in Sides) Rock(db, world, new TilePos(2 + side.X, 2 + side.Y));
         });
@@ -80,7 +80,7 @@ public class LooseChickenTests
         uint seed = 1;
         int start = new Dk2Lcg(seed).NextInt(4);
         int roomSide = fourth ? (start + 3) & 3 : start;
-        var (sim, chicken, _) = Start(seed, (db, world) =>
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(seed, (db, world) =>
         {
             for (int i = 0; i < 4; i++)
             {
@@ -102,7 +102,7 @@ public class LooseChickenTests
     {
         uint seed = 1;
         int last = (new Dk2Lcg(seed).NextInt(4) + 3) & 3;
-        var (sim, chicken, _) = Start(seed, (db, world) =>
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(seed, (db, world) =>
         {
             for (int i = 0; i < 4; i++)
             {
@@ -121,7 +121,7 @@ public class LooseChickenTests
     [Fact]
     public void AFreeRangeBirdLosesOneHealthATurnAndDiesAtNone()
     {
-        var (sim, chicken, sink) = Start(1);
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink? sink) = Start(1);
         Assert.Equal(1000, chicken.Health);
         sim.Tick();
         sim.Tick();
@@ -135,7 +135,7 @@ public class LooseChickenTests
     [Fact]
     public void AnotherOwnersTileIsNotASide()
     {
-        var (sim, chicken, _) = Start(1, (db, world) =>
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(1, (db, world) =>
         {
             foreach (TilePos side in Sides) world.Tile(new TilePos(2 + side.X, 2 + side.Y)).OwnerPlayerId = PlayerIds.Neutral;
         });
@@ -164,7 +164,7 @@ public class LooseChickenTests
         };
         var db = new GameDatabase(original.Terrain.Values, original.Rooms.Values, original.Creatures.Values,
             original.Variables, objects: original.Objects.Values.Append(pillar));
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
         for (int y = 2; y <= 6; y++)
             for (int x = 2; x <= 6; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Keeper);
@@ -199,7 +199,7 @@ public class LooseChickenTests
     public void ADoorTrapObstacleOrOtherNavClassSideIsRefused(Blocker blocker)
     {
         var open = new TilePos(2, 1);
-        var (sim, chicken, _) = Start(1, (db, world) =>
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(1, (db, world) =>
         {
             for (int i = 1; i < 4; i++) Rock(db, world, new TilePos(2 + Sides[i].X, 2 + Sides[i].Y));
             switch (blocker)
@@ -225,7 +225,7 @@ public class LooseChickenTests
     [Fact]
     public void ABirdAHatcheryHoldsRoamsWhileOnAHatchery()
     {
-        var (sim, chicken, _) = Start(1, (db, world) =>
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(1, (db, world) =>
             RoomRules.Place(db, ref world.Tile(2, 2), db.Room(RoomTypeId.Hatchery), Keeper));
         chicken.ChickenCanEscape = false;
         sim.Tick();
@@ -236,7 +236,7 @@ public class LooseChickenTests
     [Fact]
     public void AScaredBirdDrawsNothing()
     {
-        var (sim, chicken, _) = Start(1);
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(1);
         chicken.ChickenScared = true;
         uint before = SeedOf(sim);
         sim.Tick();
@@ -247,7 +247,7 @@ public class LooseChickenTests
     [Fact]
     public void ABirdAHatcheryHoldsDiesOffAnyHatcheryWithoutADraw()
     {
-        var (sim, chicken, sink) = Start(1);
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink? sink) = Start(1);
         chicken.ChickenCanEscape = false;
         uint before = SeedOf(sim);
         sim.Tick();
@@ -259,7 +259,7 @@ public class LooseChickenTests
     [Fact]
     public void ABirdOfAFallenKeeperDies()
     {
-        var (sim, chicken, _) = Start(1);
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(1);
         sim.World.Player(Keeper).KilledByPlayerId = PlayerIds.Good;
         uint before = SeedOf(sim);
         sim.Tick();
@@ -270,7 +270,7 @@ public class LooseChickenTests
     [Fact]
     public void ABirdOnATerrainWithDamageDies()
     {
-        var (sim, chicken, _) = Start(1, (db, world) => world.Tile(2, 2).TerrainId = Dk2TerrainFixture.Lava);
+        (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(1, (db, world) => world.Tile(2, 2).TerrainId = Dk2TerrainFixture.Lava);
         sim.Tick();
         Assert.DoesNotContain(chicken, sim.World.Objects);
     }

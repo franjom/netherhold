@@ -208,7 +208,7 @@ public class TriggerCaptureComparisonTests
         var lines = new List<string> { TriggerTurnCsvEmitter.Header };
         foreach (CsvRow row in rows)
         {
-            var cells = new string[columns.Length];
+            string[] cells = new string[columns.Length];
             Array.Fill(cells, "0");
             cells[0] = string.Empty;
             cells[1] = row.Tick.ToString(System.Globalization.CultureInfo.InvariantCulture);

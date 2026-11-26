@@ -40,7 +40,7 @@ public class PlayerObservationTrapTests
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
                 tiles[y * width + x] = new MapTile(PlayerObservationTests.DirtPath, x < PlayerObservationTests.Seen ? (byte)3 : (byte)4, 0, 0);
-        WorldState world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [3, 4], fogOfWarEnabled: true);
+        var world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [3, 4], fogOfWarEnabled: true);
         for (int y = 0; y < height; y++)
             for (int x = 0; x < PlayerObservationTests.Seen; x++)
                 world.Tile(x, y).SetExploredBy(3);

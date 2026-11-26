@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Numerics;
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
@@ -15,7 +16,7 @@ public sealed class StatusFlowersTests
     [InstallFact]
     public void CasinoWinnerReplacesEveryOrdinaryFlowerLayerUntilItsTimerClears()
     {
-        var (db, world, own) = Setup(); own.JackpotDeadlineTicks = 12;
+        (GameDatabase? db, WorldState? world, CreatureState? own) = Setup(); own.JackpotDeadlineTicks = 12;
         var flowers = new StatusFlowers(db, PlayerIds.FirstKeeper);
         StatusFlower winner = Assert.Single(flowers.Capture(world, new GameTick(10), new CreatureQueryTarget(own.Id)),
             f => f.CreatureId == own.Id);
@@ -66,7 +67,7 @@ public sealed class StatusFlowersTests
     [InstallFact]
     public void AnUnstartedWorldDoesNotShowAnOwnCreaturesUnrequestedFlower_StartupTurnOneStronglyInferred()
     {
-        var (db, world, own) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? own) = Setup();
         var flowers = new StatusFlowers(db, PlayerIds.FirstKeeper);
         Assert.DoesNotContain(flowers.Capture(world, GameTick.Zero, CreatureQueryTarget.None), f => f.CreatureId == own.Id);
     }
@@ -77,7 +78,7 @@ public sealed class StatusFlowersTests
         (GameDatabase db, WorldState world, CreatureState own) = Setup();
         CreatureState enemy = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.Good, new(9, 8));
         var flowers = new StatusFlowers(db, PlayerIds.FirstKeeper);
-        var shown = flowers.Capture(world, new GameTick(10), CreatureQueryTarget.None);
+        IReadOnlyList<StatusFlower> shown = flowers.Capture(world, new GameTick(10), CreatureQueryTarget.None);
         Assert.DoesNotContain(shown, f => f.CreatureId == own.Id);
         StatusFlower flower = Assert.Single(shown, f => f.CreatureId == enemy.Id);
         Assert.Equal(new PlayerId(PlayerIds.Good), flower.Owner);
@@ -153,7 +154,7 @@ public sealed class StatusFlowersTests
         own.Dk2StateId = CreatureDeathRules.DyingState;
         enemy.Dk2StateId = CreatureDeathRules.DyingState;
         prisoner.Dk2StateId = PrisonRules.InTheCellState;
-        var shown = new StatusFlowers(db, PlayerIds.FirstKeeper).Capture(world, new GameTick(5), CreatureQueryTarget.None);
+        IReadOnlyList<StatusFlower> shown = new StatusFlowers(db, PlayerIds.FirstKeeper).Capture(world, new GameTick(5), CreatureQueryTarget.None);
         Assert.Contains(shown, f => f.CreatureId == own.Id);
         Assert.Contains(shown, f => f.CreatureId == enemy.Id);
         Assert.Contains(shown, f => f.CreatureId == prisoner.Id);
@@ -203,16 +204,16 @@ public sealed class StatusFlowersTests
         Assert.Equal(StatusFlowerMode.Level, StatusFlowerCentre.Next(StatusFlowerMode.AngerReason, unhappy));
         Assert.Equal(("SM-Sad", StatusFlowerMode.Mood), StatusFlowerCentre.Icon(StatusFlowerMode.Mood, unhappy));
         Assert.Equal(("SJ-Hungry", StatusFlowerMode.AngerReason), StatusFlowerCentre.Icon(StatusFlowerMode.AngerReason, unhappy));
-        var content = unhappy with { MoodBand = 0 };
+        StatusFlowerCentreFacts content = unhappy with { MoodBand = 0 };
         Assert.Equal(StatusFlowerMode.Job, StatusFlowerCentre.Next(StatusFlowerMode.Level, content));
         Assert.Equal(("SJ-Library", StatusFlowerMode.Job), StatusFlowerCentre.Icon(StatusFlowerMode.Job, content));
         Assert.Equal(("SL-03", StatusFlowerMode.Level), StatusFlowerCentre.Icon(StatusFlowerMode.Job, content with { Job = null }));
-        var stunned = content with { Status = "SJ-Stunned" };
+        StatusFlowerCentreFacts stunned = content with { Status = "SJ-Stunned" };
         Assert.Equal(StatusFlowerMode.Status, StatusFlowerCentre.Next(StatusFlowerMode.Level, stunned));
         Assert.Equal(("SL-03", StatusFlowerMode.Status), StatusFlowerCentre.Icon(StatusFlowerMode.Status, content));
-        var hero = content with { Hero = true };
+        StatusFlowerCentreFacts hero = content with { Hero = true };
         Assert.Equal(StatusFlowerMode.Level, StatusFlowerCentre.Next(StatusFlowerMode.Level, hero));
-        var idleImp = content with { Imp = true, StateId = 8 };
+        StatusFlowerCentreFacts idleImp = content with { Imp = true, StateId = 8 };
         Assert.Equal(StatusFlowerMode.Level, StatusFlowerCentre.Next(StatusFlowerMode.Level, idleImp));
         Assert.Equal(StatusFlowerMode.Job, StatusFlowerCentre.Next(StatusFlowerMode.Level, idleImp with { StateId = 0xD }));
     }
@@ -302,7 +303,7 @@ public sealed class StatusFlowersTests
     {
         var eye = new System.Numerics.Vector3(0, 8, -6);
         var forward = System.Numerics.Vector3.Normalize(new System.Numerics.Vector3(0, -0.8f, 0.6f));
-        var right = System.Numerics.Vector3.UnitX;
+        Vector3 right = System.Numerics.Vector3.UnitX;
         var up = System.Numerics.Vector3.Cross(forward, right);
         var anchor = new System.Numerics.Vector3(-6, 0.9f, 3); // near the left edge of the view
         (float X, float Y, float Size) Project(System.Numerics.Vector3 p, float size)
@@ -312,11 +313,11 @@ public sealed class StatusFlowersTests
             return (System.Numerics.Vector3.Dot(d, right) / depth, System.Numerics.Vector3.Dot(d, up) / depth, size / depth);
         }
 
-        var reference = Project(anchor, 0.5f);
+        (float X, float Y, float Size) reference = Project(anchor, 0.5f);
         for (int layer = 1; layer <= 3; layer++)
         {
-            var (position, scale) = StatusFlowerRules.LayerPlacement(anchor, eye, forward, layer, 0.01f);
-            var drawn = Project(position, 0.5f * scale);
+            (Vector3 position, float scale) = StatusFlowerRules.LayerPlacement(anchor, eye, forward, layer, 0.01f);
+            (float X, float Y, float Size) drawn = Project(position, 0.5f * scale);
             Assert.Equal(reference.X, drawn.X, 5);
             Assert.Equal(reference.Y, drawn.Y, 5);
             Assert.Equal(reference.Size, drawn.Size, 5);
@@ -324,7 +325,7 @@ public sealed class StatusFlowersTests
         }
 
         // The old lift, 0.03 along -forward, moved the star a visible fraction of its hole sideways.
-        var axisLift = Project(anchor - forward * 0.03f, 0.5f);
+        (float X, float Y, float Size) axisLift = Project(anchor - forward * 0.03f, 0.5f);
         Assert.True(Math.Abs(axisLift.X - reference.X) / reference.Size > 0.02f);
         Assert.Equal((anchor, 1f), StatusFlowerRules.LayerPlacement(anchor, eye, forward, 0, 0.01f));
     }
@@ -362,7 +363,7 @@ public sealed class StatusFlowersTests
     private static (GameDatabase, WorldState, CreatureState) Setup()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         CreatureState own = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.FirstKeeper, new(8, 8));
         return (db, world, own);

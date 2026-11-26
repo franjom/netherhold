@@ -48,7 +48,7 @@ public sealed class ClassicLightPublisherTests
     [Fact]
     public void TheFirstFrameSetsEveryVisibleOnMapTableThenFlushes()
     {
-        var (publisher, _, _) = Create();
+        (ClassicLightPublisher? publisher, ClassicWorldLightCache _, PortalCentreLights _) = Create();
         var sink = new RecordingSink();
 
         Assert.Equal(ClassicLightPublication.Changed, publisher.Prepare(TopDown, Viewport, 10));
@@ -65,7 +65,7 @@ public sealed class ClassicLightPublisherTests
     [Fact]
     public void ASettledFrameIsUnchangedUntilATableIsWrittenOutsideIt()
     {
-        var (publisher, _, _) = Create();
+        (ClassicLightPublisher? publisher, ClassicWorldLightCache _, PortalCentreLights _) = Create();
         var sink = new RecordingSink();
         ClassicLightPublication result = ClassicLightPublication.Changed;
         for (int frame = 0; frame < 4 && result == ClassicLightPublication.Changed; frame++)
@@ -84,11 +84,11 @@ public sealed class ClassicLightPublisherTests
     [Fact]
     public void AMovedCameraRemovesOnlyTheTilesNoLongerVisible()
     {
-        var (publisher, _, _) = Create();
+        (ClassicLightPublisher? publisher, ClassicWorldLightCache _, PortalCentreLights _) = Create();
         var sink = new RecordingSink();
         publisher.Prepare(TopDown, Viewport, 10);
         publisher.Publish(sink);
-        HashSet<TilePos> before = sink.Sets.ToHashSet();
+        var before = sink.Sets.ToHashSet();
         sink.Reset();
 
         Assert.Equal(ClassicLightPublication.Changed, publisher.Prepare(Shifted(6), Viewport, 10));
@@ -104,7 +104,7 @@ public sealed class ClassicLightPublisherTests
     [Fact]
     public void AChangedViewDistanceFindsTheTilesAgain()
     {
-        var (publisher, _, _) = Create();
+        (ClassicLightPublisher? publisher, ClassicWorldLightCache _, PortalCentreLights _) = Create();
         var sink = new RecordingSink();
         Assert.NotEqual(OnMap(Tiles(Tilted, 10)), OnMap(Tiles(Tilted, 14)));
 
@@ -120,7 +120,7 @@ public sealed class ClassicLightPublisherTests
     [Fact]
     public void ASecondCameraJoinsItsTilesFoundAtViewDistanceTen()
     {
-        var (publisher, _, _) = Create();
+        (ClassicLightPublisher? publisher, ClassicWorldLightCache _, PortalCentreLights _) = Create();
         var sink = new RecordingSink();
         var secondViewport = new CameraViewport(640, 320, 240);
         Assert.NotEqual(OnMap(Tiles(Tilted, 10, secondViewport)), OnMap(Tiles(Tilted, 11, secondViewport)));
@@ -138,7 +138,7 @@ public sealed class ClassicLightPublisherTests
     [Fact]
     public void AnEmptyViewportPreparesNothing()
     {
-        var (publisher, cache, _) = Create();
+        (ClassicLightPublisher? publisher, ClassicWorldLightCache? cache, PortalCentreLights _) = Create();
         Assert.Equal(ClassicLightPublication.Skipped, publisher.Prepare(TopDown, new CameraViewport(640, 0, 640), 10));
         Assert.Equal(default, cache.Frame);
     }
@@ -146,7 +146,7 @@ public sealed class ClassicLightPublisherTests
     [Fact]
     public void ClearForgetsThePublishedTiles()
     {
-        var (publisher, _, _) = Create();
+        (ClassicLightPublisher? publisher, ClassicWorldLightCache _, PortalCentreLights _) = Create();
         var sink = new RecordingSink();
         publisher.Prepare(TopDown, Viewport, 10);
         publisher.Publish(sink);
@@ -162,7 +162,7 @@ public sealed class ClassicLightPublisherTests
     [Fact]
     public void ClearForgetsTheCachesSources()
     {
-        var (publisher, cache, _) = Create();
+        (ClassicLightPublisher? publisher, ClassicWorldLightCache? cache, PortalCentreLights _) = Create();
         var lit = new TilePos(20, 30);
         cache.SetTerrain(lit, ClassicPointLight.FromTerrain(lit, new Fp32(0), new TerrainLightColour(255, 0, 0)));
         publisher.Prepare(TopDown, Viewport, 10);
@@ -179,7 +179,7 @@ public sealed class ClassicLightPublisherTests
     [Fact]
     public void EntranceLightsAreCreatedOncePerRequest()
     {
-        var (publisher, _, portals) = Create();
+        (ClassicLightPublisher? publisher, ClassicWorldLightCache _, PortalCentreLights? portals) = Create();
         publisher.PublishPortalLights([new TilePos(3, 4)], new EffectTime(10));
         publisher.PublishPortalLights([new TilePos(3, 4), new TilePos(7, 8)], new EffectTime(20));
         publisher.PublishPortalLights([new TilePos(3, 4), new TilePos(7, 8)], new EffectTime(30));
@@ -195,7 +195,7 @@ public sealed class ClassicLightPublisherTests
     [InlineData(ClassicLightFlags.NormalTorch, ClassicLightFlags.NormalObject)]
     public void EntranceLightsFollowTheScenesCheapLighting(ClassicLightFlags torchFlags, ClassicLightFlags expected)
     {
-        var (publisher, cache, _) = Create(torchFlags);
+        (ClassicLightPublisher? publisher, ClassicWorldLightCache? cache, PortalCentreLights _) = Create(torchFlags);
         var portal = new TilePos(20, 30);
         publisher.PublishPortalLights([portal], new EffectTime(10));
         publisher.Prepare(TopDown, Viewport, 10);

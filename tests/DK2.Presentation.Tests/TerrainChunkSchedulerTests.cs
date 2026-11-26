@@ -127,7 +127,7 @@ public class TerrainChunkSchedulerTests
     public void AChangeWithTheLatticeMarksTheFiveByFiveTilesAndForgetsItsCells()
     {
         TerrainLattice lattice = Lattice();
-        var scheduler = Built(lattice);
+        TerrainChunkScheduler scheduler = Built(lattice);
         for (int y = 0; y < Height; y++)
             for (int x = 0; x < Width; x++)
                 lattice.Prepare(x, y);
@@ -147,7 +147,7 @@ public class TerrainChunkSchedulerTests
     [Fact]
     public void TheWindowIsClampedToTheMap()
     {
-        var scheduler = Built(Lattice());
+        TerrainChunkScheduler scheduler = Built(Lattice());
         scheduler.Set(At(0, 0), Floor(0, 0));
         for (int y = 0; y < 4; y++)
             for (int x = 0; x < 4; x++)
@@ -159,7 +159,7 @@ public class TerrainChunkSchedulerTests
     [Fact]
     public void WithoutTheLatticeOnlyTheTileThatDrawsOrDrewIsStale()
     {
-        var scheduler = Built(null);
+        TerrainChunkScheduler scheduler = Built(null);
         scheduler.Set(At(5, 5), Floor(5, 5));
         Assert.True(scheduler.IsStale(At(5, 5)));
         Assert.False(scheduler.IsStale(At(6, 5)));
@@ -179,7 +179,7 @@ public class TerrainChunkSchedulerTests
     [InlineData(false, true)]
     public void ATagOrTintChangeMarksTheFourNeighbours(bool tag, bool tint)
     {
-        var scheduler = Built(null);
+        TerrainChunkScheduler scheduler = Built(null);
         scheduler.Set(At(5, 5), Floor(5, 5, tagged: tag, tint: tint ? new TerrainLightColour(10, 20, 30) : default));
         foreach ((int x, int y) in new[] { (4, 5), (6, 5), (5, 4), (5, 6) }) Assert.True(scheduler.IsStale(At(x, y)), $"({x}, {y})");
         foreach ((int x, int y) in new[] { (4, 4), (6, 6), (3, 5), (5, 7) }) Assert.False(scheduler.IsStale(At(x, y)), $"({x}, {y})");
@@ -188,7 +188,7 @@ public class TerrainChunkSchedulerTests
     [Fact]
     public void ANeighbourOffTheMapEdgeIsNotMarked()
     {
-        var scheduler = Built(null);
+        TerrainChunkScheduler scheduler = Built(null);
         scheduler.Set(At(Width - 1, 3), Floor(Width - 1, 3, tagged: true));
         Assert.False(scheduler.IsStale(At(0, 4)));
         scheduler.Set(At(0, Height - 1), Floor(0, Height - 1, tagged: true));
@@ -233,7 +233,7 @@ public class TerrainChunkSchedulerTests
     public void AFlushDuringTheBuildReturnsWithoutWaiting()
     {
         var log = new SchedulerLog();
-        var scheduler = Built(null, log);
+        TerrainChunkScheduler scheduler = Built(null, log);
         log.Uploads.Clear();
         using var gate = new ManualResetEventSlim(false);
         scheduler.BuildGate = gate;
@@ -261,13 +261,13 @@ public class TerrainChunkSchedulerTests
     [Fact]
     public async Task ClearJoinsTheBuild()
     {
-        var scheduler = Built(null);
+        TerrainChunkScheduler scheduler = Built(null);
         using var gate = new ManualResetEventSlim(false);
         scheduler.BuildGate = gate;
         scheduler.Set(At(3, 3), Floor(3, 3, tagged: true));
         scheduler.Flush(new SchedulerLog());
         Assert.True(scheduler.IsBuilding);
-        Task release = Task.Run(() => { Thread.Sleep(50); gate.Set(); });
+        var release = Task.Run(() => { Thread.Sleep(50); gate.Set(); });
         scheduler.Clear();
         Assert.True(gate.IsSet);
         Assert.False(scheduler.IsBuilding);
@@ -279,7 +279,7 @@ public class TerrainChunkSchedulerTests
     [Fact]
     public void ANeighbourOnTheMapEdgeIsMarked()
     {
-        var scheduler = Built(null);
+        TerrainChunkScheduler scheduler = Built(null);
         scheduler.Set(At(1, 10), Floor(1, 10, tagged: true));
         Assert.True(scheduler.IsStale(At(0, 10)));
         scheduler.Set(At(Width - 2, 10), Floor(Width - 2, 10, tagged: true));
@@ -356,7 +356,7 @@ public class TerrainChunkSchedulerTests
     public void NoBudgetBuildsAndUploadsEverythingAtOnce()
     {
         var log = new SchedulerLog();
-        var scheduler = Built(null, log);
+        TerrainChunkScheduler scheduler = Built(null, log);
         scheduler.FlushBudgetMilliseconds = 0;
         for (int x = 0; x < Width; x += 3) scheduler.Set(At(x, 20), Floor(x, 20, tagged: true));
         log.Uploads.Clear();
@@ -369,7 +369,7 @@ public class TerrainChunkSchedulerTests
     public void ClearMakesTheNextFlushInlineAgain()
     {
         var log = new SchedulerLog();
-        var scheduler = Built(null, log);
+        TerrainChunkScheduler scheduler = Built(null, log);
         scheduler.Clear();
         scheduler.Set(At(30, 30), Floor(30, 30));
         log.Uploads.Clear();
@@ -405,7 +405,7 @@ public class TerrainChunkSchedulerTests
     public void FlushesAllocateNothingOnceWarm()
     {
         var log = new CountingSink();
-        var scheduler = Built(null, log);
+        TerrainChunkScheduler scheduler = Built(null, log);
         scheduler.FlushBudgetMilliseconds = 0;
         TileView tagged = Floor(9, 9, tagged: true), plain = Floor(9, 9);
         for (int warm = 0; warm < 3; warm++)
@@ -426,7 +426,7 @@ public class TerrainChunkSchedulerTests
     [Fact]
     public void ChunksAreSixteenTilesSquareRowMajor()
     {
-        var scheduler = Built(null);
+        TerrainChunkScheduler scheduler = Built(null);
         Assert.Equal(9, scheduler.ChunkCount);
         Assert.Equal(0, scheduler.ChunkOf(At(15, 15)));
         Assert.Equal(1, scheduler.ChunkOf(At(16, 0)));
@@ -654,7 +654,7 @@ public class TerrainChunkSchedulerTests
         var database = new GameDatabase([rock, floor], [], [], new GlobalVariables());
         var tiles = new MapTile[Width * Height];
         for (int i = 0; i < tiles.Length; i++) tiles[i] = new MapTile((byte)(i % 7 == 0 ? 3 : 2), PlayerIds.Unowned, 0, 0);
-        WorldState world = WorldState.FromMap(database, new LevelMap(Width, Height, tiles), []);
+        var world = WorldState.FromMap(database, new LevelMap(Width, Height, tiles), []);
         return new TerrainLattice(database, world, new PlayerId(PlayerIds.FirstKeeper));
     }
 }

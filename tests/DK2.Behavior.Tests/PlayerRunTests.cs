@@ -136,7 +136,7 @@ public class PlayerRunTests
         {
             PlayerRun = new PlayerRunOptions(new Scripted(1), new PlayerId(5), Run),
         })));
-        var scripted = Assert.Throws<PlayerRunRefusedException>(() => RunPlayer(Yaml(commands: "  - { at_tick: 1, player: 3, tag: [[6, 4]] }"), new Scripted(1)));
+        PlayerRunRefusedException scripted = Assert.Throws<PlayerRunRefusedException>(() => RunPlayer(Yaml(commands: "  - { at_tick: 1, player: 3, tag: [[6, 4]] }"), new Scripted(1)));
         Assert.Contains("one command source", scripted.Message, StringComparison.Ordinal);
     }
 
@@ -212,7 +212,7 @@ public class PlayerRunTests
         Assert.Equal(PlayerRunStop.ControllerLimited, result.PlayerRun!.Stop);
         Assert.Equal(1, result.TicksRun);
         Assert.Equal(2, result.HashPerTick.Count);
-        InputJournal read = InputJournal.Read(new MemoryStream(journal.ToArray()));
+        var read = InputJournal.Read(new MemoryStream(journal.ToArray()));
         Assert.Equal(1, read.TicksRun);
         Assert.StartsWith("player:controller-limited", read.EndReason, StringComparison.Ordinal);
     }
@@ -224,7 +224,7 @@ public class PlayerRunTests
         ScenarioResult result = RunPlayer(Yaml(duration: 20), new Scripted(4), journal, o => o with { MaxTicks = 6 });
 
         Assert.Equal(6, result.TicksRun);
-        InputJournal read = InputJournal.Read(new MemoryStream(journal.ToArray()));
+        var read = InputJournal.Read(new MemoryStream(journal.ToArray()));
         Assert.Equal("1", read.Header[JournalHeader.PlayerRunSchema]);
         Assert.Equal(6, read.TicksRun);
         Assert.NotEqual("completed", read.EndReason);
@@ -235,7 +235,7 @@ public class PlayerRunTests
     {
         using var journal = new MemoryStream();
         ScenarioResult recorded = RunPlayer(Yaml(duration: 20), new Scripted(2, TagRockOnce), journal, o => o with { MaxTicks = 7 });
-        InputJournal read = InputJournal.Read(new MemoryStream(journal.ToArray()));
+        var read = InputJournal.Read(new MemoryStream(journal.ToArray()));
 
         ScenarioResult replayed = WithScenario(Yaml(duration: 20), s =>
         {
@@ -256,8 +256,8 @@ public class PlayerRunTests
         using var journal = new MemoryStream();
         RunPlayer(Yaml(duration: 20), new Scripted(2), journal, o => o with { MaxTicks = 7 });
         byte[] bytes = journal.ToArray();
-        InputJournal read = InputJournal.Read(new MemoryStream(bytes));
-        InputJournal cut = InputJournal.Read(new MemoryStream(bytes[..^16]));
+        var read = InputJournal.Read(new MemoryStream(bytes));
+        var cut = InputJournal.Read(new MemoryStream(bytes[..^16]));
         Assert.True(cut.Truncated);
 
         WithScenario(Yaml(duration: 20), s =>
@@ -286,7 +286,7 @@ public class PlayerRunTests
 
     private static (WorldState World, GameSimulation Simulation, PlayerRunCoordinator Coordinator, Scripted Controller) Coordinated(int finaleTicks = 5)
     {
-        var (database, world) = PlayerObservationTests.World();
+        (GameDatabase? database, WorldState? world) = PlayerObservationTests.World();
         var simulation = new GameSimulation(database, world, 1, []);
         var controller = new Scripted(1, o => [new PlayerAction.TagArea(new TilePos(0, 0), new TilePos(0, 0))]);
         var coordinator = new PlayerRunCoordinator(database,
@@ -311,7 +311,7 @@ public class PlayerRunTests
     [Fact]
     public void AfterAWinNoDecisionIsAskedAndTheFinaleWindowEndsAtThePickup()
     {
-        var (world, simulation, coordinator, controller) = Coordinated(finaleTicks: 10);
+        (WorldState? world, GameSimulation? simulation, PlayerRunCoordinator? coordinator, Scripted? controller) = Coordinated(finaleTicks: 10);
         IReadOnlyList<PlayerCommand> next = Step(simulation, coordinator, []);
         Assert.Single(next);
         WinWithGem(world);
@@ -336,7 +336,7 @@ public class PlayerRunTests
     [Fact]
     public void AFinaleThatNeverReachesTheGemStopsAtTheWindowAndIsReportedAsSuch()
     {
-        var (world, simulation, coordinator, _) = Coordinated(finaleTicks: 3);
+        (WorldState? world, GameSimulation? simulation, PlayerRunCoordinator? coordinator, Scripted _) = Coordinated(finaleTicks: 3);
         WinWithGem(world);
         for (int i = 0; i < 3; i++) Step(simulation, coordinator, []);
         Assert.False(coordinator.Stopped);
@@ -349,12 +349,12 @@ public class PlayerRunTests
     public void AFinaleWithNoGemIsNotApplicableAtOnceAndAZeroWindowSkipsIt()
     {
         // No gem: FinaleRules.Begin records none and sets no flag; the first post-win tick says so.
-        var (world, simulation, coordinator, _) = Coordinated();
+        (WorldState? world, GameSimulation? simulation, PlayerRunCoordinator? coordinator, Scripted _) = Coordinated();
         world.Player(PlayerObservationTests.Viewer).Status = PlayerStatus.Won;
         Step(simulation, coordinator, []);
         Assert.Equal((PlayerRunStop.Won, PlayerFinaleCoverage.NotApplicable), (coordinator.Stop, coordinator.Finale));
 
-        var (world2, simulation2, skipped, _) = Coordinated(finaleTicks: 0);
+        (WorldState? world2, GameSimulation? simulation2, PlayerRunCoordinator? skipped, Scripted _) = Coordinated(finaleTicks: 0);
         WinWithGem(world2);
         Step(simulation2, skipped, []);
         Assert.Equal((PlayerRunStop.Won, PlayerFinaleCoverage.Unchecked), (skipped.Stop, skipped.Finale));
@@ -365,7 +365,7 @@ public class PlayerRunTests
     [InlineData(PlayerStatus.Conquered)]
     public void ADefeatStopsAtOnceWithoutAFinale(byte status)
     {
-        var (world, simulation, coordinator, _) = Coordinated();
+        (WorldState? world, GameSimulation? simulation, PlayerRunCoordinator? coordinator, Scripted _) = Coordinated();
         world.Player(PlayerObservationTests.Viewer).Status = status;
         Step(simulation, coordinator, []);
 
@@ -376,7 +376,7 @@ public class PlayerRunTests
     [Fact]
     public void AWinOnTheLastTickOrACutWindowStillEndsWon()
     {
-        var (world, simulation, coordinator, controller) = Coordinated();
+        (WorldState? world, GameSimulation? simulation, PlayerRunCoordinator? coordinator, Scripted? controller) = Coordinated();
         WinWithGem(world);
         simulation.Tick(InputFrame.Empty);
         Assert.Empty(coordinator.AfterTick(world, new GameTick(0), anotherTick: false));
@@ -385,13 +385,13 @@ public class PlayerRunTests
             (coordinator.Stop, coordinator.Finale, coordinator.EndReason(1)));
         Assert.Empty(controller.Seen);
 
-        var (world2, simulation2, cancelled, _) = Coordinated();
+        (WorldState? world2, GameSimulation? simulation2, PlayerRunCoordinator? cancelled, Scripted _) = Coordinated();
         WinWithGem(world2);
         Step(simulation2, cancelled, []);
         cancelled.Cancel();
         Assert.Equal((PlayerRunStop.Won, PlayerFinaleCoverage.CutShort), (cancelled.Stop, cancelled.Finale));
 
-        var (_, simulation3, plain, _) = Coordinated();
+        (WorldState _, GameSimulation? simulation3, PlayerRunCoordinator? plain, Scripted _) = Coordinated();
         Step(simulation3, plain, []);
         plain.Cancel();
         Assert.Equal(PlayerRunStop.Cancelled, plain.Stop);
@@ -401,7 +401,7 @@ public class PlayerRunTests
     [Fact]
     public void TheLastTickRecordsAResultButMakesNoDecision()
     {
-        var (_, simulation, coordinator, controller) = Coordinated();
+        (WorldState _, GameSimulation? simulation, PlayerRunCoordinator? coordinator, Scripted? controller) = Coordinated();
         simulation.Tick(InputFrame.Empty);
         Assert.Empty(coordinator.AfterTick(simulation.World, new GameTick(0), anotherTick: false));
         Assert.Empty(controller.Seen);
@@ -426,7 +426,7 @@ public class PlayerRunTests
         var other = new PlayerRunId("another-run");
         try
         {
-            Scenario scenario = Scenario.Load(scenarioPath);
+            var scenario = Scenario.Load(scenarioPath);
             Assert.StartsWith("incomplete evidence", Assert.Single(PlayerRunManifest.Verify(evidence, scenario, install, Run).Blocking), StringComparison.Ordinal);
 
             PlayerRunManifest.Write(evidence, scenario, install, Run);

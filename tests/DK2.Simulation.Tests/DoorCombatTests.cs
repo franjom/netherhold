@@ -26,7 +26,7 @@ public class DoorCombatTests
     private static (GameDatabase db, WorldState world) Walled(byte doorOwner, byte flags = 0, byte doorId = WoodenDoor)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
         {
             for (int x = 1; x < world.Width - 1; x++)

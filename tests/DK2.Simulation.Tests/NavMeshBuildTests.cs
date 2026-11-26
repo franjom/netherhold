@@ -50,7 +50,7 @@ public class NavMeshBuildTests
     [Fact]
     public void AUniformMapIsTwoTriangles()
     {
-        NavMesh mesh = NavMesh.Build(new Grid(["....", "....", "...."]));
+        var mesh = NavMesh.Build(new Grid(["....", "....", "...."]));
         Assert.Equal(2, MapTriangles(mesh));
         NavMeshTests.AssertInvariants(mesh);
     }
@@ -65,7 +65,7 @@ public class NavMeshBuildTests
             "......~~",
             "LL......",
         ]);
-        NavMesh mesh = NavMesh.Build(grid);
+        var mesh = NavMesh.Build(grid);
         NavMeshTests.AssertInvariants(mesh);
 
         for (int y = 0; y < grid.Height; y++)
@@ -82,7 +82,7 @@ public class NavMeshBuildTests
     [Fact]
     public void AWholeMapBuildCarriesNoConstraintBits()
     {
-        NavMesh mesh = NavMesh.Build(new Grid([
+        var mesh = NavMesh.Build(new Grid([
             "......",
             ".##...",
             ".##.~.",
@@ -98,7 +98,7 @@ public class NavMeshBuildTests
     [Fact]
     public void AnIsolatedWallLeavesAFewTrianglesNotMany()
     {
-        NavMesh mesh = NavMesh.Build(new Grid([
+        var mesh = NavMesh.Build(new Grid([
             ".......",
             ".......",
             "...#...",
@@ -241,7 +241,7 @@ public class NavMeshBuildTests
     [Fact]
     public void TheFloodStopsShortOfAFixedPoint_AsTheReadingOfTheOriginalImplies()
     {
-        NavMesh mesh = NavMesh.Build(new Grid([
+        var mesh = NavMesh.Build(new Grid([
             "........",
             "..##....",
             "..##..~~",

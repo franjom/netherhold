@@ -44,7 +44,7 @@ public class GateWalkTests
     [Fact]
     public void AGateTheSightLinesPassThroughIsDroppedAndOneTheyMissIsKept()
     {
-        NavMesh mesh = NavMesh.Build(new Grid(["#####", "#...#", "###.#", "#####"]));
+        var mesh = NavMesh.Build(new Grid(["#####", "#...#", "###.#", "#####"]));
         var router = new MeshRouter(mesh);
         NavPoint from = NavPoint.FromTileCentre(1, 1), to = NavPoint.FromTileCentre(3, 2);
         var corridor = new List<int>();
@@ -72,9 +72,9 @@ public class GateWalkTests
     [Fact]
     public void WithoutGatesTheOnlyRecordIsTheDestination()
     {
-        NavMesh mesh = NavMesh.Build(new Grid(["###", "#.#", "###"]));
+        var mesh = NavMesh.Build(new Grid(["###", "#.#", "###"]));
         var records = new GateRecord[GateWalk.MaxRecords + 1];
-        NavPoint to = NavPoint.FromTileCentre(1, 1);
+        var to = NavPoint.FromTileCentre(1, 1);
 
         Assert.Equal(1, GateWalk.Run(mesh, to, to, [mesh.Locate(to.X, to.Y)], [to], records, GateWalk.Cap));
         Assert.Equal(to, records[0].A);

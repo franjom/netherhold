@@ -35,7 +35,7 @@ public class CrateTests
 
     private static WorldState World(GameDatabase db)
     {
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
         for (int x = 1; x <= 3; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
@@ -176,8 +176,8 @@ public class CrateTests
             return (sim, sink);
         }
 
-        var (with, withSink) = Run(slotEight: true);
-        var (without, withoutSink) = Run(slotEight: false);
+        (GameSimulation? with, ListEventSink? withSink) = Run(slotEight: true);
+        (GameSimulation? without, ListEventSink? withoutSink) = Run(slotEight: false);
         var celebratedAt = new List<long>();
         for (int tick = 0; tick < Second; tick++)
         {

@@ -228,7 +228,7 @@ public sealed class SessionSaveLoadTests : IDisposable
     {
         CampaignLevelData level = Level();
         GameSimulation simulation = level.CreateSimulation(7, fogOfWarEnabled: false);
-        var saved = CampaignProgression.EnsureOpenMap(new CampaignProfile { LevelNumber = 11, PlayerValues = [42, 0, 0, 0, 0, 0, 0, 0] });
+        CampaignProfile saved = CampaignProgression.EnsureOpenMap(new CampaignProfile { LevelNumber = 11, PlayerValues = [42, 0, 0, 0, 0, 0, 0, 0] });
         string path = SavedSessionFile.PathForName(_root, "theirs");
         SavedSessionFile.Save(path, new SavedSession(new SavedSessionHeader("Level5", (byte)GameSessionMode.Campaign, 0, SavedAt, "theirs"),
             WorldSnapshot.ToBytes(simulation), saved));
@@ -287,7 +287,7 @@ public sealed class SessionSaveLoadTests : IDisposable
         File.Delete(ProfilePath);
         var loader = new SessionLoader(Store(), LoadInto(Store()), _ => throw new InvalidOperationException("no map"));
 
-        var refusal = Assert.Throws<SaveIncompatibleException>(() => loader.Load(path));
+        SaveIncompatibleException refusal = Assert.Throws<SaveIncompatibleException>(() => loader.Load(path));
         Assert.Equal(SaveIncompatibleReason.Corrupt, refusal.Reason);
         Assert.False(File.Exists(ProfilePath));
     }
@@ -305,7 +305,7 @@ public sealed class SessionSaveLoadTests : IDisposable
         CampaignProfileStore store = Store();
         var loader = new SessionLoader(store, () => store.Adopt(new CampaignProfile()), _ => level);
 
-        var refusal = Assert.Throws<IOException>(() => loader.Load(path));
+        IOException refusal = Assert.Throws<IOException>(() => loader.Load(path));
 
         Assert.Equal("The campaign profile could not be read, so a save cannot be loaded.", refusal.Message);
         Assert.Null(store.Path);
@@ -358,9 +358,9 @@ public sealed class SessionSaveLoadTests : IDisposable
         CampaignLevelData level = Level();
         GameSimulation simulation = level.CreateSimulation(7, fogOfWarEnabled: false);
         var header = new SavedSessionHeader("Level5", (byte)GameSessionMode.Campaign, (ushort)FrontEndPage.CampaignResults, SavedAt, "x");
-        GameSessionRequest resumed = GameSessionRequest.Resumed(new SessionResume(new SavedSession(header, [1], new CampaignProfile()), simulation));
+        var resumed = GameSessionRequest.Resumed(new SessionResume(new SavedSession(header, [1], new CampaignProfile()), simulation));
 
-        GameSessionRequest restart = GameSessionRequest.Restart(resumed);
+        var restart = GameSessionRequest.Restart(resumed);
 
         Assert.Null(restart.Resume);
         Assert.Equal(GameSessionRequest.Campaign("Level5"), restart);
@@ -454,7 +454,7 @@ public sealed class SessionSaveLoadTests : IDisposable
         string path = Saver(store).Save(unsaved, unsaved.World.Carry,
             new SessionContext("Level1", GameSessionMode.Campaign, FrontEndPage.None), Saves("determinism"));
         Assert.Equal(savedHash, unsaved.StateHash());
-        CampaignLevelData records = CampaignLevelData.Load(install, "Level1");
+        var records = CampaignLevelData.Load(install, "Level1");
         GameSimulation expected = WorldSnapshot.LoadGame(WorldSnapshot.ToBytes(unsaved), records.Database, SimulationSystems.Default(),
             CampaignSimulationFactory.Triggers(records.Level, records.Players, records.Things, records.Triggers));
 

@@ -434,7 +434,7 @@ public class CombatFearTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        var seen = StateTrace.Of(sim, goblin, 200, () => sink.Events.Any(e => e.Kind == "withdrawn"));
+        List<(int State, int Saved, int Resume)> seen = StateTrace.Of(sim, goblin, 200, () => sink.Events.Any(e => e.Kind == "withdrawn"));
 
         Assert.Equal([199, 203, 6], seen.Select(s => s.State).Take(3));
         Assert.Contains((6, 203, 202), seen);
@@ -715,7 +715,7 @@ public class CombatFearTests
     private static (GameDatabase, WorldState) OpenWorld()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
         {

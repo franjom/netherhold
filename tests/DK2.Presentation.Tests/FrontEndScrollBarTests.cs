@@ -10,7 +10,7 @@ public sealed class FrontEndScrollBarTests
 
     private static FrontEndScrollBar Armed()
     {
-        FrontEndScrollBar bar = FrontEndScrollBar.Beside(StatisticsList, CampaignResults.ScrollBarGap,
+        var bar = FrontEndScrollBar.Beside(StatisticsList, CampaignResults.ScrollBarGap,
             CampaignResults.ScrollBarWidth, CampaignResults.ScrollBarHeight);
         bar.Bar.Arm(CampaignResults.ScrollMaximum);
         return bar;
@@ -77,7 +77,7 @@ public sealed class FrontEndScrollBarTests
     [Fact]
     public void ADisarmedBarIgnoresInput()
     {
-        FrontEndScrollBar bar = FrontEndScrollBar.Beside(StatisticsList, CampaignResults.ScrollBarGap);
+        var bar = FrontEndScrollBar.Beside(StatisticsList, CampaignResults.ScrollBarGap);
         bar.Update(new FrontEndPoint(590, 365), true, 0);
         Assert.Equal(0, bar.Bar.Position);
     }

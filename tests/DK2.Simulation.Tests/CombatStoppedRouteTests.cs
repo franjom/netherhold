@@ -18,7 +18,7 @@ public sealed class CombatStoppedRouteTests
     [Fact]
     public void FailedReacquisitionPreservesTheFinishedPointAndFacing()
     {
-        var (db, world, caster, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? caster, CreatureState? target) = Setup();
         target.OwnerPlayerId = caster.OwnerPlayerId;
         caster.FightTargetKind = FightTargetKind.None;
         caster.FightTargetId = CombatRules.NoTarget;
@@ -36,7 +36,7 @@ public sealed class CombatStoppedRouteTests
     [Fact]
     public void AnApproachStopTurnsOnceBeforeTwoFacingTicksCanStartTheCast()
     {
-        var (db, world, caster, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? caster, CreatureState _) = Setup();
         StatePlacement.Place(caster, ApproachState);
         caster.UtilityNewState = FightState;
         caster.Heading = 1941;
@@ -59,7 +59,7 @@ public sealed class CombatStoppedRouteTests
     [Fact]
     public void AWaitingSupportKeepsItsFinishedPointWhileTurning()
     {
-        var (db, world, caster, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? caster, CreatureState _) = Setup();
         Load(caster, finished: true);
         caster.Heading = 0;
         Fixed16Vector point = caster.Body.PathTargetPos;
@@ -78,11 +78,11 @@ public sealed class CombatStoppedRouteTests
     [InlineData(true)]
     public void BeginningAnAttackPreservesTheLoadedRouteAndVelocity(bool spell)
     {
-        var (db, world, caster, _) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? caster, CreatureState _) = Setup();
         Load(caster, finished: false);
         Fixed16Vector point = caster.Body.PathTargetPos;
         caster.Body.Vel = new Fixed16Vector(1234, -17);
-        var velocity = caster.Body.Vel;
+        Fixed16Vector velocity = caster.Body.Vel;
 
         new GameSimulation(db, world, 1, [new RunRule(c =>
         {
@@ -101,7 +101,7 @@ public sealed class CombatStoppedRouteTests
     [Fact]
     public void SupportReacquisitionPreservesAnExistingRoute()
     {
-        var (db, world, caster, target) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? caster, CreatureState? target) = Setup();
         Load(caster, finished: false);
         Fixed16Vector point = caster.Body.PathTargetPos;
 
@@ -124,8 +124,8 @@ public sealed class CombatStoppedRouteTests
     [InlineData(Dk2TerrainFixture.GoblinCreatureId, 260, 1)]
     public void EveryNonImpStopKeepsAZeroLengthSelfRoute(byte type, int state, int points)
     {
-        var (db, world, _, _) = Setup();
-        var creature = world.SpawnCreature(db,
+        (GameDatabase? db, WorldState? world, CreatureState _, CreatureState _) = Setup();
+        CreatureState creature = world.SpawnCreature(db,
             type,
             PlayerIds.FirstKeeper, new TilePos(10, 10));
         StatePlacement.Place(creature, state);
@@ -150,7 +150,7 @@ public sealed class CombatStoppedRouteTests
             basis.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.WarlockCreatureId
                 ? c with { TurnRate = 1365 } : c), basis.Variables,
             creatureSpells: basis.CreatureSpells.Values, shots: basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper, (byte)(PlayerIds.FirstKeeper + 1)]);
         for (int y = 0; y < world.Height; y++)
         for (int x = 0; x < world.Width; x++)

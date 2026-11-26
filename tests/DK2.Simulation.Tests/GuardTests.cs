@@ -20,7 +20,7 @@ public sealed class GuardTests
     private static (GameDatabase, WorldState) World()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
         for (int x = 1; x <= 12; x++)
         {
@@ -106,7 +106,7 @@ public sealed class GuardTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
-        var seen = StateTrace.Of(sim, goblin, 40 * SimulationTiming.TicksPerSecond,
+        List<(int State, int Saved, int Resume)> seen = StateTrace.Of(sim, goblin, 40 * SimulationTiming.TicksPerSecond,
             () => sink.Events.Count(e => e.Kind == "guard_leg") >= 4);
 
         Assert.Contains(sink.Events, e => e.Kind == "guard_to_post" && e.Detail.Contains("post=(7,5) slot=5 facing=2"));

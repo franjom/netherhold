@@ -16,8 +16,8 @@ public class FrontEndStationTests
     [InstallFact]
     public void TheStationHoldsTheSceneryWithMarkersAndPicksEachLandAndMarkerBySlot()
     {
-        CampaignLevelData level = CampaignLevelData.Load(Dk2InstallGate.Path, GameSessionRequest.FrontEnd().LevelName);
-        FrontEndStation station = FrontEndStation.Open(level, new CampaignProfile(), false, PlayerIds.FirstKeeper, 1);
+        var level = CampaignLevelData.Load(Dk2InstallGate.Path, GameSessionRequest.FrontEnd().LevelName);
+        var station = FrontEndStation.Open(level, new CampaignProfile(), false, PlayerIds.FirstKeeper, 1);
 
         Assert.Empty(station.Simulation.World.Objects);
         Assert.Equal(54 + 24, station.BaseScenery.Count);
@@ -34,9 +34,9 @@ public class FrontEndStationTests
     [InstallFact]
     public void RefreshProjectsTheMapOncePerRevision()
     {
-        CampaignLevelData level = CampaignLevelData.Load(Dk2InstallGate.Path, GameSessionRequest.FrontEnd().LevelName);
+        var level = CampaignLevelData.Load(Dk2InstallGate.Path, GameSessionRequest.FrontEnd().LevelName);
         CampaignProfile profile = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(6));
-        FrontEndStation station = FrontEndStation.Open(level, profile, false, PlayerIds.FirstKeeper, 1);
+        var station = FrontEndStation.Open(level, profile, false, PlayerIds.FirstKeeper, 1);
         var session = new FrontEndSession(_ => new[] { new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000) });
         using var map = new CampaignMapController(session, profile, false, slot => new(slot, "", "", "", Array.Empty<string>()));
 
@@ -55,8 +55,8 @@ public class FrontEndStationTests
     [Fact]
     public void ALoadedSaveOrRestartComesBeforeTheMapsLaunch()
     {
-        GameSessionRequest restart = GameSessionRequest.Restart(GameSessionRequest.Campaign("Level3", FrontEndPage.None));
-        SessionContext context = SessionContext.Starting(restart, GameSessionRequest.Campaign("Level7"), "Level9", fromMap: true);
+        var restart = GameSessionRequest.Restart(GameSessionRequest.Campaign("Level3", FrontEndPage.None));
+        var context = SessionContext.Starting(restart, GameSessionRequest.Campaign("Level7"), "Level9", fromMap: true);
         Assert.Equal(("Level3", GameSessionMode.Campaign, FrontEndPage.None), (context.LevelName, context.Mode, context.ReturnPage));
         Assert.False(context.LaunchedFromFrontEnd);
     }
@@ -64,7 +64,7 @@ public class FrontEndStationTests
     [Fact]
     public void TheMapsLaunchStartsALevelThatReturnsToTheResults()
     {
-        SessionContext context = SessionContext.Starting(null, GameSessionRequest.Campaign("Level7"), "Level9", fromMap: false);
+        var context = SessionContext.Starting(null, GameSessionRequest.Campaign("Level7"), "Level9", fromMap: false);
         Assert.Equal(("Level7", GameSessionMode.Campaign, FrontEndPage.CampaignResults), (context.LevelName, context.Mode, context.ReturnPage));
         Assert.True(context.LaunchedFromFrontEnd);
     }
@@ -76,7 +76,7 @@ public class FrontEndStationTests
     public void WithoutARequestTheArgumentsChooseTheLevelAndFromMapTheReturnPage(string? argument, bool fromMap, string level,
         FrontEndPage page)
     {
-        SessionContext context = SessionContext.Starting(null, null, argument, fromMap);
+        var context = SessionContext.Starting(null, null, argument, fromMap);
         Assert.Equal((level, GameSessionMode.Campaign, page), (context.LevelName, context.Mode, context.ReturnPage));
         Assert.Equal(fromMap, context.LaunchedFromFrontEnd);
     }

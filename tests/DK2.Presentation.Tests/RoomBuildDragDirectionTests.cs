@@ -21,7 +21,7 @@ public sealed class RoomBuildDragDirectionTests
     public void MouseDragBuildsAndEmitsEffectsFromReleaseCornerBackToPress(
         int pressX, int pressY, int releaseX, int releaseY)
     {
-        var database = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
         byte claimedPath = database.Terrain.Values.Single(t => t.Name == "Dirt Path").MaxHealthTypeTerrainId;
         var map = new LevelMap(7, 7, Enumerable.Repeat(
             new MapTile(claimedPath, PlayerIds.FirstKeeper, 0, 0), 49).ToArray());

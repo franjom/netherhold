@@ -17,7 +17,7 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void ANewWorkStateStartsArt12BeforeItsFirstApplication()
     {
-        var sim = Start();
+        GameSimulation sim = Start();
         CreatureState imp = sim.World.Creatures[0];
         sim.Run(2);
         Assert.Equal(12, imp.ActionArtSlot);
@@ -30,7 +30,7 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void AFinalHitAfterTheFirstWrapLeaves22InThatSameUpdate()
     {
-        var sim = Begin(ActionAnimationFlags.Loop | ActionAnimationFlags.Wrapped);
+        GameSimulation sim = Begin(ActionAnimationFlags.Loop | ActionAnimationFlags.Wrapped);
         CreatureState imp = sim.World.Creatures[0];
         sim.World.Tile(Face).Health = 659;
         sim.Tick();
@@ -43,7 +43,7 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void AFinalHitBeforeTheFirstWrapRequestsStopAndRemainsBusy()
     {
-        var sim = Begin(ActionAnimationFlags.Loop);
+        GameSimulation sim = Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
         sim.World.Tile(Face).Health = 659;
         sim.Tick();
@@ -59,7 +59,7 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void ACompletedHandlerWaitsForTheClipWithoutRequestingStop()
     {
-        var sim = Begin(ActionAnimationFlags.Loop);
+        GameSimulation sim = Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
         imp.ActionHandlerDone = true;
         sim.World.Tile(Face).OwnerPlayerId = 3;
@@ -73,7 +73,7 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void LosingTheAdjacentOwnedFloorStopsTheHandlerWithoutApplyingWork()
     {
-        var sim = Begin(ActionAnimationFlags.Loop);
+        GameSimulation sim = Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
         foreach (TilePos at in new[] { new TilePos(3, 3), new(5, 3), new(4, 2), new(4, 4) })
             sim.World.Tile(at).OwnerPlayerId = PlayerIds.Neutral;
@@ -89,7 +89,7 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void RemovingTheTaskDoesNotSkipTheRunningActionsWork()
     {
-        var sim = Begin(ActionAnimationFlags.Loop);
+        GameSimulation sim = Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
         sim.World.Tile(Face).SetTaggedBy(3, true);
         sim.Tick();
@@ -101,7 +101,7 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void TheRunningActionKeepsItsPointWhenTheJobRecordChanges()
     {
-        var sim = Begin(ActionAnimationFlags.Loop);
+        GameSimulation sim = Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
         imp.TargetTileIndex = -1;
         imp.Dk2StateId = 1;
@@ -115,7 +115,7 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void EndingTheActionPreventsAnOldPointFromBeingWorkedAgain()
     {
-        var sim = Begin(ActionAnimationFlags.Loop);
+        GameSimulation sim = Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(sim.World, sim.Database), imp, 199));
         int before = sim.World.Tile(Face).Health;
@@ -129,10 +129,10 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void SavingABusyFinalHitPreservesTheRemainingAction()
     {
-        var original = Begin(ActionAnimationFlags.Loop);
+        GameSimulation original = Begin(ActionAnimationFlags.Loop);
         original.World.Tile(Face).Health = 659;
         original.Tick();
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), original.Database, [new ImpTaskSystem()]);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), original.Database, [new ImpTaskSystem()]);
         Assert.Equal(original.StateHash(), restored.StateHash());
         for (int i = 0; i < 16; i++)
         {
@@ -146,7 +146,7 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void TheCombatScanPassHasAlreadyPolledTheWorkAction()
     {
-        var sim = Start(defaultCreaturePass: true);
+        GameSimulation sim = Start(defaultCreaturePass: true);
         sim.Run(2);
         CreatureState imp = sim.World.Creatures[0];
         imp.TimerTicks = 1;
@@ -158,7 +158,7 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void AZeroRateCannotFinishAHandlerThatStillRequestsStop()
     {
-        var sim = Begin(ActionAnimationFlags.Loop);
+        GameSimulation sim = Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
         imp.ActionAnimationRate = 0;
         sim.World.Tile(Face).Health = 659;
@@ -172,7 +172,7 @@ public sealed class ReinforcementActionTests
     [Fact]
     public void ACountedCycleDoesNotEndTheActionAtItsFirstWrap()
     {
-        var sim = Begin(ActionAnimationFlags.Loop | ActionAnimationFlags.Wrapped);
+        GameSimulation sim = Begin(ActionAnimationFlags.Loop | ActionAnimationFlags.Wrapped);
         CreatureState imp = sim.World.Creatures[0];
         imp.ActionCount = 2;
         sim.Tick();
@@ -223,7 +223,7 @@ public sealed class ReinforcementActionTests
         var database = new GameDatabase(fixture.Terrain.Values, fixture.Rooms.Values,
             fixture.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.ImpCreatureId ? c with { ArtSlots = art } : c),
             fixture.Variables, objects: fixture.Objects.Values, keeperSpells: fixture.KeeperSpells.Values);
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3]);
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3]);
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, 3, Stance);
         world.Tile(Stance).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(Stance).OwnerPlayerId = 3;
@@ -239,7 +239,7 @@ public sealed class ReinforcementActionTests
         ISimulationSystem[] systems = [new ImpTaskSystem()];
         if (defaultCreaturePass)
         {
-            var creaturePass = SimulationSystems.Default().OfType<CreatureUpdateSystem>().Single();
+            CreatureUpdateSystem creaturePass = SimulationSystems.Default().OfType<CreatureUpdateSystem>().Single();
             systems = [new CreatureUpdateSystem(creaturePass.Steps.Select(s => s is CombatSystem ? new AfterCombatScan(s) : s).ToArray())];
         }
         return new GameSimulation(database, world, 99, systems);

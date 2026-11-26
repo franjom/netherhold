@@ -24,7 +24,7 @@ public class UnityFrameJournalFixtureTests
     public void TheRecordedFrames_RecordedAgainThroughTheSession_GiveUnitysJournalByteForByte()
     {
         byte[] recorded = File.ReadAllBytes(Dk2CaptureGate.PathFor(Folder + "frames.journal"));
-        FrameInputJournal journal = FrameInputJournal.Read(new MemoryStream(recorded));
+        var journal = FrameInputJournal.Read(new MemoryStream(recorded));
         Assert.Equal(FrameJournalSession.UnityKeyTable, journal.Header[FrameJournalSession.KeyTableKey]);
         Assert.Equal(509, journal.Frames.Count);
         string root = Path.Combine(Path.GetTempPath(), "dk2-unity-frames-" + Guid.NewGuid().ToString("N"));

@@ -16,7 +16,7 @@ public sealed class BedHeadingDrawTests
     [InlineData(Dk2TerrainFixture.VampireCreatureId)]
     public void RuntimeBedCreationTakesOneHeadingDraw(byte creatureType)
     {
-        var (context, creature, rng) = Setup(creatureType);
+        (SimulationContext? context, CreatureState? creature, Dk2Lcg? rng) = Setup(creatureType);
 
         ObjectState bed = LairRules.PlaceBed(context, creature, creature.Tile);
 
@@ -32,7 +32,7 @@ public sealed class BedHeadingDrawTests
     public void AnObjectCreationFailureTakesNoHeadingDraw()
     {
         CreatureDef invalid = Dk2TerrainFixture.Goblin() with { CreatureId = 240, LairObjectId = 255 };
-        var (context, creature, rng) = Setup(240, invalid);
+        (SimulationContext? context, CreatureState? creature, Dk2Lcg? rng) = Setup(240, invalid);
         Assert.Null(context.Database.ObjectById(255));
 
         Assert.Throws<KeyNotFoundException>(() => LairRules.PlaceBed(context, creature, creature.Tile));
@@ -43,7 +43,7 @@ public sealed class BedHeadingDrawTests
     [Fact]
     public void SyntheticBedPlacementKeepsItsExplicitSetupAdapter()
     {
-        var (context, creature, rng) = Setup(Dk2TerrainFixture.GoblinCreatureId);
+        (SimulationContext? context, CreatureState? creature, Dk2Lcg? rng) = Setup(Dk2TerrainFixture.GoblinCreatureId);
 
         ObjectState bed = LairRules.PlaceBed(context.World, context.Database, creature,
             context.World.TileIndex(creature.Tile));
@@ -62,7 +62,7 @@ public sealed class BedHeadingDrawTests
     private static (SimulationContext, CreatureState, Dk2Lcg) Setup(byte creatureType, CreatureDef? extra = null)
     {
         GameDatabase db = extra is null ? Dk2TerrainFixture.Database() : Dk2TerrainFixture.Database(extra);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         CreatureState creature = world.SpawnCreature(db, creatureType, PlayerIds.FirstKeeper, new TilePos(2, 2));
         var rng = new Dk2Lcg(CapturedSeed);

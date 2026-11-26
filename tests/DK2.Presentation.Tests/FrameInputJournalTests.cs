@@ -28,7 +28,7 @@ public class FrameInputJournalTests
         }
 
         stream.Position = 0;
-        FrameInputJournal journal = FrameInputJournal.Read(stream);
+        var journal = FrameInputJournal.Read(stream);
 
         Assert.Equal("unity", journal.Header["source"]);
         Assert.Equal(1, journal.FramesWritten);
@@ -61,7 +61,7 @@ public class FrameInputJournalTests
         // Every cut: inside the first frame's tag, length or payload, at its end, and inside the second.
         for (int cut = headerEnd; cut < whole.Length; cut++)
         {
-            FrameInputJournal journal = FrameInputJournal.Read(new MemoryStream(whole, 0, cut));
+            var journal = FrameInputJournal.Read(new MemoryStream(whole, 0, cut));
             Assert.True(journal.Truncated);
             Assert.Equal(cut < firstEnd ? Array.Empty<long>() : new[] { 1L }, journal.Frames.Select(f => f.Frame).ToArray());
         }
@@ -79,7 +79,7 @@ public class FrameInputJournalTests
         }
         byte[] whole = stream.ToArray();
 
-        FrameInputJournal journal = FrameInputJournal.Read(new MemoryStream(whole, 0, whole.Length - 3));
+        var journal = FrameInputJournal.Read(new MemoryStream(whole, 0, whole.Length - 3));
         Assert.True(journal.Truncated);
         Assert.Single(journal.Frames);
     }

@@ -1210,9 +1210,10 @@ A pass over every C# file in `src/`, `tests/` and `godot/` once Unity is gone an
 Behaviour stays the same: the turn-400 hash, the replays and the frame captures are the checks.
 
 - [ ] Coding style, defined first and enforced by the build. Read the
-      [survey and owner decisions](2026-11-26-csharp-style-questions.md). The build enforces file-scope `using` placement.
-      Apply the remaining approved rules. `EnforceCodeStyleInBuild` and `TreatWarningsAsErrors` make each
-      rule a build error, so each rule lands with `dotnet format` fixing every file it flags (`.editorconfig`'s header).
+      [survey and owner decisions](2026-11-26-csharp-style-questions.md). The build enforces file-scope `using` placement and the approved `var` policy.
+      Apply the remaining approved rules by area using that plan's Release assembly comparison and verification steps.
+      `EnforceCodeStyleInBuild` and `TreatWarningsAsErrors` make each rule a build error, so each area lands with
+      `dotnet format` fixing every file its scoped rule flags (`.editorconfig`'s header).
       Rules the analysers cannot express (a number cast to an enum instead of a named member, magic numbers for DK2
       ids) go in a small Roslyn analyzer or an `ArchitectureTests` check.
 - [ ] Modern .NET performance first: spans, `stackalloc`, `ArrayPool`, `FrozenDictionary` and `FrozenSet`,

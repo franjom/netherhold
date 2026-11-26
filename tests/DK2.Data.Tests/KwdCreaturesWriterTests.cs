@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Buffers.Binary;
+using System.Reflection;
 using DK2.Core;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
@@ -67,18 +68,18 @@ public class KwdCreaturesWriterTests
         void CheckList<T>(IReadOnlyList<T> list, Func<CreatureDef, T[], CreatureDef> replace,
             Func<CreatureDef, IReadOnlyList<T>> select, (int Offset, int Width)[] fields) where T : class
         {
-            var properties = typeof(T).GetProperties();
+            PropertyInfo[] properties = typeof(T).GetProperties();
             Assert.Equal(properties.Length, fields.Length);
             for (int i = 0; i < properties.Length; i++)
             {
                 T[] changed = list.ToArray();
                 changed[0] = (T)typeof(T).GetMethod("<Clone>$")!.Invoke(list[0], null)!;
-                var property = properties[i]; Type type = property.PropertyType;
+                PropertyInfo property = properties[i]; Type type = property.PropertyType;
                 object value = type == typeof(uint) ? 13u : type == typeof(int) ? -13 : type == typeof(ushort) ? (ushort)13 : type == typeof(short) ? (short)-13
                     : type == typeof(byte) ? (byte)13 : type == typeof(Fp32) ? new Fp32(-12345)
                     : type.IsEnum ? Enum.ToObject(type, 13) : throw new InvalidOperationException(property.Name);
                 property.SetValue(changed[0], value);
-                var field = fields[i];
+                (int Offset, int Width) field = fields[i];
                 AssertEdit(replace(original, changed), field.Offset, field.Width, c => Assert.Equal(value, property.GetValue(select(c)[0])));
             }
         }
@@ -132,15 +133,15 @@ public class KwdCreaturesWriterTests
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { HateJobs = [] }, image));
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { AlternativeJobs = [] }, image));
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { Attractions = [] }, image));
-        var spells = original.Spells.ToArray(); spells[0] = spells[0] with { CreatureSpellId = 0 };
+        CreatureSpellSlot[] spells = original.Spells.ToArray(); spells[0] = spells[0] with { CreatureSpellId = 0 };
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { Spells = spells }, image));
-        var resists = original.Resistances.ToArray(); resists[0] = resists[0] with { AttackType = 0 };
+        CreatureResistance[] resists = original.Resistances.ToArray(); resists[0] = resists[0] with { AttackType = 0 };
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { Resistances = resists }, image));
-        var jobs = original.HappyJobs.ToArray(); jobs[0] = jobs[0] with { Job = JobType.None };
+        CreatureJobPreference[] jobs = original.HappyJobs.ToArray(); jobs[0] = jobs[0] with { Job = JobType.None };
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { HappyJobs = jobs }, image));
-        var hates = original.HateJobs.ToArray(); hates[0] = JobType.None;
+        JobType[] hates = original.HateJobs.ToArray(); hates[0] = JobType.None;
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { HateJobs = hates }, image));
-        var alternatives = original.AlternativeJobs.ToArray(); alternatives[0] = alternatives[0] with { Job = JobType.None };
+        CreatureJobAlternative[] alternatives = original.AlternativeJobs.ToArray(); alternatives[0] = alternatives[0] with { Job = JobType.None };
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { AlternativeJobs = alternatives }, image));
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original,
             new KwdRecordImage(KwdRecordType.Creatures, new byte[5448])));
@@ -213,7 +214,7 @@ public class KwdCreaturesWriterTests
     public void EveryShippedCreatureTypedOverlayIsByteIdentical()
     {
         KwdChunk chunk = KwdReader.ReadFile(Path.Combine(Dk2InstallGate.Path, "Data", "editor", "Creatures.kwd")).Single();
-        var creatures = KwdCreatures.Parse([chunk]); var images = KwdRecordRoundTrip.Split(chunk);
+        List<CreatureDef> creatures = KwdCreatures.Parse([chunk]); List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(46, creatures.Count);
         for (int i = 0; i < creatures.Count; i++) Assert.Equal(images[i].ToBytes(), KwdCreatures.WriteRecord(creatures[i], images[i]));
     }

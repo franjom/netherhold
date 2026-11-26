@@ -25,7 +25,7 @@ public class KwdLevelFileSetTests
         byte[] edited=editor.Chunks("things.kld")[0].Content;
         for(int i=0;i<edited.Length;i++) if(i<24 || i>=28) Assert.Equal(source.Content[i],edited[i]);
         Assert.Equal(payload,source.Content[8..]);
-        var snapshot=editor.Chunks("things.kld"); snapshot[0].Content[0]=0;
+        IReadOnlyList<KwdChunk> snapshot =editor.Chunks("things.kld"); snapshot[0].Content[0]=0;
         Assert.Equal(194,editor.Chunks("things.kld")[0].Content[0]);
         string root=Path.Combine(Path.GetTempPath(),"dk2-writers-"+Guid.NewGuid().ToString("N"));
         try

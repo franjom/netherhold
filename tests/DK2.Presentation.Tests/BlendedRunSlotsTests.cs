@@ -131,7 +131,7 @@ public sealed class BlendedRunSlotsTests
     public void Runs_vanishing_at_the_far_end_leave_the_others_in_the_slots_that_hold_their_vertices()
     {
         // Water and glass alternating from z 3 to 12, as the Portal's crystals and chasm do.
-        var quads = Enumerable.Range(0, 10).Select(i => (0f, 12f - i, i % 2 == 0 ? Water : Glass)).ToArray();
+        (float, float, TestMaterial)[] quads = Enumerable.Range(0, 10).Select(i => (0f, 12f - i, i % 2 == 0 ? Water : Glass)).ToArray();
         BlendedTerrainStream<TestMaterial> stream = Stream(quads);
         var slots = new BlendedRunSlots<TestMaterial>();
         var deep = new ClassicCameraPose(FrontEye, Vector3.UnitZ, Vector3.UnitY, 60f, 50f, 0f, 0f);
@@ -140,7 +140,7 @@ public sealed class BlendedRunSlotsTests
         Assert.Equal(10, slots.Drawn.Count);
 
         // A nearer far plane drops the two farthest quads: every remaining run moves up two places.
-        var shallow = deep with { FarClipDistance = 12.5f };
+        ClassicCameraPose shallow = deep with { FarClipDistance = 12.5f };
         Assert.True(stream.Refresh(Vector3.UnitZ, Matrix4x4.Identity, ViewFrustum.FromPose(shallow, 2f, .3f)));
         slots.Update(stream, FrontEye);
         AssertDraws(stream, slots);
@@ -155,7 +155,7 @@ public sealed class BlendedRunSlotsTests
     [Fact]
     public void A_run_appearing_at_the_far_end_leaves_every_other_run_in_its_slot()
     {
-        var quads = Enumerable.Range(0, 10).Select(i => (0f, 12f - i, i % 2 == 0 ? Water : Glass)).ToArray();
+        (float, float, TestMaterial)[] quads = Enumerable.Range(0, 10).Select(i => (0f, 12f - i, i % 2 == 0 ? Water : Glass)).ToArray();
         BlendedTerrainStream<TestMaterial> stream = Stream(quads);
         var slots = new BlendedRunSlots<TestMaterial>();
         var shallow = new ClassicCameraPose(FrontEye, Vector3.UnitZ, Vector3.UnitY, 60f, 12.5f, 0f, 0f);
@@ -166,7 +166,7 @@ public sealed class BlendedRunSlotsTests
         foreach (BlendedRunSlot<TestMaterial> slot in slots.Drawn) before[slot.Vertices[slot.Indices[0]]] = slot.Id;
 
         // A deeper far plane brings the two farthest quads in ahead of every run of both materials.
-        var deep = shallow with { FarClipDistance = 50f };
+        ClassicCameraPose deep = shallow with { FarClipDistance = 50f };
         Assert.True(stream.Refresh(Vector3.UnitZ, Matrix4x4.Identity, ViewFrustum.FromPose(deep, 2f, .3f)));
         slots.Update(stream, FrontEye);
         AssertDraws(stream, slots);
@@ -217,7 +217,7 @@ public sealed class BlendedRunSlotsTests
         void Build(int chunk, float shift)
         {
             var vertices = new List<BlendedVertex>();
-            var byMaterial = palette.ToDictionary(material => material, _ => new List<int>());
+            Dictionary<TestMaterial, List<int>> byMaterial = palette.ToDictionary(material => material, _ => new List<int>());
             for (int q = 0; q < 40; q++)
             {
                 float x = (chunk * 10) + random.Next(10) + shift, z = random.Next(4, 30);
@@ -337,7 +337,7 @@ public sealed class BlendedRunSlotsTests
     public void A_slot_holding_far_more_than_its_run_starts_again_from_the_run()
     {
         // Forty water quads in a row, then the camera turned so that only the nearest stays in view.
-        var quads = Enumerable.Range(0, 40).Select(i => ((float)i * 2f, 9f, Water)).ToArray();
+        (float, float, TestMaterial Water)[] quads = Enumerable.Range(0, 40).Select(i => ((float)i * 2f, 9f, Water)).ToArray();
         BlendedTerrainStream<TestMaterial> stream = Stream(quads);
         var slots = new BlendedRunSlots<TestMaterial>();
         var wide = new ClassicCameraPose(new Vector3(40f, 0.5f, -60f), Vector3.UnitZ, Vector3.UnitY, 60f, 100f, 0f, 0f);
@@ -358,7 +358,7 @@ public sealed class BlendedRunSlotsTests
     [Fact]
     public void Updates_allocate_nothing_once_warm()
     {
-        var quads = Enumerable.Range(0, 30).Select(i => ((float)(i % 6), 3f + i, i % 3 == 0 ? Glass : Water)).ToArray();
+        (float, float, TestMaterial)[] quads = Enumerable.Range(0, 30).Select(i => ((float)(i % 6), 3f + i, i % 3 == 0 ? Glass : Water)).ToArray();
         BlendedTerrainStream<TestMaterial> stream = Stream(quads);
         var slots = new BlendedRunSlots<TestMaterial>();
         for (int pass = 0; pass < 3; pass++)

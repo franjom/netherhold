@@ -23,7 +23,7 @@ public sealed class PossessionDigTests
         CreatureDef possessor = Dk2TerrainFixture.Possessor();
         if (workerPossessor) possessor = possessor with { Flags = possessor.Flags | CreatureFlags.IsWorker };
         GameDatabase db = Dk2TerrainFixture.Database(possessor);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -72,7 +72,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void APossessedImpDigsTheFacedRockAtItsMeleeRechargeTimesTheStrike_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         Set(world, 11, 10, Dk2TerrainFixture.Rock);
         world.Tile(11, 10).Health = 30000;
@@ -87,7 +87,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void TheFacingTileFollowsThePacketYaw_NorthIsUp_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         Set(world, 11, 10, Dk2TerrainFixture.Rock);
         Set(world, 10, 9, Dk2TerrainFixture.Rock);
@@ -103,7 +103,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void ACreatureThatIsNotAWorkerDigsNothing_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
         Set(world, 11, 10, Dk2TerrainFixture.Rock);
         SetHealth(db, world, 11, 10);
@@ -116,7 +116,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void AWorkerThatIsNotAnImpDigsAtSixTimesDigOwnWallAndIgnoresTheRecharge_StronglyInferredFromBinary()
     {
-        var (db, world) = Open(workerPossessor: true);
+        (GameDatabase? db, WorldState? world) = Open(workerPossessor: true);
         CreatureState me = Possess(db, world, Dk2TerrainFixture.PossessorCreatureId, 10, 10);
         Set(world, 11, 10, Dk2TerrainFixture.Rock);
         world.Tile(11, 10).Health = 30000;
@@ -131,7 +131,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void APossessedImpMinesTheFacedSeamAtTheRechargeMultiple_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         Set(world, 11, 10, Dk2TerrainFixture.Gold);
         SetHealth(db, world, 11, 10);
@@ -152,7 +152,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void AClaimStrikesEveryTickUntilTheTileTurns_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         OwnFloorWest(world);
         world.Tile(10, 10).Health = -6000;
@@ -176,7 +176,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void AClaimEndsWhenTheCreatureLeavesPossession_Ours()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         OwnFloorWest(world);
         world.Tile(10, 10).Health = -30000;
@@ -192,7 +192,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void AnEnemyFloorIsAttackedOnceAPressWithNoExperience_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         OwnFloorWest(world);
         Set(world, 10, 10, Dk2TerrainFixture.ClaimedPath, Rival);
@@ -212,7 +212,7 @@ public sealed class PossessionDigTests
     [InlineData(false)]
     public void WhenTheEnemyFloorFallsTheTrapsOnTheWorkersOwnTileAreZeroed_StronglyInferredFromBinary(bool falls)
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         OwnFloorWest(world);
         Set(world, 10, 10, Dk2TerrainFixture.ClaimedPath, Rival);
@@ -229,7 +229,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void AnAlliedKeepersTileEndsThePress_TheFacedRockIsNotTried_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         OwnFloorWest(world);
         Set(world, 10, 10, Dk2TerrainFixture.ClaimedPath, Rival);
@@ -245,7 +245,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void APoseTileNotTouchingOwnFloorFallsThroughToTheFacedTile_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         Set(world, 11, 10, Dk2TerrainFixture.Rock);
         SetHealth(db, world, 11, 10);
@@ -260,7 +260,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void TheClaimTileAndTheWorkOrdersFieldsSurviveASnapshot()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         me.ClaimActionTile = 77;
         world.QueueWork(new TileWorkOrder(5, TileWorkKind.Dig, new PlayerId(Keeper), me.Id, 3,
@@ -274,7 +274,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void AClaimEndsWhenTheWorkerIsDown_Ours()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         OwnFloorWest(world);
         world.Tile(10, 10).Health = -30000;
@@ -290,7 +290,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void APathAnotherPlayerHoldsIsNotClaimed_TheFacedRockIsDugInstead_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         OwnFloorWest(world);
         world.Tile(10, 10).OwnerPlayerId = Rival;   // Dirt Path is not Ownable, so not an enemy floor either
@@ -306,7 +306,7 @@ public sealed class PossessionDigTests
     [Fact]
     public void GoldAnotherPlayerHoldsIsDugAsAWallNotMined_StronglyInferredFromBinary()
     {
-        var (db, world) = Open();
+        (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.ImpCreatureId, 10, 10);
         Set(world, 11, 10, Dk2TerrainFixture.Gold, Rival);
         world.Tile(11, 10).Health = 30000;

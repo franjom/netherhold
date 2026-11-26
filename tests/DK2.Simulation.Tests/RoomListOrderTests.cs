@@ -40,7 +40,7 @@ public class RoomListOrderTests
     [Fact]
     public void ConstructionInsertsAtTheHeadAndGrowthKeepsItsPosition()
     {
-        var world = World();
+        WorldState world = World();
         Build(world, 5, 5);
         Build(world, 9, 9);
         Build(world, 6, 5);
@@ -50,10 +50,10 @@ public class RoomListOrderTests
     [Fact]
     public void ATransferInsertsTheWholeRoomAtTheNewOwnersHead()
     {
-        var world = World();
+        WorldState world = World();
         Build(world, 9, 9, 4);
         Build(world, 5, 5);
-        var room = RoomIndex.RoomAt(world, Db, 9 * world.Width + 9)!;
+        RoomInstance room = RoomIndex.RoomAt(world, Db, 9 * world.Width + 9)!;
         RoomHealthRules.Apply(world, Db, room, -1_000_000, (byte)3);
         Assert.Equal([new TilePos(9, 9), new TilePos(5, 5)], Rooms(world));
     }
@@ -61,7 +61,7 @@ public class RoomListOrderTests
     [Fact]
     public void RemovingATileRecreatesItsPiecesAtTheHeadInReplayOrder()
     {
-        var world = World();
+        WorldState world = World();
         Build(world, 5, 5); Build(world, 6, 5); Build(world, 7, 5);
         Build(world, 10, 10);
         ref TileState tile = ref world.Tile(6, 5);
@@ -74,7 +74,7 @@ public class RoomListOrderTests
     [Fact]
     public void JoiningRoomsKeepsTheFirstNeighbourAndDropsTheAbsorbedEntry()
     {
-        var world = World();
+        WorldState world = World();
         Build(world, 5, 5); Build(world, 10, 10); Build(world, 7, 5);
         Build(world, 6, 5);
         Assert.Equal([new TilePos(5, 5), new TilePos(10, 10)], Rooms(world));
@@ -83,9 +83,9 @@ public class RoomListOrderTests
     [Fact]
     public void CompletedConversionKeepsTheCapturedRoomsNewPositionAfterItsFollowupMerge()
     {
-        var world = World();
+        WorldState world = World();
         Build(world, 5, 5); Build(world, 9, 9); Build(world, 6, 5, 4);
-        var room = RoomIndex.RoomAt(world, Db, 5 * world.Width + 6)!;
+        RoomInstance room = RoomIndex.RoomAt(world, Db, 5 * world.Width + 6)!;
         RoomHealthRules.Set(world, Db, room, 1);
         world.QueueWork(6, 5, TileWorkKind.ConvertRoom, (byte)3);
         new GameSimulation(Db, world, seed: 1, systems: [new Systems.TileWorkSystem()]).Tick();
@@ -95,7 +95,7 @@ public class RoomListOrderTests
     [Fact]
     public void ListPositionsAndTheirNextInsertionSurviveSnapshotAndAffectTheHash()
     {
-        var world = World();
+        WorldState world = World();
         Build(world, 5, 5); Build(world, 9, 9);
         var sim = new GameSimulation(Db, world, seed: 7, systems: []);
         byte[] saved = WorldSnapshot.ToBytes(sim);
@@ -104,7 +104,7 @@ public class RoomListOrderTests
         world.Tile(5, 5).RoomListPosition = new RoomListPosition(-1);
         Assert.NotEqual(hash, sim.StateHash());
         world.Tile(5, 5).RoomListPosition = position;
-        var restored = WorldSnapshot.FromBytes(saved, Db, []);
+        GameSimulation restored = WorldSnapshot.FromBytes(saved, Db, []);
         Assert.Equal(hash, restored.StateHash());
         Build(world, 10, 7); Build(restored.World, 10, 7);
         Assert.Equal(sim.StateHash(), restored.StateHash());
@@ -114,9 +114,9 @@ public class RoomListOrderTests
     [Fact]
     public void LoadingKeepsTheNorthRoomsIdentityWhenAnOlderWestRoomIsAbsorbed()
     {
-        var map = Dk2TerrainFixture.Map();
-        var tiles = map.Tiles.ToArray();
-        foreach (var pos in new[] { new TilePos(5, 4), new TilePos(7, 4), new TilePos(5, 5), new TilePos(6, 5), new TilePos(7, 5) })
+        LevelMap map = Dk2TerrainFixture.Map();
+        MapTile[] tiles = map.Tiles.ToArray();
+        foreach (TilePos pos in new[] { new TilePos(5, 4), new TilePos(7, 4), new TilePos(5, 5), new TilePos(6, 5), new TilePos(7, 5) })
             tiles[pos.Y * map.Width + pos.X] = new MapTile(Dk2TerrainFixture.TreasuryTerrain, 3, 0, 0);
         var world = WorldState.FromMap(Db, new LevelMap(map.Width, map.Height, tiles), [(byte)3]);
         Assert.Equal(world.Tile(7, 4).RoomListPosition, world.Tile(5, 4).RoomListPosition);
@@ -128,7 +128,7 @@ public class RoomListOrderTests
     [Fact]
     public void DefeatTransfersInPlayerListOrderAheadOfExistingNeutralRooms()
     {
-        var world = World();
+        WorldState world = World();
         ref TileState heart = ref world.Tile(3, 3);
         byte terrain = heart.TerrainId, owner = heart.OwnerPlayerId;
         RoomRules.Place(Db, ref heart, Db.Room(RoomTypeId.DungeonHeart), (byte)3);

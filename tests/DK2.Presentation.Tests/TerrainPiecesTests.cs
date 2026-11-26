@@ -177,7 +177,7 @@ public class TerrainPiecesTests
     {
         string dir = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.Load(dir);
-        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!,
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!,
             [0, 1, 2, Keeper], fogOfWarEnabled: true);
         var patch = new Patch(db, world, new WorldView(db, new PlayerId(Keeper)));
         string lair = db.Room(RoomTypeId.Lair).Name;

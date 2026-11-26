@@ -36,7 +36,7 @@ public class AssetCatalogueTests
         GameDatabase? database = RealDatabase();
         Assert.NotNull(database);
 
-        AssetProviderChain chain = AssetProviderChain.Standard();
+        var chain = AssetProviderChain.Standard();
         var keys = AssetCatalogue.ForDatabase(database).ToList();
 
         // 41 terrain + 26 rooms x 2 + 46 creatures x 5, plus one effect per
@@ -225,7 +225,7 @@ public class AssetCatalogueTests
             .ToList();
 
         Assert.Equal(database.Creatures.Count * 2, meshes.Count);
-        foreach (var creature in database.Creatures.Values)
+        foreach (CreatureDef creature in database.Creatures.Values)
         {
             Assert.Contains(AssetRef.ForCreature(creature.Name, AssetKind.Mesh), meshes);
             Assert.Contains(AssetRef.ForCreature(creature.Name, AssetKind.Mesh, "dead"), meshes);

@@ -87,7 +87,7 @@ public sealed class NavMeshLocateTests
 
     private static ulong HashOf(NavMesh mesh)
     {
-        DK2.Core.Hash64 hash = DK2.Core.Hash64.Start();
+        var hash = DK2.Core.Hash64.Start();
         mesh.HashInto(ref hash);
         return hash.Value;
     }

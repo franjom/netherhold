@@ -21,10 +21,10 @@ public class SnapshotDiffOnRealDataTests
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level1");
         LevelMap map = Assert.IsType<LevelMap>(GameDatabaseLoader.LoadCampaignMap(install, "Level1"));
-        var players = GameDatabaseLoader.LoadCampaignPlayers(install, "Level1");
+        List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(install, "Level1");
         Assert.NotNull(players);
-        WorldState world = WorldState.FromMap(database, map, players.Select(p => p.PlayerId));
-        GameSimulation simulation = GameSimulation.Resume(database, world, new SimRandom(13));
+        var world = WorldState.FromMap(database, map, players.Select(p => p.PlayerId));
+        var simulation = GameSimulation.Resume(database, world, new SimRandom(13));
         byte[] original = WorldSnapshot.ToBytes(simulation);
         int health = world.Tile(new TilePos(0, 0)).Health;
         world.Tile(new TilePos(0, 0)).Health = health ^ 1;
@@ -39,7 +39,7 @@ public class SnapshotDiffOnRealDataTests
         byte[] beforeFile = File.ReadAllBytes(before), afterFile = File.ReadAllBytes(after);
 
         Assert.Equal(1, Program.Dispatch(["snapshot-diff", before, after, output]));
-        using JsonDocument report = JsonDocument.Parse(File.ReadAllText(output));
+        using var report = JsonDocument.Parse(File.ReadAllText(output));
         JsonElement change = Assert.Single(report.RootElement.GetProperty("changes").EnumerateArray());
         Assert.Equal("tiles[0,0].Health", change.GetProperty("path").GetString());
         Assert.Equal(health.ToString(System.Globalization.CultureInfo.InvariantCulture), change.GetProperty("before").GetString());

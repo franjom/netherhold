@@ -70,7 +70,7 @@ public sealed class ImpJobSoundTests
     public void AnImpDepositingGoldRequestsC4InObjectGoldAtItselfWithoutAVoice()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         Paint(db, world, RoomTypeId.Treasury, new TilePos(1, 1));
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 2));
         imp.GoldHeld = db.CreatureById(ImpId).MaxGoldHeld;
@@ -95,7 +95,7 @@ public sealed class ImpJobSoundTests
     private static (GameDatabase Db, WorldState World, Run Run, CreatureState Imp) Shelving(byte objectType)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, 1, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, 1, PlayerIds.Neutral, Keeper]);
         Paint(db, world, RoomTypeId.Library, new TilePos(3, 3), new TilePos(3, 2));
         world.SpawnObject(db, objectType, PlayerIds.Unowned, (1 * world.Width) + 1);
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(2, 2));
@@ -107,7 +107,7 @@ public sealed class ImpJobSoundTests
     [Fact]
     public void AnImpCarryingABookRequests10DInItsCategoryWithItsVoiceAtItselfOnEveryUpdateItHoldsIt()
     {
-        var (_, _, run, _) = Shelving(Dk2TerrainFixture.SpellBookObjectId);
+        (GameDatabase _, WorldState _, Run? run, CreatureState _) = Shelving(Dk2TerrainFixture.SpellBookObjectId);
 
         run.Until(() => run.Saw("object_stored"), 20 * Second);
 
@@ -133,7 +133,7 @@ public sealed class ImpJobSoundTests
     [Fact]
     public void AnImpThatHoldsNothingRequestsNoCarryingSound()
     {
-        var (_, _, run, _) = Shelving(Dk2TerrainFixture.SpellBookObjectId);
+        (GameDatabase _, WorldState _, Run? run, CreatureState _) = Shelving(Dk2TerrainFixture.SpellBookObjectId);
 
         run.Until(() => run.Saw("object_claimed"), 20 * Second);
 
@@ -143,7 +143,7 @@ public sealed class ImpJobSoundTests
     [Fact]
     public void ShelvingABookRequests326AtTheImpWithItsVoiceAndASpecialDoesNot()
     {
-        var (_, _, book, _) = Shelving(Dk2TerrainFixture.SpellBookObjectId);
+        (GameDatabase _, WorldState _, Run? book, CreatureState _) = Shelving(Dk2TerrainFixture.SpellBookObjectId);
         book.Until(() => book.Saw("object_stored"), 20 * Second);
 
         Heard stored = Assert.Single(book.Of(ThingSoundEvent.ImpStoredItem));
@@ -155,7 +155,7 @@ public sealed class ImpJobSoundTests
         Assert.Equal(book.Events.Events.First(e => e.Kind == "object_stored").Tick.Value, stored.Tick);
 
         // State 33 (a Special delivered to a Library, 0x00466F30) has no sound request.
-        var (_, _, special, _) = Shelving(Dk2TerrainFixture.RevealMapSpecialObjectId);
+        (GameDatabase _, WorldState _, Run? special, CreatureState _) = Shelving(Dk2TerrainFixture.RevealMapSpecialObjectId);
         special.Until(() => special.Saw("object_stored"), 20 * Second);
         Assert.True(special.Saw("object_stored"));
         Assert.NotEmpty(special.Of(ThingSoundEvent.CarriedThing));
@@ -177,7 +177,7 @@ public sealed class ImpJobSoundTests
         };
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
             basis.KeeperSpells.Values, objects: basis.Objects.Values.Append(gemDefinition), shots: basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         ObjectState gem = world.SpawnObject(db, TriggerExecutor.PortalGemObjectId, Keeper, (2 * world.Width) + 2);
         ObjectCarryRules.PickUp(goblin, gem);
@@ -197,7 +197,7 @@ public sealed class ImpJobSoundTests
     private static (GameDatabase Db, WorldState World) Workshop()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
         for (int x = 1; x <= 3; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
@@ -278,7 +278,7 @@ public sealed class ImpJobSoundTests
     private static Run Burial()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, 1, PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, 1, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
         for (int x = 4; x <= 6; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Graveyard), Keeper);

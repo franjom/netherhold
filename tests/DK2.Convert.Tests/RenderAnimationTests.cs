@@ -7,6 +7,7 @@ using DK2.Art;
 using DK2.Art.Kmf;
 using DK2.Assets;
 using DK2.Data;
+using DK2.Data.Model;
 using DK2.TestSupport;
 
 namespace DK2.Convert.Tests;
@@ -36,10 +37,10 @@ public class RenderAnimationTests
     [InlineData("Goblin", 197)]
     public void PortalEntranceLoadsTheOriginalMovingClipAndHoldsItsFinalPose(string creature, int frames)
     {
-        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        using InstallArtProvider provider = InstallArtProvider.Open(Dk2InstallGate.Path, database);
-        Assert.True(provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, "entrance"), out var asset));
-        Assert.True(provider.TryLoadModel(asset, out var model));
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        using var provider = InstallArtProvider.Open(Dk2InstallGate.Path, database);
+        Assert.True(provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, "entrance"), out ResolvedAsset asset));
+        Assert.True(provider.TryLoadModel(asset, out KmfModel? model));
         var clip = new RenderAnimation(model);
         Assert.Equal(frames, clip.FrameCount);
         var first = new Vector3[clip.Mesh.Positions.Count];
@@ -65,19 +66,19 @@ public class RenderAnimationTests
     [InlineData("Bile Demon")]
     public void ControlPoint5000_IsTheHead_TopWhenStanding_LowWhenKnockedDown(string creature)
     {
-        using InstallArtProvider provider = InstallArtProvider.Open(Dk2InstallGate.Path,
+        using var provider = InstallArtProvider.Open(Dk2InstallGate.Path,
             GameDatabaseLoader.Load(Dk2InstallGate.Path));
         foreach (string standing in new[] { "idle", "eating" })
         {
-            if (!provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, standing), out var asset)
-                || !provider.TryLoadModel(asset, out var model)) continue;
+            if (!provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, standing), out ResolvedAsset asset)
+                || !provider.TryLoadModel(asset, out KmfModel? model)) continue;
             var clip = new RenderAnimation(model);
             Assert.True(clip.Mesh.ControlPoints.TryGetValue(KmfControlPoint.Head, out int head), standing);
             float top = clip.Mesh.Positions.Max(p => p.Y);
             Assert.InRange(clip.Mesh.Positions[head].Y, top * .8f, top);
         }
-        Assert.True(provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, "stunned"), out var down));
-        Assert.True(provider.TryLoadModel(down, out var knockdown));
+        Assert.True(provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, "stunned"), out ResolvedAsset down));
+        Assert.True(provider.TryLoadModel(down, out KmfModel? knockdown));
         var fall = new RenderAnimation(knockdown);
         Assert.True(fall.Mesh.ControlPoints.TryGetValue(KmfControlPoint.Head, out int index));
         var start = new Vector3[fall.Mesh.Positions.Count];
@@ -93,16 +94,16 @@ public class RenderAnimationTests
     [InlineData("Salamander")]
     public void ShippedWalkClipsKeepTheirOwnUvsAndProduceAnIntermediatePose(string creature)
     {
-        using InstallArtProvider provider = InstallArtProvider.Open(Dk2InstallGate.Path,
+        using var provider = InstallArtProvider.Open(Dk2InstallGate.Path,
             GameDatabaseLoader.Load(Dk2InstallGate.Path));
-        Assert.True(provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, "moving_to_job"), out var asset));
-        Assert.True(provider.TryLoadModel(asset, out var model));
+        Assert.True(provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, "moving_to_job"), out ResolvedAsset asset));
+        Assert.True(provider.TryLoadModel(asset, out KmfModel? model));
         var clip = new RenderAnimation(model);
         Assert.True(clip.FrameCount > 1);
         var positions = new Vector3[clip.Mesh.Positions.Count];
         float time = .5f / (clip.FrameCount - 1);
         clip.Sample(time, false, positions);
-        RenderMesh next = RenderMesh.FromModel(model, 1);
+        var next = RenderMesh.FromModel(model, 1);
         bool moves = false;
         for (int i = 0; i < positions.Length; i++)
         {

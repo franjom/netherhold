@@ -221,7 +221,7 @@ public sealed class FrameDriverTests
     [Fact]
     public void APlayingPath_EndsOnTheSkipKeyAndPostsTheSkipOnce_AndHoldsTheOptionsKeyThatFrame()
     {
-        var rig = PathRig();
+        Rig rig = PathRig();
         FrameScriptInput held = rig.Driver.TakeScriptedInput(rig.Script, Keeper, skipKey: false);
         Assert.True(held.PathWasPlaying);
         Assert.Empty(rig.Pending);

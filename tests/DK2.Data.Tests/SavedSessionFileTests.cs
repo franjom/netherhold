@@ -16,7 +16,7 @@ public sealed class SavedSessionFileTests : IDisposable
     [Fact]
     public void RoundTripsHeaderSnapshotAndProfile()
     {
-        var session = Sample();
+        SavedSession session = Sample();
         string path = SavedSessionFile.PathForName(_directory, "First save");
         SavedSessionFile.Save(path, session);
         SavedSession back = SavedSessionFile.Load(path);
@@ -39,7 +39,7 @@ public sealed class SavedSessionFileTests : IDisposable
         {
             data[offset] ^= 1;
             File.WriteAllBytes(path, data);
-            var error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.Load(path));
+            SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.Load(path));
             Assert.Equal(SaveIncompatibleReason.ChecksumMismatch, error.Reason);
             data[offset] ^= 1;
         }
@@ -54,7 +54,7 @@ public sealed class SavedSessionFileTests : IDisposable
     public void TruncatedHeaderHasAReason(int length)
     {
         using var stream = new MemoryStream(SavedBytes()[..length]);
-        var error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.ReadHeader(stream));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.ReadHeader(stream));
         Assert.Equal(SaveIncompatibleReason.Truncated, error.Reason);
     }
 
@@ -64,7 +64,7 @@ public sealed class SavedSessionFileTests : IDisposable
         byte[] data = SavedBytes();
         data[4] = 1;
         using var stream = new MemoryStream(data);
-        var error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.ReadHeader(stream));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.ReadHeader(stream));
         Assert.Equal(SaveIncompatibleReason.UnsupportedVersion, error.Reason);
         Assert.Contains("version 1", error.Message);
     }
@@ -75,7 +75,7 @@ public sealed class SavedSessionFileTests : IDisposable
         byte[] data = SavedBytes();
         data[12] = 0xFF;
         using var stream = new MemoryStream(data);
-        var error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.ReadHeader(stream));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.ReadHeader(stream));
         Assert.Equal(SaveIncompatibleReason.Corrupt, error.Reason);
         Assert.IsType<System.Text.DecoderFallbackException>(error.InnerException);
     }
@@ -92,7 +92,7 @@ public sealed class SavedSessionFileTests : IDisposable
         data[profile] ^= 1;
         BitConverter.GetBytes(PayloadChecksum.Compute(data.AsSpan(profile))).CopyTo(data, lengths + 16);
         File.WriteAllBytes(path, data);
-        var error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.Load(path));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.Load(path));
         Assert.Equal(SaveIncompatibleReason.Corrupt, error.Reason);
         Assert.IsType<InvalidDataException>(error.InnerException);
     }
@@ -106,7 +106,7 @@ public sealed class SavedSessionFileTests : IDisposable
     {
         byte[] bytes = length < 0 ? SavedBytes() : new byte[length];
         using var stream = new NonSeekableStream(bytes);
-        var error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.ReadHeader(stream));
+        SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.ReadHeader(stream));
         Assert.Equal(SaveIncompatibleReason.Corrupt, error.Reason);
     }
 
@@ -130,7 +130,7 @@ public sealed class SavedSessionFileTests : IDisposable
         Assert.Empty(SavedSessionFile.List(_directory));
         string path = SavedSessionFile.PathForName(_directory, "First save");
         SavedSessionFile.Save(path, Sample());
-        using (var stream = File.Open(path, FileMode.Open, FileAccess.ReadWrite))
+        using (FileStream stream = File.Open(path, FileMode.Open, FileAccess.ReadWrite))
         {
             SavedSessionHeader header = SavedSessionFile.ReadHeader(stream);
             stream.SetLength(stream.Position);

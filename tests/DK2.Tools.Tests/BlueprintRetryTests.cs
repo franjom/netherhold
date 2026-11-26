@@ -75,7 +75,7 @@ public sealed class BlueprintRetryTests
     public void AFrameWithNothingHeldOrSentIsPassedUnchanged()
     {
         var retry = new BlueprintRetry(_ => true);
-        InputFrame frame = InputFrame.Of(new PlaceTrapCommand(Keeper, new TilePos(1, 1), 5),
+        var frame = InputFrame.Of(new PlaceTrapCommand(Keeper, new TilePos(1, 1), 5),
             new LockDoorCommand(Keeper, new TilePos(2, 2)));
 
         Assert.Same(frame.Commands, retry.Filter(100, frame).Commands);

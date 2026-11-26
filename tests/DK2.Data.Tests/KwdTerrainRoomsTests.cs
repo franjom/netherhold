@@ -42,7 +42,7 @@ public class KwdTerrainRoomsTests
     [InstallFact]
     public void TerrainSoundCategoriesAreTheShippedNames()
     {
-        Dictionary<byte, string> by = Terrain().ToDictionary(t => t.TerrainId, t => t.SoundCategory);
+        var by = Terrain().ToDictionary(t => t.TerrainId, t => t.SoundCategory);
 
         Assert.Equal("TERRAIN_ROCK", by[2]);
         Assert.Equal("TERRAIN_DIRT_PATH", by[3]);

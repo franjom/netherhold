@@ -398,7 +398,7 @@ public class PortalOnRealDataTests
             if (map is null) continue;
 
             var world = WorldState.FromMap(db, map, [(byte)0]);
-            List<RoomInstance> found = RoomIndex.Build(world, db)
+            var found = RoomIndex.Build(world, db)
                 .Where(r => r.Definition.TerrainId == portalTerrain)
                 .ToList();
             if (found.Count == 0) continue;
@@ -675,7 +675,7 @@ public class PortalOnRealDataTests
         // the portal flag, DK2 would not have needed a second test and neither
         // would we.
         GameDatabase db = GameDatabaseLoader.Load(install);
-        List<CreatureDef> uniques = db.Creatures.Values
+        var uniques = db.Creatures.Values
             .Where(c => c.Flags.HasFlag(CreatureFlags.IsUnique)).ToList();
 
         Assert.Equal(13, uniques.Count);

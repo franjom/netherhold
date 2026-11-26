@@ -35,7 +35,7 @@ public class FlameIdentifierTests
     public void NoSourceFile_CarriesAFlameShapedName()
     {
         string root = RepositoryRoot();
-        List<string> files = SourceFiles(root).ToList();
+        var files = SourceFiles(root).ToList();
 
         // Same floor as LicenseHeaderTests, for the same reason: a sweep that
         // finds nothing must fail rather than pass.

@@ -24,7 +24,7 @@ public sealed class TremorCreatureTests
             basis.Creatures.Values.Select(c => c.CreatureId == CreatureType
                 ? c with { KnockdownAnimation = knockdown, GetUpAnimation = getUp, Flags = c.Flags | extraFlags } : c),
             basis.Variables, objects: basis.Objects.Values, shots: basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         var at = new TilePos(10, 10);
         world.Tile(at).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -39,7 +39,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void RecoveryUsesTheActionPollBoundariesOfBothCapturedClips_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         creature.Dk2StateId = 210;
         creature.StunTicks = CombatRules.TicksOf(db.CreatureById(CreatureType).StunDuration);
         int stun = creature.StunTicks;
@@ -63,7 +63,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void DelayIsConsumedOnceAfterKnockdownCompletes_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         creature.Dk2StateId = 210;
         creature.ShouldDelayGetUp = true;
         var sim = new GameSimulation(db, world, 1, [new TremorCreatureSystem()]);
@@ -83,7 +83,7 @@ public sealed class TremorCreatureTests
     [InlineData(264)]
     public void ARecoveryStateWithoutFleeingConsumesNoReactionDraw_StronglyInferredFromBinary(int state)
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         creature.Dk2StateId = state;
         world.RefreshAttackability();
         new GameSimulation(db, world, new SimRandom(new NoDraws()), [new Probe(context =>
@@ -94,7 +94,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void TravelIsRejectedBeforeTheFleeingKnockdownDraw_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         creature.Dk2StateId = 6;
         creature.UtilityNewState = CreatureStateMachine.Idle;
         creature.Fleeing = true;
@@ -114,14 +114,14 @@ public sealed class TremorCreatureTests
     [Fact]
     public void FleeingAndTheRecoveryDelaySurviveASnapshotAndAffectItsHash_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         creature.Dk2StateId = 263;
         creature.Fleeing = true;
         creature.ShouldDelayGetUp = true;
         creature.ActionUntilTick = 5;
         ISimulationSystem[] systems = [new TremorCreatureSystem()];
         var sim = new GameSimulation(db, world, 1, systems);
-        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, systems);
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, systems);
         CreatureState restored = Assert.Single(copy.World.Creatures);
         Assert.True(restored.Fleeing);
         Assert.True(restored.ShouldDelayGetUp);
@@ -148,7 +148,7 @@ public sealed class TremorCreatureTests
     [InlineData(0)]
     public void FleeingKnockdownClearsTheFlagBeforeEnteringRecovery_StronglyInferredFromBinary(int draw)
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         creature.Fleeing = true;
         var draws = new Draws((100, draw));
         new GameSimulation(db, world, new SimRandom(draws), [new Probe(context =>
@@ -161,7 +161,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void FiveIsOutsideTheKnockdownChanceAndUsesTheOwnedFloorDraws_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         creature.Fleeing = true;
         var draws = new Draws((100, 5), (5, 2), (5, 2));
         new GameSimulation(db, world, new SimRandom(draws), [new Probe(context =>
@@ -174,7 +174,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void RecoveryPreservesTheRouteAndHoldsItUntilAWalkingState_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         var destination = new TilePos(12, 10);
         for (int x = 10; x <= 12; x++)
         {
@@ -195,7 +195,7 @@ public sealed class TremorCreatureTests
         Assert.True(creature.TremorRoutePaused);
         Assert.True(creature.Body.PathTotalCount > 0);
         Assert.Equal((xBefore, yBefore), (creature.PosX, creature.PosY));
-        var restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db,
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db,
             [new TremorCreatureSystem(), new CreatureMovementSystem()]);
         Assert.True(Assert.Single(restored.World.Creatures).TremorRoutePaused);
         Assert.Equal(sim.StateHash(), restored.StateHash());
@@ -215,7 +215,7 @@ public sealed class TremorCreatureTests
         public int NextInt(int exclusiveMax)
         {
             Assert.True(_next < draws.Length, "Unexpected RNG draw.");
-            var draw = draws[_next++];
+            (int Bound, int Value) draw = draws[_next++];
             Assert.Equal(draw.Bound, exclusiveMax);
             return draw.Value;
         }
@@ -225,7 +225,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void OwnedSearchScansItsExtraRowButRetriesOnlyTheFiveByFiveSquare_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         world.Tile(creature.Tile).OwnerPlayerId = PlayerIds.Neutral;
         var sixthRow = new TilePos(8, 13);
         world.Tile(sixthRow).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -241,7 +241,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void AwayRetriesDrawXThenYAndRetainTheOriginalFractions_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         for (int y = 8; y <= 12; y++)
             for (int x = 8; x <= 12; x++)
             {
@@ -270,7 +270,7 @@ public sealed class TremorCreatureTests
     public void AChosenHungerNeedBypassesTheIdleFleeingClear_StronglyInferredFromBinary()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 10; y++)
             for (int x = 1; x <= 10; x++)
@@ -297,7 +297,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void OrdinaryIdleSelectionClearsFleeing_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         creature.Fleeing = true;
         var sim = new GameSimulation(db, world, 42, [new CreatureJobSystem()]);
         sim.Tick();
@@ -312,7 +312,7 @@ public sealed class TremorCreatureTests
     [InlineData(JobType.Rebel)]
     public void AcceptedAngryJobBypassesIdleFleeingClear_StronglyInferredFromBinary(JobType job)
     {
-        var (db, world, creature) = MoodSetup(job, JobType.None);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(job, JobType.None);
         var sim = new GameSimulation(db, world, 42, [new CreatureJobSystem(), new CreatureAngerSystem()]);
         sim.Tick();
         Assert.True(creature.Fleeing);
@@ -328,7 +328,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void FailedAngryThenAcceptedUnhappyJobBypassesIdleFleeingClear_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = MoodSetup(JobType.None, JobType.Leave);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.None, JobType.Leave);
         new GameSimulation(db, world, 42, [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
         Assert.True(creature.Fleeing);
         Assert.Equal(194, creature.Dk2StateId);
@@ -339,7 +339,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void AnUnhappyCreatureWithABedTakesSulk_AndEntersItsState()
     {
-        var (db, world, creature) = MoodSetup(JobType.None, JobType.Sulk);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.None, JobType.Sulk);
         foreach (TilePos at in new[] { new TilePos(2, 2), new TilePos(3, 2), new TilePos(2, 3), new TilePos(3, 3) })
             RoomRules.Place(db, ref world.Tile(at), db.Room(RoomTypeId.Lair), Keeper);
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, creature));
@@ -353,7 +353,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void BothMoodSelectorsRefusingRunOnlyIdleHandler_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = MoodSetup(JobType.None, JobType.None);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.None, JobType.None);
         new GameSimulation(db, world, 42, [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
         Assert.False(creature.Fleeing);
         Assert.Equal(89, creature.Dk2StateId);
@@ -362,7 +362,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void AcceptedLeaveDoesNotRunItsNewHandlerInTheSelectionTurn_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = MoodSetup(JobType.Leave, JobType.None);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.Leave, JobType.None);
         RoomRules.Place(db, ref world.Tile(creature.Tile), db.Room(RoomTypeId.Portal), Keeper);
         new GameSimulation(db, world, 42, [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
         Assert.Same(creature, world.CreatureById(creature.Id));
@@ -381,7 +381,7 @@ public sealed class TremorCreatureTests
                     AngryJobs = angry == JobType.None ? [] : [new(angry, 0, 0, 100)],
                     UnhappyJobs = unhappy == JobType.None ? [] : [new(unhappy, 0, 0, 100)]
                 } : c), basis.Variables, objects: basis.Objects.Values, shots: basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < 15; y++)
             for (int x = 1; x < 15; x++)
@@ -400,7 +400,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void UnhappyAcceptanceBypassesIdleWithoutAnAngryRoll_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = MoodSetup(JobType.Rebel, JobType.Leave);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.Rebel, JobType.Leave);
         creature.Anger.Lair = CreatureAngerRules.UnhappyAt(db.CreatureById(creature.CreatureTypeId));
         var draws = new Draws((100, 0));
         new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
@@ -412,7 +412,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void RefusedAngryJobFallsThroughToUnhappy_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = MoodSetup(JobType.Sulk, JobType.Leave);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.Sulk, JobType.Leave);
         var draws = new Draws((100, 0), (100, 0));
         new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
         Assert.True(creature.Fleeing);
@@ -425,7 +425,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void ClosedAngryGateStillTriesUnhappy_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = MoodSetup(JobType.Rebel, JobType.Leave);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.Rebel, JobType.Leave);
         creature.LastAngryChoiceTick = 1;
         var draws = new Draws((100, 0));
         new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
@@ -437,7 +437,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void CallToArmsSkipsMoodSelectorsBeforeIdle_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = MoodSetup(JobType.Rebel, JobType.Leave);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.Rebel, JobType.Leave);
         creature.HeedingCallToArms = true;
         var draws = new Draws();
         new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]).Tick();
@@ -449,7 +449,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void MoodPreludeDoesNotRepeatAndItsMarkerResetsNextTurn_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = MoodSetup(JobType.None, JobType.None);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.None, JobType.None);
         var draws = new Draws((100, 0), (100, 0), (100, 0), (100, 0));
         var sim = new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]);
         sim.Tick();
@@ -466,7 +466,7 @@ public sealed class TremorCreatureTests
     [InlineData(CreatureMood.Unhappy, 3)]
     public void State89RunsHappyAfterItsMoodPreludeRefuses_StronglyInferredFromBinary(CreatureMood mood, int rolls)
     {
-        var (db, world, creature) = MoodSetup(JobType.None, JobType.None);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.None, JobType.None);
         CreatureDef definition = db.CreatureById(creature.CreatureTypeId);
         if (mood == CreatureMood.Unhappy) creature.Anger.Lair = CreatureAngerRules.UnhappyAt(definition);
         var draws = new Draws(Enumerable.Repeat((100, 0), rolls).ToArray());
@@ -483,7 +483,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void AcceptedMoodPreludeBypassesState89Handler_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = MoodSetup(JobType.Rebel, JobType.None);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.Rebel, JobType.None);
         creature.Dk2StateId = CreatureJobSystem.IdleChooserState;
         creature.Fleeing = false;
         var draws = new Draws((100, 0));
@@ -496,7 +496,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void HeroIdleSelectionClearsFleeingBeforeTheStandingJob_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         creature.OwnerPlayerId = PlayerIds.Good;
         creature.Fleeing = true;
         new GameSimulation(db, world, 42, [new HeroSystem()]).Tick();
@@ -507,7 +507,7 @@ public sealed class TremorCreatureTests
     [Fact]
     public void WorkerIdleSelectionClearsFleeingBeforeTaskSelection_StronglyInferredFromBinary()
     {
-        var (db, world, creature) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         CreatureState worker = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, creature.Tile);
         worker.Dk2StateId = CreatureStateMachine.Idle;
         worker.Fleeing = true;
@@ -520,11 +520,11 @@ public sealed class TremorCreatureTests
     [InlineData(true, 238)]
     public void SpecialRoleIdleSelectsItsOwnUnbuiltHandlerWithoutKeeperJobs_StronglyInferredFromBinary(bool horny, int destination)
     {
-        var (db, world, creature) = Setup(horny ? CreatureFlags.IsHorny : default);
+        (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup(horny ? CreatureFlags.IsHorny : default);
         if (!horny) creature.OwnerPlayerId = PlayerIds.Neutral;
         creature.Fleeing = true;
         var random = new SimRandom(42);
-        var initialRandomState = random.SaveState();
+        (ulong S0, ulong S1, ulong S2, ulong S3) initialRandomState = random.SaveState();
         ISimulationSystem[] systems = [new CreatureJobSystem(), new CreatureAngerSystem()];
         var sim = new GameSimulation(db, world, random, systems);
         sim.Tick();
@@ -532,7 +532,7 @@ public sealed class TremorCreatureTests
         Assert.Equal(destination, creature.Dk2StateId);
         Assert.Equal(CreatureActivity.UnbuiltHandler, creature.Activity);
         if (!horny) Assert.Equal(CreatureJobSystem.NothingToDoTicks, creature.StateDeadlineTick);
-        var copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, systems);
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, systems);
         Assert.Equal(sim.StateHash(), copy.StateHash());
         sim.Run(8);
         copy.Run(8);

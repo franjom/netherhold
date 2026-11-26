@@ -20,7 +20,7 @@ public sealed class ThunderboltStunTests
     [InlineData(1, false, 1200)]
     public void ACaptiveBindingPreventsLightningStunAfterDamage(int state, bool pitFighter, int health)
     {
-        var (sim, target, sink) = Start(Dk2TerrainFixture.Goblin());
+        (GameSimulation? sim, CreatureState? target, ListEventSink? sink) = Start(Dk2TerrainFixture.Goblin());
         StatePlacement.Place(target, state);
         target.PrisonOwnerPlayerId = Keeper.Value;
         target.CombatPitFighter = pitFighter;
@@ -46,7 +46,7 @@ public sealed class ThunderboltStunTests
             CreatureId = 60,
             StunDuration = Fp32.FromDouble(durationTicks / 4.0),
         };
-        var (sim, target, sink) = Start(definition);
+        (GameSimulation? sim, CreatureState? target, ListEventSink? sink) = Start(definition);
         Fire(sim, target);
         sim.Tick();
         Assert.Equal(255, target.Dk2StateId);
@@ -67,7 +67,7 @@ public sealed class ThunderboltStunTests
     {
         GameDatabase database = definition.CreatureId == Dk2TerrainFixture.GoblinCreatureId
             ? Dk2TerrainFixture.Database() : Dk2TerrainFixture.Database(definition);
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, Keeper.Value, (byte)(Keeper.Value + 1)]);
         CreatureState target = world.SpawnCreature(database, definition.CreatureId,
             new PlayerId((byte)(Keeper.Value + 1)), new TilePos(3, 3));

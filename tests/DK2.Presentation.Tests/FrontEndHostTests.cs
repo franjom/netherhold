@@ -22,10 +22,10 @@ public sealed class FrontEndHostTests
     {
         var frame = new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000);
         var session = new FrontEndSession(_ => new[] { frame, frame, frame }, FrontEndPage.CampaignResults);
-        var profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
+        CampaignProfile profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
         profile = CampaignProgression.RecordStatistics(profile, PlayerIds.FirstKeeper,
             new LevelStatisticsBlock { LevelWon = true, GoldMined = 700 }, new CampaignSlot(2), keeperRank: 10);
-        var scores = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1")).ToArray();
+        HiScoreEntry[] scores = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1")).ToArray();
         var map = new CampaignMapController(session, profile, false, slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()), scores);
         IReadOnlyList<HiScoreEntry>? saved = null;
         map.HiScoresChanged += rows => saved = rows;
@@ -50,7 +50,7 @@ public sealed class FrontEndHostTests
             }));
             CampaignProfile before = profiles.Load(profilePath, GameSessionMode.FrontEnd, FrontEndPage.None);
             var hiScoreStore = new HiScoreStore(Path.Combine(root, "HiScores.dat"), Path.Combine(root, "install"));
-            var rows = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(10 - i), "R" + i, "1")).ToArray();
+            HiScoreEntry[] rows = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(10 - i), "R" + i, "1")).ToArray();
             var session = new FrontEndSession(_ => new[] { new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000) });
             session.Update(TimeSpan.Zero); session.Update(TimeSpan.FromSeconds(1));
             var seen = new List<string>();
@@ -77,13 +77,13 @@ public sealed class FrontEndHostTests
         {
             var frame = new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000);
             var session = new FrontEndSession(_ => new[] { frame, frame, frame }, FrontEndPage.CampaignResults);
-            var profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
+            CampaignProfile profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
             profile = CampaignProgression.RecordStatistics(profile, PlayerIds.FirstKeeper,
                 new LevelStatisticsBlock { LevelWon = true, GoldMined = 700 }, new CampaignSlot(2), keeperRank: 10);
             var profiles = new CampaignProfileStore(null, () => new DateTime(2026, 11, 16, 12, 0, 0));
             profiles.Adopt(profile);
             var hiScoreStore = new HiScoreStore(Path.Combine(root, "HiScores.dat"), Path.Combine(root, "install"));
-            var rows = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1")).ToArray();
+            HiScoreEntry[] rows = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1")).ToArray();
             using CampaignMapController map = FrontEndHost.OpenCampaign(session, profiles, hiScoreStore, rows,
                 slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()), _ => { });
             session.Update(TimeSpan.Zero); session.Update(TimeSpan.FromMilliseconds(10)); session.Update(TimeSpan.FromSeconds(2));

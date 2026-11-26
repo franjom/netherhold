@@ -15,7 +15,7 @@ public class DungeonHeartVisualTests
     [InlineData(0, 14, 1228, 4095)]
     public void HealthSelectsOriginalRateScaleAndDecay(int percent, int phaseStep, int scale, int decay)
     {
-        DungeonHeartVisual visual = DungeonHeartVisual.FromHealth(currentHealth: percent, maximumHealth: 100);
+        var visual = DungeonHeartVisual.FromHealth(currentHealth: percent, maximumHealth: 100);
         Assert.Equal(new Fp32(phaseStep), visual.PhaseStep);
         Assert.Equal(new Fp32(scale), visual.VerticalScale);
         Assert.Equal(new Fp32(decay), visual.DecayPhase);

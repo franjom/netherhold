@@ -17,7 +17,7 @@ public class HeartDefenceSelectionTests
     [Fact]
     public void SelectAVictim_0045D69D_HeroTakesNearerImpAndReportingImpFlees_0045EC80()
     {
-        var (db, world) = World(FightStyle.Flanker);
+        (GameDatabase? db, WorldState? world) = World(FightStyle.Flanker);
         CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 5));
         StatePlacement.Place(imp, 254);
         CreatureState hero = world.SpawnArrived(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
@@ -36,7 +36,7 @@ public class HeartDefenceSelectionTests
     [InlineData(3, 199)]
     public void Reporting_0045E9F0_AcquiresOnTheOrdinaryImpCadenceWithoutAnIncomingAttacker(byte counter, int state)
     {
-        var (db, world) = World(FightStyle.Flanker);
+        (GameDatabase? db, WorldState? world) = World(FightStyle.Flanker);
         CreatureState hero = world.SpawnArrived(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
         CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(9, 5));
         imp.PosX += 0x400;
@@ -68,7 +68,7 @@ public class HeartDefenceSelectionTests
     [InlineData(FightStyle.Support)]
     public void SelectAVictim_0045D69D_ReplacesStrategyScoreWithDistanceBeforeHeartScan(FightStyle style)
     {
-        var (db, world) = World(style);
+        (GameDatabase? db, WorldState? world) = World(style);
         CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 5));
         CreatureState hero = world.SpawnArrived(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
 
@@ -84,7 +84,7 @@ public class HeartDefenceSelectionTests
     [InlineData(true)]
     public void SelectAVictim_0045D69D_RemovesAlignmentDiscountBeforeHeartScan(bool registeredAttacker)
     {
-        var (db, world) = World(FightStyle.Blocker);
+        (GameDatabase? db, WorldState? world) = World(FightStyle.Blocker);
         CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(11, 5));
         CreatureState hero = world.SpawnArrived(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
         if (registeredAttacker) Assert.True(CombatRules.Register(hero, imp.Id, ranged: false));
@@ -120,7 +120,7 @@ public class HeartDefenceSelectionTests
             CreatureId = FighterType, FightStyle = style, Flags = CreatureFlags.IsGood,
             DistanceCanSee = new Fp32(8 * Fp32.One), Spells = [],
         });
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)

@@ -34,7 +34,7 @@ public class CampaignPlayerPitRescueTests
                 bool edge = x == 0 || y == 0 || x == width - 1 || y == height - 1;
                 tiles[y * width + x] = edge ? new MapTile(ImpenetrableRock, 0, 0, 0) : new MapTile(ClaimedPath, Keeper, 0, 0);
             }
-        WorldState world = WorldState.FromMap(db, new LevelMap(width, height, tiles), [PlayerIds.Neutral, Keeper]);
+        var world = WorldState.FromMap(db, new LevelMap(width, height, tiles), [PlayerIds.Neutral, Keeper]);
         for (int y = 4; y <= 8; y++)
             for (int x = 4; x <= 8; x++)
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);

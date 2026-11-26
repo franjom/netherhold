@@ -22,8 +22,8 @@ public sealed class RoomSoundTests
 
     private static (GameSimulation Sim, ListEventSink Events) Start(int gold = 10000)
     {
-        var db = Dk2TerrainFixture.Database();
-        var world = Dk2TerrainFixture.Sellable(WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]));
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = Dk2TerrainFixture.Sellable(WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]));
         RoomRules.Place(db, ref world.Tile(new TilePos(3, 3)), db.Room(RoomTypeId.DungeonHeart), Keeper);
         RoomRules.Place(db, ref world.Tile(new TilePos(3, 1)), db.Room(RoomTypeId.Treasury), Keeper);
         GoldStore.Deposit(world, db, Keeper, gold);
@@ -42,7 +42,7 @@ public sealed class RoomSoundTests
     [Fact]
     public void ADraggedRoomIsAcceptedAtItsLowestCornerThenEachLaterDiagonalsTilesSoundF1AndTheFirstOnesDoNot()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(Keeper, RoomTypeId.Lair, 2, 2, 1, 1)));   // pressed (2,2), released (1,1)
 
         ThingSoundRequest accepted = Assert.Single(Sounds(events));   // the tile built on the queueing turn is silent
@@ -70,7 +70,7 @@ public sealed class RoomSoundTests
     [Fact]
     public void ARectangleThatFailsThePrecheckMakesNoAcceptanceSound()
     {
-        var (sim, events) = Start(gold: 0);
+        (GameSimulation? sim, ListEventSink? events) = Start(gold: 0);
         sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(Keeper, RoomTypeId.Lair, 1, 1, 2, 2)));
         Assert.Empty(Sounds(events));
     }
@@ -78,7 +78,7 @@ public sealed class RoomSoundTests
     [Fact]
     public void ARectangleThePrecheckPassesSoundsEvenWhenNoQueueSlotIsFree_StronglyInferredSoundIsOnTheIssueSide()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(
             BuildRoomCommand.Rect(Keeper, RoomTypeId.Lair, 1, 1, 1, 1), BuildRoomCommand.Rect(Keeper, RoomTypeId.Lair, 1, 2, 1, 2),
             BuildRoomCommand.Rect(Keeper, RoomTypeId.Lair, 2, 1, 2, 1), BuildRoomCommand.Rect(Keeper, RoomTypeId.Lair, 2, 2, 2, 2)));
@@ -89,7 +89,7 @@ public sealed class RoomSoundTests
     public void ADirectTileBuildSoundsF1ForEachPaidTileEvenOnTheFirstTick()
     {
         // The keeper wrapper passes turn 0 and DK2's game turn is our tick + 1, never 0: it always differs.
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(BuildRoomCommand.At(Keeper, RoomTypeId.Lair, new TilePos(1, 1), new TilePos(1, 2))));
 
         ThingSoundRequest[] built = Sounds(events);
@@ -101,7 +101,7 @@ public sealed class RoomSoundTests
     [Fact]
     public void ARefusedDirectBuildIsSilent()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick();
         sim.Tick(InputFrame.Of(BuildRoomCommand.At(Keeper, RoomTypeId.Lair, new TilePos(4, 4))));   // rock
         Assert.Empty(Sounds(events));
@@ -110,7 +110,7 @@ public sealed class RoomSoundTests
     [Fact]
     public void SellingARoomTileSoundsF5InItsRoomsCategoryAtTheTileCentreHeightOne()
     {
-        var (sim, events) = Start();
+        (GameSimulation? sim, ListEventSink? events) = Start();
         sim.Tick();
         sim.Tick(InputFrame.Of(BuildRoomCommand.At(Keeper, RoomTypeId.Lair, new TilePos(1, 1))));
         int built = Sounds(events).Length;
@@ -130,7 +130,7 @@ public sealed class RoomSoundTests
     {
         static GameSimulation Run(ListEventSink? sink)
         {
-            var (sim, _) = Start();
+            (GameSimulation? sim, ListEventSink _) = Start();
             if (sink is not null) sim.ObserveWith(sink);
             sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(Keeper, RoomTypeId.Lair, 1, 1, 2, 2)));
             sim.Run(3);

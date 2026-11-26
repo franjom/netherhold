@@ -32,7 +32,7 @@ public class KwdKeeperSpellWriterTests
                 "KEEPER_SPELL_INFERNO", "KEEPER_SPELL_HEAL", "KEEPER_SPELL_CHICKEN", "KEEPER_SPELL_CREATE_GOLD", "KEEPER_SPELL_SUMMON_REAPER"],
             spells.OrderBy(s => s.KeeperSpellId).Select(s => s.SoundCategory));
 
-        Dictionary<byte, string> shots = KwdAdditionalRecords.ParseShots(KwdReader.ReadFile(Path.Combine(editor, "Shots.kwd")))
+        var shots = KwdAdditionalRecords.ParseShots(KwdReader.ReadFile(Path.Combine(editor, "Shots.kwd")))
             .ToDictionary(s => s.ShotId, s => s.SoundCategory);
         Assert.Equal("SPELL_FIREBALL", shots[1]);
         Assert.Equal("", shots[2]);

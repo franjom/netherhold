@@ -78,7 +78,7 @@ public class DiggingDebrisMotionTests
         bool bounced = false;
         for (int step = 4; step <= 28; step++)
         {
-            var airborne = model.Particles.Where(p => p.Definition.ArtResource.Type == 5
+            ConstructionParticle[] airborne = model.Particles.Where(p => p.Definition.ArtResource.Type == 5
                 && p.VelocityZ < 0 && p.PitchSpinRaw != 0).ToArray();
             model.AdvanceTo(new EffectTime(step * 50 + 1));
             foreach (ConstructionParticle p in airborne.Where(p => model.Particles.Contains(p) && p.VelocityZ >= 0))

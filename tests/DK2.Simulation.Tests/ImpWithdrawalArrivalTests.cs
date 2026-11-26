@@ -15,7 +15,7 @@ public sealed class ImpWithdrawalArrivalTests
     [Fact]
     public void LandingResumesWithdrawalBeforeTheFollowingIdleAndSelectionTurns()
     {
-        var (db, world, imp) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? imp) = Setup();
         Walk(imp, WithdrawnState, remaining: 1024);
         imp.TimerTicks = 2;
         var combat = new CombatSystem();
@@ -42,7 +42,7 @@ public sealed class ImpWithdrawalArrivalTests
     public void AnImpsAlarmWalkEndsOnTheTurnOfItsLastStep()
     {
         const int resume = 251;
-        var (db, world, imp) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? imp) = Setup();
         Walk(imp, resume, remaining: 1024);
         var combat = new CombatSystem();
 
@@ -58,7 +58,7 @@ public sealed class ImpWithdrawalArrivalTests
     [InlineData(6, 25, 1024)]
     public void OtherWalksDoNotTakeTheWithdrawalHandover(int state, int resume, int remaining)
     {
-        var (db, world, imp) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? imp) = Setup();
         Walk(imp, resume, remaining);
         var combat = new CombatSystem();
 
@@ -73,7 +73,7 @@ public sealed class ImpWithdrawalArrivalTests
     [InlineData(10, 12)]
     public void IdleAndSelectionIgnoreAnEarlierWorkCountdown(int state, int expected)
     {
-        var (db, world, imp) = Setup();
+        (GameDatabase? db, WorldState? world, CreatureState? imp) = Setup();
         StatePlacement.Place(imp, state);
         imp.TimerTicks = 100;
 
@@ -85,7 +85,7 @@ public sealed class ImpWithdrawalArrivalTests
     private static (GameDatabase, WorldState, CreatureState) Setup()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
         for (int x = 1; x < world.Width - 1; x++)

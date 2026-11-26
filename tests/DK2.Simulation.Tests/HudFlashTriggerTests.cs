@@ -14,7 +14,7 @@ public sealed class HudFlashTriggerTests
     public void ActionNineEmitsTheGlobalFlashDescriptorWithoutChangingGameplay(byte category, byte button,
         byte available, uint duration)
     {
-        var database = Dk2TerrainFixture.Database();
+        GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [PlayerIds.FirstKeeper]);
         TriggerRecord action = new ActionTriggerRecord(new byte[16])
         {
@@ -30,7 +30,7 @@ public sealed class HudFlashTriggerTests
         var events = new ListEventSink();
         simulation.ObserveWith(events);
         simulation.Tick();
-        var request = Assert.Single(events.Events, e => e.ScriptedView is not null).ScriptedView!.Value;
+        ScriptedViewRequest request = Assert.Single(events.Events, e => e.ScriptedView is not null).ScriptedView!.Value;
         Assert.Equal(ScriptedViewKind.FlashButton, request.Kind);
         Assert.Equal(new HudFlashRequest(new HudFlashTarget((ushort)(category | button << 8)), duration, available != 0),
             request.FlashButton);

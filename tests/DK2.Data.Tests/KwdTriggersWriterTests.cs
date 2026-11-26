@@ -69,7 +69,7 @@ public class KwdTriggersWriterTests
             .Where(p=>p.EndsWith(".kwd",StringComparison.OrdinalIgnoreCase)||p.EndsWith(".kld",StringComparison.OrdinalIgnoreCase)))
         foreach(KwdChunk chunk in KwdReader.ReadFile(file).Where(c=>c.Type==KwdRecordType.Triggers))
         {
-            var rows=KwdTriggers.Parse([chunk]); var images=KwdRecordRoundTrip.Split(chunk);
+                List<TriggerRecord> rows =KwdTriggers.Parse([chunk]); List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
             for(int i=0;i<rows.Count;i++) Assert.Equal(images[i].ToBytes(),KwdTriggers.WriteRecord(rows[i],images[i]));
             count+=rows.Count;
         }

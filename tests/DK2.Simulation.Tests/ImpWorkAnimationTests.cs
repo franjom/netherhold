@@ -215,7 +215,7 @@ public sealed class ImpWorkAnimationTests
             fixture.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.ImpCreatureId
                 ? c with { ArtSlots = art } : c), fixture.Variables, objects: fixture.Objects.Values,
             keeperSpells: fixture.KeeperSpells.Values);
-        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+        var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Neutral, Keeper]);
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
         ref TileState tile = ref world.Tile(Face);

@@ -39,9 +39,9 @@ public class ClassicMaterialRecipeTests
     [Fact]
     public void BlendDepthWriteAndSelfIlluminationFollowTheFlags()
     {
-        ClassicMaterialRecipe opaque = ClassicMaterialRecipe.FromKmf(Material(0, 0.25f, "", "A"));
-        ClassicMaterialRecipe alpha = ClassicMaterialRecipe.FromKmf(Material(KmfMaterial.TranslucentFlags, 2f, "", "A"));
-        ClassicMaterialRecipe additive = ClassicMaterialRecipe.FromKmf(Material(KmfMaterial.AdditiveFlag, 0.1f, "", "A"));
+        var opaque = ClassicMaterialRecipe.FromKmf(Material(0, 0.25f, "", "A"));
+        var alpha = ClassicMaterialRecipe.FromKmf(Material(KmfMaterial.TranslucentFlags, 2f, "", "A"));
+        var additive = ClassicMaterialRecipe.FromKmf(Material(KmfMaterial.AdditiveFlag, 0.1f, "", "A"));
 
         Assert.Equal((KmfBlend.Opaque, true, false, 0.25f), (opaque.Blend, opaque.WritesDepth, opaque.IsBlended, opaque.AddedLight));
         Assert.Equal((KmfBlend.AlphaBlend, false, true, 1f), (alpha.Blend, alpha.WritesDepth, alpha.IsBlended, alpha.AddedLight));

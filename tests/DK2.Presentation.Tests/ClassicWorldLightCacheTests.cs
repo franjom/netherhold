@@ -33,7 +33,7 @@ public class ClassicWorldLightCacheTests
     public void SourceIdentityAndTileInsertionOrderRetainEqualDistanceOverflowWinners()
     {
         var cache = new ClassicWorldLightCache(12, 12);
-        var lights = Enumerable.Range(1, 26)
+        PortalLightView[] lights = Enumerable.Range(1, 26)
             .Select(id => new PortalLightView(new PortalLightId(id), Source(id, Tile))).ToArray();
         TilePos[] visible = { Tile };
         cache.UpdatePortalLights(lights);
@@ -60,7 +60,7 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(12, 12);
         var descriptor = new KwdLight(0, 0, 0, 8192, 0x3800, 244, 244, 204, 0);
-        var objects = new[] { new ObjectView(1, 86, new PlayerId(3), Tile, default, 0,
+        ObjectView[] objects = new[] { new ObjectView(1, 86, new PlayerId(3), Tile, default, 0,
             5 * Fp32.One + 2048, 5 * Fp32.One + 2048, Fp32.One, 0, Fp32.One,
             previousPosX: new Fp32(4 * Fp32.One + 2048), light: descriptor) };
         var portals = new PortalCentreLights(new EffectTime(0));

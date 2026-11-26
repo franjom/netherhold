@@ -20,7 +20,7 @@ public sealed class CreatureBankHeightTests
     public void ADyingPitCreatureUsesItsTransportHeightInsteadOfBeingPinnedToTheFloor(
         int previousZ, int currentZ, int previousHeight, int currentHeight)
     {
-        var (database, world, creature) = WaterPatch();
+        (GameDatabase? database, WorldState? world, CreatureState? creature) = WaterPatch();
         for (int y = 0; y < 3; y++)
         for (int x = 0; x < 3; x++)
             world.Tile(x, y).TerrainId = database.Room(RoomTypeId.CombatPit).TerrainId;
@@ -38,14 +38,14 @@ public sealed class CreatureBankHeightTests
     [InstallFact]
     public void ACreatedWorkerRisesThenJumpsForTheOneUpdateThatDropsIt()
     {
-        var (database, world, creature) = WaterPatch();
+        (GameDatabase? database, WorldState? world, CreatureState? creature) = WaterPatch();
         world.Tile(1, 1).TerrainId = database.Room(RoomTypeId.Lair).TerrainId;
         new GameSimulation(database, world, 1, Array.Empty<ISimulationSystem>()).Tick();   // tick 1: creation at a real tick
         creature.Dk2StateId = ImpCreationRules.FallingState;
         creature.StateEnteredTick = world.CurrentTick.Value;
         creature.PosZ = creature.LastPosZ = ImpCreationRules.BirthHeightAboveFloor;
         var view = new WorldView(database);
-        AssetRef jump = AssetRef.ForCreature("Dwarf", AssetKind.Animation, "creation_jump");
+        var jump = AssetRef.ForCreature("Dwarf", AssetKind.Animation, "creation_jump");
         CreatureView born = view.Creatures(world).Single(c => c.Id == creature.Id);
         Assert.Equal((6144, 4096 + 0x20), (born.Height, born.PreviousHeight));
         Assert.NotEqual(jump, born.Animation);
@@ -71,7 +71,7 @@ public sealed class CreatureBankHeightTests
     [InstallFact]
     public void ACreationFallPreservesBothHeightsAboveTheGroundForInterpolation()
     {
-        var (database, world, creature) = WaterPatch("Troll");
+        (GameDatabase? database, WorldState? world, CreatureState? creature) = WaterPatch("Troll");
         world.Tile(1, 1).TerrainId = database.Room(RoomTypeId.Lair).TerrainId;
         creature.Dk2StateId = ImpCreationRules.FallingState;
         creature.PosZ = creature.LastPosZ = ImpCreationRules.BirthHeightAboveFloor;
@@ -96,7 +96,7 @@ public sealed class CreatureBankHeightTests
     public void GroundedCreatureRisesOnlyTowardItsBank(int landX, int landY,
         int offsetX, int offsetY, int expectedHeight)
     {
-        var (database, world, creature) = WaterPatch();
+        (GameDatabase? database, WorldState? world, CreatureState? creature) = WaterPatch();
         world.Tile(landX, landY).TerrainId = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava
             && !database.RoomsByTerrain.ContainsKey(t.TerrainId)).TerrainId;
         creature.PosX = Fp32.One + offsetX;
@@ -108,7 +108,7 @@ public sealed class CreatureBankHeightTests
     [InstallFact]
     public void ShoreCrossingRetainsBothGroundHeightsForInterpolation()
     {
-        var (database, world, creature) = WaterPatch();
+        (GameDatabase? database, WorldState? world, CreatureState? creature) = WaterPatch();
         world.Tile(2, 1).TerrainId = database.Room(RoomTypeId.Lair).TerrainId;
         creature.LastPosX = Fp32.One + 0xC00;
         creature.LastPosY = Fp32.One + 0x800;
@@ -122,7 +122,7 @@ public sealed class CreatureBankHeightTests
     [InstallFact]
     public void ABridgeOverTheSameLiquidDoesNotBecomeAShoreBank()
     {
-        var (database, world, creature) = WaterPatch();
+        (GameDatabase? database, WorldState? world, CreatureState? creature) = WaterPatch();
         world.Tile(2, 1).TerrainId = database.Room(RoomTypeId.StoneBridge).TerrainId;
         world.Tile(2, 1).Flags = BridgeRules.SpansWater;
         creature.PosX = Fp32.One + 0xC00;
@@ -133,7 +133,7 @@ public sealed class CreatureBankHeightTests
     {
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
-        WorldState world = WorldState.FromMap(database,
+        var world = WorldState.FromMap(database,
             GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [2, 3]);
         for (int y = 0; y < 3; y++)
             for (int x = 0; x < 3; x++)

@@ -14,7 +14,7 @@ public sealed class ShotHeightTests
     private static (GameDatabase Db, WorldState World, ShotDef Fireball) Open()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(40, 40),
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(40, 40),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
@@ -29,7 +29,7 @@ public sealed class ShotHeightTests
     [InlineData(65073, 145370, 63568, 125065, -543, 5373)]
     public void TheLaunchPitchesTheShotAtTheAimHeight_ConfirmedInCapture(int x, int y, int aimX, int aimY, int velocity, int nativeHeight)
     {
-        var (_, world, fireball) = Open();
+        (GameDatabase _, WorldState? world, ShotDef? fireball) = Open();
         ShotState shot = world.SpawnShot(fireball.ShotId, PlayerIds.Good, x, y);
         shot.PosZ = 1310;
         ShotRules.Launch(shot, fireball, aimX, aimY, 1024);
@@ -40,7 +40,7 @@ public sealed class ShotHeightTests
     [Fact]
     public void AShotWithMassOrNoAimHeightKeepsItsHeight_OursNotDk2()
     {
-        var (_, world, fireball) = Open();
+        (GameDatabase _, WorldState? world, ShotDef? fireball) = Open();
         ShotState heavy = world.SpawnShot(fireball.ShotId, PlayerIds.Good, 64989, 140417);
         heavy.PosZ = 1310;
         ShotRules.Launch(heavy, fireball with { Mass = 8192 }, 73495, 136618, 1024);
@@ -54,7 +54,7 @@ public sealed class ShotHeightTests
     [Fact]
     public void ALobbedLaunchAddsItsUpwardWord()
     {
-        var (_, world, fireball) = Open();
+        (GameDatabase _, WorldState? world, ShotDef? fireball) = Open();
         ShotState shot = world.SpawnShot(fireball.ShotId, PlayerIds.Good, 64989, 140417);
         shot.PosZ = 1310;
         ShotRules.Launch(shot, fireball with { Flags = ShotRules.Lobbed }, 73495, 136618, 1024);
@@ -64,7 +64,7 @@ public sealed class ShotHeightTests
     [Fact]
     public void EachTickAddsASixteenthOfTheVerticalVelocityTruncatedTowardZero()
     {
-        var (db, world, _) = Open();
+        (GameDatabase? db, WorldState? world, ShotDef _) = Open();
         ShotState shot = ShotRules.Spawn(world, db.Shots[Dk2TerrainFixture.FireballShotId], PlayerIds.Good, 20 * Fp32.One, 20 * Fp32.One,
             0, 0, -1, FightTargetKind.None, CombatRules.NoTarget, PlayerIds.Neutral, -1, 30 * Fp32.One, 20 * Fp32.One);
         shot.Health = 100;
@@ -83,7 +83,7 @@ public sealed class ShotHeightTests
     [InlineData(true)]
     public void HeightAndVerticalVelocityAreHashedSavedAndCopied(bool velocity)
     {
-        var (db, world, _) = Open();
+        (GameDatabase? db, WorldState? world, ShotDef _) = Open();
         ShotState shot = world.SpawnShot(Dk2TerrainFixture.FireballShotId, PlayerIds.Good, 20 * Fp32.One, 20 * Fp32.One);
         shot.Health = 100;
         var sim = new GameSimulation(db, world, 1, []);
@@ -94,7 +94,7 @@ public sealed class ShotHeightTests
         ShotState loaded = Assert.Single(restored.World.Shots);
         Assert.Equal((shot.PosZ, shot.VelZ), (loaded.PosZ, loaded.VelZ));
         Assert.Equal(sim.StateHash(), restored.StateHash());
-        var (_, copy, _) = Open();
+        (GameDatabase _, WorldState? copy, ShotDef _) = Open();
         copy.CopyFrom(world);
         Assert.Equal((shot.PosZ, shot.VelZ), (Assert.Single(copy.Shots).PosZ, Assert.Single(copy.Shots).VelZ));
     }

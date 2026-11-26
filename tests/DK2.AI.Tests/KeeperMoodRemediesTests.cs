@@ -50,13 +50,13 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void ARetainedHungerMessageWhileLairAngerIsLargestMovesTheCreatureToTheLair()
     {
-        var (world, creature) = Moody(AngerBucket.Lair);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Lair);
         creature.Anger.Hunger = 19000;
         Paint(world, KeeperWorld.LairFloor, 10, 10);
         Paint(world, KeeperWorld.HatcheryFloor, 18, 10);
         world.SpawnObject(Db, HatcheryRules.ChickenObjectId, Keeper, 10 * world.Width + 18);
 
-        var (handled, commands, view) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoFood, creature.Id));
+        (bool handled, List<PlayerCommand>? commands, KeeperView? view) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoFood, creature.Id));
 
         Assert.True(handled);
         KeeperRoomView lair = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == RoomTypeId.Lair);
@@ -66,14 +66,14 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void EqualHungerAndLairAngerFeedTheHatcherysListHead_OursTakesTheHeadAsTheHighestIdChicken()
     {
-        var (world, creature) = Moody(AngerBucket.Lair);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Lair);
         creature.Anger.Hunger = 20000;
         Paint(world, KeeperWorld.LairFloor, 10, 10);
         Paint(world, KeeperWorld.HatcheryFloor, 18, 10);
         ObjectState older = world.SpawnObject(Db, HatcheryRules.ChickenObjectId, Keeper, 10 * world.Width + 18);
         ObjectState newer = world.SpawnObject(Db, HatcheryRules.ChickenObjectId, Keeper, 11 * world.Width + 19);
 
-        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoLair, creature.Id));
+        (bool handled, List<PlayerCommand>? commands, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoLair, creature.Id));
 
         Assert.True(handled);
         Assert.True(newer.Id > older.Id);
@@ -86,11 +86,11 @@ public class KeeperMoodRemediesTests
     [InlineData(AngerBucket.Treatment)]
     public void BucketsZeroFourAndFivePayTheWageMintedIntoTheHand(AngerBucket bucket)
     {
-        var (world, creature) = Moody(bucket);
+        (WorldState? world, CreatureState? creature) = Moody(bucket);
         Paint(world, KeeperWorld.TreasuryFloor, 10, 10);
         world.Tile(10, 10).GoldHeld = 500;
 
-        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.Money, creature.Id));
+        (bool handled, List<PlayerCommand>? commands, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.Money, creature.Id));
 
         Assert.True(handled);
         Assert.Equal<PlayerCommand>([new MintWageCommand(Keeper, creature.Id), new DropCommand(Keeper, creature.Tile, creature.Id)], commands);
@@ -99,8 +99,8 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void PayWithNoTreasuryFailsAndIsHandledBelowThreeEventTasks()
     {
-        var (world, creature) = Moody(AngerBucket.Pay);
-        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.Money, creature.Id));
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Pay);
+        (bool handled, List<PlayerCommand>? commands, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.Money, creature.Id));
 
         Assert.True(handled);
         Assert.Empty(commands);
@@ -109,11 +109,11 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void AFailedRemedyWithThreeEventTasksQueuedStaysUnhandledForRetry()
     {
-        var (world, creature) = Moody(AngerBucket.Pay);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Pay);
         var state = new KeeperAIState();
         for (int i = 0; i < 3; i++) Assert.True(state.Responses.TryReceive(() => new KeeperThreatResponse(1, new TilePos(i, 1))));
 
-        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.Money, creature.Id), state: state);
+        (bool handled, List<PlayerCommand>? commands, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.Money, creature.Id), state: state);
 
         Assert.False(handled);
         Assert.Empty(commands);
@@ -122,10 +122,10 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void WorkAngerWalksTheHappyTableAndSkipsAJobWhoseRoomIsMissing()
     {
-        var (world, creature) = Moody(AngerBucket.Work);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Work);
         Paint(world, KeeperWorld.TrainingFloor, 10, 10);
 
-        var (handled, commands, view) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoWork, creature.Id));
+        (bool handled, List<PlayerCommand>? commands, KeeperView? view) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoWork, creature.Id));
 
         Assert.True(handled);
         KeeperRoomView training = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == RoomTypeId.TrainingRoom);
@@ -135,13 +135,13 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void AJobRoomMoveWaitsForTheDroppedCounterOnceTheGameIsPastThreeHundredTurns()
     {
-        var (world, creature) = Moody(AngerBucket.Work);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Work);
         Paint(world, KeeperWorld.TrainingFloor, 10, 10);
         var sim = new GameSimulation(Db, world, seed: 1, []);
         sim.Run(400);
         creature.DroppedTick = world.CurrentTick.Value - 100;
 
-        var (handled, commands, view) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoWork, creature.Id));
+        (bool handled, List<PlayerCommand>? commands, KeeperView? view) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoWork, creature.Id));
 
         Assert.True(view.Creatures.Single(c => c.Id == creature.Id).LastDroppedCounter <= KeeperMoodRemedies.DroppedGraceTurns);
         Assert.True(handled);
@@ -151,10 +151,10 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void AContentOrMissingCreatureIsHandledWithoutARemedy()
     {
-        var (world, creature) = Moody(AngerBucket.Lair, amount: 100);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Lair, amount: 100);
         Paint(world, KeeperWorld.LairFloor, 10, 10);
-        var (content, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoLair, creature.Id));
-        var (missing, more, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, 999));
+        (bool content, List<PlayerCommand>? commands, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoLair, creature.Id));
+        (bool missing, List<PlayerCommand>? more, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, 999));
 
         Assert.True(content && missing);
         Assert.Empty(commands);
@@ -164,9 +164,9 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void WithoutUnhappyCreaturesHappyA17IsHandledAndNothingMoves()
     {
-        var (world, creature) = Moody(AngerBucket.Lair);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Lair);
         Paint(world, KeeperWorld.LairFloor, 10, 10);
-        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoLair, creature.Id),
+        (bool handled, List<PlayerCommand>? commands, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.NoLair, creature.Id),
             Happy(unhappy: false));
 
         Assert.True(handled);
@@ -176,9 +176,9 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void An18IsMadeHappyUnderAngryCreaturesHappy()
     {
-        var (world, creature) = Moody(AngerBucket.Lair, amount: 40000);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Lair, amount: 40000);
         Paint(world, KeeperWorld.LairFloor, 10, 10);
-        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
+        (bool handled, List<PlayerCommand>? commands, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
             Happy(unhappy: false));
 
         Assert.True(handled);
@@ -191,9 +191,9 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void DisposalMethodOneDropsTheAngryCreatureOnATempleFloorSlot()
     {
-        var (world, creature) = Moody(AngerBucket.Lair, amount: 40000);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Lair, amount: 40000);
         Paint(world, KeeperWorld.TempleFloor, 10, 10);
-        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
+        (bool handled, List<PlayerCommand>? commands, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
             Disposing(1));
 
         Assert.True(handled);
@@ -203,10 +203,10 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void DisposalMethodZeroStillTakesATempleFirstAtItsPosition()
     {
-        var (world, creature) = Moody(AngerBucket.Lair, amount: 40000);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Lair, amount: 40000);
         Paint(world, KeeperWorld.TempleFloor, 10, 10);
         Paint(world, KeeperWorld.PortalFloor, 20, 10);
-        var (handled, commands, view) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
+        (bool handled, List<PlayerCommand>? commands, KeeperView? view) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
             Disposing(0));
 
         Assert.True(handled);
@@ -223,9 +223,9 @@ public class KeeperMoodRemediesTests
     [InlineData(KeeperWorld.HeroPortalFloor, RoomTypeId.HeroPortal)]
     public void WithoutATempleTheCreatureIsDroppedAtAPortalOrElseAHeroPortal(byte floor, RoomTypeId type)
     {
-        var (world, creature) = Moody(AngerBucket.Lair, amount: 40000);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Lair, amount: 40000);
         Paint(world, floor, 20, 10);
-        var (handled, commands, view) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
+        (bool handled, List<PlayerCommand>? commands, KeeperView? view) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
             Disposing(1));
 
         Assert.True(handled);
@@ -236,8 +236,8 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void WithNowhereToDisposeAtThe18StaysUnhandledForRetry()
     {
-        var (world, creature) = Moody(AngerBucket.Lair, amount: 40000);
-        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Lair, amount: 40000);
+        (bool handled, List<PlayerCommand>? commands, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
             Disposing(1));
 
         Assert.False(handled);
@@ -247,10 +247,10 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void ADisposalWhoseLiftIsRefusedStaysUnhandled()
     {
-        var (world, creature) = Moody(AngerBucket.Lair, amount: 40000);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Lair, amount: 40000);
         Paint(world, KeeperWorld.PortalFloor, 20, 10);
         creature.InHand = true;
-        var (handled, commands, _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
+        (bool handled, List<PlayerCommand>? commands, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureAngry, AngerComplaint.NoLair, creature.Id),
             Disposing(0));
 
         Assert.False(handled);
@@ -260,7 +260,7 @@ public class KeeperMoodRemediesTests
     [Fact]
     public void TheWalkAcknowledgesAHandled17AndRetriesAnUnhandledOne()
     {
-        var (world, creature) = Moody(AngerBucket.Pay);
+        (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Pay);
         PlayerMessage message = Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.Money, creature.Id);
         var state = new KeeperAIState();
         for (int i = 0; i < 3; i++) state.Responses.TryReceive(() => new KeeperThreatResponse(1, new TilePos(i, 1)));

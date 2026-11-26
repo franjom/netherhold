@@ -144,7 +144,7 @@ public class TileWorkOnRealDataTests
         // is something else. Every one of them would mutate on the first tick
         // under a level-triggered upgrade rule, which is the evidence that the
         // rule has to be work-triggered instead (Q18).
-        List<string> atRestButPointingElsewhere = db.Terrain.Values
+        var atRestButPointingElsewhere = db.Terrain.Values
             .Where(t => t.StartingHealth >= t.MaxHealth && t.MaxHealthTypeTerrainId != t.TerrainId)
             .Select(t => t.Name)
             .ToList();
@@ -183,7 +183,7 @@ public class TileWorkOnRealDataTests
 
         string install = Dk2InstallGate.Path;
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, map, map.Tiles.Select(t => t.PlayerId).Distinct());
 
         var sim = new GameSimulation(db, world, seed: 1, [new Simulation.Systems.TileWorkSystem()]);

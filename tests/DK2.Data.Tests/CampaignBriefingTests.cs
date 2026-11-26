@@ -18,10 +18,10 @@ public class CampaignBriefingTests
         foreach (int value in Enumerable.Range(1, 30).Where(i => i != 25))
         {
             var slot = new CampaignSlot(value);
-            var briefing = CampaignBriefingLoader.Load(install, slot);
+            CampaignBriefing briefing = CampaignBriefingLoader.Load(install, slot);
             Assert.Equal(slot, briefing.Slot);
             Assert.False(string.IsNullOrWhiteSpace(briefing.Name + briefing.Tagline), slot.LevelName);
-            var definition = GameDatabaseLoader.LoadCampaignLevel(install, slot.LevelName!)!;
+            LevelDef definition = GameDatabaseLoader.LoadCampaignLevel(install, slot.LevelName!)!;
             string file = BriefingTextTable.FileName(definition.TextTableId)!;
             var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", file));
             uint nativeResource = slot.IsSecret ? (uint)(1005 + slot.Value) : (uint)(999 + slot.Value);

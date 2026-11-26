@@ -27,7 +27,7 @@ public sealed class EnterHookRefusalTests
     /// <paramref name="gold"/> at (12, 8).</summary>
     private static WorldState World(GameDatabase db, int gold = 100_000)
     {
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 8; y++)
         for (int x = 1; x <= 12; x++)

@@ -27,7 +27,7 @@ public class TerrainTileStateTests
             Assert.Equal(ClassicTerrainTint.PieceColour(tint), TerrainTileState.DecodeColour(packed.Y));
             Assert.Equal(127, packed.W);
             var recipe = new ClassicMaterialRecipe("test", blend, .37f);
-            TerrainMaterialLook expected = TerrainMaterialLook.For(TerrainMaterialKey.For(recipe, red, tag, tint, null));
+            var expected = TerrainMaterialLook.For(TerrainMaterialKey.For(recipe, red, tag, tint, null));
             Vector3 added = TerrainTileState.AddedLight(recipe, packed, packed, packed, false);
             Assert.Equal(expected.AddedLight, added);
             foreach (float light in new[] { 0f, .4f, .95f, 1f })

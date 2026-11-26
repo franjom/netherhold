@@ -58,7 +58,7 @@ public class GoldCarryingTests
     private static Run AtTheSeam(TilePos? impAt = null, bool workClip = false)
     {
         GameDatabase database = workClip ? WithWorkClip(Dk2TerrainFixture.Database()) : Dk2TerrainFixture.Database();
-        WorldState world = WorldState.FromMap(
+        var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt ?? new TilePos(2, 2));
 
@@ -215,7 +215,7 @@ public class GoldCarryingTests
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
         run.Ticks(800);
 
-        List<int> loads = run.Of("gold_delivered").Select(Run.Amount).ToList();
+        var loads = run.Of("gold_delivered").Select(Run.Amount).ToList();
         Assert.Equal([1090, 1091, 819], loads);
         Assert.Equal(3000, loads.Sum());
     }
@@ -269,7 +269,7 @@ public class GoldCarryingTests
 
         // The load is four swings, 1090 to 1092 by which swings the 272s fall on; the
         // point is that the second tile takes exactly what the first could not, in one deposit.
-        List<int> loads = run.Of("gold_delivered").Select(Run.Amount).ToList();
+        var loads = run.Of("gold_delivered").Select(Run.Amount).ToList();
         int[] held = [run.World.Tile(3, 3).GoldHeld, run.World.Tile(3, 2).GoldHeld];
         Assert.Equal(1000, held.Max());
         Assert.InRange(held.Min(), 90, 92);
@@ -543,7 +543,7 @@ public class GoldCarryingTests
         SimEvent abandoned = Assert.Single(run.Of("job_abandoned"));
         Assert.Contains("reason=pile_underfoot_full", abandoned.Detail);
         // Full hands, so each strike's gold goes onto the pile (TileWorkSystem.HandTo).
-        List<SimEvent> strikes = run.Of("gold_put_down").ToList();
+        var strikes = run.Of("gold_put_down").ToList();
         Assert.Equal(2, strikes.Count);
         Assert.Equal(strikes[1].Tick, abandoned.Tick);
     }
