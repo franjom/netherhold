@@ -351,7 +351,9 @@ public class DropLandingTests
 
         // In its own update the landed creature still holds the clear bit; 0x0048A037 stores it at the end.
         Assert.Equal([(newer.Id, false, CreatureStateMachine.Idle), (dropped.Id, false, 255)],
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
             seen.Select(s => (s.Id, s.Attackable, s.State)).ToArray());
+#pragma warning restore IDE0305
         Assert.True(DK2.Simulation.Combat.CombatRules.IsAttackable(dropped));
     }
 

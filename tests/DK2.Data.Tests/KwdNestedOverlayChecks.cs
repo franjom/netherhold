@@ -27,7 +27,7 @@ internal static class KwdNestedOverlayChecks
     {
         byte[] Frame(byte[] nested)
         {
-            byte[] parent = Enumerable.Repeat((byte)0x5A, stride).ToArray();
+            byte[] parent = [.. Enumerable.Repeat((byte)0x5A, stride)];
             parent[0] = (byte)'a'; parent[1] = 0; nested.CopyTo(parent, offset); return parent;
         }
         KwdScalarOverlayChecks.Check(type, width, bytes => select(read(Frame(bytes))), (row, image) =>

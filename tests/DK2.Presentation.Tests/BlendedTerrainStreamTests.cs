@@ -73,8 +73,8 @@ public sealed class BlendedTerrainStreamTests
             {
                 Legacy.AddEffectMesh(positions, indices, material, transform);
                 Matrix4x4 placed = LegacyTransparentTerrain.UnityMultiply(WorldToLocal, transform);
-                BlendedVertex[] local = positions.Select(p => new BlendedVertex(LegacyTransparentTerrain.MultiplyPoint3x4(placed, p),
-                    Vector3.UnitY, default, default, VertexColour.White)).ToArray();
+                BlendedVertex[] local = [.. positions.Select(p => new BlendedVertex(LegacyTransparentTerrain.MultiplyPoint3x4(placed, p),
+                    Vector3.UnitY, default, default, VertexColour.White))];
                 Stream.AddEffect(material, local, indices);
             }
             Legacy.EndEffectFrame();
@@ -126,7 +126,7 @@ public sealed class BlendedTerrainStreamTests
 
     private sealed record Camera(Vector3 Forward, ViewFrustum Frustum, Vector3 Position)
     {
-        public Plane[] Planes => Enumerable.Range(0, 6).Select(i => Frustum[i]).ToArray();
+        public Plane[] Planes => [.. Enumerable.Range(0, 6).Select(i => Frustum[i])];
 
         public static Camera At(Vector3 focus, float yawDegrees, float pitchDegrees = 50f, float distance = 9f, float shift = .2f)
         {
@@ -238,8 +238,7 @@ public sealed class BlendedTerrainStreamTests
                         break;
                 }
                 case 4:
-                    pair.PlaceItems(camera, Enumerable.Range(0, random.Next(0, 4))
-                        .Select(_ => focus + new Vector3(random.Next(-6, 7), 1.5f, random.Next(-6, 7))).ToList());
+                    pair.PlaceItems(camera, [.. Enumerable.Range(0, random.Next(0, 4)).Select(_ => focus + new Vector3(random.Next(-6, 7), 1.5f, random.Next(-6, 7)))]);
                     break;
                 case 5:
                     pair.Effects();
@@ -474,7 +473,9 @@ public sealed class BlendedTerrainStreamTests
         Assert.True(stream.Refresh(Vector3.UnitZ, Matrix4x4.Identity, ViewFrustum.FromPose(pose, 1f, .3f)));
         // Equal depths keep the collected order: the water at z 6 (added before the dig tag) draws first.
         Assert.Equal([Water, Dig, Fog], stream.Runs.Select(run => stream.Material(run.MaterialIndex)).ToArray());
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([1, 1 - short.MaxValue, 3], Enumerable.Range(0, 3).Select(stream.SortingOrder).ToArray());
+#pragma warning restore IDE0305
         Assert.Equal(4, stream.Runs[0].Triangles.Count);
         Assert.False(stream.Refresh(Vector3.UnitZ, Matrix4x4.Identity, ViewFrustum.FromPose(pose, 1f, .3f)));
     }
@@ -574,7 +575,7 @@ public sealed class BlendedTerrainStreamTests
 
             stream.EndChunk();
         }
-        Camera[] cameras = Enumerable.Range(0, 16).Select(i => Camera.At(new Vector3(16, 0, 8), i * 22.5f)).ToArray();
+        Camera[] cameras = [.. Enumerable.Range(0, 16).Select(i => Camera.At(new Vector3(16, 0, 8), i * 22.5f))];
         for (int pass = 0; pass < 3; pass++)
         {
             foreach (Camera camera in cameras)

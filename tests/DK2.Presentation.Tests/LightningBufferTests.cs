@@ -66,7 +66,7 @@ public sealed class LightningBufferTests
             var actual = new List<LightningSegment>();
             for (int i = 0; i < 5; i++)
             {
-                LightningSegment[] expected = original.Choose(controls).ToArray();
+                LightningSegment[] expected = [.. original.Choose(controls)];
                 reused.ChooseInto(controls, actual);
                 Assert.Equal(expected, actual);
             }
@@ -83,8 +83,7 @@ public sealed class LightningBufferTests
         var uvs = new List<Vector2>();
         var triangles = new List<int>();
         var segments = new List<LightningSegment>();
-        LightningControlPoint[] controls = Enumerable.Range(0, 25)
-            .Select(i => new LightningControlPoint((uint)(i * 10), new(i, i % 3, 0))).ToArray();
+        LightningControlPoint[] controls = [.. Enumerable.Range(0, 25).Select(i => new LightningControlPoint((uint)(i * 10), new(i, i % 3, 0)))];
         void Frame()
         {
             vertices.Clear(); uvs.Clear(); triangles.Clear();

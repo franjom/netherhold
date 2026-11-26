@@ -108,7 +108,7 @@ public class GlobalVariablesMergeTests
         // Availability rows accumulate, as DK2's handler writes them as read (0x0051CA60,
         // ADR-0281): player 3 gets the level's value for type 1 and keeps the global type 2.
         Assert.Equal(3, merged.Availabilities.Count);
-        AvailabilityEntry[] table = merged.AvailabilitiesOf(3).ToArray();
+        AvailabilityEntry[] table = [.. merged.AvailabilitiesOf(3)];
         Assert.Equal(2, table.Length);
         Assert.Equal((1, 1), (table[0].TypeId, table[0].Value));
         Assert.Equal((2, 3), (table[1].TypeId, table[1].Value));

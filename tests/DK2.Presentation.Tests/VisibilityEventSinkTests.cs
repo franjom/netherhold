@@ -95,7 +95,7 @@ public sealed class VisibilityEventSinkTests
             Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
         };
         var database = new GameDatabase([terrain], [], [], new GlobalVariables());
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(0, 0, 0, 0), 900).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(0, 0, 0, 0), 900)];
         var world = WorldState.FromMap(database, new LevelMap(30, 30, tiles), [1, 2], true);
         return (new GameSimulation(database, world, 1, []), new WorldView(database, 1));
     }

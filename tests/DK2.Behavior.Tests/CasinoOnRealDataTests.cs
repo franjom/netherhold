@@ -46,7 +46,7 @@ public class CasinoOnRealDataTests
         GameDatabase db = Db();
         var drinkers = db.Creatures.Values.Where(c =>
             c.HappyJobs.Concat(c.UnhappyJobs).Concat(c.AngryJobs).Any(j => j.Job == JobType.Drink)).ToList();
-        string[] Missing(Func<CreatureDef, bool> has) => drinkers.Where(c => !has(c)).Select(c => c.Name).ToArray();
+        string[] Missing(Func<CreatureDef, bool> has) => [.. drinkers.Where(c => !has(c)).Select(c => c.Name)];
         string[] heroes = ["King Reginald", "Stone Knight"];
         Assert.Equal(heroes, Missing(c => AnimationTimingRules.ResolvesPresent(c, 19)));
         Assert.Equal(heroes, Missing(c => AnimationTimingRules.ResolvesPresent(c, 28)));

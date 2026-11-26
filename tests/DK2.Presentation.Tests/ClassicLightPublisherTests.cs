@@ -34,7 +34,9 @@ public sealed class ClassicLightPublisherTests
     }
 
     private static HashSet<TilePos> OnMap(IEnumerable<TilePos> tiles) =>
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         tiles.Where(t => (uint)t.X < Size && (uint)t.Y < Size).ToHashSet();
+#pragma warning restore IDE0305
 
     private static TilePos[] Tiles(ClassicCameraPose pose, float distance, CameraViewport? viewport = null) =>
         ClassicLightVisibility.EnumerateTiles(ClassicLightVisibility.BuildPolygon(pose, viewport ?? Viewport, distance));
@@ -56,7 +58,9 @@ public sealed class ClassicLightPublisherTests
 
         HashSet<TilePos> expected = OnMap(Tiles(TopDown, 10));
         Assert.NotEmpty(expected);
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal(expected, sink.Sets.ToHashSet());
+#pragma warning restore IDE0305
         Assert.Equal(expected.Count, sink.Sets.Count);
         Assert.Empty(sink.Removes);
         Assert.Equal(1, sink.Flushes);
@@ -99,9 +103,11 @@ public sealed class ClassicLightPublisherTests
 
         HashSet<TilePos> after = OnMap(Tiles(Shifted(6), 10));
         Assert.NotEmpty(before.Intersect(after));
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal(before.Except(after).ToHashSet(), sink.Removes.ToHashSet());
         Assert.NotEmpty(sink.Removes);
         Assert.Equal(after, sink.Sets.ToHashSet());
+#pragma warning restore IDE0305
     }
 
     [Fact]
@@ -117,7 +123,9 @@ public sealed class ClassicLightPublisherTests
         publisher.Prepare(Tilted, Viewport, 14);
         publisher.Publish(sink);
 
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal(OnMap(Tiles(Tilted, 14)), sink.Sets.ToHashSet());
+#pragma warning restore IDE0305
     }
 
     [Fact]
@@ -134,7 +142,9 @@ public sealed class ClassicLightPublisherTests
         publisher.Publish(sink);
 
         HashSet<TilePos> expected = OnMap(Tiles(TopDown, 24).Concat(Tiles(Tilted, 10, secondViewport)));
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal(expected, sink.Sets.ToHashSet());
+#pragma warning restore IDE0305
         Assert.Equal(expected.Count, sink.Sets.Count);
     }
 

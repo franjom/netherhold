@@ -83,8 +83,10 @@ public sealed class TileHoverOutlineBuildTests
         }
 
         Assert.Equal(expected * 4, ribbon.VertexCount);
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         Assert.Equal(new[] { 0, 1, 2, 2, 1, 3 }, ribbon.Indices[..6].ToArray());
         Assert.Equal(new[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 0), new Vector2(1, 1) }, ribbon.Uvs[..4].ToArray());
+#pragma warning restore IDE0300, IDE0305
     }
 
     [Fact]

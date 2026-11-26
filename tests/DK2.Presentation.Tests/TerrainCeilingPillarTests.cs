@@ -27,7 +27,7 @@ public sealed class TerrainCeilingPillarTests
         var variables = new GlobalVariables();
         variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new(VariableTypeId.DungeonHeartObjectHealth, 1000, 0, 0);
         var database = new GameDatabase([Terrain(1), Terrain(2)], [room], [], variables);
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(1, 3, 0, 0), Size * Size).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(1, 3, 0, 0), Size * Size)];
         for (int y = 4; y < 4 + height; y++)
         {
             for (int x = 4; x < 4 + width; x++)

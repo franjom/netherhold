@@ -225,7 +225,7 @@ public class CombatSpellTests
         sim.ObserveWith(sink);
 
         sim.Run(80);
-        long[] casts = sink.Events.Where(e => e.Kind == "cast" && e.Detail.Contains("creature=" + warlock.Id)).Select(e => e.Tick.Value).ToArray();
+        long[] casts = [.. sink.Events.Where(e => e.Kind == "cast" && e.Detail.Contains("creature=" + warlock.Id)).Select(e => e.Tick.Value)];
         Assert.True(casts.Length >= 2, "expected at least two casts: " + string.Join(",", casts));
         // stamp + 20 < now: the second cast is at least 21 ticks after the first.
         Assert.True(casts[1] - casts[0] >= 21, $"casts at {casts[0]} and {casts[1]}");

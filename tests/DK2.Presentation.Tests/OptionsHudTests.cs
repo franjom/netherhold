@@ -153,7 +153,7 @@ public sealed class OptionsHudTests
         int submitted = 0;
         hud.Submit += () => submitted++;
         hud.Show(view, visible: true, save: true);
-        char[] buffer = { 'A', 'B', '\b', 'C', '\n', 'Z' };
+        char[] buffer = ['A', 'B', '\b', 'C', '\n', 'Z'];
         hud.Type(buffer.AsSpan(0, 4));
         Assert.Equal("AC", view.Name);
         Assert.Equal(0, submitted);

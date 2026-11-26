@@ -43,10 +43,10 @@ public class KwdThingsWriterTests
             int at = 43 + slot * 32;
             KwdScalarOverlayChecks.Check(KwdRecordType.Things,32, bytes => KwdThings.Parse(199,bytes), (row, image) =>
             {
-                byte[] source = Enumerable.Repeat((byte)0x5A,555).ToArray();
+                byte[] source = [.. Enumerable.Repeat((byte)0x5A,555)];
                 image.ToBytes().CopyTo(source, at);
                 var party = (HeroPartyThing)KwdThings.Parse(201,source);
-                GoodCreatureThing[] members = party.Members.ToArray(); members[slot] = (GoodCreatureThing)row;
+                GoodCreatureThing[] members = [.. party.Members]; members[slot] = (GoodCreatureThing)row;
                 byte[] result = KwdThings.WriteRecord(party with { Members = members }, Image(201,source));
                 Assert.Equal(Image(201,source).ToBytes()[..8],result[..8]);
                 for (int i=0;i<555;i++)

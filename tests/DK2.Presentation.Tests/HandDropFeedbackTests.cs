@@ -160,7 +160,7 @@ public sealed class HandDropFeedbackTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte floor = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
-        var map = new LevelMap(5, 5, Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 25).ToArray());
+        var map = new LevelMap(5, 5, [.. Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 25)]);
         var world = WorldState.FromMap(db, map, [PlayerIds.Neutral, Keeper.Value]);
         world.Tile(Wall).TerrainId = db.Terrain.Values.First(t => t.IsSolid).TerrainId;
         HandItem item;

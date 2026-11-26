@@ -34,7 +34,7 @@ public sealed class RoomSoundTests
     }
 
     private static ThingSoundRequest[] Sounds(ListEventSink events) =>
-        events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        [.. events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
 
     private static FpPosition3 At(int x, int y, int height) =>
         new(new Fp32(CreatureState.CentreOf(x)), new Fp32(CreatureState.CentreOf(y)), new Fp32(height));
@@ -53,7 +53,7 @@ public sealed class RoomSoundTests
         Assert.False(accepted.Voiced);
 
         sim.Tick();
-        ThingSoundRequest[] built = Sounds(events).Skip(1).ToArray();
+        ThingSoundRequest[] built = [.. Sounds(events).Skip(1)];
         Assert.Equal(2, built.Length);
         Assert.All(built, s =>
         {

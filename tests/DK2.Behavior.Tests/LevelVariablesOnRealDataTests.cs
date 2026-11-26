@@ -333,7 +333,7 @@ public class LevelVariablesOnRealDataTests
     {
         string install = Install();
         List<PlayerDef> records = GameDatabaseLoader.LoadCampaignPlayers(install, "level18")!;
-        byte[] fileOrder = records.Select(p => p.PlayerId).ToArray();
+        byte[] fileOrder = [.. records.Select(p => p.PlayerId)];
         byte[] scrambled = [(byte)0, .. fileOrder.Reverse()];
 
         IReadOnlyList<byte> order = Harness.ScenarioRunner.ActivationOrder(scrambled, records);

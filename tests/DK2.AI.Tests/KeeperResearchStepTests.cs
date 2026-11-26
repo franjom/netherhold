@@ -118,10 +118,10 @@ public class KeeperResearchStepTests
     }
 
     private static int[] Lifted(IEnumerable<PlayerCommand> commands) =>
-        commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray();
+        [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
 
     private static TilePos[] Drops(IEnumerable<PlayerCommand> commands) =>
-        commands.OfType<DropCommand>().Select(c => c.Tile).ToArray();
+        [.. commands.OfType<DropCommand>().Select(c => c.Tile)];
 
     private static void Hold(WorldState world, CreatureState creature) =>
         new GameSimulation(Db, world, 1, [new HandSystem()]).Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));
@@ -158,7 +158,7 @@ public class KeeperResearchStepTests
 
         CreatureState fighter = Spawn(world, KeeperWorld.FighterCreature, 16);
 
-        Assert.Equal(moved ? [fighter.Id] : Array.Empty<int>(), Lifted(Move(world)));
+        Assert.Equal(moved ? [fighter.Id] : [], Lifted(Move(world)));
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public class KeeperResearchStepTests
             Spawn(world, KeeperWorld.FighterCreature, 13 + i).CameThroughPortal = true;
         }
 
-        Assert.Equal(moved ? [candidate.Id] : Array.Empty<int>(), Lifted(Move(world, db)));
+        Assert.Equal(moved ? [candidate.Id] : [], Lifted(Move(world, db)));
     }
 
     [Fact]
@@ -264,8 +264,8 @@ public class KeeperResearchStepTests
 
         (int left, List<PlayerCommand> commands) = Step(world, seed: seed);
 
-        Assert.Equal(library ? [fighter.Id] : Array.Empty<int>(), Lifted(commands));
-        Assert.Equal(library ? [PositionOf(world, RoomTypeId.Portal)] : Array.Empty<TilePos>(), Drops(commands));
+        Assert.Equal(library ? [fighter.Id] : [], Lifted(commands));
+        Assert.Equal(library ? [PositionOf(world, RoomTypeId.Portal)] : [], Drops(commands));
         Assert.Equal(4, left); // the move spends nothing
     }
 
@@ -362,7 +362,7 @@ public class KeeperResearchStepTests
 
         (int left, List<PlayerCommand> commands) = Step(world, seed: seed);
 
-        Assert.Equal(lifted ? [moody.Id] : Array.Empty<int>(), Lifted(commands));
+        Assert.Equal(lifted ? [moody.Id] : [], Lifted(commands));
         Assert.Empty(Drops(commands));
         Assert.Equal(lifted ? 3 : 4, left);
     }

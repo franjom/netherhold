@@ -48,8 +48,7 @@ public class KcsCameraPathTests
     public void EveryShippedPathParsesAndEveryFrameIsARotationBelowItsOrigin()
     {
         using var wad = WadArchive.Open(Path.Combine(Dk2InstallGate.Path, "Data", "Paths.WAD"));
-        WadEntry[] paths = wad.Entries
-            .Where(e => e.Name.EndsWith(".KCS", StringComparison.OrdinalIgnoreCase)).ToArray();
+        WadEntry[] paths = [.. wad.Entries.Where(e => e.Name.EndsWith(".KCS", StringComparison.OrdinalIgnoreCase))];
 
         Assert.Equal(80, paths.Length);
         foreach (WadEntry entry in paths)

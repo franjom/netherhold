@@ -165,9 +165,9 @@ public class RenderAnimationTests
 
     private static KmfModel Model()
     {
-        KmfMesh[] frames = Enumerable.Range(0, 3).Select(i => new KmfMesh("clip", Vector3.Zero, 1f,
+        KmfMesh[] frames = [.. Enumerable.Range(0, 3).Select(i => new KmfMesh("clip", Vector3.Zero, 1f,
             [new KmfPrimitive(0, 1f, [new KmfVertex(new Vector3(i * 4, 2, -3), Vector3.UnitZ, Vector2.Zero)],
-                [Array.Empty<byte>()])])).ToArray();
+                [Array.Empty<byte>()])]))];
         return new KmfModel(1, KmfKind.Animation, [], frames[0], new KmfAnimation(3, frames));
     }
 }

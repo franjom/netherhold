@@ -132,7 +132,7 @@ public class PlayerMessageTests
         GameSimulation Make(int x = 2, byte owner = 1, bool reverse = false)
         {
             GameSimulation sim = TestWorld.Simulation();
-            foreach (int y in reverse ? new[] { 4, 3 } : new[] { 3, 4 })
+            foreach (int y in reverse ? new[] { 4, 3 } : [3, 4])
             {
                 sim.World.Messages.Post(sim.World, owner, PlayerMessageKind.CombatStarted, x, y);
             }

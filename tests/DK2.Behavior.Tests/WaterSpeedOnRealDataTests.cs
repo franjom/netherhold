@@ -20,8 +20,7 @@ public class WaterSpeedOnRealDataTests
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level8")!;
         var world = WorldState.FromMap(db, map, [0, 1, 2, 3, 4]);
-        TilePos[] tiles = Enumerable.Range(0, world.Width * world.Height)
-            .Select(i => new TilePos(i % world.Width, i / world.Width)).ToArray();
+        TilePos[] tiles = [.. Enumerable.Range(0, world.Width * world.Height).Select(i => new TilePos(i % world.Width, i / world.Width))];
         TilePos water = tiles.First(p => db.TerrainById(world.Tile(p).TerrainId).IsWater);
         TilePos bridge = tiles.First(p => db.RoomByTerrain(world.Tile(p).TerrainId)?.TypeId is
             RoomTypeId.WoodenBridge or RoomTypeId.StoneBridge or RoomTypeId.HeroStoneBridge);

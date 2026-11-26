@@ -28,9 +28,11 @@ public class LevelStartBlueprintsTests
             GameDatabaseLoader.LoadCampaignThings(install, level)!,
             GameDatabaseLoader.LoadCampaignTriggers(install, level)!, seed: 1);
 
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         DoorState[] plans = sim.World.Doors.Where(d => d.UnderConstruction).ToArray();
 
         Assert.Equal([(44, 23), (44, 24), (44, 25)], plans.Select(d => (d.X, d.Y)).OrderBy(p => p.Item2).ToArray());
+#pragma warning restore IDE0305
         Assert.All(plans, d => Assert.Equal((byte)6, d.DoorId));
         Assert.All(plans, d => Assert.Equal(PlayerIds.FirstKeeper, d.PlayerId));
         Assert.Equal(3, sim.World.Player(PlayerIds.FirstKeeper).Blueprints.Count);

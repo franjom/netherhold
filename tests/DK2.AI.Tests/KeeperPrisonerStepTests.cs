@@ -143,10 +143,10 @@ public class KeeperPrisonerStepTests
     }
 
     private static int[] Lifted(IEnumerable<PlayerCommand> commands) =>
-        commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray();
+        [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
 
     private static TilePos[] Drops(IEnumerable<PlayerCommand> commands) =>
-        commands.OfType<DropCommand>().Select(c => c.Tile).ToArray();
+        [.. commands.OfType<DropCommand>().Select(c => c.Tile)];
 
     [Fact]
     public void WithoutAPrisonOrAnOccupantNothingIsSpent()
@@ -190,8 +190,8 @@ public class KeeperPrisonerStepTests
         (int left, List<PlayerCommand> commands) = Run(world, seed: SeedWhere(0, pass));
 
         // Action 3 takes it to the Temple; a failed roll selects nobody and spends nothing.
-        Assert.Equal(pass ? [enemy.Id] : Array.Empty<int>(), Lifted(commands));
-        Assert.Equal(pass ? [PositionOf(world, RoomTypeId.Temple)] : Array.Empty<TilePos>(), Drops(commands));
+        Assert.Equal(pass ? [enemy.Id] : [], Lifted(commands));
+        Assert.Equal(pass ? [PositionOf(world, RoomTypeId.Temple)] : [], Drops(commands));
         Assert.Equal(pass ? 3 : 4, left);
     }
 
@@ -282,7 +282,7 @@ public class KeeperPrisonerStepTests
         int wall = WallTheTortureChamber(world);
         Occupant(world, Enemy, serial: 1);
         var view = new KeeperView(Db, world, Keeper);
-        int[] slots = view.OwnRooms.Single(r => r.Definition.RoomId == (byte)RoomTypeId.TortureChamber).FurnitureSlots().ToArray();
+        int[] slots = [.. view.OwnRooms.Single(r => r.Definition.RoomId == (byte)RoomTypeId.TortureChamber).FurnitureSlots()];
         var reached = new HashSet<TilePos>();
 
         // Prison, roll, chamber, then the slot among two: each slot is drawn under some seed, and the
@@ -386,7 +386,7 @@ public class KeeperPrisonerStepTests
 
         (int left, List<PlayerCommand> commands) = Run(world);
 
-        Assert.Equal(moved ? [own.Id] : Array.Empty<int>(), Lifted(commands));
+        Assert.Equal(moved ? [own.Id] : [], Lifted(commands));
         Assert.Equal(3, left);
     }
 

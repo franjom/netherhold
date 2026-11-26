@@ -38,7 +38,7 @@ public class SgmapTests
         SgmapDatabase map = Parse();
         SgmapStruct structure = Assert.Single(map.Structs, s => s.Name == "OuterNode");
 
-        SgmapFieldLocation[] fields = map.Expand(structure).ToArray();
+        SgmapFieldLocation[] fields = [.. map.Expand(structure)];
 
         Assert.Contains(fields, f => f.Path == "baseValue" && f.Offset == 4 && f.Size == 4);
         Assert.Contains(fields, f => f.Path == "position.secondAxis" && f.Offset == 10);

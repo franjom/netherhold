@@ -70,7 +70,9 @@ public class KwdHostileInputTests
         string maps = Path.Combine(Dk2InstallGate.Path, "Data", "editor", "maps");
         var random = new Random(72450);
         int[] values = [int.MaxValue, -1, 0x40000000, 0];
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         string[] files = Directory.GetFiles(maps, "*.kld").Concat(Directory.GetFiles(maps, "*.kwd")).ToArray();
+#pragma warning restore IDE0305
         Assert.True(files.Length > 300, $"expected every shipped level file, found {files.Length}");
         foreach (string path in files)
         {
@@ -135,9 +137,9 @@ public class KwdHostileInputTests
         byte[] mapHeader = new byte[8];
         BinaryPrimitives.WriteInt32LittleEndian(mapHeader, 3);
         BinaryPrimitives.WriteInt32LittleEndian(mapHeader.AsSpan(4), 2);
-        byte[] tiles = Enumerable.Range(0, 3 * 2 * 4).Select(i => (byte)i).ToArray();
-        byte[] variables = Enumerable.Range(0, 16).Select(i => (byte)(i * 7)).ToArray();
-        byte[] player = Enumerable.Range(0, KwdPlayers.RecordSize).Select(i => (byte)(i * 3)).ToArray();
+        byte[] tiles = [.. Enumerable.Range(0, 3 * 2 * 4).Select(i => (byte)i)];
+        byte[] variables = [.. Enumerable.Range(0, 16).Select(i => (byte)(i * 7))];
+        byte[] player = [.. Enumerable.Range(0, KwdPlayers.RecordSize).Select(i => (byte)(i * 3))];
         byte[] things = [.. Tagged(194, 24), .. Tagged(197, 56)];
         byte[] triggers = [.. Tagged(213, 16), .. Tagged(214, 16)];
         return KwdWriter.ToBytes([

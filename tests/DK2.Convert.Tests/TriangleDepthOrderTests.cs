@@ -16,22 +16,28 @@ public sealed class TriangleDepthOrderTests
     public void ReusedSortMatchesStableOrderingAcrossDirectionsAndGeometryChanges()
     {
         var random = new Random(42);
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Vector3[] positions = Enumerable.Range(0, 90)
             .Select(_ => new Vector3(random.Next(-2, 3), random.Next(-2, 3), random.Next(-2, 3))).ToArray();
         RenderTriangle[] triangles = Enumerable.Range(0, 180)
             .Select(i => new RenderTriangle(random.Next(90), random.Next(90), random.Next(90), i % 3)).ToArray();
+#pragma warning restore IDE0305
         var buffer = new TriangleDepthOrderBuffer();
         foreach (Vector3 forward in new[] { Vector3.UnitZ, -Vector3.UnitZ, Vector3.Zero, Vector3.UnitX })
         {
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
             RenderTriangle[] expected = triangles.Select((t, i) => (t, i, depth: Vector3.Dot(positions[t.A] + positions[t.B] + positions[t.C], forward)))
                 .OrderByDescending(e => e.depth).ThenBy(e => e.i).Select(e => e.t).ToArray();
+#pragma warning restore IDE0305
             Assert.Equal(expected, buffer.Sort(positions, triangles, forward).SelectMany(r => r.Triangles));
             AssertRuns(triangles, forward);
         }
         Assert.Empty(buffer.Sort(positions, [], Vector3.UnitZ));
         Assert.Single(buffer.Sort(positions, triangles.Take(1).ToArray(), Vector3.UnitZ));
         Assert.Equal(triangles.Length, buffer.Sort(positions, triangles, Vector3.UnitZ).Sum(r => r.Triangles.Count));
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         AssertRuns(triangles.Concat(triangles.Take(37)).ToArray(), -Vector3.UnitX);
+#pragma warning restore IDE0305
 
         void AssertRuns(RenderTriangle[] source, Vector3 forward)
         {
@@ -167,7 +173,7 @@ public sealed class TriangleDepthOrderTests
         Assert.Equal(2, materials.Count);
         var forward = Vector3.Normalize(new Vector3(1, -1, 1));
         IReadOnlyList<RenderTriangleRun> runs = TriangleDepthOrder.Sort(positions, triangles, forward);
-        RenderTriangle[] sorted = runs.SelectMany(r => r.Triangles).ToArray();
+        RenderTriangle[] sorted = [.. runs.SelectMany(r => r.Triangles)];
         Assert.Equal(triangles.Count, sorted.Length);
         Assert.True(runs.Count > 2, "The crystal and chasm materials must interleave.");
         float Depth(RenderTriangle t) => Vector3.Dot(positions[t.A] + positions[t.B] + positions[t.C], forward);

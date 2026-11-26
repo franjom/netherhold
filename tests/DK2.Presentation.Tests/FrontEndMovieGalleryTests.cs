@@ -16,7 +16,7 @@ public sealed class FrontEndMovieGalleryTests
     {
         using var archive = WadArchive.Open(Path.Combine(Dk2InstallGate.Path, "Data", "FrontEnd.WAD"));
         var index = new WadDirectoryIndex(archive.Entries);
-        CampaignLevelStatus[] won = Enumerable.Repeat(CampaignLevelStatus.Won, 40).ToArray();
+        CampaignLevelStatus[] won = [.. Enumerable.Repeat(CampaignLevelStatus.Won, 40)];
         foreach (CampaignProfile? profile in new[] { new CampaignProfile(), new CampaignProfile { PlayerLevelStatus = won } })
         {
             var gallery = new FrontEndMovieGallery(profile, _ => true);

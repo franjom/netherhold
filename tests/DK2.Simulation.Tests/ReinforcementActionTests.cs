@@ -243,7 +243,7 @@ public sealed class ReinforcementActionTests
         if (defaultCreaturePass)
         {
             CreatureUpdateSystem creaturePass = SimulationSystems.Default().OfType<CreatureUpdateSystem>().Single();
-            systems = [new CreatureUpdateSystem(creaturePass.Steps.Select(s => s is CombatSystem ? new AfterCombatScan(s) : s).ToArray())];
+            systems = [new CreatureUpdateSystem([.. creaturePass.Steps.Select(s => s is CombatSystem ? new AfterCombatScan(s) : s)])];
         }
         return new GameSimulation(database, world, 99, systems);
     }

@@ -11,7 +11,7 @@ public class FrontEndLabelTests
     [Fact]
     public void NativeAlignmentUsesTheAdvanceCanvasEvenWhenItsInkIsTiny()
     {
-        var font = new BitmapFont(12, new[] { new BitmapGlyph('A', 1, 1, 1, 3, 10, new byte[] { 15 }) });
+        var font = new BitmapFont(12, new[] { new BitmapGlyph('A', 1, 1, 1, 3, 10, [15]) });
         var label = FrontEndLabelGeometry.Measure(font, "A");
         Assert.Equal(new FrontEndRect(6, 7, 1, 1), label.PlaceInk(new(0, 0, 20, 20), FrontEndTextAlignment.Centre));
         Assert.Equal(new FrontEndRect(6, 3, 1, 1), label.PlaceInk(new(0, 0, 20, 20), FrontEndTextAlignment.Centre, FrontEndVerticalAlignment.Top));
@@ -33,9 +33,9 @@ public class FrontEndLabelTests
     {
         var font = new BitmapFont(6, new[]
         {
-            new BitmapGlyph('A', 3, 3, 1, 2, 5, new byte[] { 0,15,0, 15,15,15, 15,0,15 }),
-            new BitmapGlyph(' ', 0, 0, 0, 0, 2, Array.Empty<byte>()),
-            new BitmapGlyph('g', 2, 4, 0, 2, 3, new byte[] { 15,15, 15,15, 0,15, 15,15 }),
+            new BitmapGlyph('A', 3, 3, 1, 2, 5, [0,15,0, 15,15,15, 15,0,15]),
+            new BitmapGlyph(' ', 0, 0, 0, 0, 2, []),
+            new BitmapGlyph('g', 2, 4, 0, 2, 3, [15,15, 15,15, 0,15, 15,15]),
         });
         var label = FrontEndLabelGeometry.Measure(font, "A g");
         Assert.Equal(new FrontEndRect(1, 2, 8, 4), label.InkBounds);
@@ -49,7 +49,7 @@ public class FrontEndLabelTests
     [Fact]
     public void MissingReplacementCharactersCanFallBackWithoutChangingLayout()
     {
-        var font = new BitmapFont(5, new[] { new BitmapGlyph('A', 1, 1, 0, 1, 2, new byte[] { 15 }) });
+        var font = new BitmapFont(5, new[] { new BitmapGlyph('A', 1, 1, 0, 1, 2, [15]) });
         var label = FrontEndLabelGeometry.Measure(font, "AA");
         Assert.Equal(new FrontEndRect(0, 1, 3, 1), label.InkBounds);
         Assert.Equal(2, label.Glyphs.Count);
@@ -57,8 +57,8 @@ public class FrontEndLabelTests
     [Fact]
     public void BriefingWordsWrapUsingNativeAdvanceAndKeepLineHeightAndBearings()
     {
-        var font = new BitmapFont(6, new[] { new BitmapGlyph('A', 1, 1, 0, 1, 5, new byte[] { 15 }),
-            new BitmapGlyph(' ', 0, 0, 0, 0, 2, Array.Empty<byte>()) });
+        var font = new BitmapFont(6, new[] { new BitmapGlyph('A', 1, 1, 0, 1, 5, [15]),
+            new BitmapGlyph(' ', 0, 0, 0, 0, 2, []) });
         var text = FrontEndLabelGeometry.Measure(font, "AA AA", 10);
         Assert.Equal(4, text.Glyphs.Count);
         Assert.Equal(new FrontEndRect(0, 7, 1, 1), text.Glyphs[2].InkBounds);
@@ -66,9 +66,9 @@ public class FrontEndLabelTests
         var paragraphs = FrontEndLabelGeometry.Measure(font, "A\nA", 10);
         Assert.Equal(2, paragraphs.Glyphs.Count);
         Assert.Equal(12, paragraphs.CanvasHeight);
-        var mixed = new BitmapFont(6, new[] { new BitmapGlyph('a',1,1,0,1,1,new byte[] {15}),
-            new BitmapGlyph(' ',0,0,0,0,1,Array.Empty<byte>()), new BitmapGlyph('B',1,1,0,1,8,new byte[] {15}),
-            new BitmapGlyph('W',1,1,0,1,10,new byte[] {15}) });
+        var mixed = new BitmapFont(6, new[] { new BitmapGlyph('a',1,1,0,1,1,[15]),
+            new BitmapGlyph(' ',0,0,0,0,1,[]), new BitmapGlyph('B',1,1,0,1,8,[15]),
+            new BitmapGlyph('W',1,1,0,1,10,[15]) });
         var longWord = FrontEndLabelGeometry.Measure(mixed, "a BW", 10);
         Assert.Equal(18, longWord.CanvasHeight);
         Assert.Equal(10, longWord.Advance);

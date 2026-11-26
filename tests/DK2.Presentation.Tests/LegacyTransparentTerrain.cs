@@ -79,7 +79,7 @@ internal sealed class LegacyTransparentTerrain
         }
 
         effect.Material = material; effect.Transform = worldTransform;
-        effect.Positions = positions.ToArray(); effect.Indices = indices.ToArray();
+        effect.Positions = [.. positions]; effect.Indices = [.. indices];
         _dirty = true;
     }
 
@@ -132,7 +132,7 @@ internal sealed class LegacyTransparentTerrain
         {
             _sources[chunk] = new Source
         {
-            Positions = keptPositions.ToArray(), Materials = materials.ToArray(), Triangles = triangles.ToArray(),
+            Positions = [.. keptPositions], Materials = [.. materials], Triangles = [.. triangles],
         };
         }
 
@@ -296,7 +296,7 @@ internal sealed class LegacyTransparentTerrain
             int sortingOrder = material.TagOverlay ? i - short.MaxValue : i + 1;
             runs.Add((material, sortingOrder, ordered[i].Triangles.ToArray()));
         }
-        Uploaded = new Upload(geometryChanged, runs, _positions.ToArray());
+        Uploaded = new Upload(geometryChanged, runs, [.. _positions]);
     }
 
     private static bool Same(Vector3 a, Vector3 b)

@@ -32,9 +32,9 @@ public class RoomListOrderTests
     {
         public string Name => "room order probe";
         public TilePos[] Positions = [];
-        public void Execute(SimulationContext context) => Positions = new RoomCache().Of(context, (byte)3)
+        public void Execute(SimulationContext context) => Positions = [.. new RoomCache().Of(context, (byte)3)
             .Where(r => r.Definition.TypeId == RoomTypeId.Treasury)
-            .Select(r => new TilePos(r.MinX, r.MinY)).ToArray();
+            .Select(r => new TilePos(r.MinX, r.MinY))];
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class RoomListOrderTests
     public void LoadingKeepsTheNorthRoomsIdentityWhenAnOlderWestRoomIsAbsorbed()
     {
         LevelMap map = Dk2TerrainFixture.Map();
-        MapTile[] tiles = map.Tiles.ToArray();
+        MapTile[] tiles = [.. map.Tiles];
         foreach (TilePos pos in new[] { new TilePos(5, 4), new TilePos(7, 4), new TilePos(5, 5), new TilePos(6, 5), new TilePos(7, 5) })
         {
             tiles[pos.Y * map.Width + pos.X] = new MapTile(Dk2TerrainFixture.TreasuryTerrain, 3, 0, 0);
@@ -150,9 +150,9 @@ public class RoomListOrderTests
         public void Execute(SimulationContext context)
         {
             DefeatRules.OnDeathTurn(context, (byte)3);
-            Positions = RoomLists.Of(context.World, context.Database, PlayerIds.Neutral)
+            Positions = [.. RoomLists.Of(context.World, context.Database, PlayerIds.Neutral)
                 .Where(r => r.Definition.TypeId == RoomTypeId.Treasury)
-                .Select(r => new TilePos(r.MinX, r.MinY)).ToArray();
+                .Select(r => new TilePos(r.MinX, r.MinY))];
         }
     }
 }

@@ -55,13 +55,13 @@ public class TileWriteGuardTests
             .Where(path => !IsBuildOutput(Path.GetRelativePath(root, path)))
             .Select(path => (Relative(root, path), File.ReadAllText(path))));
 
-        string[] unexpected = found.Where(v => !AllowList.Any(a => Matches(a, v))).Select(v => v.ToString()).ToArray();
+        string[] unexpected = [.. found.Where(v => !AllowList.Any(a => Matches(a, v))).Select(v => v.ToString())];
         Assert.True(unexpected.Length == 0,
             "A whole TileState is written without TileState's setters, so the caches keyed on KeyWriteCount stay stale. "
             + "Assign the fields (TerrainId, OwnerPlayerId, RoomRuined, SecretDoor go through counted setters) or call "
             + "TileState.NoteBulkKeyWrite after a bulk copy:\n" + string.Join("\n", unexpected));
 
-        string[] unused = AllowList.Where(a => !found.Any(v => Matches(a, v))).Select(a => $"{a.File} {a.Member}").ToArray();
+        string[] unused = [.. AllowList.Where(a => !found.Any(v => Matches(a, v))).Select(a => $"{a.File} {a.Member}")];
         Assert.True(unused.Length == 0, "AllowList entries that match no whole-tile write any more; remove them:\n" + string.Join("\n", unused));
     }
 

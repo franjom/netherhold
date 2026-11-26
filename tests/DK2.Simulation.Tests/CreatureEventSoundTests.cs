@@ -17,7 +17,7 @@ public sealed class CreatureEventSoundTests
     private const byte SummonSpellId = 5;   // SummonHornyTests.Setup's Summon Horny
 
     private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
-        sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
 
     private static FpPosition3 At(CreatureState creature) =>
         new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
@@ -68,7 +68,7 @@ public sealed class CreatureEventSoundTests
 
         sim.Run(5);
 
-        ThingSoundRequest[] heard = Sounds(sink).Where(s => s.Event == ThingSoundEvent.Burning).ToArray();
+        ThingSoundRequest[] heard = [.. Sounds(sink).Where(s => s.Event == ThingSoundEvent.Burning)];
         Assert.Equal(3, heard.Length);
         Assert.Equal((ushort)0x340, (ushort)ThingSoundEvent.Burning);
         Assert.All(heard, s =>

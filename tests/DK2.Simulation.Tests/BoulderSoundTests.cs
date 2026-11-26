@@ -59,7 +59,7 @@ public sealed class BoulderSoundTests
         return sim;
     }
 
-    private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) => Sounds(events).Where(s => s.Event == sound).ToArray();
+    private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) => [.. Sounds(events).Where(s => s.Event == sound)];
 
     private static void AssertBoulder(ThingSoundRequest sound, ObjectState boulder, FpPosition3? at = null)
     {
@@ -243,7 +243,7 @@ public sealed class BoulderSoundTests
         GameSimulation sim = Sim(db, world, out ListEventSink events);
         sim.Run(1);
         Assert.Contains(events.Events, e => e.Kind == "boulder_struck_door");
-        return Sounds(events).Where(s => s.Event is ThingSoundEvent.BoulderHitDoor or ThingSoundEvent.BoulderHitMetalDoor).ToArray();
+        return [.. Sounds(events).Where(s => s.Event is ThingSoundEvent.BoulderHitDoor or ThingSoundEvent.BoulderHitMetalDoor)];
     }
 
     /// <summary>The door's impact byte (<c>def+0xB3</c>): 4 and 5 are <c>0x15A</c>, every other <c>0x14A</c>.</summary>

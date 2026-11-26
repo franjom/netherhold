@@ -76,7 +76,7 @@ public class CommandCodecHostileInputTests
     public void MutatedSamples_DecodeOrFailInAControlledWay()
     {
         var random = new Random(7240);
-        byte[][] samples = CommandCodecTests.Samples().Select(Encode).ToArray();
+        byte[][] samples = [.. CommandCodecTests.Samples().Select(Encode)];
         for (int i = 0; i < 20_000; i++)
         {
             byte[] input = (byte[])samples[i % samples.Length].Clone();

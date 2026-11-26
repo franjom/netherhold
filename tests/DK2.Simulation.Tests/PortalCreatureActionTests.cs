@@ -45,7 +45,7 @@ public class PortalCreatureActionTests
         var sim = new GameSimulation(db, world, 1, [], tree);
         var sink = new ListEventSink(); sim.ObserveWith(sink);
         sim.Tick();
-        ViewEffectRequest[] requests = sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value).ToArray();
+        ViewEffectRequest[] requests = [.. sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
         Assert.Equal(4, Assert.Single(world.Creatures).Level);
         Assert.Equal(3, requests.Length);
         Assert.All(requests, request => Assert.Equal(new EffectId(339), request.EffectId));
@@ -66,7 +66,7 @@ public class PortalCreatureActionTests
         sim.Tick();
 
         CreatureState creature = Assert.Single(world.Creatures);
-        ThingSoundRequest[] sounds = sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        ThingSoundRequest[] sounds = [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
         Assert.Equal(3, sounds.Length);
         Assert.Equal((ushort)0x349, (ushort)ThingSoundEvent.LeveledUp);
         Assert.All(sounds, s =>

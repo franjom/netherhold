@@ -77,7 +77,9 @@ public class ThingProjectionTests
 
         int max = CreatureLevelRules.MaxHealth(database, imp, 1);
         Assert.Equal([max, max / 2, max * 5 / 100],
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
                      world.Creatures.Select(c => c.Health).ToArray());
+#pragma warning restore IDE0305
 
         // And the reading it is not: an absolute count would put all three at
         // 100, 50 and 5 hit points out of the Imp's several hundred.
@@ -120,7 +122,9 @@ public class ThingProjectionTests
         ]);
 
         Assert.Equal([PlayerIds.Neutral, PlayerIds.Good],
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
                      world.Creatures.Select(c => c.OwnerPlayerId).ToArray());
+#pragma warning restore IDE0305
     }
 
     [Fact]
@@ -141,7 +145,9 @@ public class ThingProjectionTests
             { X = 6, Y = 4, CreatureId = 7, Level = 1, InitialHealth = 100, Flags = 0x26, PlayerId = PlayerIds.FirstKeeper },
         ]);
 
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([(byte)0xF9, (byte)0xFF, (byte)0x20], world.Creatures.Select(c => c.Flags).ToArray());
+#pragma warning restore IDE0305
     }
 
     [Theory]
@@ -165,7 +171,9 @@ public class ThingProjectionTests
 
         CreatureState hero = Assert.Single(world.Creatures);
         Assert.Equal([flags2 == 0x01, flags2 == 0x02, flags2 == 0x04, flags2 == 0x08],
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
                      new[] { hero.DestroysRooms, hero.IsTool, hero.DieInstantly, hero.IsMercenary });
+#pragma warning restore IDE0300
     }
 
     [Theory]
@@ -419,7 +427,9 @@ public class ThingProjectionTests
 
         Assert.Equal(2, result.Doors);
         Assert.Equal(2, result.Traps);
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         Assert.Equal(new[] { -11, 21 }, world.Doors.Select(d => d.X).ToArray());
+#pragma warning restore IDE0300, IDE0305
         DoorState door = world.Doors[0];
         Assert.Equal(12, door.Y);
         Assert.Equal(unchecked((int)0x89ABCDEF), door.Unknown_0008);
@@ -430,7 +440,9 @@ public class ThingProjectionTests
         Assert.True(door.UnderConstruction);
         Assert.Equal(new byte[] { 0xA1, 0xB2, 0xC3 }, door.Unknown_0011.ToArray());
 
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         Assert.Equal(new[] { -31, 41 }, world.Traps.Select(t => t.X).ToArray());
+#pragma warning restore IDE0300, IDE0305
         TrapState trap = world.Traps[0];
         Assert.Equal(32, trap.Y);
         Assert.Equal(unchecked((int)0xFEDCBA98), trap.Unknown_0008);
@@ -731,6 +743,8 @@ public class ThingProjectionTests
             Keeper(6, 4, Dk2TerrainFixture.ImpCreatureId, 3),
         ]);
 
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([7, 4, 6], world.Creatures.Select(c => c.Tile.X).ToArray());
+#pragma warning restore IDE0305
     }
 }

@@ -13,7 +13,7 @@ public class KwdDoorWriterTests
     [Fact]
     public void EveryDecodedDoorFieldEditsOnlyItsOwnBytesAndReadsBack()
     {
-        byte[] source = Enumerable.Repeat((byte)0x5A, 616).ToArray();
+        byte[] source = [.. Enumerable.Repeat((byte)0x5A, 616)];
         source[0] = (byte)'a'; source[1] = 0;
         DoorDef original = Read(source);
         var edits = new (Func<DoorDef, DoorDef> Change, int Offset, int Width)[]
@@ -50,7 +50,7 @@ public class KwdDoorWriterTests
     [Fact]
     public void UndecodedArtByteAndNoncanonicalNamePaddingSurvive()
     {
-        byte[] source = Enumerable.Repeat((byte)0xA7, 616).ToArray();
+        byte[] source = [.. Enumerable.Repeat((byte)0xA7, 616)];
         byte[] name = [(byte)' ', (byte)'a', (byte)' ', 0];
         name.CopyTo(source, 0);
         DoorDef original = Read(source);

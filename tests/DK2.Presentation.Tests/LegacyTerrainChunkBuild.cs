@@ -17,16 +17,16 @@ namespace DK2.Presentation.Tests;
 internal sealed class LegacyTerrainChunkBuild
 {
     private static readonly Vector2[] QuadrantCentres =
-    {
+    [
         new(-0.25f, 0.25f), new(0.25f, 0.25f), new(0.25f, -0.25f), new(-0.25f, -0.25f),
-    };
+    ];
 
     private static readonly UnityTurn[] Turns =
-    {
+    [
         UnityTurn.Euler(0f), UnityTurn.Euler(90f), UnityTurn.Euler(180f), UnityTurn.Euler(270f),
-    };
+    ];
 
-    private static readonly int[] SideDx = { 0, 1, 0, -1 }, SideDy = { -1, 0, 1, 0 };
+    private static readonly int[] SideDx = [0, 1, 0, -1], SideDy = [-1, 0, 1, 0];
 
     private readonly ITerrainPieceSource _pieces;
     private readonly Materials _classic = new();

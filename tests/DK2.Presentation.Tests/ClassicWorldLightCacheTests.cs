@@ -18,7 +18,9 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(Tile, Source(1, Tile));
         cache.UpdateHand(Source(2, Tile));
+#pragma warning disable IDE0300 // Preserve the original array construction.
         TilePos[] visible = { Tile };
+#pragma warning restore IDE0300
         for (int i = 0; i < 3; i++)
         {
             cache.PrepareFrame(visible);
@@ -28,25 +30,30 @@ public class ClassicWorldLightCacheTests
         ClassicLightTable table = cache.VisibleTables[0];
         if (replaceStatic)
         {
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
             table.RebuildStatic(new[] { Source(9, Tile) });
+#pragma warning restore IDE0300
         }
         else
         {
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
             table.RebuildDynamic(new[] { Source(9, Tile) });
+#pragma warning restore IDE0300
         }
 
         cache.PrepareFrame(visible);
         Assert.False(cache.TablesUnchanged);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 1, 2 }, Ids(table));
+#pragma warning restore IDE0300
     }
 
     [Fact]
     public void SourceIdentityAndTileInsertionOrderRetainEqualDistanceOverflowWinners()
     {
         var cache = new ClassicWorldLightCache(12, 12);
-        PortalLightView[] lights = Enumerable.Range(1, 26)
-            .Select(id => new PortalLightView(new PortalLightId(id), Source(id, Tile))).ToArray();
-        TilePos[] visible = { Tile };
+        PortalLightView[] lights = [.. Enumerable.Range(1, 26).Select(id => new PortalLightView(new PortalLightId(id), Source(id, Tile)))];
+        TilePos[] visible = [Tile];
         cache.UpdatePortalLights(lights);
         for (int i = 0; i < 3; i++)
         {
@@ -75,12 +82,12 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(12, 12);
         var descriptor = new KwdLight(0, 0, 0, 8192, 0x3800, 244, 244, 204, 0);
-        ObjectView[] objects = new[] { new ObjectView(1, 86, new PlayerId(3), Tile, default, 0,
+        ObjectView[] objects = [ new ObjectView(1, 86, new PlayerId(3), Tile, default, 0,
             5 * Fp32.One + 2048, 5 * Fp32.One + 2048, Fp32.One, 0, Fp32.One,
-            previousPosX: new Fp32(4 * Fp32.One + 2048), light: descriptor) };
+            previousPosX: new Fp32(4 * Fp32.One + 2048), light: descriptor) ];
         var portals = new PortalCentreLights(new EffectTime(0));
         portals.Create(Tile);
-        TilePos[] visible = { Tile };
+        TilePos[] visible = [Tile];
         cache.UpdateObjects(objects, 0);
         cache.UpdatePortalLights(portals.Advance(new EffectTime(0)));
         for (int i = 0; i < 3; i++)
@@ -108,9 +115,9 @@ public class ClassicWorldLightCacheTests
         var cached = new ClassicWorldLightCache(32, 32);
         var full = new ClassicWorldLightCache(32, 32);
         TilePos sentinel = new(31, 31);
-        TilePos[][] views = { new[] { Tile, new TilePos(6, 5), new TilePos(7, 5) },
-            new[] { new TilePos(7, 5), Tile, new TilePos(6, 5) },
-            new[] { new TilePos(12, 12) }, new[] { new TilePos(-1, 0), new TilePos(0, 0) } };
+        TilePos[][] views = [ [Tile, new TilePos(6, 5), new TilePos(7, 5)],
+            [new TilePos(7, 5), Tile, new TilePos(6, 5)],
+            [new TilePos(12, 12)], [new TilePos(-1, 0), new TilePos(0, 0)] ];
         for (int frame = 0; frame < 80; frame++)
         {
             foreach (ClassicWorldLightCache cache in new[] { cached, full })
@@ -181,7 +188,9 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(Tile, Source(1, Tile));
+#pragma warning disable IDE0300 // Preserve the original array construction.
         TilePos[] visible = { Tile, new(6, 5) };
+#pragma warning restore IDE0300
         cache.PrepareFrame(visible);
         Assert.False(cache.TablesUnchanged);
         cache.PrepareFrame(visible);
@@ -193,7 +202,9 @@ public class ClassicWorldLightCacheTests
             Assert.True(cache.TablesUnchanged);
             Assert.Equal(new ClassicLightFrame((uint)(i + 3)), cache.Frame);
             Assert.Equal(new ClassicLightFrame(1), cache.GetCell(Tile).BuildFrame);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
             Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[0]));
+#pragma warning restore IDE0300
         }
     }
 
@@ -201,7 +212,9 @@ public class ClassicWorldLightCacheTests
     public void SameTickHandValueAndRemovalInvalidateReuse()
     {
         var cache = new ClassicWorldLightCache(12, 12);
+#pragma warning disable IDE0300 // Preserve the original array construction.
         TilePos[] visible = { Tile };
+#pragma warning restore IDE0300
         cache.UpdateHand(Source(1, Tile));
         for (int i = 0; i < 3; i++)
         {
@@ -212,7 +225,9 @@ public class ClassicWorldLightCacheTests
         cache.UpdateHand(Source(2, Tile));
         cache.PrepareFrame(visible);
         Assert.False(cache.TablesUnchanged);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 2 }, Ids(cache.VisibleTables[0]));
+#pragma warning restore IDE0300
         cache.PrepareFrame(visible);
         Assert.True(cache.TablesUnchanged);
         cache.UpdateHand(null);
@@ -226,18 +241,24 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(12, 12);
         TilePos next = new(6, 5);
+#pragma warning disable IDE0300 // Preserve the original array construction.
         TilePos[] visible = { Tile, next };
+#pragma warning restore IDE0300
         for (int i = 0; i < 3; i++)
         {
             cache.PrepareFrame(visible);
         }
 
         Assert.True(cache.TablesUnchanged);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { next, Tile });
+#pragma warning restore IDE0300
         Assert.False(cache.TablesUnchanged);
         Assert.Equal(next, cache.VisibleTables[0].Tile);
         ClassicLightFrame frame = cache.Frame;
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Throws<ArgumentException>(() => cache.PrepareFrame(new[] { next, next }));
+#pragma warning restore IDE0300
         Assert.Equal(frame, cache.Frame);
         cache.Clear();
         Assert.False(cache.TablesUnchanged);
@@ -253,17 +274,21 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(Tile, Source(1, Tile));
         cache.SetTorch(Tile, Source(2, Tile));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { Tile });
         ClassicLightTable table = cache.VisibleTables[0];
         Assert.Equal(new[] { 1, 2 }, Ids(table));
         Assert.Equal(new ClassicLightFrame(1), table.StaticFrame);
         cache.PrepareFrame(new[] { Tile });
+#pragma warning restore IDE0300
         Assert.Same(table, cache.VisibleTables[0]);
         Assert.Equal(new ClassicLightFrame(2), cache.Frame);
         Assert.Equal(new ClassicLightFrame(1), table.StaticFrame);
         cache.SetTerrain(Tile, Source(3, Tile));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { Tile });
         Assert.Equal(new[] { 3, 2 }, Ids(table));
+#pragma warning restore IDE0300
         Assert.Equal(new ClassicLightFrame(3), table.StaticFrame);
     }
 
@@ -275,16 +300,20 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(16, 16);
         cache.SetTerrain(Tile, Source(1, Tile));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { Tile });
         ClassicLightTable first = cache.VisibleTables[0];
         cache.PrepareFrame(new[] { new TilePos(12, 12) });
         Assert.Equal(new ClassicLightFrame(1), cache.GetCell(Tile).BuildFrame);
         cache.PrepareFrame(new[] { Tile });
+#pragma warning restore IDE0300
         // Freed, then taken again from the free tables and rebuilt afresh (its static stamp is this frame).
         Assert.Same(first, cache.VisibleTables[0]);
         Assert.Equal(new ClassicLightFrame(3), cache.GetCell(Tile).BuildFrame);
         Assert.Equal(new ClassicLightFrame(3), cache.VisibleTables[0].StaticFrame);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[0]));
+#pragma warning restore IDE0300
     }
 
     [Fact]
@@ -292,10 +321,12 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(16, 16);
         cache.SetTerrain(Tile, Source(1, Tile));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { Tile });
         ClassicLightTable first = cache.VisibleTables[0];
         cache.PrepareFrame(new[] { new TilePos(4, 5), new TilePos(6, 5) });
         cache.PrepareFrame(new[] { Tile });
+#pragma warning restore IDE0300
         Assert.Same(first, cache.VisibleTables[0]);
         Assert.Equal(new ClassicLightFrame(1), first.StaticFrame);
     }
@@ -310,12 +341,14 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(16, 16);
         TilePos left = new(4, 5), light = new(6, 5);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { left, Tile });
         cache.SetTerrain(light, Source(1, light));
         cache.PrepareFrame(new[] { left });
         Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[0]));
         cache.PrepareFrame(new[] { left, Tile });
         Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[1]));
+#pragma warning restore IDE0300
     }
 
     [Fact]
@@ -323,9 +356,11 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTorch(Tile, Source(1, Tile));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { Tile });
         cache.SetTorch(Tile, null);
         cache.PrepareFrame(new[] { Tile });
+#pragma warning restore IDE0300
         Assert.Empty(cache.GetCell(Tile).StaticSources.ToArray());
         Assert.Equal(new ClassicLightFrame(2), cache.GetCell(Tile).BuildFrame);
         Assert.Equal(0, cache.VisibleTables[0].Count);
@@ -337,9 +372,11 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(new TilePos(8, 5), Source(1, new TilePos(8, 5)));
         cache.SetTerrain(new TilePos(11, 11), Source(2, new TilePos(11, 11)));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { Tile, new TilePos(6, 5) });
         Assert.Equal(0, cache.VisibleTables[0].Count);
         Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[1]));
+#pragma warning restore IDE0300
         Assert.Single(cache.GetCell(new TilePos(8, 5)).StaticSources.ToArray());
         Assert.Equal(default, cache.GetCell(new TilePos(11, 11)).BuildFrame);
         Assert.Empty(cache.GetCell(new TilePos(11, 11)).StaticSources.ToArray());
@@ -352,9 +389,11 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(3, 3);
         cache.SetTerrain(new TilePos(0, 0), Source(1, new TilePos(0, 0)));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { new TilePos(-1, 0), new TilePos(0, 0) });
         Assert.Equal(new TilePos(-1, 0), cache.VisibleTables[0].Tile);
         Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[0]));
+#pragma warning restore IDE0300
         Assert.Equal(default, cache.GetCell(new TilePos(-1, 0)));
     }
 
@@ -363,12 +402,16 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(Tile, Source(1, Tile));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { Tile });
+#pragma warning restore IDE0300
         cache.Clear();
         Assert.Equal(default, cache.Frame);
         Assert.Equal(0, cache.VisibleTables.Length);
         Assert.False(cache.IsVisible(Tile));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { Tile });
+#pragma warning restore IDE0300
         Assert.Equal(0, cache.VisibleTables[0].Count);
     }
 
@@ -378,7 +421,9 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         Assert.Throws<ArgumentOutOfRangeException>(() => cache.SetTerrain(new TilePos(-1, 0), null));
         Assert.Throws<ArgumentOutOfRangeException>(() => cache.SetTorch(new TilePos(12, 0), null));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Throws<ArgumentException>(() => cache.PrepareFrame(new[] { Tile, Tile }));
+#pragma warning restore IDE0300
         Assert.Equal(default, cache.Frame);
         Assert.Throws<ArgumentOutOfRangeException>(() => new ClassicWorldLightCache(0, 2));
     }
@@ -388,7 +433,7 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(Tile, Source(1, Tile));
-        TilePos[] visible = { Tile, new(6, 5), new(7, 5) };
+        TilePos[] visible = [Tile, new(6, 5), new(7, 5)];
         for (int i = 0; i < 100; i++)
         {
             cache.PrepareFrame(visible);
@@ -409,7 +454,7 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         var portals = new PortalCentreLights(new EffectTime(0));
         portals.Create(new TilePos(4, 4));
-        TilePos[] visible = { Tile, new(6, 5), new(7, 5) };
+        TilePos[] visible = [Tile, new(6, 5), new(7, 5)];
         for (int frame = 0; frame < 400; frame++)
         {
             long before = GC.GetAllocatedBytesForCurrentThread();
@@ -464,7 +509,9 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(Tile, Source(1, Tile));
+#pragma warning disable IDE0300 // Preserve the original array construction.
         TilePos[] visible = { Tile, new(6, 5), new(7, 5) };
+#pragma warning restore IDE0300
         for (int i = 0; i < 10; i++)
         {
             cache.PrepareFrame(visible);
@@ -475,7 +522,9 @@ public class ClassicWorldLightCacheTests
         long before = GC.GetAllocatedBytesForCurrentThread();
         cache.PrepareFrame(visible);
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[0]));
+#pragma warning restore IDE0300
     }
 
     [Fact]
@@ -486,12 +535,14 @@ public class ClassicWorldLightCacheTests
         cache.SetTerrain(Tile, Source(7, Tile));
         cache.SetTerrain(far, Source(9, far));
         cache.SetTerrain(new TilePos(31, 30), Source(11, new TilePos(31, 30)));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { Tile });
         Assert.True(cache.TryGetVisibleTable(Tile, out ClassicLightTable first));
         Assert.Equal(new[] { 7 }, Ids(first));
         // Tile's cells are freed at the frame after the one that left them, then its table serves the far tile.
         cache.PrepareFrame(new[] { new TilePos(20, 20) });
         cache.PrepareFrame(new[] { far });
+#pragma warning restore IDE0300
         Assert.True(cache.TryGetVisibleTable(far, out ClassicLightTable table));
         Assert.Same(first, table);
         Assert.Equal(far, table.Tile);
@@ -503,5 +554,5 @@ public class ClassicWorldLightCacheTests
     private static ClassicPointLight Source(int id, TilePos tile)
         => ClassicPointLight.FromTerrain(tile, new Fp32(0), new TerrainLightColour(id, 0, 0));
     private static int[] Ids(ClassicLightTable table)
-        => table.Lights.ToArray().Select(l => (int)MathF.Round(l.Colour.X * 255)).ToArray();
+        => [.. table.Lights.ToArray().Select(l => (int)MathF.Round(l.Colour.X * 255))];
 }

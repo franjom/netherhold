@@ -227,11 +227,10 @@ public class PortalOnRealDataTests
     {
         string install = Install();
 
-        string[] names = GameDatabaseLoader.Load(install).Rooms.Values
+        string[] names = [.. GameDatabaseLoader.Load(install).Rooms.Values
             .Where(r => r.Construction == TileConstruction.ThreeByThree)
             .OrderBy(r => r.RoomId)
-            .Select(r => r.Name)
-            .ToArray();
+            .Select(r => r.Name)];
 
         // PortalRules.IsEntrance names two rooms by id and justifies it by this.
         Assert.Equal(["Portal", "Hero Portal"], names);
@@ -292,8 +291,7 @@ public class PortalOnRealDataTests
 
             checkedLevels++;
 
-            List<(int, int)> keys = vars.CreaturePool
-                .Select(e => (e.PlayerId, e.CreatureId)).ToList();
+            List<(int, int)> keys = [.. vars.CreaturePool.Select(e => (e.PlayerId, e.CreatureId))];
             Assert.Equal(keys.Count, keys.Distinct().Count());
         }
 
@@ -403,7 +401,9 @@ public class PortalOnRealDataTests
             $"expected most portals to start neutral, saw {neutralPortalTiles} tiles");
 
         // Keepers run 3 to 7 and no further.
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([3, 4, 5, 6, 7], poolPlayers.ToArray());
+#pragma warning restore IDE0305
     }
 
     /// <summary>

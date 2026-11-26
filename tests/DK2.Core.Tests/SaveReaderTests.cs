@@ -37,7 +37,7 @@ public class SaveReaderTests
     public void ChecksumMatchesReferenceXxHash64(int length, ulong expected)
     {
         // Independently evaluated by libxxhash.so.0, seed 0, byte sequence 0..length-1.
-        byte[] bytes = Enumerable.Range(0, length).Select(i => (byte)i).ToArray();
+        byte[] bytes = [.. Enumerable.Range(0, length).Select(i => (byte)i)];
         Assert.Equal(expected, PayloadChecksum.Compute(bytes));
     }
 }

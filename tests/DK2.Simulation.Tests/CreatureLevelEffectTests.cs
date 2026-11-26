@@ -30,7 +30,7 @@ public class CreatureLevelEffectTests
         var sim = new GameSimulation(db, world, 1, [new Promote(imp, earned)]);
         var sink = new ListEventSink(); sim.ObserveWith(sink);
         sim.Tick();
-        ViewEffectRequest[] requests = sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value).ToArray();
+        ViewEffectRequest[] requests = [.. sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
         Assert.Equal(expected, requests.Length);
         if (expected != 0)
         {

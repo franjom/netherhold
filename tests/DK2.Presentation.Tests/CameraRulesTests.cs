@@ -409,7 +409,7 @@ public class CameraRulesTests
     // --- GameSessionStarter ---
 
     private static LevelMap Map(params byte[] owners) =>
-        new(owners.Length, 1, owners.Select(owner => new MapTile(2, owner, 0, 0)).ToArray());
+        new(owners.Length, 1, [.. owners.Select(owner => new MapTile(2, owner, 0, 0))]);
 
     [Fact]
     public void ASavesPlayersAreTheMapsOwnersAscendingAndDistinct() =>
@@ -459,7 +459,7 @@ public class CameraRulesTests
             Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
         };
         var database = new GameDatabase([terrain], [], [], new GlobalVariables());
-        var map = new LevelMap(4, 4, Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16).ToArray());
+        var map = new LevelMap(4, 4, [.. Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16)]);
         var level = new LevelDef([])
         {
             Name = "Level5", Description = "", Author = "", Email = "", Information = "", Unknown_1184 = default, Messages = [],

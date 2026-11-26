@@ -985,8 +985,8 @@ public sealed class CreatureJobTests
         Assert.NotEmpty(entries);
         foreach (long entry in entries)
         {
-            SimEvent[] asked = events.Events.Where(e => e.Tick.Value == entry
-                && e.ThingSound is { Event: ThingSoundEvent.Trained, Source.Kind: SoundSourceKind.Creature }).ToArray();
+            SimEvent[] asked = [.. events.Events.Where(e => e.Tick.Value == entry
+                && e.ThingSound is { Event: ThingSoundEvent.Trained, Source.Kind: SoundSourceKind.Creature })];
             Assert.Equal(2, asked.Length);
             Assert.All(asked, e => Assert.Equal("CREATURE_GOBLIN", e.ThingSound!.Value.Category));
         }

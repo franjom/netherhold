@@ -229,7 +229,7 @@ public sealed class TremorCreatureTests
         var sixthRow = new TilePos(8, 13);
         world.Tile(sixthRow).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(sixthRow).OwnerPlayerId = Keeper;
-        var draws = new Draws(Enumerable.Repeat((5, 0), 50).ToArray());
+        var draws = new Draws([.. Enumerable.Repeat((5, 0), 50)]);
         new GameSimulation(db, world, new SimRandom(draws), [new Probe(context =>
             Assert.False(TremorRules.Respond(context, creature, creature.Tile, new Fp32(3 * Fp32.One))))]).Tick();
         Assert.Equal(0, draws.Remaining);
@@ -492,7 +492,7 @@ public sealed class TremorCreatureTests
             creature.Anger.Lair = CreatureAngerRules.UnhappyAt(definition);
         }
 
-        var draws = new Draws(Enumerable.Repeat((100, 0), rolls).ToArray());
+        var draws = new Draws([.. Enumerable.Repeat((100, 0), rolls)]);
         var sim = new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]);
         sim.Tick();
         Assert.Equal(CreatureJobSystem.IdleChooserState, creature.Dk2StateId);

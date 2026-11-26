@@ -12,7 +12,7 @@ namespace DK2.Presentation.Tests;
 /// <summary>The colour-space chunk filter Godot decodes DK2's PNGs through (stored bytes, as Unity reads them).</summary>
 public sealed class PngChunksTests
 {
-    private static readonly byte[] Signature = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+    private static readonly byte[] Signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
     private static byte[] Chunk(string type, byte[] data)
     {

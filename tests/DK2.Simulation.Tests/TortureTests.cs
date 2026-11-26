@@ -323,8 +323,7 @@ public class TortureTests
     private static readonly TilePos RimWheel = new(7, 3);
 
     private static ViewEffectRequest[] TroughEffects(ListEventSink sink) =>
-        sink.Events.Where(e => e.EffectRequest is { } r && r.EffectId.Value is TortureRules.CoalsEffectId or TortureRules.WaterEffectId)
-            .Select(e => e.EffectRequest!.Value).ToArray();
+        [.. sink.Events.Where(e => e.EffectRequest is { } r && r.EffectId.Value is TortureRules.CoalsEffectId or TortureRules.WaterEffectId).Select(e => e.EffectRequest!.Value)];
 
     private static (GameDatabase Db, WorldState World, CreatureState Captive) OnTheRimWheel(byte trough)
     {

@@ -29,7 +29,7 @@ public class WorldViewTests
         (GameDatabase database, _) = RealLevel()!.Value;
         byte guard = database.Rooms.Values.First(r => r.TypeId == RoomTypeId.GuardRoom).TerrainId;
         byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64)];
         tiles[3 + 3 * 8] = new(guard, PlayerIds.FirstKeeper, 0, 0);
         tiles[4 + 3 * 8] = new(guard, PlayerIds.FirstKeeper, 0, 0);
         tiles[5 + 5 * 8] = new(guard, PlayerIds.Good, 0, 0);
@@ -56,7 +56,7 @@ public class WorldViewTests
         int distance = unchecked((byte)database[VariableTypeId.GuardRoomReportingDistanceTiles]);
         int size = 2 * distance + 12;
         int roomX = distance + 3;
-        MapTile[] unclampedTiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), size * size).ToArray();
+        MapTile[] unclampedTiles = [.. Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), size * size)];
         unclampedTiles[roomX + roomX * size] = new(guard, PlayerIds.FirstKeeper, 0, 0);
         unclampedTiles[roomX + 1 + roomX * size] = new(guard, PlayerIds.FirstKeeper, 0, 0);
         var unclampedWorld = WorldState.FromMap(database, new LevelMap(size, size, unclampedTiles),
@@ -79,7 +79,7 @@ public class WorldViewTests
             source.Variables, objects: source.Objects.Values, traps: [alarm, guard]);
         byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
         var world = WorldState.FromMap(database,
-            new LevelMap(8, 8, Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray()),
+            new LevelMap(8, 8, [.. Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64)]),
             [PlayerIds.FirstKeeper, PlayerIds.Good]);
         ThingProjection.Place(world, database,
         [
@@ -126,7 +126,7 @@ public class WorldViewTests
         (GameDatabase database, _) = RealLevel()!.Value;
         byte heart = database.Rooms.Values.First(r => r.TypeId == RoomTypeId.DungeonHeart).TerrainId;
         byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64)];
         for (int y = 3; y <= 4; y++)
         {
             for (int x = 3; x <= 4; x++)
@@ -171,7 +171,7 @@ public class WorldViewTests
         (GameDatabase database, _) = RealLevel()!.Value;
         byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
         var world = WorldState.FromMap(database,
-            new LevelMap(8, 8, Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray()),
+            new LevelMap(8, 8, [.. Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64)]),
             [PlayerIds.FirstKeeper, PlayerIds.Good], fogOfWarEnabled: true);
         CreatureDef definition = database.Creatures.Values.Single(c => c.Name == "Imp");
         var at = new TilePos(3, 3);
@@ -1363,10 +1363,10 @@ public class WorldViewTests
     {
         GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte heart = database.Rooms.Values.Single(r => r.TypeId == RoomTypeId.DungeonHeart).TerrainId;
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(heart, PlayerIds.Good, 0, 0), 25).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(heart, PlayerIds.Good, 0, 0), 25)];
         var world = WorldState.FromMap(database, new LevelMap(5, 5, tiles), [PlayerIds.Good]);
         Assert.Equal(0, world.Player(PlayerIds.Good).HeartHealth);
-        ObjectView[] furniture = new WorldView(database).Decorations(world).ToArray();
+        ObjectView[] furniture = [.. new WorldView(database).Decorations(world)];
         Assert.Contains(furniture, o => o.ObjectTypeId == 13);
         Assert.Contains(furniture, o => o.ObjectTypeId == 94);
     }
@@ -1383,7 +1383,7 @@ public class WorldViewTests
         world.DamageHeart(4, world.Player(4).HeartHealth, PlayerIds.Good);
         new GameSimulation(database, world, 1, []).Tick(); // The view captures once per completed tick.
         Assert.False(world.Player(4).HeartRuined);
-        ObjectView[] after = view.Decorations(world).Where(o => o.OwnerPlayerId == 4 || o.ObjectTypeId == 100).ToArray();
+        ObjectView[] after = [.. view.Decorations(world).Where(o => o.OwnerPlayerId == 4 || o.ObjectTypeId == 100)];
         Assert.DoesNotContain(after, o => o.ObjectTypeId is 13 or 94);
         Assert.Contains(after, o => o.ObjectTypeId == 86);
         Assert.Contains(after, o => o.ObjectTypeId == 88);
@@ -1394,8 +1394,7 @@ public class WorldViewTests
     public void HeartFurnitureReceivesTheCapturedRoomAddedColour()
     {
         (GameDatabase database, WorldState world) = RealLevel()!.Value;
-        ObjectView[] furniture = new WorldView(database).Decorations(world)
-            .Where(o => o.ObjectTypeId is 13 or 86 or 88 or 94).ToArray();
+        ObjectView[] furniture = [.. new WorldView(database).Decorations(world).Where(o => o.ObjectTypeId is 13 or 86 or 88 or 94)];
         Assert.NotEmpty(furniture);
         Assert.Contains(furniture, o => o.ObjectTypeId == 86);
         Assert.Contains(furniture, o => o.ObjectTypeId == 88);

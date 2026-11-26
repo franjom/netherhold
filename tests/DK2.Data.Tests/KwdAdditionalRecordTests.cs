@@ -129,8 +129,7 @@ public class KwdAdditionalRecordTests
     public void ShippedTriggerParameterViews_UseBinaryReadNames()
     {
         string maps = Path.Combine(Dk2InstallGate.Path, "Data", "editor", "maps");
-        TriggerRecord[] triggers = Directory.GetFiles(maps, "*Triggers.kld")
-            .SelectMany(file => KwdTriggers.Parse(KwdReader.ReadFile(file))).ToArray();
+        TriggerRecord[] triggers = [.. Directory.GetFiles(maps, "*Triggers.kld").SelectMany(file => KwdTriggers.Parse(KwdReader.ReadFile(file)))];
 
         TriggerRecord generic47 = triggers.First(t => t.Tag == 213 && t.Type == 47);
         Assert.Contains("PlayerId", generic47.Parameters.Keys);
@@ -258,7 +257,7 @@ public class KwdAdditionalRecordTests
     };
 
     private static byte[] Pattern(int size) =>
-        Enumerable.Range(0, size).Select(i => (byte)(i * 37 + 11)).ToArray();
+        [.. Enumerable.Range(0, size).Select(i => (byte)(i * 37 + 11))];
 
     private static TriggerRecord Trigger(int tag, byte type, byte[] body)
     {

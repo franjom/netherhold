@@ -32,8 +32,8 @@ public sealed class ImpSupplySoundTests
     }
 
     private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) =>
-        Sounds(events).Where(s => s.Event == sound
-            && s.Source.Kind is SoundSourceKind.Player or SoundSourceKind.Shot or SoundSourceKind.ShotSecond).ToArray();
+        [.. Sounds(events).Where(s => s.Event == sound
+            && s.Source.Kind is SoundSourceKind.Player or SoundSourceKind.Shot or SoundSourceKind.ShotSecond)];
 
     private static ListEventSink Observe(GameSimulation sim)
     {
@@ -70,7 +70,7 @@ public sealed class ImpSupplySoundTests
 
         int generated = events.Events.Count(e => e.Kind == "imp_generated");
         Assert.True(generated >= 1);
-        ThingSoundRequest[] casts = Heard(events, ThingSoundEvent.SpellCast).Where(s => s.Category == "KEEPER_SPELL_CREATE_IMP" && !s.Voiced).ToArray();
+        ThingSoundRequest[] casts = [.. Heard(events, ThingSoundEvent.SpellCast).Where(s => s.Category == "KEEPER_SPELL_CREATE_IMP" && !s.Voiced)];
         Assert.Equal(generated, casts.Length);
         Assert.All(casts, c => Assert.Equal(0, c.Position.Z.Raw));   // the free cast passes z = 0 (0x004BB4C7)
     }

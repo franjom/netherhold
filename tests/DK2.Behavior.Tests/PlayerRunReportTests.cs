@@ -42,15 +42,15 @@ public class PlayerRunReportTests
     [Fact]
     public void EachEndHasItsOwnOutcomeAndOnlyAWinExitsZero()
     {
-        PlayerRunOutcome[] outcomes = new[]
-        {
+        PlayerRunOutcome[] outcomes =
+        [
             PlayerRunReport.Outcome(After(PlayerStatus.Won), evidenceComplete: true),
             PlayerRunReport.Outcome(After(PlayerStatus.Lost), evidenceComplete: true),
             PlayerRunReport.Outcome(After(controller: new GivesUp()), evidenceComplete: true),
             PlayerRunReport.Outcome(After(), evidenceComplete: true),                       // ran out of ticks: no result
             PlayerRunReport.Outcome(After(stop: () => "wall-time limit"), evidenceComplete: true),
             PlayerRunReport.Outcome(After(PlayerStatus.Won), evidenceComplete: false),
-        };
+        ];
         Assert.Equal([PlayerRunOutcome.Completed, PlayerRunOutcome.Defeated, PlayerRunOutcome.ControllerLimited,
             PlayerRunOutcome.ControllerLimited, PlayerRunOutcome.IncompleteEvidence, PlayerRunOutcome.IncompleteEvidence], outcomes);
         Assert.Equal([0, 1, 1, 1, 2, 2], outcomes.Select(PlayerRunReport.ExitCode));

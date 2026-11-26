@@ -24,7 +24,7 @@ public sealed class SaveSlotsViewTests : IDisposable
     public void SavedFileShowsItsNameAndTimeAndSelectionSeedsTheNameEditor()
     {
         var time = new DateTime(2026, 10, 29, 12, 0, 0, DateTimeKind.Utc);
-        var saved = new SavedSession(new("Level1", 1, 26, time, "First save"), new byte[] { 1 }, new CampaignProfile());
+        var saved = new SavedSession(new("Level1", 1, 26, time, "First save"), [1], new CampaignProfile());
         SavedSessionFile.Save(SavedSessionFile.PathForName(_directory, "First save"), saved);
         var view = new SaveSlotsView(_directory);
         Assert.True(view.Select(0));
@@ -38,7 +38,9 @@ public sealed class SaveSlotsViewTests : IDisposable
     public void AnUnreadableFileIsListedAndSelectableUnderItsFileName()
     {
         Directory.CreateDirectory(_directory);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         File.WriteAllBytes(Path.Combine(_directory, "broken" + SavedSessionFile.Extension), new byte[] { 1, 2, 3 });
+#pragma warning restore IDE0300
         var view = new SaveSlotsView(_directory);
 
         Assert.True(view.Select(0));

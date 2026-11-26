@@ -164,8 +164,7 @@ public sealed class MinimapTests
         Assert.False(MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices));
     }
 
-    private static uint[] SourcePixels() => Enumerable.Range(0, 37)
-        .Select(i => 0x12010200u + (uint)i).ToArray();
+    private static uint[] SourcePixels() => [.. Enumerable.Range(0, 37).Select(i => 0x12010200u + (uint)i)];
 
     [Fact]
     public void PaletteMapsNativeBanksAndForcesOpaquePixels()

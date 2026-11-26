@@ -18,11 +18,10 @@ public class PrisonFlourishOnRealDataTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
-        int[] flourishing = db.Creatures.Values
+        int[] flourishing = [.. db.Creatures.Values
             .Where(PrisonRules.HasAngryFlourish)
             .Select(c => (int)c.CreatureId)
-            .Order()
-            .ToArray();
+            .Order()];
 
         Assert.Equal(39, flourishing.Length);
         Assert.All(db.Creatures.Values, c => Assert.Equal(c.AngryArtType != 0, PrisonRules.HasAngryFlourish(c)));

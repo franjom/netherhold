@@ -98,7 +98,6 @@ public sealed class SoundDistanceMappingTests
         var resolver = new SoundResolver(BankMap.Read(File.ReadAllBytes(Path.Combine(root, category + "BANK.map"))),
             SfxMap.Read(File.ReadAllBytes(Path.Combine(root, category + "SFX.map"))));
         var map = SfxMap.Read(File.ReadAllBytes(Path.Combine(root, category + "SFX.map")));
-        return map.Groups.Select(g => resolver.DistanceMappingOf(g.Id)).OfType<SoundDistanceMapping>()
-            .Select(m => m.Maximum).ToArray();
+        return [.. map.Groups.Select(g => resolver.DistanceMappingOf(g.Id)).OfType<SoundDistanceMapping>().Select(m => m.Maximum)];
     }
 }

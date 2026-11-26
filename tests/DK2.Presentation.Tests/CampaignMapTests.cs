@@ -166,7 +166,7 @@ public class CampaignMapTests
     public void TheStatisticsPageShowsThePlayedBriefingAndAcceptFliesBackToTheMap()
     {
         var frame = new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000);
-        KcsFrame[] frames = new[] { frame, frame, frame };
+        KcsFrame[] frames = [frame, frame, frame];
         var session = new FrontEndSession(_ => frames, FrontEndPage.CampaignResults);
         CampaignProfile profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 6, PlayerLevelStatus =
             CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(5)).PlayerLevelStatus }, new CampaignSlot(6), won: true);

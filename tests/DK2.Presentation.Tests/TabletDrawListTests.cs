@@ -51,7 +51,9 @@ public sealed class TabletDrawListTests
     public void TheMeshKeepsItsControlPointsInRangeAndTheFrontsWinding()
     {
         TabletMesh mesh = Mesh();
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { new Vector3(4, 5, 6), new Vector3(1, 2, 3) }, mesh.Points);
+#pragma warning restore IDE0300
         Assert.Equal(1, mesh.FrontWinding);
         Assert.Equal(6 + 3 + 3 + 3, mesh.VertexCapacity);
     }
@@ -70,11 +72,15 @@ public sealed class TabletDrawListTests
         }, draw.Batches.ToArray());
         // At rest the turn is none: a point lands at the centre plus point × scale × 4096 reference units.
         float centreX = 100 + 10, centreY = 50 + 20, step = 0.5f * RewardTablet.PixelsPerUnit;
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[]
         {
+#pragma warning restore IDE0300
             new TabletVertex(centreX, centreY, 0, 0), new TabletVertex(centreX + step, centreY, 1, 0),
             new TabletVertex(centreX, centreY + step, 0, 1),
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         }, draw.Vertices[..3].ToArray());
+#pragma warning restore IDE0305
     }
 
     [Fact]

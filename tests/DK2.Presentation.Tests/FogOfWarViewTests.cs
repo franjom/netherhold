@@ -16,7 +16,7 @@ public sealed class FogOfWarViewTests
     public void SightAddsTheOriginalFogSideMeshOnlyOnUnexploredOpenGround()
     {
         GameDatabase database = Database();
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(1, 2, 0, 0), 400).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(1, 2, 0, 0), 400)];
         var world = WorldState.FromMap(database, new LevelMap(20, 20, tiles), [1, 2], true);
         var simulation = new GameSimulation(database, world, 1, []);
         simulation.Run(24);
@@ -222,7 +222,7 @@ public sealed class FogOfWarViewTests
     public void FaceAdmission0043F2A0IncludesScannedLiquids(int neighbourTerrain, bool sourceExplored)
     {
         GameDatabase database = Database();
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(3, 2, 0, 0), 9).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(3, 2, 0, 0), 9)];
         tiles[5] = new MapTile((byte)neighbourTerrain, 2, 0, 0);
         var world = WorldState.FromMap(database, new LevelMap(3, 3, tiles), [1, 2], true);
         if (sourceExplored)

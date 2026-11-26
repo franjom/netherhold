@@ -301,5 +301,5 @@ public class LeaveHookBodiesTests
         db.Variables.Misc[id] = new MiscVariable(id, value, 0, 0);
 
     private static int[] StatesOf(Cat category) =>
-        Enumerable.Range(0, CreatureStateTable.Count).Where(id => CreatureStateTable.Get(id).Category == category).ToArray();
+        [.. Enumerable.Range(0, CreatureStateTable.Count).Where(id => CreatureStateTable.Get(id).Category == category)];
 }

@@ -25,7 +25,7 @@ public sealed class HandPickupEffectTests
     }
 
     private static ViewEffectRequest[] Effects(ListEventSink events) =>
-        events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value).ToArray();
+        [.. events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
 
     [Theory]
     [InlineData(false)]

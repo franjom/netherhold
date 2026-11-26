@@ -83,8 +83,8 @@ public class ResearchTreeOnRealDataTests
     public void EverySpellButSummonHornyAndTheReaperCanBeUpgraded()
     {
         GameDatabase db = Database();
-        string[] notUpgradable = db.KeeperSpells.Values
-            .Where(s => !s.CanBeUpgraded).Select(s => s.Name).Order().ToArray();
+        string[] notUpgradable = [.. db.KeeperSpells.Values
+            .Where(s => !s.CanBeUpgraded).Select(s => s.Name).Order()];
 
         Assert.Equal(["OneShotReaper", "Summon Horny"], notUpgradable);
         Assert.All(db.Variables.Research.Where(e => e.Kind == ResearchTreeRules.KindSpell),

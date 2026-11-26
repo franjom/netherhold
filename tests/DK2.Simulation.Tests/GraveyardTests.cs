@@ -46,7 +46,9 @@ public class GraveyardTests
         Bury(db, world, first);
         Bury(db, world, second);
 
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([400, 800], world.Graveyards.Select(g => g.DecomposeValue).Order().ToArray());
+#pragma warning restore IDE0305
         Assert.Empty(world.Creatures);
     }
 

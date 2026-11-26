@@ -73,7 +73,7 @@ public class KeeperRetreatStepTests
     }
 
     private static int[] Lifted(IReadOnlyList<PlayerCommand> commands) =>
-        commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray();
+        [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
 
     [Theory]
     [InlineData(299, true)]
@@ -86,7 +86,7 @@ public class KeeperRetreatStepTests
         IReadOnlyList<PlayerCommand> commands = NewKeeper().Think(Db, world);
 
         // 20 % of the level-scaled 1500 is 300; DK2 compares the health strictly below it.
-        Assert.Equal(lifted ? [creature.Id] : Array.Empty<int>(), Lifted(commands));
+        Assert.Equal(lifted ? [creature.Id] : [], Lifted(commands));
         if (!lifted)
         {
             return;
@@ -131,7 +131,7 @@ public class KeeperRetreatStepTests
 
         // Half of 1500 is 750, tested strictly; at or above it the level-1 fighter needs the
         // skill level at 1, and 9 refuses it whatever its health.
-        Assert.Equal(lifted ? [fighter.Id] : Array.Empty<int>(), Lifted(commands));
+        Assert.Equal(lifted ? [fighter.Id] : [], Lifted(commands));
     }
 
     [Theory]
@@ -148,7 +148,7 @@ public class KeeperRetreatStepTests
         IReadOnlyList<PlayerCommand> commands = NewKeeper().Think(Db, world);
 
         Assert.Equal(counter, HandRules.LastDroppedCounter(creature, world.CurrentTick.Value));
-        Assert.Equal(lifted ? [creature.Id] : Array.Empty<int>(), Lifted(commands));
+        Assert.Equal(lifted ? [creature.Id] : [], Lifted(commands));
     }
 
     [Fact]

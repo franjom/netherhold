@@ -79,7 +79,7 @@ public class CommandCodecTests
     public void EveryCommandType_HasASample()
     {
         var sampled = Samples().Select(c => c.GetType()).ToHashSet();
-        Type[] missing = CommandTypes().Where(t => !sampled.Contains(t)).ToArray();
+        Type[] missing = [.. CommandTypes().Where(t => !sampled.Contains(t))];
 
         Assert.True(missing.Length == 0,
             $"no codec sample for {string.Join(", ", missing.Select(t => t.Name))}");

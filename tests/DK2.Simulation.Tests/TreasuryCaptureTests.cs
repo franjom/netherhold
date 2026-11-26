@@ -74,7 +74,6 @@ public class TreasuryCaptureTests
 
         ushort first = (ushort)mirror.NextInt(0x800), second = (ushort)mirror.NextInt(0x800);
         Assert.Equal(new ushort?[] { first, second },
-            SlabChain.Order(world, room).Where(i => world.TileAtIndex(i).GoldHeld > 0)
-                .Select(i => world.TileAtIndex(i).StoreGoldHeading).ToArray());
+            [.. SlabChain.Order(world, room).Where(i => world.TileAtIndex(i).GoldHeld > 0).Select(i => world.TileAtIndex(i).StoreGoldHeading)]);
     }
 }

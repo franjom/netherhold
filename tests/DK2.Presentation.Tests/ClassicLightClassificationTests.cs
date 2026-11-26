@@ -31,8 +31,10 @@ public class ClassicLightClassificationTests
         var tile = new TilePos(0, 0);
         var torch = new TorchView(0, tile, 2048, 2048, 4096, 0, 255, 255, 255, 128, 6144, default);
         var table = new ClassicLightTable(tile);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         table.RebuildStatic(new[]
         {
+#pragma warning restore IDE0300
             ClassicPointLight.FromTorch(torch, ClassicLightFlags.NormalTorch),
             ClassicPointLight.FromTerrain(tile, new Fp32(0), new TerrainLightColour(255, 0, 0)),
         });

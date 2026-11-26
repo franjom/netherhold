@@ -327,7 +327,7 @@ public class CombatApproachTests
         // The targets are held on the withdraw walk every tick, in place: the chase counters run. The
         // route stays loaded, because a withdraw that arrives ends, and its Combat leave hook lets
         // its attackers go (ADR-0319).
-        (CreatureState r, int PosX, int PosY)[] held = new[] { runner, runner2 }.Select(r => (r, r.PosX, r.PosY)).ToArray();
+        (CreatureState r, int PosX, int PosY)[] held = [.. new[] { runner, runner2 }.Select(r => (r, r.PosX, r.PosY))];
         for (int i = 0; i < 20; i++)
         {
             foreach ((CreatureState r, int x, int y) in held)
@@ -342,7 +342,7 @@ public class CombatApproachTests
         }
 
         // 3 s × 4 ticks: the Good creature gives up on its thirteenth approach tick; 7 s holds the evil one.
-        SimEvent[] giveUps = sink.Events.Where(e => e.Kind == "gives_up_chase").ToArray();
+        SimEvent[] giveUps = [.. sink.Events.Where(e => e.Kind == "gives_up_chase")];
         Assert.NotEmpty(giveUps);
         Assert.All(giveUps, e => Assert.Contains("creature=" + hero.Id, e.Detail));
         SimEvent gaveUp = giveUps[0];

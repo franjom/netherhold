@@ -26,8 +26,7 @@ public class Level6aWorkshopWorkTests
         (GameDatabase db, GameSimulation simulation) = Level6a();
         WorldState world = simulation.World;
         ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(ManufactureRules.DoorKind, 1, 600_000));
-        CreatureState[] trolls = world.Creatures
-            .Where(c => c.OwnerPlayerId == Keeper && db.CreatureById(c.CreatureTypeId).Name == "Troll").ToArray();
+        CreatureState[] trolls = [.. world.Creatures.Where(c => c.OwnerPlayerId == Keeper && db.CreatureById(c.CreatureTypeId).Name == "Troll")];
         Assert.NotEmpty(trolls);
 
         int samples = 0;

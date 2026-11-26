@@ -92,8 +92,8 @@ public sealed class CostNumberTests
         Assert.Equal(new TilePos(3, 1), shown.Tile);
     }
 
-    private static ViewEffectRequest[] Amounts(ListEventSink events) => events.Events
-        .Where(e => e.EffectRequest?.Amount.HasValue == true).Select(e => e.EffectRequest!.Value).ToArray();
+    private static ViewEffectRequest[] Amounts(ListEventSink events) => [.. events.Events
+        .Where(e => e.EffectRequest?.Amount.HasValue == true).Select(e => e.EffectRequest!.Value)];
 
     private static (GameSimulation Sim, ListEventSink Events) Start()
     {

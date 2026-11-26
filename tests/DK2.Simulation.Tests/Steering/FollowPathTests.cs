@@ -19,7 +19,7 @@ public class FollowPathTests
     {
         var world = new FakeSteeringWorld("##########", "#........#", "#........#", "##########")
         {
-            FixedRoute = route.ToList(),
+            FixedRoute = [.. route],
         };
         var body = new SteeringBody { Pos = pos };
         var mover = new SteeringMover { IsWorker = imp, TurnRate = 1024, Heading = FacingPlusX };
@@ -157,7 +157,7 @@ public class FollowPathTests
     [Fact]
     public void WhenTheWindowRunsOutTheWholeRouteIsRequestedAgain()
     {
-        Fixed16Vector[] route = Enumerable.Range(2, 7).Select(i => T(i, 1.5)).ToArray();
+        Fixed16Vector[] route = [.. Enumerable.Range(2, 7).Select(i => T(i, 1.5))];
         (SteeringBody body, SteeringMover mover, FakeSteeringWorld world) = Setup(true, T(1.5, 1.5), route);
 
         for (int tick = 0; tick < 5; tick++)

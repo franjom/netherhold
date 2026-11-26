@@ -84,7 +84,7 @@ public sealed class LatticeDirtyTrackerTests
             Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
         };
         var database = new GameDatabase([rock], [], [], new GlobalVariables());
-        var map = new LevelMap(Width, Height, Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), Width * Height).ToArray());
+        var map = new LevelMap(Width, Height, [.. Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), Width * Height)]);
         var world = WorldState.FromMap(database, map, []);
         var lattice = new TerrainLattice(database, world, new PlayerId(PlayerIds.FirstKeeper));
         for (int y = 0; y < Height; y++)

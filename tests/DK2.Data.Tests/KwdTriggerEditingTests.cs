@@ -17,7 +17,9 @@ public class KwdTriggerEditingTests
     [InlineData(214)]
     public void DetachedInsertAndRemovePreserveBothCountsAndAllOtherHeaderBytes(int tag)
     {
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         KwdChunk source=TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(KwdThingEditingTests.Trigger(214,14)).ToArray());
+#pragma warning restore IDE0305
         Array.Fill(source.HeaderBlock,(byte)0x5A,8,24);
         KwdLevelFileSet editor =Set(source); byte[] before=editor.ToBytes("triggers.kld");
         byte[] bytes=KwdThingEditingTests.Trigger(tag,15); TriggerRecord row=Read(bytes);
@@ -68,7 +70,9 @@ public class KwdTriggerEditingTests
         }
 
         var editor=KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> {
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
             ["level.kwd"]=[level], ["triggers.kld"]=[TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(linked).ToArray())],
+#pragma warning restore IDE0305
             ["things.kld"]=[KwdLevelFileSetTests.Fixture(KwdRecordType.Things,KwdThingsWriterTests.Image(reference=="member"?201:194,thing).ToBytes(),1)],
             ["players.kld"]=[player] });
         byte[] original=editor.ToBytes("triggers.kld");
@@ -92,15 +96,19 @@ public class KwdTriggerEditingTests
         Assert.Equal(original,editor.ToBytes("triggers.kld"));
         var incomplete=KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> { ["triggers.kld"]=[TriggerChunk(KwdThingEditingTests.Trigger(213,13))] });
         Assert.Throws<InvalidDataException>(()=>incomplete.RemoveTrigger(new("triggers.kld",0,0)));
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         KwdLevelFileSet duplicate =Set(TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(KwdThingEditingTests.Trigger(214,13)).ToArray()));
+#pragma warning restore IDE0305
         Assert.Throws<InvalidDataException>(()=>duplicate.RemoveTrigger(new("triggers.kld",0,0)));
     }
 
     [Fact]
     public void LinkTriggerSetsLinksOnlyToNodesThatExistOnceAndAreUnreferenced()
     {
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         KwdLevelFileSet editor =Set(TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(KwdThingEditingTests.Trigger(214,14))
             .Concat(KwdThingEditingTests.Trigger(214,15)).ToArray()));
+#pragma warning restore IDE0305
         byte[] original=editor.ToBytes("triggers.kld");
         foreach((ushort next,ushort child) in new (ushort,ushort)[]{(99,0),(0,99),(13,0),(14,14)})
         {
@@ -113,7 +121,9 @@ public class KwdTriggerEditingTests
         editor.LinkTrigger(new("triggers.kld",0,1),15,0);
         Assert.Throws<InvalidDataException>(()=>editor.LinkTrigger(new("triggers.kld",0,2),0,14));
         List<TriggerRecord> rows =KwdTriggers.Parse([KwdThingEditingTests.Reload(editor.ToBytes("triggers.kld"))]);
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([(0,14),(15,0),(0,0)],rows.Select(r=>((int)r.NextTriggerId,(int)r.ChildTriggerId)).ToArray());
+#pragma warning restore IDE0305
     }
 
     [InstallFact]

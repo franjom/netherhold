@@ -90,7 +90,7 @@ public class PeerCommandsTests
     [Fact]
     public void MoreTilesThanTheMapHas_IsRefused()
     {
-        TilePos[] tiles = Enumerable.Repeat(new TilePos(1, 1), MapSize * MapSize + 1).ToArray();
+        TilePos[] tiles = [.. Enumerable.Repeat(new TilePos(1, 1), MapSize * MapSize + 1)];
 
         Assert.Throws<InvalidDataException>(() => Decode(new TagTilesCommand(P, tiles, true), P));
     }

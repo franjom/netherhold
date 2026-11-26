@@ -321,7 +321,7 @@ public class DungeonHeartTests
             }
         }
 
-        GiveHeart(world, database, Keeper, heart.ToArray());
+        GiveHeart(world, database, Keeper, [.. heart]);
         int corner = 3 * world.Width + 3;
         ref TileState tile = ref world.TileAtIndex(corner);
 

@@ -69,11 +69,11 @@ public class Dk2SaveReaderTests
     public void SyntheticSaveLoadsTerrainAndOwnershipThroughTheMapLookup()
     {
         byte[] bytes = SyntheticSave("Level1");
-        var design = new LevelMap(2, 2, new[]
-        {
+        var design = new LevelMap(2, 2,
+        [
             new MapTile(1, 0, 0, 0), new MapTile(2, 0, 0, 0),
             new MapTile(3, 0, 0, 0), new MapTile(4, 0, 0, 0),
-        });
+        ]);
 
         SavedGame save = Assert.IsType<SavedGame>(Dk2SaveReader.Read(bytes, name =>
         {

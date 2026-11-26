@@ -32,5 +32,5 @@ internal static class StateTrace
 
     /// <summary>Only the state ids of <see cref="Of"/>.</summary>
     public static List<int> States(GameSimulation sim, CreatureState creature, int ticks, Func<bool>? until = null) =>
-        Of(sim, creature, ticks, until).Select(s => s.State).ToList();
+        [.. Of(sim, creature, ticks, until).Select(s => s.State)];
 }

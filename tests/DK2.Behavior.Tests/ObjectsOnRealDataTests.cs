@@ -59,8 +59,10 @@ public class ObjectsOnRealDataTests
 
         Assert.Equal(145, db.Objects.Count);
         Assert.Equal(
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
             Enumerable.Range(1, 145).Select(i => (byte)i).ToArray(),
             db.Objects.Keys.OrderBy(k => k).ToArray());
+#pragma warning restore IDE0305
     }
 
     [InstallFact]
@@ -558,10 +560,9 @@ public class ObjectsOnRealDataTests
 
         Assert.NotSame(db, forLevel);
 
-        PropertyInfo[] collections = typeof(GameDatabase).GetProperties()
+        PropertyInfo[] collections = [.. typeof(GameDatabase).GetProperties()
             .Where(p => p.PropertyType.IsGenericType
-                && p.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>))
-            .ToArray();
+                && p.PropertyType.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>))];
 
         Assert.NotEmpty(collections);
 

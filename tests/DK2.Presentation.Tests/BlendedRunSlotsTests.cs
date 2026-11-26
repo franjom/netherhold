@@ -65,8 +65,8 @@ public sealed class BlendedRunSlotsTests
         {
             BlendedRunSlot<TestMaterial> slot = slots.Drawn[i];
             Assert.Same(stream.Material(stream.Runs[i].MaterialIndex), slot.Material);
-            int[] read = slot.Indices.ToArray().Select(index => slot.Vertices[index]).ToArray();
-            int[] expected = stream.Runs[i].Triangles.SelectMany(t => new[] { t.A, t.B, t.C }).ToArray();
+            int[] read = [.. slot.Indices.ToArray().Select(index => slot.Vertices[index])];
+            int[] expected = [.. stream.Runs[i].Triangles.SelectMany(t => new[] { t.A, t.B, t.C })];
             Assert.Equal(expected, read);
         }
     }
@@ -112,7 +112,9 @@ public sealed class BlendedRunSlotsTests
         Vector3 eye = Refresh(stream);
         slots.Update(stream, eye);
         Assert.Equal([Water, Dig, Glass], slots.Drawn.Select(slot => slot.Material).ToArray());
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([false, true, false], slots.Drawn.Select(slot => slot.TagOverlay).ToArray());
+#pragma warning restore IDE0305
         for (int i = 0; i < 3; i++)
         {
             Assert.Equal(NearestCentroid(stream, i, eye), slots.Drawn[i].Distance);
@@ -150,7 +152,7 @@ public sealed class BlendedRunSlotsTests
     public void Runs_vanishing_at_the_far_end_leave_the_others_in_the_slots_that_hold_their_vertices()
     {
         // Water and glass alternating from z 3 to 12, as the Portal's crystals and chasm do.
-        (float, float, TestMaterial)[] quads = Enumerable.Range(0, 10).Select(i => (0f, 12f - i, i % 2 == 0 ? Water : Glass)).ToArray();
+        (float, float, TestMaterial)[] quads = [.. Enumerable.Range(0, 10).Select(i => (0f, 12f - i, i % 2 == 0 ? Water : Glass))];
         BlendedTerrainStream<TestMaterial> stream = Stream(quads);
         var slots = new BlendedRunSlots<TestMaterial>();
         var deep = new ClassicCameraPose(FrontEye, Vector3.UnitZ, Vector3.UnitY, 60f, 50f, 0f, 0f);
@@ -174,7 +176,7 @@ public sealed class BlendedRunSlotsTests
     [Fact]
     public void A_run_appearing_at_the_far_end_leaves_every_other_run_in_its_slot()
     {
-        (float, float, TestMaterial)[] quads = Enumerable.Range(0, 10).Select(i => (0f, 12f - i, i % 2 == 0 ? Water : Glass)).ToArray();
+        (float, float, TestMaterial)[] quads = [.. Enumerable.Range(0, 10).Select(i => (0f, 12f - i, i % 2 == 0 ? Water : Glass))];
         BlendedTerrainStream<TestMaterial> stream = Stream(quads);
         var slots = new BlendedRunSlots<TestMaterial>();
         var shallow = new ClassicCameraPose(FrontEye, Vector3.UnitZ, Vector3.UnitY, 60f, 12.5f, 0f, 0f);
@@ -330,8 +332,8 @@ public sealed class BlendedRunSlotsTests
                     indices[slot.Id] = slot.Indices.ToArray();
                 }
 
-                BlendedVertex[] drawn = indices[slot.Id].Select(index => buffer[index]).ToArray();
-                BlendedVertex[] expected = stream.Runs[i].Triangles.SelectMany(t => new[] { t.A, t.B, t.C }).Select(v => stream.Vertices[v]).ToArray();
+                BlendedVertex[] drawn = [.. indices[slot.Id].Select(index => buffer[index])];
+                BlendedVertex[] expected = [.. stream.Runs[i].Triangles.SelectMany(t => new[] { t.A, t.B, t.C }).Select(v => stream.Vertices[v])];
                 Assert.Equal(expected, drawn);
             }
         }
@@ -360,14 +362,18 @@ public sealed class BlendedRunSlotsTests
         BlendedTerrainStream<TestMaterial> stream = Stream((0, 9, Water), (0, 6, Glass), (0, 3, Water));
         var slots = new BlendedRunSlots<TestMaterial>();
         slots.Update(stream, Refresh(stream));
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([0, 1, 2], slots.Drawn.Select(slot => slot.Id).ToArray());
+#pragma warning restore IDE0305
         Assert.Equal(3, slots.Slots.Count);
 
         BlendedTerrainStream<TestMaterial> merged = Stream((0, 9, Water), (0, 6, Water), (0, 3, Glass));
         // A new stream is a new collection; the slot set carries over by material.
         slots.Update(merged, Refresh(merged));
         AssertDraws(merged, slots);
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([0, 1], slots.Drawn.Select(slot => slot.Id).ToArray());
+#pragma warning restore IDE0305
         Assert.False(slots.Slots[2].Drawn);
         Assert.Equal(0, slots.Drawn[0].FirstNewVertex);
     }
@@ -397,7 +403,7 @@ public sealed class BlendedRunSlotsTests
     public void A_slot_holding_far_more_than_its_run_starts_again_from_the_run()
     {
         // Forty water quads in a row, then the camera turned so that only the nearest stays in view.
-        (float, float, TestMaterial Water)[] quads = Enumerable.Range(0, 40).Select(i => ((float)i * 2f, 9f, Water)).ToArray();
+        (float, float, TestMaterial Water)[] quads = [.. Enumerable.Range(0, 40).Select(i => ((float)i * 2f, 9f, Water))];
         BlendedTerrainStream<TestMaterial> stream = Stream(quads);
         var slots = new BlendedRunSlots<TestMaterial>();
         var wide = new ClassicCameraPose(new Vector3(40f, 0.5f, -60f), Vector3.UnitZ, Vector3.UnitY, 60f, 100f, 0f, 0f);
@@ -418,7 +424,7 @@ public sealed class BlendedRunSlotsTests
     [Fact]
     public void Updates_allocate_nothing_once_warm()
     {
-        (float, float, TestMaterial)[] quads = Enumerable.Range(0, 30).Select(i => ((float)(i % 6), 3f + i, i % 3 == 0 ? Glass : Water)).ToArray();
+        (float, float, TestMaterial)[] quads = [.. Enumerable.Range(0, 30).Select(i => ((float)(i % 6), 3f + i, i % 3 == 0 ? Glass : Water))];
         BlendedTerrainStream<TestMaterial> stream = Stream(quads);
         var slots = new BlendedRunSlots<TestMaterial>();
         for (int pass = 0; pass < 3; pass++)

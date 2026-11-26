@@ -121,7 +121,9 @@ public class TriggerStateOnRealDataTests
 
         // And EVERY action type 23 record names the sentinel, which is what
         // makes it a live mechanism rather than a curiosity (Q232).
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         Assert.Equal(new[] { (long)TriggerState.SpecialTimerId }, type23Timers.ToArray());
+#pragma warning restore IDE0300, IDE0305
     }
 
     /// <summary>
@@ -183,7 +185,9 @@ public class TriggerStateOnRealDataTests
         // (CMP EBP,0x80) rather than indexing with.
         Assert.Equal(TriggerState.SpecialFlagId, read.Max);
 
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         Assert.Equal(new long[] { 0, 4 }, indirect.ToArray());
+#pragma warning restore IDE0300, IDE0305
     }
 
     /// <summary>
@@ -378,9 +382,7 @@ public class TriggerStateOnRealDataTests
     [InstallFact]
     public void NoShippedTimerConditionUsesIndirectMode()
     {
-        TriggerRecord[] timers = AllTriggers(Install())
-            .Where(r => r.Tag == 213 && r.Type == 2)
-            .ToArray();
+        TriggerRecord[] timers = [.. AllTriggers(Install()).Where(r => r.Tag == 213 && r.Type == 2)];
 
         Assert.Equal(303, timers.Length);
         Assert.All(timers, r => Assert.Equal(1, r.Parameters["Flag"] & 1));

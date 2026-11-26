@@ -13,7 +13,7 @@ public class ActionCoverageTests
     [Fact]
     public void EveryOneOfThe81ActionsHasExactlyOneRow()
     {
-        int[] ids = CreatureActionCoverage.All.Select(r => r.ActionId).ToArray();
+        int[] ids = [.. CreatureActionCoverage.All.Select(r => r.ActionId)];
 
         Assert.Equal(Enumerable.Range(0, CreatureActionTable.Count), ids);
         for (int id = 0; id < CreatureActionTable.Count; id++)
@@ -61,7 +61,7 @@ public class ActionCoverageTests
     [Fact]
     public void EveryUnreachableActionCitesWhyItsStatesAreNeverEntered()
     {
-        ActionCoverageRow[] rows = CreatureActionCoverage.All.Where(r => r.Status == ActionStatus.Unreachable).ToArray();
+        ActionCoverageRow[] rows = [.. CreatureActionCoverage.All.Where(r => r.Status == ActionStatus.Unreachable)];
 
         Assert.Equal([13, 20, 54, 80], rows.Select(r => r.ActionId));
         Assert.All(rows, r => Assert.True(r.Detail.Contains(".md") || r.Detail.Contains('Q'), $"{r.ActionId}: {r.Detail}"));
@@ -72,8 +72,7 @@ public class ActionCoverageTests
     [Fact]
     public void TheNeverBegunActionsAreTheOnesNothingBegins()
     {
-        int[] neverBegun = CreatureActionCoverage.All.Where(r => r.Status == ActionStatus.NeverBegun)
-            .Select(r => r.ActionId).ToArray();
+        int[] neverBegun = [.. CreatureActionCoverage.All.Where(r => r.Status == ActionStatus.NeverBegun).Select(r => r.ActionId)];
 
         Assert.Equal([0, 3, 12, 14, 21, 23, 28, 33, 34, 38, 42, 48, 51, 58], neverBegun);
         Assert.All(CreatureActionCoverage.All.Where(r => r.Status == ActionStatus.NeverBegun),

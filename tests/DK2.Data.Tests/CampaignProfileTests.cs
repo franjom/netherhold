@@ -86,7 +86,7 @@ public class CampaignProfileTests
         Assert.All(defaults.TotalEvilRating, value => Assert.Equal(0u, value));
     }
 
-    private static uint[] Values(int count, int first) => Enumerable.Range(first, count).Select(i => (uint)i).ToArray();
+    private static uint[] Values(int count, int first) => [.. Enumerable.Range(first, count).Select(i => (uint)i)];
 
     [InstallFact]
     public void InstalledRegistryImportMatchesManagedReadAndLeavesTheKeyUntouched()

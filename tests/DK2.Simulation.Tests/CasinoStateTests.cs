@@ -623,7 +623,7 @@ public class CasinoStateTests
     }
 
     private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
-        sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
 
     /// <summary>147 (<c>0x00456D60</c>) requests <c>0xE1</c> and 149 (<c>0x00456980</c>) requests <c>0xD5</c>, each with the
     /// gambler's handle at its position, on every eighth game second of the state's age while its action runs.

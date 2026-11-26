@@ -179,8 +179,8 @@ public class TorturerTests
             sim.Tick();
         }
 
-        long[] starts = sink.Events.Where(e => e.Kind == "whip_started").Select(e => e.Tick.Value).ToArray();
-        long[] ends = sink.Events.Where(e => e.Kind == "whipped").Select(e => e.Tick.Value).ToArray();
+        long[] starts = [.. sink.Events.Where(e => e.Kind == "whip_started").Select(e => e.Tick.Value)];
+        long[] ends = [.. sink.Events.Where(e => e.Kind == "whipped").Select(e => e.Tick.Value)];
         long turn = SimulationTiming.TicksPerSecond / SimulationTiming.OriginalTicksPerGameSecond;
         Assert.Equal(3, starts.Length);
         Assert.Equal(TortureRules.WhipTurns * turn, ends[0] - starts[0]);

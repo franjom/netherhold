@@ -85,8 +85,7 @@ public sealed class CombatPitTransportTests
         sim.Tick();
         Assert.Equal(PitTransportPhase.Sinking, loser.PitTransportPhase);
         sim.Run(2);
-        ViewEffectRequest[] effects = events.Events.Where(e => e.EffectRequest.HasValue)
-            .Select(e => e.EffectRequest!.Value).ToArray();
+        ViewEffectRequest[] effects = [.. events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
         Assert.Equal(2, effects.Length);
         Assert.All(effects, effect => Assert.Equal(new EffectId(0x149), effect.EffectId));
         Assert.Equal(0x400, effects[0].Position.Z.Raw);

@@ -132,8 +132,7 @@ public class CombatAnimationTests
         var sink = new ListEventSink();
         simulation.ObserveWith(sink);
         simulation.Run(80);
-        long[] starts = sink.Events.Where(e => e.Kind == "swing" && e.Detail.Contains("creature=" + attacker.Id + " "))
-            .Select(e => e.Tick.Value).ToArray();
+        long[] starts = [.. sink.Events.Where(e => e.Kind == "swing" && e.Detail.Contains("creature=" + attacker.Id + " ")).Select(e => e.Tick.Value)];
         Assert.True(starts.Length >= 3, $"swings {starts.Length}");
         Assert.Equal(interval, starts[1] - starts[0]);
         Assert.Equal(interval, starts[2] - starts[1]);
@@ -143,7 +142,7 @@ public class CombatAnimationTests
     {
         GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte path = database.Terrain.Values.Single(t => t.Name.Trim() == "Dirt Path").TerrainId;
-        var map = new LevelMap(12, 12, Enumerable.Repeat(new MapTile(path, 1, 0, 0), 144).ToArray());
+        var map = new LevelMap(12, 12, [.. Enumerable.Repeat(new MapTile(path, 1, 0, 0), 144)]);
         var world = WorldState.FromMap(database, map, [0, 1]);
         new GameSimulation(database, world, 7, []).Tick();
         CreatureState attacker = world.SpawnCreature(database, database.CreatureByName(name)!.CreatureId,

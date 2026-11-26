@@ -29,7 +29,7 @@ public sealed class PossessionSceneTests
         }
 
         var database = new GameDatabase([rock], [], [], variables);
-        var map = new LevelMap(Width, Height, Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), Width * Height).ToArray());
+        var map = new LevelMap(Width, Height, [.. Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), Width * Height)]);
         return (database, WorldState.FromMap(database, map, [PlayerIds.FirstKeeper]));
     }
 

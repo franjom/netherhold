@@ -22,7 +22,9 @@ public class FrontEndPlumbingTests
                 writer.Write(new byte[0x58 + 80]);
                 byte[] name = Encoding.ASCII.GetBytes("same.png\0");
                 writer.Write(name);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
                 writer.Write(new byte[] { 11, 22 });
+#pragma warning restore IDE0300
                 stream.Position = 0;
                 writer.Write(0x42465744u); writer.Write(2u);
                 stream.Position = 0x48;

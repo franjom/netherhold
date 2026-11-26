@@ -51,7 +51,7 @@ public sealed class WorldSoundTests
         Assert.True(director.TryTake(out SoundRequest tremor));
         Assert.True(director.TryTake(out SoundRequest corpse));
         Assert.Equal("object_gold", gold.Category.Name);
-        SoundVoiceId[] voices = new[] { creature.Voice, gold.Voice, door.Voice, room.Voice, player.Voice, shot.Voice, shotSecond.Voice, tremor.Voice, corpse.Voice };
+        SoundVoiceId[] voices = [creature.Voice, gold.Voice, door.Voice, room.Voice, player.Voice, shot.Voice, shotSecond.Voice, tremor.Voice, corpse.Voice];
         Assert.Equal(9, voices.Distinct().Count());   // the room's handle and the player's, a shot's two, a tremor slot's and a body's are different voices
         Assert.DoesNotContain(SoundVoiceId.None, voices);
     }

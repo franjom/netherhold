@@ -65,7 +65,7 @@ public sealed class PlacementCursorHudTests
         var hud = new PlacementCursorHud();
         var frame = new HudFrame();
         hud.Build(frame, new PlacementFeedback(null, false, -123456789, PlacementIcon.PlaceRoom, false, false), Pointer, 1920, 1080, false);
-        string[] names = frame.Draws.ToArray().Select(d => d.Image.Path!).ToArray();
+        string[] names = [.. frame.Draws.ToArray().Select(d => d.Image.Path!)];
         Assert.Equal(new[] { @"GUI\Cursors\I-Place_Room", @"GUI\Icons\i-3", @"GUI\Icons\i-4", @"GUI\Icons\i-5", @"GUI\Icons\i-6",
             @"GUI\Icons\i-7", @"GUI\Icons\i-8", @"GUI\Icons\i-9" }, names);
         Assert.Equal(new HudColor(255, 0, 0), frame.Draws[1].Tint);
@@ -92,7 +92,7 @@ public sealed class PlacementCursorHudTests
     [Fact]
     public void ImagesListEveryFixedName()
     {
-        HudImage[] images = PlacementCursorHud.Images().ToArray();
+        HudImage[] images = [.. PlacementCursorHud.Images()];
         Assert.Contains(new HudImage(PlacementCursorHud.NoGoIconName), images);
         Assert.Contains(new HudImage(@"GUI\Icons\lo-0"), images);
         Assert.Contains(new HudImage(@"GUI\Cursors\I-Transfer"), images);

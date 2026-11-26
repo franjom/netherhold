@@ -14,11 +14,15 @@ public class KwdWriterTests
     [Fact]
     public void ParsedHeadersAndUndeclaredLevelTailSurviveWriting()
     {
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         byte[] header = Enumerable.Range(0, 28).Select(i => (byte)(i + 31)).ToArray();
+#pragma warning restore IDE0305
         BinaryPrimitives.WriteInt32LittleEndian(header, 1); // a 32-bit count the 4 content bytes can hold
         byte[] first = Image(KwdRecordType.Variables, header, [1, 2, 3, 4], 2);
         byte[] second = Image(KwdRecordType.Level, header, [8, 7, 6, 5, 4], 3, 2);
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         byte[] file = first.Concat(second).ToArray();
+#pragma warning restore IDE0305
         List<KwdChunk> chunks = KwdReader.Read(new MemoryStream(file));
         Assert.Equal(file, KwdWriter.ToBytes(chunks));
         Assert.Equal(5, chunks[1].Content.Length);
@@ -38,7 +42,7 @@ public class KwdWriterTests
     [Fact]
     public void NewChunkRequiresExplicitHeaderTemplateAndCopiesItsUnknownBytes()
     {
-        byte[] header = Enumerable.Range(0, 28).Select(i => (byte)i).ToArray();
+        byte[] header = [.. Enumerable.Range(0, 28).Select(i => (byte)i)];
         BinaryPrimitives.WriteInt32LittleEndian(header, 1);
         KwdChunk template = KwdReader.Read(new MemoryStream(
             Image(KwdRecordType.Variables, header, new byte[16], 2))).Single();
@@ -65,9 +69,11 @@ public class KwdWriterTests
     {
         string editor = Path.Combine(Dk2InstallGate.Path, "Data", "editor");
         string maps = Path.Combine(editor, "maps");
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         string[] files = Directory.GetFiles(editor, "*.kwd")
             .Concat(Directory.GetFiles(maps, "*.kwd"))
             .Concat(Directory.GetFiles(maps, "*.kld")).ToArray();
+#pragma warning restore IDE0305
         Assert.Equal(408, files.Length);
         int chunks = 0;
         foreach (string file in files)

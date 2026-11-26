@@ -314,7 +314,7 @@ public class TempleStateTests
     }
 
     private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
-        sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
 
     /// <summary>State 104 (<c>0x00472D30</c>) requests <c>0xD4</c> with the worshipper's handle when action 27 begins
     /// (it has the prayer art); without the art there is neither action nor sound.</summary>

@@ -115,7 +115,7 @@ public class HandInputTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte floor = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 49).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 49)];
         var world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
         world.Tile(End).TerrainId = db.Terrain.Values.Single(t => t.Name == "Water").TerrainId;
         world.Tile(End).OwnerPlayerId = PlayerIds.Neutral;
@@ -144,7 +144,7 @@ public class HandInputTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte floor = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 49).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 49)];
         var world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
         world.Tile(End).OwnerPlayerId = PlayerIds.Neutral;
         ObjectState mine = world.SpawnObject(db, 117, PlayerIds.Neutral, Start.Y * 7 + Start.X);
@@ -166,8 +166,8 @@ public class HandInputTests
     public void SnapshotReadsOnlyThePointedTilesOwnTagAndPreviewDoesNotMutateIt()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(db.Terrain.Values.Single(t => t.Name == "Rock").TerrainId,
-            PlayerIds.Neutral, 0, 0), 49).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(db.Terrain.Values.Single(t => t.Name == "Rock").TerrainId,
+            PlayerIds.Neutral, 0, 0), 49)];
         var world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
         var view = new WorldView(db, Keeper);
         world.Tile(Start).SetTaggedBy(Keeper, true);
@@ -190,8 +190,8 @@ public class HandInputTests
     public void ReleasedTagPreviewSurvivesUntilTheCommandTick(bool initiallyTagged)
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(db.Terrain.Values.Single(t => t.Name == "Rock").TerrainId,
-            PlayerIds.Neutral, 0, 0), 49).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(db.Terrain.Values.Single(t => t.Name == "Rock").TerrainId,
+            PlayerIds.Neutral, 0, 0), 49)];
         var world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
         var view = new WorldView(db, Keeper);
         world.Tile(Start).SetTaggedBy(Keeper, initiallyTagged);

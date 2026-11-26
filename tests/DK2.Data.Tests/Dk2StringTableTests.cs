@@ -41,7 +41,7 @@ public class Dk2StringTableTests
     [Fact]
     public void MultiByteCharacterIndexesUseTheCodePageThreshold()
     {
-        char[] characters = Enumerable.Repeat('x', 254).ToArray();
+        char[] characters = [.. Enumerable.Repeat('x', 254)];
         characters[253] = '\u03a9';
         byte[] codePage = CodePage(characters);
         codePage[4] = 2; // threshold = 253; indexes from here consume two bytes
@@ -155,7 +155,7 @@ public class Dk2StringTableTests
     }
 
     private static byte[] Entry(params byte[][] chunks) =>
-        chunks.Append(Chunk(0, [])).SelectMany(chunk => chunk).ToArray();
+        [.. chunks.Append(Chunk(0, [])).SelectMany(chunk => chunk)];
 
     private static byte[] StringChunk(params byte[] bytes) => Chunk(1, bytes);
     private static byte[] ParameterChunk(int zeroBasedParameter) => Chunk(2, [], zeroBasedParameter);

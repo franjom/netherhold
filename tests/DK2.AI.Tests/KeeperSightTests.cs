@@ -239,7 +239,7 @@ public class KeeperSightTests
 
         Assert.InRange(casts, 1, 40);
         Assert.Equal(100000 - (casts * 5000), world.Player(Keeper).Mana);
-        SimEvent[] regions = events.Events.Where(e => e.SightRegion is not null).ToArray();
+        SimEvent[] regions = [.. events.Events.Where(e => e.SightRegion is not null)];
         Assert.Equal(casts, regions.Length);
         Assert.All(regions, e =>
         {

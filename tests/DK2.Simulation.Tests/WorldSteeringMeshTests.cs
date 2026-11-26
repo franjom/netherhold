@@ -36,7 +36,7 @@ public sealed class WorldSteeringMeshTests
     public void NeighbourUpperYClampKeepsTheNativeWidthQuirk()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(Dk2TerrainFixture.ClaimedPath, PlayerIds.FirstKeeper, 0, 0), 54).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(Dk2TerrainFixture.ClaimedPath, PlayerIds.FirstKeeper, 0, 0), 54)];
         var world = WorldState.FromMap(db, new LevelMap(6, 9, tiles), [PlayerIds.FirstKeeper]);
         CreatureState creature = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, new TilePos(2, 8));
         WorldSteering.SyncBody(creature);

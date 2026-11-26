@@ -23,8 +23,8 @@ public class CampaignProgressionTests
         Assert.False(CampaignProgression.CanSelect(p, new CampaignSlot(7), false));
         p = CampaignProgression.CompleteMap(p, new CampaignSlot(5));
         Assert.Equal(CampaignLevelStatus.ClosedBranch, p.PlayerLevelStatus[6]);
-        foreach ((int winner, int[]? siblings, int next) in new[] { (12, new[] { 13, 14 }, 15), (13, new[] { 12, 14 }, 15),
-            (14, new[] { 12, 13 }, 15), (18, new[] { 19 }, 20), (19, new[] { 18 }, 20) })
+        foreach ((int winner, int[]? siblings, int next) in new[] { (12, new[] { 13, 14 }, 15), (13, [12, 14], 15),
+            (14, [12, 13], 15), (18, [19], 20), (19, [18], 20) })
         {
             CampaignProfile branch = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(winner));
             Assert.Equal(CampaignLevelStatus.Open, branch.PlayerLevelStatus[next - 1]);
@@ -81,7 +81,7 @@ public class CampaignProgressionTests
     [Fact]
     public void StartupRepairOpensTheFirstUnsettledSlotAndNeverReopensAClosedBranch()
     {
-        CampaignLevelStatus[] statuses = Enumerable.Repeat(CampaignLevelStatus.Won, 40).ToArray();
+        CampaignLevelStatus[] statuses = [.. Enumerable.Repeat(CampaignLevelStatus.Won, 40)];
         statuses[6] = CampaignLevelStatus.ClosedBranch; statuses[7] = CampaignLevelStatus.Locked;
         statuses[8] = CampaignLevelStatus.Open;
         var profile = new CampaignProfile { PlayerLevelStatus = statuses };

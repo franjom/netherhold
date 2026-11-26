@@ -334,7 +334,7 @@ public sealed class FinaleTests
             states[tick] = reaper.Dk2StateId;
         }
 
-        SimEvent[] heard = events.Events.Where(e => e.ThingSound.HasValue).ToArray();
+        SimEvent[] heard = [.. events.Events.Where(e => e.ThingSound.HasValue)];
         SimEvent entrance = Assert.Single(heard, e => e.ThingSound!.Value.Event == ThingSoundEvent.ReaperArrived);
         Assert.Equal((ushort)0x32D, (ushort)ThingSoundEvent.ReaperArrived);
         Assert.Equal("CREATURE_GOBLIN", entrance.ThingSound!.Value.Category);

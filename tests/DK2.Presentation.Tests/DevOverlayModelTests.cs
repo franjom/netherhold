@@ -36,7 +36,7 @@ public sealed class DevOverlayModelTests
             }
         }
 
-        return headings.ToArray();
+        return [.. headings];
     }
 
     [Fact]

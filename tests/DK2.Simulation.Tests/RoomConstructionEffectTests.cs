@@ -27,7 +27,7 @@ public class RoomConstructionEffectTests
             simulation.Run(2);
         }
 
-        SimEvent[] effects = events.Events.Where(e => e.Kind == "construction_effect").ToArray();
+        SimEvent[] effects = [.. events.Events.Where(e => e.Kind == "construction_effect")];
         Assert.Equal(command.Tiles.Count, effects.Length);
         Assert.Equal(command.Tiles.OrderBy(t => t.Y).ThenBy(t => t.X),
             effects.Select(e => e.ConstructionEffect!.Value.Tile).OrderBy(t => t.Y).ThenBy(t => t.X));

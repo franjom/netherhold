@@ -129,8 +129,10 @@ public sealed class CombatPitRoomTests
         var events = new ListEventSink();
         sim.ObserveWith(events);
         sim.Tick();
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         ViewEffectRequest[] requests = events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value).ToArray();
         Assert.Equal([new EffectId(90), new EffectId(52)], requests.Select(r => r.EffectId).ToArray());
+#pragma warning restore IDE0305
         Assert.All(requests, r =>
         {
             Assert.Equal(new PlayerId(Keeper), r.Owner);
@@ -427,7 +429,7 @@ public sealed class CombatPitRoomTests
         var events = new ListEventSink();
         sim.ObserveWith(events);
         sim.Tick();
-        string[] released = events.Events.Where(e => e.Kind == "pit_thrown_out").Select(e => e.Detail).ToArray();
+        string[] released = [.. events.Events.Where(e => e.Kind == "pit_thrown_out").Select(e => e.Detail)];
         Assert.Equal(2, released.Length);
         Assert.StartsWith($"creature={second.Id} ", released[0]);
         Assert.StartsWith($"creature={first.Id} ", released[1]);

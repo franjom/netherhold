@@ -82,7 +82,7 @@ public sealed class TerrainCeilingTests
     [Fact]
     public void BesideAWallTheRoofRisesFromTheWallTop_StronglyInferredFromBinary()
     {
-        bool[] map = Map(Enumerable.Range(0, Size).Select(y => (12, y)).ToArray());
+        bool[] map = Map([.. Enumerable.Range(0, Size).Select(y => (12, y))]);
 
         float[] z = Heights(map, 13, 12);
 

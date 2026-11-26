@@ -154,7 +154,7 @@ public class KeeperAITests
     public void GoldScannerFindsCardinalSeamsAndSumsTheirGold()
     {
         WorldState world = KeeperWorld.World(Db);
-        TilePos[] seams = new[] { new TilePos(4, 4), new TilePos(25, 4), new TilePos(4, 25), new TilePos(25, 25), new TilePos(15, 3) };
+        TilePos[] seams = [new TilePos(4, 4), new TilePos(25, 4), new TilePos(4, 25), new TilePos(25, 25), new TilePos(15, 3)];
         foreach (TilePos s in seams)
         {
             for (int dy = 0; dy < 2; dy++)

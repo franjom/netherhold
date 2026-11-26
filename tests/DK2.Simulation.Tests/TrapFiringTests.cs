@@ -57,7 +57,7 @@ public class TrapFiringTests
     }
 
     private static List<long> Fired(ListEventSink sink, TrapState trap) =>
-        sink.Events.Where(e => e.Kind == "trap_fired" && e.Detail.StartsWith($"trap={trap.Id} ")).Select(e => e.Tick.Value).ToList();
+        [.. sink.Events.Where(e => e.Kind == "trap_fired" && e.Detail.StartsWith($"trap={trap.Id} ")).Select(e => e.Tick.Value)];
 
     [Fact]
     public void ASentryTurnsToAnEnemyInRange_FiresACannonBallFromItsTurnedMuzzle_PaysItsMana_AndRechargesFor24Ticks()

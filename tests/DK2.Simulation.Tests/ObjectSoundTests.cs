@@ -255,7 +255,7 @@ public sealed class ObjectSoundTests
         special = world.SpawnObject(db, objectTypeId, PlayerIds.Neutral, Tile);
         events.Clear();
         sim.Tick(InputFrame.Of(new ActivateSpecialCommand(Keeper, special.Id)));
-        ThingSoundRequest[] heard = Sounds(events).Where(s => SpecialSounds.Contains(s.Event)).ToArray();
+        ThingSoundRequest[] heard = [.. Sounds(events).Where(s => SpecialSounds.Contains(s.Event))];
         return heard.Length == 1 ? heard[0] : default;
     }
 

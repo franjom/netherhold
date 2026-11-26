@@ -190,7 +190,9 @@ public class KmfReaderTests
         U32(1); U32(3); Vector(0, 0, 0); writer.Write(1f); U32(1);
         Tag("CTRL"); U32(0); U32(0);
         Tag("SPRS"); U32(0); Tag("SPHD"); U32(0); U32(1); U32(3); writer.Write(1f);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Tag("SPRS"); U32(0); U32(0); writer.Write(new byte[] { 0, 1, 2 });
+#pragma warning restore IDE0300
         Vertex(0, 0, 0); Vertex(1, 16384, 0); Vertex(2, 16384, 8192);
         Tag("GEOM"); U32(0); Vector(0, 0, 0); Vector(1, 0, 0); Vector(1, 2, 3);
         return stream.ToArray();

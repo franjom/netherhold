@@ -512,11 +512,13 @@ public sealed class StructureBlocksTests
         var obstacles = new List<DK2.Simulation.Steering.SteeringObstacle>();
         var centre = new DK2.Simulation.Steering.Fixed16Vector(CreatureState.CentreOf(6) << 4, CreatureState.CentreOf(6) << 4);
         steering.CollectObstacles(centre, 1 << 16, obstacles);
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         DK2.Simulation.Steering.SteeringObstacle[] onCentre = obstacles.Where(o => o.Pos == centre).ToArray();
         const int arch = (2457 >> 1) << 4, heartSize = (4096 >> 1) << 4;
         Assert.Equal([(arch, true), (arch, false), (arch, true), (arch, false), (heartSize, true), (3 << 15, true)],
             onCentre.Select(o => (o.Size, o.Solid)).ToArray());
         Assert.Equal([false, false, false, false, false, true], onCentre.Select(o => o.Flag2).ToArray());
+#pragma warning restore IDE0305
 
         int closest = int.MaxValue;
         for (int tick = 0; tick < 400 && goblin.Tile != new TilePos(10, 7); tick++)

@@ -29,19 +29,19 @@ public class KwdLevelWriterTests
     [InlineData(25683)]
     public void EveryMessagePathAndTailSlotRetainsItsOwnBytes(int metadata)
     {
-        byte[] bytes=Enumerable.Repeat((byte)0x5A,metadata+8+72+8).ToArray();
+        byte[] bytes= [.. Enumerable.Repeat((byte)0x5A,metadata+8+72+8)];
         KwdChunk chunk=Chunk(bytes,metadata); LevelDef row=KwdLevel.Parse([chunk])!;
         Assert.Equal(bytes,KwdLevel.WriteRecord(row,chunk));
         for(int slot=0;slot<512;slot++)
         {
-            string[] messages=row.Messages.ToArray(); messages[slot]="changed é";
+            string[] messages= [.. row.Messages]; messages[slot]="changed é";
             byte[] edited=KwdLevel.WriteRecord(row with { Messages=messages },chunk);
             Assert.Equal(messages,KwdLevel.Parse([chunk with { Content=edited }])!.Messages);
             Outside(bytes,edited,5004+40*slot,40);
         }
         for(int slot=0;slot<2;slot++)
         {
-            uint[] tail=row.UnknownPathTail.ToArray(); tail[slot]=13;
+            uint[] tail= [.. row.UnknownPathTail]; tail[slot]=13;
             byte[] edited=KwdLevel.WriteRecord(row with { UnknownPathTail=tail },chunk);
             Assert.Equal(tail,KwdLevel.Parse([chunk with { Content=edited }])!.UnknownPathTail);
             Outside(bytes,edited,metadata+80+4*slot,4);

@@ -136,7 +136,9 @@ public sealed class SavedSessionFileTests : IDisposable
             stream.SetLength(stream.Position);
             Assert.Equal(Sample().Header, header);
         }
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         File.WriteAllBytes(Path.Combine(_directory, "corrupt.dk2g"), new byte[] { 1, 2, 3 });
+#pragma warning restore IDE0300
 
         IReadOnlyList<SavedSessionEntry> rows = SavedSessionFile.List(_directory);
 
@@ -187,7 +189,7 @@ public sealed class SavedSessionFileTests : IDisposable
 
     private static SavedSession Sample() => new(new SavedSessionHeader("Level1", 1, 26,
         new DateTime(2026, 10, 29, 12, 0, 0, DateTimeKind.Utc), "First save"),
-        new byte[] { 1, 2, 3 }, new CampaignProfile { LevelNumber = 2 });
+        [1, 2, 3], new CampaignProfile { LevelNumber = 2 });
 
     public void Dispose()
     {

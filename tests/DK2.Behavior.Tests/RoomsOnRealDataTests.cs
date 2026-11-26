@@ -207,11 +207,10 @@ public class RoomsOnRealDataTests
         // quietly doing something nobody chose.
         GameDatabase db = RealDatabase();
 
-        string[] overWater = db.Rooms.Values
+        string[] overWater = [.. db.Rooms.Values
             .Where(r => r.PlaceableOnWater || r.PlaceableOnLava)
             .Select(r => r.Name)
-            .OrderBy(n => n, StringComparer.Ordinal)
-            .ToArray();
+            .OrderBy(n => n, StringComparer.Ordinal)];
 
         Assert.Equal(["Hero Stone Bridge", "Stone Bridge", "Wooden Bridge"], overWater);
 
@@ -245,11 +244,10 @@ public class RoomsOnRealDataTests
         // real table: every other room tile in the game holds nothing.
         GameDatabase db = RealDatabase();
 
-        string[] holders = db.Rooms.Values
+        string[] holders = [.. db.Rooms.Values
             .Where(r => GoldStore.Capacity(db, new TileState { TerrainId = r.TerrainId }) > 0)
             .Select(r => r.Name)
-            .OrderBy(n => n, StringComparer.Ordinal)
-            .ToArray();
+            .OrderBy(n => n, StringComparer.Ordinal)];
 
         Assert.Equal(["Dungeon Heart", "Treasury"], holders);
     }
@@ -276,7 +274,7 @@ public class RoomsOnRealDataTests
     public void TheTerrainIdsThePlacementTestRefusesAreTheVaultsAndTheHeroGates()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        byte[] refused = db.Terrain.Keys.Where(RoomRules.RefusesByTerrainId).OrderBy(id => id).ToArray();
+        byte[] refused = [.. db.Terrain.Keys.Where(RoomRules.RefusesByTerrainId).OrderBy(id => id)];
 
         Assert.Equal(new byte[] { 31, 32, 33, 34, 37 }, refused);
         Assert.Equal(["Mana Vault", "Claimed Vault"], refused.Take(2).Select(id => db.TerrainById(id).Name));

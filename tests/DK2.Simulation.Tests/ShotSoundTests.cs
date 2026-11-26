@@ -67,7 +67,7 @@ public sealed class ShotSoundTests
 
     /// <summary>By event and by the shot's two handles: 0xF4, 0xDB and 0x1BC are the terrain's, the creature's and the weapons' too.</summary>
     private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) =>
-        Sounds(events).Where(s => s.Event == sound && s.Source.Kind is SoundSourceKind.Shot or SoundSourceKind.ShotSecond).ToArray();
+        [.. Sounds(events).Where(s => s.Event == sound && s.Source.Kind is SoundSourceKind.Shot or SoundSourceKind.ShotSecond)];
 
     private static FpPosition3 At(int x, int y, int z) => new(new Fp32(x), new Fp32(y), new Fp32(z));
 

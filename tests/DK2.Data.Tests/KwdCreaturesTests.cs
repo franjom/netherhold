@@ -34,7 +34,7 @@ public class KwdCreaturesTests
         // Ids are 1..46 with no gaps or duplicates.
         Assert.Equal(
             Enumerable.Range(1, 46).ToList(),
-            all.Select(c => (int)c.CreatureId).OrderBy(i => i).ToList());
+            [.. all.Select(c => (int)c.CreatureId).OrderBy(i => i)]);
         Assert.All(all, c => Assert.False(string.IsNullOrWhiteSpace(c.Name)));
     }
 

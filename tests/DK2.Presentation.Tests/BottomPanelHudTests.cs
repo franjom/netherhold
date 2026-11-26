@@ -42,7 +42,7 @@ public sealed class BottomPanelHudTests
     {
         HudFrame frame = Build(Panel());
         HudDraw[] draws = frame.Draws.ToArray();
-        HudDraw[] stone = draws.Where(d => d.Image.Path == "GUI\\Windows\\Panel-BG").ToArray();
+        HudDraw[] stone = [.. draws.Where(d => d.Image.Path == "GUI\\Windows\\Panel-BG")];
         Assert.Equal((int)Math.Ceiling(Wide / 160), stone.Length);
         Assert.Equal(new HudRect(0, 1600, 160, 300), stone[0].Rect);
         Assert.Equal(Wide, stone[^1].Rect.X + stone[^1].Rect.Width, 3);
@@ -57,7 +57,7 @@ public sealed class BottomPanelHudTests
     [Fact]
     public void WithNoSpellOrWorkshopItemOnlyCreaturesAndRoomsTabsShow()
     {
-        string[] tabs = Build(Panel()).Draws.ToArray().Select(d => d.Image.Path!).Where(p => p.StartsWith("GUI\\Tabs\\")).ToArray();
+        string[] tabs = [.. Build(Panel()).Draws.ToArray().Select(d => d.Image.Path!).Where(p => p.StartsWith("GUI\\Tabs\\"))];
         Assert.Equal(["GUI\\Tabs\\t-creatures", "GUI\\Tabs\\t-rooms"], tabs);
     }
 
@@ -207,7 +207,7 @@ public sealed class BottomPanelHudTests
     [Fact]
     public void TheTalismanKeepsItsQuartersClockwiseFromTheTopLeft()
     {
-        byte[] opaque = Enumerable.Repeat((byte)255, 2 * 2 * 4).ToArray();
+        byte[] opaque = [.. Enumerable.Repeat((byte)255, 2 * 2 * 4)];
         static bool[] Kept(byte[] p) => [p[3] != 0, p[7] != 0, p[11] != 0, p[15] != 0];   // TL, TR, BL, BR
         Assert.Equal([true, false, false, false], Kept(HudImagePixels.Apply(opaque, 2, 2, new HudImage("t", HudImageVariant.TalismanArc, 1))));
         Assert.Equal([true, true, false, false], Kept(HudImagePixels.Apply(opaque, 2, 2, new HudImage("t", HudImageVariant.TalismanArc, 2))));

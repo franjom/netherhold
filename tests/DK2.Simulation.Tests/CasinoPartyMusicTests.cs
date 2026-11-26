@@ -60,7 +60,7 @@ public sealed class CasinoPartyMusicTests
     }
 
     private static ThingSoundRequest[] Heard(ListEventSink events, int from = 0) =>
-        events.Events.Skip(from).Where(e => e.ThingSound is { Source.Kind: SoundSourceKind.Room }).Select(e => e.ThingSound!.Value).ToArray();
+        [.. events.Events.Skip(from).Where(e => e.ThingSound is { Source.Kind: SoundSourceKind.Room }).Select(e => e.ThingSound!.Value)];
 
     [Fact]
     public void AnOngoingPartyWithADancerAsks316EveryUpdateAtTheCameraWithTheRoomsHandleAndAVolumeAnchor_TheAnchorTileIsTheFirstTileAnInference()

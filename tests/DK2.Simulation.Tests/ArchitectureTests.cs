@@ -63,11 +63,10 @@ public class ArchitectureTests
         string src = Path.Combine(RepositoryRoot(), "src");
         string[] projects = Directory.GetFiles(src, "*.csproj", SearchOption.AllDirectories);
         Assert.NotEmpty(projects);
-        string[] offenders = projects
+        string[] offenders = [.. projects
             .Where(f => Regex.IsMatch(File.ReadAllText(f), @"Godot\.NET\.Sdk|Include=""Godot|GodotSharp", RegexOptions.IgnoreCase))
             .Concat(SourceFiles(src).Where(f => Regex.IsMatch(File.ReadAllText(f), @"^\s*using\s+(static\s+)?Godot\b", RegexOptions.Multiline)))
-            .Select(f => Path.GetRelativePath(src, f))
-            .ToArray();
+            .Select(f => Path.GetRelativePath(src, f))];
         Assert.Empty(offenders);
     }
 
@@ -81,14 +80,13 @@ public class ArchitectureTests
         string adapter = Path.Combine(root, "godot", "DK2.Godot");
         XElement project = System.Xml.Linq.XDocument.Load(Path.Combine(adapter, "DK2.Godot.csproj")).Root!;
         Assert.StartsWith("Godot.NET.Sdk/", (string?)project.Attribute("Sdk"));
-        string[] references = project.Descendants("ProjectReference")
+        string[] references = [.. project.Descendants("ProjectReference")
             .Select(r => Path.GetRelativePath(root, Path.GetFullPath(Path.Combine(adapter, (string)r.Attribute("Include")!)))
-                .Replace('\\', '/'))
-            .ToArray();
+                .Replace('\\', '/'))];
         Assert.Equal(["src/DK2.Presentation/DK2.Presentation.csproj"], references);
         Assert.Empty(project.Descendants("PackageReference"));
 
-        string[] sources = AdapterFiles(adapter, "*.cs").ToArray();
+        string[] sources = [.. AdapterFiles(adapter, "*.cs")];
         Assert.NotEmpty(sources);
         IEnumerable<string> reachesPast = sources
             .Where(f => Regex.IsMatch(File.ReadAllText(f), @"^\s*using\s+(static\s+)?DK2\.(AI|Tools|Harness|Convert)\b", RegexOptions.Multiline))
@@ -136,15 +134,14 @@ public class ArchitectureTests
         // nothing to count yet - nothing writes the field - so this guards the future,
         // which is the only moment it can be added without also rewriting callers.
         string root = RepositoryRoot();
-        string[] files = Directory
+        string[] files = [.. Directory
             .GetFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
-                     && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
-            .ToArray();
+                     && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))];
         Assert.NotEmpty(files);
 
         const string write = @"[.\s]Dk2StateId\s*(?:=[^=]|\+\+|--)";
-        string[] offenders = files
+        string[] offenders = [.. files
             .Where(f => Regex.IsMatch(File.ReadAllText(f), write))
             .Select(f => Path.GetFileName(f))
             // The gate itself; the field's own declaration; and the snapshot reader and the
@@ -153,8 +150,7 @@ public class ArchitectureTests
             .Where(f => f is not "CreatureStateMachine.cs"
                          and not "CreatureState.cs"
                          and not "WorldSnapshot.cs"
-                         and not "StateCopy.g.cs")
-            .ToArray();
+                         and not "StateCopy.g.cs")];
 
         Assert.Empty(offenders);
 
@@ -169,13 +165,12 @@ public class ArchitectureTests
         // Enum.HasFlag boxes both operands under IL2CPP and Mono: a tick and a frame full of flag
         // tests allocated about 20 KB a frame through it (ADR-0695). The bitwise test reads the same.
         string root = RepositoryRoot();
-        string[] offenders = Directory
+        string[] offenders = [.. Directory
             .GetFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
                      && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
                      && Regex.IsMatch(File.ReadAllText(f), @"\.HasFlag\("))
-            .Select(f => Path.GetRelativePath(root, f))
-            .ToArray();
+            .Select(f => Path.GetRelativePath(root, f))];
         Assert.Empty(offenders);
     }
 
@@ -196,7 +191,7 @@ public class ArchitectureTests
         // Two worlds tick on different threads (worker execution and parallel tests), and a static
         // they both write races: FightRules.RouteScratch did (cbee8a3d). A mutable static, or a
         // static readonly mutable collection, must be [ThreadStatic] or on the allow-list.
-        string[] offenders = typeof(WorldState).Assembly.GetTypes()
+        string[] offenders = [.. typeof(WorldState).Assembly.GetTypes()
             .Where(t => !t.IsDefined(typeof(CompilerGeneratedAttribute), false))
             .SelectMany(t => t.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
             .Where(f => !f.IsLiteral
@@ -206,8 +201,7 @@ public class ArchitectureTests
                      && (!f.IsInitOnly || IsMutableCollection(f.FieldType)))
             .Select(f => $"{f.DeclaringType!.FullName}.{f.Name}")
             .Where(name => !SharedStaticAllowList.ContainsKey(name))
-            .Order(StringComparer.Ordinal)
-            .ToArray();
+            .Order(StringComparer.Ordinal)];
         Assert.Empty(offenders);
         Assert.All(SharedStaticAllowList.Keys, name => Assert.NotNull(
             typeof(WorldState).Assembly.GetType(name[..name.LastIndexOf('.')])?

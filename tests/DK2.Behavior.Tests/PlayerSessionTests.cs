@@ -352,7 +352,7 @@ public class PlayerSessionTests
         {
             var h = new Harness(setup, new PlayerSessionLimits(maxRequestsPerObservation: probes.Length));
             h.Observe();
-            PlayerReceipt[] receipts = probes.Select((p, i) => h.Submit(i + 1, p)).ToArray();
+            PlayerReceipt[] receipts = [.. probes.Select((p, i) => h.Submit(i + 1, p))];
             return (receipts, HashOf(h.Session.Drain(new GameTick(1))));
         }
 

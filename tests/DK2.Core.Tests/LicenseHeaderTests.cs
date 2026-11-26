@@ -98,10 +98,9 @@ public class LicenseHeaderTests
     {
         const string key = "SPDX-License-Identifier:";
 
-        string[] declared = NoticeFromLicenseTxt()
+        string[] declared = [.. NoticeFromLicenseTxt()
             .Split('\n')
-            .Where(l => l.StartsWith(key, StringComparison.Ordinal))
-            .ToArray();
+            .Where(l => l.StartsWith(key, StringComparison.Ordinal))];
 
         Assert.Single(declared);
         return declared[0][key.Length..].Trim();

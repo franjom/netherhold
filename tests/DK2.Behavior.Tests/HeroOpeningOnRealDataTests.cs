@@ -30,12 +30,12 @@ public class HeroOpeningOnRealDataTests
 
         sim.Run(4);
 
-        CreatureState[] party = sim.World.Creatures.Where(c => c.PartyId == 1).ToArray();
+        CreatureState[] party = [.. sim.World.Creatures.Where(c => c.PartyId == 1)];
         Assert.Equal(4, party.Length);
         Assert.All(party, c => Assert.Equal(HeroPartyRules.DwarfCreatureId, c.CreatureTypeId));
         CreatureState leader = Assert.Single(party, c => (c.Flags & 2) != 0);
         Assert.Equal(new TilePos(13, 13), leader.Destination);
-        CreatureState[] followers = party.Where(HeroJobRules.IsFollower).ToArray();
+        CreatureState[] followers = [.. party.Where(HeroJobRules.IsFollower)];
         Assert.Equal(new byte[] { 3, 2, 1 }, followers.Select(c => c.PositionInParty));
         Assert.All(followers, c => Assert.Equal(new TilePos(14, 7), c.Destination));
     }

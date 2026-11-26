@@ -58,7 +58,9 @@ public class KwdRewriteAuditTests
     public void DiagnosticsLocateTheSecondChunkAndTaggedRecordHeader()
     {
         byte[] body=KwdThingsWriterTests.Image(194,new byte[24]).ToBytes();
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Things,body.Concat(body).ToArray(),2);
+#pragma warning restore IDE0305
         KwdChunk first=DoorChunk(); byte[] source=KwdWriter.ToBytes([first,chunk]),actual=(byte[])source.Clone();
         int offset=KwdWriter.ToBytes([first]).Length+56+32;
         actual[offset]^=1;
@@ -75,7 +77,9 @@ public class KwdRewriteAuditTests
         Assert.Equal(0,diff.RecordIndex); Assert.StartsWith("raw",diff.Field);
         diff=KwdRewriteAudit.DescribeDifference(source,source[..^1],[chunk])!;
         Assert.Equal(source.Length-1,diff.Offset); Assert.Null(diff.Actual);
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         diff=KwdRewriteAudit.DescribeDifference(source,source.Concat(new byte[]{13}).ToArray(),[chunk])!;
+#pragma warning restore IDE0300, IDE0305
         Assert.Equal(source.Length,diff.Offset); Assert.Equal("fileLength",diff.Field); Assert.Null(diff.Expected);
         Assert.Null(KwdRewriteAudit.DescribeDifference(source,source,[chunk]));
     }

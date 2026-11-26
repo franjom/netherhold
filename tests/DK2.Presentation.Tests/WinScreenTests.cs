@@ -21,7 +21,7 @@ public class WinScreenTests
     [Fact]
     public void ARewardWithNoSpeechDoesNotPlayMentorEntryZero()
     {
-        var screen = new WinScreen(new byte[] { 30, 0, 0, 0, 0 }, _ => "x");
+        var screen = new WinScreen([30, 0, 0, 0, 0], _ => "x");
         var spoken = new List<uint>(); screen.SpeechRequested += spoken.Add;
         screen.Start(0);
         Assert.Empty(spoken);
@@ -31,7 +31,7 @@ public class WinScreenTests
     public void ARewardWaitsForTheAudioChannelEvenAfterItsSubtitleAndTabletEnd()
     {
         var spoken = new List<uint>();
-        var screen = new WinScreen(new byte[] { 12, 42, 0, 0, 0 }, _ => "x");
+        var screen = new WinScreen([12, 42, 0, 0, 0], _ => "x");
         screen.SpeechRequested += spoken.Add;
         screen.Start(0);
         for (double now = 0; now <= 5000; now += 10)
@@ -69,7 +69,7 @@ public class WinScreenTests
     [Fact]
     public void EachRewardWaitsForItsLineAndItsTabletAtAStandInThirtyFramesASecondThenTheDoneScreenTakesAContinueEveryHalfSecond()
     {
-        var screen = new WinScreen(new byte[] { 12, 42, 0, 0, 0 }, id => id == 1350 ? "abcd" : "ab");
+        var screen = new WinScreen([12, 42, 0, 0, 0], id => id == 1350 ? "abcd" : "ab");
         screen.Start(0);
         Assert.Equal(12, screen.Current!.Value.Id);
         Run(screen, 0, 3000);

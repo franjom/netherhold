@@ -216,7 +216,7 @@ public sealed class PossessionHudTests
         var frame = new HudFrame();
         var layout = new HudScaleLayout(1920, 1080, 100);
         new PossessionHud().Build(layout, Snapshot with { Followers = ["follower", "second"] }, frame);
-        HudDraw[] bars = frame.Draws.ToArray().Where(d => d.Image.Path == "GUI\\Windows\\Bar-00" && d.Rect.Y == 20).ToArray();
+        HudDraw[] bars = [.. frame.Draws.ToArray().Where(d => d.Image.Path == "GUI\\Windows\\Bar-00" && d.Rect.Y == 20)];
         Assert.True(bars.Length > 1);
         Assert.All(bars, d => Assert.Equal(88, d.Rect.Height));
         Assert.Equal(512, bars[0].Rect.Width, 3);
@@ -233,7 +233,7 @@ public sealed class PossessionHudTests
     public void SevenFollowersUseTheReadFourByThreeRowSeenInTheNativeMistressCapture()
     {
         var frame = new HudFrame();
-        string[] followers = Enumerable.Range(0, 7).Select(i => "follower-" + i).ToArray();
+        string[] followers = [.. Enumerable.Range(0, 7).Select(i => "follower-" + i)];
         new PossessionHud().Build(new HudScaleLayout(1600, 1200, 100), Snapshot with { Followers = followers }, frame);
         for (int i = 0; i < followers.Length; i++)
         {

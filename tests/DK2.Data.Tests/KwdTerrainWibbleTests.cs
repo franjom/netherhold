@@ -14,7 +14,7 @@ public class KwdTerrainWibbleTests
 
     private static byte[] Source()
     {
-        byte[] source = Enumerable.Repeat((byte)0x5A, RecordSize).ToArray();
+        byte[] source = [.. Enumerable.Repeat((byte)0x5A, RecordSize)];
         source[0] = (byte)'a'; source[1] = 0;
         for (int i = 0; i < 8; i++)
         {

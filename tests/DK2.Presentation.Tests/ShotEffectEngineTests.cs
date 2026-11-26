@@ -71,7 +71,7 @@ public class ShotEffectEngineTests
         var model = new RoomConstructionParticles(database, 7, () => default, floorHeight: _ => new(Fp32.One));
         model.Request(Request() with { EffectId = new(102), Position = Point(10000, 12000, Fp32.One) });
         model.AdvanceTo(new(51));
-        ConstructionParticle[] first = model.Particles.ToArray();
+        ConstructionParticle[] first = [.. model.Particles];
         Assert.Equal(16, first.Length);
         Assert.All(first, star => Assert.Equal(Fp32.One, star.HeightRaw));
 

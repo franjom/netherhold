@@ -124,7 +124,7 @@ public sealed class TutorialNotificationsTests
         var sim = new GameSimulation(db, world, 1, [], tree);
         sim.Run(230);
         var flowers = new StatusFlowers(db, PlayerIds.FirstKeeper);
-        int[] imps = world.Creatures.Where(c => c.OwnerPlayerId == PlayerIds.FirstKeeper).Select(c => c.Id).ToArray();
+        int[] imps = [.. world.Creatures.Where(c => c.OwnerPlayerId == PlayerIds.FirstKeeper).Select(c => c.Id)];
         Assert.Equal(4, imps.Length);
         Assert.DoesNotContain(flowers.Capture(world, world.CurrentTick, CreatureQueryTarget.None), f => imps.Contains(f.CreatureId));
         world.Triggers.Write(71, FlagWriteMode.Assign, 1);

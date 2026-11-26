@@ -16,7 +16,7 @@ public class DocsCommandTests
         return findings;
     }
 
-    private static string[] Repeat(string line, int count) => Enumerable.Repeat(line, count).ToArray();
+    private static string[] Repeat(string line, int count) => [.. Enumerable.Repeat(line, count)];
 
     [Fact]
     public void CommitBodySkipsTheSubjectBlankLinesCommentsAndCoAuthorTrailers()
@@ -45,8 +45,8 @@ public class DocsCommandTests
     [Fact]
     public void CommentRatioFailsOnlyWhenTheChangeMadeItWorse()
     {
-        string[] half = Enumerable.Range(0, 80).Select(i => i % 2 == 0 ? "// c" : "x();").ToArray();
-        string[] quarter = Enumerable.Range(0, 80).Select(i => i % 4 == 0 ? "// c" : "x();").ToArray();
+        string[] half = [.. Enumerable.Range(0, 80).Select(i => i % 2 == 0 ? "// c" : "x();")];
+        string[] quarter = [.. Enumerable.Range(0, 80).Select(i => i % 4 == 0 ? "// c" : "x();")];
         Assert.Equal(["src/A.cs: comment lines is 50, budget 40"], Check("src/A.cs", half));
         Assert.Empty(Check("src/A.cs", half, half, all: false));
         Assert.Single(Check("src/A.cs", half, quarter, all: false));

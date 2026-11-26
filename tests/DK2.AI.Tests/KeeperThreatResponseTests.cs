@@ -149,7 +149,9 @@ public class KeeperThreatResponseTests
         // moves add 50 and the event retires at zero, ending the tick's allowance.
         Assert.Equal(
             [second.Id, first.Id],
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
             commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray());
+#pragma warning restore IDE0305
         Assert.All(commands.OfType<DropCommand>(), d => Assert.Equal(KeeperWorld.HeartAt, d.Tile));
         Assert.Equal(2, commands.OfType<DropCommand>().Count());
         Assert.Equal(0, keeper.State.Responses.Count);
@@ -221,8 +223,10 @@ public class KeeperThreatResponseTests
         KeeperWorld.Set(world, Db, new TilePos(13, 13), KeeperWorld.PrisonFloor, Keeper);
         Attack(world, 16, 15);
         IReadOnlyList<PlayerCommand> marks = NewKeeper(imprison: 100).Think(Db, world);
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([near.Id, far.Id], marks.OfType<SetRescuePriorityCommand>()
             .OrderBy(c => c.CreatureId).Select(c => c.CreatureId).ToArray());
+#pragma warning restore IDE0305
         Assert.All(marks.OfType<SetRescuePriorityCommand>(), c => Assert.True(c.Enabled));
         sim.Tick(new InputFrame(marks));
         Assert.Equal(1 << (Keeper - 1), near.RescuePriorityMask);
@@ -463,7 +467,9 @@ public class KeeperThreatResponseTests
         // 200 wanted against 100 allies withdraws -100. Permission passes and the hand refuses
         // (0x004BC500): DK2 debits the same creature's 50 on both attempts, -100 to 0, and
         // retires; the creature is asked for twice and never dropped.
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([near.Id, near.Id], commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray());
+#pragma warning restore IDE0305
         Assert.DoesNotContain(commands, c => c is DropCommand);
         Assert.Equal(0, keeper.State.Responses.Count);
         sim.Tick(new InputFrame(commands));

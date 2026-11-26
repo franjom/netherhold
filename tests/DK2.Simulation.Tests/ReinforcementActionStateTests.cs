@@ -118,7 +118,7 @@ public sealed class ReinforcementActionStateTests
         pile.Cell = MiningSlots.AnyCell;
         sim.World.Tile(4, 3).Health = 659;
         sim.Tick();
-        SimEvent[] sequence = events.Events.ToArray();
+        SimEvent[] sequence = [.. events.Events];
         int pickup = Array.FindIndex(sequence, e => e.Kind == "gold_picked_up_in_passing");
         int work = Array.FindIndex(sequence, e => e.System == "TileWork");
         Assert.True(pickup >= 0);

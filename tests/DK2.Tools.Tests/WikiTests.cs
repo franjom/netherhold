@@ -117,7 +117,7 @@ public class WikiTests
     public void FrontMatterIsLeftOutOfTheLengthBudget()
     {
         // Already over budget before the change: tagging it must not count as making it worse.
-        string[] prose = Enumerable.Repeat("x", DocBudgets.ResearchDoc + 1).ToArray();
+        string[] prose = [.. Enumerable.Repeat("x", DocBudgets.ResearchDoc + 1)];
         string[] tagged = ["---", "systems: [combat]", "---", .. prose];
         Assert.DoesNotContain(Check("docs/research/fear.md", tagged, Context(), baseLines: prose, all: false),
             f => f.Contains("length"));

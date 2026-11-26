@@ -71,7 +71,7 @@ public class PortalCreatureActionOnRealDataTests
 
         var simulation = new GameSimulation(db, world, 99, [new AutoFurnitureSystem()]);
         simulation.Run(635);
-        RoomInstance[] owned = RoomIndex.Build(world, db).Where(r => r.OwnerPlayerId == 3).ToArray();
+        RoomInstance[] owned = [.. RoomIndex.Build(world, db).Where(r => r.OwnerPlayerId == 3)];
         Assert.True(PortalRules.CanComeFromPortal(warlock, db.Room(RoomTypeId.Portal)));
         Assert.True(PortalRules.IsUnlocked(world, 3, 5));
         Assert.True(PortalRules.PoolLimit(db, 3, 5) > 0);

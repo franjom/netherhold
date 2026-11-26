@@ -146,7 +146,7 @@ public sealed class HoverEntityMeasureTests
                 positions[i] = new Vector3(Next(random), Next(random), Next(random));
             }
 
-            int[] triangles = Enumerable.Range(0, 3 * 8 + random.Next(3)).Select(_ => random.Next(positions.Length)).ToArray();
+            int[] triangles = [.. Enumerable.Range(0, 3 * 8 + random.Next(3)).Select(_ => random.Next(positions.Length))];
             var origin = new Vector3(Next(random) * 3, 4, Next(random) * 3);
             var direction = Vector3.Normalize(new Vector3(Next(random), -1, Next(random)));
             float limit = 3 + Next(random) * 4;
@@ -184,7 +184,7 @@ public sealed class HoverEntityMeasureTests
         var turn = Quaternion.CreateFromYawPitchRoll(.7f, .3f, -.4f);
         var position = new Vector3(5, 1, -3);
         var scale = new Vector3(2, 1.5f, .5f);
-        Vector3[] world = local.Select(p => LegacyTransformPoint(p, position, turn, scale)).ToArray();
+        Vector3[] world = [.. local.Select(p => LegacyTransformPoint(p, position, turn, scale))];
         Vector3 centre = (world[0] + world[1] + world[2]) / 3;
         Vector3 origin = centre + new Vector3(.3f, 4, -.2f), direction = Vector3.Normalize(centre - origin);
         Assert.True(WorldHoverPicker.TryHitTriangle(origin, direction, world[0], world[1], world[2], out float expected));

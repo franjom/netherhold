@@ -21,10 +21,9 @@ public class HumanCommandPolicyTests
     [Fact]
     public void EveryCommandType_IsClassified()
     {
-        Type[] missing = typeof(PlayerCommand).Assembly.GetTypes()
+        Type[] missing = [.. typeof(PlayerCommand).Assembly.GetTypes()
             .Where(t => t.IsSubclassOf(typeof(PlayerCommand)) && !t.IsAbstract)
-            .Where(t => !HumanCommandPolicy.Classes.ContainsKey(t))
-            .ToArray();
+            .Where(t => !HumanCommandPolicy.Classes.ContainsKey(t))];
 
         Assert.True(missing.Length == 0,
             $"classify in HumanCommandPolicy: {string.Join(", ", missing.Select(t => t.Name))}");

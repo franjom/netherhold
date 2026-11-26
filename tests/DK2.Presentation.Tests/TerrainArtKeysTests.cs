@@ -52,7 +52,7 @@ public sealed class TerrainArtKeysTests
 
     private static void AssertCovered(IReadOnlyCollection<AssetRef> keys, IEnumerable<AssetRef> wanted)
     {
-        string[] missing = wanted.Where(key => !keys.Contains(key)).Select(key => key.ToString()).ToArray();
+        string[] missing = [.. wanted.Where(key => !keys.Contains(key)).Select(key => key.ToString())];
         Assert.True(missing.Length == 0, "not listed: " + string.Join(", ", missing));
     }
 

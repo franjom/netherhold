@@ -35,7 +35,7 @@ public sealed class LevelSoundDriverTests
         }
 
         var database = new GameDatabase([water], [], [], variables);
-        var map = new LevelMap(4, 4, Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16).ToArray());
+        var map = new LevelMap(4, 4, [.. Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16)]);
         var world = WorldState.FromMap(database, map, [PlayerIds.Good, PlayerIds.FirstKeeper]);
         for (int y = 0; y < 4; y++)
         {

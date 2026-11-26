@@ -35,7 +35,7 @@ public sealed class TileSoundTests
     }
 
     private static ThingSoundRequest[] Sounds(ListEventSink events) =>
-        events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        [.. events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
 
     private static FpPosition3 Centre(TilePos tile) =>
         new(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(0));

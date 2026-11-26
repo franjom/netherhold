@@ -335,7 +335,7 @@ public class RoomFloorTests
         string dir = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(dir, level);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, level)!;
-        byte[] players = map.Tiles.Select(t => t.PlayerId).Distinct().Order().ToArray();
+        byte[] players = [.. map.Tiles.Select(t => t.PlayerId).Distinct().Order()];
         return (WorldState.FromMap(db, map, players), new WorldView(db));
     }
 

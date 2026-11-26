@@ -83,5 +83,5 @@ public class FrameInputRecorderTests
     private static PlayerCommand Imp(int x) => new CreateImpCommand(Keeper, new TilePos(x, 1));
 
     private static (CommandQueuedWhen, PlayerCommand)[] Queued(FrameInputRecord frame) =>
-        frame.Commands.Select(c => (c.When, c.Command)).ToArray();
+        [.. frame.Commands.Select(c => (c.When, c.Command))];
 }

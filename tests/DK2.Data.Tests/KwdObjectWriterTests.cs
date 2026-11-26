@@ -22,9 +22,9 @@ public class KwdObjectWriterTests
     [Fact]
     public void AnimationMetadataEditsOnlyItsDecodedBytesAndLeavesOtherResourceDataIntact()
     {
-        byte[] source = Enumerable.Repeat((byte)0x5A, 894).ToArray();
+        byte[] source = [.. Enumerable.Repeat((byte)0x5A, 894)];
         ObjectDef original = Read(source);
-        CreatureAnimationTiming[] slots = original.ArtSlots.ToArray();
+        CreatureAnimationTiming[] slots = [.. original.ArtSlots];
         slots[5] = new CreatureAnimationTiming { ResourceType = 6, Flags = CreatureAnimationFlags.Present,
             FrameCount = 123, FramesPerSecond = 30, StartSegmentFrames = 4, EndSegmentFrames = 7 };
         byte[] written = KwdObjects.WriteRecord(original with { ArtSlots = slots },
@@ -74,7 +74,7 @@ public class KwdObjectWriterTests
     [Fact]
     public void LightEditPreservesUnrelatedBytes()
     {
-        byte[] source = Enumerable.Repeat((byte)0x5A, 894).ToArray();
+        byte[] source = [.. Enumerable.Repeat((byte)0x5A, 894)];
         var light = new KwdLight(1234, -2345, 15360, 10240, 0x3800, 244, 243, 204, 127);
         byte[] written = KwdObjects.WriteRecord(Read(source) with { Light = light },
             new KwdRecordImage(KwdRecordType.Objects, source));

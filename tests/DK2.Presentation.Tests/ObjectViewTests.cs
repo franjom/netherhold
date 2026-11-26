@@ -55,8 +55,8 @@ public class ObjectViewTests
         }
 
         byte terrain = database.Room(type).TerrainId;
-        var map = new LevelMap(5, 5, Enumerable.Repeat(
-            new MapTile(terrain, PlayerIds.FirstKeeper, 0, 0), 25).ToArray());
+        var map = new LevelMap(5, 5, [.. Enumerable.Repeat(
+            new MapTile(terrain, PlayerIds.FirstKeeper, 0, 0), 25)]);
         var world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         RoomInstance room = RoomIndex.RoomAt(world, database, 0)!;
         var simulation = new GameSimulation(database, world, 7361, []);

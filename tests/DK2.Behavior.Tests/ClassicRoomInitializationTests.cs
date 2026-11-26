@@ -149,9 +149,9 @@ public class ClassicRoomInitializationTests
     public void PlacedCaptivesEnterTheirCellsWithoutLosingTheirStartingHealth()
     {
         (GameDatabase db, WorldState world) = LevelEight();
-        CreatureState[] captives = world.Creatures.Where(c => c.Tile.X == 17 && c.Tile.Y is 21 or 22).ToArray();
+        CreatureState[] captives = [.. world.Creatures.Where(c => c.Tile.X == 17 && c.Tile.Y is 21 or 22)];
         Assert.Equal(2, captives.Length);
-        int[] health = captives.Select(c => c.Health).ToArray();
+        int[] health = [.. captives.Select(c => c.Health)];
         new GameSimulation(db, world, 1, [new AutoFurnitureSystem()]).Run(1);
         for (int i = 0; i < captives.Length; i++)
         {
@@ -166,8 +166,8 @@ public class ClassicRoomInitializationTests
     public void PlacedTortureVictimsUseTheWallAndFloorWheels()
     {
         (GameDatabase db, WorldState world) = LevelEight();
-        CreatureState[] victims = world.Creatures.Where(c => (c.Flags & 0x40) != 0
-            && db.RoomByTerrain(world.Tile(c.Tile).TerrainId)?.TypeId == RoomTypeId.TortureChamber).ToArray();
+        CreatureState[] victims = [.. world.Creatures.Where(c => (c.Flags & 0x40) != 0
+            && db.RoomByTerrain(world.Tile(c.Tile).TerrainId)?.TypeId == RoomTypeId.TortureChamber)];
         Assert.Equal(3, victims.Length);
         new GameSimulation(db, world, 1, [new AutoFurnitureSystem()]).Run(1);
         Assert.All(victims, c =>

@@ -25,8 +25,10 @@ public sealed class ClassicLightVisibilityTests
     {
         TilePos[] actual = ClassicLightVisibility.EnumerateTiles(
             [new(-2, 0), new(0, 3), new(2, 0)]);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new TilePos[]
         {
+#pragma warning restore IDE0300
             new(-2,0), new(-1,0), new(0,0), new(1,0), new(2,0),
             new(-2,1), new(-1,1), new(0,1), new(1,1),
             new(-1,2), new(0,2)

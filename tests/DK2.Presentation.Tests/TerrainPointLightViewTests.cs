@@ -286,7 +286,7 @@ public class TerrainPointLightViewTests
     private static WorldState World(GameDatabase database, bool fog = false)
     {
         var world = WorldState.FromMap(database, new LevelMap(3, 3,
-            Enumerable.Repeat(new MapTile(1, 1, 0, 0), 9).ToArray()), [1, 2], fogOfWarEnabled: fog);
+            [.. Enumerable.Repeat(new MapTile(1, 1, 0, 0), 9)]), [1, 2], fogOfWarEnabled: fog);
         for (int y = 0; y < 3; y++)
         {
             for (int x = 0; x < 3; x++)

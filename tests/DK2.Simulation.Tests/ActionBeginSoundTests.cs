@@ -21,7 +21,7 @@ public sealed class ActionBeginSoundTests
     private static readonly TilePos Face = new(4, 2);
 
     private static ThingSoundRequest[] Heard(ListEventSink events, int word) =>
-        Sounds(events).Where(s => (ushort)s.Event == word && s.Source.Kind == SoundSourceKind.Creature).ToArray();
+        [.. Sounds(events).Where(s => (ushort)s.Event == word && s.Source.Kind == SoundSourceKind.Creature)];
 
     // ---- The imp's dig and mine ----
 
@@ -63,7 +63,7 @@ public sealed class ActionBeginSoundTests
         sim.Run(40);
 
         ThingSoundRequest[] heard = Heard(events, 0x334);
-        long[] ticks = events.Events.Where(e => e.ThingSound is { } s && (ushort)s.Event == 0x334).Select(e => e.Tick.Value).ToArray();
+        long[] ticks = [.. events.Events.Where(e => e.ThingSound is { } s && (ushort)s.Event == 0x334).Select(e => e.Tick.Value)];
         Assert.NotEmpty(ticks);
         // The action begins on the turn after the work state is entered, and again as each cycle of the clip wraps: the first cycle
         // takes four turns and the rest three (mining-cadence.md section 5).

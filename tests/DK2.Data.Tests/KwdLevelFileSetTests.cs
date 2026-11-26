@@ -16,7 +16,7 @@ public class KwdLevelFileSetTests
     [Fact]
     public void TypedEditsAreIsolatedAndSaveReloadWithOtherBytesUnchanged()
     {
-        byte[] payload=Enumerable.Repeat((byte)0x5A,24).ToArray();
+        byte[] payload= [.. Enumerable.Repeat((byte)0x5A,24)];
         KwdChunk source=Fixture(KwdRecordType.Things,KwdThingsWriterTests.Image(194,payload).ToBytes(),1);
         var editor=KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> { ["things.kld"]=[source] });
         var location=new KwdRecordLocation("things.kld",ChunkIndex:0,RecordIndex:0);

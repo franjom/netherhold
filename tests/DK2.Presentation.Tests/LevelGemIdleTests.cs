@@ -41,6 +41,8 @@ public class LevelGemIdleTests
             emits[tick] = LevelGemIdle.EmitsOn(tick + 1);
         }
 
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { false, false, false, true, false, false, false, true }, emits);
+#pragma warning restore IDE0300
     }
 }

@@ -49,7 +49,7 @@ public class ScenePresenterTests
             Enumerable.Range(0, 8).Select(i => (byte)i));
         ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(Dk2InstallGate.Path, level)!
             .OfType<ActionPointThing>().Select(point => point with { TriggerId = 0 }));
-        ActionTriggerRecord[] records = GameDatabaseLoader.LoadCampaignTriggers(Dk2InstallGate.Path, level)!.OfType<ActionTriggerRecord>().ToArray();
+        ActionTriggerRecord[] records = [.. GameDatabaseLoader.LoadCampaignTriggers(Dk2InstallGate.Path, level)!.OfType<ActionTriggerRecord>()];
         var view = new WorldView(db, new PlayerId(PlayerIds.FirstKeeper));
         var target = new RecordingTarget();
         var presenter = new ScenePresenter(view, AssetProviderChain.Standard(), target);

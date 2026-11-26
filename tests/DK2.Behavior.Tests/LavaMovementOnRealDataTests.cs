@@ -36,8 +36,7 @@ public class LavaMovementOnRealDataTests
             campaign.Tick();
         }
 
-        CreatureState[] salamanders = campaign.World.Creatures
-            .Where(c => db.CreatureById(c.CreatureTypeId).Name == "Salamander").ToArray();
+        CreatureState[] salamanders = [.. campaign.World.Creatures.Where(c => db.CreatureById(c.CreatureTypeId).Name == "Salamander")];
         Assert.NotEmpty(salamanders);
         var visited = new HashSet<TilePos>();
         var targets = new HashSet<TilePos>();

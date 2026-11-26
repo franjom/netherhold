@@ -94,7 +94,7 @@ public class LegalActionFuzzerTests
     };
 
     private static string[] Commands(ScenarioResult result) =>
-        result.ControllerCommandLog.Select(e => $"{e.InputTick}:{e.Command}").ToArray();
+        [.. result.ControllerCommandLog.Select(e => $"{e.InputTick}:{e.Command}")];
 
     private static ScenarioResult Level1(RunOptions options)
     {

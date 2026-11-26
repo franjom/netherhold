@@ -377,7 +377,7 @@ public sealed class FrontEndMenuHudTests
         using FrontEndMenuHud real = new(Session(), new InstallSources(), percent => percent, scan => "K" + scan.Value);
         real.Sync();
         HudDraw[] draws = Draws(real);
-        HudDraw[] labels = draws.Where(d => d.Image.Label is not null && d.Image.Variant == HudImageVariant.None).ToArray();
+        HudDraw[] labels = [.. draws.Where(d => d.Image.Label is not null && d.Image.Variant == HudImageVariant.None)];
         Assert.NotEmpty(labels);
         foreach (HudDraw draw in labels)
         {

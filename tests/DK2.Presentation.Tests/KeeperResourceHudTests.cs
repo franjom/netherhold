@@ -58,8 +58,7 @@ public sealed class KeeperResourceHudTests
     [Fact]
     public void ManaIsRightAlignedInSevenSlotsInTheLargeFamily()
     {
-        HudDraw[] mana = Build(new KeeperResourceHud(), Snapshot(mana: 1234))
-            .Where(d => d.Tint == new HudColor(0, 252, 156)).ToArray();
+        HudDraw[] mana = [.. Build(new KeeperResourceHud(), Snapshot(mana: 1234)).Where(d => d.Tint == new HudColor(0, 252, 156))];
         Assert.Equal(["GUI\\Icons\\i-1", "GUI\\Icons\\i-2", "GUI\\Icons\\i-3", "GUI\\Icons\\i-4"], mana.Select(d => d.Image.Path));
         // V(172) = 96, three empty slots of V(40) = 22.
         Assert.Equal((162, 18, 27, 27), Pixels(mana[0].Rect));
@@ -69,16 +68,14 @@ public sealed class KeeperResourceHudTests
     [Fact]
     public void ANegativeGoldNumberUsesTheMinusSignGlyph()
     {
-        HudDraw[] gold = Build(new KeeperResourceHud(), Snapshot(gold: -5))
-            .Where(d => d.Tint == new HudColor(238, 182, 0)).ToArray();
+        HudDraw[] gold = [.. Build(new KeeperResourceHud(), Snapshot(gold: -5)).Where(d => d.Tint == new HudColor(238, 182, 0))];
         Assert.Equal([KeeperResourceHud.MinusSign, "GUI\\Icons\\i-5"], gold.Select(d => d.Image.Path));
     }
 
     [Fact]
     public void TheRatesCarryTheirIconAndSignAndNeedAScreenWiderThan600()
     {
-        HudDraw[] income = Build(new KeeperResourceHud(), Snapshot(income: 12))
-            .Where(d => d.Tint == new HudColor(50, 255, 50)).ToArray();
+        HudDraw[] income = [.. Build(new KeeperResourceHud(), Snapshot(income: 12)).Where(d => d.Tint == new HudColor(50, 255, 50))];
         Assert.Equal(["GUI\\Icons\\Mana\\s-in", "GUI\\Icons\\Mana\\s-+", "GUI\\Icons\\Mana\\s-1", "GUI\\Icons\\Mana\\s-2"],
             income.Select(d => d.Image.Path));
 

@@ -231,7 +231,9 @@ public sealed class TremorTests
             Assert.Equal((ushort)0x5000, t.Radius);
         });
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, []);
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal(world.Tremors.ToArray(), restored.World.Tremors.ToArray());
+#pragma warning restore IDE0305
         Assert.Equal(sim.StateHash(), restored.StateHash());
     }
 
@@ -298,7 +300,9 @@ public sealed class TremorTests
         sim.Run(30);
         copy.Run(30);
         Assert.Equal(sim.StateHash(), copy.StateHash());
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal(world.Tremors.ToArray(), copy.World.Tremors.ToArray());
+#pragma warning restore IDE0305
         GameSimulation expired = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, systems);
         Assert.Equal(sim.StateHash(), expired.StateHash());
     }

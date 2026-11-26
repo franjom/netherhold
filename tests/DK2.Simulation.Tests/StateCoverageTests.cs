@@ -14,7 +14,7 @@ public class StateCoverageTableTests
     [Fact]
     public void EveryOneOfThe281StatesHasExactlyOneRow()
     {
-        int[] ids = CreatureStateCoverage.All.Select(r => r.StateId).ToArray();
+        int[] ids = [.. CreatureStateCoverage.All.Select(r => r.StateId)];
 
         Assert.Equal(CreatureStateTable.Count, ids.Length);
         Assert.Equal(Enumerable.Range(0, CreatureStateTable.Count), ids.Order());
@@ -53,12 +53,11 @@ public class StateCoverageTableTests
     [Fact]
     public void EveryRowThatIsNotBuiltCitesAQuestionANoteOrSaysNotRead()
     {
-        string[] bare = CreatureStateCoverage.All
+        string[] bare = [.. CreatureStateCoverage.All
             .Where(r => r.Status != StateStatus.Built)
             .Where(r => !(r.Detail.Contains('Q') || r.Detail.Contains(".md") || r.Detail.Contains("ADR-")
                           || r.Detail.Contains("not read")))
-            .Select(r => $"{r.StateId} {r.Status}: {r.Detail}")
-            .ToArray();
+            .Select(r => $"{r.StateId} {r.Status}: {r.Detail}")];
 
         Assert.True(bare.Length == 0, string.Join("\n", bare));
     }
@@ -120,11 +119,10 @@ public class StateCoverageRunTests
     public void EveryStateTheSimulationSuiteEntersIsBuiltOrHasAnExplicitUnbuiltHandlerBoundary()
     {
         Assert.True(StateEntryLog.Enabled, $"{StateEntryLog.SwitchName} is off in this test project.");
-        string[] offenders = StateEntryLog.Entered()
+        string[] offenders = [.. StateEntryLog.Entered()
             .Where(id => CreatureStateCoverage.Get(id).Status != StateStatus.Built)
             .Where(id => ActivityRules.Of(new CreatureState { Dk2StateId = id }) != CreatureActivity.UnbuiltHandler)
-            .Select(id => $"{id} ({CreatureStateCoverage.Get(id).Status}), first by {StateEntryLog.FirstEnteredBy(id)}")
-            .ToArray();
+            .Select(id => $"{id} ({CreatureStateCoverage.Get(id).Status}), first by {StateEntryLog.FirstEnteredBy(id)}")];
 
         Assert.True(offenders.Length == 0, "Entered without Built coverage or an explicit unbuilt-handler boundary:\n" + string.Join("\n", offenders));
     }
@@ -135,14 +133,12 @@ public class StateCoverageRunTests
         var entered = StateEntryLog.Entered().ToHashSet();
         Assert.True(entered.Count > 50, $"Only {entered.Count} states entered: did this run first?");
 
-        string[] unexercised = CreatureStateCoverage.All
+        string[] unexercised = [.. CreatureStateCoverage.All
             .Where(r => r.Status == StateStatus.Built && r.UnexercisedBecause is null && !entered.Contains(r.StateId))
-            .Select(r => $"{r.StateId} ({r.Handler!.Name}.{r.Detail})")
-            .ToArray();
-        string[] stale = CreatureStateCoverage.All
+            .Select(r => $"{r.StateId} ({r.Handler!.Name}.{r.Detail})")];
+        string[] stale = [.. CreatureStateCoverage.All
             .Where(r => r.UnexercisedBecause is not null && entered.Contains(r.StateId))
-            .Select(r => $"{r.StateId}: allow-listed ({r.UnexercisedBecause}) but entered by {StateEntryLog.FirstEnteredBy(r.StateId)}")
-            .ToArray();
+            .Select(r => $"{r.StateId}: allow-listed ({r.UnexercisedBecause}) but entered by {StateEntryLog.FirstEnteredBy(r.StateId)}")];
 
         Assert.True(unexercised.Length == 0,
             "Built, but no simulation test enters it and it is not allow-listed:\n" + string.Join("\n", unexercised));

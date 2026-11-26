@@ -79,7 +79,7 @@ internal static class SoundFixture
     };
 
     public static ThingSoundRequest[] Sounds(ListEventSink events) =>
-        events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        [.. events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
 
     public static FpPosition3 Centre(WorldState world, int tileIndex, int height = 0x1000) =>
         new(new Fp32(CreatureState.CentreOf(tileIndex % world.Width)), new Fp32(CreatureState.CentreOf(tileIndex / world.Width)),

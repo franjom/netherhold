@@ -15,7 +15,9 @@ public sealed class TileHoverOutlineTests
         Span<int> indices = stackalloc int[48];
         Assert.Equal(48, TileHoverOutline.Indices((TileHoverEdges)63, indices));
         Assert.Equal(4, TileHoverOutline.Indices(TileHoverEdges.North, indices));
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         Assert.Equal(new[] {0, 1, 1, 2}, indices[..4].ToArray());
+#pragma warning restore IDE0300, IDE0305
         Assert.Equal(8, TileHoverOutline.Indices(TileHoverEdges.North | TileHoverEdges.Lower, indices));
         Span<Vector3> points = stackalloc Vector3[27];
         TileHoverOutline.Grid(new TilePos(3, 5), points);

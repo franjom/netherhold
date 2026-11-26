@@ -118,7 +118,7 @@ public class AssetCatalogueTests
 
         Assert.Equal(
             AssetCatalogue.ForDatabase(database).Select(k => k.Key).ToList(),
-            AssetCatalogue.ForDatabase(database).Select(k => k.Key).ToList());
+            [.. AssetCatalogue.ForDatabase(database).Select(k => k.Key)]);
     }
 
     /// <summary>
@@ -192,14 +192,11 @@ public class AssetCatalogueTests
     [Fact]
     public void EveryCreatureActivityHasExactlyOneAnimationKey()
     {
-        string[] activities = Enum.GetNames<CreatureActivity>()
+        string[] activities = [.. Enum.GetNames<CreatureActivity>()
             .Select(ToKeySegment)
-            .OrderBy(n => n, StringComparer.Ordinal)
-            .ToArray();
+            .OrderBy(n => n, StringComparer.Ordinal)];
 
-        string[] animations = AssetCatalogue.CreatureAnimations
-            .OrderBy(n => n, StringComparer.Ordinal)
-            .ToArray();
+        string[] animations = [.. AssetCatalogue.CreatureAnimations.OrderBy(n => n, StringComparer.Ordinal)];
 
         Assert.Equal(activities, animations);
     }

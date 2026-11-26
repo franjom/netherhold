@@ -80,7 +80,7 @@ public class ClaimAndBedEffectTests
         var variables = new GlobalVariables();
         variables.CreaturePool.Add(new CreaturePoolEntry(goblin.CreatureId, 15, PlayerIds.FirstKeeper));
         GameDatabase db = original.ForLevel(variables);
-        var map = new LevelMap(7, 7, Enumerable.Repeat(new MapTile(1, PlayerIds.Unowned, 0, 0), 49).ToArray());
+        var map = new LevelMap(7, 7, [.. Enumerable.Repeat(new MapTile(1, PlayerIds.Unowned, 0, 0), 49)]);
         var world = WorldState.FromMap(db, map, [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 4; y++)
         {
@@ -119,13 +119,12 @@ public class ClaimAndBedEffectTests
         sim.Run(warningTick - 1);
         Assert.DoesNotContain(events.Events, e => e.EffectRequest.HasValue);
         (ulong S0, ulong S1, ulong S2, ulong S3) randomBefore = sim.Rng.SaveState();
-        EntranceInfoState[] rowsBefore = world.Player(PlayerIds.FirstKeeper).EntranceInfo.ToArray();
+        EntranceInfoState[] rowsBefore = [.. world.Player(PlayerIds.FirstKeeper).EntranceInfo];
         sim.Tick();
         Assert.Equal(randomBefore, sim.Rng.SaveState());
         Assert.Equal(rowsBefore, world.Player(PlayerIds.FirstKeeper).EntranceInfo);
         Assert.Equal(held, world.Creatures.Count);
-        ViewEffectRequest[] requests = events.Events.Where(e => e.EffectRequest.HasValue)
-            .Select(e => e.EffectRequest!.Value).ToArray();
+        ViewEffectRequest[] requests = [.. events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
         Assert.Equal(expectedRequests, requests.Length);
         if (expectedRequests == 1)
         {
@@ -172,8 +171,7 @@ public class ClaimAndBedEffectTests
             }
         }
         Assert.Equal((byte)9, world.Tile(at).TerrainId);
-        ViewEffectRequest[] requests = events.Events.Where(e => e.EffectRequest.HasValue)
-            .Select(e => e.EffectRequest!.Value).ToArray();
+        ViewEffectRequest[] requests = [.. events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
         Assert.Equal(new[] { new TilePos(2, 3), new TilePos(3, 2), new TilePos(4, 3), new TilePos(3, 4) },
             requests.Select(r => r.Tile));
         Assert.All(requests, r =>
@@ -238,14 +236,14 @@ public class ClaimAndBedEffectTests
         // Born about the head (radius 38..40 × 23, heights ±640), not at the request's position.
         Assert.All(model.Particles, p => Assert.InRange(p.YRaw, 3 * Fp32.One - 1100, 3 * Fp32.One + 1100));
 
-        int[] before = model.Particles.Select(p => p.XRaw).ToArray();
+        int[] before = [.. model.Particles.Select(p => p.XRaw)];
         head = head with { X = new Fp32(4 * Fp32.One) };
         model.AdvanceTo(new EffectTime(101));
         Assert.All(model.Particles.Take(before.Length).Select((p, i) => p.XRaw - before[i]),
             dx => Assert.InRange(dx, Fp32.One - 400, Fp32.One + 400));
 
         alive = false;
-        before = model.Particles.Select(p => p.XRaw).ToArray();
+        before = [.. model.Particles.Select(p => p.XRaw)];
         head = head with { X = new Fp32(9 * Fp32.One) };
         model.AdvanceTo(new EffectTime(151));
         Assert.All(model.Particles.Take(before.Length).Select((p, i) => p.XRaw - before[i]),
@@ -567,14 +565,14 @@ public class ClaimAndBedEffectTests
                 seen.Add(particle);
             }
         }
-        return seen.ToArray();
+        return [.. seen];
     }
 
     private static (GameDatabase, WorldState) Load()
     {
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
         var map = new LevelMap(7, 7,
-            Enumerable.Repeat(new MapTile(1, PlayerIds.Unowned, 0, 0), 49).ToArray());
+            [.. Enumerable.Repeat(new MapTile(1, PlayerIds.Unowned, 0, 0), 49)]);
         return (db, WorldState.FromMap(db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]));
     }
 }

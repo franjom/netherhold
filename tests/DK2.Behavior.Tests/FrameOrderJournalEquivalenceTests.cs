@@ -163,7 +163,7 @@ public class FrameOrderJournalEquivalenceTests
                 continue;
             }
             int half = commands.Count / 2;
-            List<PlayerCommand> early = commands.Take(half).ToList(), late = commands.Skip(half).ToList();
+            List<PlayerCommand> early = [.. commands.Take(half)], late = [.. commands.Skip(half)];
             switch (k++ % 4)
             {
                 case 0: // the first half waits through a paused frame
@@ -197,7 +197,7 @@ public class FrameOrderJournalEquivalenceTests
     private static Replayed Drive(InputJournal journal)
     {
         GameDatabase database = ScenarioTests.SyntheticDatabase();
-        var world = WorldState.FromMap(database, new LevelMap(4, 4, Enumerable.Repeat(new MapTile(3, 0, 0, 0), 16).ToArray()),
+        var world = WorldState.FromMap(database, new LevelMap(4, 4, [.. Enumerable.Repeat(new MapTile(3, 0, 0, 0), 16)]),
             [Viewer.Value]);
         var pending = new List<PlayerCommand>();
         var pacer = new TickPacer();
@@ -251,7 +251,7 @@ public class FrameOrderJournalEquivalenceTests
 
             Assert.Equal(frame, frames.FramesWritten);
             Assert.Equal(FrameJournalSession.GodotKeyTable, frames.Header[FrameJournalSession.KeyTableKey]);
-            return new Replayed(given, frames.Frames.ToList(), handing);
+            return new Replayed(given, [.. frames.Frames], handing);
         }
         finally
         {

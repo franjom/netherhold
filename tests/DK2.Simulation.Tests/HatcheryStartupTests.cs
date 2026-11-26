@@ -183,7 +183,7 @@ public class HatcheryStartupTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         int width = 40, height = 4;
-        MapTile[] map = Enumerable.Repeat(new MapTile(Dk2TerrainFixture.Rock, 2, 0, 0), width * height).ToArray();
+        MapTile[] map = [.. Enumerable.Repeat(new MapTile(Dk2TerrainFixture.Rock, 2, 0, 0), width * height)];
         for (int x = 1; x <= tiles; x++)
         {
             map[width + x] = new MapTile(Dk2TerrainFixture.HatcheryTerrain, 3, 0, 0);

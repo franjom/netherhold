@@ -63,7 +63,7 @@ public class FrameInputJournalTests
         {
             var journal = FrameInputJournal.Read(new MemoryStream(whole, 0, cut));
             Assert.True(journal.Truncated);
-            Assert.Equal(cut < firstEnd ? Array.Empty<long>() : new[] { 1L }, journal.Frames.Select(f => f.Frame).ToArray());
+            Assert.Equal(cut < firstEnd ? [] : [1L], journal.Frames.Select(f => f.Frame).ToArray());
         }
         Assert.Equal([1L, 2L], FrameInputJournal.Read(new MemoryStream(whole)).Frames.Select(f => f.Frame));
     }

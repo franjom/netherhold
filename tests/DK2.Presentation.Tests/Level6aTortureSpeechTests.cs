@@ -37,8 +37,7 @@ public sealed class Level6aTortureSpeechTests
                 break;
             }
         }
-        TortureDeathMessage[] notices = events.Events.Where(e => e.TortureMessage.HasValue)
-            .Select(e => e.TortureMessage!.Value).ToArray();
+        TortureDeathMessage[] notices = [.. events.Events.Where(e => e.TortureMessage.HasValue).Select(e => e.TortureMessage!.Value)];
         Assert.Equal(new[] { PlayerMessageKind.InformationLearned, PlayerMessageKind.InformationReveal },
             notices.Select(n => n.Message.Kind));
         Assert.All(notices, n =>
@@ -104,7 +103,7 @@ public sealed class Level6aTortureSpeechTests
     {
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, level);
         byte floor = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
-        var map = new LevelMap(5, 5, Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 25).ToArray());
+        var map = new LevelMap(5, 5, [.. Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 25)]);
         return (db, WorldState.FromMap(db, map, [PlayerIds.Neutral, PlayerIds.Good, Keeper.Value, 4], fogOfWarEnabled: false));
     }
 }

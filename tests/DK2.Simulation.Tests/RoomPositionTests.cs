@@ -14,10 +14,10 @@ public sealed class RoomPositionTests
     [Fact]
     public void CapturedTrainingRoomChoosesItsOwnedTileBesideTheHole()
     {
-        TilePos[] points = (from y in Enumerable.Range(29, 4)
+        TilePos[] points = [.. (from y in Enumerable.Range(29, 4)
                             from x in Enumerable.Range(14, 4)
                             where x != 15 || (y != 30 && y != 31)
-                            select new TilePos(x, y)).ToArray();
+                            select new TilePos(x, y))];
         (GameDatabase _, WorldState _, RoomInstance? room) = Setup(points);
         Assert.Equal(14, room.TileCount);
         Assert.Equal(new TilePos(16, 30), Position(room));
@@ -85,14 +85,14 @@ public sealed class RoomPositionTests
     private static TilePos Position(RoomInstance room) => new(room.CentreFieldX, room.CentreFieldY);
 
     private static TilePos[] Rectangle(TilePos first, int width, int height) =>
-        (from y in Enumerable.Range(first.Y, height)
-         from x in Enumerable.Range(first.X, width) select new TilePos(x, y)).ToArray();
+        [.. (from y in Enumerable.Range(first.Y, height)
+         from x in Enumerable.Range(first.X, width) select new TilePos(x, y))];
 
     private static TilePos[] Ring(int side) =>
-        (from y in Enumerable.Range(10, side)
+        [.. (from y in Enumerable.Range(10, side)
          from x in Enumerable.Range(10, side)
          where x == 10 || y == 10 || x == 9 + side || y == 9 + side
-         select new TilePos(x, y)).ToArray();
+         select new TilePos(x, y))];
 
     private static void Place(WorldState world, RoomDef definition, PlayerId owner, IEnumerable<TilePos> points)
     {

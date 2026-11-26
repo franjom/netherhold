@@ -243,7 +243,7 @@ public class ImpWanderTests
 
         sim.Run(2000);
 
-        SimEvent[] actions = sink.Events.Where(e => e.Kind == "idle_action").ToArray();
+        SimEvent[] actions = [.. sink.Events.Where(e => e.Kind == "idle_action")];
         Assert.Contains(actions, e => e.Detail.Contains("action=43"));
         Assert.Contains(actions, e => e.Detail.Contains("action=44"));
     }

@@ -119,7 +119,9 @@ public sealed class CampaignProfileStoreTests : IDisposable
         // Map 5 won: EnsureOpenMap opens 2 (the first locked), the repair opens 6 and 7.
         WriteOld(WithStatuses((1, CampaignLevelStatus.Won), (5, CampaignLevelStatus.Won)) with { LevelNumber = 5 });
         CampaignProfile loaded = Store().Load(ProfilePath, GameSessionMode.FrontEnd, FrontEndPage.CampaignResults);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 2, 6, 7 }, OpenSlots(loaded));
+#pragma warning restore IDE0300
         Assert.Equal(Bytes(loaded), File.ReadAllBytes(ProfilePath));
     }
 
@@ -137,7 +139,7 @@ public sealed class CampaignProfileStoreTests : IDisposable
     }
 
     private static int[] OpenSlots(CampaignProfile profile) =>
-        Enumerable.Range(1, 24).Where(slot => profile.PlayerLevelStatus[slot - 1] == CampaignLevelStatus.Open).ToArray();
+        [.. Enumerable.Range(1, 24).Where(slot => profile.PlayerLevelStatus[slot - 1] == CampaignLevelStatus.Open)];
 
     [Fact]
     public void AnAdoptedProfileHasNoFileAndKeepsTrackedChangesInMemory()
@@ -147,7 +149,9 @@ public sealed class CampaignProfileStoreTests : IDisposable
         CampaignProfile adopted = store.Adopt(new CampaignProfile());
         Assert.Null(store.Path);
         Assert.Same(adopted, store.Profile);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 1 }, OpenSlots(adopted));
+#pragma warning restore IDE0300
         Assert.True(store.SecretFiveAvailable);
         var session = new FrontEndSession(_ => new[] { new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000) });
         session.Update(TimeSpan.Zero); session.Update(TimeSpan.FromSeconds(1));

@@ -26,9 +26,11 @@ public sealed class FullMapImageTests
         Assert.True(image.Update(grid, palette));
         Assert.Equal(new byte[] { 0, 0, 0, 0xFF }, Pixel(image, 0, 0));        // unknown (class 1): black, not its palette white
         uint rock = palette.Colours[4];
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { (byte)(rock >> 16), (byte)(rock >> 8), (byte)rock, (byte)0xFF }, Pixel(image, 1, 0));
         uint floor = palette.Colours[0];
         Assert.Equal(new[] { (byte)(floor >> 16), (byte)(floor >> 8), (byte)floor, (byte)0xFF }, Pixel(image, 2, 1)); // rows top-down
+#pragma warning restore IDE0300
         Assert.False(image.Update(grid, palette));                              // nothing changed: no upload
         grid.Set(new TilePos(0, 1), new MinimapColourClass(9));
         Assert.True(image.Update(grid, palette));
@@ -49,7 +51,9 @@ public sealed class FullMapImageTests
         Assert.NotEqual(before, palette.Colours[26 + neutral.Value]);
         Assert.True(image.Update(grid, palette));                               // the grid did not change; the palette did
         uint colour = palette.Colours[26 + neutral.Value];
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { (byte)(colour >> 16), (byte)(colour >> 8), (byte)colour, (byte)0xFF }, Pixel(image, 0, 0));
+#pragma warning restore IDE0300
     }
 
     [Fact]

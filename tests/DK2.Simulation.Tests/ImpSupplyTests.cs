@@ -122,7 +122,7 @@ public class ImpSupplyTests
 
         simulation.Tick();
 
-        SimEvent[] births = events.Events.Where(e => e.Kind == "imp_generated").ToArray();
+        SimEvent[] births = [.. events.Events.Where(e => e.Kind == "imp_generated")];
         Assert.Equal(2, births.Length);
         Assert.StartsWith("player=4 ", births[0].Detail);
         Assert.StartsWith("player=3 ", births[1].Detail);

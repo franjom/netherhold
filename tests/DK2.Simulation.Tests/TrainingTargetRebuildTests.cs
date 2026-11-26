@@ -84,7 +84,7 @@ public sealed class TrainingTargetRebuildTests
         Assert.Single(world.Objects, o => o.ObjectTypeId == Target);
         Assert.Single(world.Objects, o => o.ObjectTypeId == Dk2TerrainFixture.TrainingDummyObjectId);
         Assert.Equal(new[] { 4096 }, draws.Bounds);
-        int[] ids = world.Objects.Select(o => o.Id).ToArray();
+        int[] ids = [.. world.Objects.Select(o => o.Id)];
         draws.Bounds.Clear();
         sim.Tick();
         Assert.Equal(ids, world.Objects.Select(o => o.Id));
@@ -97,7 +97,7 @@ public sealed class TrainingTargetRebuildTests
     public void PartialWorkOrRoomWithoutSpecialWallsDoesNotRebuild(bool specialWalls, int multiplier)
     {
         (GameDatabase _, WorldState? world, Draws? draws, GameSimulation? sim) = Setup(specialWalls);
-        int[] ids = world.Objects.Select(o => o.Id).ToArray();
+        int[] ids = [.. world.Objects.Select(o => o.Id)];
         Reinforce(world, new TilePos(3, 5), multiplier);
         sim.Tick();
         Assert.Equal(ids, world.Objects.Select(o => o.Id));

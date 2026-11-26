@@ -31,8 +31,7 @@ public class PossessionDamageOnRealDataTests
     public void EveryShippedLevelKeepsTheSixtyPercent()
     {
         string maps = System.IO.Path.Combine(Dk2InstallGate.Path, "Data", "editor", "maps");
-        string[] levels = System.IO.Directory.GetFiles(maps, "*Variables.kld")
-            .Select(f => System.IO.Path.GetFileName(f)[..^"Variables.kld".Length]).ToArray();
+        string[] levels = [.. System.IO.Directory.GetFiles(maps, "*Variables.kld").Select(f => System.IO.Path.GetFileName(f)[..^"Variables.kld".Length])];
         Assert.True(levels.Length >= 60, $"found {levels.Length} level variable files");
 
         foreach (string level in levels)

@@ -125,7 +125,7 @@ public sealed class HoverCursorResolverTests
     public void UnderFogAnUnexploredTileIsTheBareTile()
     {
         GameDatabase db = PressFixture.Database();
-        var fogged = WorldState.FromMap(db, new LevelMap(8, 8, Enumerable.Repeat(new MapTile(0, 0, 0, 0), 64).ToArray()),
+        var fogged = WorldState.FromMap(db, new LevelMap(8, 8, [.. Enumerable.Repeat(new MapTile(0, 0, 0, 0), 64)]),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper.Value], fogOfWarEnabled: true);
         var tile = new TilePos(3, 4);
 

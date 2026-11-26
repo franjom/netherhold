@@ -275,7 +275,7 @@ public class PlayerContractsTests
     }
 
     private static Type[] ActionTypes() =>
-        typeof(PlayerAction).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(PlayerAction))).ToArray();
+        [.. typeof(PlayerAction).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(PlayerAction)))];
 
     /// <summary>Allowed: primitives, enums, string, read-only lists of allowed types, value types from
     /// the engine-neutral id namespaces, and the protocol's own types (whose members are walked).</summary>

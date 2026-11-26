@@ -16,8 +16,8 @@ public sealed class LightningTargetDrawTests
         const uint seed = 42;
         var f = new Fixture();
         FpPosition3 target = f.Target(FightTargetKind.Creature);
-        LightningControlPoint[] controls = Enumerable.Range(0, 25).Select(i =>
-            new LightningControlPoint((uint)(i * 3), new(1 + i * .08f, 2 + i % 3 * .04f, .8f + i * .025f))).ToArray();
+        LightningControlPoint[] controls = [.. Enumerable.Range(0, 25).Select(i =>
+            new LightningControlPoint((uint)(i * 3), new(1 + i * .08f, 2 + i % 3 * .04f, .8f + i * .025f)))];
         Matrix4x4 cameraA = Matrix4x4.CreateRotationX(.4f) * Matrix4x4.CreateTranslation(2, 3, -4);
         Matrix4x4 cameraB = Matrix4x4.CreateRotationY(.8f) * Matrix4x4.CreateTranslation(-3, 5, -2);
         Assert.True(Matrix4x4.Invert(cameraA, out Matrix4x4 viewA));
@@ -56,9 +56,9 @@ public sealed class LightningTargetDrawTests
         LightningDrawList draws = f.Draws(seed);
         draws.BeginFrame(viewA, cameraA);
         draws.DrawCrackle(controls);
-        Vector3[] prefix = draws.Vertices.ToArray();
-        Vector2[] prefixUvs = draws.Uvs.ToArray();
-        int[] prefixIndices = draws.Triangles.ToArray();
+        Vector3[] prefix = [.. draws.Vertices];
+        Vector2[] prefixUvs = [.. draws.Uvs];
+        int[] prefixIndices = [.. draws.Triangles];
         draws.UpdateCameraMatrices(viewB, cameraB);
         Assert.Equal(prefix, draws.Vertices);
         Assert.Equal(prefixUvs, draws.Uvs);
@@ -449,7 +449,7 @@ public sealed class LightningTargetDrawTests
                     { Name = "bolt", ShotId = (byte)(i + 1), MeshResource = Art(i), Light = light, SoundCategory = "" }),
                 effects: Enumerable.Range(0, 3).Select(i => new EffectDef([])
                     { Name = "bolt", EffectId = (ushort)(i + 1), ArtResource = Art(i), Light = light, GenerateIds = [], MinHp = 20, MaxHp = 20 }));
-            MapTile[] tiles = Enumerable.Repeat(new MapTile(0, 0, 0, 0), 81).ToArray();
+            MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(0, 0, 0, 0), 81)];
             for (int y = 1; y <= 5; y++)
             {
                 for (int x = 1; x <= 5; x++)

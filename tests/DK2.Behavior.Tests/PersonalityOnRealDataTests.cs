@@ -19,7 +19,7 @@ public class PersonalityOnRealDataTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
 
-        byte[] ids = db.Rooms.Values.Select(r => r.RoomId).ToArray();
+        byte[] ids = [.. db.Rooms.Values.Select(r => r.RoomId)];
         Assert.Equal(ids.OrderBy(id => id), ids);
         byte[] list = KeeperAIPersonality.RoomList(db);
         Assert.DoesNotContain((byte)0, list);

@@ -72,7 +72,7 @@ public sealed class FunctionKbTests
     public void AMissingKeyIsOneError()
     {
         var errors = new List<string>();
-        FunctionKb.Parse(RecordPath, Lines(Sample).Where(l => !l.StartsWith("name:", StringComparison.Ordinal)).ToArray(), errors);
+        FunctionKb.Parse(RecordPath, [.. Lines(Sample).Where(l => !l.StartsWith("name:", StringComparison.Ordinal))], errors);
         Assert.Single(errors);
         Assert.Contains("lacks 'name'", errors[0], StringComparison.Ordinal);
     }
@@ -328,13 +328,13 @@ public sealed class FunctionKbTests
     [Fact]
     public void AMentionInAChangedLineNeedsARecord()
     {
-        (string, string[])[] changes = new[]
-        {
-            ("docs/research/combat.md", new[] { "`FUN_0047AB10` decides the target", "and FUN_0050ea70 dumps it" }),
-            ("src/DK2.Simulation/Combat.cs", new[] { "// mirrors FUN_0047AB10" }),
-            ("docs/research/functions/0050EA70.md", new[] { "address: 0x0050EA70" }),   // records themselves are exempt
-            ("docs/plans/2026-09-30-x.md", new[] { "example: FUN_00477777" }),          // plans are process, not claims
-        };
+        (string, string[])[] changes =
+        [
+            ("docs/research/combat.md", ["`FUN_0047AB10` decides the target", "and FUN_0050ea70 dumps it"]),
+            ("src/DK2.Simulation/Combat.cs", ["// mirrors FUN_0047AB10"]),
+            ("docs/research/functions/0050EA70.md", ["address: 0x0050EA70"]),   // records themselves are exempt
+            ("docs/plans/2026-09-30-x.md", ["example: FUN_00477777"]),          // plans are process, not claims
+        ];
         var findings = FunctionKb.MissingRecords(changes, new HashSet<string> { "0050EA70" }).ToList();
         Assert.Equal(2, findings.Count);
         Assert.All(findings, f => Assert.Contains("0047AB10", f, StringComparison.Ordinal));
@@ -344,7 +344,7 @@ public sealed class FunctionKbTests
     public void TheIndexIsOneRowPerRecordSortedByAddress()
     {
         string index = FunctionKb.Index([Record("0050EA70"), Record("00452F60")]);
-        string[] rows = index.Split('\n').Where(l => l.StartsWith("| `0x", StringComparison.Ordinal)).ToArray();
+        string[] rows = [.. index.Split('\n').Where(l => l.StartsWith("| `0x", StringComparison.Ordinal))];
         Assert.Equal(2, rows.Length);
         Assert.StartsWith("| `0x00452F60`", rows[0]);
         Assert.Contains("[WorldLog_Dump](0050EA70.md)", index);

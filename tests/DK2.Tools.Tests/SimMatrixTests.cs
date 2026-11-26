@@ -36,7 +36,7 @@ public class SimMatrixTests
             }
         }
 
-        string[] rows = Repository.Value.Rows.Select(r => r.Row.Type.ToDisplayString()).ToArray();
+        string[] rows = [.. Repository.Value.Rows.Select(r => r.Row.Type.ToDisplayString())];
 
         Assert.Equal(expected, rows);
         Assert.All(Repository.Value.Rows.Where(r => r.Row.Parent > 0),
@@ -123,7 +123,7 @@ public class SimMatrixTests
     }
 
     static string[] Names(IEnumerable<ISymbol> keys) =>
-        keys.Select(k => $"{k.ContainingType.Name}.{k.Name}").Order(StringComparer.Ordinal).ToArray();
+        [.. keys.Select(k => $"{k.ContainingType.Name}.{k.Name}").Order(StringComparer.Ordinal)];
 
     [Theory]
     [InlineData("Plain", "Holder.Count")]
@@ -170,7 +170,7 @@ public class SimMatrixTests
     [Fact]
     public void PhasesAndLabelsAreTheSource()
     {
-        SimRow[] rows = Repository.Value.Rows.Select(r => r.Row).ToArray();
+        SimRow[] rows = [.. Repository.Value.Rows.Select(r => r.Row)];
         Assert.Equal(["Commands", "RoomLifecycle", "KeeperActions", "ThingPass", "Work", "RoomTicks", "PlayerFrame", "Needs", "Verdict"],
             rows.Select(r => r.Phase).Distinct());
         Assert.Contains(rows, r => r.Name == "HatcherySystem(lays: false, stepObjects: false)");
@@ -206,8 +206,8 @@ public class SimMatrixTests
         IReadOnlyList<RowResult> rows = Repository.Value.Rows;
         Assert.DoesNotContain(rows, r => r.Core.Writes.Concat(r.Core.Reads).Any(w => w.StartsWith("TileState._", StringComparison.Ordinal)
                                                                                   || w.StartsWith("TileState.s_", StringComparison.Ordinal)));
-        RowResult[] ruin = rows.Where(r => r.Core.Writes.Contains("TileState.RoomRuined")).ToArray();
-        RowResult[] terrain = rows.Where(r => r.Core.Writes.Contains("TileState.TerrainId")).ToArray();
+        RowResult[] ruin = [.. rows.Where(r => r.Core.Writes.Contains("TileState.RoomRuined"))];
+        RowResult[] terrain = [.. rows.Where(r => r.Core.Writes.Contains("TileState.TerrainId"))];
         Assert.NotEmpty(ruin);
         Assert.NotEmpty(terrain);
         Assert.All(ruin, r => Assert.Equal("W", r.Core.Cells[rooms]));

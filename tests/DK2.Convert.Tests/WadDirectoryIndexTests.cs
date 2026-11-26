@@ -12,8 +12,8 @@ public class WadDirectoryIndexTests
     [Fact]
     public void DirectoryRunsKeepRootIconsAndBothObjectiveShotsReachable()
     {
-        string[] names = new[] { "Cancel.png", "Confirm.png", @"Obj_Shots\Level1-0.png", "Level1-1.png", @"Buttons\Tick.png", "Confirm.png", "Cancel.png" };
-        WadEntry[] entries = names.Select(n => new WadEntry { Name = n, DataOffset = 0, StoredSize = 0, UncompressedSize = 0, IsCompressed = false }).ToArray();
+        string[] names = ["Cancel.png", "Confirm.png", @"Obj_Shots\Level1-0.png", "Level1-1.png", @"Buttons\Tick.png", "Confirm.png", "Cancel.png"];
+        WadEntry[] entries = [.. names.Select(n => new WadEntry { Name = n, DataOffset = 0, StoredSize = 0, UncompressedSize = 0, IsCompressed = false })];
         var index = new WadDirectoryIndex(entries);
         Assert.Equal(0, index.Find("Cancel.png")); Assert.Equal(1, index.Find("Confirm.png"));
         Assert.Equal(3, index.Find("obj_shots/level1-1.PNG"));

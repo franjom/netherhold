@@ -22,7 +22,7 @@ public class EaMoviePlaybackTests
         Chunk(file, "pIQT", new byte[8]);
         Chunk(file, "SCDl", Pcm(900, 1000, 1100, 1200));
         Chunk(file, "SCEl", []);
-        return new EaMovieTimeline(EaMovie.Read(file.ToArray()));
+        return new EaMovieTimeline(EaMovie.Read([.. file]));
     }
 
     [Theory]

@@ -268,7 +268,7 @@ public class LiquidSurfaceWaveTests
             int count = tiles.Count;
             var layer = new Layer
             {
-                Tiles = tiles.ToArray(), Positions = new Vector3[count * 9], Uvs = new Vector2[count * 9],
+                Tiles = [.. tiles], Positions = new Vector3[count * 9], Uvs = new Vector2[count * 9],
                 LightAnchors = new Vector2[count * 9], Triangles = new int[count * 24],
             };
             for (int k = 0; k < count; k++)

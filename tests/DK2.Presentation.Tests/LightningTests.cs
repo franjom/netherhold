@@ -44,10 +44,10 @@ public class LightningTests
     {
         var first = new LightningBolts(7);
         var second = new LightningBolts(7);
-        Vector3[] a = first.Build(Vector3.Zero, Vector3.UnitZ * 4).SelectMany(p => p.Nodes).ToArray();
-        Vector3[] b = second.Build(Vector3.Zero, Vector3.UnitZ * 4).SelectMany(p => p.Nodes).ToArray();
+        Vector3[] a = [.. first.Build(Vector3.Zero, Vector3.UnitZ * 4).SelectMany(p => p.Nodes)];
+        Vector3[] b = [.. second.Build(Vector3.Zero, Vector3.UnitZ * 4).SelectMany(p => p.Nodes)];
         Assert.Equal(a, b);
-        Assert.NotEqual(a, first.Build(Vector3.Zero, Vector3.UnitZ * 4).SelectMany(p => p.Nodes).ToArray());
+        Assert.NotEqual(a, [.. first.Build(Vector3.Zero, Vector3.UnitZ * 4).SelectMany(p => p.Nodes)]);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class LightningTests
         var pairs = new LightningCracklePairs(random);
         LightningControlPoint[] points = [new(1000, Vector3.Zero), new(1001, Vector3.UnitX),
             new(1010, Vector3.UnitY), new(1011, Vector3.UnitZ)];
-        LightningSegment[] links = pairs.Choose(points).ToArray();
+        LightningSegment[] links = [.. pairs.Choose(points)];
         Assert.Equal(new[] { 24, 24, 16, 16 }, random.Bounds);
         Assert.Equal(4, links.Length);
         Assert.Equal(new LightningSegment(Vector3.UnitX, Vector3.UnitZ), links[0]);

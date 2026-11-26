@@ -300,7 +300,9 @@ public partial class CampaignPlayerTests
 
         CampaignPlayer bold = Breaching(BreachMode.Always);
         Assert.Equal([new TilePos(3, 1), new TilePos(3, 3), new TilePos(1, 4)],
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
             bold.Decide(o).Actions.OfType<PlayerAction.TagArea>().Select(t => t.From).OrderBy(t => t.Y).ThenBy(t => t.X).ToArray());
+#pragma warning restore IDE0305
     }
 
     [Fact]

@@ -57,7 +57,7 @@ public sealed class ImpJobSoundTests
 
         public bool Saw(string kind) => Events.Events.Any(e => e.Kind == kind);
 
-        public Heard[] Of(ThingSoundEvent sound) => Sounds.Where(s => s.Sound.Event == sound).ToArray();
+        public Heard[] Of(ThingSoundEvent sound) => [.. Sounds.Where(s => s.Sound.Event == sound)];
     }
 
     /// <summary>A sound with the imp as the tick ended: its id, where it stood and whether it held a thing.</summary>

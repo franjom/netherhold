@@ -92,9 +92,9 @@ public class KeeperAIPersonalityTests
     {
         // The test database has fewer than fifteen; past the last definition DK2 finds none.
         byte[] list = KeeperAIPersonality.RoomList(Db);
-        byte[] expected = Db.Rooms.Values.OrderBy(r => r.RoomId)
+        byte[] expected = [.. Db.Rooms.Values.OrderBy(r => r.RoomId)
             .Where(r => r.Flags.HasFlag(RoomFlags.Buildable) || r.RoomId is (byte)RoomTypeId.Portal or (byte)RoomTypeId.HeroPortal)
-            .Select(r => r.RoomId).ToArray();
+            .Select(r => r.RoomId)];
         Assert.Equal(expected, list.Take(expected.Length));
         Assert.All(list.Skip(expected.Length), id => Assert.Equal(0, id));
         Assert.Equal(KeeperAIPersonality.RoomListLength, list.Length);

@@ -38,7 +38,7 @@ public class CasinoWinnerSlapTests
         (GameSimulation? sim, CreatureState? winner) = Start(winnings);
         var expected = SimRandom.Restore(sim.Rng.SaveState());
         Slap(sim, winner);
-        ObjectState[] piles = sim.World.Objects.Where(o => o.ObjectTypeId == 1).ToArray();
+        ObjectState[] piles = [.. sim.World.Objects.Where(o => o.ObjectTypeId == 1)];
         Assert.Equal(count, piles.Length);
         foreach (ObjectState pile in piles)
         {

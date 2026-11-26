@@ -30,7 +30,7 @@ public class ClassicLightTableTests
     public void StaticSelectionKeepsTwelveNearestWithoutSortingSlots()
     {
         var table = new ClassicLightTable(Tile);
-        ClassicPointLight[] sources = Enumerable.Range(1, 15).Select(i => Source(i, (16 - i) / 8f)).ToArray();
+        ClassicPointLight[] sources = [.. Enumerable.Range(1, 15).Select(i => Source(i, (16 - i) / 8f))];
         table.RebuildStatic(sources);
         Assert.Equal(12, table.StaticCount);
         Assert.Equal(12, table.Count);
@@ -42,7 +42,9 @@ public class ClassicLightTableTests
     public void CandidateBoundsAreStrictAndHorizontal()
     {
         var table = new ClassicLightTable(Tile);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         table.RebuildStatic(new[] { Source(1, 2.125f), Source(2, 2.125f - 1f / Fp32.One, 100) });
+#pragma warning restore IDE0300
         Assert.Equal(1, table.Count);
         Assert.Equal(2, Id(table.Lights[0]));
     }
@@ -80,11 +82,15 @@ public class ClassicLightTableTests
     public void DynamicRefreshClearsPreviousFrameWhileStaticRefreshDropsBothLists()
     {
         var table = new ClassicLightTable(Tile);
+#pragma warning disable IDE0300, IDE0301 // Preserve the test's existing collection construction and binding.
         table.RebuildStatic(new[] { Source(1) });
         table.RebuildDynamic(new[] { Source(2) });
         table.RebuildDynamic(ReadOnlySpan<ClassicPointLight>.Empty);
+#pragma warning restore IDE0300, IDE0301
         Assert.Equal(new[] { 1 }, table.Lights.ToArray().Select(Id));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         table.RebuildStatic(new[] { Source(3) });
+#pragma warning restore IDE0300
         Assert.Equal(new[] { 3 }, table.Lights.ToArray().Select(Id));
         Assert.Equal(1, table.StaticCount);
     }

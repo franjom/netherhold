@@ -83,7 +83,7 @@ public sealed class ResearchTreeTests
     }
 
     private static List<ObjectState> Books(WorldState world) =>
-        world.Objects.Where(o => o.ObjectTypeId == ResearchTreeRules.BookObjectTypeId).ToList();
+        [.. world.Objects.Where(o => o.ObjectTypeId == ResearchTreeRules.BookObjectTypeId)];
 
     // ---- choosing ---------------------------------------------------------
 

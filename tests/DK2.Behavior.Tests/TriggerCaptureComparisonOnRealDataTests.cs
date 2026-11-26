@@ -24,8 +24,7 @@ public class TriggerCaptureComparisonOnRealDataTests
             Assert.Equal(["t15", "f1", "f34", "f83"], result.InBoth);
             Assert.Empty(result.CaptureOnly);
             Assert.Empty(result.OursOnly);
-            TriggerAlignedEvent[] measured = result.AlignedEvents
-                .Where(e => e.Residual.HasValue).ToArray();
+            TriggerAlignedEvent[] measured = [.. result.AlignedEvents.Where(e => e.Residual.HasValue)];
             Assert.Equal(["f1", "f34"], measured.Select(e => e.Id));
             Assert.All(measured,
                 e => Assert.InRange(Math.Abs(e.Residual!.Value), 0, 1));
@@ -112,7 +111,7 @@ public class TriggerCaptureComparisonOnRealDataTests
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, levelName);
         var world = WorldState.FromMap(
             database, map, players.Select(p => p.PlayerId).ToArray());
-        HeroPartyThing[] parties = things.OfType<HeroPartyThing>().ToArray();
+        HeroPartyThing[] parties = [.. things.OfType<HeroPartyThing>()];
         ThingProjection.Place(world, database, things);
         var tree = new TriggerTree(records, level.TriggerId, parties,
             players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));

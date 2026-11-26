@@ -144,7 +144,7 @@ public class WatchdogTests : IDisposable
             (job, _) => Sleep(job.Label == "first" ? 2 : 0))
             .Watch([new WatchJob(_good, [], "first"), new WatchJob(_good, [], "second")], log);
 
-        string[] rows = File.ReadAllLines(Path.Combine(summary.Root, "watch-summary.tsv")).Skip(1).ToArray();
+        string[] rows = [.. File.ReadAllLines(Path.Combine(summary.Root, "watch-summary.tsv")).Skip(1)];
         Assert.Equal(["first", "second"], rows.Select(r => r.Split('\t')[1]));
         Assert.True(log.ToString().IndexOf("first", StringComparison.Ordinal) < log.ToString().IndexOf("second", StringComparison.Ordinal));
     }

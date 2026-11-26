@@ -170,7 +170,7 @@ public sealed class CombatExperienceOrderTests
         CreatureUpdateSystem update = declared.OfType<CreatureUpdateSystem>().Single();
         // Keep the actual default pre-dispatch steps and any category award there; replace
         // state handlers with a controlled callback. Retain an old global award if present.
-        ICreatureUpdateStep[] prefix = update.Steps.TakeWhile(s => s is not TravelArrivalSystem).ToArray();
+        ICreatureUpdateStep[] prefix = [.. update.Steps.TakeWhile(s => s is not TravelArrivalSystem)];
         ISimulationSystem[] systems = [new CreatureUpdateSystem([.. prefix, new Handler(handler)]),
             .. declared.OfType<CreatureExperienceSystem>()];
         return new GameSimulation(db, world, 42, systems);

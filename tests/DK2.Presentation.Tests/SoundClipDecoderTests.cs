@@ -38,7 +38,7 @@ public sealed class SoundClipDecoderTests
     public void AClipIsNotReadyUntilAWorkerHasDecodedItOnce()
     {
         using var release = new ManualResetEventSlim();
-        var pcm = new PcmClip(22050, 1, new short[] { 1, 2, 3 });
+        var pcm = new PcmClip(22050, 1, [1, 2, 3]);
         var assets = new Assets(_ => { release.Wait(); return pcm; });
         var decoder = new SoundClipDecoder(assets);
 

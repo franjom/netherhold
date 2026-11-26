@@ -62,16 +62,22 @@ public class ClassicObjectLightTests
         var tile = new TilePos(5, 5);
         var cache = new ClassicWorldLightCache(16, 16);
         cache.UpdateObjects(new[] { Object(1), Object(2) }, 1);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { tile });
+#pragma warning restore IDE0300
         Assert.Equal(0, cache.VisibleTables[0].StaticCount);
         Assert.Equal(2, cache.VisibleTables[0].Count);
         Assert.Equal(2, cache.GetCell(tile).DynamicSources.Length);
         cache.UpdateObjects(new[] { Object(1, x: 8) }, 1);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { tile, new TilePos(8, 5) });
+#pragma warning restore IDE0300
         Assert.Empty(cache.GetCell(tile).DynamicSources.ToArray());
         Assert.Single(cache.GetCell(new TilePos(8, 5)).DynamicSources.ToArray());
         cache.UpdateObjects(Array.Empty<ObjectView>(), 1);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { tile });
+#pragma warning restore IDE0300
         Assert.Equal(0, cache.VisibleTables[0].Count);
     }
 
@@ -83,17 +89,23 @@ public class ClassicObjectLightTests
         var effect = new EffectLightView(1, Arches, new PlayerId(3), 5 * Fp32.One + 2048, 5 * Fp32.One + 2048, 0, 1, 1);
         cache.UpdateObjects(new[] { Object(1) }, 1);
         cache.UpdateEffects(new[] { effect });
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { tile });
+#pragma warning restore IDE0300
         Assert.Equal(2, cache.GetCell(tile).DynamicSources.Length);
         // Effect intensity is 128/128, the object's 180/128.
         Assert.Contains(cache.GetCell(tile).DynamicSources.ToArray(), source => source.Intensity == 1f);
         // An update of objects alone keeps the effect's light, and the reverse.
         cache.UpdateObjects(Array.Empty<ObjectView>(), 1);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { tile });
+#pragma warning restore IDE0300
         Assert.Equal(1f, Assert.Single(cache.GetCell(tile).DynamicSources.ToArray()).Intensity);
         cache.UpdateObjects(new[] { Object(1) }, 1);
         cache.UpdateEffects(Array.Empty<EffectLightView>());
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { tile });
+#pragma warning restore IDE0300
         Assert.Equal(180f / 128, Assert.Single(cache.GetCell(tile).DynamicSources.ToArray()).Intensity);
     }
 
@@ -118,14 +130,18 @@ public class ClassicObjectLightTests
         var tile = new TilePos(5, 5);
         cache.UpdateObjects(new[] { Object(1) }, 1);
         cache.UpdateHand(hand);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { tile });
+#pragma warning restore IDE0300
         Assert.Equal(2, cache.GetCell(tile).DynamicSources.Length);
         // An object update keeps the Hand's light; a null Hand takes it away.
         cache.UpdateObjects(Array.Empty<ObjectView>(), 1);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { tile });
         Assert.Equal(255 / 128f, Assert.Single(cache.GetCell(tile).DynamicSources.ToArray()).Intensity);
         cache.UpdateHand(null);
         cache.PrepareFrame(new[] { tile });
+#pragma warning restore IDE0300
         Assert.Empty(cache.GetCell(tile).DynamicSources.ToArray());
     }
 
@@ -134,12 +150,16 @@ public class ClassicObjectLightTests
     {
         var cache = new ClassicWorldLightCache(16, 16);
         cache.UpdateObjects(new[] { Object(1, x: 6) }, 1);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { new TilePos(5, 5) });
+#pragma warning restore IDE0300
         Assert.False(cache.IsVisible(new TilePos(6, 5)));
         Assert.Single(cache.GetCell(new TilePos(6, 5)).DynamicSources.ToArray());
         Assert.Equal(1, cache.VisibleTables[0].Count);
         cache.Clear();
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { new TilePos(5, 5) });
+#pragma warning restore IDE0300
         Assert.Equal(0, cache.VisibleTables[0].Count);
     }
 
@@ -147,8 +167,8 @@ public class ClassicObjectLightTests
     public void WarmDynamicPublicationAndGatherAllocateNothing()
     {
         var cache = new ClassicWorldLightCache(16, 16);
-        ObjectView[] objects = { Object(1), Object(2) };
-        TilePos[] visible = { new(5, 5), new(6, 5) };
+        ObjectView[] objects = [Object(1), Object(2)];
+        TilePos[] visible = [new(5, 5), new(6, 5)];
         for (int i = 0; i < 100; i++) { cache.UpdateObjects(objects, .5f); cache.PrepareFrame(visible); }
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 100; i++) { cache.UpdateObjects(objects, .5f); cache.PrepareFrame(visible); }

@@ -97,9 +97,9 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         KeeperCommandEmission tag = Assert.Single(run.KeeperCommandLog, e => e.Command is TagTilesCommand t && t.PlayerId.Value == 5 && t.Tiles.Contains(new TilePos(64, 41)));
         Assert.Equal((byte)5, tag.Command.PlayerId);
 
-        List<(int Tick, BuildRoomCommand Build)> spans = run.KeeperCommandLog
+        List<(int Tick, BuildRoomCommand Build)> spans = [.. run.KeeperCommandLog
             .Where(e => e.Command is BuildRoomCommand b && b.PlayerId.Value == 5 && BridgeRules.IsBridge(ScenarioCorpus.Database.Room(b.RoomId)))
-            .Select(e => (e.InputTick, (BuildRoomCommand)e.Command)).ToList();
+            .Select(e => (e.InputTick, (BuildRoomCommand)e.Command))];
         Assert.Equal([new TilePos(64, 40), new TilePos(64, 39)], spans.Take(2).Select(s => s.Build.Tiles[0]));
         Assert.True(tag.InputTick < spans[0].Tick);
         Assert.True(spans[0].Tick < spans[1].Tick);
@@ -107,8 +107,7 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         Assert.Contains(run.KeeperCommandLog, e => e.InputTick > spans[1].Tick
             && e.Command is TagTilesCommand t && t.PlayerId.Value == 5 && t.Tiles.Contains(new TilePos(64, 38)));
 
-        KeeperCommandEmission[] calls = run.KeeperCommandLog
-            .Where(e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5).ToArray();
+        KeeperCommandEmission[] calls = [.. run.KeeperCommandLog.Where(e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5)];
         Assert.NotEmpty(calls);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "level11A")!;
         var stock = WorldState.FromMap(ScenarioCorpus.Database, map, map.Tiles.Select(t => t.PlayerId).Distinct());

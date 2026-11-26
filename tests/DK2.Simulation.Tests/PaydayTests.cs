@@ -1044,7 +1044,7 @@ public class PaydayTests
         RunToFirstPayday(sim, db, extraTicks: 200);
 
         Assert.Contains(sink.Events, e => e.Kind == "paid" && e.Detail.Contains("took=500"));
-        ThingSoundRequest[] heard = sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        ThingSoundRequest[] heard = [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
         Assert.Equal(2, heard.Length);
         var at = new FpPosition3(new Fp32(goblin.PosX), new Fp32(goblin.PosY), new Fp32(goblin.PosZ));
         Assert.Equal(vault, goblin.Tile);

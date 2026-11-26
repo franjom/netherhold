@@ -19,7 +19,7 @@ public sealed class PossessionUpkeepTests
     /// both clamps (GameDatabase drops a negative row, as it does for every stat).</summary>
     private static readonly int[] Stat27Row = [0, 133, 200, 250, 300, 350, 400, 500, 30000];
 
-    private static LevelDef Level(ushort flags) => new(Array.Empty<byte>())
+    private static LevelDef Level(ushort flags) => new([])
     {
         Name = "", Description = "", Author = "", Email = "", Information = "",
         Unknown_1184 = default, Messages = [], Flags = flags, SoundCategory = "",

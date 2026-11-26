@@ -29,7 +29,7 @@ public class KwdRecordJoinTests
     [InlineData(KwdRecordType.Map, 4)]
     public void FixedImagesJoinAtTheirMeasuredStrideAndKeepEveryUnknownByte(KwdRecordType type, int stride)
     {
-        byte[] content = Enumerable.Range(0, stride * 2).Select(i => (byte)(i % 251)).ToArray();
+        byte[] content = [.. Enumerable.Range(0, stride * 2).Select(i => (byte)(i % 251))];
         KwdChunk chunk = Chunk(type, content, type == KwdRecordType.Map ? 0 : 2);
         List<KwdRecordImage> records = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(2, records.Count);
@@ -102,9 +102,11 @@ public class KwdRecordJoinTests
     {
         string editor = Path.Combine(Dk2InstallGate.Path, "Data", "editor");
         string maps = Path.Combine(editor, "maps");
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         string[] files = Directory.GetFiles(editor, "*.kwd")
             .Concat(Directory.GetFiles(maps, "*.kwd"))
             .Concat(Directory.GetFiles(maps, "*.kld")).ToArray();
+#pragma warning restore IDE0305
         Assert.Equal(408, files.Length);
         int total = 0;
         foreach (string file in files)

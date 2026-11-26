@@ -35,7 +35,7 @@ public sealed class InstallArtProviderTests
             Assert.True(provider.TryLoadModel(asset, out KmfModel model));
             Assert.NotEmpty(RenderMesh.FromModel(model).Positions);
             Assert.Same(model, LoadAgain(provider, asset));
-            string[] textures = model.Materials.SelectMany(material => material.TextureNames).ToArray();
+            string[] textures = [.. model.Materials.SelectMany(material => material.TextureNames)];
             Assert.NotEmpty(textures);
             foreach (string texture in textures)
             {
@@ -77,7 +77,7 @@ public sealed class InstallArtProviderTests
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
         using var provider = InstallArtProvider.Open(install, database);
-        AssetRef[] keys = AssetCatalogue.ForDatabase(database).Where(key => provider.TryResolve(key, out _)).Take(80).ToArray();
+        AssetRef[] keys = [.. AssetCatalogue.ForDatabase(database).Where(key => provider.TryResolve(key, out _)).Take(80)];
 
         provider.Prefetch(keys, workers: 4);
 
@@ -105,9 +105,9 @@ public sealed class InstallArtProviderTests
         string install = Dk2InstallGate.Path;
         GameDatabase database = GameDatabaseLoader.Load(install);
         using var provider = InstallArtProvider.Open(install, database);
-        ResolvedAsset[] assets = AssetCatalogue.ForDatabase(database)
+        ResolvedAsset[] assets = [.. AssetCatalogue.ForDatabase(database)
             .Select(key => provider.TryResolve(key, out ResolvedAsset asset) ? asset : default)
-            .Where(asset => asset.InstallEntry is not null).Take(20).ToArray();
+            .Where(asset => asset.InstallEntry is not null).Take(20)];
 
         var loaded = new KmfModel?[assets.Length * 8];
         Parallel.For(0, loaded.Length, new ParallelOptions { MaxDegreeOfParallelism = 8 },
@@ -123,8 +123,8 @@ public sealed class InstallArtProviderTests
 
         // The locked reads keep each decode whole: the same as one thread's, model and texture.
         using var serial = InstallArtProvider.Open(install, database);
-        string[] textures = loaded.Take(assets.Length).OfType<KmfModel>()
-            .SelectMany(model => model.Materials).SelectMany(material => material.TextureNames).Distinct().ToArray();
+        string[] textures = [.. loaded.Take(assets.Length).OfType<KmfModel>()
+            .SelectMany(model => model.Materials).SelectMany(material => material.TextureNames).Distinct()];
         var images = new RgbaImage[textures.Length];
         Parallel.For(0, textures.Length, new ParallelOptions { MaxDegreeOfParallelism = 8 },
             i => images[i] = provider.LoadTexture(textures[i]));

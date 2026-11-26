@@ -493,7 +493,7 @@ public class CombatNonFighterTests
     }
 
     private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
-        sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
 
     /// <summary>The Scout's alarm (<c>0x004752B0</c>) requests <c>0xDC</c> with its own handle after its route is
     /// found, at its position; state 251 (<c>0x00475660</c>), when it dispatches the room's creatures, requests

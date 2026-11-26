@@ -42,7 +42,9 @@ public sealed class TrainingOnRealDataTests
             .GroupBy(c => (int)c.ExpPerSecondTraining)
             .ToDictionary(g => g.Key, g => g.Count());
 
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([15, 20, 25, 30, 40], byRate.Keys.Order().ToArray());
+#pragma warning restore IDE0305
         Assert.Equal(46, byRate.Values.Sum());
 
         int truncating = db.Creatures.Values.Count(c =>
@@ -96,12 +98,11 @@ public sealed class TrainingOnRealDataTests
         GameDatabase maybe = RealDatabase();
         GameDatabase db = maybe;
 
-        string[] exceptions = db.Creatures.Values
+        string[] exceptions = [.. db.Creatures.Values
             .Where(c => c.ExpPerSecondTraining != 0
                         && c.ExpPerSecond != c.ExpPerSecondTraining * 5)
             .Select(c => c.Name)
-            .Order()
-            .ToArray();
+            .Order()];
 
         Assert.Equal(
             ["Imp", "Maiden Of The Nest", "Unique Bile Demon", "Unique Mistress", "Unique Troll"],

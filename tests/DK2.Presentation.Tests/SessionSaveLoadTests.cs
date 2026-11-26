@@ -41,7 +41,7 @@ public sealed class SessionSaveLoadTests : IDisposable
             Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
         };
         var database = new GameDatabase([terrain], [], [], new GlobalVariables());
-        var map = new LevelMap(4, 4, Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16).ToArray());
+        var map = new LevelMap(4, 4, [.. Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16)]);
         var level = new LevelDef([])
         {
             Name = name, Description = "", Author = "", Email = "", Information = "", Unknown_1184 = default, Messages = [],
@@ -208,7 +208,7 @@ public sealed class SessionSaveLoadTests : IDisposable
     {
         CampaignLevelData level = Level();
         var terrain = new LevelMap(level.Map.Width, level.Map.Height,
-            level.Map.Tiles.Select(tile => tile with { PlayerId = PlayerIds.Neutral }).ToArray());
+            [.. level.Map.Tiles.Select(tile => tile with { PlayerId = PlayerIds.Neutral })]);
         GameSimulation simulation = GameSessionStarter.FromDk2Save(level.Database, terrain, 7, fogOfWarEnabled: false);
         simulation.World.LocalPlayerId = PlayerIds.Neutral;
         var context = new SessionContext(level.Name, GameSessionMode.ImportedTerrain, FrontEndPage.None);

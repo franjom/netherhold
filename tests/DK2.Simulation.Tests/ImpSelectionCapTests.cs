@@ -50,7 +50,7 @@ public sealed class ImpSelectionCapTests
     }
 
     private static string[] Throttled(ListEventSink sink) =>
-        sink.Events.Where(e => e.Kind == "throttled").Select(e => e.Detail + " ").ToArray();
+        [.. sink.Events.Where(e => e.Kind == "throttled").Select(e => e.Detail + " ")];
 
     /// <summary>Six idle Imps of the keeper on its claimed floor (and optionally a rival's), all
     /// in state 10 after the first tick.</summary>

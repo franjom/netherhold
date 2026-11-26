@@ -70,7 +70,7 @@ public class StructureDeathEffectTests
         door.Health = health;
         door.UnderConstruction = construction;
         ListEventSink events = Run(db, world, new DoorHealthSystem(), new DoorRemovalSystem());
-        SimEvent[] effects = events.Events.Where(e => e.EffectRequest.HasValue).ToArray();
+        SimEvent[] effects = [.. events.Events.Where(e => e.EffectRequest.HasValue)];
         Assert.Equal(expected, effects.Length);
         if (expected == 0)
         {
@@ -105,7 +105,7 @@ public class StructureDeathEffectTests
         trap.UnderConstruction = construction;
         trap.Heading = 0x357;
         ListEventSink events = Run(db, world, new TrapSystem(), new TrapRemovalSystem());
-        SimEvent[] effects = events.Events.Where(e => e.EffectRequest.HasValue).ToArray();
+        SimEvent[] effects = [.. events.Events.Where(e => e.EffectRequest.HasValue)];
         Assert.Equal(expected, effects.Length);
         if (expected == 0)
         {
@@ -135,8 +135,8 @@ public class StructureDeathEffectTests
         world.Tile(2, 2).OwnerPlayerId = PlayerIds.Neutral;
         world.Tile(1, 1).OwnerPlayerId = PlayerIds.Neutral;
         ListEventSink events = Run(db, world, new DoorHealthSystem(), new TrapSystem(), new DoorRemovalSystem(), new TrapRemovalSystem());
-        ushort[] ids = events.Events.Where(e => e.EffectRequest.HasValue)
-            .Select(e => e.EffectRequest!.Value.EffectId.Value).OrderBy(id => id).ToArray();
+        ushort[] ids = [.. events.Events.Where(e => e.EffectRequest.HasValue)
+            .Select(e => e.EffectRequest!.Value.EffectId.Value).OrderBy(id => id)];
         Assert.Equal(new ushort[] { 217, 263 }, ids);
         Assert.All(events.Events.Where(e => e.EffectRequest.HasValue),
             e => Assert.Equal(new PlayerId(Keeper), e.EffectRequest!.Value.Owner));
@@ -179,8 +179,7 @@ public class StructureDeathEffectTests
         world.Tile(2, 3).TerrainId = Dk2TerrainFixture.Rock;
         ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = 2, Y = 2,
             PlayerId = Keeper, DoorId = 1, Unknown_0011 = new byte[3] }]);
-        ISimulationSystem[] systems = SimulationSystems.Default()
-            .Select(s => s is ShotSystem ? new LethalDoorShot() : s).ToArray();
+        ISimulationSystem[] systems = [.. SimulationSystems.Default().Select(s => s is ShotSystem ? new LethalDoorShot() : s)];
         ListEventSink events = Run(db, world, systems);
         Assert.Single(events.Events, e => e.EffectRequest?.EffectId == new EffectId(217));
         Assert.Empty(world.Doors);
@@ -201,8 +200,10 @@ public class StructureDeathEffectTests
         }
 
         ListEventSink events = Run(db, world, new DoorHealthSystem(), new DoorRemovalSystem());
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         TilePos[] order = events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value.Tile).ToArray();
         Assert.Equal(new[] { new TilePos(3, 3), new TilePos(1, 1) }, order);
+#pragma warning restore IDE0300, IDE0305
     }
 
     [Fact]

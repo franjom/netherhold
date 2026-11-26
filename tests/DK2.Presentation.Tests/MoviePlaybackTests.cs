@@ -127,7 +127,7 @@ public class MoviePlaybackTests
         float[] samples = new float[2 * 735];
         var decoder = new TqiDecoder();
         var file = EaMovie.Open(Path.Combine(Dk2InstallGate.Path, "Data", "Movies", "BullfrogIntro.tgq"));
-        EaMovieChunk[] frames = file.Chunks.Where(c => c.Kind == EaMovieChunkKind.Video).ToArray();
+        EaMovieChunk[] frames = [.. file.Chunks.Where(c => c.Kind == EaMovieChunkKind.Video)];
         byte[] expected = new byte[movie.Width * movie.Height * 4];
         long played = 0;
 
@@ -157,7 +157,7 @@ public class MoviePlaybackTests
         }
 
         Chunk(file, "SCEl", []);
-        return file.ToArray();
+        return [.. file];
     }
 
     private static byte[] Interleaved()
@@ -169,7 +169,7 @@ public class MoviePlaybackTests
         Chunk(file, "pIQT", GreyFrame());
         Chunk(file, "SCDl", Pcm(100, 2000));
         Chunk(file, "SCEl", []);
-        return file.ToArray();
+        return [.. file];
     }
 
     // A 16x16 DC-only frame at mid chroma: every pixel decodes to (115, 113, 115) (EaMovieTests).

@@ -41,7 +41,7 @@ public sealed class ClassicFullMapTests
     [Fact]
     public void CreatureSquaresRequireExplorationEvenForTheViewingKeepersCreature()
     {
-        uint[] colours = Enumerable.Range(0, 37).Select(i => 0xff000000u | (uint)i).ToArray();
+        uint[] colours = [.. Enumerable.Range(0, 37).Select(i => 0xff000000u | (uint)i)];
         var palette = new MinimapPalette(colours);
         var owner = new PlayerId(3);
         Assert.False(ClassicFullMapMarkers.TryCreature(default, owner, inHand: false, explored: false, palette, out _));

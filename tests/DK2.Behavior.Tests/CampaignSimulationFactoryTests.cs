@@ -36,7 +36,7 @@ public class CampaignSimulationFactoryTests
             simulation.Tick();
         }
 
-        ObjectState[] rats = world.Objects.Where(thing => thing.ObjectTypeId == RatRules.RatObjectId).ToArray();
+        ObjectState[] rats = [.. world.Objects.Where(thing => thing.ObjectTypeId == RatRules.RatObjectId)];
         Assert.Equal(2, rats.Length);
         Assert.All(rats, rat =>
         {
@@ -45,7 +45,7 @@ public class CampaignSimulationFactoryTests
             // Moving or choosing its next point: which one at this turn depends on the stream's draws.
             Assert.Contains(rat.ProcessState, new[] { ObjectMovementRules.MovingProcess.Value, RatRules.WanderingProcess.Value });
         });
-        (int PosX, int PosY)[] positions = rats.Select(rat => (rat.PosX, rat.PosY)).ToArray();
+        (int PosX, int PosY)[] positions = [.. rats.Select(rat => (rat.PosX, rat.PosY))];
         simulation.Run(20);
         Assert.All(rats.Select((rat, index) => (rat, index)), item =>
             Assert.NotEqual(positions[item.index], (item.rat.PosX, item.rat.PosY)));
@@ -58,7 +58,7 @@ public class CampaignSimulationFactoryTests
         WorldState world = simulation.World;
         Assert.DoesNotContain(world.Creatures, c => c.PartyId == 5);
         simulation.Tick();
-        CreatureState[] party = world.Creatures.Where(c => c.PartyId == 5).ToArray();
+        CreatureState[] party = [.. world.Creatures.Where(c => c.PartyId == 5)];
         Assert.Equal(6, party.Length);
         Assert.Equal(new[] { "Lord Of The Land", "Dwarf", "Guard", "Giant", "Dwarf", "Dwarf" },
             party.Select(c => simulation.Database.CreatureById(c.CreatureTypeId).Name));

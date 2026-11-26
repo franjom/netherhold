@@ -173,7 +173,7 @@ public class TerrainTileBuilderTests
         string dir = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.Load(dir);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!, [0, 1]);
-        TileView[] tiles = new WorldView(db, PlayerIds.FirstKeeper).Tiles(world).ToArray();
+        TileView[] tiles = [.. new WorldView(db, PlayerIds.FirstKeeper).Tiles(world)];
         var lattice = new TerrainLattice(db, world, PlayerIds.FirstKeeper);
         const int x = 10, y = 12;
         Assert.False(lattice.IsBuilt(x, y));
@@ -210,7 +210,7 @@ public class TerrainTileBuilderTests
     public void AQuarterTurnPlacesAVertexClockwiseFromAbove()
     {
         var piece = new TerrainPiece([new Vector3(0.5f, 1.5f, 0.25f)], [Vector3.UnitZ], [new Vector2(0.25f, 0.75f)],
-            [Array.Empty<int>()], [new ClassicMaterialRecipe("t", KmfBlend.Opaque, 0f)]);
+            [[]], [new ClassicMaterialRecipe("t", KmfBlend.Opaque, 0f)]);
         TerrainPieceKeys keys = new("Rock");
         var tiles = new TileView[Width * Height];
         tiles[(1 * Width) + 2] = new TileView(new TilePos(2, 1), default, default, default, false, true, 0, 1000,
@@ -268,7 +268,7 @@ public class TerrainTileBuilderTests
         GameDatabase db = GameDatabaseLoader.Load(dir);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!;
         var world = WorldState.FromMap(db, map, [0, 1]);
-        TileView[] tiles = new WorldView(db, PlayerIds.FirstKeeper).Tiles(world).ToArray();
+        TileView[] tiles = [.. new WorldView(db, PlayerIds.FirstKeeper).Tiles(world)];
         var pieces = new FakePieces();
         var builder = new TerrainTileBuilder(pieces, world.Width, world.Height,
             new TerrainLattice(db, world, PlayerIds.FirstKeeper));

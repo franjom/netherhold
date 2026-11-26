@@ -22,7 +22,7 @@ public class KwdTriggersWriterTests
             (row,image)=>KwdTriggers.WriteRecord(row,Image(tag,image.ToBytes()))[8..],fields,["Type","Parameters"]);
         for(int type=0;type<=255;type++)
         {
-            byte[] payload=Enumerable.Repeat((byte)0x5A,16).ToArray(); payload[14]=(byte)type;
+            byte[] payload= [.. Enumerable.Repeat((byte)0x5A,16)]; payload[14]=(byte)type;
             TriggerRecord original=Read(tag,payload);
             foreach(string name in original.Parameters.Keys)
             {

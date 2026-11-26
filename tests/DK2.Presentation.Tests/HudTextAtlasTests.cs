@@ -19,10 +19,10 @@ public class HudTextAtlasTests
         // 'j' reaches back two pixels into the letter before it; 'X' is taller than the line, so lines overlap too.
         var font = new BitmapFont(4, new[]
         {
-            new BitmapGlyph('a', 3, 3, 0, 1, 3, new byte[] { 15, 4, 0, 0, 8, 1, 3, 3, 15 }),
-            new BitmapGlyph('j', 3, 4, -2, 0, 2, new byte[] { 0, 9, 12, 7, 1, 2, 0, 15, 15, 2, 2, 2 }),
-            new BitmapGlyph('X', 2, 7, 0, -1, 2, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 }),
-            new BitmapGlyph(' ', 0, 0, 0, 0, 2, Array.Empty<byte>()),
+            new BitmapGlyph('a', 3, 3, 0, 1, 3, [15, 4, 0, 0, 8, 1, 3, 3, 15]),
+            new BitmapGlyph('j', 3, 4, -2, 0, 2, [0, 9, 12, 7, 1, 2, 0, 15, 15, 2, 2, 2]),
+            new BitmapGlyph('X', 2, 7, 0, -1, 2, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]),
+            new BitmapGlyph(' ', 0, 0, 0, 0, 2, []),
         });
         foreach (string text in new[] { "aj", "ajaj a", "X\nX", "jX aj\nXjaj", "", "  ", "j", "aXa\naXa\naXa" })
         {

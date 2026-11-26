@@ -89,7 +89,9 @@ public sealed class HudTrianglesTests
         frame.Add(new HudDraw(HudDrawKind.Fill, default, new HudRect(0, 0, 1, 1), HudColor.White));
         frame.AddTriangles("art", Square, HudColor.Grey(9), HudBlend.Additive);
         frame.AddTriangles("art", Square.AsSpan(0, 3), HudColor.White);
+#pragma warning disable IDE0301 // Preserve the original empty collection lowering.
         frame.AddTriangles("art", ReadOnlySpan<HudVertex>.Empty, HudColor.White);
+#pragma warning restore IDE0301
         Assert.Equal(3, frame.Count);
         HudDraw list = frame.Draws[1];
         Assert.Equal(new HudDraw(HudDrawKind.Triangles, "art", new HudRect(-10, -10, 20, 20), HudColor.Grey(9), HudBlend.Additive,

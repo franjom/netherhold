@@ -1083,13 +1083,17 @@ public class CreatureNeedsOnRealDataTests
         // Health: 125% at level 2 to 600% at level 10. A level-10 Goblin has
         // 9000 health against its record's 1500.
         Assert.Equal(
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
             new[] { 125, 150, 175, 200, 225, 250, 300, 400, 600 },
+#pragma warning restore IDE0300
             Levels(db, CreatureStatId.Health));
 
         // Speed: +5% a level to level 5, then a much steeper climb. This is the
         // row the owner was looking at without knowing it.
         Assert.Equal(
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
             new[] { 105, 110, 115, 120, 125, 150, 175, 200, 250 },
+#pragma warning restore IDE0300
             Levels(db, CreatureStatId.Speed));
 
         // Run speed scales identically to walking speed, which is worth
@@ -1098,13 +1102,17 @@ public class CreatureNeedsOnRealDataTests
 
         // A purse, to 120% from level 5 and no further (ADR-0187).
         Assert.Equal(
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
             new[] { 105, 110, 115, 120, 120, 120, 120, 120, 120 },
+#pragma warning restore IDE0300
             Levels(db, CreatureStatId.MaxGoldHeld));
 
         // Experience for the next level, to 1000% -- the last level costs ten
         // times the first.
         Assert.Equal(
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
             new[] { 130, 180, 250, 350, 470, 600, 720, 850, 1000 },
+#pragma warning restore IDE0300
             Levels(db, CreatureStatId.ExperienceForNextLevel));
 
         // And the negative half of the finding: own-land regeneration never
@@ -1112,7 +1120,9 @@ public class CreatureNeedsOnRealDataTests
         // Ten of the 32 stats are flat like this, so "levels scale everything"
         // would be wrong about a third of the table.
         Assert.Equal(
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
             new[] { 100, 100, 100, 100, 100, 100, 100, 100, 100 },
+#pragma warning restore IDE0300
             Levels(db, CreatureStatId.OwnLandHealthIncreasePerSecond));
     }
 
@@ -1142,7 +1152,7 @@ public class CreatureNeedsOnRealDataTests
 
     /// <summary>One stat's percentages for levels 2 to 10, in order.</summary>
     private static int[] Levels(GameDatabase db, CreatureStatId stat) =>
-        Enumerable.Range(2, 9).Select(l => db.StatPercent(stat, l)).ToArray();
+        [.. Enumerable.Range(2, 9).Select(l => db.StatPercent(stat, l))];
 
     // ---- anger, against the owner's two measurements ----------------------
 

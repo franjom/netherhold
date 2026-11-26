@@ -64,7 +64,7 @@ public class CreatureBurningTests
         int health = target.Health;
         sim.Tick();
         Assert.Equal(0, draws.Remaining);
-        ViewEffectRequest[] flames = events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value).ToArray();
+        ViewEffectRequest[] flames = [.. events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
         Assert.Equal(3, flames.Length);
         for (int i = 0; i < 3; i++)
         {

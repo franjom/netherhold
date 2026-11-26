@@ -57,7 +57,7 @@ public class CampaignResultsTests
         profile = CampaignProgression.RecordStatistics(profile, Keeper,
             new LevelStatisticsBlock { SpecialsFound = 2, SpecialsMissed = 3 }, new CampaignSlot(4), keeperRank: 60);
         CampaignResults results = CampaignResults.Build(profile, new CampaignSlot(4))!;
-        CampaignResultText[] summary = results.Summary().ToArray();
+        CampaignResultText[] summary = [.. results.Summary()];
 
         Assert.Equal(new FrontEndRect(191 * 4, 110 * 4, 449 * 4, 370 * 4), summary[0].Rect);
         Assert.Equal((2898u, FrontEndTextColour.Rank), (summary[0].TextId, summary[0].Colour));
@@ -85,7 +85,7 @@ public class CampaignResultsTests
             new LevelStatisticsBlock { LevelWon = true }, new CampaignSlot(1), keeperRank: null);
         CampaignResults results = CampaignResults.Build(profile, new CampaignSlot(1))!;
         var list = new FrontEndRect(760, 968, 1500, 512);                     // widget 180
-        CampaignResultText[] rows = results.Rows(list, 0).ToArray();
+        CampaignResultText[] rows = [.. results.Rows(list, 0)];
 
         // Seven listed cells, 1508 hidden: six lines at 0, 25, ..., 125 pixels; the last cut to 3 pixels.
         Assert.Equal(new uint[] { 1516, 1410, 1413, 1509, 1510, 1511 }, rows.Where((_, i) => i % 2 == 0).Select(r => r.TextId));
@@ -146,7 +146,7 @@ public class CampaignResultsTests
         CampaignProfile profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
         profile = CampaignProgression.RecordStatistics(profile, Keeper,
             new LevelStatisticsBlock { LevelWon = true, GoldMined = 700 }, new CampaignSlot(2), keeperRank: 10);
-        HiScoreEntry[] scores = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1")).ToArray();
+        HiScoreEntry[] scores = [.. Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1"))];
         using var map = new CampaignMapController(session, profile, false,
             slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()), scores);
         IReadOnlyList<HiScoreEntry>? saved = null;
@@ -175,7 +175,7 @@ public class CampaignResultsTests
         CampaignProfile profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
         profile = CampaignProgression.RecordStatistics(profile, Keeper,
             new LevelStatisticsBlock { LevelWon = true, GoldMined = 700 }, new CampaignSlot(2), keeperRank: 10);
-        HiScoreEntry[] scores = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1")).ToArray();
+        HiScoreEntry[] scores = [.. Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1"))];
         using var map = new CampaignMapController(session, profile, false,
             slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()), scores);
         using var menu = new FrontEndMenuController(session, _ => new FrontEndRect(0, 0, 10, 10), map);
@@ -191,7 +191,7 @@ public class CampaignResultsTests
     [Fact]
     public void ALossOrALowScoreGoesStraightBackToTheMap()
     {
-        HiScoreEntry[] scores = Enumerable.Repeat(new HiScoreEntry(5000, "K", "1"), 10).ToArray();
+        HiScoreEntry[] scores = [.. Enumerable.Repeat(new HiScoreEntry(5000, "K", "1"), 10)];
         Assert.False(HiScoreTable.Qualifies(scores, 4999));
         Assert.True(HiScoreTable.Qualifies(scores, 5000));
         Assert.Equal(-1, HiScoreTable.Position(scores, 10));

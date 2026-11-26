@@ -108,8 +108,10 @@ public sealed class CreatureFootstepMarksTests
         var creatures = KwdCreatures.Parse(KwdReader.ReadFile(Path.Combine(Dk2InstallGate.Path, "Data", "editor", "Creatures.kwd")))
             .ToDictionary(c => c.Name.Trim());
         FootstepMarkPair first = creatures["Goblin"].FootstepMarksOf(46), second = creatures["Goblin"].FootstepMarksOf(47);
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         string text = new string(new[] { first.First, first.Second, second.First, second.Second }
             .SelectMany(w => new[] { (char)(w & 0xFF), (char)(w >> 8) }).ToArray());
+#pragma warning restore IDE0300, IDE0305
         Assert.Equal("GOB-Pose", text);
     }
 }

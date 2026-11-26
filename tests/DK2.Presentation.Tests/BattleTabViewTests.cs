@@ -23,11 +23,11 @@ public sealed class BattleTabViewTests
         // 0x00412AF3..0x00412BA7: phase = real ms / 150; art + (phase & 3), the cancel art + ((phase >> 1) & 1).
         Assert.Equal(0, BattleTabView.Phase(149));
         Assert.Equal(1, BattleTabView.Phase(150));
-        string[] blades = Enumerable.Range(0, 5).Select(p => BattleTabView.Art(BattleTabButton.Battle, p)).ToArray();
+        string[] blades = [.. Enumerable.Range(0, 5).Select(p => BattleTabView.Art(BattleTabButton.Battle, p))];
         Assert.Equal(["GUI\\Icons\\a-fight-00", "GUI\\Icons\\a-fight-01", "GUI\\Icons\\a-fight-02", "GUI\\Icons\\a-fight-03",
             "GUI\\Icons\\a-fight-00"], blades);
         Assert.Equal("GUI\\Icons\\a-alarm-03", BattleTabView.Art(BattleTabButton.Alarm, 7));
-        string[] cancel = Enumerable.Range(0, 5).Select(p => BattleTabView.Art(BattleTabButton.CallToArms, p)).ToArray();
+        string[] cancel = [.. Enumerable.Range(0, 5).Select(p => BattleTabView.Art(BattleTabButton.CallToArms, p))];
         Assert.Equal(["GUI\\Spells\\call_to_arms-kill", "GUI\\Spells\\call_to_arms-kill", "GUI\\Spells\\call_to_arms-kill-2",
             "GUI\\Spells\\call_to_arms-kill-2", "GUI\\Spells\\call_to_arms-kill"], cancel);
     }

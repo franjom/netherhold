@@ -33,7 +33,7 @@ public class HiScoresTests
     [Fact]
     public void WritesUnicodeWithATerminatorAndRejectsNamesThatDoNotFit()
     {
-        HiScoreEntry[] entries = Enumerable.Repeat(new HiScoreEntry(uint.MaxValue, "Keeper \u017e", "11c"), 10).ToArray();
+        HiScoreEntry[] entries = [.. Enumerable.Repeat(new HiScoreEntry(uint.MaxValue, "Keeper \u017e", "11c"), 10)];
         Assert.Equal(entries, HiScoresFile.Read(HiScoresFile.Write(entries)));
         entries[0] = entries[0] with { Name = new string('x', 32) };
         Assert.Throws<ArgumentException>(() => HiScoresFile.Write(entries));

@@ -17,7 +17,7 @@ public sealed class HiScoreStoreTests : IDisposable
     private string Original => Path.Combine(Install, "Data", "Settings", "HiScores.dat");
 
     private static HiScoreEntry[] Rows(string name) =>
-        Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), name + i, "1")).ToArray();
+        [.. Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), name + i, "1"))];
 
     private static void Write(string path, IReadOnlyList<HiScoreEntry> rows)
     {

@@ -189,8 +189,10 @@ public class TriggerExecutorOnRealDataTests
         string install = Dk2InstallGate.Path;
         LevelDef level = GameDatabaseLoader.LoadCampaignLevel(install, "level1")!;
         List<TriggerRecord> records = GameDatabaseLoader.LoadCampaignTriggers(install, "level1")!;
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         ushort[] playerRoots = GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!
             .Select(p => p.TriggerId).Where(id => id != 0).ToArray();
+#pragma warning restore IDE0305
 
         Assert.Equal(89, level.TriggerId);
         Assert.Equal([(ushort)1], playerRoots);
@@ -206,7 +208,9 @@ public class TriggerExecutorOnRealDataTests
         Assert.Equal(10, player.NextTriggerId);
         Assert.Equal(
             [(byte)14, (byte)14],
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
             Chain(records, world.ChildTriggerId).Select(r => r.Type).ToArray());
+#pragma warning restore IDE0305
         Assert.True(Chain(records, player.NextTriggerId).Count > 10);
     }
 
@@ -240,10 +244,9 @@ public class TriggerExecutorOnRealDataTests
     public void NoShippedActionRecordHasAChild()
     {
         string maps = Path.Combine(Dk2InstallGate.Path, "Data", "editor", "maps");
-        TriggerRecord[] actions = Directory.GetFiles(maps, "*Triggers.kld")
+        TriggerRecord[] actions = [.. Directory.GetFiles(maps, "*Triggers.kld")
             .SelectMany(f => KwdTriggers.Parse(KwdReader.ReadFile(f)))
-            .Where(r => r.Tag == 214)
-            .ToArray();
+            .Where(r => r.Tag == 214)];
 
         Assert.Equal(5408, actions.Length);
         Assert.All(actions, a => Assert.Equal(0, a.ChildTriggerId));
@@ -259,10 +262,9 @@ public class TriggerExecutorOnRealDataTests
     public void EveryShippedType25RecordUsesTheRoomCountMode()
     {
         string maps = Path.Combine(Dk2InstallGate.Path, "Data", "editor", "maps");
-        TriggerRecord[] records = Directory.GetFiles(maps, "*Triggers.kld")
+        TriggerRecord[] records = [.. Directory.GetFiles(maps, "*Triggers.kld")
             .SelectMany(file => KwdTriggers.Parse(KwdReader.ReadFile(file)))
-            .Where(record => record.Tag == 213 && record.Type == 25)
-            .ToArray();
+            .Where(record => record.Tag == 213 && record.Type == 25)];
 
         Assert.Equal(85, records.Length);
         Assert.Equal(
@@ -298,12 +300,11 @@ public class TriggerExecutorOnRealDataTests
     {
         string install = Dk2InstallGate.Path;
         string maps = Path.Combine(install, "Data", "editor", "maps");
-        TriggerRecord[] indirect = Directory.EnumerateFiles(maps, "*Triggers.kld")
+        TriggerRecord[] indirect = [.. Directory.EnumerateFiles(maps, "*Triggers.kld")
             .Order(StringComparer.OrdinalIgnoreCase)
             .SelectMany(file => GameDatabaseLoader.LoadCampaignTriggers(
                 install, Path.GetFileName(file)[..^"Triggers.kld".Length]) ?? [])
-            .Where(r => r.Tag == 214 && r.Type == 7 && (r.Parameters["Flag"] & 0x02) == 0)
-            .ToArray();
+            .Where(r => r.Tag == 214 && r.Type == 7 && (r.Parameters["Flag"] & 0x02) == 0)];
 
         Assert.Equal(4, indirect.Length);
         foreach (TriggerRecord action in indirect)
@@ -445,8 +446,7 @@ public class TriggerExecutorOnRealDataTests
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level1")!;
         LevelDef level = GameDatabaseLoader.LoadCampaignLevel(install, "level1")!;
         List<TriggerRecord> records = GameDatabaseLoader.LoadCampaignTriggers(install, "level1")!;
-        byte[] players = GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!
-            .Select(p => p.PlayerId).ToArray();
+        byte[] players = [.. GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!.Select(p => p.PlayerId)];
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "level1")!;
         var world = WorldState.FromMap(database, map, players);
         if (withThings)

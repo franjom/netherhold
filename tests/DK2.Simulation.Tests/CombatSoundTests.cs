@@ -41,8 +41,8 @@ public sealed class CombatSoundTests
 
     /// <summary>By event and by the kind of thing: 0xDA and 0xF4 are also the heart's and the terrain's, and 0xDB the shot's.</summary>
     private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) =>
-        Sounds(events).Where(s => s.Event == sound
-            && s.Source.Kind == (sound == ThingSoundEvent.CorpseDestroyed ? SoundSourceKind.Corpse : SoundSourceKind.Creature)).ToArray();
+        [.. Sounds(events).Where(s => s.Event == sound
+            && s.Source.Kind == (sound == ThingSoundEvent.CorpseDestroyed ? SoundSourceKind.Corpse : SoundSourceKind.Creature))];
 
     private static FpPosition3 Where(CreatureState c) => new(new Fp32(c.PosX), new Fp32(c.PosY), new Fp32(c.PosZ));
 
@@ -142,7 +142,7 @@ public sealed class CombatSoundTests
 
 
     private static ThingSoundRequest[] Weapon(ListEventSink events) =>
-        Sounds(events).Where(s => s.Category.StartsWith("WEAPON_", StringComparison.Ordinal)).ToArray();
+        [.. Sounds(events).Where(s => s.Category.StartsWith("WEAPON_", StringComparison.Ordinal))];
 
     [Theory]
     [InlineData(AttackType.MeleeBlade, 1, "WEAPON_METAL", 0x114)]

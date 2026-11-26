@@ -206,7 +206,7 @@ public class PortalCentreLightTests
         variables.Misc[VariableTypeId.ConvertRoomHealth] = new(VariableTypeId.ConvertRoomHealth, -100, 0, 0);
         var db = new GameDatabase([Terrain(2, TerrainFlags.Solid), Terrain(12, TerrainFlags.Room | TerrainFlags.Ownable | TerrainFlags.Attackable),
             Terrain(27, TerrainFlags.Solid), Terrain(38, TerrainFlags.Solid)], [room], [], variables);
-        MapTile[] cells = Enumerable.Repeat(new MapTile(2, 2, 0, 0), 64).ToArray();
+        MapTile[] cells = [.. Enumerable.Repeat(new MapTile(2, 2, 0, 0), 64)];
         for (int y = 2; y <= 4; y++)
         {
             for (int x = 2; x <= 4; x++)

@@ -109,7 +109,7 @@ public sealed class TurncoatTests
         target.CurrentJob = JobType.Train;
         target.HeldPlace = new RoomPlace(210, 1);
         target.PartyId = 7;
-        int[] order = world.OwnedCreatures(Rival).Select(c => c.Id).ToArray();
+        int[] order = [.. world.OwnedCreatures(Rival).Select(c => c.Id)];
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, SpellId, target.Id)));
         Assert.Equal((ushort)100, target.TurncoatTicks);

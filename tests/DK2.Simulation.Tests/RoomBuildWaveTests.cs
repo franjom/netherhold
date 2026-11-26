@@ -187,8 +187,8 @@ public sealed class RoomBuildWaveTests
         Assert.NotEqual(original, sim.StateHash());
     }
 
-    private static TilePos[] EffectTiles(ListEventSink events) => events.Events
-        .Where(e => e.ConstructionEffect.HasValue).Select(e => e.ConstructionEffect!.Value.Tile).ToArray();
+    private static TilePos[] EffectTiles(ListEventSink events) => [.. events.Events
+        .Where(e => e.ConstructionEffect.HasValue).Select(e => e.ConstructionEffect!.Value.Tile)];
 
     private static int CountRoom(GameSimulation sim) => Enumerable.Range(0, sim.World.TileCount)
         .Count(i => sim.World.TileAtIndex(i).TerrainId == Dk2TerrainFixture.LairTerrain);

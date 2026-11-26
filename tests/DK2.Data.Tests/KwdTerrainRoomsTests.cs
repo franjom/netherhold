@@ -66,7 +66,7 @@ public class KwdTerrainRoomsTests
 
         Assert.Equal(41, t.Count);
         Assert.Equal(Enumerable.Range(1, 41).ToList(),
-                     t.Select(x => (int)x.TerrainId).OrderBy(i => i).ToList());
+                     [.. t.Select(x => (int)x.TerrainId).OrderBy(i => i)]);
         Assert.All(t, x => Assert.False(string.IsNullOrWhiteSpace(x.Name)));
     }
 
@@ -144,7 +144,7 @@ public class KwdTerrainRoomsTests
 
         Assert.Equal(26, r.Count);
         Assert.Equal(Enumerable.Range(1, 26).ToList(),
-                     r.Select(x => (int)x.RoomId).OrderBy(i => i).ToList());
+                     [.. r.Select(x => (int)x.RoomId).OrderBy(i => i)]);
     }
 
     [InstallFact]

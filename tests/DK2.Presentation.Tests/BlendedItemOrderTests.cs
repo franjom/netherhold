@@ -146,10 +146,10 @@ public sealed class BlendedItemOrderTests
         }
 
         items.Add((Dust, 1f, Mix, Left));
-        BlendedItemOrder order = Boxed([], items.ToArray());
+        BlendedItemOrder order = Boxed([], [.. items]);
         Assert.Equal(BlendedItemOrder.LookBack + 2, order.Segments.Count);
         items.RemoveAt(1);
-        Assert.Equal(BlendedItemOrder.LookBack, Boxed([], items.ToArray()).Segments.Count);
+        Assert.Equal(BlendedItemOrder.LookBack, Boxed([], [.. items]).Segments.Count);
     }
 
     [Fact]

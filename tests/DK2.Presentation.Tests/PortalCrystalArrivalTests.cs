@@ -23,7 +23,7 @@ public class PortalCrystalArrivalTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db,
-            new LevelMap(12, 12, Enumerable.Repeat(new MapTile(8, PlayerIds.FirstKeeper, 0, 0), 144).ToArray()),
+            new LevelMap(12, 12, [.. Enumerable.Repeat(new MapTile(8, PlayerIds.FirstKeeper, 0, 0), 144)]),
             [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int py = 4; py <= 6; py++)
         {

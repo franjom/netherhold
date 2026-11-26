@@ -198,7 +198,7 @@ public class CasinoTests
         Assert.DoesNotContain(sink.Events, e => e.EffectRequest?.Amount.HasValue == true);
 
         // Four game seconds apart: the room's turn modulo variable 19 x 4.
-        long[] settled = sink.Events.Where(e => e.Kind == "settled").Select(e => e.Tick.Value).ToArray();
+        long[] settled = [.. sink.Events.Where(e => e.Kind == "settled").Select(e => e.Tick.Value)];
         Assert.Equal(CasinoRules.SettlementSeconds * Second, settled[1] - settled[0]);
     }
 

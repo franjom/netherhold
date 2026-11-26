@@ -56,7 +56,7 @@ public sealed class ScreenColourTests
         colours.Start(ScreenColourKind.Damage, 0, 100);
         colours.Queue(ScreenColourKind.Black, 100);
         colours.Step(50);
-        ushort[] before = colours.Current.ToArray();
+        ushort[] before = [.. colours.Current];
         colours.SetGamma(1);
         Assert.True(colours.Running);
         Assert.Equal(1, colours.QueuedCount);

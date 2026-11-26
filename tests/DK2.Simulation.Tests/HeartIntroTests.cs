@@ -29,9 +29,11 @@ public class HeartIntroTests
 
         (long Turn, ushort Value, byte Owner)[] requests = events.Events.Where(e => e.EffectRequest.HasValue)
             .Select(e => (Turn: e.Tick.Value, e.EffectRequest!.Value.EffectId.Value, Owner: e.EffectRequest.Value.Owner.Value))
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
             .OrderBy(r => r.Turn).ThenBy(r => r.Owner).ToArray();
         Assert.Equal(new[]
         {
+#pragma warning restore IDE0300, IDE0305
             // Game turn 1 is our tick 0; turn 29 (seven seconds in) is tick 28.
             (0L, HeartIntroRules.StartLevelEffectId, Keeper), (0L, HeartIntroRules.StartLevelEffectId, Rival),
             (28L, HeartIntroRules.ArchesFadeInEffectId, Keeper), (28L, HeartIntroRules.ArchesFadeInEffectId, Rival),

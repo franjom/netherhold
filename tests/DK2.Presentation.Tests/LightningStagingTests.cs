@@ -63,8 +63,8 @@ public sealed class LightningStagingTests
         Assert.True(art.TryResolve(AssetRef.ForCreature(definition.Name, AssetKind.Animation, "stunned"), out ResolvedAsset asset));
         Assert.True(art.TryLoadModel(asset, out KmfModel? model));
         var mesh = RenderMesh.FromModel(model);
-        LightningControlPoint[] controls = mesh.TaggedPoints.Select(point =>
-            LightningControlPoint.FromRenderWorld(point.Id, mesh.Positions[point.VertexIndex])).ToArray();
+        LightningControlPoint[] controls = [.. mesh.TaggedPoints.Select(point =>
+            LightningControlPoint.FromRenderWorld(point.Id, mesh.Positions[point.VertexIndex]))];
         Assert.Equal(17, controls.Count(point => point.Id < 2000));
         Assert.Contains(controls, point => point.Id == 1006);
         Assert.Contains(controls, point => point.Id == 1008);

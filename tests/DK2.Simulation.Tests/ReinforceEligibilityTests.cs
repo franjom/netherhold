@@ -136,7 +136,7 @@ public class ReinforceEligibilityTests
     private static GameSimulation Start(byte terrain, byte owner, int health)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(Dk2TerrainFixture.ImpenetrableRock, 2, 0, 0), 25).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(Dk2TerrainFixture.ImpenetrableRock, 2, 0, 0), 25)];
         tiles[17] = new MapTile(Dk2TerrainFixture.ClaimedPath, 3, 0, 0);
         var world = WorldState.FromMap(db, new LevelMap(5, 5, tiles), [(byte)2, (byte)3, (byte)4]);
         ref TileState target = ref world.Tile(2, 2);

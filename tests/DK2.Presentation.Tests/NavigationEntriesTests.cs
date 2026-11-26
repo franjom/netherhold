@@ -48,7 +48,7 @@ public sealed class NavigationEntriesTests
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte path = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
         byte lair = db.Rooms[RoomTypeId.Lair].TerrainId;
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(path, Keeper.Value, 0, 0), 21).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(path, Keeper.Value, 0, 0), 21)];
         tiles[7 + 1] = tiles[7 + 2] = new MapTile(lair, Keeper.Value, 0, 0);
         tiles[7 + 5] = new MapTile(lair, 4, 0, 0);
         var world = WorldState.FromMap(db, new LevelMap(7, 3, tiles), [PlayerIds.Neutral, Keeper.Value, 4]);

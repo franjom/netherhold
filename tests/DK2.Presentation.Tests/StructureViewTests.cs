@@ -45,9 +45,11 @@ public sealed class StructureViewTests
     public void SnapdragonAuthoredLocksRemainClosedAndRequestChainsAfterTheFirstUpdate()
     {
         (GameDatabase? database, WorldState? world) = Level8();
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         DoorState[] locked = world.Doors.Where(door => (door.Flags & 1) != 0).ToArray();
         Assert.Equal(new[] { new TilePos(20, 28), new TilePos(24, 39) },
             locked.Select(door => new TilePos(door.X, door.Y)).OrderBy(tile => tile.X).ToArray());
+#pragma warning restore IDE0300, IDE0305
         new GameSimulation(database, world, 7, [new DoorSystem()]).Tick(InputFrame.Empty);
         var view = new WorldView(database);
         foreach (DoorState door in locked)
@@ -63,7 +65,7 @@ public sealed class StructureViewTests
     public void EveryShippedDoorAndTrapHasCatalogueMeshes()
     {
         GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        string[] keys = AssetCatalogue.ForDatabase(database).Select(value => value.Key).ToArray();
+        string[] keys = [.. AssetCatalogue.ForDatabase(database).Select(value => value.Key)];
         Assert.Equal(database.Doors.Count * 3, keys.Count(value => value.StartsWith("door.")));
         Assert.Equal(database.Traps.Count, keys.Count(value => value.StartsWith("trap.")));
     }
@@ -74,7 +76,7 @@ public sealed class StructureViewTests
         (GameDatabase? database, WorldState? world) = Level8();
         var before = Hash64.Start();
         world.HashInto(ref before);
-        StructureView[] structures = new WorldView(database).Structures(world).ToArray();
+        StructureView[] structures = [.. new WorldView(database).Structures(world)];
         Assert.NotEmpty(world.Doors);
         Assert.Equal(world.Doors.Count, structures.Count(value => value.Id.Kind == StructureKind.Door));
         Assert.Equal(world.Traps.Count(value => !value.Hidden || value.PlayerId == 1),
@@ -207,7 +209,7 @@ public sealed class StructureViewTests
             door.LockMode = 3;
         }
 
-        StructureView[] locked = view.Structures(world).ToArray();
+        StructureView[] locked = [.. view.Structures(world)];
         Assert.Equal(2, locked.Length);
         Assert.All(locked, door => Assert.Equal(AssetRef.ForDoorLock("Door"), door.LockMesh));
         DoorState changed = world.Doors.First();
@@ -298,7 +300,7 @@ public sealed class StructureViewTests
         (GameDatabase? database, WorldState? world) = Fixture();
         var target = new Target();
         var presenter = new ScenePresenter(new WorldView(database), AssetProviderChain.Standard(), target);
-        DoorState[] doors = world.Doors.OrderBy(door => door.Id).ToArray();
+        DoorState[] doors = [.. world.Doors.OrderBy(door => door.Id)];
         TrapState trap = world.Traps.Single();
         string Door(DoorState door) => $"Door {door.Id}";
         string Trap() => $"Trap {trap.Id}";
@@ -315,7 +317,7 @@ public sealed class StructureViewTests
         {
             target.Calls.Clear();
             presenter.Present(world);
-            return target.Calls.ToList();
+            return [.. target.Calls];
         }
 
         Show(false);
@@ -344,7 +346,7 @@ public sealed class StructureViewTests
             world.Tile(door.X, door.Y).SetExploredBy(1);
         }
 
-        StructureView[] doors = view.Structures(world).ToArray();
+        StructureView[] doors = [.. view.Structures(world)];
         Assert.Equal(2, doors.Length);
         Assert.Contains(doors, door => door.MeshYaw == 0x600);
         Assert.Contains(doors, door => door.MeshYaw == 0x400);
@@ -372,7 +374,7 @@ public sealed class StructureViewTests
                 Health = 100, GoldCost = 0, ManufactureRequired = 0, Flags = doorFlags }],
             traps: [new TrapDef { Name = "Trap", TrapId = 1, Health = 100,
                 GoldCost = 0, ManufactureRequired = 0, Flags = 0x20, ShotTypeId = 0, ManaUpkeepPerSecond = 0 }]);
-        MapTile[] tiles = Enumerable.Repeat(new MapTile(1, 2, 0, 0), 35).ToArray();
+        MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(1, 2, 0, 0), 35)];
         foreach (TilePos wall in new[] { new TilePos(2, 1), new TilePos(2, 3), new TilePos(4, 2), new TilePos(6, 2) })
         {
             tiles[wall.Y * 7 + wall.X] = new MapTile(2, 2, 0, 0);

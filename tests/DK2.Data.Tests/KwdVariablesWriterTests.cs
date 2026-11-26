@@ -27,7 +27,7 @@ public class KwdVariablesWriterTests
         var fields = fieldList.Split(' ').Select(f => f.Split(':')).ToDictionary(f => f[0],
             f => (Offset: Convert.ToInt32(f[1], 16), Width: int.Parse(f[2])));
         KwdVariableEntry original = KwdVariables.ParseRecord(source);
-        PropertyInfo[] properties = original.GetType().GetProperties().Where(p => p.SetMethod is not null).ToArray();
+        PropertyInfo[] properties = [.. original.GetType().GetProperties().Where(p => p.SetMethod is not null)];
         Assert.Equal(properties.Length, fields.Count);
         Assert.Equal(source, KwdVariables.WriteRecord(original, image));
         foreach (PropertyInfo? property in properties)
@@ -61,10 +61,12 @@ public class KwdVariablesWriterTests
         byte[] first = Cell(3), second = Cell(3);
         second[4]++;
         var chunk = new KwdChunk { Type = KwdRecordType.Variables, ItemCount = 2,
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
             HeaderBlock = [], Content = first.Concat(second).ToArray() };
         List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         KwdRecordImage[] rewritten = images.Select(i => new KwdRecordImage(KwdRecordType.Variables,
             KwdVariables.WriteRecord(KwdVariables.ParseRecord(i.ToBytes()), i))).ToArray();
+#pragma warning restore IDE0305
         Assert.Equal(chunk.Content, KwdRecordRoundTrip.Join(chunk, rewritten));
         MiscVariable changed = (MiscVariable)KwdVariables.ParseRecord(first) with { Value = 7 };
         rewritten[0] = new KwdRecordImage(KwdRecordType.Variables, KwdVariables.WriteRecord(changed, images[0]));
@@ -121,7 +123,7 @@ public class KwdVariablesWriterTests
 
     private static byte[] Cell(int id)
     {
-        byte[] bytes = Enumerable.Repeat((byte)0x5A, 16).ToArray();
+        byte[] bytes = [.. Enumerable.Repeat((byte)0x5A, 16)];
         BinaryPrimitives.WriteInt32LittleEndian(bytes, id);
         return bytes;
     }

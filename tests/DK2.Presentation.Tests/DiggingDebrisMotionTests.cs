@@ -26,8 +26,8 @@ public class DiggingDebrisMotionTests
         crumble.Emit(emission);
         native.AdvanceTo(new EffectTime(51));
         crumble.AdvanceTo(new EffectTime(51));
-        ConstructionParticle[] original = native.Particles.Where(p => p.Definition.ArtResource.Type == 5).ToArray();
-        ConstructionParticle[] rocks = crumble.Particles.Where(p => p.Definition.ArtResource.Type == 5).ToArray();
+        ConstructionParticle[] original = [.. native.Particles.Where(p => p.Definition.ArtResource.Type == 5)];
+        ConstructionParticle[] rocks = [.. crumble.Particles.Where(p => p.Definition.ArtResource.Type == 5)];
         Assert.Equal(48, rocks.Length);
         Assert.Equal(original[0].InitialScale * 2 / 3, rocks[0].InitialScale);
         Assert.All(rocks, p =>
@@ -39,7 +39,7 @@ public class DiggingDebrisMotionTests
             Assert.InRange(Math.Abs(p.VelocityX), 0, 1024);
             Assert.InRange(Math.Abs(p.VelocityY), 0, 1024);
         });
-        int[] heights = rocks.Select(p => p.HeightRaw).ToArray();
+        int[] heights = [.. rocks.Select(p => p.HeightRaw)];
         crumble.AdvanceTo(new EffectTime(101));
         for (int i = 0; i < rocks.Length; i++)
         {
@@ -56,7 +56,7 @@ public class DiggingDebrisMotionTests
             new TilePos(3, 3), new Fp32(Fp32.One));
         model.Emit(new SimEvent(new GameTick(0), "test", "effect_request", "") { EffectRequest = request });
         model.AdvanceTo(new EffectTime(51));
-        ConstructionParticle[] rocks = model.Particles.Where(p => p.Definition.ArtResource.Type == 5).ToArray();
+        ConstructionParticle[] rocks = [.. model.Particles.Where(p => p.Definition.ArtResource.Type == 5)];
         Assert.Equal(48, rocks.Length);
         Assert.All(rocks, p =>
         {
@@ -69,7 +69,7 @@ public class DiggingDebrisMotionTests
             }
         });
         Assert.Contains(rocks, p => p.PitchSpinRaw != 0 && p.RollSpinRaw != 0);
-        int[] headings = rocks.Select(p => p.HeadingRaw).ToArray();
+        int[] headings = [.. rocks.Select(p => p.HeadingRaw)];
         model.AdvanceTo(new EffectTime(151));
         for (int i = 0; i < rocks.Length; i++)
         {
@@ -81,8 +81,8 @@ public class DiggingDebrisMotionTests
         bool bounced = false;
         for (int step = 4; step <= 28; step++)
         {
-            ConstructionParticle[] airborne = model.Particles.Where(p => p.Definition.ArtResource.Type == 5
-                && p.VelocityZ < 0 && p.PitchSpinRaw != 0).ToArray();
+            ConstructionParticle[] airborne = [.. model.Particles.Where(p => p.Definition.ArtResource.Type == 5
+                && p.VelocityZ < 0 && p.PitchSpinRaw != 0)];
             model.AdvanceTo(new EffectTime(step * 50 + 1));
             foreach (ConstructionParticle p in airborne.Where(p => model.Particles.Contains(p) && p.VelocityZ >= 0))
             {

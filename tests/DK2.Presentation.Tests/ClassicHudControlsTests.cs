@@ -373,10 +373,10 @@ public sealed class ClassicHudControlsTests
     }
 
     private static readonly ClassicHudAction[] HostActions =
-    {
+    [
         ClassicHudAction.NavigateHeart, ClassicHudAction.NavigatePortal, ClassicHudAction.NavigateFight,
         ClassicHudAction.SelectQuery, ClassicHudAction.SelectSell, ClassicHudAction.ZoomIn, ClassicHudAction.ZoomOut,
-    };
+    ];
 
     [Fact]
     public void AHostActsOnNoActionWhileInputIsSuppressedAndOnNoCameraOrMinimapActionWhileModal()

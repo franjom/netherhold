@@ -49,13 +49,13 @@ public class FrontEndSceneryTests
         FrontEndProp holder = Assert.Single(scenery, p => p.View.ObjectTypeId == 131);
         Assert.Equal(new TilePos(3, 7), holder.View.Tile);
         Assert.Equal(0x400, holder.View.Heading);
-        FrontEndProp[] land = scenery.Where(p => p.MapPiece.HasValue).ToArray();
+        FrontEndProp[] land = [.. scenery.Where(p => p.MapPiece.HasValue)];
         Assert.Equal(30, land.Length);
         Assert.All(land, p => { Assert.Equal(new TilePos(3, 10), p.View.Tile); Assert.Equal(0x400, p.View.Heading); });
         Assert.Equal(FrontEndMapPiece.Level21, land[24].MapPiece);
         Assert.Equal(FrontEndMapPiece.Secret5, land[29].MapPiece);
         Assert.All(land.Skip(25), p => Assert.False(p.Visible));
-        FrontEndProp[] mpd = scenery.Where(p => p.PetDungeonPiece.HasValue).ToArray();
+        FrontEndProp[] mpd = [.. scenery.Where(p => p.PetDungeonPiece.HasValue)];
         Assert.Equal(7, mpd.Length);
         Assert.All(mpd, p => { Assert.Equal(2 * 4096 + 0x19a, p.View.PosX); Assert.Equal(0x600, p.View.Heading); });
         Assert.Equal(54, scenery.Count);
@@ -81,7 +81,9 @@ public class FrontEndSceneryTests
         var session = new FrontEndSession(_ => new[] { new KcsFrame(0, 0, -3, new KcsRotation(1,0,0,0,1,0,0,0,1), 1, 20000) });
         using var map = new CampaignMapController(session, p, false, slot => new(slot, "", "", "", Array.Empty<string>()));
         session.Update(TimeSpan.Zero); session.Update(TimeSpan.Zero); map.Continue(); session.Update(TimeSpan.FromSeconds(1));
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         FrontEndProp[] original = FrontEndScenery.Create(world, database, p, new SimRandom(1)).Concat(markers).ToArray();
+#pragma warning restore IDE0305
         IReadOnlyList<FrontEndProp> projected = FrontEndScenery.ApplyCampaignMap(original, map);
         FrontEndProp won = projected.Single(s => s.MapPiece == FrontEndMapPiece.Level6a);
         Assert.Equal(0x55a, won.View.TexturePhase!.Value.Raw);

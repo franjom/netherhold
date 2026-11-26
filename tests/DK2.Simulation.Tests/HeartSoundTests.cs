@@ -47,7 +47,7 @@ public sealed class HeartSoundTests
     }
 
     private static ThingSoundRequest[] Sounds(ListEventSink events) =>
-        events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        [.. events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
 
     private static FpPosition3 At(int x, int y, int height) =>
         new(new Fp32(CreatureState.CentreOf(x)), new Fp32(CreatureState.CentreOf(y)), new Fp32(height));
@@ -67,7 +67,7 @@ public sealed class HeartSoundTests
         sim.ObserveWith(events);
         sim.Tick();
 
-        ThingSoundRequest[] heard = Sounds(events).OrderBy(s => s.ViewerOnlyFor!.Value.Value).ToArray();
+        ThingSoundRequest[] heard = [.. Sounds(events).OrderBy(s => s.ViewerOnlyFor!.Value.Value)];
         Assert.Equal(2, heard.Length);
         Assert.All(heard, s =>
         {
@@ -109,7 +109,7 @@ public sealed class HeartSoundTests
 
         world.Player(Rival).HeartHealth = 30;
         sim.Tick();
-        ThingSoundRequest[] heard = Sounds(events).Skip(1).ToArray();
+        ThingSoundRequest[] heard = [.. Sounds(events).Skip(1)];
         Assert.True(killed);
         Assert.Equal([ThingSoundEvent.HeartDamaged, ThingSoundEvent.HeartDestroyed], heard.Select(s => s.Event));
         Assert.Equal((ushort)0xDA, (ushort)heard[1].Event);

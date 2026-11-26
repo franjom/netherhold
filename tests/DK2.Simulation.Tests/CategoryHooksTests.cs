@@ -75,7 +75,7 @@ public class CategoryHooksTests
     [Fact]
     public void EverySlotIsBuiltPartlyBuiltAStubOrNotBuiltWithAReason()
     {
-        string[] wrong = CategoryHooks.Slots.Where(Wrong).Select(s => $"{s.Category} {s.Kind} 0x{s.Address:X8}").ToArray();
+        string[] wrong = [.. CategoryHooks.Slots.Where(Wrong).Select(s => $"{s.Category} {s.Kind} 0x{s.Address:X8}")];
         Assert.True(wrong.Length == 0, string.Join("\n", wrong));
 
         static bool Wrong(HookSlot s) => string.IsNullOrWhiteSpace(s.Note) || s.Status switch
@@ -93,10 +93,9 @@ public class CategoryHooksTests
     public void EveryUpdateArmNamesAMemberThatExists()
     {
         const BindingFlags any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-        string[] missing = CategoryHooks.Slots
+        string[] missing = [.. CategoryHooks.Slots
             .Where(s => s.UpdateArm is not null && s.UpdateArm.GetMember(s.UpdateArmMember!, any).Length == 0)
-            .Select(s => $"{s.Category}: {s.UpdateArm!.Name}.{s.UpdateArmMember}")
-            .ToArray();
+            .Select(s => $"{s.Category}: {s.UpdateArm!.Name}.{s.UpdateArmMember}")];
 
         Assert.True(missing.Length == 0, string.Join("\n", missing));
     }

@@ -14,8 +14,10 @@ public class KwdTypedRecordsTests
     public void EveryShippedRecordUsesItsTypedWriterAndEveryFileIsIdentical()
     {
         string editor=Path.Combine(Dk2InstallGate.Path,"Data","editor");
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         string[] files=Directory.GetFiles(editor,"*.kwd").Concat(Directory.GetFiles(Path.Combine(editor,"maps"),"*.kwd"))
             .Concat(Directory.GetFiles(Path.Combine(editor,"maps"),"*.kld")).ToArray();
+#pragma warning restore IDE0305
         int count=0; var types=new HashSet<KwdRecordType>();
         foreach(string file in files)
         {
@@ -24,7 +26,9 @@ public class KwdTypedRecordsTests
             {
                 types.Add(chunk.Type); count+=KwdTypedRecords.Read(chunk).Count;
                 return KwdTypedRecords.Rewrite(chunk);
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
             }).ToArray();
+#pragma warning restore IDE0305
             Assert.Equal(File.ReadAllBytes(file),KwdWriter.ToBytes(rewritten));
         }
         Assert.Equal(408,files.Length); Assert.Equal(371126,count); Assert.Equal(17,types.Count);

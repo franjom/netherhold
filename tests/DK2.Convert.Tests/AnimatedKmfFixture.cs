@@ -41,7 +41,9 @@ internal static class AnimatedKmfFixture
         foreach ((uint vertex, uint id) in controls ?? []) { U32(vertex); U32(id); }
         Tag("SPRS"); U32(0); Tag("SPHD"); U32(0); U32(1); U32(3); writer.Write(1f);
         Tag("SPRS"); U32(0); U32(0);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Tag("POLY"); U32(0); writer.Write(new byte[] { 0, 1, 2 });
+#pragma warning restore IDE0300
         Tag("VERT"); U32(0);
         Vertex(0, 0, 0); Vertex(1, 16384, 0); Vertex(2, 16384, 8192);
         Tag("ITAB"); U32(0); U32(0); U32(2); U32(4);

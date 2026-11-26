@@ -10,7 +10,7 @@ namespace DK2.Simulation.Tests.Steering;
 public class RouteWindowTests
 {
     private static Fixed16Vector[] SevenPointsAlongX() =>
-        Enumerable.Range(1, 7).Select(i => FakeSteeringWorld.Tiles(i + 0.5, 0.5)).ToArray();
+        [.. Enumerable.Range(1, 7).Select(i => FakeSteeringWorld.Tiles(i + 0.5, 0.5))];
 
     [Fact]
     public void LoadSplitsARouteIntoTheWindowAndTheTail()
@@ -25,7 +25,9 @@ public class RouteWindowTests
         Assert.Equal(112, body.PathTotalDist);
         Assert.Equal(64, body.PathSubpathDist);
         Assert.Equal(32, body.PathTailDist);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 16, 16, 16, 16, 0 }, body.Segment);
+#pragma warning restore IDE0300
         Assert.Equal(route[4], body.Subpath[4]);
         Assert.False(body.PathFinished);
         Assert.Equal(0, FollowPathRules.Progress(body));

@@ -535,8 +535,7 @@ public class CombatTests
         sim.Run(14 + 5 + 2);
 
         // 0x329 then 0xDA, both in the heart's category (docs/research/sound-effects.md section 8).
-        ThingSoundEvent[] heard = events.Events.Where(e => e.ThingSound is { Event: ThingSoundEvent.HeartDamaged or ThingSoundEvent.HeartDestroyed })
-            .Select(e => e.ThingSound!.Value.Event).ToArray();
+        ThingSoundEvent[] heard = [.. events.Events.Where(e => e.ThingSound is { Event: ThingSoundEvent.HeartDamaged or ThingSoundEvent.HeartDestroyed }).Select(e => e.ThingSound!.Value.Event)];
         Assert.Equal([ThingSoundEvent.HeartDamaged, ThingSoundEvent.HeartDestroyed], heard);
     }
 

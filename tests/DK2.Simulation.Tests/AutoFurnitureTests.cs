@@ -192,7 +192,7 @@ public class AutoFurnitureTests
 
         new GameSimulation(database, world, 1, [new AutoFurnitureSystem()]).Tick();
 
-        ObjectState[] wallObjects = world.Objects.Where(o => o.ObjectTypeId == 68).ToArray();
+        ObjectState[] wallObjects = [.. world.Objects.Where(o => o.ObjectTypeId == 68)];
         Assert.Equal([Index(world, 5, 4), Index(world, 7, 4)],
             wallObjects.Select(o => o.TileIndex));
         Assert.All(wallObjects, o => Assert.True(o.AutoPlaced));

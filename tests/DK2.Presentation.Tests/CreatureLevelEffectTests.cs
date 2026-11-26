@@ -19,7 +19,7 @@ public class CreatureLevelEffectTests
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db,
-            new LevelMap(7, 7, Enumerable.Repeat(new MapTile(3, PlayerIds.FirstKeeper, 0, 0), 49).ToArray()),
+            new LevelMap(7, 7, [.. Enumerable.Repeat(new MapTile(3, PlayerIds.FirstKeeper, 0, 0), 49)]),
             [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         CreatureState imp = world.SpawnCreature(db, db.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
         var sim = new GameSimulation(db, world, 42, [new KeeperSpellSystem()]);

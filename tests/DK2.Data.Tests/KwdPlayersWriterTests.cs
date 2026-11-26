@@ -81,7 +81,7 @@ public class KwdPlayersWriterTests
         var image = new KwdRecordImage(KwdRecordType.Players, source);
         var fields = fieldList.Split(' ').Select(f => f.Split(':')).ToDictionary(f => f[0],
             f => (Offset: baseOffset + Convert.ToInt32(f[1], 16), Width: int.Parse(f[2])));
-        PropertyInfo[] properties = typeof(T).GetProperties().Where(p => p.SetMethod is not null && p.Name != excluded).ToArray();
+        PropertyInfo[] properties = [.. typeof(T).GetProperties().Where(p => p.SetMethod is not null && p.Name != excluded)];
         Assert.Equal(properties.Length, fields.Count);
         Assert.Equal(source, KwdPlayers.WriteRecord(Read(source), image));
         foreach (PropertyInfo property in properties)
@@ -139,7 +139,7 @@ public class KwdPlayersWriterTests
 
     private static byte[] Source()
     {
-        byte[] source = Enumerable.Repeat((byte)0x5A, 205).ToArray();
+        byte[] source = [.. Enumerable.Repeat((byte)0x5A, 205)];
         source[0xAD] = (byte)'a'; source[0xAE] = 0;
         return source;
     }

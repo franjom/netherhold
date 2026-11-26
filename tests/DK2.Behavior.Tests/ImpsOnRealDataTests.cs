@@ -113,11 +113,10 @@ public class ImpsOnRealDataTests
         // same reason the tile rules never name terrain id 2. This is what makes
         // that keying meaningful: the flag picks out precisely the two creatures
         // the game treats as workers, and the hero Dwarf is one of them.
-        string[] workers = db.Creatures.Values
+        string[] workers = [.. db.Creatures.Values
             .Where(c => c.Flags.HasFlag(CreatureFlags.IsWorker))
             .Select(c => c.Name)
-            .OrderBy(n => n, StringComparer.Ordinal)
-            .ToArray();
+            .OrderBy(n => n, StringComparer.Ordinal)];
 
         Assert.Equal(["Dwarf", "Imp"], workers);
     }

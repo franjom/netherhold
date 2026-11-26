@@ -61,7 +61,7 @@ public class WallDeteriorationTests
 
         sim.Run(1);
 
-        SimEvent[] hits = sink.Events.Where(e => e.Kind == "wall_deteriorated").ToArray();
+        SimEvent[] hits = [.. sink.Events.Where(e => e.Kind == "wall_deteriorated")];
         Assert.NotEmpty(hits);
         Assert.All(hits, e => Assert.Matches($@"at=\(({FloorColumn - 1}|{FloorColumn + 1}),\d+\) delta=-10", e.Detail));
         for (int y = 1; y < world.Height - 1; y++)

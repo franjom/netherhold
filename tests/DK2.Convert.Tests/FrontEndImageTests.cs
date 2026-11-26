@@ -92,8 +92,8 @@ public class FrontEndImageTests
         RgbaImage image = BmpImageReader.Read(bmp);
         Assert.Equal(1, image.Width); Assert.Equal(2, image.Height);
         Assert.Equal(height > 0
-            ? new byte[] { 6, 5, 4, 255, 3, 2, 1, 255 }
-            : new byte[] { 3, 2, 1, 255, 6, 5, 4, 255 }, image.Pixels);
+            ? [6, 5, 4, 255, 3, 2, 1, 255]
+            : [3, 2, 1, 255, 6, 5, 4, 255], image.Pixels);
         Assert.Throws<InvalidDataException>(() => BmpImageReader.Read(bmp.AsSpan(0, 61)));
         bmp[30] = 1;
         Assert.Throws<InvalidDataException>(() => BmpImageReader.Read(bmp));

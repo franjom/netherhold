@@ -15,7 +15,7 @@ public class TrapRuntimeOnRealDataTests
     public void ShippedTrapActivationFieldsMatchTheBinaryMappedColumns()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        TrapDef[] traps = db.Traps.OrderBy(p => p.Key).Select(p => p.Value).ToArray();
+        TrapDef[] traps = [.. db.Traps.OrderBy(p => p.Key).Select(p => p.Value)];
         Assert.Equal(16, traps.Length);
         Assert.Equal(new byte[] { 2, 1, 1, 1, 1, 1, 2, 1, 3, 2, 2, 2, 2, 1, 1, 2 }, traps.Select(t => t.TriggerType));
         Assert.Equal(new uint[] { 16, 4, 24, 4, 48, 48, 24, 24, 16, 16, 4, 32, 30, 24, 4, 4 },
@@ -32,7 +32,7 @@ public class TrapRuntimeOnRealDataTests
     [InstallFact]
     public void ShippedShotPayloadOffsetsThreatAndRecoveryMatchMappedColumns()
     {
-        TrapDef[] traps = GameDatabaseLoader.Load(Dk2InstallGate.Path).Traps.OrderBy(p => p.Key).Select(p => p.Value).ToArray();
+        TrapDef[] traps = [.. GameDatabaseLoader.Load(Dk2InstallGate.Path).Traps.OrderBy(p => p.Key).Select(p => p.Value)];
         Assert.Equal(new int[] { 750, 1, 250, 0, 2000, 400, 20, 0, 0, 750, 0, 150, 0, 250, 0, 10000 },
             traps.Select(t => t.ShotData1));
         Assert.Equal(new int[] { 1, 0, 0, 5, 1, 0, 1, 3, 1, 1, 0, 0, 0, 0, 5, 2 }, traps.Select(t => t.ShotData2));
@@ -51,7 +51,7 @@ public class TrapRuntimeOnRealDataTests
     [InstallFact]
     public void ShippedDoorFlagsAndRecoveryMatchMappedColumns()
     {
-        DoorDef[] doors = GameDatabaseLoader.Load(Dk2InstallGate.Path).Doors.OrderBy(p => p.Key).Select(p => p.Value).ToArray();
+        DoorDef[] doors = [.. GameDatabaseLoader.Load(Dk2InstallGate.Path).Doors.OrderBy(p => p.Key).Select(p => p.Value)];
         Assert.Equal(new byte[] { 0, 0, 0, 0, 0x20, 0x40, 0xC0, 0x80 }, doors.Select(d => (byte)d.Flags));
         Assert.Equal(new short[] { 2, 5, 3, 10, 10, 1, 16, 17 }, doors.Select(d => d.HealthGain));
     }

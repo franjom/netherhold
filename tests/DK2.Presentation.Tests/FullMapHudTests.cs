@@ -38,7 +38,7 @@ public sealed class FullMapHudTests
         variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new(VariableTypeId.DungeonHeartObjectHealth, 100, 0, 0);
         var db = new GameDatabase([Terrain(2, TerrainFlags.Solid), Terrain(12, TerrainFlags.Room | TerrainFlags.Ownable | TerrainFlags.Attackable),
             Terrain(27, TerrainFlags.Solid), Terrain(38, TerrainFlags.Solid)], [room], [], variables);
-        MapTile[] cells = Enumerable.Repeat(new MapTile(2, 2, 0, 0), 64).ToArray();
+        MapTile[] cells = [.. Enumerable.Repeat(new MapTile(2, 2, 0, 0), 64)];
         for (int y = first; y < first + 3; y++)
         {
             for (int x = first; x < first + 3; x++)

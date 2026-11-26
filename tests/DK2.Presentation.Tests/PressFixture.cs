@@ -84,7 +84,7 @@ internal static class PressFixture
 
     /// <summary>An 8 x 8 floor with the heroes, the neutral player and <see cref="Keeper"/>, who owns no creature.</summary>
     public static WorldState World(GameDatabase database) => WorldState.FromMap(database,
-        new LevelMap(8, 8, Enumerable.Repeat(new MapTile(0, 0, 0, 0), 64).ToArray()),
+        new LevelMap(8, 8, [.. Enumerable.Repeat(new MapTile(0, 0, 0, 0), 64)]),
         [PlayerIds.Good, PlayerIds.Neutral, Keeper.Value]);
 
     public static BottomPanelView Panel(GameDatabase database) => new(database, Keeper, (_, name) => name);
@@ -97,7 +97,7 @@ internal static class PressFixture
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte floor = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
         var world = WorldState.FromMap(db, new LevelMap(5, 5,
-            Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 25).ToArray()), [PlayerIds.Neutral, Keeper.Value]);
+            [.. Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 25)]), [PlayerIds.Neutral, Keeper.Value]);
         return (db, world, world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, Keeper, new TilePos(2, 2)));
     }
 

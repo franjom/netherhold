@@ -15,11 +15,10 @@ public sealed class FogOfWarOnRealDataTests
     {
         string install = Dk2InstallGate.Path;
 
-        string[] actual = GameDatabaseLoader.Load(install).Terrain.Values
+        string[] actual = [.. GameDatabaseLoader.Load(install).Terrain.Values
             .Where(t => t.IsRevealedThroughFog)
             .OrderBy(t => t.TerrainId)
-            .Select(t => t.Name.Trim())
-            .ToArray();
+            .Select(t => t.Name.Trim())];
 
         Assert.Equal(
             ["Impenetrable Rock", "Water", "Lava", "Gold", "Gems", "Edge of Map"],

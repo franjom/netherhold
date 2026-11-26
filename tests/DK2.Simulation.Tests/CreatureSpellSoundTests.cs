@@ -41,7 +41,7 @@ public sealed class CreatureSpellSoundTests
     }
 
     private static ThingSoundRequest[] Heard(ListEventSink events) =>
-        Sounds(events).Where(s => (ushort)s.Event == Word).ToArray();
+        [.. Sounds(events).Where(s => (ushort)s.Event == Word)];
 
     [Fact]
     public void ACastersShotLeavingAsksTheSpellsSoundWordInTheShotsCategoryWithTheCastersHandleAtItsPosition()

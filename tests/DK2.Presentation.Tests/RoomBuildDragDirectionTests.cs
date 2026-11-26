@@ -23,8 +23,8 @@ public sealed class RoomBuildDragDirectionTests
     {
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
         byte claimedPath = database.Terrain.Values.Single(t => t.Name == "Dirt Path").MaxHealthTypeTerrainId;
-        var map = new LevelMap(7, 7, Enumerable.Repeat(
-            new MapTile(claimedPath, PlayerIds.FirstKeeper, 0, 0), 49).ToArray());
+        var map = new LevelMap(7, 7, [.. Enumerable.Repeat(
+            new MapTile(claimedPath, PlayerIds.FirstKeeper, 0, 0), 49)]);
         var world = WorldState.FromMap(database, map,
             [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         RoomRules.Place(database, ref world.Tile(new TilePos(3, 1)),
@@ -52,7 +52,7 @@ public sealed class RoomBuildDragDirectionTests
             new TilePos(pressX, releaseY), press }, Effects().Select(e => e.Tile));
         Assert.All(Effects(), e => Assert.Equal(database.Room(RoomTypeId.Lair).TerrainId, world.Tile(e.Tile).TerrainId));
 
-        RoomConstructionEffect[] Effects() => events.Events
-            .Where(e => e.ConstructionEffect.HasValue).Select(e => e.ConstructionEffect!.Value).ToArray();
+        RoomConstructionEffect[] Effects() => [.. events.Events
+            .Where(e => e.ConstructionEffect.HasValue).Select(e => e.ConstructionEffect!.Value)];
     }
 }

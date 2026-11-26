@@ -240,7 +240,7 @@ public class PortalTests
         GameDatabase db = Database();
         int second = SimulationTiming.TicksPerSecond;
 
-        int[] observed = { 27, 30, 31, 33 };
+        int[] observed = [27, 30, 31, 33];
         const int FirstPortalHadProduced = 5;
 
         for (int n = 0; n < observed.Length; n++)
@@ -1222,11 +1222,13 @@ public class PortalTests
         // keeps that reasoning honest on the fixture; the real-data suite runs
         // it against all 26 shipped rooms.
         GameDatabase db = Dk2TerrainFixture.Database();
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         RoomDef[] threeByThree = db.Rooms.Values
             .Where(r => r.Construction == TileConstruction.ThreeByThree)
             .ToArray();
 
         Assert.Equal(["Portal", "Hero Portal"], threeByThree.Select(r => r.Name).ToArray());
+#pragma warning restore IDE0305
         Assert.All(threeByThree, r => Assert.True(PortalRules.IsEntrance(r)));
     }
 

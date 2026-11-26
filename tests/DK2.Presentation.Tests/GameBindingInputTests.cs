@@ -67,7 +67,7 @@ public class GameBindingInputTests
     [Fact]
     public void DirectCameraAndObjectActionsRejectExtraModifiersButScrollCombinesWithCameraModifier()
     {
-        GameBindingInput input = Input(modifiers: KeyModifiers.Control, scans: new[] { 0x1d, 0xcb, 0xc7, 0xd3, 0xc9 });
+        GameBindingInput input = Input(modifiers: KeyModifiers.Control, scans: [0x1d, 0xcb, 0xc7, 0xd3, 0xc9]);
         Assert.False(input.Held(GameAction.ZoomIn, exactModifiers: true));
         Assert.False(input.Held(GameAction.RotateLeft, exactModifiers: true));
         Assert.False(input.Held(GameAction.ObjectsOnly, exactModifiers: true));
@@ -78,13 +78,13 @@ public class GameBindingInputTests
     public void CameraModifierAndFastScrollUseTheirReboundKeys()
     {
         var settings = new GameSettings { Bindings = new[] { new GameKeyBinding(GameAction.CameraModifier, 0x10), new GameKeyBinding(GameAction.FastScroll, 0x11) } };
-        Assert.Equal(ClassicCameraKeys.TurnRight, Input(settings, scans: new[] { 0x10, 0xcd }).CameraKeys);
-        Assert.Equal(ClassicCameraKeys.Right | ClassicCameraKeys.Fast, Input(settings, scans: new[] { 0x11, 0xcd }).CameraKeys);
+        Assert.Equal(ClassicCameraKeys.TurnRight, Input(settings, scans: [0x10, 0xcd]).CameraKeys);
+        Assert.Equal(ClassicCameraKeys.Right | ClassicCameraKeys.Fast, Input(settings, scans: [0x11, 0xcd]).CameraKeys);
     }
     [Fact]
     public void ModalPrecedenceAllowsOnlyFullMapCloseAndRejectsEditingKeys()
     {
-        GameBindingInput all = Input(scans: new[] { 1, 0x22, 0x23, 0x32, 0x19, 0x21 });
+        GameBindingInput all = Input(scans: [1, 0x22, 0x23, 0x32, 0x19, 0x21]);
         Assert.Equal(ClassicHudAction.ToggleFullMap, all.HudShortcut(new() { FullMapVisible = true }));
         Assert.Equal(ClassicHudAction.None, all.HudShortcut(new() { CapturingKey = true }));
         Assert.Equal(ClassicHudAction.None, all.HudShortcut(new() { EditingText = true, OptionsVisible = true }));

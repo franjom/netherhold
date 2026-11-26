@@ -26,11 +26,10 @@ public class StateCoverageOnScenariosTests
     public void EveryStateTheScenarioSuiteEntersIsBuiltOrHasAnExplicitUnbuiltHandlerBoundary()
     {
         Assert.True(StateEntryLog.Enabled, $"{StateEntryLog.SwitchName} is off in this test project.");
-        string[] offenders = StateEntryLog.Entered()
+        string[] offenders = [.. StateEntryLog.Entered()
             .Where(id => CreatureStateCoverage.Get(id).Status != StateStatus.Built)
             .Where(id => ActivityRules.Of(new CreatureState { Dk2StateId = id }) != CreatureActivity.UnbuiltHandler)
-            .Select(id => $"{id} ({CreatureStateCoverage.Get(id).Status}), first by {StateEntryLog.FirstEnteredBy(id)}")
-            .ToArray();
+            .Select(id => $"{id} ({CreatureStateCoverage.Get(id).Status}), first by {StateEntryLog.FirstEnteredBy(id)}")];
 
         Assert.True(offenders.Length == 0, "Entered without Built coverage or an explicit unbuilt-handler boundary:\n" + string.Join("\n", offenders));
     }
@@ -41,14 +40,13 @@ public class StateCoverageOnScenariosTests
     public void TheTheftStatesCalledUnreachable_HaveTheirJobInNoShippedCreaturesLists()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        JobType[] steals = new[] { JobType.StealSpells, JobType.StealManufactureCrates, JobType.StealEnemyGold };
+        JobType[] steals = [JobType.StealSpells, JobType.StealManufactureCrates, JobType.StealEnemyGold];
 
-        string[] holders = db.Creatures.Values
+        string[] holders = [.. db.Creatures.Values
             .SelectMany(c => c.HappyJobs.Concat(c.UnhappyJobs).Concat(c.AngryJobs).Select(j => (c, j.Job))
                 .Concat(c.AlternativeJobs.Select(j => (c, j.Job))))
             .Where(p => steals.Contains(p.Job))
-            .Select(p => $"{p.c.CreatureId} holds {p.Job}")
-            .ToArray();
+            .Select(p => $"{p.c.CreatureId} holds {p.Job}")];
 
         Assert.Empty(holders);
         foreach (int id in new[] { 160, 161, 162, 166, 167, 168, 170, 171, 172 })
@@ -61,10 +59,9 @@ public class StateCoverageOnScenariosTests
     public void EveryStateAllowListedAsScenarioOnlyIsEnteredByTheScenarioSuite()
     {
         var entered = StateEntryLog.Entered().ToHashSet();
-        string[] missing = CreatureStateCoverage.All
+        string[] missing = [.. CreatureStateCoverage.All
             .Where(r => r.UnexercisedBecause == CreatureStateCoverage.ScenarioSuiteOnly && !entered.Contains(r.StateId))
-            .Select(r => $"{r.StateId} ({r.Handler!.Name}.{r.Detail})")
-            .ToArray();
+            .Select(r => $"{r.StateId} ({r.Handler!.Name}.{r.Detail})")];
 
         Assert.True(missing.Length == 0, "Allow-listed as scenario-only but not entered here:\n" + string.Join("\n", missing));
     }

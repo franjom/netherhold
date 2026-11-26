@@ -114,7 +114,9 @@ public class ResearchOnRealDataTests
         int[] manufacture = [.. Enumerable.Range(1, 10)
                                 .Select(l => db.StatPercent(CreatureStatId.ManufacturePerSecond, l))];
 
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 100, 125, 175, 250, 300, 350, 400, 450, 550, 700 }, curve);
+#pragma warning restore IDE0300
         Assert.Equal(curve, manufacture);
 
         CreatureDef warlock = db.CreatureByName("Warlock")!;

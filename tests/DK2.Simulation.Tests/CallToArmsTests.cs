@@ -142,9 +142,9 @@ public sealed class CallToArmsTests
             }
         }
 
-        ViewEffectRequest[] effects = sink.Events
+        ViewEffectRequest[] effects = [.. sink.Events
             .Where(e => e.EffectRequest is { } r && r.EffectId == new EffectId(CallToArmsRules.RecallEffectId))
-            .Select(e => e.EffectRequest!.Value).ToArray();
+            .Select(e => e.EffectRequest!.Value)];
         Assert.Equal(recalls / 3, effects.Length);
         Assert.True(effects.Length >= 2);
         Assert.All(effects, r => Assert.Equal((new PlayerId(Keeper), flag.PosX, flag.PosY, flag.PosZ, new Dk2Angle(0x123)),

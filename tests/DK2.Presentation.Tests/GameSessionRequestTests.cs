@@ -22,7 +22,7 @@ public sealed class GameSessionRequestTests
     public void ImportUsesTheSavedLevelAndRestartsItsTerrain()
     {
         var save = new SavedGame(new Dk2SaveHeader(220, 0, Dk2SaveReader.SupportedBuildStamp, "Level1", 15),
-            new LevelMap(1, 1, new[] { new MapTile(2, 3, 0, 0) }), [], 1, 0x134);
+            new LevelMap(1, 1, [new MapTile(2, 3, 0, 0)]), [], 1, 0x134);
         var request = GameSessionRequest.FromDk2Save(save);
         var session = SessionContext.Starting(null, request, "Level7", fromMap: true);
 

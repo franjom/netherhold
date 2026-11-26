@@ -65,8 +65,7 @@ public class CombatFriendlySpellTests
         sim.ObserveWith(sink);
 
         sim.Run(60);
-        long[] slots = sink.Events.Where(e => e.Kind == "casts_on_ally" && e.Detail.Contains("creature=" + priest.Id))
-            .Select(e => long.Parse(e.Detail.Split("slot=")[1])).ToArray();
+        long[] slots = [.. sink.Events.Where(e => e.Kind == "casts_on_ally" && e.Detail.Contains("creature=" + priest.Id)).Select(e => long.Parse(e.Detail.Split("slot=")[1]))];
         Assert.True(slots.Length >= 2, "two casts: " + string.Join(",", slots));
         Assert.Equal(1, slots[0]); // Cast Armour, the last castable friendly slot with Heal spent
         Assert.Equal(0, slots[1]); // then Haste, once Armour's cooldown runs and the fighter is still under a quarter

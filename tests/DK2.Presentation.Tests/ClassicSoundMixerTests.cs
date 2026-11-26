@@ -263,7 +263,7 @@ public sealed class ClassicSoundMixerTests
         }
 
         var database = new GameDatabase([terrain], [], [], variables);
-        var map = new LevelMap(4, 4, Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16).ToArray());
+        var map = new LevelMap(4, 4, [.. Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16)]);
         return WorldState.FromMap(database, map, [PlayerIds.Good, PlayerIds.FirstKeeper]);
     }
 

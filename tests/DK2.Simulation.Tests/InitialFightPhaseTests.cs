@@ -19,7 +19,7 @@ public sealed class InitialFightPhaseTests
     {
         GameDatabase db = TestWorld.Database();
         WorldState world = TestWorld.World(db);
-        byte[] actual = Enumerable.Range(0, 12).Select(_ => Spawn(db, world).FightProcessCounter).ToArray();
+        byte[] actual = [.. Enumerable.Range(0, 12).Select(_ => Spawn(db, world).FightProcessCounter)];
         Assert.Equal(new byte[] { 5, 4, 3, 2, 1, 0, 9, 8, 7, 6, 5, 4 }, actual);
     }
 

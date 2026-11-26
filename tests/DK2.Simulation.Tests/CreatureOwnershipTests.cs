@@ -21,7 +21,7 @@ public class CreatureOwnershipTests
         world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, owner, new TilePos(2, 2));
 
     private static int[] Order(WorldState world, byte owner = 3) =>
-        world.OwnedCreatures(owner).Select(c => c.Id).ToArray();
+        [.. world.OwnedCreatures(owner).Select(c => c.Id)];
 
     [Fact]
     public void AcquisitionPrependsAndTransferDoesNotSortById()
@@ -30,6 +30,7 @@ public class CreatureOwnershipTests
         CreatureState first = Spawn(db, world);
         CreatureState second = Spawn(db, world);
         CreatureState rival = Spawn(db, world, 4);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { second.Id, first.Id }, Order(world));
         world.ChangeCreatureOwner(first, 4);
         Assert.Equal(new[] { first.Id, rival.Id }, Order(world, 4));
@@ -37,6 +38,7 @@ public class CreatureOwnershipTests
         world.ChangeCreatureOwner(first, 3);
         Assert.Equal(new[] { first.Id, second.Id }, Order(world));
         Assert.Equal(new[] { rival.Id }, Order(world, 4));
+#pragma warning restore IDE0300
     }
 
     [Fact]
@@ -47,11 +49,13 @@ public class CreatureOwnershipTests
         CreatureState second = Spawn(db, world);
         CreatureState third = Spawn(db, world);
         world.ChangeCreatureOwner(first, 3);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { third.Id, second.Id, first.Id }, Order(world));
         Assert.True(world.RemoveCreature(second.Id));
         Assert.Equal(new[] { third.Id, first.Id }, Order(world));
         Assert.True(world.RemoveCreature(third.Id));
         Assert.Equal(new[] { first.Id }, Order(world));
+#pragma warning restore IDE0300
         Assert.True(world.RemoveCreature(first.Id));
         Assert.Empty(Order(world));
     }
@@ -66,7 +70,9 @@ public class CreatureOwnershipTests
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(3, first.Id)));
         sim.Run(2); // hand state 1 takes the prepared creature two turns after the command
         Assert.True(first.InHand);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { second.Id, first.Id }, Order(world));
+#pragma warning restore IDE0300
     }
 
     [Fact]
@@ -75,7 +81,9 @@ public class CreatureOwnershipTests
         (GameDatabase? db, WorldState? world) = Setup();
         CreatureState creature = Spawn(db, world);
         creature.Health = 0;
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { creature.Id }, Order(world));
+#pragma warning restore IDE0300
         creature.Dk2StateId = CreatureStateMachine.NoState;
         Assert.Empty(Order(world));
         Assert.Single(world.Creatures);

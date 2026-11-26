@@ -153,13 +153,17 @@ public class PlacedThingsOnRealDataTests
             }
         }
 
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         Assert.Equal(new[] { 5, 10, 15, 20, 25, 30, 45, 50, 60, 70, 80, 100 }, creatureValues.ToArray());
+#pragma warning restore IDE0300, IDE0305
 
         // Rooms are all at full health but two, and both of those are dungeon
         // hearts - a heart placed at 1% and one placed at 0%. Pinned because a
         // heart that starts destroyed is a scripted level opening, not a typo,
         // and a projection that ever does place rooms has to survive it.
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         Assert.Equal(new[] { 0, 1, 100 }, roomValues.ToArray());
+#pragma warning restore IDE0300, IDE0305
 
         // Sixteen slots per party, and the overwhelming majority stand empty.
         Assert.Equal(220 * 16, partySlots);
@@ -230,7 +234,9 @@ public class PlacedThingsOnRealDataTests
         // And the values are terrain ids, which is what makes the transcribed
         // name wrong. Every one of them resolves to a room through its TERRAIN,
         // and three of the four are not room ids at all.
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         Assert.Equal(new[] { 14, 33, 34, 37 }, roomTypes.ToArray());
+#pragma warning restore IDE0300, IDE0305
         foreach (int terrainId in roomTypes)
         {
             Assert.NotNull(db.RoomByTerrain((byte)terrainId));
@@ -308,8 +314,10 @@ public class PlacedThingsOnRealDataTests
         }
 
         Assert.Equal(
+#pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
             new[] { (12, 26), (12, 30), (16, 26), (16, 30) },
             world.Creatures.Select(c => (c.Tile.X, c.Tile.Y)).OrderBy(t => t).ToArray());
+#pragma warning restore IDE0300, IDE0305
     }
 
     /// <summary>
@@ -373,7 +381,7 @@ public class PlacedThingsOnRealDataTests
             Assert.Equal(result.HeroParties, world.HeroParties.Count);
             Assert.Equal(result.EffectGenerators, world.EffectGenerators.Count);
 
-            ActionPointThing[] authored = things.OfType<ActionPointThing>().ToArray();
+            ActionPointThing[] authored = [.. things.OfType<ActionPointThing>()];
             for (int i = 0; i < authored.Length; i++)
             {
                 ActionPointThing source = authored[i];
@@ -393,7 +401,7 @@ public class PlacedThingsOnRealDataTests
                              projected.WaitTimerTicks);
             }
 
-            DoorThing[] authoredDoors = things.OfType<DoorThing>().ToArray();
+            DoorThing[] authoredDoors = [.. things.OfType<DoorThing>()];
             for (int i = 0; i < authoredDoors.Length; i++)
             {
                 DoorThing source = authoredDoors[i];
@@ -415,7 +423,7 @@ public class PlacedThingsOnRealDataTests
                 Assert.Equal(source.Unknown_0011.ToArray(), projected.Unknown_0011.ToArray());
             }
 
-            TrapThing[] authoredTraps = things.OfType<TrapThing>().ToArray();
+            TrapThing[] authoredTraps = [.. things.OfType<TrapThing>()];
             for (int i = 0; i < authoredTraps.Length; i++)
             {
                 TrapThing source = authoredTraps[i];
@@ -434,7 +442,7 @@ public class PlacedThingsOnRealDataTests
                 }
             }
 
-            HeroPartyThing[] authoredParties = things.OfType<HeroPartyThing>().ToArray();
+            HeroPartyThing[] authoredParties = [.. things.OfType<HeroPartyThing>()];
             for (int i = 0; i < authoredParties.Length; i++)
             {
                 HeroPartyThing source = authoredParties[i];
@@ -463,7 +471,7 @@ public class PlacedThingsOnRealDataTests
                 }
             }
 
-            EffectGeneratorThing[] authoredGenerators = things.OfType<EffectGeneratorThing>().ToArray();
+            EffectGeneratorThing[] authoredGenerators = [.. things.OfType<EffectGeneratorThing>()];
             for (int i = 0; i < authoredGenerators.Length; i++)
             {
                 EffectGeneratorThing source = authoredGenerators[i];

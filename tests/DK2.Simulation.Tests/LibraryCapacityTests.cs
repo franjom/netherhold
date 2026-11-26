@@ -101,7 +101,7 @@ public sealed class LibraryCapacityTests
         var draws = new Draws();
         new GameSimulation(Db, world, new SimRandom(draws), [new Probe(draws, context =>
             Assert.Equal(!shelvesFull, CreatureStateMachine.TrySetState(context.Hooks, seeker, JobRules.StateFor(JobType.Research)!.Value)))]).Tick();
-        Assert.Equal(shelvesFull ? new[] { 9, 9 } : new[] { 9 }, draws.Bounds);
+        Assert.Equal(shelvesFull ? new[] { 9, 9 } : [9], draws.Bounds);
         Assert.Equal(shelvesFull ? 0 : RoomCapacityRules.Units, RoomCapacityRules.Occupants(world, room));
     }
 

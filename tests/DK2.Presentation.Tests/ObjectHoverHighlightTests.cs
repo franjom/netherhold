@@ -102,8 +102,8 @@ public sealed class ObjectHoverHighlightTests
     public void OnlyTheThreeGoldObjectsCarryTheHoverTextureArtFlag()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        byte[] flagged = db.Objects.Values.Where(ObjectHoverHighlight.UsesHoverTexture)
-            .Select(o => o.ObjectId).OrderBy(id => id).ToArray();
+        byte[] flagged = [.. db.Objects.Values.Where(ObjectHoverHighlight.UsesHoverTexture)
+            .Select(o => o.ObjectId).OrderBy(id => id)];
         Assert.Equal(new byte[] { 1, 2, 3 }, flagged);
     }
 

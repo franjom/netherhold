@@ -65,7 +65,7 @@ public class KwdCreaturesWriterTests
         CheckList(original.UnhappyJobs, (c, a) => c with { UnhappyJobs = a }, c => c.UnhappyJobs, PrefFields(0xE44));
         CheckList(original.AngryJobs, (c, a) => c with { AngryJobs = a }, c => c.AngryJobs, PrefFields(0xE5C));
         CheckList(original.AlternativeJobs, (c, a) => c with { AlternativeJobs = a }, c => c.AlternativeJobs, [(0xE84, 4), (0xE88, 2), (0xE8A, 2)]);
-        JobType[] hates = original.HateJobs.ToArray(); hates[0] = (JobType)13;
+        JobType[] hates = [.. original.HateJobs]; hates[0] = (JobType)13;
         AssertEdit(original with { HateJobs = hates }, 0xE78, 4, c => Assert.Equal(hates, c.HateJobs));
 
         void CheckList<T>(IReadOnlyList<T> list, Func<CreatureDef, T[], CreatureDef> replace,
@@ -147,15 +147,15 @@ public class KwdCreaturesWriterTests
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { HateJobs = [] }, image));
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { AlternativeJobs = [] }, image));
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { Attractions = [] }, image));
-        CreatureSpellSlot[] spells = original.Spells.ToArray(); spells[0] = spells[0] with { CreatureSpellId = 0 };
+        CreatureSpellSlot[] spells = [.. original.Spells]; spells[0] = spells[0] with { CreatureSpellId = 0 };
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { Spells = spells }, image));
-        CreatureResistance[] resists = original.Resistances.ToArray(); resists[0] = resists[0] with { AttackType = 0 };
+        CreatureResistance[] resists = [.. original.Resistances]; resists[0] = resists[0] with { AttackType = 0 };
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { Resistances = resists }, image));
-        CreatureJobPreference[] jobs = original.HappyJobs.ToArray(); jobs[0] = jobs[0] with { Job = JobType.None };
+        CreatureJobPreference[] jobs = [.. original.HappyJobs]; jobs[0] = jobs[0] with { Job = JobType.None };
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { HappyJobs = jobs }, image));
-        JobType[] hates = original.HateJobs.ToArray(); hates[0] = JobType.None;
+        JobType[] hates = [.. original.HateJobs]; hates[0] = JobType.None;
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { HateJobs = hates }, image));
-        CreatureJobAlternative[] alternatives = original.AlternativeJobs.ToArray(); alternatives[0] = alternatives[0] with { Job = JobType.None };
+        CreatureJobAlternative[] alternatives = [.. original.AlternativeJobs]; alternatives[0] = alternatives[0] with { Job = JobType.None };
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original with { AlternativeJobs = alternatives }, image));
         Assert.Throws<InvalidDataException>(() => KwdCreatures.WriteRecord(original,
             new KwdRecordImage(KwdRecordType.Creatures, new byte[5448])));
@@ -215,7 +215,7 @@ public class KwdCreaturesWriterTests
         source[offset + 0x50] = 6;
         CreatureDef original = Read(source);
         var timing = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 40, FramesPerSecond = 20 };
-        CreatureAnimationTiming[] slots = original.ArtSlots.ToArray();
+        CreatureAnimationTiming[] slots = [.. original.ArtSlots];
         slots[slot] = timing;
         byte[] written = KwdCreatures.WriteRecord(original with { ArtSlots = slots }, new KwdRecordImage(KwdRecordType.Creatures, source));
         Assert.Equal(timing, Read(written).ArtSlot(slot));
@@ -262,7 +262,7 @@ public class KwdCreaturesWriterTests
 
     private static byte[] Source(int size)
     {
-        byte[] source = Enumerable.Repeat((byte)0x5A, size).ToArray(); source[0] = (byte)'a'; source[1] = 0; return source;
+        byte[] source = [.. Enumerable.Repeat((byte)0x5A, size)]; source[0] = (byte)'a'; source[1] = 0; return source;
     }
     private static CreatureDef Read(byte[] source) => KwdCreatures.Parse([
         new KwdChunk { Type = KwdRecordType.Creatures, ItemCount = 1, Content = source, HeaderBlock = [] }]).Single();

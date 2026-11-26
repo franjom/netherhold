@@ -46,7 +46,7 @@ public sealed class CampaignResultFlowTests : IDisposable
         variables.Misc[VariableTypeId.AverageTime] = new MiscVariable(VariableTypeId.AverageTime, 30, 0, 0);
         variables.Misc[VariableTypeId.LevelRating] = new MiscVariable(VariableTypeId.LevelRating, 4096, 0, 0);
         var database = new GameDatabase([terrain], [], [], variables);
-        var map = new LevelMap(4, 4, Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16).ToArray());
+        var map = new LevelMap(4, 4, [.. Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16)]);
         return new GameSimulation(database, WorldState.FromMap(database, map, [PlayerIds.Good, Keeper, Rival]), 7);
     }
 

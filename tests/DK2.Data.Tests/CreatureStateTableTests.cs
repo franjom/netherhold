@@ -45,12 +45,11 @@ public sealed class CreatureStateTableTests
     [Fact]
     public void OnlyTheUnusedCategoryOwnsNoStates()
     {
-        CreatureStateCategory[] empty = Enum.GetValues(typeof(CreatureStateCategory))
+        CreatureStateCategory[] empty = [.. Enum.GetValues(typeof(CreatureStateCategory))
             .Cast<CreatureStateCategory>()
-            .Where(c => CreatureStateTable.InCategory(c).Length == 0)
-            .ToArray();
+            .Where(c => CreatureStateTable.InCategory(c).Length == 0)];
 
-        Assert.Equal(new[] { CreatureStateCategory.Unused }, empty);
+        Assert.Equal([CreatureStateCategory.Unused], empty);
     }
 
     /// <summary>The utility states save the caller's state and resume it. Five of 281, and
@@ -59,7 +58,9 @@ public sealed class CreatureStateTableTests
     [Fact]
     public void TheMovementCategoryIsExactlyTheFiveUtilityStates()
     {
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 6, 7, 8, 9, 88 }, CreatureStateTable.InCategory(CreatureStateCategory.Movement));
+#pragma warning restore IDE0300
 
         for (int i = 0; i < CreatureStateTable.Count; i++)
         {
@@ -73,11 +74,15 @@ public sealed class CreatureStateTableTests
     [Fact]
     public void SixStatesCarryNoLabelAndTheRestResolve()
     {
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         int[] unlabelled = Enumerable.Range(0, CreatureStateTable.Count)
             .Where(i => CreatureStateTable.Get(i).LabelStringId == 0)
             .ToArray();
+#pragma warning restore IDE0305
 
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 272, 273, 274, 275, 276, 277 }, unlabelled);
+#pragma warning restore IDE0300
 
         foreach (int i in Enumerable.Range(0, CreatureStateTable.Count).Except(unlabelled))
         {
@@ -104,8 +109,7 @@ public sealed class CreatureStateTableTests
     public void TheNotAttackableStatesAreTheTwentyFive()
     {
         int[] expected = [75, 76, 79, 80, 81, 82, 83, 84, 153, 155, 156, 157, 158, 159, 193, 235, 236, 237, 242, 269, 272, 273, 278, 279, 280];
-        int[] carrying = Enumerable.Range(0, CreatureStateTable.Count)
-            .Where(i => CreatureStateTable.Get(i).Has(CreatureStateFlags.NotAttackable)).ToArray();
+        int[] carrying = [.. Enumerable.Range(0, CreatureStateTable.Count).Where(i => CreatureStateTable.Get(i).Has(CreatureStateFlags.NotAttackable))];
         Assert.Equal(expected, carrying);
     }
 
@@ -153,20 +157,28 @@ public sealed class CreatureStateTableTests
     {
         int[] suppressing = Enumerable.Range(0, CreatureStateTable.Count)
             .Where(i => CreatureStateTable.Get(i).Has(
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
                 CreatureStateFlags.SuppressHungerClock | CreatureStateFlags.SuppressTirednessClock))
             .ToArray();
+#pragma warning restore IDE0305
 
         Assert.Equal(Enumerable.Range(145, 15), suppressing);
 
         Assert.Equal(
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
             new[] { 145, 146, 147, 148, 149, 150, 151, 153 },
+#pragma warning restore IDE0300
             CreatureStateTable.InCategory(CreatureStateCategory.Casino));
 
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         int[] outside = suppressing
             .Where(i => CreatureStateTable.Get(i).Category != CreatureStateCategory.Casino)
             .ToArray();
+#pragma warning restore IDE0305
 
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 152, 154, 155, 156, 157, 158, 159 }, outside);
+#pragma warning restore IDE0300
     }
 
     /// <summary>Neither bit is ever set without the other.</summary>

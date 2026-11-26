@@ -183,7 +183,7 @@ public class ClassicVertexLightShaderTextTests
             Assert.DoesNotContain("skip_vertex_transform", File.ReadAllText(file), StringComparison.Ordinal);
         }
 
-        foreach (string[] defined in new[] { Array.Empty<string>(), new[] { PerPixel }, new[] { PerPixel, Shadows } })
+        foreach (string[] defined in new[] { Array.Empty<string>(), [PerPixel], [PerPixel, Shadows] })
         {
             string world = Normalise(Preprocess(Read(GodotWorld), defined));
             Assert.Matches(@"void vertex\(\) \{((?!void fragment\(\)).)*\bVERTEX = ", world);

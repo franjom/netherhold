@@ -104,13 +104,16 @@ public class ClassicLightWindowTests
         var table = new ClassicLightTable(tile);
         var window = new ClassicLightWindow();
         window.Gather(table, cache, new ClassicLightFrame(1));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 1, 2 }, Ids(table));
+#pragma warning restore IDE0300
         Assert.Contains(new TilePos(-3, -3), cache.Reads);
         Assert.Equal(49, cache.Reads.Count);
 
         cache.Cells.Clear();
         cache.Cells[new TilePos(3, 3)] = new(new[] { Source(3, tile) }, new[] { Source(4, tile) }, new(1));
         window.Gather(table, cache, new ClassicLightFrame(2));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 1, 4 }, Ids(table));
         cache.Cells[new TilePos(3, 3)] = cache.Cells[new TilePos(3, 3)] with { BuildFrame = new(3) };
         window.Gather(table, cache, new ClassicLightFrame(3));
@@ -118,6 +121,7 @@ public class ClassicLightWindowTests
         cache.Cells.Clear();
         window.Gather(table, cache, new ClassicLightFrame(4));
         Assert.Equal(new[] { 3 }, Ids(table));
+#pragma warning restore IDE0300
         cache.Cells[new TilePos(-3, -3)] = new(default, default, new(5));
         window.Gather(table, cache, new ClassicLightFrame(5));
         Assert.Empty(Ids(table));
@@ -141,11 +145,15 @@ public class ClassicLightWindowTests
         var cache = new PreparedCache();
         var window = new ClassicLightWindow();
         var table = new ClassicLightTable(new TilePos(10, 10));
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         table.RebuildStatic(new[] { Source(1, table.Tile) });
+#pragma warning restore IDE0300
         Assert.Throws<ArgumentNullException>(() => window.Gather(null!, cache, new ClassicLightFrame(1)));
         Assert.Throws<ArgumentNullException>(() => window.Gather(table, null!, new ClassicLightFrame(1)));
         Assert.Empty(cache.Reads);
+#pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 1 }, Ids(table));
+#pragma warning restore IDE0300
         window.Gather(table, cache, new ClassicLightFrame(1));
         Assert.Equal(new TilePos(7, 7), cache.Reads[0]);
     }
@@ -208,7 +216,7 @@ public class ClassicLightWindowTests
         => ClassicPointLight.FromTerrain(tile, new Fp32(0), new TerrainLightColour(identity, 0, 0));
 
     private static int[] Ids(ClassicLightTable table)
-        => table.Lights.ToArray().Select(l => (int)MathF.Round(l.Colour.X * 255)).ToArray();
+        => [.. table.Lights.ToArray().Select(l => (int)MathF.Round(l.Colour.X * 255))];
 
     private sealed class PreparedCache : IClassicLightCache
     {

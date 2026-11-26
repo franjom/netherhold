@@ -50,9 +50,7 @@ public sealed class CreatureStateCategoryTableTests
         ref readonly CreatureStateCategoryDef refused =
             ref CreatureStateCategoryTable.Get(CreatureStateCategory.Refused);
 
-        CreatureStateCategoryDef[] naming = CreatureStateCategoryTable.All.ToArray()
-            .Where(d => (d.EntryMask & 1u) != 0)
-            .ToArray();
+        CreatureStateCategoryDef[] naming = [.. CreatureStateCategoryTable.All.ToArray().Where(d => (d.EntryMask & 1u) != 0)];
 
         Assert.NotEmpty(naming);
 
@@ -67,18 +65,16 @@ public sealed class CreatureStateCategoryTableTests
     [Fact]
     public void FiveCategoriesHaveAnUnrestrictedEntryMask()
     {
-        CreatureStateCategory[] unrestricted = CreatureStateCategoryTable.All.ToArray()
+        CreatureStateCategory[] unrestricted = [.. CreatureStateCategoryTable.All.ToArray()
             .Where(d => d.EntryMask == 0)
-            .Select(d => d.Category)
-            .ToArray();
+            .Select(d => d.Category)];
 
         Assert.Equal(
-            new[]
-            {
+            [
                 CreatureStateCategory.Refused, CreatureStateCategory.Movement,
                 CreatureStateCategory.Prison, CreatureStateCategory.Torture,
                 CreatureStateCategory.CombatPit,
-            },
+            ],
             unrestricted);
     }
 
@@ -87,20 +83,18 @@ public sealed class CreatureStateCategoryTableTests
     [Fact]
     public void TenCategoriesHaveNoHookAtAll()
     {
-        CreatureStateCategory[] hookless = CreatureStateCategoryTable.All.ToArray()
+        CreatureStateCategory[] hookless = [.. CreatureStateCategoryTable.All.ToArray()
             .Where(d => !d.HasEnterHook && !d.HasUpdateHook && !d.HasLeaveHook)
-            .Select(d => d.Category)
-            .ToArray();
+            .Select(d => d.Category)];
 
         Assert.Equal(
-            new[]
-            {
+            [
                 CreatureStateCategory.Idle, CreatureStateCategory.Movement,
                 CreatureStateCategory.Unnamed7, CreatureStateCategory.Unnamed18,
                 CreatureStateCategory.Unused, CreatureStateCategory.Payday,
                 CreatureStateCategory.Unnamed21, CreatureStateCategory.Unnamed27,
                 CreatureStateCategory.Unnamed29, CreatureStateCategory.Incapacitated,
-            },
+            ],
             hookless);
     }
 

@@ -356,7 +356,9 @@ public class HeroWalkTests
         follower.LeaderId = leader.Id;
         follower.PositionInParty = 1;
         StatePlacement.Place(follower, HeroJobRules.FollowingState);
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         CreatureState[] storage = world.Creatures.ToArray();
+#pragma warning restore IDE0305
 
         new GameSimulation(db, world, 7, [new HeroSystem()]).Tick();
 
@@ -372,13 +374,13 @@ public class HeroWalkTests
         CreatureState leader = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
         leader.PartyId = 1;
         leader.Flags = 2;
-        CreatureState[] followers = Enumerable.Range(0, 3).Select(_ =>
+        CreatureState[] followers = [.. Enumerable.Range(0, 3).Select(_ =>
         {
             CreatureState follower = world.SpawnCreature(db, Knight, PlayerIds.Good, leader.Tile);
             follower.PartyId = 1;
             follower.Flags = 4;
             return follower;
-        }).ToArray();
+        })];
 
         HeroPartyRules.LinkFollowers(world, 1);
 

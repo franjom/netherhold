@@ -17,10 +17,10 @@ internal static class KwdScalarOverlayChecks
     {
         var fields = fieldList.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(f => f.Split(':'))
             .ToDictionary(f => f[0], f => (Offset: Convert.ToInt32(f[1], 16), Width: int.Parse(f[2])));
-        byte[] source = Enumerable.Repeat((byte)0x5A, stride).ToArray();
+        byte[] source = [.. Enumerable.Repeat((byte)0x5A, stride)];
         source[0] = (byte)'a'; source[1] = 0;
-        PropertyInfo[] properties = read(source).GetType().GetProperties().Where(p => p.SetMethod is not null
-            && !(excludedProperties?.Contains(p.Name) ?? false)).ToArray();
+        PropertyInfo[] properties = [.. read(source).GetType().GetProperties().Where(p => p.SetMethod is not null
+            && !(excludedProperties?.Contains(p.Name) ?? false))];
         Assert.Equal(properties.Length, fields.Count);
         var template = new KwdRecordImage(type, source);
         Assert.Equal(source, write(read(source), template));
@@ -39,7 +39,7 @@ internal static class KwdScalarOverlayChecks
                 : scalar == typeof(Fp32) ? new Fp32(-12345)
                 : scalar == typeof(IReadOnlyList<byte>) ? Enumerable.Range(1, field.Width).Select(i => (byte)i).ToArray()
                 : scalar == typeof(IReadOnlyList<ushort>) ? Enumerable.Range(1, field.Width / 2).Select(i => (ushort)i).ToArray()
-                : scalar == typeof(ReadOnlyMemory<byte>) ? new ReadOnlyMemory<byte>(Enumerable.Range(1, field.Width).Select(i => (byte)i).ToArray())
+                : scalar == typeof(ReadOnlyMemory<byte>) ? new ReadOnlyMemory<byte>([.. Enumerable.Range(1, field.Width).Select(i => (byte)i)])
                 : scalar == typeof(KwdArtResource) ? new KwdArtResource("edited", 0xF1234567,
                     new byte[12], 13, 14, 15, 16)
                 : scalar == typeof(KwdLight) ? new KwdLight(-1, -2, -3, -4, 0xF1234567, 13, 14, 15, 16)

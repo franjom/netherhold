@@ -253,8 +253,7 @@ public sealed class StoreGoldTests
         Assert.Equal(6000, GoldStore.Total(world, Keeper));
         Assert.Empty(world.Objects);
         int[] chain = SlabChain.Order(world, treasury);
-        TilePos[] created = sink.Events.Where(e => e.EffectRequest?.EffectId.Value == 60)
-            .Select(e => e.EffectRequest!.Value.Tile).ToArray();
+        TilePos[] created = [.. sink.Events.Where(e => e.EffectRequest?.EffectId.Value == 60).Select(e => e.EffectRequest!.Value.Tile)];
         TilePos expected = world.TilePosition(chain[(Array.IndexOf(chain, world.TileIndex(new TilePos(5, 5))) + 1) % chain.Length]);
         Assert.Equal([expected], created);
     }

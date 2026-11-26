@@ -47,7 +47,7 @@ public class ObjectPlacementTests
     }
 
     private static List<ObjectView> Decorations(Room room, byte objectTypeId) =>
-        room.View.Decorations(room.World).Where(o => o.ObjectTypeId == objectTypeId).ToList();
+        [.. room.View.Decorations(room.World).Where(o => o.ObjectTypeId == objectTypeId)];
 
     private static int Centre(int tile) => (tile * Fp32.One) + (Fp32.One / 2);
 
@@ -85,7 +85,7 @@ public class ObjectPlacementTests
             ObjectView birdView = room.View.Objects(room.World).Single(o => o.Id == bird.Id);
             Assert.Equal((eggView.PosX, eggView.PosY), (birdView.PosX, birdView.PosY));
         }
-        ObjectView[] birds = room.View.Objects(room.World).Where(o => o.ObjectTypeId == HatcheryRules.ChickenObjectId).ToArray();
+        ObjectView[] birds = [.. room.View.Objects(room.World).Where(o => o.ObjectTypeId == HatcheryRules.ChickenObjectId)];
         Assert.Equal(9, birds.Select(o => (o.PosX, o.PosY)).Distinct().Count());
         Assert.True(birds.Select(o => o.Tile).Distinct().Count() > 1);
     }
@@ -367,7 +367,7 @@ public class ObjectPlacementTests
             Assert.True(art.TryResolve(instance.Mesh, out ResolvedAsset resolved));
             Assert.True(art.TryLoadModel(resolved, out KmfModel? model));
             var turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, instance.MeshYaw * MathF.PI / 1024f);
-            Vector3[] vertices = RenderMesh.FromModel(model).Positions.Select(p => Vector3.Transform(p, turn)).ToArray();
+            Vector3[] vertices = [.. RenderMesh.FromModel(model).Positions.Select(p => Vector3.Transform(p, turn))];
             // The cell is south of its north-rim door tile: both meshes must face that opening.
             Assert.InRange(vertices.Min(p => -p.Z), 0.19f, 0.6f);
             Assert.InRange(vertices.Max(p => -p.Z), 0.19f, 0.6f);

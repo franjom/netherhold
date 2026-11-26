@@ -16,7 +16,7 @@ public class KwdMapEditingTests
     [Fact]
     public void RepaintChangesOnlyTheSelectedFourBytes()
     {
-        KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Map,Enumerable.Range(1,24).Select(i=>(byte)i).ToArray(),0,3,2);
+        KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Map, [.. Enumerable.Range(1,24).Select(i=>(byte)i)], 0,3,2);
         KwdLevelFileSet editor =Set(chunk); var location=new KwdChunkLocation("map.kld",0);
         editor.RepaintMap(location,new TilePos(1,1),new MapTile(13,14,15,16));
         KwdChunk edited=KwdThingEditingTests.Reload(editor.ToBytes("map.kld"));
@@ -35,7 +35,7 @@ public class KwdMapEditingTests
     [Fact]
     public void GrowingAndCroppingRetainCoordinatesAndUseExplicitFillImages()
     {
-        KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Map,Enumerable.Range(1,16).Select(i=>(byte)i).ToArray(),0,2,2);
+        KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Map, [.. Enumerable.Range(1,16).Select(i=>(byte)i)], 0,2,2);
         KwdLevelFileSet editor =Set(chunk); var location=new KwdChunkLocation("map.kld",0);
         var fill=new KwdRecordImage(KwdRecordType.Map,[0xFA,0xFB,0xFC,0xFD]);
         LevelMap original=MapGrid.Parse([chunk])!;
@@ -62,7 +62,7 @@ public class KwdMapEditingTests
     [Fact]
     public void IdentityResizeAndInvalidEditsLeaveAllBytesUnchanged()
     {
-        KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Map,new byte[]{1,2,3,4},0);
+        KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Map,[1,2,3,4],0);
         KwdLevelFileSet editor =Set(chunk); var location=new KwdChunkLocation("map.kld",0);
         var fill=new KwdRecordImage(KwdRecordType.Map,[13,14,15,16]);
         byte[] original=editor.ToBytes("map.kld");

@@ -260,7 +260,9 @@ public class GoldCarryingTests
 
         GameTick fell = Assert.Single(run.Of("gold_mined")).Tick;
         Assert.DoesNotContain(run.Of("delivering"), e => e.Tick == fell);
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([818, 1091], run.World.Creatures.Select(imp => imp.GoldHeld).Order().ToArray());
+#pragma warning restore IDE0305
         Assert.Equal(ImpStates.For(TileWorkKind.MineGold).Work,
             run.World.Creatures.Single(imp => imp.GoldHeld == 1091).Dk2StateId);
         run.Ticks(30);

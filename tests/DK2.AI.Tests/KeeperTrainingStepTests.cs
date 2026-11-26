@@ -90,10 +90,10 @@ public class KeeperTrainingStepTests
     }
 
     private static int[] Lifted(IEnumerable<PlayerCommand> commands) =>
-        commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId).ToArray();
+        [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
 
     private static TilePos[] Drops(IEnumerable<PlayerCommand> commands) =>
-        commands.OfType<DropCommand>().Select(c => c.Tile).ToArray();
+        [.. commands.OfType<DropCommand>().Select(c => c.Tile)];
 
     [Theory]
     [InlineData(PitBar, false)]
@@ -136,7 +136,7 @@ public class KeeperTrainingStepTests
         (int left, List<PlayerCommand> commands) = Run(world);
 
         // Three quarters of 1500 is 1125; a Pit candidate failing it does not fall to Training.
-        Assert.Equal(moved ? [creature.Id] : Array.Empty<int>(), Lifted(commands));
+        Assert.Equal(moved ? [creature.Id] : [], Lifted(commands));
         Assert.Equal(moved ? 3 : 4, left);
     }
 
@@ -211,7 +211,7 @@ public class KeeperTrainingStepTests
 
         (int left, List<PlayerCommand> commands) = Run(world);
 
-        Assert.Equal(moved ? [creature.Id] : Array.Empty<int>(), Lifted(commands));
+        Assert.Equal(moved ? [creature.Id] : [], Lifted(commands));
         Assert.Equal(moved ? 3 : 4, left);
     }
 
@@ -617,7 +617,7 @@ public class KeeperTrainingStepTests
         CreatureState creature = Fighter(world, 2926, level: 2);
         creature.Health = health;
 
-        Assert.Equal(moved ? [PitSlot] : Array.Empty<TilePos>(), Drops(Run(world).Commands));
+        Assert.Equal(moved ? [PitSlot] : [], Drops(Run(world).Commands));
     }
 
     [Theory]

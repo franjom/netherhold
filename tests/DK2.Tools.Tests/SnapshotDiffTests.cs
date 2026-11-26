@@ -309,7 +309,9 @@ public class SnapshotDiffTests
         Assert.Equal(before, File.ReadAllBytes(f.BeforePath));
     }
 
+#pragma warning disable IDE0305 // Preserve the original collection construction or overload.
     private static JsonElement[] Changes(JsonDocument report) => report.RootElement.GetProperty("changes").EnumerateArray().ToArray();
+#pragma warning restore IDE0305
 
     private static void AssertChange(JsonDocument report, string path, string before, string after)
     {
@@ -375,7 +377,7 @@ public class SnapshotDiffTests
 
         private (GameSimulation, CreatureState) Make(int width, int height)
         {
-            var map = new LevelMap(width, height, Enumerable.Repeat(new MapTile(1, 3, 0, 0), width * height).ToArray());
+            var map = new LevelMap(width, height, [.. Enumerable.Repeat(new MapTile(1, 3, 0, 0), width * height)]);
             var world = WorldState.FromMap(Database, map, [3]);
             CreatureState creature = world.SpawnCreature(Database, 1, new PlayerId(3), new TilePos(1, 1));
             creature.NameIndex = 0;
@@ -397,7 +399,7 @@ public class SnapshotDiffTests
         }
 
         public int Run(string? level = "fixture", string? output = null) => SnapshotDiffCommand.Run(
-            ["snapshot-diff", BeforePath, AfterPath, output ?? Output, .. level is null ? Array.Empty<string>() : new[] { "--level", level }],
+            ["snapshot-diff", BeforePath, AfterPath, output ?? Output, .. level is null ? Array.Empty<string>() : ["--level", level]],
             _ => Database);
 
         public JsonDocument Report() => JsonDocument.Parse(File.ReadAllText(Output));
